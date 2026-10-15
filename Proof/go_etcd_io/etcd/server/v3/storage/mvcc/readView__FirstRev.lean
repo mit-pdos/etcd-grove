@@ -47,7 +47,7 @@ theorem mvcc.readView.FirstRev.wp_proof
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
   wp_apply (hRead s γ _ t 0 [] true clb iprop(True)) $$ [$Hs $Hrd $Hnone $Hc0 $Hclb $Htrc]
-    as %mw ⟨%log, %rev, %crev, Htx, -, #Hlbc, %Hp⟩
+    as %mw ⟨%log, %rev, %crev, Htx, -, #Hlbc, #Hrok, %Hp⟩
   · isplitr
     · iintro !>; itrivial
     ipureintro; exact Ht

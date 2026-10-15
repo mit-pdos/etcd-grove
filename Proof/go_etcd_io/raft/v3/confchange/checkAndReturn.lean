@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/confchange_checkAndReturn.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/confchange/checkAndReturn.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -25,12 +25,25 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem confchange.checkAndReturn.wp_proof
     (wp_confchange_checkInvariants : confchange.checkInvariants.spec (GF := GF) (hG := hG)) :
     confchange.checkAndReturn.spec (GF := GF) (hG := hG) := by
-  intro cfg trk v vm prs dqv dqp Hcfg Hdom
-  wp_start as ⟨Hv, Htrk⟩
+  intro cfg trk c prs pvs dqc dqm dqp
+  wp_start as ⟨Hc, Htrk, Hprs⟩
   wp_auto
-  wp_apply wp_confchange_checkInvariants _ _ v vm prs _ _ Hcfg Hdom $$ [$Hv $Htrk]
-    as ⟨Hv, Htrk⟩
-  wp_end
+  wp_apply wp_confchange_checkInvariants cfg trk c prs pvs dqc dqm dqp $$ [$Hc $Htrk $Hprs]
+    as %err ⟨Hc, Htrk, Hprs, %Herr⟩
+  cases err with
+  | nil =>
+    wp_auto
+    iapply HΦ
+    iframe
+    ipureintro
+    exact .inl ⟨Herr.1 rfl, rfl, rfl, rfl⟩
+  | ok e =>
+    wp_auto
+    wp_apply wp_map_make1 (K := w64) (V := Loc) as %m Hm
+    iapply HΦ
+    iframe
+    ipureintro
+    exact .inr ⟨fun h => (nomatch Herr.2 h), fun h => (nomatch h)⟩
 
 end proof
 

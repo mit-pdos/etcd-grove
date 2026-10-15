@@ -127,21 +127,22 @@ def authReqContract (ai : GoInterfaceOk) (m : GoString) (T : Type) (P : IProp GF
 /-- A permission check `m(authInfo, key...)` of the auth store, with the caller's reader
 resource `RD` (held and given back) and the key shorter than `2 ^ 63 - 1`: some error; the
 caller's `AuthInfo` and keys kept. -/
-def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) : IProp GF :=
+def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (on : Bool) : IProp GF :=
   iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8)
       (dk : DFrac),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ applyErrIs err }}))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ applyErrIs err ∗
+        ⌜on = false → err = GoInterface.nil⌝ }}))
 
 /-- A permission check `m(authInfo, key, rangeEnd)` of the auth store (as `permCheck2`). -/
-def permCheck3 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) : IProp GF :=
+def permCheck3 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (on : Bool) : IProp GF :=
   iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
       (dk de : DFrac),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
     {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
-        applyErrIs err }}))
+        applyErrIs err ∗ ⌜on = false → err = GoInterface.nil⌝ }}))
 
 /-- **The `auth.AuthStore` `st`** as the apply package uses it, whose writes run under the batch
 lock with invariant `P` and hook `f`, and whose request side takes the caller's reader resource
@@ -149,15 +150,22 @@ lock with invariant `P` and hook `f`, and whose request side takes the caller's 
 read transaction, a reader slot each; `auth.authRd st R` of the real store). The permission checks,
 `IsAdminPermitted`, `IsAuthEnabled` and `Revision` are the real store's (`isAuthStore_of_authInv`,
 `AuthDerive.lean`); `HasRole` and the admin requests (`AuthEnable` ...) are its contract
-(`isAuthStoreAdmin`, the premise). -/
-def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF) : IProp GF :=
+(`isAuthStoreAdmin`, the premise).
+
+**Its mode `on`** (2026-10-14, unit T1): with `on = false` the store is disabled and stays so
+(Go's `isOpPermitted` and `IsAdminPermitted` return `nil` when `!as.IsAuthEnabled()`): the
+permission checks and `IsAdminPermitted` return `nil`, and `AuthEnable` is not called (its
+precondition `⌜on = true⌝`). The real store meets the contract at `on = true` (`AuthDerive.lean`). -/
+def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF) (on : Bool) :
+    IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    permCheck2 ai go!"IsPutPermitted" RD ∗
-    permCheck3 ai go!"IsRangePermitted" RD ∗
-    permCheck3 ai go!"IsDeleteRangePermitted" RD ∗
+    permCheck2 ai go!"IsPutPermitted" RD on ∗
+    permCheck3 ai go!"IsRangePermitted" RD on ∗
+    permCheck3 ai go!"IsDeleteRangePermitted" RD on ∗
     □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac),
       {{ a ↦{dq} info ∗ RD }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
-      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ applyErrIs err }}) ∗
+      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ applyErrIs err ∗
+          ⌜on = false → err = GoInterface.nil⌝ }}) ∗
     □ (∀ (u r : GoString),
       {{ True }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
       {{ (b : Bool), RET #b; True }}) ∗
@@ -166,7 +174,8 @@ def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF) : IP
     □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
       {{ (x : w64), RET #x; True }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
+      {{ ⌜on = true⌝ ∗ mvcc.csContract P f Pre Q Post }}
+        (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ applyErrIs err }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
       {{ mvcc.csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
@@ -191,8 +200,8 @@ def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF) : IP
     authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse P f ∗
     authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse P f)
 
-instance isAuthStore_persistent (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF) :
-    Persistent (isAuthStore st P f RD) := by
+instance isAuthStore_persistent (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF)
+    (on : Bool) : Persistent (isAuthStore st P f RD on) := by
   unfold isAuthStore permCheck2 permCheck3 authReqContract; infer_instance
 
 /-! ## The lessor -/
@@ -251,7 +260,9 @@ def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : 
           applyErrIs err }}) ∗
     □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
       {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
-          lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) }}
+          lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
+          (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
+            mvcc.certOkNext γ log pend) }}
         (App (Val #(methods li.ty go!"Revoke" li.v)) (Val #id))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
           (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
@@ -398,13 +409,16 @@ def quotaReqTy (t : go.GoType) : Prop :=
   t = go.GoType.PointerType etcdserverpb.TxnRequest.ty ∨
   t = go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty
 
-/-- **The `storage.Quota` `q`** (trust boundary: `storage` is names-only): `Available` (whether
-the backend has room) and `Cost` return, on the three request types. -/
+/-- **The `storage.Quota` `q`** (trust boundary: `storage` is names-only): `Available` and `Cost`
+return, on the three request types. **`Available` returns `true`** (2026-10-14, unit T1): the
+backend never reaches its quota (the disk never fills), a construction premise; so no applier sets
+`ErrNoSpace` and the server never proposes the NOSPACE `Alarm` (`server.go:1976`,
+`quotaAlarmer.check`). -/
 def isQuota (q : GoInterface) : IProp GF :=
   iprop(∃ qi : GoInterfaceOk, ⌜q = GoInterface.ok qi⌝ ∗
     □ (∀ (t : go.GoType) (p : Loc), ⌜quotaReqTy t⌝ -∗
       {{ True }} (App (Val #(methods qi.ty go!"Available" qi.v)) (Val #(interface.mkOk t #p)))
-      {{ (b : Bool), RET #b; True }}) ∗
+      {{ (b : Bool), RET #b; ⌜b = true⌝ }}) ∗
     □ (∀ (t : go.GoType) (p : Loc), ⌜quotaReqTy t⌝ -∗
       {{ True }} (App (Val #(methods qi.ty go!"Cost" qi.v)) (Val #(interface.mkOk t #p)))
       {{ (c : w64), RET #c; True }}))

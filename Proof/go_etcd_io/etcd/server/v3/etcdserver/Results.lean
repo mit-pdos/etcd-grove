@@ -71,9 +71,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 /-! ## One entry -/
 
 /-- The chain stays one the uber-applier builds (`alarmChain`) across an entry. -/
-theorem batchStep_alarmChain (c : w64) (m : EntryModel) (y y' : apply.ApplyKV) (ns cr : Bool)
-    (h : batchStep c m y y') (hc : y.chain = apply.alarmChain ns cr) :
-    ∃ ns' cr', y'.chain = apply.alarmChain ns' cr' := by
+theorem batchStep_alarmChain (on : Bool) (c : w64) (m : EntryModel) (y y' : apply.ApplyKV) (ns cr : Bool)
+    (h : batchStep c m y y') (hc : y.chain = apply.alarmChain on ns cr) :
+    ∃ ns' cr', y'.chain = apply.alarmChain on ns' cr' := by
   unfold batchStep at h
   split at h
   · obtain ⟨out, h⟩ := h
@@ -87,16 +87,16 @@ theorem batchStep_alarmChain (c : w64) (m : EntryModel) (y y' : apply.ApplyKV) (
       | dispatched o sk =>
         rcases h.2.2.2 with h' | ⟨-, -, ns', cr', h'⟩
         · rw [h', hc]; exact ⟨ns, cr, rfl⟩
-        · exact ⟨ns', cr', h'⟩
+        · rw [hc, apply.alarmChain_authOn] at h'; exact ⟨ns', cr', h'⟩
   · rw [h]; exact ⟨ns, cr, hc⟩
 
 /-- **A KV entry above `ci`** (`v3`): skipped (no data, or no waiter and no side effect) or
 rejected by the admin check, the state as it is; or dispatched, its outcome the chain's in the
 txn package's terms (`apply.apply_kv`). -/
 theorem entryStep_kv (m : EntryModel) (y y' : apply.ApplyKV) (out : apply.ApplyOut)
-    (rq : apply.IRRModel) (ns cr : Bool) (h : entryStep m true y y' out)
+    (rq : apply.IRRModel) (on ns cr : Bool) (h : entryStep m true y y' out)
     (hd : apply.irrDecode m.data = some rq) (hk : apply.isKVKind (apply.dispatchKind rq) = true)
-    (hc : y.chain = apply.alarmChain ns cr) :
+    (hc : y.chain = apply.alarmChain on ns cr) :
     ((out = .skipped ∨ out = .rejected) ∧ y' = y) ∨
     ∃ o sk, out = .dispatched o sk ∧ y'.log = o.logAfter y.log ∧ y'.chain = y.chain ∧
       ((∃ op, rq.put = some op ∧ apply.dispatchKind rq = .put ∧
@@ -111,7 +111,7 @@ theorem entryStep_kv (m : EntryModel) (y y' : apply.ApplyKV) (out : apply.ApplyO
   · exact Or.inl ⟨Or.inl h.2, h.1⟩
   · obtain ⟨rq', -, hd', -, h⟩ := h
     rw [hd] at hd'; cases hd'
-    exact apply.apply_kv rq y y' out ns cr hc hk h
+    exact apply.apply_kv rq y y' out on ns cr hc hk h
 
 /-- **A replayed entry changes nothing** (`v3 = false`). -/
 theorem entryStep_no_v3 (m : EntryModel) (y y' : apply.ApplyKV) (out : apply.ApplyOut)
@@ -223,15 +223,15 @@ request is skipped or rejected by the admin check (the state as it is), or dispa
 outcome of the chain at the state it meets (`alarmPut`/`alarmDelete`/`alarmRange`/`alarmTxn`:
 the txn package's `putModel`/`deleteModel`/the range/`txnModel`, or a layer's rejection), which
 commits the log `o.logAfter`. -/
-theorem applyEntries_kv (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV) (ns0 cr0 : Bool)
-    (h : entriesStep c ms x x') (hc0 : x.chain = apply.alarmChain ns0 cr0) :
+theorem applyEntries_kv (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV) (on ns0 cr0 : Bool)
+    (h : entriesStep c ms x x') (hc0 : x.chain = apply.alarmChain on ns0 cr0) :
     ∃ xs : List apply.ApplyKV, xs.length = ms.length + 1 ∧ xs[0]? = some x ∧
       xs[ms.length]? = some x' ∧
       ∀ (n : Nat) (m : EntryModel) (y y' : apply.ApplyKV) (rq : apply.IRRModel),
         ms[n]? = some m → xs[n]? = some y → xs[n + 1]? = some y' →
         m.typ = W32 0 → uint.Z c < uint.Z m.index → apply.irrDecode m.data = some rq →
         apply.isKVKind (apply.dispatchKind rq) = true →
-        ∃ (ns cr : Bool) (out : apply.ApplyOut), y.chain = apply.alarmChain ns cr ∧
+        ∃ (ns cr : Bool) (out : apply.ApplyOut), y.chain = apply.alarmChain on ns cr ∧
           (((out = .skipped ∨ out = .rejected) ∧ y' = y) ∨
           ∃ o sk, out = .dispatched o sk ∧ y'.log = o.logAfter y.log ∧ y'.chain = y.chain ∧
             ((∃ op, rq.put = some op ∧ apply.dispatchKind rq = .put ∧
@@ -247,7 +247,7 @@ theorem applyEntries_kv (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV) 
     exact ⟨[x'], rfl, rfl, rfl, by simp⟩
   | cons m0 ms ih =>
     obtain ⟨x1, h1, hr⟩ := h
-    obtain ⟨ns1, cr1, hc1⟩ := batchStep_alarmChain c m0 x x1 ns0 cr0 h1 hc0
+    obtain ⟨ns1, cr1, hc1⟩ := batchStep_alarmChain on c m0 x x1 ns0 cr0 h1 hc0
     obtain ⟨xs, hl, h0, hL, hs⟩ := ih x1 ns1 cr1 hr hc1
     refine ⟨x :: xs, by simp [hl], rfl, by simpa using hL, ?_⟩
     intro n m y y' rq hm hy hy' ht hgt hd hk
@@ -260,7 +260,7 @@ theorem applyEntries_kv (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV) 
       rw [ite_eq_left ht] at h1
       obtain ⟨out, h1⟩ := h1
       rw [decide_eq_true hgt] at h1
-      exact ⟨ns0, cr0, out, hc0, entryStep_kv _ _ _ out rq ns0 cr0 h1 hd hk hc0⟩
+      exact ⟨ns0, cr0, out, hc0, entryStep_kv _ _ _ out rq on ns0 cr0 h1 hd hk hc0⟩
     | succ n =>
       simp only [List.getElem?_cons_succ] at hm hy hy'
       exact hs n m y y' rq hm hy hy' ht hgt hd hk
@@ -350,13 +350,15 @@ through `m.index` (`srvAppliedPre`), the witness the result carries. -/
 theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
-    (id : w64) (t : GName) (v : w64) (hne : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
-    (hid : apply.irrId rq = some id) :
+    (id : w64) (t : GName) (v : w64) (A : List EntryModel) (hne : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (hid : apply.irrId rq = some id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ waitRegd ρ.wait id t ∗ entryAt e m ∗
         applyThread γ st ∗ applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
         srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗
         srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
+        kvApplied γr.raft γr.kv A x ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+        ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
         ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
@@ -368,15 +370,15 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m v3 x x' out⌝ ∗ (⌜out.waived = false⌝ ∨ waitGone ρ.wait id t) ∗
-          srvAppliedPre γr v m.index x'.log) ∗
+          srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x') ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
          else applyThread γ st) }} := by
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, %Hvi,
-    %Hpo, Hv3⟩ HΦ
-  iapply (EtcdServer.wp_applyEntryNormal s γ ci TM E ρ b e m st v3 x γr (some t) v)
-    $$ [Hst Hbe Hlr Hgr HKV Hwt Hv3 Hao]
-  · iframe Hst Hbe Hlr Hgr HKV Hwt Hv3 Hao
+  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, Hka,
+    #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
+  iapply (EtcdServer.wp_applyEntryNormal s γ ci TM E ρ b e m st v3 x γr (some t) v A)
+    $$ [Hst Hbe Hlr Hgr HKV Hwt Hv3 Hao Hka]
+  · iframe Hst Hbe Hlr Hgr HKV Hwt Hv3 Hao Hka
     iframe #
     isplitr
     · iunfold entryRegd
@@ -388,13 +390,13 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       subst this
       iunfold waitRegdOpt
       iexact Hreg
-    ipureintro; exact ⟨Hvi, Hpo⟩
+    ipureintro; exact ⟨HkA, Hvi, Hpo⟩
   inext
-  iintro ⟨Hbe, Hlr, Hgr, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre⟩, Hpost⟩
+  iintro ⟨Hbe, Hlr, Hgr, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka⟩, Hpost⟩
   iapply HΦ
   iframe Hbe Hlr Hgr Hpost
   iexists x', out
-  iframe HKV Hpre
+  iframe HKV Hpre Hka
   isplitr
   · ipureintro; exact Hstep
   iunfold entryDelivered at Hdel
@@ -422,15 +424,15 @@ theorem idutil_next : idutil.Generator.Next.spec (GF := GF) (hG := hG) :=
 end request
 
 /-- **What a successful `Put` applied** (pure; the success components of `put_applied`): through
-the uber-applier's chain `alarmChain ns cr`, the put's outcome is `alarmPut` (the txn package's
+the uber-applier's chain `alarmChain on ns cr`, the put's outcome is `alarmPut` (the txn package's
 `putModel`, or a layer's rejection) and the log after is the outcome's. -/
 theorem put_applied_model (op : OpFull) (hm : apply.HeaderModel) (x x' : apply.ApplyKV)
-    (o : apply.Outcome) (skip ns cr : Bool) (hc : x.chain = apply.alarmChain ns cr)
+    (o : apply.Outcome) (skip on ns cr : Bool) (hc : x.chain = apply.alarmChain on ns cr)
     (h : apply.applyStep (apply.withHeader (irrPut op) hm) true x x' (.dispatched o skip)) :
     x'.log = o.logAfter x.log ∧ apply.alarmPut ns cr op x.log o := by
   have hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
     simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
-  rcases apply.apply_kv _ x x' _ ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
+  rcases apply.apply_kv _ x x' _ on ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
   · rcases hout with h1 | h1 <;> cases h1
   · cases hout
     refine ⟨hlog, ?_⟩
@@ -439,19 +441,19 @@ theorem put_applied_model (op : OpFull) (hm : apply.HeaderModel) (x x' : apply.A
       subst hop; exact ha
     all_goals (rw [hk] at hd; cases hd)
 
-/-- **What a successful `DeleteRange` applied** (pure): through `alarmChain ns cr`, the delete's
+/-- **What a successful `DeleteRange` applied** (pure): through `alarmChain on ns cr`, the delete's
 outcome is `alarmDelete` of the decoded request's delete `op'` (`deleteModel`, or a layer's
 rejection), the log after the outcome's. -/
 theorem deleteRange_applied_model (op op' : OpFull) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
-    (x x' : apply.ApplyKV) (o : apply.Outcome) (skip ns cr : Bool)
-    (hc : x.chain = apply.alarmChain ns cr)
+    (x x' : apply.ApplyKV) (o : apply.Outcome) (skip on ns cr : Bool)
+    (hc : x.chain = apply.alarmChain on ns cr)
     (hw : irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq')
     (hop : rq'.deleteRange = some op')
     (h : apply.applyStep rq' true x x' (.dispatched o skip)) :
     x'.log = o.logAfter x.log ∧ apply.alarmDelete cr op' x.log o := by
   have hk : apply.dispatchKind rq' = .deleteRange := by
     rw [hw.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
-  rcases apply.apply_kv _ x x' _ ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
+  rcases apply.apply_kv _ x x' _ on ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
   · rcases hout with h1 | h1 <;> cases h1
   · cases hout
     refine ⟨hlog, ?_⟩
@@ -476,8 +478,10 @@ context's).
 
 **`txn_readonly`** (linked `EtcdServer.Txn` at a read-only request): the server's run of the
 transaction at a certified log (`txnReadOk`, both serializability modes: after the read index
-unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request):
-the apply thread's application of the request the proposed data decode to (`txnAppliedOk`),
+unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request,
+with its client's update over the whole state, `txnPermit`; 2026-10-15, unit T2): the apply
+thread's application of the request the proposed data decode to (`txnAppliedOk`) and `□ Q` of the
+state the update linearized at,
 possibly with header-only ranges (`SkipRangeExecution`: the apply loops call the wait's
 `IsRegistered` knowing nothing of the id's registration, so the model admits the run of a
 transaction whose waiter had timed out, the plan's suspect 2, here for a waiter that did not;
@@ -515,9 +519,12 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
             txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ Hpre HΦ
-  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te F) $$ [Hpre]
-  · iexact Hpre
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
+  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
+  · iframe #; iframe Hrc Hct Hot
+    isplitr
+    · ipureintro; exact Hv
+    iunfold kvDep; iright; ipureintro; rfl
   inext
   iintro %resp %err ⟨Hrc, H⟩
   iapply HΦ
@@ -526,7 +533,7 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   · ileft
     iunfold rangeReadOk at H
     simp only [hlin, Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%log, #Hc, %Hl, #Hrl, #Hres, Hown⟩
+    icases H with ⟨%log, #Hc, %Hl, #Hrl, -, #Hres, Hown⟩
     iunfold readLogOk at Hrl
     icases Hrl with ⟨#Hri, #Hlog⟩
     isplitr
@@ -557,8 +564,11 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   ihave %Hset := txn.rangeRequestIs_sortSet r o $$ Hr
-  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te F) $$ [Hrc Hct Hot]
-  · iframe #; iframe Hrc Hct Hot; ipureintro; exact Hv
+  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
+  · iframe #; iframe Hrc Hct Hot
+    isplitr
+    · ipureintro; exact Hv
+    iunfold kvDep; iright; ipureintro; rfl
   inext
   iintro %resp %err ⟨Hrc, H⟩
   iapply HΦ
@@ -566,7 +576,7 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases H with (⟨%Hok, H⟩ | H)
   · ileft
     iunfold rangeReadOk at H
-    icases H with ⟨%log, #Hcert, %Hlen, -, #Hres, Hown⟩
+    icases H with ⟨%log, #Hcert, %Hlen, -, -, #Hres, Hown⟩
     isplitr
     · ipureintro; exact Hok
     iexists log
@@ -593,10 +603,13 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t resp) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te F
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t (fun _ => iprop(True)) ot te F
   simp only [hro, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot]
-  · iframe #; iframe Hlt Hcr Hrc Hct Hot; ipureintro; exact fun _ => Hg
+  · iframe #; iframe Hlt Hcr Hrc Hct Hot
+    first
+      | (ipureintro; exact fun _ => Hg)
+      | (isplitr; ipureintro; exact fun _ => Hg; itrivial)
   inext
   iintro %resp %err ⟨Hlt, Hrc, Hcr, H⟩
   iapply HΦ
@@ -605,23 +618,25 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
 /-- **`txn_applied`** (see the section header). -/
 theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
-    (ot : Option Loc) (te : Bool) (F : mvcc.Log)
+    (Q : KVState → IProp GF) (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hw : txn.txnReadonly t = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
-        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F }}
+        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F ∗
+        txnPermit ρ.kv t Q }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp) ∨
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp ∗
+            ∃ σ : KVState, □ Q σ) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, #HF⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te F
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q ot te F
   simp only [hw, Bool.false_eq_true, ↓reduceIte] at hT
-  iapply hT $$ [Hlt Hcr Hrc Hct Hot]
-  · iframe #; iframe Hlt Hcr Hrc Hct Hot; ipureintro; exact fun h => h.elim
+  iapply hT $$ [Hlt Hcr Hrc Hct Hot Hnp]
+  · iframe #; iframe Hlt Hcr Hrc Hct Hot Hnp; ipureintro; exact fun h => h.elim
   inext
   iintro %resp %err ⟨Hlt, Hrc, H⟩
   iapply HΦ
@@ -630,19 +645,19 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
 end read
 
 /-- **What a successful writing `Txn` applied** (pure; the success components of `txn_applied`):
-through the uber-applier's chain `alarmChain ns cr`, the transaction `t'` of the decoded request
+through the uber-applier's chain `alarmChain on ns cr`, the transaction `t'` of the decoded request
 has the outcome `alarmTxn` (the txn package's `txnModel`, or a layer's rejection), the log after
 the outcome's. -/
 theorem txn_applied_model (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
-    (x x' : apply.ApplyKV) (o : apply.Outcome) (skip ns cr : Bool)
-    (hc : x.chain = apply.alarmChain ns cr)
+    (x x' : apply.ApplyKV) (o : apply.Outcome) (skip on ns cr : Bool)
+    (hc : x.chain = apply.alarmChain on ns cr)
     (hw : irrWireOf (apply.withHeader (irrTxn t) hm) rq')
     (ht : rq'.txn = some t')
     (h : apply.applyStep rq' true x x' (.dispatched o skip)) :
     x'.log = o.logAfter x.log ∧ apply.alarmTxn ns cr t' x.log o := by
   have hk : apply.dispatchKind rq' = .txn := by
     rw [hw.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
-  rcases apply.apply_kv _ x x' _ ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
+  rcases apply.apply_kv _ x x' _ on ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
   · rcases hout with h1 | h1 <;> cases h1
   · cases hout
     refine ⟨hlog, ?_⟩
@@ -704,6 +719,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
         ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
         txn.isKV (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) s γ ∗ mvcc.hookIs γ Pk #f ∗
+        ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReader s γ) ∗
         txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s }} := by
@@ -713,7 +729,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   iapply wp_fupd
   wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf hcfg) $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd]
-    as %s ⟨%γ, %Hγ, #Hst, #Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
+    as %s ⟨%γ, %Hγ, #Hst, Hcok, #Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
   · iframe #; iframe Hv Hrg Hrts Hlrd
     unfold backend.wbTok
     iframe Hw1 Hw2
@@ -727,7 +743,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   iexists γ
   isplitr
   · ipureintro; exact Hγ
-  iframe Hhk' Hrds Hcl
+  iframe Hhk' Hrds Hcl Hcok
   isplitr
   · iunfold txn.isKV; iframe Hst; ipureintro; rfl
   isplitl [Htoks]
@@ -858,6 +874,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         txn.isKV (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) s γ ∗
         mvcc.hookIs γ (batchLockInv γA (metaTM d.γB d.P)) #f ∗
+        ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReader s γ) ∗
         txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s }} := by
@@ -902,7 +919,9 @@ theorem lessor_apply_contract (lp : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f ∗
       □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
         {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
-            lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) }}
+            lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
+            (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
+              mvcc.certOkNext γ log pend) }}
           (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
             go!"Revoke")) (Val #id))
         {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗

@@ -46,7 +46,7 @@ postcondition's implication says.
 
 Since 2026-10-01 the triple takes an *arbitrary* batch (until then it required the
 all-empty one and returned `RET #true`), because `appendEntry` was widened to arbitrary
-`EntryNormal` proposals and has a reachable drop path. The result is a bare
+proposals (until 2026-10-13 of `EntryNormal` entries) and has a reachable drop path. The result is a bare
 `ok : Bool`: the exact reject condition reads `r.uncommittedSize` and
 `r.maxUncommittedSize`, neither of which `NState` holds, so it cannot be stated against
 `ownRaftPhys`; what *can* be stated is the empty-batch implication above. On either
@@ -59,6 +59,21 @@ Stated against `ownRaftPhys` and the batch, which is all the body touches
 new `uncommittedSize` is not named because no predicate in this development mentions
 the field. -/
 abbrev raft.increaseUncommittedSize.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
+    (ents : List raftpb.Entry) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hes" ∷ es ↦*{dq} ents }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"increaseUncommittedSize"))
+      (Val #es))
+  {{ (ok : Bool), RET #ok;
+      ownRaftPhysCV c c.voters r id s ∗ es ↦*{dq} ents ∗
+      -- an all-empty batch is never rejected
+      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.increaseUncommittedSize.spec` by `raft.increaseUncommittedSize.spec_simple`. -/
+abbrev raft.increaseUncommittedSize.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List raftpb.Entry) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -68,8 +83,22 @@ abbrev raft.increaseUncommittedSize.spec : Prop :=
       (Val #es))
   {{ (ok : Bool), RET #ok;
       ownRaftPhys cfg r id s ∗ es ↦*{dq} ents ∗
-      -- an all-empty batch is never rejected
       ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true⌝ }}
+
+open Iris.ProofMode in
+theorem raft.increaseUncommittedSize.spec_simple
+    (H : raft.increaseUncommittedSize.spec (GF := GF) (hG := hG)) :
+    raft.increaseUncommittedSize.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s es ents dq
+  iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s es ents dq $$ [$Hpkg $Hphys $Hes]
+  inext
+  iintro %ok ⟨Hphys, Hes, %Hok⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys Hes
+  ipureintro; exact Hok
 
 end spec
 

@@ -30,14 +30,14 @@ index is at least `n` (a read state answering one of the call's requests, each r
 The logger's resource `LR` is given back; the id resource `NR` comes from the server's premise
 `□ |==> NR` (the id budget). -/
 abbrev read.Read.requestCurrentIndex.spec : Prop :=
-  ∀ (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) (LR NR : IProp GF) (lcn : Loc)
-    (n : w64),
+  ∀ (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) (lcn : Loc)
+    (n : w64) (Qr : List EntryModel → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
       isReadLoopPre r γr RQ LR NR ∗ LR ∗ □ (|==> NR) ∗ bcastChan lcn iprop(True) ∗
-      committedAtLeast γr n }}
+      committedAtLeast γr n ∗ srvReadAu γr.raft Qr }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"requestCurrentIndex")) (Val #lcn))
   {{ (ci : w64) (err : GoInterface), RET (PairV #ci #err); LR ∗ applyErrIs err ∗
-      (⌜err = GoInterface.nil⌝ -∗ ⌜uint.Z n ≤ uint.Z ci⌝) }}
+      (⌜err = GoInterface.nil⌝ -∗ ⌜uint.Z n ≤ uint.Z ci⌝ ∗ srvReadWit γr.raft Qr ci) }}
 
 end spec
 

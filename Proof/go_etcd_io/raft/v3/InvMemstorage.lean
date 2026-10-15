@@ -58,7 +58,7 @@ variable [FfiSyntax]
 boundary and the snapshot are the same, and the entries are `σ`'s or, with a batch
 pending, `σ`'s with the batch appended; with nothing pending, exactly `σ`. -/
 def MemView (σ σp : StorState) : Prop :=
-  σp.prev = σ.prev ∧ σp.ss = σ.ss ∧
+  σp.prev = σ.prev ∧ (σp.ss = σ.ss ∧ σp.scs = σ.scs ∧ σp.sal = σ.sal) ∧
   (σp.ents = σ.ents ∨ (σ.pend ≠ [] ∧ σp.ents = storApp σ σ.pend)) ∧
   (σ.pend = [] → σp = σ)
 
@@ -66,6 +66,43 @@ def MemView (σ σp : StorState) : Prop :=
 def memStorEmpty : StorState :=
   { prev := entryID.mk (W64 0) (W64 0), ents := [], ss := entryID.mk (W64 0) (W64 0),
     pend := [] }
+
+/-- The storage once `ApplySnapshot(snap)` succeeded (2026-10-12): the boundary is the
+snapshot's id, nothing stored after it, the snapshot is `snap` (2026-10-15, stage S: with the
+lists `cl` behind its `ConfState`), nothing pending. -/
+def memStorApplied (snap : raftpb.Snapshot) (cl : CSLists) : StorState :=
+  { prev := snapId snap, ents := [], ss := snapId snap, pend := [], scs := cl,
+    sal := snap.Metadata'.ConfState'.AutoLeave' }
+
+/-- The storage once `Compact(ci)` succeeded (2026-10-12): the boundary is `ci` at the
+term `t` (its entry's), the stored entries those after it. -/
+def memStorCompacted (σ : StorState) (ci t : w64) : StorState :=
+  { σ with prev := entryID.mk t ci,
+           ents := σ.ents.drop (uint.Z ci - uint.Z σ.prev.index').toNat }
+
+/-- The snapshot `CreateSnapshot(i, cs, data)` leaves (2026-10-12): `snap`'s metadata at
+`i` and the term `t` of `i`, its `ConfState` replaced by `*cs` when given (`ocs`), its
+data `data`. -/
+def memSnapCreated (snap : raftpb.Snapshot) (i t : w64) (ocs : Option raftpb.ConfState)
+    (data : GoSlice) : raftpb.Snapshot :=
+  { snap with
+    Metadata' := { snap.Metadata' with
+      Index' := i, Term' := t, ConfState' := ocs.getD snap.Metadata'.ConfState' },
+    Data' := data }
+
+/-- What `CreateSnapshot` stores of the `ConfState` it is given (2026-10-14, B8): exactly
+`*cs`; with `cs = nil`, the previous snapshot's. So an obligation the application states on the
+`ConfState` it passes (A3, `SnapObl`, `SnapConf.lean`) holds of the stored one. -/
+theorem memSnapCreated_confState (snap : raftpb.Snapshot) (i t : w64) (c : raftpb.ConfState)
+    (data : GoSlice) : (memSnapCreated snap i t (some c) data).Metadata'.ConfState' = c := rfl
+
+theorem memSnapCreated_confState_none (snap : raftpb.Snapshot) (i t : w64) (data : GoSlice) :
+    (memSnapCreated snap i t none data).Metadata'.ConfState' = snap.Metadata'.ConfState' := rfl
+
+/-- The created snapshot's id: the index given, the term of that index. -/
+theorem memSnapCreated_snapId (snap : raftpb.Snapshot) (i t : w64)
+    (ocs : Option raftpb.ConfState) (data : GoSlice) :
+    snapId (memSnapCreated snap i t ocs data) = entryID.mk t i := rfl
 
 /-- A list between `H` and `H ++ [x]` in the prefix order is one of the two. -/
 theorem prefix_between {A : Type _} (H D : List A) (x : A) (H1 : H <+: D)
@@ -158,11 +195,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 instance storState_countable : Pos.Countable StorState :=
-  .ofInjective (fun σ => Pos.Countable.encode (((σ.prev, σ.ents), σ.ss), σ.pend))
-    (fun ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h => by
+  .ofInjective (fun σ => Pos.Countable.encode
+      (((((σ.prev, σ.ents), σ.ss), σ.pend),
+        (((σ.scs.voters, σ.scs.learners), σ.scs.outgoing), σ.scs.learnersNext)), σ.sal))
+    (fun ⟨_, _, _, _, ⟨_, _, _, _⟩, _⟩ ⟨_, _, _, _, ⟨_, _, _, _⟩, _⟩ h => by
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := h
+      obtain ⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩ := h
       rfl)
 
 /-- The ghost names of a `MemoryStorage` (2026-10-10; until then one `GName`, of the
@@ -172,24 +211,106 @@ structure MemStorNames where
   done : GName
   ep : GName
 
+/-- The slices of a `ConfState` other than `Voters`, read-only for good (2026-10-14,
+reconfiguration stage B8): the learners, the outgoing voters and the staged learners, which a
+joint configuration's `ConfState` has. The storage keeps them as it keeps `Voters`
+(`memstorageFields`, `memStorMeta`): `MemoryStorage` never writes a snapshot's slices in place
+(`CreateSnapshot` replaces the whole `ConfState`, `ApplySnapshot` the whole snapshot), so what
+it stores is what it was given, and `confchange.Restore` of a joint `ConfState` reads all four
+(`Restore.specG`). -/
+def ownCSRest (cs : raftpb.ConfState) : IProp GF :=
+  iprop(∃ (l vo ln : List w64), cs.Learners' ↦*□ l ∗ cs.VotersOutgoing' ↦*□ vo ∗
+    cs.LearnersNext' ↦*□ ln)
+
+instance ownCSRest_persistent (cs : raftpb.ConfState) : Persistent (ownCSRest (GF := GF) cs) := by
+  unfold ownCSRest; infer_instance
+
+/-- A `ConfState`'s four slices read-only, its voters `voters` (2026-10-14, B8; until then the
+storage kept only `Voters`). -/
+def ownCSRO (cs : raftpb.ConfState) (voters : List w64) : IProp GF :=
+  iprop(cs.Voters' ↦*□ voters ∗ ownCSRest cs)
+
+instance ownCSRO_persistent (cs : raftpb.ConfState) (voters : List w64) :
+    Persistent (ownCSRO (GF := GF) cs voters) := by
+  unfold ownCSRO; infer_instance
+
+theorem ownCSRO_voters (cs : raftpb.ConfState) (voters : List w64) :
+    ownCSRO (GF := GF) cs voters ⊢ cs.Voters' ↦*□ voters := by
+  unfold ownCSRO; iintro ⟨H, -⟩; iexact H
+
+/-- The four slices as `ownCSL` (2026-10-14, B8: what `Snapshot` hands out). -/
+theorem ownCSRO_csl (cs : raftpb.ConfState) (voters : List w64) :
+    ownCSRO (GF := GF) cs voters ⊢ ∃ cl : CSLists, ownCSL cs cl := by
+  unfold ownCSRO ownCSRest ownCSL
+  iintro ⟨#Hv, %l, %vo, %ln, #Hl, #Ho, #Hn⟩
+  iexists ⟨voters, l, vo, ln⟩
+  iframe Hv Hl Ho Hn
+
+/-- The zero `ConfState`'s: its slices are `nil`. -/
+theorem ownCSRest_zero : ⊢ ownCSRest (GF := GF) (zero_val raftpb.ConfState) := by
+  unfold ownCSRest
+  iexists [], [], []
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSlice_nil
+  iapply ownSlice_nil
+
+/-- The four slices with their lists (2026-10-15, stage S) as `ownCSRO`. -/
+theorem ownCSL_csro (cs : raftpb.ConfState) (cl : CSLists) :
+    ownCSL (GF := GF) cs cl ⊢ ownCSRO cs cl.voters := by
+  unfold ownCSL ownCSRO ownCSRest
+  iintro ⟨#Hv, #Hl, #Ho, #Hn⟩
+  iframe Hv
+  iexists cl.learners, cl.outgoing, cl.learnersNext
+  iframe Hl Ho Hn
+
+/-- The zero `ConfState`'s lists are empty (2026-10-15, stage S). -/
+theorem ownCSL_zero : ⊢ ownCSL (GF := GF) (zero_val raftpb.ConfState) ∅ := by
+  unfold ownCSL
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSlice_nil
+  iapply ownSlice_nil
+
+theorem ownCSRO_zero : ⊢ ownCSRO (GF := GF) (zero_val raftpb.ConfState) [] := by
+  unfold ownCSRO
+  isplitr
+  · iapply ownSlice_nil
+  iapply ownCSRest_zero
+
 /-- What the lock protects, at a given abstract state, *without* the ghost link: the
 five fields other than the mutex, and everything hanging off them. This is what the
 private helpers `lastIndex`/firstIndex` are specified on -- they are called with the
 lock held -- and what a public method holds between `Lock` and `Unlock`. The entries'
 capacity is owned (2026-10-10): `Append` appends in place when the batch continues
-the log. -/
+the log.
+
+Since 2026-10-12 (for `InitialState`, which reads `hardState` and the snapshot's
+`ConfState` and increments `callStats.initialState` *without* the lock) the lock holds
+half of `hardState` and of `snapshot`, the other halves being `memStorMeta`'s, and the
+counters of `callStats` but `initialState`, which is `memStorMeta`'s. -/
 def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
   iprop(∃ (hs : raftpb.HardState) (snap : raftpb.Snapshot) (es : GoSlice)
-    (dummy : raftpb.Entry) (cs : inMemStorageCallStats) (voters : List w64),
-  "HhardState" ∷ ms.[MemoryStorage, go!"hardState"] ↦ hs ∗
-  "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦ snap ∗
-  "%Hsnap_id" ∷ ⌜snapId snap = σ.ss⌝ ∗
-  "Hvoters" ∷ snap.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+    (dummy : raftpb.Entry) (nfi nli nen nte nsn : w64),
+  "HhardState" ∷ ms.[MemoryStorage, go!"hardState"] ↦{DFrac.own (1 : Qp).half} hs ∗
+  "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦{DFrac.own (1 : Qp).half} snap ∗
+  -- (2026-10-15, stage S) with the snapshot's `AutoLeave` and (`Hvoters`) the lists behind its
+  -- `ConfState`, which `σ` records (`scs`, `sal`)
+  "%Hsnap_id" ∷ ⌜snapId snap = σ.ss ∧ snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+  "Hvoters" ∷ ownCSL snap.Metadata'.ConfState' σ.scs ∗
   "Hents_f" ∷ ms.[MemoryStorage, go!"ents"] ↦ es ∗
   "Hents" ∷ es ↦*□ (dummy :: σ.ents) ∗
   "Hents_cap" ∷ ownSliceCap raftpb.Entry es (DFrac.own 1) ∗
   "%Hdummy" ∷ ⌜dummy.Index' = σ.prev.index' ∧ dummy.Term' = σ.prev.term'⌝ ∗
-  "HcallStats" ∷ ms.[MemoryStorage, go!"callStats"] ↦ cs)
+  "Hcs_firstIndex" ∷ (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"firstIndex"] ↦ nfi ∗
+  "Hcs_lastIndex" ∷ (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"lastIndex"] ↦ nli ∗
+  "Hcs_entries" ∷ (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"entries"] ↦ nen ∗
+  "Hcs_term" ∷ (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"term"] ↦ nte ∗
+  "Hcs_snapshot" ∷ (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"snapshot"] ↦ nsn)
 
 /-- The ghost part of the lock's invariant: the contents `σp` are the last state
 `done` records, at half of its authority, and every state it records is sanctioned. -/
@@ -232,6 +353,26 @@ def ownMemoryStorage (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF
   "#Hmu" ∷ sync.isMutex (ms.[MemoryStorage, go!"Mutex"]) (memstorageInv ms γs) ∗
   "Hview" ∷ memView γs σ ∗
   "%Hbounded" ∷ ⌜uint.Z σ.prev.index' + (σ.ents.length : Int) < 2^61⌝)
+
+/-- The rest of a `MemoryStorage` (2026-10-12): its hard state `hs` and its snapshot
+`snap`, which `InitialState` reads without the lock, and the `initialState` counter it
+increments without it. The other halves of `hardState` and `snapshot` are the lock's
+(`memstorageFields`), so `SetHardState`, `ApplySnapshot` and `CreateSnapshot`, which
+write them under the lock, need this. Separate from `ownMemoryStorage`, which the
+storage's owner (raft, through `isStorage`) holds: the application keeps this one, and
+`SetHardState` (which `Ready` handling calls while raft runs) needs nothing else. The
+snapshot's id is `ownMemoryStorage`'s `ss` (the lock's invariant relates them); its
+`ConfState.Voters` slice is read-only, as in `memstorageFields`. -/
+def memStorMeta (ms : Loc) (γs : MemStorNames) (hs : raftpb.HardState)
+    (snap : raftpb.Snapshot) : IProp GF :=
+  iprop(∃ (n : w64) (voters : List w64),
+  "#Hinit" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+  "#Hmu" ∷ sync.isMutex (ms.[MemoryStorage, go!"Mutex"]) (memstorageInv ms γs) ∗
+  "HhardState" ∷ ms.[MemoryStorage, go!"hardState"] ↦{DFrac.own (1 : Qp).half} hs ∗
+  "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦{DFrac.own (1 : Qp).half} snap ∗
+  "#Hvoters" ∷ ownCSRO snap.Metadata'.ConfState' voters ∗
+  "Hcs_initialState" ∷
+    (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"initialState"] ↦ n)
 
 /-- The application's right to append `p` to the storage at `σ` (2026-10-10): the
 writer's half of `done` at the hand-out `H`, `hist` past the appended state, and
@@ -294,6 +435,52 @@ theorem memDone_append (γs : MemStorNames) (H : List StorState) (x : StorState)
   imodintro
   iframe H1 H2
 
+/-- A whole typed points-to is two halves (2026-10-12: `memStorMeta` and the lock
+share `hardState` and `snapshot`). -/
+theorem ptsto_halves {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
+    (l ↦ v : IProp GF) ⊣⊢
+      l ↦{DFrac.own (1 : Qp).half} v ∗ l ↦{DFrac.own (1 : Qp).half} v := by
+  have h : (DFrac.own 1 : DFrac) = DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half := by
+    rw [DFrac.op_own, Qp.half_add_half]
+  rw [h]
+  exact (typedPointsto_dfractional (GF := GF) l v).dfractional _ _
+
+/-- The owner, with nothing pending, moves the storage to a new state `σ'` (nothing
+pending) under the lock (2026-10-12: `ApplySnapshot`, `CreateSnapshot`, `Compact`):
+the contents are the owner's state, and `hist` and `done` (both halves: the owner's
+writer half and the invariant's) record `σ'`. -/
+theorem memView_set (γs : MemStorNames) (σ σp σ' : StorState) (Hidle : σ.pend = [])
+    (H' : σ'.pend = []) :
+    ⊢ memView (GF := GF) γs σ -∗ memInvGhost γs σp ==∗
+      ⌜σp = σ⌝ ∗ memView γs σ' ∗ memInvGhost γs σ' := by
+  iintro Hv Hg
+  unfold memView memInvGhost
+  icases Hv with ⟨%hist, Hh, Hv⟩
+  icases Hg with ⟨%D, Hd, -, %HD⟩
+  icases Hv with (⟨%Hid, Hw, %v, Hep⟩ | ⟨%H, %Hpd, -, -⟩)
+  rotate_left
+  · exact absurd Hidle Hpd.1
+  icases monoAuth_agree_keep γs.done _ _ hist D $$ [$Hw $Hd] with ⟨⟨Hw, Hd⟩, %Heq⟩
+  subst Heq
+  have Hσp : σp = σ := by rw [Hid.2] at HD; injection HD with h; exact h.symm
+  imod memDone_append γs hist σ' $$ Hw Hd with ⟨Hw, Hd⟩
+  imod monoListAuthOwn_update_app [σ'] $$ Hh with ⟨Hh, #Hlbh⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hσp
+  isplitl [Hh Hw Hep]
+  · iexists hist ++ [σ']
+    iframe Hh
+    ileft
+    iframe Hw
+    isplitr
+    · ipureintro; exact ⟨H', by simp⟩
+    iexists v
+    iexact Hep
+  iexists hist ++ [σ']
+  iframe Hd Hlbh
+  ipureintro; simp
+
 /-- Raft's view and the lock's ghost state agree (`MemView`), without consuming
 either. -/
 theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
@@ -310,7 +497,7 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
     subst Hσ
     isplitr
     · ipureintro
-      exact ⟨rfl, rfl, .inl rfl, fun _ => rfl⟩
+      exact ⟨rfl, ⟨rfl, rfl, rfl⟩, .inl rfl, fun _ => rfl⟩
     isplitl [Hh Hw Hep]
     · iexists hist
       iframe Hh
@@ -329,11 +516,11 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
       · rw [Hlast] at HD
         injection HD with h
         subst h
-        exact ⟨rfl, rfl, .inl rfl, fun h => absurd h Hne⟩
+        exact ⟨rfl, ⟨rfl, rfl, rfl⟩, .inl rfl, fun h => absurd h Hne⟩
       · simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or] at HD
         injection HD with h
         subst h
-        exact ⟨rfl, rfl, .inr ⟨Hne, rfl⟩, fun h => absurd h Hne⟩
+        exact ⟨rfl, ⟨rfl, rfl, rfl⟩, .inr ⟨Hne, rfl⟩, fun h => absurd h Hne⟩
     isplitl [Hh Hep]
     · iexists H ++ [storAbsorb σ]
       iframe Hh
@@ -471,3 +658,5 @@ end proof
 
 end EtcdGrove
 end Perennial
+
+proj_simps Perennial.EtcdGrove.memStorApplied Perennial.EtcdGrove.memStorCompacted Perennial.EtcdGrove.memSnapCreated

@@ -1,17 +1,22 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# The register's ghost lemmas (2026-10-10)
+# The register's ghost lemmas (2026-10-10; 2026-10-14, stage R: raft's persistent updates)
 
 - `regStor_register`: a new storage joins the registry (`regStorInv`, `Defs.lean`).
-- `reg_mint`: a new sequence number mints the operation's fresh token (`MintOk`).
+- `reg_mint`: a new sequence number mints the operation's fresh token (`MintOk`) and the
+  operation's slot, holding the client's atomic update (`opSlot`).
 - `reg_deposited_minted`: a deposited datum (raft's registry) was minted, so a datum with
   a minted key is the one minted there.
-- `reg_propAu`: the client's atomic update over the register's value, wrapped as the
-  atomic update over raft's client log that `Node.Propose` deposits: when raft commits
-  the operation's first entry, it opens `regInv`, runs the client's update and moves the
-  client log and the value together. Its result is the client's, at the value after the
-  operation.
+- `reg_mint_read` (2026-10-13): a new sequence number mints a read's context and its fresh
+  token for raft's read registry; `reg_read_minted`: a deposited context with a minted key is
+  the one minted there.
+- `regLb_current`: the history now is a lower bound (`regLb`), at the client's value.
+- `reg_propAu`: the persistent atomic update over raft's full log that `Node.Propose` deposits
+  for an operation's datum: at every committed occurrence it moves the register's log, and at
+  the first it runs the client's update from the operation's slot (the linearization point);
+  `reg_noopAu`, the standing update for raft's own entries; `reg_readAu`, a read's update.
+- `reg_collect`: the client's result, from its slot, with its ticket.
 -/
 module
 
@@ -63,6 +68,92 @@ theorem appliedOk_lookup (A : GMap (List w8) Bool) (L : List (List w8)) (d : Lis
     (HA : AppliedOk A L) (Hd : (decodeOp d).isSome) : (A !! d).getD false = decide (d ∈ L) := by
   rw [HA d]
   by_cases Hm : d ∈ L <;> simp [Hm, Hd]
+
+theorem firstOcc_prefix_of_prefix (a b : List (Option (List w8))) (h : a <+: b) :
+    firstOcc a <+: firstOcc b := by
+  obtain ⟨t, rfl⟩ := h
+  exact firstOcc_append_prefix a t
+
+/-! ## Minting, pure -/
+
+/-- A new sequence number's key is fresh: no datum, token, read token or slot has it. -/
+theorem mintOk_fresh [FfiSyntax] (M F : GMap (List w8) Unit) (S : GMap w64 w64)
+    (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) (id ns : w64)
+    (d : List w8) (Hok : MintOk M F S Mi O) (HS : S !! id = some ns)
+    (Hkey : opKey d = some (id, ns + W64 1)) (Hns : uint.Z ns + 1 < 2 ^ 64) :
+    Mi !! (id, ns + W64 1) = none ∧ M !! d = none ∧ F !! d = none ∧ O !! d = none := by
+  have Hsucc : uint.Z (ns + W64 1) = uint.Z ns + 1 := by word
+  have HMi0 : Mi !! (id, ns + W64 1) = none := by
+    cases h : Mi !! (id, ns + W64 1) with
+    | none => rfl
+    | some d' =>
+      obtain ⟨n, Hn, Hle⟩ := Hok.2.1 _ _ _ h
+      rw [HS] at Hn; cases Hn
+      omega
+  have HM0 : M !! d = none := by
+    cases h : M !! d with
+    | none => rfl
+    | some u =>
+      cases u
+      obtain ⟨k, Hk, Hk'⟩ := Hok.1 d h
+      rw [Hkey] at Hk; cases Hk
+      rw [HMi0] at Hk'; cases Hk'
+  refine ⟨HMi0, HM0, ?_, ?_⟩
+  · cases h : F !! d with
+    | none => rfl
+    | some u =>
+      cases u
+      obtain ⟨k, Hk, Hk'⟩ := Hok.2.2.1 d h
+      rw [Hkey] at Hk; cases Hk
+      rw [HMi0] at Hk'; cases Hk'
+  · cases h : O !! d with
+    | none => rfl
+    | some γp =>
+      have := Hok.2.2.2 d γp h
+      rw [HM0] at this; cases this
+
+/-- Minting `d` at a new sequence number, with new tokens only of `d` and slots of minted data. -/
+theorem mintOk_step [FfiSyntax] (M M' F F' : GMap (List w8) Unit) (S : GMap w64 w64)
+    (Mi : GMap (w64 × w64) (List w8)) (O O' : GMap (List w8) (GName × GName)) (id ns : w64)
+    (d : List w8)
+    (Hok : MintOk M F S Mi O) (HS : S !! id = some ns) (Hkey : opKey d = some (id, ns + W64 1))
+    (Hns : uint.Z ns + 1 < 2 ^ 64)
+    (HM' : ∀ d', M' !! d' = some () → M !! d' = some () ∨ d' = d)
+    (HF' : ∀ c, F' !! c = some () → F !! c = some () ∨ c = d)
+    (HO' : ∀ d' γp, O' !! d' = some γp → M' !! d' = some ()) :
+    MintOk M' F' (S.insert id (ns + W64 1)) (Mi.insert (id, ns + W64 1) d) O' := by
+  obtain ⟨HMi0, -, -, -⟩ := mintOk_fresh M F S Mi O id ns d Hok HS Hkey Hns
+  have Hsucc : uint.Z (ns + W64 1) = uint.Z ns + 1 := by word
+  -- an old minted key is not the new one
+  have Hold : ∀ x k, opKey x = some k → Mi !! k = some x →
+      (Mi.insert (id, ns + W64 1) d) !! k = some x := by
+    intro x k _ Hk'
+    have Hne : (id, ns + W64 1) ≠ k := by
+      intro h; subst h; rw [HMi0] at Hk'; cases Hk'
+    rw [GMap.lookup_insert_ne _ _ Hne]; exact Hk'
+  refine ⟨?_, ?_, ?_, HO'⟩
+  · intro d' Hd'
+    rcases HM' d' Hd' with h | rfl
+    · obtain ⟨k, Hk, Hk'⟩ := Hok.1 d' h
+      exact ⟨k, Hk, Hold d' k Hk Hk'⟩
+    · exact ⟨_, Hkey, GMap.lookup_insert_eq _ _ _⟩
+  · intro i s d' Hs
+    by_cases Hk : (i, s) = (id, ns + W64 1)
+    · obtain ⟨rfl, rfl⟩ := Prod.mk.inj Hk
+      exact ⟨ns + W64 1, GMap.lookup_insert_eq _ _ _, Int.le_refl _⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hk)] at Hs
+      obtain ⟨n, Hn, Hle⟩ := Hok.2.1 _ _ _ Hs
+      by_cases Hi : i = id
+      · subst Hi
+        rw [HS] at Hn; cases Hn
+        exact ⟨ns + W64 1, GMap.lookup_insert_eq _ _ _, by omega⟩
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hi)]
+        exact ⟨n, Hn, Hle⟩
+  · intro c Hc
+    rcases HF' c Hc with h | rfl
+    · obtain ⟨k, Hk, Hk'⟩ := Hok.2.2.1 c h
+      exact ⟨k, Hk, Hold c k Hk Hk'⟩
+    · exact ⟨_, Hkey, GMap.lookup_insert_eq _ _ _⟩
 
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -123,72 +214,244 @@ theorem regStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : �
     unfold regStorRec
     iframe Hf2 Hfrag
 
-/-- A new sequence number mints the operation's fresh token, and records it. -/
-theorem reg_mint (γr : RegNames) (id ns : w64) (kind : w8) (val : List w8) (E : CoPset)
-    (HE : ↑regN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64) :
-    ⊢ regInv (GF := GF) γr -∗ id ↪[γr.seq] ns ={E}=∗
+/-- A new sequence number mints the operation's fresh token and records it; the operation's
+slot, with the client's atomic update and a later credit (2026-10-14, stage R). -/
+theorem reg_mint (γr : RegNames) (id ns : w64) (kind : w8) (val : List w8)
+    (Ψ : List w8 → IProp GF) (E : CoPset) (HE : ↑regN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64) :
+    ⊢ regInv (GF := GF) γr -∗ id ↪[γr.seq] ns -∗ £ 1 -∗ opAu γr (opNext kind val) Ψ ={E}=∗
       id ↪[γr.seq] (ns + W64 1) ∗
       (id, ns + W64 1) ↪[γr.mint]□ encodeOp id (ns + W64 1) kind val ∗
-      propFresh γr.raft (encodeOp id (ns + W64 1) kind val) := by
-  iintro #Hinv Hseq
-  unfold regInv
-  iinv Hinv with >Hi Hclose
-  unfold regInvBody
-  icases Hi with ⟨%L, %M, %S, %Mi, HcL, Hv, HM, HS, HMi, %Hok⟩
+      propFresh γr.raft (encodeOp id (ns + W64 1) kind val) ∗
+      ∃ γp : GName × GName, encodeOp id (ns + W64 1) kind val ↪[γr.ops]□ γp ∗
+        savedPredOwn γp.1 DFrac.discard Ψ ∗ token γp.2 := by
+  iintro #Hinv Hseq Hlc Hau
+  unfold regInv regInvBody
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
   icases ghost_map_lookup $$ HS Hseq with %HSi
-  have Hsucc : uint.Z (ns + W64 1) = uint.Z ns + 1 := by word
-  generalize Hd : encodeOp id (ns + W64 1) kind val = d
+  have Hf : (fun x => regApply x (encodeOp id (ns + W64 1) kind val)) = opNext kind val :=
+    funext fun x => regApply_encodeOp x id (ns + W64 1) kind val
+  generalize Hd : encodeOp id (ns + W64 1) kind val = d at Hf ⊢
   have Hkey : opKey d = some (id, ns + W64 1) := by rw [← Hd]; exact opKey_encodeOp _ _ _ _
-  have HMi0 : Mi !! (id, ns + W64 1) = none := by
-    cases h : Mi !! (id, ns + W64 1) with
-    | none => rfl
-    | some d' =>
-      obtain ⟨n, Hn, Hle⟩ := Hok.2 _ _ _ h
-      rw [HSi] at Hn; cases Hn
-      omega
-  have HM0 : M !! d = none := by
-    cases h : M !! d with
-    | none => rfl
-    | some u =>
-      cases u
-      obtain ⟨k, Hk, Hk'⟩ := Hok.1 d h
-      rw [Hkey] at Hk; cases Hk
-      rw [HMi0] at Hk'; cases Hk'
+  obtain ⟨HMi0, HM0, -, HO0⟩ := mintOk_fresh M F S Mi O id ns d Hok HSi Hkey Hns
+  have Hdn : d ∉ firstOcc ods := fun h => by
+    have := Hodm d ((mem_firstOcc ods d).mp h)
+    rw [HM0] at this; cases this
   imod ghost_map_update (ns + W64 1) $$ HS Hseq with ⟨HS, Hseq⟩
   imod ghost_map_insert_persist (id, ns + W64 1) d HMi0 $$ HMi with ⟨HMi, #Hmint⟩
   imod ghost_map_insert d () HM0 $$ HM with ⟨HM, Hfresh⟩
-  imod Hclose $$ [HcL Hv HM HS HMi] with -
+  imod saved_pred_alloc Ψ DFrac.discard trivial with ⟨%γq, #Hsp⟩
+  imod token_alloc (GF := GF) with ⟨%γk, Htok⟩
+  imod ghost_map_insert_persist d ((γq, γk) : GName × GName) HO0 $$ HO with ⟨HO, #Hop⟩
+  imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl Hlc Hau] with -
   · inext
-    iexists L, M.insert d (), S.insert id (ns + W64 1), Mi.insert (id, ns + W64 1) d
-    iframe HcL Hv HM HS HMi
-    ipureintro
-    constructor
-    · intro d' Hd'
-      by_cases Heq : d' = d
-      · subst Heq
-        exact ⟨_, Hkey, GMap.lookup_insert_eq _ _ _⟩
-      · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq)] at Hd'
-        obtain ⟨k, Hk, Hk'⟩ := Hok.1 d' Hd'
-        refine ⟨k, Hk, ?_⟩
-        have Hne : (id, ns + W64 1) ≠ k := by
-          intro h; subst h; rw [HMi0] at Hk'; cases Hk'
-        rw [GMap.lookup_insert_ne _ _ Hne]; exact Hk'
-    · intro i s d' Hs
-      by_cases Hk : (i, s) = (id, ns + W64 1)
-      · obtain ⟨rfl, rfl⟩ := Prod.mk.inj Hk
-        exact ⟨ns + W64 1, GMap.lookup_insert_eq _ _ _, Int.le_refl _⟩
-      · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hk)] at Hs
-        obtain ⟨n, Hn, Hle⟩ := Hok.2 _ _ _ Hs
-        by_cases Hi : i = id
-        · subst Hi
-          rw [HSi] at Hn; cases Hn
-          exact ⟨ns + W64 1, GMap.lookup_insert_eq _ _ _, by omega⟩
-        · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hi)]
-          exact ⟨n, Hn, Hle⟩
+    iexists L, ods, M.insert d (), F, S.insert id (ns + W64 1), Mi.insert (id, ns + W64 1) d,
+      O.insert d (γq, γk)
+    isplitl [HrL Hv HM HF HS HMi HO]
+    · unfold regCore
+      iframe HrL Hods Hv HM HF HS HMi HO
+      ipureintro
+      refine ⟨mintOk_step M _ F F S Mi O _ id ns d Hok HSi Hkey Hns ?_ (fun c h => .inl h) ?_, ?_⟩
+      · intro d' Hd'
+        by_cases Heq : d' = d
+        · exact .inr Heq
+        · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq)] at Hd'; exact .inl Hd'
+      · intro d' γp' Hd'
+        by_cases Heq : d' = d
+        · subst Heq; exact GMap.lookup_insert_eq _ _ _
+        · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq)] at Hd' ⊢
+          exact Hok.2.2.2 d' γp' Hd'
+      · intro d' Hd'
+        by_cases Heq : d' = d
+        · subst Heq; exact GMap.lookup_insert_eq _ _ _
+        · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq)]; exact Hodm d' Hd'
+    iapply (BigSepM.bigSepM_insert (Φ := fun d γp => opSlot (GF := GF) γr d γp (firstOcc ods))
+      HO0).2
+    iframe Hsl
+    unfold opSlot
+    iexists Ψ
+    iframe Hsp
+    ileft
+    iframe Hlc
+    isplitr
+    · ipureintro; exact Hdn
+    rw [Hf]; iexact Hau
   imodintro
   iframe Hseq Hmint
-  unfold propFresh
+  isplitl [Hfresh]
+  · unfold propFresh; iexact Hfresh
+  iexists (γq, γk)
+  iframe Hop Hsp Htok
+
+/-- A new sequence number mints a read's context (2026-10-13) and (2026-10-14, stage R) its
+fresh token for raft's read registry (`rdFresh`), and records it. -/
+theorem reg_mint_read (γr : RegNames) (id ns : w64) (E : CoPset)
+    (HE : ↑regN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64) :
+    ⊢ regInv (GF := GF) γr -∗ id ↪[γr.seq] ns ={E}=∗
+      id ↪[γr.seq] (ns + W64 1) ∗
+      (id, ns + W64 1) ↪[γr.mint]□ encodeOp id (ns + W64 1) opReadB [] ∗
+      rdFresh γr.raft (encodeOp id (ns + W64 1) opReadB []) := by
+  iintro #Hinv Hseq
+  unfold regInv regInvBody
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
+  icases ghost_map_lookup $$ HS Hseq with %HSi
+  generalize Hd : encodeOp id (ns + W64 1) opReadB [] = d
+  have Hkey : opKey d = some (id, ns + W64 1) := by rw [← Hd]; exact opKey_encodeOp _ _ _ _
+  obtain ⟨HMi0, -, HF0, -⟩ := mintOk_fresh M F S Mi O id ns d Hok HSi Hkey Hns
+  imod ghost_map_update (ns + W64 1) $$ HS Hseq with ⟨HS, Hseq⟩
+  imod ghost_map_insert_persist (id, ns + W64 1) d HMi0 $$ HMi with ⟨HMi, #Hmint⟩
+  imod ghost_map_insert d () HF0 $$ HF with ⟨HF, Hfresh⟩
+  imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
+  · inext
+    iexists L, ods, M, F.insert d (), S.insert id (ns + W64 1), Mi.insert (id, ns + W64 1) d, O
+    iframe Hsl
+    unfold regCore
+    iframe HrL Hods Hv HM HF HS HMi HO
+    ipureintro
+    refine ⟨mintOk_step M M F _ S Mi O O id ns d Hok HSi Hkey Hns (fun d' h => .inl h) ?_
+      Hok.2.2.2, Hodm⟩
+    intro c Hc
+    by_cases Heq : c = d
+    · exact .inr Heq
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq)] at Hc; exact .inl Hc
+  imodintro
+  iframe Hseq Hmint
+  unfold rdFresh
   iexact Hfresh
+
+/-- A deposited read context with a minted key is the one minted there (2026-10-13; since
+2026-10-14, stage R, through its fresh token, which raft's read registry keeps). -/
+theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List raftpb.Entry)
+    (k : w64 × w64) (E : CoPset) (HE1 : ↑regN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑regN)
+    (Hk : opKey c = some k) :
+    ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ readReq γr.raft c Lc -∗
+      k ↪[γr.mint]□ c0 ={E}=∗ ⌜c0 = c⌝ := by
+  iintro #Hinv #Hcinv #Hrq #Hmint
+  unfold readReq
+  icases Hrq with ⟨%γq, #Hel, -⟩
+  ihave #Hri := raftCommitInv_reg γr.raft $$ Hcinv
+  unfold regInv regInvBody
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
+  have HE3 : (↑raftRegN : CoPset) ⊆ E \ ↑regN := raftRegN_of HE2
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, Hq, Hregs⟩ Hclose2
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold readsReg at Hreads
+  icases Hreads with ⟨>Hra, Hs⟩
+  icases ghost_map_lookup $$ Hra Hel with %HRc
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun c r =>
+    iprop(▷ (readSlot (GF := GF) γr.raft r l ∗ rdFresh γr.raft c))) HRc).1 $$ Hs
+    with ⟨⟨Hsl', >Hf⟩, Hsback⟩
+  iunfold rdFresh at Hf
+  icases ghost_map_lookup $$ HF Hf with %HFc
+  ihave Hs := Hsback $$ [Hsl' Hf]
+  · inext; iframe Hsl'; unfold rdFresh; iexact Hf
+  imod Hclose2 $$ [Hq Hprops Hra Hs] with -
+  · inext
+    iexists l
+    iframe Hq
+    unfold regsAt readsReg
+    iexists R, RR
+    iframe Hprops Hnoop Hra
+    iexact Hs
+  obtain ⟨k', Hk', HMik⟩ := Hok.2.2.1 c HFc
+  rw [Hk] at Hk'; cases Hk'
+  icases ghost_map_lookup $$ HMi Hmint with %HMi0
+  rw [HMik] at HMi0
+  cases HMi0
+  imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
+  · inext
+    iexists L, ods, M, F, S, Mi, O
+    iframe Hsl
+    unfold regCore
+    iframe HrL Hods Hv HM HF HS HMi HO
+    ipureintro; exact ⟨Hok, Hodm⟩
+  imodintro
+  ipureintro; rfl
+
+/-- The register's log is raft's committed log (the client's half of `rLog` and the log
+half's quarter agree, 2026-10-14, stage R). -/
+theorem reg_log_committed (γr : RegNames) (L : List raftpb.Entry) (E : CoPset)
+    (HE : ↑raftLogN ⊆ E) :
+    ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L ={E}=∗
+      rLog γr.raft L ∗ isCommitted γr.raft L := by
+  iintro #Hcinv HrL
+  ihave #Hli := raftCommitInv_log γr.raft $$ Hcinv
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
+  iunfold rLog at HrL
+  ihave %HLeq := ghostVar_agree γr.raft.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
+  subst HLeq
+  ihave #HPc := ownCommitted_lb γr.raft _ $$ HP
+  imod Hclose $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imodintro
+  unfold rLog
+  iframe HrL HPc
+
+/-- Every committed log is a prefix of the register's log (the global one). -/
+theorem reg_log_prefix (γr : RegNames) (L l : List raftpb.Entry) (E : CoPset)
+    (HE : ↑raftLogN ⊆ E) :
+    ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L -∗ isCommitted γr.raft l ={E}=∗
+      rLog γr.raft L ∗ ⌜l <+: L⌝ := by
+  iintro #Hcinv HrL #Hl
+  ihave #Hli := raftCommitInv_log γr.raft $$ Hcinv
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
+  iunfold rLog at HrL
+  ihave %HLeq := ghostVar_agree γr.raft.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
+  subst HLeq
+  ihave %Hpre := isCommitted_prefix γr.raft l P $$ Hl HP
+  imod Hclose $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imodintro
+  unfold rLog
+  iframe HrL
+  ipureintro; exact Hpre
+
+/-- The history now is a lower bound, at the client's value (2026-10-13). -/
+theorem regLb_current (γr : RegNames) (x : List w8) (E : CoPset)
+    (HE1 : ↑regN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑regN) :
+    ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ regVal γr x ={E}=∗
+      regVal γr x ∗ ∃ L, regLb γr L ∗ ⌜regFold L = x⌝ := by
+  iintro #Hinv #Hcinv Hx
+  unfold regInv regInvBody
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
+  iunfold regVal at Hx
+  ihave %Hxeq := ghostVar_agree γr.val (regFold (firstOcc ods)) (1 : Qp).half x (1 : Qp).half
+    $$ Hv Hx
+  have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑regN := raftLogN_of HE2
+  imod reg_log_committed γr L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
+  imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
+  · inext
+    iexists L, ods, M, F, S, Mi, O
+    iframe Hsl
+    unfold regCore
+    iframe HrL Hods Hv HM HF HS HMi HO
+    ipureintro; exact ⟨Hok, Hodm⟩
+  imodintro
+  unfold regVal
+  iframe Hx
+  iexists firstOcc ods
+  isplitl
+  · unfold regLb
+    iexists L, ods
+    iframe HLc Hods
+    ipureintro; rfl
+  ipureintro; exact Hxeq
 
 /-- A deposited datum was minted (its fresh token is raft's registry's, and every token
 was minted), so it is the one minted at its key. -/
@@ -197,107 +460,365 @@ theorem reg_deposited_minted (γr : RegNames) (d d0 : List w8) (k : w64 × w64) 
     ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ deposited γr.raft d -∗
       k ↪[γr.mint]□ d0 ={E}=∗ ⌜d0 = d⌝ := by
   iintro #Hinv #Hcinv #Hdep #Hmint
-  unfold regInv
-  iinv Hinv with >Hi Hclose
-  unfold regInvBody
-  icases Hi with ⟨%L, %M, %S, %Mi, HcL, Hv, HM, HS, HMi, %Hok⟩
+  ihave #Hri := raftCommitInv_reg γr.raft $$ Hcinv
+  unfold regInv regInvBody
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
   -- the datum's fresh token is in raft's registry: `d ∈ M`
-  unfold raftCommitInv
-  iinv Hcinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose2
-  imod propsOwn_open γr.raft _ P R $$ Hpo with Hpo
-  unfold propsOwnL
-  icases Hpo with ⟨%odsP, #HdsP, Hv2, Hra, Hs⟩
+  have HE3 : (↑raftRegN : CoPset) ⊆ E \ ↑regN := raftRegN_of HE2
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, Hq, Hregs⟩ Hclose2
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold propsOwn at Hprops
+  icases Hprops with ⟨>Hra, Hs⟩
   unfold deposited
-  icases Hdep with ⟨%γp, #Hfr⟩
+  icases Hdep with ⟨%γq, #Hfr⟩
   icases ghost_map_lookup $$ Hra Hfr with %HR
-  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d γp =>
-    iprop(▷ (propSlot (GF := GF) γr.raft d γp (firstOcc odsP) ∗ propFresh γr.raft d))) HR).1 $$ Hs
-    with ⟨⟨Hsl, >Hf⟩, Hsback⟩
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d γq =>
+    iprop(▷ (propSlot (GF := GF) γr.raft d γq l ∗ propFresh γr.raft d))) HR).1 $$ Hs
+    with ⟨⟨Hsl', >Hf⟩, Hsback⟩
   iunfold propFresh at Hf
   icases ghost_map_lookup $$ HM Hf with %HMd
-  ihave Hs := Hsback $$ [Hsl Hf]
-  · inext; iframe Hsl; unfold propFresh; iexact Hf
-  ihave Hpo : propsOwnL γr.raft P R $$ [Hv2 Hra Hs]
-  · unfold propsOwnL
-    iexists odsP
-    iframe HdsP Hv2 Hra Hs
-  ihave Hpo := propsOwn_close γr.raft P R $$ Hpo
-  imod Hclose2 $$ [HP Hj Htbl Hpo] with -
+  ihave Hs := Hsback $$ [Hsl' Hf]
+  · inext; iframe Hsl'; unfold propFresh; iexact Hf
+  imod Hclose2 $$ [Hq Hreads Hra Hs] with -
   · inext
-    iexists P, R
-    iframe
+    iexists l
+    iframe Hq
+    unfold regsAt propsOwn
+    iexists R, RR
+    iframe Hreads Hnoop Hra
+    iexact Hs
   obtain ⟨k', Hk', HMik⟩ := Hok.1 d HMd
   rw [Hk] at Hk'; cases Hk'
   icases ghost_map_lookup $$ HMi Hmint with %HMi0
   rw [HMik] at HMi0
   cases HMi0
-  imod Hclose $$ [HcL Hv HM HS HMi] with -
+  imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
   · inext
-    iexists L, M, S, Mi
-    iframe
-    ipureintro; exact Hok
+    iexists L, ods, M, F, S, Mi, O
+    iframe Hsl
+    unfold regCore
+    iframe HrL Hods Hv HM HF HS HMi HO
+    ipureintro; exact ⟨Hok, Hodm⟩
   imodintro
   ipureintro; rfl
 
-/-- The client's atomic update over the register's value, as the atomic update over the
-client log that `Node.Propose` deposits for the operation's datum `d` (see the file
-header). -/
-theorem reg_propAu (γr : RegNames) (d : List w8) (kind : w8) (val : List w8)
-    (Hd : ∀ x, regApply x d = opNext kind val x) (Φ : List w8 → IProp GF) :
-    ⊢ regInv (GF := GF) γr -∗
-      AU <{ ∃∃ (x : List w8), regVal γr x }> @ regMask, ∅
-        <{ regVal γr (opNext kind val x), COMM Φ (opNext kind val x) }> -∗
-      propAu γr.raft d (fun L => Φ (regFold (L ++ [d]))) := by
-  iintro #Hinv Hau
+/-- A slot of another datum keeps its state as the history grows by `d`. -/
+theorem opSlot_grow (γr : RegNames) (d' d : List w8) (γp : GName × GName) (H : List (List w8))
+    (Hne : d' ≠ d) :
+    ⊢ opSlot (GF := GF) γr d' γp H -∗ opSlot γr d' γp (H ++ [d]) := by
+  unfold opSlot
+  iintro ⟨%Φ, #Hsp, Hst⟩
+  iexists Φ
+  iframe Hsp
+  icases Hst with (⟨%Hn, Hlc, Hau⟩ | ⟨%H0, %Hp, HQ⟩)
+  · ileft
+    iframe Hlc Hau
+    ipureintro
+    simp only [List.mem_append, List.mem_singleton, not_or]
+    exact ⟨Hn, Hne⟩
+  · iright
+    iexists H0
+    iframe HQ
+    ipureintro
+    exact ⟨Hp.1.trans (List.prefix_append _ _), Hp.2⟩
+
+/-- The persistent atomic update over raft's full log that `Node.Propose` deposits for the
+operation's datum `d`, whose slot is `γp` (2026-10-14, stage R; see the file header). At every
+committed occurrence it moves the register's log; at the first (`d` not yet in the history) it
+runs the client's update from the slot, with the slot's later credit, and moves the value. -/
+theorem reg_propAu (γr : RegNames) (d : List w8) (γp : GName × GName) :
+    ⊢ regInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗ propAu γr.raft d (fun _ => iprop(True)) := by
+  iintro #Hinv #Hop
   unfold propAu
-  iauintro
-  unfold atomic_acc
-  unfold regInv
-  have Hdisj := regN_raftN
-  iinv Hinv with >Hi Hclose
-  unfold regInvBody
-  icases Hi with ⟨%L, %M, %S, %Mi, HcL, Hv, HM, HS, HMi, %Hok⟩
-  ihave Hacc := aupd_aacc $$ Hau
-  unfold atomic_acc regMask
-  imod Hacc with Hacc
-  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-  icases Hacc with ⟨%x, Hx, Hucl⟩
-  iunfold regVal at Hx
-  ihave %Hxeq := ghostVar_agree γr.val (regFold L) (1 : Qp).half x (1 : Qp).half $$ Hv Hx
-  subst Hxeq
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   imodintro
+  iauintro
+  unfold atomic_acc regInv regInvBody
+  have Hdisj := regN_raftN
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
+  icases ghost_map_lookup $$ HO Hop with %HOd
+  have HMd : M !! d = some () := Hok.2.2.2 d γp HOd
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑regN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iexists L
-  iframe HcL
+  iframe HrL
   isplit
-  · iintro HcL
-    icases Hucl with ⟨Habort, -⟩
-    imod Habort $$ [Hx] with Hau
-    · unfold regVal; iexact Hx
-    imod Hclose $$ [HcL Hv HM HS HMi] with -
+  · -- abort: nothing moved
+    iintro HrL
+    imod Hclose2 with -
+    imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
     · inext
-      iexists L, M, S, Mi
-      iframe
-      ipureintro; exact Hok
+      iexists L, ods, M, F, S, Mi, O
+      iframe Hsl
+      unfold regCore
+      iframe HrL Hods Hv HM HF HS HMi HO
+      ipureintro; exact ⟨Hok, Hodm⟩
     imodintro
-    iexact Hau
-  · iintro HcL
-    icases Hucl with ⟨-, Hcommit⟩
-    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-    have Hf : regFold (L ++ [d]) = opNext kind val (regFold L) := by rw [regFold_snoc, Hd]
-    imod ghostVar_update_halves (regFold (L ++ [d])) γr.val (regFold L) (regFold L) $$ Hv Hx
-      with ⟨Hv, Hx⟩
-    rw [Hf]
-    imod Hcommit $$ [Hx] with HΦ
-    · unfold regVal; iexact Hx
-    imod Hclose $$ [HcL Hv HM HS HMi] with -
+    iempintro
+  · -- commit: the log grows by `e`, holding `d`
+    iintro %e ⟨HrL, #He⟩
+    imod Hclose2 with -
+    ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [some d], entDataIs γr.raft e o) $$ []
+    · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2
+      iframe Hods He
+    have Hodm' : ∀ d', some d' ∈ ods ++ [some d] → M !! d' = some () := by
+      intro d' h
+      rcases List.mem_append.mp h with h | h
+      · exact Hodm d' h
+      · simp only [List.mem_singleton, Option.some.injEq] at h; subst h; exact HMd
+    by_cases Hm : d ∈ firstOcc ods
+    · -- a later occurrence: the history does not move
+      have Hocc : firstOcc (ods ++ [some d]) = firstOcc ods := by
+        rw [firstOcc_snoc, occStep_mem _ _ Hm]
+      imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
+      · inext
+        iexists L ++ [e], ods ++ [some d], M, F, S, Mi, O
+        rw [Hocc]
+        iframe Hsl
+        unfold regCore
+        rw [Hocc]
+        iframe HrL Hods' Hv HM HF HS HMi HO
+        ipureintro; exact ⟨Hok, Hodm'⟩
+      imodintro
+      itrivial
+    · -- the first occurrence: the client's update runs, from the slot
+      have Hocc : firstOcc (ods ++ [some d]) = firstOcc ods ++ [d] := by
+        rw [firstOcc_snoc, occStep_nmem _ _ Hm]
+      ihave Hsl := (BigSepM.bigSepM_later).1 $$ Hsl
+      icases (BigSepM.bigSepM_delete (Φ := fun d γp =>
+        iprop(▷ opSlot (GF := GF) γr d γp (firstOcc ods))) HOd).1 $$ Hsl with ⟨Hsd, Hsl⟩
+      iunfold opSlot at Hsd
+      icases Hsd with ⟨%Φ, #Hsp, Hst⟩
+      icases Hst with (⟨>%Hn, >Hlc, Hau⟩ | ⟨%H0, >%Hp, -⟩)
+      · imod lc_fupd_elim_later $$ Hlc Hau with Hau
+        iunfold opAu at Hau
+        ihave Hacc := aupd_aacc $$ Hau
+        unfold atomic_acc regMask
+        imod Hacc with Hacc
+        isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+        icases Hacc with ⟨%x, Hx, Hucl⟩
+        iunfold regVal at Hx
+        ihave %Hxeq := ghostVar_agree γr.val (regFold (firstOcc ods)) (1 : Qp).half x
+          (1 : Qp).half $$ Hv Hx
+        subst Hxeq
+        have Hf : regFold (firstOcc ods ++ [d]) = regApply (regFold (firstOcc ods)) d :=
+          regFold_snoc _ _
+        imod ghostVar_update_halves (regFold (firstOcc ods ++ [d])) γr.val
+          (regFold (firstOcc ods)) (regFold (firstOcc ods)) $$ Hv Hx with ⟨Hv, Hx⟩
+        icases Hucl with ⟨-, Hcommit⟩
+        isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+        rw [Hf]
+        imod Hcommit $$ [Hx] with HΦ
+        · unfold regVal; iexact Hx
+        imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl HΦ] with -
+        · inext
+          iexists L ++ [e], ods ++ [some d], M, F, S, Mi, O
+          rw [Hocc]
+          isplitl [HrL Hv HM HF HS HMi HO]
+          · unfold regCore
+            rw [Hocc, Hf]
+            iframe HrL Hods' Hv HM HF HS HMi HO
+            ipureintro; exact ⟨Hok, Hodm'⟩
+          iapply (BigSepM.bigSepM_delete (Φ := fun d' γp' =>
+            opSlot (GF := GF) γr d' γp' (firstOcc ods ++ [d])) HOd).2
+          isplitl [HΦ]
+          · unfold opSlot
+            iexists Φ
+            iframe Hsp
+            iright
+            iexists firstOcc ods
+            isplitr
+            · ipureintro; exact ⟨List.prefix_refl _, Hm⟩
+            ileft
+            rw [Hf]
+            iexact HΦ
+          iapply BigSepM.bigSepM_impl $$ Hsl
+          imodintro
+          iintro %k %v %Hkv Hs
+          have Hne : k ≠ d := (Iris.Std.LawfulPartialMap.get?_delete_some_iff.mp Hkv).1.symm
+          iapply opSlot_grow γr k d v (firstOcc ods) Hne $$ Hs
+        imodintro
+        itrivial
+      · exact absurd (Hp.1.subset (List.mem_append_right _ (List.mem_singleton_self d))) Hm
+
+/-- The standing update for raft's own entries (2026-10-14, stage R): the register's log
+grows, its history and value do not. -/
+theorem reg_noopAu (γr : RegNames) :
+    ⊢ regInv (GF := GF) γr -∗ noopAu γr.raft := by
+  iintro #Hinv
+  unfold noopAu
+  imodintro
+  iauintro
+  unfold atomic_acc regInv regInvBody
+  have Hdisj := regN_raftN
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑regN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists L
+  iframe HrL
+  isplit
+  · iintro HrL
+    imod Hclose2 with -
+    imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
     · inext
-      iexists L ++ [d], M, S, Mi
-      rw [Hf]
-      iframe
-      ipureintro; exact Hok
+      iexists L, ods, M, F, S, Mi, O
+      iframe Hsl
+      unfold regCore
+      iframe HrL Hods Hv HM HF HS HMi HO
+      ipureintro; exact ⟨Hok, Hodm⟩
     imodintro
-    iexact HΦ
+    iempintro
+  · iintro %e ⟨HrL, #He⟩
+    imod Hclose2 with -
+    ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [none], entDataIs γr.raft e o) $$ []
+    · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2
+      iframe Hods He
+    have Hocc : firstOcc (ods ++ [none]) = firstOcc ods := by rw [firstOcc_snoc]; rfl
+    imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
+    · inext
+      iexists L ++ [e], ods ++ [none], M, F, S, Mi, O
+      rw [Hocc]
+      iframe Hsl
+      unfold regCore
+      rw [Hocc]
+      iframe HrL Hods' Hv HM HF HS HMi HO
+      ipureintro
+      refine ⟨Hok, fun d' h => ?_⟩
+      rcases List.mem_append.mp h with h | h
+      · exact Hodm d' h
+      · simp at h
+    imodintro
+    itrivial
+
+/-- A read's update (2026-10-14, stage R): the log lent and returned, nothing moved. -/
+theorem reg_readAu (γr : RegNames) :
+    ⊢ regInv (GF := GF) γr -∗ readAu γr.raft (fun _ => iprop(True)) := by
+  iintro #Hinv
+  unfold readAu
+  imodintro
+  iauintro
+  unfold atomic_acc regInv regInvBody
+  have Hdisj := regN_raftN
+  iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑regN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_nil, Std.Tele.app, ULift.down]
+  iexists L
+  iframe HrL
+  isplit
+  · iintro HrL
+    imod Hclose2 with -
+    imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
+    · inext
+      iexists L, ods, M, F, S, Mi, O
+      iframe Hsl
+      unfold regCore
+      iframe HrL Hods Hv HM HF HS HMi HO
+      ipureintro; exact ⟨Hok, Hodm⟩
+    imodintro
+    iempintro
+  · iintro HrL
+    imod Hclose2 with -
+    imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
+    · inext
+      iexists L, ods, M, F, S, Mi, O
+      iframe Hsl
+      unfold regCore
+      iframe HrL Hods Hv HM HF HS HMi HO
+      ipureintro; exact ⟨Hok, Hodm⟩
+    imodintro
+    itrivial
+
+/-- Collecting an operation's result (2026-10-14, stage R; until then raft's `prop_collect`):
+given a committed log `l` with its entries' data `ods`, in which `d` first occurs at
+position `m`, the ticket buys the result of the client's update at the value after the
+history before it and `d`, under two laters (the invariant it was stored in; the saved
+predicate naming it). -/
+theorem reg_collect (γr : RegNames) (d : List w8) (γp : GName × GName) (Ψ : List w8 → IProp GF)
+    (l : List raftpb.Entry) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
+    (HE1 : ↑regN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑regN) :
+    ods[m]? = some (some d) → d ∉ firstOcc (ods.take m) →
+    ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ d ↪[γr.ops]□ γp -∗
+      savedPredOwn γp.1 DFrac.discard Ψ -∗ token γp.2 -∗ isCommitted γr.raft l -∗
+      ([∗list] e;o ∈ l;ods, entDataIs γr.raft e o) ={E}=∗
+      ▷ ▷ Ψ (regFold (firstOcc (ods.take m) ++ [d])) := by
+  intro Hm Hfirst
+  iintro #Hinv #Hcinv #Hop #Hsp Htok #Hl #Hds
+  unfold regInv regInvBody
+  iinv Hinv with ⟨%L, %ods', %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
+  iunfold regCore at Hc
+  icases Hc with ⟨HrL, #Hods', Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
+  have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑regN := raftLogN_of HE2
+  imod reg_log_prefix γr L l _ HE3 $$ Hcinv HrL Hl with ⟨HrL, %Hpre⟩
+  icases ghost_map_lookup $$ HO Hop with %HOd
+  -- `d` is in the history, right after `firstOcc (ods.take m)`
+  have Hlt := (List.getElem?_eq_some_iff.mp Hm).1
+  have Htk : ods.take (m + 1) = ods.take m ++ [some d] := by
+    rw [List.take_add_one, Hm]; rfl
+  have h1 : firstOcc (ods.take (m + 1)) = firstOcc (ods.take m) ++ [d] := by
+    rw [Htk, firstOcc_snoc]
+    show (if d ∈ firstOcc (ods.take m) then _ else _) = _
+    rw [ite_eq_right Hfirst]
+  ihave %Hocc : ⌜firstOcc (ods.take m) ++ [d] <+: firstOcc ods'⌝ $$ []
+  · ihave %Hop' := entDataIs_list_prefix γr.raft l L ods ods' Hpre $$ Hds Hods'
+    ipureintro
+    rw [← h1]
+    exact (firstOcc_prefix_of_prefix _ _ (List.take_prefix _ _)).trans
+      (firstOcc_prefix_of_prefix _ _ Hop')
+  have HdL : d ∈ firstOcc ods' :=
+    Hocc.subset (List.mem_append_right _ (List.mem_singleton_self d))
+  ihave Hsl := (BigSepM.bigSepM_later).1 $$ Hsl
+  icases (BigSepM.bigSepM_delete (Φ := fun d γp =>
+    iprop(▷ opSlot (GF := GF) γr d γp (firstOcc ods'))) HOd).1 $$ Hsl with ⟨Hsd, Hsl⟩
+  iunfold opSlot at Hsd
+  icases Hsd with ⟨%Φ', #Hsp', Hst⟩
+  icases Hst with (⟨>%Hn, -, -⟩ | ⟨%H0, >%HH0, HQ⟩)
+  · exact absurd HdL Hn
+  have HH0eq : H0 = firstOcc (ods.take m) :=
+    prefix_before_unique _ _ _ d (firstOcc_nodup ods') HH0.1 Hocc
+  subst HH0eq
+  icases HQ with (HQ | >Htok')
+  · ihave #Heq : ▷ ▷ (Φ' (regFold (firstOcc (ods.take m) ++ [d])) ≡
+        Ψ (regFold (firstOcc (ods.take m) ++ [d]))) $$ []
+    · inext
+      iapply saved_pred_agree γp.1 DFrac.discard DFrac.discard Φ' Ψ _ $$ Hsp' Hsp
+    imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl Htok] with -
+    · inext
+      iexists L, ods', M, F, S, Mi, O
+      isplitl [HrL Hv HM HF HS HMi HO]
+      · unfold regCore
+        iframe HrL Hods' Hv HM HF HS HMi HO
+        ipureintro; exact ⟨Hok, Hodm⟩
+      iapply (BigSepM.bigSepM_delete (Φ := fun d γp =>
+        opSlot (GF := GF) γr d γp (firstOcc ods')) HOd).2
+      iframe Hsl
+      unfold opSlot
+      iexists Φ'
+      iframe Hsp'
+      iright
+      iexists firstOcc (ods.take m)
+      iframe Htok
+      ipureintro; exact HH0
+    imodintro
+    inext
+    inext
+    ihave Hiff := internalEq_iff _ _ $$ Heq
+    icases Hiff with ⟨Hiff, -⟩
+    iapply Hiff $$ HQ
+  · iexfalso
+    iapply token_exclusive $$ Htok Htok'
 
 /-- Spending an operation credit. -/
 theorem opCred_spend (γp : RepNames) (c : Nat) :
@@ -320,6 +841,85 @@ theorem opCred_spend (γp : RepNames) (c : Nat) :
   ipureintro; exact Hc1
 
 end lemmas
+
+/-! ## Conf-change entries, at the applier (2026-10-15, stage N) -/
+
+section confs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The data of the last entry of a committed log. -/
+theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.Entry)
+    (e : raftpb.Entry) (E : CoPset) (HE : ↑raftN ⊆ E) :
+    ⊢ isNode γ id n -∗ isCommitted γ.raft (l ++ [e]) ={E}=∗ ∃ o, entDataIs (GF := GF) γ.raft e o := by
+  iintro #Hnode #Hc
+  imod node_committed_data γ id n (l ++ [e]) E HE $$ Hnode Hc with ⟨%ods, #Hl⟩
+  ihave ⟨%o, %-, Ho⟩ := (BigSepL2.bigSepL2_lookup_left (Φ := fun _ e o => entDataIs (GF := GF) γ.raft e o)
+    (l1 := l ++ [e]) (l2 := ods) (i := l.length) (x1 := e) (by simp)) $$ Hl
+  imodintro
+  iexists o
+  iexact Ho
+
+/-- A recorded slice holds its bytes, at the node. -/
+theorem node_propData_heap (γ : NodeNames) (id : w64) (n : Loc) (sl : GoSlice) (bs : List w8)
+    (E : CoPset) (HE : ↑propDataN ⊆ E) :
+    ⊢ isNode γ id n -∗ isPropData (GF := GF) γ.raft sl bs ={E}=∗ sl ↦*□ bs := by
+  iintro #Hnode #Hpd
+  ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
+  iapply propData_heap γ.raft sl bs E HE $$ Hpdi Hpd
+
+/-- An entry of a type other than `EntryConfChange` is no conf-change entry, in the cluster: its
+conf-change entries are all of that type (`RegCC`). -/
+theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
+    (e : raftpb.Entry) (o : Option (List w8)) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜e.Type' ≠ W32 1 → ¬ IsConfEnt e⌝ := by
+  iintro He
+  cases o with
+  | some d =>
+    unfold entDataIs
+    icases He with ⟨%Hd, -⟩
+    ipureintro
+    intro _ hc
+    unfold IsConfEnt at hc
+    rw [Hd.2] at hc
+    rcases hc with h | h <;> revert h <;> word
+  | none =>
+    unfold entDataIs
+    icases He with (%Hz | ⟨%Hty, %bs, -, %Hdec⟩)
+    · ipureintro
+      intro _ hc
+      unfold IsConfEnt at hc
+      rw [Hz.1] at hc
+      rcases hc with h | h <;> revert h <;> word
+    · ipureintro
+      intro hn _
+      exact hn (H.2.1 _ _ Hdec.2).1
+
+/-- A conf-change entry of the cluster carries `op` (`RegCC`): its bytes, recorded, decode to a
+`ConfChange` whose change is `op`. -/
+theorem regCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
+    (e : raftpb.Entry) (o : Option (List w8)) (Hty : e.Type' = W32 1) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ∃ (bs : List w8) (m : CCV1M),
+      isPropData γn.raft e.Data' bs ∗ ⌜ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op⌝ := by
+  iintro He
+  cases o with
+  | some d =>
+    unfold entDataIs
+    icases He with ⟨%Hd, -⟩
+    exfalso; rw [Hd.2] at Hty; revert Hty; word
+  | none =>
+    unfold entDataIs
+    icases He with (%Hz | ⟨%Hty', %bs, #Hpd, %Hdec⟩)
+    · exfalso; rw [Hz.1] at Hty; revert Hty; word
+    · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hdec.2
+      iexists bs, m
+      iframe Hpd
+      ipureintro; exact ⟨Hm, Hop⟩
+
+end confs
 
 end EtcdGrove
 end Perennial

@@ -223,7 +223,7 @@ theorem apply.newApplierV3Backend.wp_proof
   isplitr
   · -- `AuthEnable`, `AuthDisable`
     imodintro
-    iintro %m %log %Pre %Q %Post %hm
+    iintro %m %log %Pre %Q %Post %hm %hon
     imodintro
     iintro %Φ' Hpre HΦ'
     simp only [apply.resp0Methods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
@@ -231,6 +231,7 @@ theorem apply.newApplierV3Backend.wp_proof
     · iapply (hAuthEnable E p log Pre Q Post) $$ [Hpre] HΦ'
       iframe
       iframe #
+      try (ipureintro; exact hon rfl)
     · iapply (hAuthDisable E p log Pre Q Post) $$ [Hpre] HΦ'
       iframe
       iframe #

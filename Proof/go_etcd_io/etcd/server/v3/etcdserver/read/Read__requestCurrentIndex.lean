@@ -30,9 +30,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 /-- The registrations of the request ids sent, with one more. -/
-theorem read_reg_insert (RQ : w64 → w64 → IProp GF) (n : w64) (m : GMap w64 Unit) (rid : w64) :
-    ⊢ (□ ∀ k, ⌜m !! k = some ()⌝ -∗ □ RQ k n) -∗ □ RQ rid n -∗
-      □ ∀ k, ⌜(<[rid := ()]> m) !! k = some ()⌝ -∗ □ RQ k n := by
+theorem read_reg_insert (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (n : w64)
+    (Qr : List EntryModel → IProp GF) (m : GMap w64 Unit) (rid : w64) :
+    ⊢ (□ ∀ k, ⌜m !! k = some ()⌝ -∗ □ RQ k n Qr) -∗ □ RQ rid n Qr -∗
+      □ ∀ k, ⌜(<[rid := ()]> m) !! k = some ()⌝ -∗ □ RQ k n Qr := by
   iintro #Hreg #Hrq !> %k %hk
   by_cases hkr : k = rid
   · subst hkr; iexact Hrq
@@ -40,8 +41,9 @@ theorem read_reg_insert (RQ : w64 → w64 → IProp GF) (n : w64) (m : GMap w64 
     iapply Hreg $$ %k %hk
 
 /-- No registration in the empty map. -/
-theorem read_reg_empty (RQ : w64 → w64 → IProp GF) (n : w64) :
-    ⊢ (□ ∀ k, ⌜(∅ : GMap w64 Unit) !! k = some ()⌝ -∗ □ RQ k n : IProp GF) := by
+theorem read_reg_empty (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (n : w64)
+    (Qr : List EntryModel → IProp GF) :
+    ⊢ (□ ∀ k, ⌜(∅ : GMap w64 Unit) !! k = some ()⌝ -∗ □ RQ k n Qr : IProp GF) := by
   iintro !> %k %hk
   simp at hk
 
@@ -73,7 +75,7 @@ local macro "rci_resend" fcN:term:max : tactic => `(tactic| (
   (try wp_auto)
   wp_apply HNR $$ HN1 as %rid' -
   wp_apply wp_mapInsert go.uint64 mref _ rid' () $$ Hm as Hm
-  wp_apply hSRI r γr RQ LR NR rid' n $$ [HLR] as %err' ⟨HLR, #HaE', HRQ'⟩
+  wp_apply hSRI r γr RQ LR NR rid' n Qr $$ [HLR] as %err' ⟨HLR, #HaE', HRQ'⟩
   · iframe #; iframe HLR
   cases err' with
   | ok ei' =>
@@ -90,7 +92,7 @@ local macro "rci_resend" fcN:term:max : tactic => `(tactic| (
     iexists _, rid', $fcN
     iframe
     isplitl
-    · iapply read_reg_insert RQ n m rid' $$ Hreg HRQ''
+    · iapply read_reg_insert RQ n Qr m rid' $$ Hreg HRQ''
     simp only [named]
     first | iexact Hfc | iexact Hfcn))
 
@@ -103,8 +105,8 @@ theorem read.Read.requestCurrentIndex.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hI : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     read.Read.requestCurrentIndex.spec (GF := GF) (hG := hG) := by
-  intro r γr RQ LR NR lcn n
-  wp_start as ⟨#Hpre, HLR, #HNRu, #Hlcn, #Hc⟩
+  intro r γr RQ LR NR lcn n Qr
+  wp_start as ⟨#Hpre, HLR, #HNRu, #Hlcn, #Hc, #HRA⟩
   ihave #Hpre' := Hpre
   iunfold isReadLoopPre at Hpre'
   icases Hpre' with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, -⟩
@@ -131,7 +133,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
   imod HN0
   wp_apply HNR $$ [$HN0] as %rid0 -
   wp_apply wp_mapInsert go.uint64 mref _ rid0 () $$ [$Hm] as Hm
-  wp_apply hSRI r γr RQ LR NR rid0 n $$ [HLR] as %err0 ⟨HLR, #HaE0, HRQ0⟩
+  wp_apply hSRI r γr RQ LR NR rid0 n Qr $$ [HLR] as %err0 ⟨HLR, #HaE0, HRQ0⟩
   · iframe #; iframe HLR
   cases err0 with
   | ok ei0 =>
@@ -157,13 +159,13 @@ theorem read.Read.requestCurrentIndex.wp_proof
   ihave HI : iprop(∃ (m : GMap w64 Unit) (rid : w64) (fc : Loc),
       "requestID" ∷ requestID_ptr ↦ rid ∗
       "Hm" ∷ mref ↦$ m ∗
-      "#Hreg" ∷ (□ ∀ k, ⌜m !! k = some ()⌝ -∗ □ RQ k n) ∗
+      "#Hreg" ∷ (□ ∀ k, ⌜m !! k = some ()⌝ -∗ □ RQ k n Qr) ∗
       "firstCommitInTermNotifier" ∷ firstCommitInTermNotifier_ptr ↦ fc ∗
       "#Hfc" ∷ bcastChan fc iprop(True)) $$ [requestID Hm firstCommitInTermNotifier]
   · iexists _, rid0, fc0
     iframe
     isplitl
-    · iapply read_reg_insert RQ n ∅ rid0 $$ [] HRQ0'
+    · iapply read_reg_insert RQ n Qr ∅ rid0 $$ [] HRQ0'
       iapply read_reg_empty
     · simp only [named]; iexact Hfc0
   wp_for HI
@@ -245,14 +247,14 @@ theorem read.Read.requestCurrentIndex.wp_proof
         simp only [Option.isSome_some, _root_.decide_true, Bool.not_true]
         wp_auto
         ihave #Hrq := Hreg $$ %(leToU64 bs.reverse) %hk
-        ihave %Hle := Hans $$ %(leToU64 bs.reverse) %n %(beBytes_of_length bs Hbl) Hrq
+        ihave ⟨%Hle, #Hwit⟩ := Hans $$ %(leToU64 bs.reverse) %n %Qr %(beBytes_of_length bs Hbl) Hrq
         wp_for_post
         rci_defers
         iapply HΦ
         iframe HLR
         isplitr
         · iapply applyErrIs_nil
-        iintro -; ipureintro; exact Hle
+        iintro -; iframe Hwit; ipureintro; exact Hle
   -- `<-leaderChangedNotifier`
   iapply BigAndL.bigAndL_cons.2
   isplit

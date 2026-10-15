@@ -90,7 +90,7 @@ theorem raftLog.append.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_unstable_truncateAndAppend : unstable.truncateAndAppend.spec (GF := GF) (hG := hG)) :
     raftLog.append.spec (GF := GF) (hG := hG) := by
-  intro l ls ents es dq Hpre Hnorm
+  intro l ls ents es dq Hpre
   wp_start as H
   iNamed H
   wp_auto
@@ -151,9 +151,9 @@ theorem raftLog.append.wp_proof
     wp_apply wp_unstable_truncateAndAppend _ (unstableOf lv ls) _ _ _ _ He0 Hle' Hnw'
         $$ [$Hun $Hes Hadopt] as ⟨Hun, Hes⟩
     · iexact Hadopt
-    iclear Husnap Hu_logger
+    iclear Husnap Hpksn Hu_logger
     icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-      with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hu_logger, %Hoffm, %Hoip'⟩
+      with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hpksn, #Hu_logger, %Hoffm, %Hoip'⟩
     have Hoff' : uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z lv.unstable'.offset') := by
       rw [Hoffm, w64Min_spec]
     -- the new state
@@ -173,15 +173,6 @@ theorem raftLog.append.wp_proof
       rw [Hsplit]
       refine PlogWf_truncateAppend _ _ _ e0 Hidx He0 ⟨Hprev, ?_⟩ Hcontig
       simp only [plogLastIndexZ, List.length_append]; push_cast; omega
-    have Hnc' : ∀ e ∈ ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat ++
-          (ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
-              - (ls.sents.length : Int)).toNat ++ e0 :: ents'), e.Type' = EntryNormal := by
-      intro e He
-      simp only [List.mem_append] at He
-      rcases He with He | He | He
-      · exact HnoConfChange e (List.mem_append_left _ (List.mem_of_mem_take He))
-      · exact HnoConfChange e (List.mem_append_right _ (List.mem_of_mem_take He))
-      · exact Hnorm e He
     -- the storage relation: the visible stable part is cut, or -- with a snapshot
     -- pending -- stays empty
     have Hst2 : LogStoreOk ls.snap σ ls.prev
@@ -274,10 +265,10 @@ theorem raftLog.append.wp_proof
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
-          (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2 Hnc'
+          (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
           Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 ?_ ?_
-        $$ Hl HisStorage HStorage Husnap Hents Hents_cap Hl_logger Hu_logger
+          Hstor Hpend2 Hsksn ?_ ?_ ?_
+        $$ Hl HisStorage HStorage Husnap Hpksn Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     iapply HΦ $$ %li

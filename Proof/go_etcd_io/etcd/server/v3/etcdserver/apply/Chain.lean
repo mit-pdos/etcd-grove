@@ -72,20 +72,34 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api
 /-- The layers of an applier chain, outermost first. -/
 inductive Chain where
   | backend
-  | auth (c : Chain)
+  /-- The auth layer; `on`: whether the auth store is enabled (2026-10-14, unit T1: a disabled
+  store's checks pass, `isAuthStore … on`, so the layer rejects only when `on`, or for the
+  requests whose rejection does not depend on the store, `authMayReject`). -/
+  | auth (on : Bool) (c : Chain)
   | quota (c : Chain)
   | capped (c : Chain)
   | corrupt (c : Chain)
   deriving DecidableEq
 
 /-- `newApplierV3`'s chain: `authApplierV3` over `quotaApplierV3` over `applierV3backend`. -/
-def baseChain : Chain := .auth (.quota .backend)
+def baseChain (on : Bool) : Chain := .auth on (.quota .backend)
 
 /-- `restoreAlarms`' chain: the base chain, `capped` if a `NOSPACE` alarm is set, then `corrupt`
 if a `CORRUPT` alarm is. -/
-def alarmChain (noSpace corrupt : Bool) : Chain :=
-  let c := if noSpace then Chain.capped baseChain else baseChain
+def alarmChain (on noSpace corrupt : Bool) : Chain :=
+  let c := if noSpace then Chain.capped (baseChain on) else baseChain on
   if corrupt then .corrupt c else c
+
+/-- The auth layer's mode of a chain (`false` if it has none; 2026-10-14, unit T1). -/
+def Chain.authOn : Chain → Bool
+  | .backend => false
+  | .auth on c => on || c.authOn
+  | .quota c => c.authOn
+  | .capped c => c.authOn
+  | .corrupt c => c.authOn
+
+@[simp] theorem alarmChain_authOn (on ns cr : Bool) : (alarmChain on ns cr).authOn = on := by
+  unfold alarmChain baseChain; cases on <;> cases ns <;> cases cr <;> rfl
 
 /-- An error a layer rejects a request with, before any write. -/
 inductive RejectKind where
@@ -135,6 +149,17 @@ def quotaChecks : ReqKind → Bool
   | .put | .txn | .leaseGrant => true
   | _ => false
 
+/-- **Whether the auth layer may reject `rq`** (2026-10-14, unit T1): always if auth is enabled
+(`on`); with auth disabled the store's checks pass (`IsPutPermitted`, `IsRangePermitted`,
+`IsDeleteRangePermitted`, `IsAdminPermitted` return `nil`: `isAuthStore … false`), so a put, a
+range, a delete or (2026-10-15, unit T2: `CheckTxnAuth` is made of those checks) a transaction is
+not rejected unless it needs admin permission; the other requests' checks (a lease revocation's,
+the user and role gets') are not followed. -/
+def authMayReject (on : Bool) (rq : IRRModel) : Prop :=
+  on = true ∨ needAdminPermission rq = true ∨
+    (dispatchKind rq ≠ .put ∧ dispatchKind rq ≠ .range ∧ dispatchKind rq ≠ .deleteRange ∧
+      dispatchKind rq ≠ .txn)
+
 /-- **The outcome relation** of the chain `c` on `rq` at `log`, over the backend's `B`. -/
 def chainStep (B : IRRModel → mvcc.Log → Outcome → Prop) :
     Chain → IRRModel → mvcc.Log → Outcome → Prop
@@ -146,44 +171,51 @@ def chainStep (B : IRRModel → mvcc.Log → Outcome → Prop) :
       if cappedRejects (dispatchKind rq) then o = .rejected .noSpace
       else if dispatchKind rq = .txn then o = .rejected .noSpace ∨ chainStep B c rq log o
       else chainStep B c rq log o
-  | .auth c, rq, log, o =>
+  | .auth on c, rq, log, o =>
       if authChecks (dispatchKind rq) ∨ needAdminPermission rq = true then
-        o = .rejected .auth ∨ chainStep B c rq log o
+        (authMayReject on rq ∧ o = .rejected .auth) ∨ chainStep B c rq log o
       else chainStep B c rq log o
-  | .quota c, rq, log, o =>
-      if quotaChecks (dispatchKind rq) then
-        ∃ o', chainStep B c rq log o' ∧
-          (o = o' ∨ ∃ log', o' = .applied log' false ∧ o = .applied log' true)
-      else chainStep B c rq log o
+  -- the quota layer: the inner outcome. The backend never reaches its quota (the disk never
+  -- fills: `isQuota`'s `Available` returns `true`, a construction premise; 2026-10-14, unit T1),
+  -- so `quotaApplierV3` never sets `ErrNoSpace` (it would only have set it on the response of a
+  -- write already applied, `quota.go:36-42`).
+  | .quota c, rq, log, o => chainStep B c rq log o
 
 /-! ## The backend's relation -/
 
 /-- **What the backend applier does with `rq` at the sole writer's log `log`** (the txn package's
 results, `backend.go`): a put is the txn package's `Put` (the lease not found or, with an ignore
-flag, the key missing: rejected; else the one change `putChangeOf` committed); a delete the
-filter (`delChanges` committed; or, with `PrevKv`, the range read's error); a range reads `log`;
-a transaction is `checkTxn`'s error or the server's run `srvRunTxn` committed (nothing for a
-read-only one); a revocation commits the lessor's deletions of the lease's keys; the other
-requests do not touch the KV (applied, or the component's error). Compaction is out of the model
-(`False`), and so is a request with no field set (`dispatch` panics). -/
+flag, the key missing: rejected; else, the key found if an ignore flag needs it, the one change
+`putChangeOf` committed); a delete the filter (`delChanges` committed: the apply thread's context
+is never done, so the `PrevKv` range read does not fail); a range reads `log`; a transaction is
+`checkTxn`'s error (for a plain transaction, `txn.txnPlain`, only when a put of its path does not
+find the previous key-value it needs) or, every such put finding it (`PathsIgnOk`), the server's
+run `srvRunTxn` committed (nothing for a read-only one); a revocation commits the lessor's
+deletions of the lease's keys; the other requests do not touch the KV (applied, or the
+component's error). Compaction is out of the model (`False`), and so is a request with no field
+set (`dispatch` panics). 2026-10-15 (unit T2): the put's, the delete's and the transaction's cases
+made exact, so that the KV model is a function of the state (`KVModelDefs.lean`). -/
 def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
   match dispatchKind rq with
   | .put => ∃ op, rq.put = some op ∧
       ((op.leaseID ≠ W64 0 ∧ o = .rejected .backend) ∨
        (txn.needsPrev op = true ∧ mvcc.findKey op.key (mvcc.stateAfter log) = none ∧
          o = .rejected .backend) ∨
-       o = .applied (log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]])
-         false)
+       ((txn.needsPrev op = true → (mvcc.findKey op.key (mvcc.stateAfter log)).isSome) ∧
+        o = .applied (log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]])
+         false))
   | .deleteRange => ∃ op, rq.deleteRange = some op ∧
-      (o = .applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) op)) false ∨
-       (op.base.prevKV = true ∧ o = .rejected .backend))
+      o = .applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) op)) false
   | .range => o = .applied log false
   | .txn => ∃ t, rq.txn = some t ∧
-      (o = .rejected .backend ∨
+      ((o = .rejected .backend ∧
+          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
        (o = .applied (mvcc.commitLog log
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false ∧
         (txn.txnReadonly t = true →
-          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = [])))
+          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = []) ∧
+        txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))))
   | .leaseRevoke => ∃ pend : List mvcc.Change, (∀ ch ∈ pend, ch.isDel = true) ∧
       o = .applied (mvcc.commitLog log pend) false
   | .compaction => False
@@ -241,6 +273,9 @@ structure AEnv (GF : BundledGFunctors) where
   f : val
   RD : IProp GF
   γrev : GName
+  /-- whether the auth store is enabled (2026-10-14, unit T1): the auth layer's mode
+  (`Chain.auth E.authOn`), the auth store's contract's (`isAuthStore … E.authOn`) -/
+  authOn : Bool
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
@@ -278,7 +313,7 @@ theorem kvOwn_cert (E : AEnv GF) (log : mvcc.Log) :
 `authInfo` (owned while the layer's `Apply` holds its mutex), and the inner chain's. -/
 def chainRes : Chain → GoInterface → IProp GF
   | .backend, _ => iprop(True)
-  | .auth c, a =>
+  | .auth _ c, a =>
       iprop(∃ (p : Loc) (inner : GoInterface),
         ⌜a = interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p⌝ ∗
         structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
@@ -417,6 +452,87 @@ may open a store write transaction (`Put`, `DeleteRange`, `Txn`, `LeaseRevoke`) 
 token (`mvcc.storeWT E.γ`: the real backend's write-back budget) and spend it (2026-10-13,
 unit 6). -/
 
+/-- **The certificates of the logs `rq` may commit** through the chain `c` at `log` (persistent;
+2026-10-14, unit T1): the store's caller certifies (`mvcc.certOk`) the log after every outcome of
+`chainStep` (the store's `txnEndPre` asks it of a commit). The KV methods take it; a layer that
+passes `rq` on passes it on for its inner chain (`certPre_mono`). The etcd server's: the log after
+`rq` is the KV model of the committed raft log through `rq`'s entry. -/
+def certPre (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) : IProp GF :=
+  iprop(□ ∀ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ -∗ mvcc.certOk E.γ (oc.logAfter log))
+
+instance certPre_persistent (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) :
+    Persistent (certPre E c rq log) := by
+  unfold certPre; infer_instance
+
+/-- `certPre` with `v3` (`dispatch` runs the KV methods only then), else nothing. -/
+def certPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) : IProp GF :=
+  if v3 then certPre E c rq log else iprop(True)
+
+instance certPreV_persistent (v3 : Bool) (E : AEnv GF) (c : Chain) (rq : IRRModel)
+    (log : mvcc.Log) : Persistent (certPreV v3 E c rq log) := by
+  unfold certPreV; split <;> infer_instance
+
+theorem certPreV_true (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) :
+    certPreV true E c rq log ⊢ certPre E c rq log := by
+  simp only [certPreV, ↓reduceIte]; exact .rfl
+
+open Iris.ProofMode in
+theorem certPre_mono (E : AEnv GF) (c c' : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (h : ∀ oc, chainStep backendStep c' rq log oc → chainStep backendStep c rq log oc) :
+    certPre E c rq log ⊢ certPre E c' rq log := by
+  unfold certPre
+  iintro #H
+  imodintro
+  iintro %oc %hs
+  iapply H
+  ipureintro; exact h oc hs
+
+theorem certPre_auth (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (log : mvcc.Log) :
+    certPre E (.auth on c) rq log ⊢ certPre E c rq log :=
+  certPre_mono E _ c rq log (fun oc h => by simp only [chainStep]; split <;> simp [h])
+
+theorem certPre_quota (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) :
+    certPre E (.quota c) rq log ⊢ certPre E c rq log :=
+  certPre_mono E _ c rq log (fun oc h => by simp only [chainStep]; exact h)
+
+theorem certPre_capped (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (hk : cappedRejects (dispatchKind rq) = false) :
+    certPre E (.capped c) rq log ⊢ certPre E c rq log :=
+  certPre_mono E _ c rq log (fun oc h => by
+    simp only [chainStep, hk, Bool.false_eq_true, ↓reduceIte]; split <;> simp [h])
+
+open Iris.ProofMode in
+/-- The backend's certificate of the log after the outcome `oc` it comes to. -/
+theorem certPre_backend (E : AEnv GF) (rq : IRRModel) (log : mvcc.Log) (oc : Outcome)
+    (h : backendStep rq log oc) :
+    certPre E .backend rq log ⊢ mvcc.certOk E.γ (oc.logAfter log) := by
+  unfold certPre
+  iintro #H
+  iapply H
+  ipureintro; exact h
+
+open Iris.ProofMode in
+/-- The backend's certificate of the log `log'` it commits. -/
+theorem certPre_backend_applied (E : AEnv GF) (rq : IRRModel) (log log' : mvcc.Log) (ns : Bool)
+    (h : backendStep rq log (.applied log' ns)) :
+    certPre E .backend rq log ⊢ mvcc.certOk E.γ log' := by
+  unfold certPre
+  iintro #H
+  ihave Hc := H $$ %(Outcome.applied log' ns) %h
+  simp only [Outcome.logAfter]
+  iexact Hc
+
+open Iris.ProofMode in
+/-- A commit's certificate as the store's `txnEndPre` asks it (`certOkNext`). -/
+theorem certOkNext_of_commitLog (γ : mvcc.StoreNames) (log : mvcc.Log) (pend : List mvcc.Change) :
+    mvcc.certOk (GF := GF) γ (mvcc.commitLog log pend) ⊢ mvcc.certOkNext γ log pend := by
+  unfold mvcc.certOkNext
+  by_cases hp : pend = []
+  · iintro #H; ileft; ipureintro; exact hp
+  · have hc : mvcc.commitLog log pend = log ++ [pend] := by simp [mvcc.commitLog, hp]
+    rw [hc]
+    iintro #H; iright; iexact H
+
 /-- The common precondition of a writing method. -/
 def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Q Post : IProp GF) : IProp GF :=
@@ -461,14 +577,15 @@ def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (log F :
 /-- `Put(r)`'s precondition: `r` is `rq`'s put `o`. -/
 def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel) (o : OpFull)
     (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPre E c rq log ∗
+    txn.putRequestIs r o ∗
     mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- `DeleteRange(r)`'s precondition. -/
 def deletePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
     (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
-    txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
+    certPre E c rq log ∗ txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- `Range(r)`'s precondition (a read: no contract). -/
 def rangePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
@@ -485,13 +602,15 @@ def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (o : O
 /-- `Txn(r, skip)`'s precondition. -/
 def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
     (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPre log t⌝ ∗ txn.txnRequestIs r t ∗
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPre log t⌝ ∗ certPre E c rq log ∗
+    txn.txnRequestIs r t ∗
     mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- `LeaseRevoke(r)`'s precondition. -/
 def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
     (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke⌝ ∗ leaseRevokeIs r id ∗
+  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke⌝ ∗ certPre E c rq log ∗
+    leaseRevokeIs r id ∗
     mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- The request facts of a one-argument method that leaves the log as it is, by method: what
@@ -575,6 +694,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ resp0Methods⌝ -∗
+      ⌜m = go!"AuthEnable" → E.authOn = true⌝ -∗
       {{ mPre E c (.ok ai) log Pre Q Post }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -618,7 +738,7 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
   iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.P E.f E.RD ∗
+    isApplyLessor opts.Lessor' E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.P E.f E.RD E.authOn ∗
     isAlarmStore opts.AlarmStore' E.P E.f ∗ isCluster opts.Cluster' E.P E.f ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' ∗
     isConsistentIndexer opts.ConsistentIndex')
@@ -664,7 +784,7 @@ store (`E.RD`: `Apply`'s admin check; 2026-10-14, unit A2). -/
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
-      isAuthStore st E.P E.f E.RD) ∗
+      isAuthStore st E.P E.f E.RD E.authOn) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
       isApplyLessor le E.γ E.P E.f) ∗
     sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoOwn p ∗ E.RD))

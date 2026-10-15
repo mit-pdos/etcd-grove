@@ -84,7 +84,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2⟩
+    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -⟩
     · iframe #
       ipureintro; word
     (try wp_auto)
@@ -101,7 +101,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2⟩
+    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -⟩
     · iframe #
       ipureintro; word
     (try wp_auto)

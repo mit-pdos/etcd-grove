@@ -44,13 +44,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 /-! ## The log raft hands the apply side (pure) -/
 
-/-- The log `L` after the applied index `ai₀`: consecutive indices from `ai₀ + 1`, no overflow,
-normal entries and v1 conf changes. -/
-def srvIdxOk (ai₀ : w64) (L : List EntryModel) : Prop :=
-  uint.Z ai₀ + 1 + L.length < 2 ^ 64 ∧
-  ∀ (n : Nat) (m : EntryModel), L[n]? = some m →
-    uint.Z m.index = uint.Z ai₀ + 1 + n ∧
-      (m.typ = W32 0 ∨ (m.typ = W32 1 ∧ isConfChangeEncoding m.data))
+-- `srvIdxOk`: `KVModelDefs.lean` (2026-10-14, unit T1: the raft contract states it).
 
 /-- The consistent index `c` (the protocol's, `ciEff`) relative to the one the apply thread
 started at, `c₀`, at the applied index `ai`: unchanged, or both at most `ai`. -/
@@ -206,9 +200,10 @@ variable [sem : go.Semantics]
 /-- **The raft contract's apply side, for the server** (`E.C`; see the file header): the log
 after `ai₀`, consecutive, each entry's id claimed, meeting the KV's premises from `x₀` at the
 consistent index `c₀`. -/
+-- 2026-10-14 (unit T1): the log `L` is committed (`srvRLogLb ρ.raft L`), raft's committed log's.
 def srvC (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ entriesOk c₀ L x₀⌝ ∗ batchWaitOk ρ E L)
+  iprop(⌜srvIdxOk ai₀ L ∧ entriesOk c₀ L x₀⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
 
 instance srvC_persistent (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : Persistent (srvC (GF := GF) ρ E ai₀ c₀ x₀ L) := by
@@ -255,6 +250,11 @@ structure ApplyCtx (GF : BundledGFunctors) where
   /-- the server's wait's registered ids (`ρ.wait`: the apply thread's `IsRegistered`) -/
   γw : GName
 
+/-- **The apply thread's KV ghost state at the committed raft log `A`** (2026-10-14, unit T1):
+`kvApplied`, with the model's start index and consistent index the apply thread's. -/
+def kvRun (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV) : IProp GF :=
+  iprop(kvApplied γr.raft γr.kv A x ∗ ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝)
+
 /-- **The apply thread's resources at the log `A`** (see the file header; the one place the
 chain's resource is defined: `run`'s loop invariant and its jobs' `Prev`/`Post`). -/
 def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
@@ -262,14 +262,14 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfStateAddr C.ep ↦ cs ∗
     srvSnapState C.s C.ep ∗ applyThread C.γ st ∗ applyBackend C.γ C.ci C.b ∗ ciApplying C.ci a t ∗
     srvLgReader C.s ∗ srvBemuReader C.s ∗ srvWgReader C.s ∗ srvApplyKV C.s C.E C.γw x ∗
-    srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗
+    srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     ⌜loopOk C.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff C.γ st.k) C.c₀ ai ∧
       entriesStep C.c₀ A C.x₀ x⌝)
 
 /-- The raft node contract's environment of the server: `E.C` is `srvC` (the rest is the raft
 wrapper's: messages, ticks, read names, read registrations). -/
 def srvRNEnv (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (M : Loc → IProp GF) (T : IProp GF) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) : RNEnv GF :=
+    (M : Loc → IProp GF) (T : IProp GF) (γr : ReadNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, M, T, γr, RQ⟩
 
 /-- **The compactor** (`s.compactor`, a `v3compactor.Compactor`, names-only: a trust-boundary
@@ -349,7 +349,8 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWgReader s ∗ srvApplyKV s E γw x₀ ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ srvForceSnapAddr s ↦ f)
+    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗
+    srvForceSnapAddr s ↦ f)
 
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s

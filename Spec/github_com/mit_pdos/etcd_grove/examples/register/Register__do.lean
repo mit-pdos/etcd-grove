@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Register).do(kind, val)` (register.go:146): one operation, logically atomic: the
+`(*Register).do(kind, val)` (register.go:206): one operation, logically atomic: the
 client's atomic update over the register's value takes effect when the operation's first
 entry is committed (`reg_propAu`); `do` returns the value after it. One operation credit.
 -/

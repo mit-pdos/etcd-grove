@@ -7,7 +7,7 @@ the shared vocabulary of their specs. Lean-first (no Rocq counterpart); plan: `n
 and `applyV3base` are written once by `NewUberApplier` (`uberIs E p opts`, persistent: the
 options' contracts `backendOptsOk E opts` and the base chain's applier `applierSpec E baseChain`);
 its `applyV3` is the apply thread's (`uberOwn E p c`: the field and `applierSpec E c`), which
-`restoreAlarms` rewrites with the chain the alarms ask for (`alarmChain ns cr`, for whatever the
+`restoreAlarms` rewrites with the chain the alarms ask for (`alarmChain on ns cr`, for whatever the
 alarm store answers). `applierFor ua E` is the persistent part at the `UberApplier` interface
 value `ua`; `applyKV E ua x` the apply thread's part with its KV resources (`kvOwn E x.log`), at
 `x : ApplyKV` (the committed log and the current chain).
@@ -60,8 +60,9 @@ def storeKind : ReqKind → Bool
 /-- **The premise on the request's kind**: not a compaction (out of the model:
 `notes/decisions.md`) and some field set (`dispatch` panics on a request with none, its
 `default`: only a crafted WAL entry has none, unit 0's suspect 2). -/
-def dispatchOk (rq : IRRModel) : Prop :=
-  dispatchKind rq ≠ .compaction ∧ dispatchKind rq ≠ .none
+def dispatchOk (on : Bool) (rq : IRRModel) : Prop :=
+  dispatchKind rq ≠ .compaction ∧ dispatchKind rq ≠ .none ∧
+    (dispatchKind rq = .authEnable → on = true)
 
 /-- **What `dispatch(rq, v3)` does to the KV** through the chain `c` at the log `log`. -/
 def dispatchStep (c : Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (o : Outcome) : Prop :=
@@ -83,7 +84,7 @@ def kvFloorOk (rq : IRRModel) (v3 : Bool) (F log : mvcc.Log) (o : Outcome) : Pro
 (`uberApplier.Alarm` calls `restoreAlarms` on an `ACTIVATE` or `DEACTIVATE`) the chain the alarm
 store's answers ask for. -/
 def chainAfter (rq : IRRModel) (v3 : Bool) (c c' : Chain) : Prop :=
-  c' = c ∨ (v3 = true ∧ dispatchKind rq = .alarm ∧ ∃ ns cr, c' = alarmChain ns cr)
+  c' = c ∨ (v3 = true ∧ dispatchKind rq = .alarm ∧ ∃ ns cr, c' = alarmChain c.authOn ns cr)
 
 /-- **The state `apply.Apply` changes**: the committed log of the KV and the uber-applier's
 current chain. -/
@@ -139,7 +140,7 @@ def uberIs (E : AEnv GF) (p : Loc) (opts : ApplierOptions) : IProp GF :=
     structFieldRef uberApplier go!"alarmStore" p ↦□ opts.AlarmStore' ∗
     structFieldRef uberApplier go!"warningApplyDuration" p ↦□ opts.WarningApplyDuration' ∗
     ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
-      applierSpec E baseChain base)
+      applierSpec E (baseChain E.authOn) base)
 
 instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
     Persistent (uberIs E p opts) := by
@@ -148,7 +149,8 @@ instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
 /-- **The uber-applier `p`'s current applier**, the apply thread's: its `applyV3` field, an
 applier of the chain `c`. -/
 def uberOwn (E : AEnv GF) (p : Loc) (c : Chain) : IProp GF :=
-  iprop(∃ a : GoInterface, structFieldRef uberApplier go!"applyV3" p ↦ a ∗ applierSpec E c a)
+  iprop(∃ a : GoInterface, structFieldRef uberApplier go!"applyV3" p ↦ a ∗ applierSpec E c a ∗
+    ⌜c.authOn = E.authOn⌝)
 
 /-- **The `UberApplier` `ua`** (`apply.Apply`'s, the server's `uberApply`): an `*uberApplier`
 in the environment `E` (persistent). The server's contract for its applier (`InvApplier.lean`),

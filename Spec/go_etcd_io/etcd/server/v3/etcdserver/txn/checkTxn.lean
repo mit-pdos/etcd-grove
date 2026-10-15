@@ -30,7 +30,9 @@ chosen branch's ranges (`checkRange`) and puts (`checkPut`), nested transactions
 verdicts. Either `nil`, the number of nested transactions, every put that needs the previous
 key-value finding it (`PathsIgnOk`) and every lease the puts name known (`leasesOk`); or one of
 the checks' errors (`checkErrIs`) and `0` (a nested call's count is used before its error is
-tested). Nothing is written. -/
+tested), for a plain transaction (`txnPlain`: gets at revision `0`, puts with the lease `0` and
+no `IgnoreLease`; 2026-10-15, unit T2) only when a put that needs the previous key-value does not
+find it (not `PathsIgnOk`). Nothing is written. -/
 abbrev txn.checkTxn.spec : Prop :=
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (rt : Loc)
     (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
@@ -49,7 +51,9 @@ abbrev txn.checkTxn.spec : Prop :=
             (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
         txn.leasesOk L (txn.opsLeases (mvcc.stateAfter log)
           (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
-       (⌜err ≠ GoInterface.nil ∧ n = W64 0⌝ ∗ txn.checkErrIs err)) }}
+       (⌜err ≠ GoInterface.nil ∧ n = W64 0 ∧
+          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err)) }}
 
 end spec
 

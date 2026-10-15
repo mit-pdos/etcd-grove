@@ -37,7 +37,13 @@ snapshot's metadata is the storage's `ss` (`snapId`) -- until 2026-10-10 also
 non-empty, because `ownMemoryStorage` said `ss.index <> 0`; a new `MemoryStorage` has
 no snapshot and returns an empty one, which `isStorage` excludes, so the instance
 (`MemstorageInstance.lean`) adds the premise instead -- and its `ConfState.Voters` slice
-is the read-only one `ownMemoryStorage` holds. -/
+is the read-only one `ownMemoryStorage` holds.
+
+Since 2026-10-14 (reconfiguration stage B8) all four of its `ConfState`'s slices, read-only
+(`ownCSL`), which the storage keeps (`ownCSRO` in `memstorageFields`) and `isStorage`'s
+`HSnapshot` hands out. Since 2026-10-15 (stage S) *which* `ConfState`: the lists `σ.scs` and the
+`AutoLeave` `σ.sal` the storage's state records, the ones `CreateSnapshot`/`ApplySnapshot`
+stored, so that raft knows which certified snapshot it forwards (`ownRaftLog`'s `Hsksn`). -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface),
@@ -48,8 +54,9 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
   {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧ snapId snap = σ.ss⌝ ∗
-        ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
+       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧
+          snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+        ownCSL snap.Metadata'.ConfState' σ.scs)) }}
 
 end spec
 

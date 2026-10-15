@@ -54,11 +54,12 @@ theorem apply.authApplierV3.Range.wp_proof :
   icases Ht with ⟨-, -, #HRangeI, -⟩
   wp_auto
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
+    have hon : E.authOn = true := by cases h : E.authOn <;> first | rfl | cases Hoff h
     wp_auto
     iapply HΦ
     isplitl
@@ -68,7 +69,7 @@ theorem apply.authApplierV3.Range.wp_proof :
     iexists (.rejected .auth)
     isplitr
     · ipureintro
-      simp [apply.chainStep, apply.authChecks, Hk.2.1]
+      simp [apply.chainStep, apply.authChecks, Hk.2.1, apply.authMayReject, hon]
     simp only [apply.rangeOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hkv
     isplitr

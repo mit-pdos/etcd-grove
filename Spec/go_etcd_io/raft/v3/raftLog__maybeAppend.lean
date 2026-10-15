@@ -65,8 +65,8 @@ Premises, one per way the body could go wrong:
 - **the conflict fact** (`raft-replication-model.md`, "Protocol facts the code needs",
   `app_no_conflict_below_commit`): if `a.prev` matches, the conflict index is `0` or
   above `committed`. It kills the first `Panicf` and is `append`'s
-  `committed < ents[0].Index`;
-- no configuration change in the batch (`append`'s scope premise).
+  `committed < ents[0].Index`. (Until 2026-10-13 also: no configuration change in the
+  batch, `append`'s scope premise.)
 `commitTo`'s premise is *not* a premise here: after the append the log reaches
 `lastnewi`, so `min(committed, lastnewi)` is inside it.
 
@@ -79,7 +79,6 @@ abbrev raftLog.maybeAppend.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (a : logSlice) (ents : List raftpb.Entry) (committed : w64),
   PlogWf a.prev' ents →
   uint.Z a.prev'.index' + (ents.length : Int) + 1 < 2 ^ 64 →
-  (∀ e ∈ ents, e.Type' = EntryNormal) →
   (PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' →
    plogFindConflict ls.prev (ls.sents ++ ls.uents) ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev (ls.sents ++ ls.uents) ents)) →

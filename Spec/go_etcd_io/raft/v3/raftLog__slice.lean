@@ -49,9 +49,9 @@ relies on it: it puts the result in a `MsgApp`, which `r.msgs` keeps, and reads 
 came back "on loan of that page", `logstate.page`.)
 
 What the result *is* is stated only as far as `scan` and its callers need: non-empty,
-at most `hi - lo` entries, every one an entry of the log. That is enough for
-`hasUnappliedConfChanges` (`HnoConfChange` is a fact about every entry) and for
-`scan`'s progress. If a later caller needs the indices -- `maybeSendAppend` will --
+at most `hi - lo` entries, every one an entry of the log, a prefix of the log from `lo`.
+That is enough for `scan` (which, since 2026-10-13, hands its callback each page's position
+in the scanned range, for `hasUnappliedConfChanges`). If a later caller needs the indices -- `maybeSendAppend` will --
 strengthen this triple rather than adding a second one. -/
 abbrev raftLog.slice.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (lo hi maxSize : w64),

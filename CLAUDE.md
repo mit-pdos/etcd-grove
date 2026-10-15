@@ -170,10 +170,13 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
 translator, each of a Go repository at the revision pinned in `etc/goose.py`. They are
 generated: never edit the `.lean` files by hand.
 
-- `{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft, upstream `etcd-io/raft` unmodified,
-  at the last commit before its raftpb moved to protobuf-go v2 (2026-04-15; the later
+- `{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft, upstream `etcd-io/raft` at the
+  last commit before its raftpb moved to protobuf-go v2 (`40f8be7`, 2026-04-15; the later
   commits pass messages as pointers with getters, which the proof does not model yet:
-  `notes/STATUS.md`, "Retargeting raft to upstream"); modules `Code.go_etcd_io.raft.v3`, ....
+  `notes/STATUS.md`, "Retargeting raft to upstream") plus one fix, the single-voter
+  read-index shortcut (`issues/raft-readindex-singleton-stale.md`), taken from branch
+  `raft-goose-lean` of the fork `upamanyus/etcd` (commit `0560cb7`, a branch holding
+  etcd-io/raft's history); modules `Code.go_etcd_io.raft.v3`, ....
 - `{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,google_golang_org,go_uber_org}/`: etcd's
   `cache` package (the fork `upamanyus/etcd`, branch `goose-lean`; branch `goose` is the
   Rocq side's), with bodies, and the B-tree it uses
@@ -210,6 +213,21 @@ default `go` is older. To try a translator change before it is in Perennial,
 `{"type": "path", "name": "perennial", "dir": "../perennial", ...}`) builds against it
 without touching `.lake/packages/perennial`, which other worktrees share;
 `LAKE_OPTS=--packages=<file> etc/tcb-report.py` runs the TCB report the same way.
+
+## Changes to Perennial
+
+Perennial (the Go framework, its standard-library models and Goose) is a shared,
+general-purpose dependency. Do not change it to unblock a particular proof: no model
+assumption, axiom or spec added to Perennial because a proof here is stuck, and no
+change shaped by one proof's needs. When a proof hits a limitation of Perennial (a missing
+or too-weak spec, a translator gap, a tactic problem), record it (`notes/STATUS.md`, and
+`notes/decisions.md` for the reasoning), work around it locally in this repository (a lemma,
+a clearly marked trust-boundary axiom here, or a local override, like `stepLeader.lean`'s
+`iframe ∗`), and propose the general fix as an independent Perennial change, designed and
+reviewed on its own. Pin bumps that bring such general changes are fine. (The cautionary
+case: Perennial `9092f8eaa` made `WaitGroup.Add`'s counter overflow a model assumption, which
+was false; `105fb79f5` reverted it in favour of thread tokens. `notes/STATUS.md`, "The
+wait-group counter and thread tokens".)
 
 ## Building
 

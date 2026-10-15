@@ -5,6 +5,7 @@ counterpart); the request path's unit 3b (2026-10-12).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVRead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
@@ -219,7 +220,7 @@ local macro "range_tail" : tactic => `(tactic| (
       srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
-      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
+      mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) o true ∗
       txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te)) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
@@ -233,7 +234,7 @@ local macro "range_tail" : tactic => `(tactic| (
       iapply HIRP $$ [Ha Hard]
       · iframe Ha Hks Hes Hard; ipureintro; exact Hkb
       inext
-      iintro %perr ⟨Ha, -, -, Hard, #HpE⟩
+      iintro %perr ⟨Ha, -, -, Hard, #HpE, -⟩
       wp_auto
       iapply HΦ'
       iframe Ha Hard HpE
@@ -249,7 +250,7 @@ local macro "range_tail" : tactic => `(tactic| (
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
       wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR (some trc) false)
           $$ [Hsr Hnone Hown0]
-        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, #Hcert, %Hlog, #Hres, Hhdr, -⟩
+        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, -⟩
       · iframe # Hsr Hnone
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
@@ -273,7 +274,7 @@ local macro "range_tail" : tactic => `(tactic| (
       iframe #
       ipureintro; exact ⟨Hl1, Hl2, Hl3⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
@@ -286,7 +287,23 @@ local macro "range_tail" : tactic => `(tactic| (
       iright
       iframe HeE
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
-    · range_defer
+    · wp_auto_lc 3
+      ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L)) $$
+          [Hlc1 Hlc2 Hlc3]
+      · cases hso : o.base.serializable
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
+          icases HwO with ⟨%g', #Hw'⟩
+          ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
+          iapply readWit_fire s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
+          iapply (lc_split (n := 2) (m := 1)).2
+          iframe Hlc3
+          iapply (lc_split (n := 1) (m := 1)).2
+          iframe Hlc1 Hlc2
+        · simp only [hso, ↓reduceIte]
+          imodintro; itrivial
+      imod HQf with #HQf
+      range_defer
       ihave %Hrn1 := rangeResult_nil_ne _ _ _ _ _ $$ Hres
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
@@ -303,6 +320,8 @@ local macro "range_tail" : tactic => `(tactic| (
         exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
       isplitr
       · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
+      isplitr
+      · iexact HQf
       iunfold txn.rangeHdr at Hhdr
       iapply Hhdr
       ipureintro; rfl
@@ -310,7 +329,7 @@ local macro "range_tail" : tactic => `(tactic| (
     | nil => exact absurd rfl Hs0
     | ok sei =>
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, Hhdr, Hown⟩)
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
@@ -369,15 +388,15 @@ theorem EtcdServer.Range.wp_proof
     (hRStr : RangeRequest.String.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r o ot te F
-  wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst, #HF⟩
+  intro s E ρ γr c ctx cd r o ot te Q F
+  wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, -⟩
+    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
   -- the floor (the vertical slice's unit V2): the read opens at a log extending both the
   -- server's initial log and the caller's floor `F`
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
@@ -509,7 +528,8 @@ theorem EtcdServer.Range.wp_proof
     icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
     icombine Hread Hrd0 gives %Hrdeq
     subst Hrdeq
-    wp_apply HisRead' $$ %ctx2 %_ %c [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+    imod saved_pred_alloc Q DFrac.discard trivial with ⟨%g, #Hg⟩
+    wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
     · iframe #; iframe Hrr
     ihave Hrr : srvReadReader s γr $$ [Hrr]
     · iunfold srvReadReader; iexists _; iframe Hread Hrr
@@ -540,7 +560,12 @@ theorem EtcdServer.Range.wp_proof
       ipureintro; exact ⟨rfl, by intro h; cases h⟩
     | nil =>
       ihave #Hri' := Hri $$ %rfl
-      imod readIndexOk_logR s E γr c log₀ $$ Hainv Hri' Hc0 with ⟨%logR, #HcR, %HpR, #HrlR⟩
+      icases Hri' with ⟨-, #Hsv⟩
+      imod readServed_logR s E γr c g Q log₀ $$ Hainv Hsv Hg Hc0
+        with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
+      ihave #HwO : (if o.base.serializable then iprop(True) else
+          ∃ g' : GName, readWitAt γr Q g' logR : IProp GF) $$ []
+      · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
       have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
       have HFR : F <+: logR := HL0.2.trans HpR
       ihave #HriO : (if o.base.serializable then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
@@ -551,6 +576,9 @@ theorem EtcdServer.Range.wp_proof
     have HFR : F <+: log₀ := HL0.2
     generalize log₀ = logR at Hl0 HFR ⊢
     ihave #HriO : (if o.base.serializable then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
+    · rw [Hser]; simp only [↓reduceIte]; itrivial
+    ihave #HwO : (if o.base.serializable then iprop(True) else
+        ∃ g' : GName, readWitAt γr Q g' logR : IProp GF) $$ []
     · rw [Hser]; simp only [↓reduceIte]; itrivial
     range_tail
 

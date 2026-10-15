@@ -41,53 +41,25 @@ compares with `r.id`) and the request's entries (`req.Entries[0].Data` is the co
 of a local read, and a forwarded request's response carries `req.Entries` whole). The
 message's other fields are never read after queueing. The entries are held read-only,
 like a queued message's (`msgAbs`). -/
-structure ReadReq [FfiSyntax] where
-  index : w64
-  src : w64
-  ents : List raftpb.Entry
-
-/-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
-`acks`: each voter's acknowledged *position* -- the largest context (as a number) the
-voter echoed in a heartbeat response; the context of a heartbeat is
-`confirmed + length pending` at the time it was sent (`readonlyPosition`).
-`confirmed`: `confirmedReads`, the number of requests ever removed from the front of
-`pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
-states it (`stepLeader` reads the field and case-splits on the value; until
-2026-10-08 a `safe` field recorded it). -/
-structure ReadOnly [FfiSyntax] where
-  pending : List ReadReq
-  acks : GMap w64 w64
-  confirmed : w64
-
 section records
 variable [FfiSyntax]
 
-/-- The position a heartbeat context encodes: `confirmedReads + len unconfirmedReads`
-(wrapping, as the `uint64` sum does). -/
-def readonlyPosition (r : ReadOnly) : w64 :=
-  r.confirmed + W64 r.pending.length
+/-- The read-index scope of the election and replication proofs: no `ReadState`, no queued
+or pending request. -/
+def RdScope (rd : RdState) : Prop :=
+  rd.states = [] ∧ rd.ro.pending = [] ∧ rd.pend = []
 
-/-- `addRequest`: append to the queue. -/
-def readonlyAdd (r : ReadOnly) (q : ReadReq) : ReadOnly :=
-  { r with pending := r.pending ++ [q] }
+/-- `recvAck` changes only the acks, so not the heartbeat context. -/
+theorem hbCtx_recvAck (r : ReadOnly) (src : w64) (ctx : List w8) :
+    hbCtx (readonlyRecvAck r src ctx) = hbCtx r := by
+  unfold readonlyRecvAck
+  split <;> rfl
 
-/-- `recvAck from ctx`, `ctx` as the bytes it holds: nothing for an empty context, else
-the voter's ack becomes the larger of its old one (`0` if none) and the first eight
-bytes read little-endian. -/
-def readonlyRecvAck (r : ReadOnly) (src : w64) (ctx : List w8) : ReadOnly :=
-  if ctx = [] then r
-  else { r with acks := <[src := w64Max ((r.acks !! src).getD (W64 0))
-                                         (leToU64 (ctx.take 8))]> r.acks }
-
-/-- `maybeAdvance`, given `N`, the quorum index of the voters' acks
-(`CommittedIndex`): nothing when `N` is not past `confirmed`; else the first
-`N - confirmed` requests leave the queue, `confirmed` becomes `N` and the removed
-requests are returned. -/
-def readonlyAdvance (r : ReadOnly) (N : w64) : ReadOnly × List ReadReq :=
-  if uint.Z N ≤ uint.Z r.confirmed then (r, [])
-  else
-    let k := uint.nat (N - r.confirmed)
-    ({ r with pending := r.pending.drop k, confirmed := N }, r.pending.take k)
+/-- A queue with a request added is not empty: its context is the position. -/
+theorem hbCtx_add (r : ReadOnly) (q : ReadReq) :
+    hbCtx (readonlyAdd r q) = u64Le (readonlyPosition (readonlyAdd r q)) := by
+  unfold hbCtx
+  rw [ite_eq_right (by simp [readonlyAdd])]
 
 end records
 
@@ -139,34 +111,35 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
   iprop(∃ (rov : readOnly) (ptrs : List Loc),
   "Hro" ∷ ro ↦ rov ∗
   "%Hro_conf" ∷ ⌜rov.confirmedReads' = r.confirmed⌝ ∗
+  -- (2026-10-12) `ReadOnlySafe`: `ReadOnlyLeaseBased` needs bounded clock drift, out of
+  -- scope (`newRaft` takes the option `Safe`, `reset` keeps it)
+  "%Hro_safe" ∷ ⌜rov.option' = W64 0⌝ ∗
   "Hacks" ∷ rov.acks' ↦$ r.acks ∗
   "Hucr" ∷ rov.unconfirmedReads' ↦*□ ptrs ∗
   "Hucr_cap" ∷ ownSliceCap Loc rov.unconfirmedReads' (DFrac.own 1) ∗
   "Hreqs" ∷ ([∗list] _k ↦ p;q ∈ ptrs;r.pending, ownReadreq p q))
 
-/-- Full ownership of the three fields election neither reads nor writes and
-everything hanging off them: the `readStates` slice, the `readOnly` object, and the
-`pendingReadIndexMessages` slice. The `readStates` contents are existential -- nothing
-in scope reads them -- and the two read-index queues are empty (phase-1 scope,
-2026-10-01); the ownership is real, so nothing else in the development can claim the
-same heap. -/
-def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice) : IProp GF :=
-  iprop(∃ (rr : ReadOnly),
-  -- Scope (phase 1): no read-index requests, so no `ReadState` is ever produced --
-  -- `Ready` hands out `r.readStates` only when it is non-empty (2026-10-05, pinned for
-  -- `Ready`/`HasReady`; until then the list was existential).
-  "HreadStates" ∷ readStates ↦* ([] : List ReadState) ∗
+/-- Full ownership of the three read-index fields and everything hanging off them: the
+`readStates` slice, the `readOnly` object, and the `pendingReadIndexMessages` slice, at
+the physical read state `rd` (2026-10-12; until then existential, with the two queues
+empty).
+
+The `ReadState`s are held **read-only** (`↦*□`), with the capacity past the end owned
+(2026-10-13), as `ownReadOnly` holds its queue: `readyWithoutAccept` hands the slice out
+(`rd.ReadStates = r.readStates`) while the node keeps it until `acceptReady` sets the
+field to `nil`, and a `Ready` that `node.go` abandons may still be sent later, after
+`r.readStates` was appended to; `responseToReadIndexReq` and `stepFollower` append in place
+into the slack (`wp_slice_append_persistent`), which leaves the elements handed out
+alone. -/
+def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
+    (rd : RdState) : IProp GF :=
+  iprop(
+  "HreadStates" ∷ readStates ↦*□ rd.states ∗
   "HreadStates_cap" ∷ ownSliceCap ReadState readStates (DFrac.own 1) ∗
-  "Hro_obj" ∷ ownReadOnly ro rr ∗
-  -- Scope (phase 1): no read-index requests -- which is what makes `heartbeatCtx`
-  -- return `nil`. Phase 3 lifts this conjunct (and only this one) when `stepLeader`
-  -- starts queueing `MsgReadIndex`.
-  "%Hro_pending" ∷ ⌜rr.pending = []⌝ ∗
-  -- Scope (phase 1): no read-index requests, so no `MsgReadIndex` is pending -- which
-  -- is what makes `releasePendingReadIndexMessages` a no-op. The empty list is in the
-  -- points-to, as for `Hucr` above.
-  "Hpri" ∷ pendingReadIndex ↦* ([] : List raftpb.Message) ∗
-  "Hpri_cap" ∷ ownSliceCap raftpb.Message pendingReadIndex (DFrac.own 1))
+  "Hro_obj" ∷ ownReadOnly ro rd.ro ∗
+  "Hpri" ∷ pendingReadIndex ↦* rd.pend.map Prod.fst ∗
+  "Hpri_cap" ∷ ownSliceCap raftpb.Message pendingReadIndex (DFrac.own 1) ∗
+  "#Hpri_ents" ∷ ([∗list] p ∈ rd.pend, p.1.Entries' ↦*□ p.2))
 
 /-- `reset` replaces `r.readOnly` with `newReadOnly(r.readOnly.option)`, so it reads
 the old object's `option` field; it reaches the object through `ownRaftPhys_readOnly`
@@ -174,6 +147,7 @@ the old object's `option` field; it reaches the object through `ownRaftPhys_read
 theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
     ⊢ ownReadOnly (GF := GF) ro r -∗
       ∃ (o : ReadOnlyOption),
+        ⌜o = W64 0⌝ ∗
         ro.[readOnly, go!"option"] ↦ o ∗
         (ro.[readOnly, go!"option"] ↦ o -∗ ownReadOnly ro r) := by
   iintro Hro_obj
@@ -183,13 +157,14 @@ theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
   iexists rov.option'
   icases (go_etcd_io.raft.v3.readOnly.readOnly_access_load_option ro rov (DFrac.own 1)).access_strict
     $$ Hro with ⟨Hopt, Hback⟩
+  isplitr; · ipureintro; exact Hro_safe
   iframe Hopt
   iintro Hopt
   ihave Hro := Hback $$ Hopt
   iexists rov, ptrs
   simp only [named]
   iframe Hro Hacks Hucr Hucr_cap Hreqs
-  ipureintro; exact Hro_conf
+  ipureintro; exact ⟨Hro_conf, Hro_safe⟩
 
 end proof
 

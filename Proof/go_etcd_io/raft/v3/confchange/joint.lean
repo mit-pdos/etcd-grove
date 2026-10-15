@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/confchange_joint.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/confchange/joint.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -25,12 +25,27 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem confchange.joint.wp_proof
     (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG)) :
     confchange.joint.spec (GF := GF) (hG := hG) := by
-  intro cfg v Harr
-  wp_start as _
+  intro cfg vin vout s dq Harr
+  wp_start as Hs
   wp_auto
-  -- `len` of the nil map is `0`, a pure step, and `0 > 0` is `false`
-  wp_apply wp_confchange_outgoing _ v map.nil Harr
-  wp_end
+  wp_apply wp_confchange_outgoing _ vin vout Harr
+  unfold ownIdsetQ
+  icases Hs with (⟨%Hnil, %Hs⟩ | Hm)
+  · subst Hnil Hs
+    wp_auto
+    rw [show decide (0 < GMap.size (∅ : GMap w64 Unit)) = false by
+      simp [GMap.map_size_empty]]
+    iapply HΦ
+    ileft; ipureintro; exact ⟨rfl, rfl⟩
+  · wp_apply wp_map_len_lt $$ Hm as ⟨Hm, %Hlt⟩
+    have e : decide (sint.Z (W64 0) < sint.Z (W64 (GMap.size s : Int))) =
+        decide (0 < GMap.size s) := by
+      apply decide_eq_decide.2
+      have : sint.Z (W64 (GMap.size s : Int)) = GMap.size s := by word
+      rw [this]; simp
+    rw [e]
+    iapply HΦ
+    iright; iexact Hm
 
 end proof
 

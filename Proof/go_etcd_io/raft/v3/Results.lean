@@ -24,10 +24,24 @@ with no protocol state in them; the refinement above is how they are proved.
 (2026-10-10), which `node.go` calls apart (through `ownRawNodeReady`,
 `InvRawnodeReady.lean`).
 
-Scope, matching `Protocol/`:
-  - no pre-vote, no check-quorum,
-  - no proposals, no read-only requests,
-  - no reconfiguration and no learners.
+Scope: see `notes/STATUS.md` (its first sections) for what the Go-level results cover today:
+proposals, read index (`ReadOnlySafe`), leader transfer, learners and conf changes are in;
+since 2026-10-14 (reconfiguration stage B7 part 2) **changing the voter set through the
+`RawNode` API**: a `RawNode` in the dynamic mode (`RNState.mode`, `NewRawNode` from
+`raft_dyn_alloc`'s ghost state) takes `ApplyConfChange` of the next committed conf entry and
+`Advance` after it (A1), with the committed log handed out (`isCommitted`) and the read
+states (`readStateOk`) as in the static mode; `node.go` and the register stay in the static
+mode. Pre-vote is verified in `raft.Step` but off at the public API (`ownRawNode` holds
+`prevote = false`); check-quorum, the lease-based read option, asynchronous storage writes
+and crash-restart are out; a snapshot at a `RawNode` (from the network) is out.
+
+**The boundary is the Go public API.** The specs of the public functions (`RawNode.wp_*`,
+`node.wp_*`, `wp_NewRawNode`, ... in `Link.lean`) are what this development verifies. A
+protocol-level theorem is scaffolding (notes/decisions.md, "Model-level theorems in
+`Results.lean` are scaffolding"): the reconfiguration model's restatements (`raft_reconfig_*`,
+with the collection `raft-dyn.txt`) and the static sanity check `raft_election_safety` were
+deleted on 2026-10-14 (stage B7 part 2), once the public specs reached the dynamic ghost
+state. This file now only prints the top-level results' trust base.
 
 Trust boundary. Two kinds, and the layout keeps them apart:
   - A `Proof/<fn>.lean` of a function outside the scope is an `axiom <fn>.wp_proof`.
@@ -43,12 +57,6 @@ the callee's own result, and adds nothing to `#print axioms`. The `#print axioms
 end of this file print the trust base of the top-level results in the build log.
 
 Lean notes:
-* `raft_election_safety`'s comment says, as the Rocq does, that it "cannot yet serve
-  even that purpose" because the ghost state has no allocation lemma. That is out of date
-  in Rocq too: `own_raft_ghost_alloc` exists (here `ownRaftGhost_alloc`,
-  `Protocol/Facts.lean`), allocating a fresh ghost state for any set of nodes at
-  `initPState`, so the ghost predicates are inhabited; and in Lean the ghost state is
-  defined (`Protocol/GhostState.lean`), not axiomatized. The comment below is adapted.
 * `newRaft_post_init` takes its premise in the shape of `newRaft`'s postcondition
   (`Spec/newRaft.lean`) minus the `s.prevote = cv.PreVote'` conjunct, as the Rocq does.
 -/
@@ -74,43 +82,13 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-section proof
-variable [ext : FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF] [InvGS GF] [StorageModel GF]
-
-/-- **Sanity check on the model: election safety.**
-
-Two nodes that `Step` leaves in the leader role in the same term are the same node.
-
-This is **not** the result of the development -- `raft.wp_Step` (`Link.lean`) is,
-along with the other top-level function specs. A verified spec for a Go function is what
-a client of this proof consumes; a protocol-level theorem is an internal detail in
-service of one. What this corollary is for is evidence that `PState` and `step` entail
-the property raft exists to provide, and so were not defined into triviality; that it is
-not vacuous rests on `ownRaftGhost_alloc` (`Protocol/Facts.lean`), which shows the ghost
-state inhabited (see the Lean notes above). See the Rocq repository's
-notes/decisions.md, 2026-09-21. -/
-theorem raft_election_safety (γ : RaftNames) (id1 id2 : w64) (s1 s2 : PState) :
-    s1.role = .leader →
-    s2.role = .leader →
-    s1.term = s2.term →
-    ⊢ ownRaftGhost (GF := GF) γ id1 s1 -∗ ownRaftGhost γ id2 s2 -∗ ⌜id1 = id2⌝ := by
-  intro Hl1 Hl2 Hterm
-  iintro H1 H2
-  ihave #Hle1 := ownRaftGhost_isLeader γ id1 s1 Hl1 $$ H1
-  ihave #Hle2 := ownRaftGhost_isLeader γ id2 s2 Hl2 $$ H2
-  rw [Hterm]
-  iapply isLeader_unique γ id1 id2 s2.term $$ Hle1 Hle2
-
-end proof
-
-
 end EtcdGrove
 end Perennial
 
 /-! The trust base of the top-level results, printed in the build log. -/
 #print axioms Perennial.EtcdGrove.raft.wp_Step
 #print axioms Perennial.EtcdGrove.RawNode.wp_Propose
+#print axioms Perennial.EtcdGrove.RawNode.wp_ProposeConfChange
 #print axioms Perennial.EtcdGrove.wp_newRaft
 #print axioms Perennial.EtcdGrove.RawNode.wp_Ready
 #print axioms Perennial.EtcdGrove.RawNode.wp_readyWithoutAccept
@@ -120,6 +98,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.RawNode.wp_Campaign
 #print axioms Perennial.EtcdGrove.RawNode.wp_Step
 #print axioms Perennial.EtcdGrove.RawNode.wp_Tick
+#print axioms Perennial.EtcdGrove.RawNode.wp_ApplyConfChange
 #print axioms Perennial.EtcdGrove.wp_NewRawNode
 #print axioms Perennial.EtcdGrove.MemoryStorage.wp_Append
 #print axioms Perennial.EtcdGrove.wp_NewMemoryStorage
@@ -127,6 +106,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.node.wp_run
 #print axioms Perennial.EtcdGrove.wp_newNode
 #print axioms Perennial.EtcdGrove.node.wp_Propose
+#print axioms Perennial.EtcdGrove.node.wp_ProposeConfChange
 #print axioms Perennial.EtcdGrove.node.wp_Step
 #print axioms Perennial.EtcdGrove.node.wp_Tick
 #print axioms Perennial.EtcdGrove.node.wp_Ready

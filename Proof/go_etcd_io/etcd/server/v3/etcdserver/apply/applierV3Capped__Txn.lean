@@ -46,7 +46,8 @@ theorem apply.applierV3Capped.Txn.wp_proof
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  ihave #Hcp := apply.certPre_capped E c rq log (by rw [Hk.2.1]; rfl) $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   wp_apply hCost

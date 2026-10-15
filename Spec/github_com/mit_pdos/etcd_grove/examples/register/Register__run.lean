@@ -1,9 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Register).run(send)` (register.go:97): the replica's driver of its node: append each
+`(*Register).run(send)` (register.go:117): the replica's driver of its node: append each
 `Ready`'s entries to the storage, send its messages (`send`, a callback, gets what a
-transport needs: each message legitimately sent, of a term within the budget), apply its
-committed entries, `Advance`.
+transport needs: each message legitimately sent, of a term within the budget, and its
+read credit), note its read states, apply its committed entries (counting them: the
+applied index), answer the reads whose index is applied (`answer`), `Advance`.
 -/
 module
 
@@ -29,8 +30,13 @@ variable [RegStor GF]
 
 /-- See the file header. -/
 abbrev Register.run.spec : Prop :=
-  ∀ (γr : RegNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ isReplica γr γp r id n st ∗ nodeDriver γp.node id n [] ∗ runOwn γr r [] ∗
+  ∀ (γr : RegNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc)
+    (op : CCOp) (c0 c1 : CCState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ isReplica γr γp r id n st ∗
+      -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
+      -- `op` (`RegCC`), and the driver's view of its configuration, the initial one
+      ⌜RegCC γp.node op c0 c1⌝ ∗ nodeCfg γp.node 0 c0 ∗
+      nodeDriver γp.node id n [] ∗ runOwn γr r [] ∗
       sendSpec send γp.node }}
     (App (Val (r @!! go.GoType.PointerType rRegisterTy @!! go!"run")) (Val #send))
   {{ RET #(); True }}

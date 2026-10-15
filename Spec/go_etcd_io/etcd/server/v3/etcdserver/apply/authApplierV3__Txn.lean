@@ -31,10 +31,10 @@ abbrev apply.authApplierV3.Txn.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel)
     (log F : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
-      apply.txnPre E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      apply.txnPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPostF E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log F (apply.txnAnswerIs log t skip resp err) Pre Post ∗
+      apply.kvPostF E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log F (apply.txnAnswerIs log t skip resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

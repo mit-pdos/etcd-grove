@@ -10,6 +10,10 @@ Since 2026-10-10 the messages are appended with `wp_slice_append_undo`, so that 
 loop keeps a way back to `r.msgs`' slice (`Hundo`, for `ownRawNodeReady_abandon`), and
 their terms are bounded by the outbox's `OutTermOk` (pre-vote off).
 
+Since 2026-10-13 the `ReadState`s are handed out (`rd.ReadStates = r.readStates` when not
+empty): the slice read-only, and each one's `readStateOk`, copied out of the ghost state
+(`ownRaftGhost_readStates`; `InvRawnodeReady.lean`'s header).
+
 Lean notes: `readyWithoutAccept`'s `rd` is tracked as `readyVal` (one field per argument).
 -/
 module
@@ -97,11 +101,11 @@ theorem nonself_cons (id : w64) (m : raftpb.Message) (ms : List raftpb.Message) 
     nonself id (m :: ms) = if m.To' = id then nonself id ms else m :: nonself id ms := by
   by_cases h : m.To' = id <;> simp [nonself, h]
 
-/-- The `Ready` `readyWithoutAccept` builds, field by field (`Snapshot` stays zero and
-`ReadStates` nil: no snapshot is pending, no read state is queued). -/
-abbrev readyVal (sp : Loc) (hs : raftpb.HardState) (ents ce msgs : GoSlice) (ms : Bool) :
+/-- The `Ready` `readyWithoutAccept` builds, field by field (`Snapshot` stays zero: no
+snapshot is pending). -/
+abbrev readyVal (sp : Loc) (hs : raftpb.HardState) (rs ents ce msgs : GoSlice) (ms : Bool) :
     Ready :=
-  Ready.mk sp hs slice.nil ents (zero_val raftpb.Snapshot) ce msgs ms
+  Ready.mk sp hs rs ents (zero_val raftpb.Snapshot) ce msgs ms
 
 end helpers
 
@@ -205,9 +209,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
   | cons _ _ => simp at Hlen0
   | nil =>
   -- ghost facts, read before anything moves
+  iunfold ownStepGhost at Hghost
+  icases Hghost with ⟨Hghost, Hrest⟩
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
-  icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp, %Hfp, #Hcm⟩
-  icases ownRaftPhys_view γ.reCfg rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
+  icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp0, %Hfp, #Hcm⟩
+  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -245,7 +252,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_call
   wp_auto
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, -⟩
-  wp_join iprop(∃ sp, rd_ptr ↦ readyVal sp (zero_val raftpb.HardState) sents sce sl1 false ∗
+  wp_join iprop(∃ sp, rd_ptr ↦ readyVal sp (zero_val raftpb.HardState) slice.nil sents sce sl1 false ∗
       (if nodeSoftstate s = soft0 then iprop(⌜sp = null⌝)
        else sp ↦ softstateVal (nodeSoftstate s)))
     with [rd softSt] as ⟨%sp, rd, Hsoftp⟩
@@ -270,7 +277,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_apply wp_isHardStateEqual
   rw [Hhard]
   wp_join iprop(rd_ptr ↦ readyVal sp (if nodeHardstate s = hard0 then zero_val raftpb.HardState
-      else hardstateVal (nodeHardstate s)) sents sce sl1 false) with [rd hardSt] as rd
+      else hardstateVal (nodeHardstate s)) slice.nil sents sce sl1 false) with [rd hardSt] as rd
   · rw [ite_pos' (Hhs_iff.1 Hif)]
     iexact rd
   · rw [ite_neg' (fun Hc => Hif (Hhs_iff.2 Hc))]
@@ -281,8 +288,39 @@ theorem RawNode.readyWithoutAccept.wp_proof
   rw [Hbsn Hsnap]
   wp_auto
   ihave %Hel := ownSlice_len _ _ _ $$ Hents
-  rw [Hrs]
-  wp_auto
+  -- `if len(r.readStates) != 0 { rd.ReadStates = r.readStates }`
+  wp_join iprop(rd_ptr ↦ readyVal sp (if nodeHardstate s = hard0 then zero_val raftpb.HardState
+      else hardstateVal (nodeHardstate s)) (if s.rd.states = [] then slice.nil else rss)
+      sents sce sl1 false ∗ r_ptr ↦ rnv.raft' ∗ rnv.raft'.[raft, go!"readStates"] ↦ rss)
+    with [rd r Hf_readStates] as ⟨rd, r, Hf_readStates⟩
+  · first
+      | (have Hne : s.rd.states ≠ [] := by
+           intro h; rw [h] at Hrs; simp only [List.length_nil] at Hrs; apply Hif; word
+         rw [ite_neg' Hne]
+         iframe
+         done)
+      | (have He : s.rd.states = [] := by
+           apply List.eq_nil_of_length_eq_zero; rw [Hrs.1]
+           have Hz : rss.len = W64 0 := by
+             first | exact Hif | (apply Classical.byContradiction; intro h; exact Hif h)
+           rw [Hz]; rfl
+         rw [ite_pos' He]
+         iframe
+         done)
+  · first
+      | (have Hne : s.rd.states ≠ [] := by
+           intro h; rw [h] at Hrs; simp only [List.length_nil] at Hrs; apply Hif; word
+         rw [ite_neg' Hne]
+         iframe
+         done)
+      | (have He : s.rd.states = [] := by
+           apply List.eq_nil_of_length_eq_zero; rw [Hrs.1]
+           have Hz : rss.len = W64 0 := by
+             first | exact Hif | (apply Classical.byContradiction; intro h; exact Hif h)
+           rw [Hz]; rfl
+         rw [ite_pos' He]
+         iframe
+         done)
   -- `MustSync(r.hardState(), rn.prevHardSt, len(rd.Entries))`
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv2, Hl, %Hlv, Hlb⟩
   wp_method_call
@@ -296,6 +334,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_auto
   generalize HHS : (if nodeHardstate s = hard0 then zero_val raftpb.HardState
       else hardstateVal (nodeHardstate s)) = HS
+  generalize HRS : (if s.rd.states = [] then slice.nil else rss) = RS
   generalize HMS : decide (¬sents.len = W64 0 ∨ ¬s.vote = hard0.vote ∨
       ¬s.term = hard0.term) = MS
   -- `for _, m := range r.msgsAfterAppend { if m.To != r.id { rd.Messages =
@@ -303,7 +342,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- either way `r.msgs`' slice can be had back (`Hundo`, for abandoning the `Ready`)
   ihave IH : iprop(∃ (n : w64) (msl : GoSlice) (mv : raftpb.Message),
       "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mv ∗
-      "rd" ∷ rd_ptr ↦ readyVal sp HS sents sce msl MS ∗
+      "rd" ∷ rd_ptr ↦ readyVal sp HS RS sents sce msl MS ∗
       "Hmsgs" ∷ msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))) ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message msl (DFrac.own 1) ∗
       "Hundo" ∷ (msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))) -∗
@@ -365,16 +404,22 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- the loop is done: every message of `msgsAfterAppend` seen
   rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
   -- the raft struct, without the outbox's contents (now `rd.Messages`)
-  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
-    [Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
-     HmsgsAA HmsgsAA_cap Hundo Hlog Hclose]
+  -- `rd.ReadStates`: the node's `ReadState`s, read-only (`nil` if there are none)
+  ihave #Hrdrs : RS ↦*□ s.rd.states $$ []
+  · rw [← HRS]
+    by_cases He : s.rd.states = []
+    · rw [ite_pos' He, He]; iapply ownSlice_nil
+    · rw [ite_neg' He]; iexact HreadStates
+  ihave Hphys : ownRaftPhysReady cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
+    [Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates_cap Hf_raftLog Hf_state Hf_lead Hf_msgs
+     Hf_msgsAA HmsgsAA HmsgsAA_cap Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, Bool.false_eq_true, ↓reduceIte]
-    iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
-      HmsgsAA HmsgsAA_cap Hundo Hlog Hclose Houtbox
+    iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hundo Hlog Hclose Houtbox
     ipureintro
-    refine ⟨Hrs, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, ?_⟩
+    refine ⟨HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, ?_⟩
     simp only [List.length_append]
     have := List.length_filter_le (fun m => decide (m.To' ≠ id)) ms2
     unfold nonself
@@ -389,8 +434,18 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · exact List.mem_append_right _ (List.mem_filter.1 Hm).1
   iunfold outboxRel at Houtbox
   icases Houtbox with ⟨%as1, %as2, %Hperm, #Hb1, #Hb2⟩
-  obtain ⟨Hps, Hwfs⟩ := Hrel
-  subst Hps
+  -- the `MsgReadIndex`s handed out: at most the outbox's read-index requests (2026-10-13)
+  ihave %Hc1 := msgsAbs_rdCount ms1 as1 $$ Hb1
+  ihave %Hc2 := msgsAbs_rdCount ms2 as2 $$ Hb2
+  have Hrdc : rdCountM (ms1 ++ nonself id ms2) ≤ rdCount s.outbox := by
+    have Hp : rdCount s.outbox = rdCount (absList as1 ++ absList as2) := by
+      unfold rdCount; exact Hperm.countP_eq _
+    have Hnf : rdCountM (nonself id ms2) ≤ rdCountM ms2 := by
+      unfold rdCountM nonself; exact List.filter_sublist.countP_le
+    rw [Hp, rdCount_append, ← Hc1, ← Hc2]
+    unfold rdCountM at Hnf ⊢
+    rw [List.countP_append]
+    omega
   have Hin_out : ∀ a ∈ as1 ++ as2, ∀ x, a = some x → x ∈ s.outbox := by
     intro a Ha x Hx
     subst Hx
@@ -399,12 +454,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
     exact List.mem_filterMap.2 ⟨some x, Ha, rfl⟩
   -- the committed entries handed out extend `delivered`: both are prefixes of the
   -- global committed log, and `delivered` is as long as the `applying` entries before `ce`
-  have Hpre := ready_committed_prefix fp (s.logst.sents ++ s.logst.uents) ce s.logst.prev
+  have Hpre := ready_committed_prefix fp0 (s.logst.sents ++ s.logst.uents) ce s.logst.prev
     s.logst.committed s.logst.applying Hfp.1
     ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩
     (by simp only [List.length_append]; push_cast; omega) (by omega) Hcepre
   ihave #Hcm' : isCommitted γ
-      ((fp ++ (s.logst.sents ++ s.logst.uents)).take (uint.Z s.logst.applying).toNat ++ ce)
+      ((fp0 ++ (s.logst.sents ++ s.logst.uents)).take (uint.Z s.logst.applying).toNat ++ ce)
     $$ []
   · rw [show (toPState s).commit = s.logst.committed from rfl,
       show (toPState s).log = s.logst.sents ++ s.logst.uents from rfl]
@@ -416,19 +471,28 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- `rd.SoftState`: `nil`, or the node's soft state, read-only
   ihave #Hrdsoft : iprop(⌜sp = null⌝ ∨ ∃ v : SoftState, sp ↦□ v) $$ []
   · iapply soft_or _ _ _ $$ Hsoftp
-  iapply HΦ $$ %(readyVal sp HS sents sce msl MS) %ce %(nextUnstable s.logst)
-    %(ms1 ++ nonself id ms2)
+  ihave #Hrdrs' : iprop(∃ sts : List ReadState, RS ↦*□ sts ∗ ⌜sts = [] → s.rd.states = []⌝)
+    $$ []
+  · iexists s.rd.states
+    iframe Hrdrs
+    ipureintro; exact fun h => h
+  iapply HΦ $$ %(readyVal sp HS RS sents sce msl MS) %ce %(nextUnstable s.logst)
+    %(ms1 ++ nonself id ms2) %s.rd.states
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hce_cap]
+  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap]
   · unfold ownRawNodeReady
-    iexists s, toPState s, rnv, sv
-    simp only [named]
-    iframe Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hce Hce_cap
+    iexists s, cf, fp, rnv, sv
+    simp only [named, Bool.false_eq_true, ↓reduceIte]
+    rw [show s.outbox = (toPState s).outbox from rfl]
+    iframe Hrn Hphys Hsdrf Hout Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
+      Hce_cap
+    isplitl [Hghost Hrest]
+    · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
-    exact ⟨⟨rfl, Hwfs⟩, Hin, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, ⟨trivial, trivial⟩,
+    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+      Hrs_clb,
       ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
-      trivial⟩
+      trivial, Hrdc⟩
   isplitr
   · iexact Hce
   isplitr
@@ -451,9 +515,14 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · ipureintro; exact Hmsgs_term
   isplitr
   · iintro H1 H2 H3
-    iapply ownRawNodeReady_abandon γ rn id rs (readyVal sp HS sents sce msl MS) ce
+    iapply ownRawNodeReady_abandon γ rn id rs (readyVal sp HS RS sents sce msl MS) ce
       (nextUnstable s.logst) (ms1 ++ nonself id ms2) Hsteps0 Hunp0 $$ H1 H2 H3
-  ipureintro; exact ⟨trivial, trivial⟩
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · iexact Hrdrs
+  rw [← toPState_rd_states s]
+  iexact Hrs_ok
 
 end proof
 

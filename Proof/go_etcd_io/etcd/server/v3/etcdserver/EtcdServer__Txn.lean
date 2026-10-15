@@ -192,7 +192,7 @@ local macro "txn_tail" : tactic => `(tactic| (
     isplitr
     · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE⟩
+      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authOn a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE, -⟩
       · iframe # Ha Hard
       iapply HΦ'
       iframe Ha Hard HcE
@@ -387,8 +387,8 @@ theorem EtcdServer.Txn.wp_proof
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r t ot te F
-  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, #HF⟩
+  intro s E ρ γr c ctx cd r t Q ot te F
+  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, #HF, Hnp⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
@@ -575,11 +575,16 @@ theorem EtcdServer.Txn.wp_proof
       repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
       iexists _; iframe #; try (ipureintro; simp)
     (try wp_auto)
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) F rfl $$ [Hlt Hard Hcred Header] as %resp %err ⟨Hlt, Hard, Hres⟩
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel ρ.kv L))))
+        F rfl
+        $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
+      isplitl [Hnp]
+      · (try isimp only [hro, Bool.false_eq_true, ↓reduceIte] at Hnp)
+        iapply txnPermit_reqPropOk $$ Hnp
       iexists _; iexact Header
     (try wp_auto)
-    icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, %Lq, #HLq, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
       icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
@@ -614,6 +619,9 @@ theorem EtcdServer.Txn.wp_proof
       ileft
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
+      isplitl
+      rotate_left
+      · iexists kvStateOf (kvModel ρ.kv Lq); iexact HQq
       iunfold txnAppliedOk
       iexists hm, rq', t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -656,7 +664,12 @@ theorem EtcdServer.Txn.wp_proof
       icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
       icombine Hread Hrd0 gives %Hrdeq
       subst Hrdeq
-      wp_apply HisRead' $$ %ctx2 %_ %c [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+      imod saved_pred_alloc (fun _ : List EntryModel => (iprop(True) : IProp GF)) DFrac.discard trivial
+        with ⟨%g, #Hg⟩
+      ihave #Hdep : kvDep (GF := GF) γr.kv (fun _ => iprop(True)) $$ []
+      · iunfold kvDep; iright; ipureintro; rfl
+      wp_apply HisRead' $$ %ctx2 %_ %c %g %(fun _ : List EntryModel => (iprop(True) : IProp GF)) [Hrr]
+        as %rerr ⟨Hrr, #HrE, Hri⟩
       · iframe #; iframe Hrr
       ihave Hrr : srvReadReader s γr $$ [Hrr]
       · iunfold srvReadReader; iexists _; iframe Hread Hrr
@@ -680,6 +693,7 @@ theorem EtcdServer.Txn.wp_proof
         ipureintro; intro h; cases h
       | nil =>
         ihave #Hri' := Hri $$ %rfl
+        icases Hri' with ⟨#Hri', -⟩
         imod readIndexOk_logR s E γr c log₀ $$ Hainv Hri' Hc0 with ⟨%logR, #HcR, %HpR, #HrlR⟩
         have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
         have HFR : F <+: logR := HL0.2.trans HpR

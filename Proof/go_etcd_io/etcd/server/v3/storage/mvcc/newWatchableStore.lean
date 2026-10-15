@@ -45,7 +45,7 @@ theorem mvcc.newWatchableStore.wp_proof
     · ipureintro; rfl
     iexists l; iexact lg
   wp_apply (hNewStore _ _ _ _ _ _ _ _ _ Hcfg0) $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk⟩, #Hst, #HhookP, Hviews, Hreaders, Htoks, #Hcert, Hsclose, -, Hright⟩
+    ⟨%γs, ⟨%hγb, %hγl, %hγk⟩, #Hst, -, #HhookP, Hviews, Hreaders, Htoks, #Hcert, Hsclose, -, Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right
   -- given up, the readers those of a never-compacted store
   imod mvcc.compactRight_freeze γs ⊤ $$ Hright with #Hfrz

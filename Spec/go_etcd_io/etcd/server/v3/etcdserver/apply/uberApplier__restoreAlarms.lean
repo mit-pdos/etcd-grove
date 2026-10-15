@@ -34,7 +34,7 @@ abbrev apply.uberApplier.restoreAlarms.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a }}
     (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"restoreAlarms")) (Val #()))
-  {{ RET #(); ∃ ns cr : Bool, apply.uberOwn E p (apply.alarmChain ns cr) }}
+  {{ RET #(); ∃ ns cr : Bool, apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
 
 end spec
 

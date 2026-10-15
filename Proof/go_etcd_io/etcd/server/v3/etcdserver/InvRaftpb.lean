@@ -47,6 +47,16 @@ structure EntryModel where
   typ : w32
   data : List w8
 
+/-- (Moved here from `InvRaftNode.lean`, 2026-10-14, unit T1: the server's raft contract keeps
+logs of entries in ghost state.) -/
+instance entryModel_countable : Pos.Countable EntryModel :=
+  .ofInjective (fun m => Pos.Countable.encode (((m.term, m.index), m.typ), m.data))
+    (fun ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h => by
+      have h := Pos.encode_inj h
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := h
+      rfl)
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

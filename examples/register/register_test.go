@@ -78,3 +78,260 @@ func TestPutGet(t *testing.T) {
 func TestCluster(t *testing.T) {
 	Main()
 }
+
+// TestRead reads through read-index on every replica after Puts, on a cluster connected by
+// the register's own transport (deliver), which must pass the read-index messages and the
+// heartbeats' contexts.
+func TestRead(t *testing.T) {
+	voters := []uint64{1, 2, 3}
+	peers := make(map[uint64]raft.Node)
+	storages := make(map[uint64]*Storage)
+	for _, id := range voters {
+		st := NewStorage(voters)
+		peers[id] = raft.RestartNode(&raft.Config{
+			ID:              id,
+			ElectionTick:    10,
+			HeartbeatTick:   1,
+			Storage:         st,
+			MaxSizePerMsg:   1 << 20,
+			MaxInflightMsgs: 256,
+			Logger:          quietLogger{},
+		})
+		storages[id] = st
+	}
+	tr := &transfers{left: timeouts}
+	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
+	stop := make(chan struct{})
+	defer func() {
+		close(stop)
+		for _, nd := range peers {
+			nd.Stop()
+		}
+	}()
+	regs := make(map[uint64]*Register)
+	for _, id := range voters {
+		regs[id] = New(id, peers[id], storages[id], send)
+		go func(nd raft.Node) {
+			tk := time.NewTicker(5 * time.Millisecond)
+			defer tk.Stop()
+			for {
+				select {
+				case <-tk.C:
+					nd.Tick()
+				case <-stop:
+					return
+				}
+			}
+		}(peers[id])
+	}
+	regs[1].Put("a")
+	for _, id := range voters {
+		if v := regs[id].Read(); v != "a" {
+			t.Fatalf("replica %d: Read after Put(a) = %q", id, v)
+		}
+	}
+	regs[3].Put("b")
+	for _, id := range voters {
+		if v := regs[id].Read(); v != "b" {
+			t.Fatalf("replica %d: Read after Put(b) = %q", id, v)
+		}
+	}
+	if v := regs[2].Get(); v != "b" {
+		t.Fatalf("Get after Put(b) = %q", v)
+	}
+}
+
+func TestDeliverable(t *testing.T) {
+	hb := []byte{1, 0, 0, 0, 0, 0, 0, 0}
+	cases := []struct {
+		m    pb.Message
+		want bool
+	}{
+		{pb.Message{Type: pb.MsgReadIndex, From: 2, To: 1}, true},
+		{pb.Message{Type: pb.MsgReadIndex, From: 2, To: 1, Term: 3}, false},
+		{pb.Message{Type: pb.MsgReadIndexResp, From: 1, To: 2, Term: 3}, true},
+		{pb.Message{Type: pb.MsgHeartbeat, From: 1, To: 2, Term: 3, Context: hb}, true},
+		{pb.Message{Type: pb.MsgHeartbeatResp, From: 2, To: 1, Term: 3, Context: hb}, true},
+		{pb.Message{Type: pb.MsgVote, From: 2, To: 1, Term: 3, Context: []byte("CampaignTransfer")}, true},
+		{pb.Message{Type: pb.MsgVote, From: 2, To: 1}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3}, true},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3, Context: hb}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3, Entries: []pb.Entry{}}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 2, To: 2, Term: 3}, false},
+		{pb.Message{Type: pb.MsgTransferLeader, From: 3, To: 1, Term: 3}, false},
+		{pb.Message{Type: pb.MsgApp, From: 1, To: 2, Term: 3}, true},
+		{pb.Message{Type: pb.MsgApp, From: 1, To: 1, Term: 3}, false},
+	}
+	for i, c := range cases {
+		if got := deliverable(c.m); got != c.want {
+			t.Errorf("case %d: deliverable = %v, want %v", i, got, c.want)
+		}
+	}
+}
+
+func TestTransfersTake(t *testing.T) {
+	tr := &transfers{left: 2}
+	if !tr.take() || !tr.take() {
+		t.Fatal("take failed with timeouts left")
+	}
+	if tr.take() {
+		t.Fatal("take succeeded with none left")
+	}
+}
+
+// TestTransfer hands the leadership around a cluster connected by the register's own
+// transport (deliver), which must pass MsgTimeoutNow and the transfer's vote requests, and
+// checks that the operations go on working under each new leader.
+func TestTransfer(t *testing.T) {
+	voters := []uint64{1, 2, 3}
+	peers := make(map[uint64]raft.Node)
+	storages := make(map[uint64]*Storage)
+	for _, id := range voters {
+		st := NewStorage(voters)
+		peers[id] = raft.RestartNode(&raft.Config{
+			ID:              id,
+			ElectionTick:    10,
+			HeartbeatTick:   1,
+			Storage:         st,
+			MaxSizePerMsg:   1 << 20,
+			MaxInflightMsgs: 256,
+			Logger:          quietLogger{},
+		})
+		storages[id] = st
+	}
+	tr := &transfers{left: timeouts}
+	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
+	stop := make(chan struct{})
+	defer func() {
+		close(stop)
+		for _, nd := range peers {
+			nd.Stop()
+		}
+	}()
+	regs := make(map[uint64]*Register)
+	for _, id := range voters {
+		regs[id] = New(id, peers[id], storages[id], send)
+		go func(nd raft.Node) {
+			tk := time.NewTicker(5 * time.Millisecond)
+			defer tk.Stop()
+			for {
+				select {
+				case <-tk.C:
+					nd.Tick()
+				case <-stop:
+					return
+				}
+			}
+		}(peers[id])
+	}
+	regs[1].Put("a")
+	for i, to := range []uint64{1, 2, 3, 1} {
+		// the leader acts on the request; the followers' forwarded requests are dropped
+		deadline := time.Now().Add(10 * time.Second)
+		for peers[to].Status().Lead != to || peers[to].Status().RaftState != raft.StateLeader {
+			if time.Now().After(deadline) {
+				t.Fatalf("transfer %d: replica %d did not become the leader", i, to)
+			}
+			for _, id := range voters {
+				regs[id].TransferLeadership(to)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		val := string(rune('b' + i))
+		regs[to].Put(val)
+		// a Get first (a proposal dropped for want of a leader is retried), so that the
+		// replica knows the new leader by the time it asks for a read index
+		for _, id := range voters {
+			if v := regs[id].Get(); v != val {
+				t.Fatalf("transfer %d, replica %d: Get = %q, want %q", i, id, v, val)
+			}
+			if v := regs[id].Read(); v != val {
+				t.Fatalf("transfer %d, replica %d: Read = %q, want %q", i, id, v, val)
+			}
+		}
+	}
+	if tr.left == timeouts {
+		t.Fatal("no MsgTimeoutNow went through the transport")
+	}
+}
+
+// TestRemoveMember removes a voter (replica 3, which may be the leader) from a cluster
+// connected by the register's own transport: every replica's run applies the configuration
+// change to its node, and the operations go on working on the two remaining voters.
+func TestRemoveMember(t *testing.T) {
+	voters := []uint64{1, 2, 3}
+	peers := make(map[uint64]raft.Node)
+	storages := make(map[uint64]*Storage)
+	for _, id := range voters {
+		st := NewStorage(voters)
+		peers[id] = raft.RestartNode(&raft.Config{
+			ID:                id,
+			ElectionTick:      10,
+			HeartbeatTick:     1,
+			Storage:           st,
+			MaxSizePerMsg:     1 << 20,
+			MaxInflightMsgs:   256,
+			Logger:            quietLogger{},
+			StepDownOnRemoval: true,
+		})
+		storages[id] = st
+	}
+	tr := &transfers{left: timeouts}
+	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
+	stop := make(chan struct{})
+	defer func() {
+		close(stop)
+		for _, nd := range peers {
+			nd.Stop()
+		}
+	}()
+	regs := make(map[uint64]*Register)
+	for _, id := range voters {
+		regs[id] = New(id, peers[id], storages[id], send)
+		go func(nd raft.Node) {
+			tk := time.NewTicker(5 * time.Millisecond)
+			defer tk.Stop()
+			for {
+				select {
+				case <-tk.C:
+					nd.Tick()
+				case <-stop:
+					return
+				}
+			}
+		}(peers[id])
+	}
+	regs[1].Put("a")
+	removed := func(id uint64) bool {
+		_, ok := peers[id].Status().Config.Voters.IDs()[3]
+		return !ok
+	}
+	// a leader both remaining voters know (a removed leader steps down, and a proposal
+	// forwarded to it is dropped: do would wait forever)
+	led := func() bool {
+		l := peers[2].Status().Lead
+		return (l == 1 || l == 2) && peers[1].Status().Lead == l &&
+			peers[l].Status().RaftState == raft.StateLeader
+	}
+	// raft drops a change proposed while another one is pending: propose until it is applied
+	deadline := time.Now().Add(10 * time.Second)
+	for !removed(1) || !removed(2) || !led() {
+		if time.Now().After(deadline) {
+			t.Fatal("replica 3 was not removed")
+		}
+		if !removed(1) {
+			regs[1].RemoveMember(3)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	regs[2].Put("b")
+	for _, id := range []uint64{1, 2} {
+		if v := regs[id].Get(); v != "b" {
+			t.Fatalf("replica %d: Get after the removal = %q", id, v)
+		}
+		if v := regs[id].Read(); v != "b" {
+			t.Fatalf("replica %d: Read after the removal = %q", id, v)
+		}
+	}
+}

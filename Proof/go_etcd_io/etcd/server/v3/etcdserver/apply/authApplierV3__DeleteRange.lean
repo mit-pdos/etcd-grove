@@ -32,7 +32,8 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
   iunfold apply.deletePre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
@@ -57,7 +58,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   wp_apply HDel $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with
@@ -67,7 +68,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E c p (.ok bi) rq log F _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
@@ -88,12 +89,12 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iapply apply.auth_pass_kvPostF E c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
+    iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
     iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   wp_auto
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with
@@ -103,7 +104,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E c p (.ok bi) rq log F _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
@@ -122,7 +123,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostF E c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
+  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
   iunfold apply.authInfoOwn; iexists info; iexact Hinfo
 
 end proof

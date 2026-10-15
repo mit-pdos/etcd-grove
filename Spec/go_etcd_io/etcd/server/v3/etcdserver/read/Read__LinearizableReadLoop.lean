@@ -31,7 +31,7 @@ a notifier is closed with `nil` only after its need was frozen and the applied i
 read index at least the frozen need. On `isStopped(err)` it returns without closing the pending
 notifier: its waiters leave by their context or the server's `Done()` (Go's behavior). -/
 abbrev read.Read.LinearizableReadLoop.spec : Prop :=
-  ∀ (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) (LR NR : IProp GF),
+  ∀ (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
       isReadLoopPre r γr RQ LR NR ∗ LR ∗ □ (|==> NR) }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"LinearizableReadLoop")) (Val #()))

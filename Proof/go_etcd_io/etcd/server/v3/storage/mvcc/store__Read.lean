@@ -122,7 +122,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iexists log, (W64 ((log.length : Int) - 1)), cm
     isplitr [Hmine]
     rotate_left
-    · iframe Hmine Hlbc; ipureintro; exact ⟨Hpre.2, by omega, Hclbc⟩
+    · iframe Hmine Hlbc Hok; ipureintro; exact ⟨Hpre.2, by omega, Hclbc⟩
     iunfold mvcc.isTxnRead
     iexists trw, tr, ti2, rt, (W64 0)
     simp only [named]

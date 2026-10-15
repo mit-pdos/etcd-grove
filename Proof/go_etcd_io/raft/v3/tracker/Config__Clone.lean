@@ -1,5 +1,6 @@
 /-
-Proof of `Spec/Config__Clone.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/tracker/Config__Clone.lean`. Lean-first (no Rocq
+counterpart).
 -/
 module
 
@@ -21,23 +22,67 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG := hG) := by
-  intro p cfg v vm dq dqv Hcfg
-  obtain ⟨Harr, Hl, Hln⟩ := Hcfg
-  wp_start as ⟨Hp, Hv⟩
+/-- The body of `Clone`'s closure `clone := func(m map[uint64]struct{}) map[uint64]struct{}
+{ if m == nil { return nil }; mm := make(..., len(m)); for k := range m { mm[k] = {} };
+return mm }`, copied from the translation (`Config.Clone.impl`,
+`Code/go_etcd_io/raft/v3/tracker.lean`) so that its triple is proved once for its four
+calls. -/
+noncomputable abbrev cloneMapBody [FfiSyntax] [GoGlobalContext] : Expr :=
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))
+  (Let "mm" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "mm")))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "mm"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (Var "mm") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))
+
+/-- What the closure returns for `m`: `nil` for `nil`, otherwise a fresh map with `s`. -/
+def clonedMap (m m' : Loc) (s : GMap w64 Unit) : IProp GF :=
+  iprop(⌜m = map.nil ∧ m' = map.nil⌝ ∨ (⌜m ≠ map.nil⌝ ∗ m' ↦$ s))
+
+/-- The closure. The function value is a variable `f` fixed to the literal, so that
+`wp_auto` cannot inline the call. -/
+theorem wp_cloneMap (f : GoFunc) (hf : f = func.mk BAnon (BNamed "m") cloneMapBody)
+    (m : Loc) (dq : DFrac) (s : GMap w64 Unit) :
+    {{ ownIdsetQ (GF := GF) m dq s }}
+      (App (Val #f) (Val #m))
+    {{ (m' : Loc), RET #m'; ownIdsetQ m dq s ∗ clonedMap m m' s }} := by
+  subst hf
+  wp_start_folded as Hm
   wp_auto
-  -- the receiver is read at fraction `dq`: split the struct into its fields, then peel
-  -- `Voters[0]` and `Voters[1]` off the array
-  icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
-  iStructNamed Hp
-  icases array_acc _ (sint.Z (W64 0)) _ _ _ v (by decide) (by rw [Harr]; rfl)
-    $$ Voters with ⟨Hv0, Hvback⟩
-  wp_auto
-  -- `clone(c.Voters[0])`, inlined: the map is not nil, so it is copied key by key
-  ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hv
+  unfold ownIdsetQ clonedMap
+  icases Hm with (⟨%Hnil, %Hs⟩ | Hm)
+  · subst Hnil Hs
+    wp_auto
+    iapply HΦ
+    isplitl
+    · ileft; ipureintro; exact ⟨rfl, rfl⟩
+    · ileft; ipureintro; exact ⟨rfl, rfl⟩
+  ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hm
   wp_if_destruct
   · exact absurd rfl Hvnn
-  wp_apply wp_map_len $$ Hv as Hv
+  wp_apply wp_map_len $$ Hm as Hm
   wp_apply wp_map_make2 as %mref Hmref
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -47,7 +92,7 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
       "%Hmv" ∷ ⌜∀ k, k ∈ domSet mv ↔ k ∈ keys.take i.toNat⌝ ∗
       "k" ∷ k_ptr ↦ x ∗
       "mm" ∷ mm_ptr ↦ mref ∗
-      "Hmref" ∷ mref ↦$ mv)) $$ Hv
+      "Hmref" ∷ mref ↦$ mv)) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
   isplitl [k mm Hmref]
   · iexists zero_val w64, ∅
@@ -87,45 +132,128 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
       · rintro (h | h)
         · exact h
         · exact absurd h.symm hk
-  iintro HP Hv
+  iintro HP Hm
   iNamed HP
   rw [Int.toNat_natCast, ← Hklen, List.take_length] at Hmv
-  -- the copy is `vm` itself: same keys, and the values are `()`
-  have Hmv' : mv = vm := by
+  -- the copy is `s` itself: same keys, and the values are `()`
+  have Hmv' : mv = s := by
     apply GMap.map_eq; intro k
     have := Hmv k
     rw [Hkset, GMap.elem_of_dom] at this
-    rcases h1 : mv !! k with _ | ⟨⟩ <;> rcases h2 : vm !! k with _ | ⟨⟩ <;> simp_all
+    rcases h1 : mv !! k with _ | ⟨⟩ <;> rcases h2 : s !! k with _ | ⟨⟩ <;> simp_all
   subst Hmv'
-  -- `clone(c.Voters[1])`, `clone(c.Learners)`, `clone(c.LearnersNext)`: all `nil`, each
-  -- call returns `nil` at once
+  wp_auto
+  iapply HΦ
+  isplitl [Hm]
+  · iright; iexact Hm
+  · iright; iframe Hmref; ipureintro; exact Hvnn
+
+/-- An id set's clone, as an id set. -/
+theorem clonedMap_Q (m m' : Loc) (dq : DFrac) (s : GMap w64 Unit) :
+    ownIdsetQ (GF := GF) m dq s -∗ clonedMap m m' s -∗
+      ownIdsetQ m dq s ∗ ownIdsetQ m' (DFrac.own 1) s := by
+  iintro Hm Hc
+  unfold ownIdsetQ clonedMap
+  icases Hm with (%H | Hm)
+  · isplitr
+    · ileft; ipureintro; exact H
+    icases Hc with (%H' | ⟨%Hnn, -⟩)
+    · ileft; ipureintro; exact ⟨H'.2, H.2⟩
+    · exact absurd H.1 Hnn
+  · icases Hc with (%H' | ⟨-, H'⟩)
+    · ihave %Hnn := ownMap_not_nil _ _ _ $$ Hm
+      exact absurd H'.1 Hnn
+    · isplitl [Hm]
+      · iright; iexact Hm
+      · iright; iexact H'
+
+/-- A canonical id set's clone is canonical. -/
+theorem clonedMap_C (m m' : Loc) (dq : DFrac) (s : GMap w64 Unit) :
+    ownIdsetC (GF := GF) m dq s -∗ clonedMap m m' s -∗
+      ownIdsetC m dq s ∗ ownIdsetC m' (DFrac.own 1) s := by
+  iintro Hm Hc
+  unfold ownIdsetC clonedMap
+  icases Hm with (%H | ⟨Hm, %Hne⟩)
+  · isplitr
+    · ileft; ipureintro; exact H
+    icases Hc with (%H' | ⟨%Hnn, -⟩)
+    · ileft; ipureintro; exact ⟨H'.2, H.2⟩
+    · exact absurd H.1 Hnn
+  · icases Hc with (%H' | ⟨-, H'⟩)
+    · ihave %Hnn := ownMap_not_nil _ _ _ $$ Hm
+      exact absurd H'.1 Hnn
+    · isplitl [Hm]
+      · iright; iframe Hm; ipureintro; exact Hne
+      · iright; iframe H'; ipureintro; exact Hne
+
+theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG := hG) := by
+  intro p cfg c dq dqc
+  wp_start as ⟨Hp, Hc⟩
+  unfold ownCfgCC
+  iNamed Hc
+  wp_auto
+  -- the closure, as an opaque function value (so that its calls are not inlined)
+  generalize hf : (func.mk BAnon (BNamed "m") cloneMapBody : GoFunc) = f
+  -- the receiver is read at fraction `dq`: split the struct into its fields, then peel
+  -- `Voters[0]` and `Voters[1]` off the array
+  icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
+  iStructNamed Hp
+  icases array_acc _ (sint.Z (W64 0)) _ _ _ vin (by decide) (by rw [Harr]; rfl)
+    $$ Voters with ⟨Hv0, Hvback⟩
+  wp_auto
+  ihave %Hinnn := ownMap_not_nil _ _ _ $$ Hin
+  ihave Hin : ownIdsetQ vin dqc c.incoming $$ [Hin]
+  · unfold ownIdsetQ; iright; iexact Hin
+  wp_apply (wp_cloneMap f hf.symm) $$ Hin as %m0 ⟨Hin, Hm0⟩
   ihave Voters := Hvback $$ Hv0
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide)
+  icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide)
     (by
-      rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 0)).toNat]? = some v by
+      rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 0)).toNat]? = some vin by
         rw [Harr]; rfl)]
-      show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some map.nil
+      show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some vout
       rw [Harr]; rfl)
     $$ Voters with ⟨Hv1, Hvback⟩
   wp_auto
-  rw [Hl, Hln]
-  wp_auto
-  -- `return Config{...}`: the receiver back together, the fresh voter map `mref`
+  icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
+  wp_apply (wp_cloneMap f hf.symm) $$ Hout as %m1 ⟨Hout, Hm1⟩
+  ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout
+  icases clonedMap_C _ _ _ _ $$ Hout Hm1 with ⟨Hout, Hm1⟩
+  icases ownIdsetC_split _ _ _ $$ Hl with ⟨Hl, %Hcl⟩
+  wp_apply (wp_cloneMap f hf.symm) $$ Hl as %ml ⟨Hl, Hml⟩
+  ihave Hl := ownIdsetC_join _ _ _ Hcl $$ Hl
+  icases clonedMap_C _ _ _ _ $$ Hl Hml with ⟨Hl, Hml⟩
+  icases ownIdsetC_split _ _ _ $$ Hln with ⟨Hln, %Hcln⟩
+  wp_apply (wp_cloneMap f hf.symm) $$ Hln as %mln ⟨Hln, Hmln⟩
+  ihave Hln := ownIdsetC_join _ _ _ Hcln $$ Hln
+  icases clonedMap_C _ _ _ _ $$ Hln Hmln with ⟨Hln, Hmln⟩
   iapply HΦ
   ihave Voters := Hvback $$ Hv1
-  rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 0)).toNat]? = some v by
+  rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 0)).toNat]? = some vin by
     rw [Harr]; rfl)]
   rw [show (array.mk 2 cfg.Voters'.arr).arr = cfg.Voters'.arr from rfl]
-  rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some map.nil by
+  rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some vout by
     rw [Harr]; rfl)]
-  iframe Hv Hmref
   isplitl [AutoLeave Learners LearnersNext Voters]
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
-    rw [Hl, Hln]
     iframe
+  isplitl [Hin Hout Hl Hln]
+  · iexists vin, vout
+    simp only [named]
+    unfold ownIdsetQ
+    icases Hin with (%H | Hin)
+    · exact absurd H.1 Hinnn
+    iframe Hin Hout Hl Hln
+    ipureintro; exact ⟨Harr, Hal⟩
+  iexists m0, m1
+  simp only [named]
+  unfold clonedMap
+  icases Hm0 with (%H | ⟨-, Hm0⟩)
+  · exact absurd H.1 Hinnn
+  iframe Hm0 Hm1 Hml Hmln
   ipureintro
-  exact ⟨⟨rfl, rfl, rfl⟩, rfl⟩
+  simp only [List.set, List.replicate]
+  rfl
 
 end proof
 

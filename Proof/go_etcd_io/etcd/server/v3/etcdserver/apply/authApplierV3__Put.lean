@@ -34,7 +34,8 @@ theorem apply.authApplierV3.Put.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
@@ -49,7 +50,7 @@ theorem apply.authApplierV3.Put.wp_proof
   icases Ht with ⟨#HI, -⟩
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
-  wp_apply (hPut st le E.γ E.P E.f E.RD _ info (DFrac.own 1) r o) $$ [$Hst $Hle $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI⟩
+  wp_apply (hPut st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) r o) $$ [$Hst $Hle $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
@@ -58,7 +59,7 @@ theorem apply.authApplierV3.Put.wp_proof
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E c p (.ok bi) rq log F _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs]
       isplitr
@@ -77,7 +78,7 @@ theorem apply.authApplierV3.Put.wp_proof
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostF E c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
+  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
   iunfold apply.authInfoOwn; iexists info; iexact Hinfo
 
 end proof

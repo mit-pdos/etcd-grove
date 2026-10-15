@@ -5,22 +5,24 @@ default arm `r.step(m)`. Three term cases, each in its own file; this lemma only
 one:
 
 - `m.Term > r.Term` (`MsgSnap_gt.lean`): the preamble's `becomeFollower(m.Term, m.From)`
-  (`Step.higherTerm` at `absSnap`), then `stepFollower`'s `MsgSnap` arm on the
+  (`StepC.higherTerm` at `absSnap`), then `stepFollower`'s `MsgSnap` arm on the
   stepped-down state;
-- `m.Term < r.Term` (`MsgSnap_lt.lean`): logged and dropped (`Step.refl`);
+- `m.Term < r.Term` (`MsgSnap_lt.lean`): logged and dropped (`StepC.refl`);
 - `m.Term = r.Term` (`MsgSnap_eq.lean`): `r.step(m)` by role -- the follower's and the
   candidate's arms adopt the sender and run `handleSnapshot`; a leader is excluded by
   the premise the dispatch derives from `isLeader_unique`.
 
-`handleSnapshot`'s three exits refine `Step.snapStale`, `Step.snapFastfwd` and
-`Step.snapRestore` (`step_handle_snap`).
+`handleSnapshot`'s three exits refine `StepC.snapStale`, `StepC.snapFastfwd` and
+`StepC.snapRestore` (`step_handle_snap`), and (2026-10-14, stage B8) the dynamic model's
+`StepR` rules of the same names, the restore at the configuration the snapshot's `ConfState`
+denotes (`stepCDS_handle_snap`, `StepCDS`).
 
 Proof structure, not specification: no `Module Type`, no `Parameter`; only
 `Proof/raft__Step.lean`, or another module of this directory, may import it.
 
 Lean notes:
 * The branch lemmas take the callee specs (Rocq's functor argument `P : STEP_POSTULATES`)
-  as their first argument `_P : raft.Step.Postulates`, and Rocq's section variable `cfg`
+  as their first argument `_P : raft.Step.Postulates`, and Rocq's section variable `c`
   as their second.
 -/
 module
@@ -48,44 +50,52 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : List w64) :
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (scfg : CSLists) (sv : raftpb.Snapshot) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
+    scfg.Has id →
     NStateWf s →
-    -- the snapshot's `ConfState` is `cfg`'s voters, zero-free, no learners or joint
-    -- configuration; its index below `2^61` (`Step`'s `"Hsnap"`)
-    SnapScope cfg sv voters →
+    -- the snapshot's `ConfState` well formed, any (joint included), its index below `2^61`
+    -- (`Step`'s `"Hsnap"`)
+    SnapScope sv scfg →
     -- protocol facts the dispatch derives from the ghost state: at the current term
     -- the receiver is not a leader (`isLeader_unique`), and a follower's tally is
     -- empty (`FollowerVotesOk`)
     (m.Term' = s.term → s.role ≠ .leader) →
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+        "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' scfg }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-    {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+    {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
+        "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
+        -- (2026-10-14, stage B7) the snapshot's configuration after a restore
+        "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
+            StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgSnap_gt _P cfg r id s m sv voters Hty Hto Hterm Hfnz Hfid Hcfg Hwf
-      Hscope Hgt
+  · exact wp_Step_MsgSnap_gt _P c r id s m scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
+      Hwf Hscope Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · wp_start_folded as ⟨Hphys, -, -⟩
-      iapply wp_Step_MsgSnap_lt _P cfg r id s m sv voters Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys] HΦ
+      iapply wp_Step_MsgSnap_lt _P c r id s m sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys]
+      inext
+      iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr⟩
+      iapply HΦ $$ %err %s' %c
+      iframe Hphys
+      ipureintro
+      exact ⟨Or.inl rfl, Hwf', Href, Herr⟩
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgSnap_eq _P cfg r id s m sv voters Hty Hto Hterm Hfnz Hfid Hcfg Hwf
-        Hscope Hteq (Hnl Hteq) Hvotes
+      exact wp_Step_MsgSnap_eq _P c r id s m scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
+        Hwf Hscope Hteq (Hnl Hteq) Hvotes
 
 end StepProof
 

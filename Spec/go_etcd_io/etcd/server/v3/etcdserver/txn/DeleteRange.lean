@@ -37,7 +37,8 @@ the range read's context error (`ctx` done): nothing deleted, the token back. Th
 (`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post`. At a context never
 canceled (`nd`: `neverDone`), no context error (2026-10-12: for the apply package's backend).
 2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
-(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one. -/
+(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
+2026-10-14 (unit T1): the caller certifies the log the delete commits (`certOkNext`). -/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
@@ -47,6 +48,8 @@ abbrev txn.DeleteRange.spec : Prop :=
       mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog →
         (rangeIn (mvcc.stateAfter ilog) o).length < mvcc.putMax γ⌝ ∗
+      □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
+        mvcc.certOkNext γ ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))

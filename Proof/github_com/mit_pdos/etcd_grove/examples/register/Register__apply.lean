@@ -70,16 +70,24 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
   wp_auto
   cases o with
   | none =>
-    -- a leader's own entry: the zero slice, no operation
+    -- a leader's own entry (the zero slice) or (2026-10-13) an entry of another type (a
+    -- conf change): no operation
     iunfold entDataIs at He
-    icases He with %Hz
+    icases He with (%Hz | ⟨%Hty, -⟩)
+    rotate_left
+    · -- not a normal entry: `apply` returns at once
+      wp_if_destruct
+      · exact absurd Hif Hty
+      · iapply HΦ
+        iapply Hkeep $$ Hv HmA HA
+        ipureintro; exact ⟨Hval, HA⟩
     wp_if_destruct
     rotate_left
     · iapply HΦ
       iapply Hkeep $$ Hv HmA HA
       ipureintro; exact ⟨Hval, HA⟩
     ihave #Hnil : e.Data' ↦*□ ([] : List w8) $$ []
-    · rw [Hz]; iapply ownSlice_nil
+    · rw [Hz.2]; iapply ownSlice_nil
     wp_apply wp_decode e.Data' [] DFrac.discard $$ [$Hnil]
     iintro -
     simp only [decodeRet, show decodeOp ([] : List w8) = none from rfl]
@@ -126,7 +134,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
       rw [show (zero_val Bool) = false from rfl, appliedOk_lookup A _ d HA Hdsome]
       wp_if_destruct
       · -- applied before: unlock, skip
-        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters]
+        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
         · inext
           unfold lockInv
           iexists ns, mW, W, c
@@ -163,7 +171,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
           | none =>
             simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
             wp_auto
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters]
+            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
             · inext
               unfold lockInv
               iexists ns, mW, W, c
@@ -190,7 +198,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
             · rw [← Hraft]; iexact Hdep
             · rw [Hif]; iexact Hmint
             subst Hd0
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters]
+            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
             · inext
               unfold lockInv
               iexists ns, mW, GMap.delete sq W, c
@@ -217,7 +225,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
             iapply HΦ
             iapply Hfin $$ Hv HmA HA
         · -- another replica's operation
-          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters]
+          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
           · inext
             unfold lockInv
             iexists ns, mW, W, c
@@ -238,7 +246,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
           | none =>
             simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
             wp_auto
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters]
+            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
             · inext
               unfold lockInv
               iexists ns, mW, W, c
@@ -265,7 +273,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
             · rw [← Hraft]; iexact Hdep
             · rw [Hif]; iexact Hmint
             subst Hd0
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters]
+            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
             · inext
               unfold lockInv
               iexists ns, mW, GMap.delete sq W, c
@@ -292,7 +300,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
             iapply HΦ
             iapply Hfin $$ Hv HmA HA
         · -- another replica's operation
-          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters]
+          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
           · inext
             unfold lockInv
             iexists ns, mW, W, c

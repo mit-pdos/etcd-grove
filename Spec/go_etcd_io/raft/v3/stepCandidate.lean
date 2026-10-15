@@ -93,9 +93,10 @@ def PrecandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.M
 /-- What `stepCandidate` does with `m`, by type; `dropped` as in `FollowerStepResult`
 (`Spec/stepFollower.lean`). For `MsgApp` the `Progress` values `becomeFollower`'s
 `reset` leaves are `pvs` (unconstrained: a follower's are invisible to `toPState`). -/
-def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
-    Prop :=
+def CandidateStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
+    (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (cl : List w8 := []) : Prop :=
   if m.Type' = MsgVoteResp then
     dropped = false ∧
     (if s.role = .preCandidate then s' = s
@@ -108,18 +109,128 @@ def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
   else if m.Type' = MsgHeartbeat then
     dropped = false ∧
     ∃ (pvs : GMap w64 Progress), s' = heartbeatResult id
-      { becomeFollower s s.term m.From' with prvals := pvs } m
+      { becomeFollower s s.term m.From' with prvals := pvs } m cl
   else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
     dropped = false ∧ s' = s
   else if m.Type' = MsgSnap then
     dropped = false ∧
     ∃ (pvs : GMap w64 Progress), HandleSnapResult id
-      { becomeFollower s s.term m.From' with prvals := pvs } m sv s'
+      { becomeFollower s s.term m.From' with prvals := pvs } m sv scfg s'
   else if m.Type' = MsgPreVoteResp then
     dropped = false ∧
     (if s.role = .preCandidate then PrecandVoteRespResult cfg id s m s'
      else s' = s)
+  -- read-index (2026-10-12): no case, nothing happens
+  else if m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp then dropped = false ∧ s' = s
+  -- (2026-10-13) likewise; `MsgTimeoutNow` is logged and ignored
+  else if m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow ∨
+      m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
   else False
+
+/-- `CandVoteRespResult` at the configuration `c` (2026-10-13, reconfiguration stage A2): `poll`'s
+facts are joint (`JQuorum`, `JLost`). -/
+def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
+    (s' : NState) : Prop :=
+  ∃ (won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress),
+    let votes' := recordVote s.votes m.From' (!m.Reject')
+    (won = true →
+       JQuorum c (granted votes') ∧
+       ReplSends id (becomeLeader id { s with votes := votes' }) ms ∧
+       prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals) ∧
+    (lost = true → JLost c votes') ∧
+    s' = { voteRespResult id s m.From' m.Reject' won lost ms with prvals := pvs }
+
+/-- `PrecandVoteRespResult` at the configuration `c`: the joint facts, and on a win the peers
+`campaign` asked, the other voters of either half. -/
+def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
+    (s' : NState) : Prop :=
+  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress),
+    let votes' := recordVote s.votes m.From' (!m.Reject')
+    (won = true → JQuorum c (granted votes') ∧ peers ≡ₚ elements (c.voters \ {[id]})) ∧
+    (lost = true → JLost c votes') ∧
+    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
+
+/-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the
+configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `MsgSnap` that
+`restore` installs: since 2026-10-14, stage A3, `SnapCfgOk`; since B8 the configuration the
+`ConfState`'s lists `scfg` denote, any). -/
+def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (c' : CfgM) (cl : List w8 := []) : Prop :=
+  (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
+   else c' = c) ∧
+  (if m.Type' = MsgVoteResp then
+       dropped = false ∧
+       (if s.role = .preCandidate then s' = s
+        else CandVoteRespResultC c id s m s')
+     else if m.Type' = MsgProp then dropped = true ∧ s' = s
+     else if m.Type' = MsgApp then
+       dropped = false ∧
+       ∃ (pvs : GMap w64 Progress), HandleAppResult id
+         { becomeFollower s s.term m.From' with prvals := pvs } m ents s'
+     else if m.Type' = MsgHeartbeat then
+       dropped = false ∧
+       ∃ (pvs : GMap w64 Progress), s' = heartbeatResult id
+         { becomeFollower s s.term m.From' with prvals := pvs } m cl
+     else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
+       dropped = false ∧ s' = s
+     else if m.Type' = MsgSnap then
+       dropped = false ∧
+       ∃ (pvs : GMap w64 Progress), HandleSnapResult id
+         { becomeFollower s s.term m.From' with prvals := pvs } m sv scfg s'
+     else if m.Type' = MsgPreVoteResp then
+       dropped = false ∧
+       (if s.role = .preCandidate then PrecandVoteRespResultC c id s m s'
+        else s' = s)
+     else if m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp then dropped = false ∧ s' = s
+     else if m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow ∨
+         m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
+     else False)
+
+theorem CandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : raftpb.Message}
+    {s' : NState} (hne : cfg ≠ ∅) (h : CandVoteRespResultC (CfgM.simple cfg L) id s m s') :
+    CandVoteRespResult cfg id s m s' := by
+  obtain ⟨won, lost, ms, pvs, h1, h2, h3⟩ := h
+  refine ⟨won, lost, ms, pvs, fun hw => ?_, fun hl => ?_, h3⟩
+  · obtain ⟨a, b, c⟩ := h1 hw
+    exact ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, b, c⟩
+  · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
+
+theorem PrecandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : raftpb.Message}
+    {s' : NState} (hne : cfg ≠ ∅) (h : PrecandVoteRespResultC (CfgM.simple cfg L) id s m s') :
+    PrecandVoteRespResult cfg id s m s' := by
+  obtain ⟨won, lost, peers, pvs, h1, h2, h3⟩ := h
+  refine ⟨won, lost, peers, pvs, fun hw => ?_, fun hl => ?_, h3⟩
+  · obtain ⟨a, b⟩ := h1 hw
+    refine ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, ?_⟩
+    rw [CfgM.voters_simple] at b; exact b
+  · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
+
+theorem CandidateStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64} {s : NState}
+    {m : raftpb.Message}
+    {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
+    {cl : List w8} (hne : cfg ≠ ∅)
+    (h : CandidateStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
+    CandidateStepResult cfg scfg id s m ents sv dropped s' cl := by
+  obtain ⟨-, h⟩ := h
+  unfold CandidateStepResult
+  by_cases hV : m.Type' = MsgVoteResp
+  · simp only [hV, ↓reduceIte] at h ⊢
+    refine ⟨h.1, ?_⟩
+    have h2 := h.2
+    split at h2
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2.simple hne
+  by_cases hP : m.Type' = MsgPreVoteResp
+  · simp [hP, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp,
+      MsgSnap, MsgPreVoteResp] at h ⊢
+    refine ⟨h.1, ?_⟩
+    have h2 := h.2
+    split at h2
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2.simple hne
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2
+  simp only [hV, hP, ite_false] at h ⊢
+  exact h
 
 end results
 
@@ -146,23 +257,33 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   the log and `m.From ≠ id`;
 - `Hents`: the `Entries` slice and its capacity, for `MsgApp` only;
 - a pre-candidate's `MsgPreVoteResp`: the term does not wrap, since a win runs
-  `campaign`, which increments it. -/
+  `campaign`, which increments it. 
+
+At any configuration since 2026-10-13 (reconfiguration stage A2): the struct at `c`
+(`ownRaftPhysCV c c.voters`), `poll`'s facts joint, a pre-vote win's campaign over the voters
+of either half (`CandidateStepResultC`); a `MsgSnap` (since 2026-10-14, stage A3) at any `c`, of
+a snapshot whose `ConfState` holds the lists `scfg` (since B8 any well-formed ones, joint
+included, the node one of its ids: `SnapScope`, `CSLists.Has`; in A3 non-joint with any voters; until then
+only at a non-joint `c`), after which the node is at the snapshot's configuration if `restore`
+installed it. (The statement on `ownRaftPhys`, `specS`, had no caller and is gone.)
+-/
 abbrev stepCandidate.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64),
+  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
-   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp) →
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
    m.Term' = s.term ∧ m.Term' ≠ W64 0) →
   s.role = .candidate ∨ s.role = .preCandidate →
-  id ∈ cfg →
   (m.Type' = MsgApp →
      PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
      uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
-     (∀ e ∈ ents, e.Type' = EntryNormal) ∧
      (let ls := s.logst
       let es := ls.sents ++ ls.uents
       uint.Z ls.committed ≤ uint.Z m.Index' →
@@ -177,18 +298,20 @@ abbrev stepCandidate.spec : Prop :=
   (s.role = .preCandidate → m.Type' = MsgPreVoteResp →
    uint.Z s.term + 1 < 2 ^ 64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- the `Context` (2026-10-12): what the response to a heartbeat carries
+      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ⌜SnapScope cfg sv voters ∧ m.From' ≠ id⌝ ∗
+                 ⌜SnapScope sv scfg ∧ scfg.Has id ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
-                 sv.Metadata'.ConfState'.Voters' ↦*□ voters) ∗
+                 ownCSL sv.Metadata'.ConfState' scfg) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp⌝ -∗
                  m.Entries' ↦*□ ents ∗
                  ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #m))
-  {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
-      ownRaftPhys cfg r id s' ∗
-      ⌜CandidateStepResult cfg id s m ents sv dropped s'⌝ ∗
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
+      ownRaftPhysCV c' c'.voters r id s' ∗
+      ⌜CandidateStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
 

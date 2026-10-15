@@ -48,8 +48,8 @@ theorem isReadRaft_of_raftNode
     iapply HΦ
     iunfold isRNReadStateC at Hc
     iexact Hc
-  · iintro !> %ctx %cd %sl %dq %id %n %Φ !> ⟨#Hctx, Hsl, #Hc⟩ HΦ
-    wp_apply hRI E γ r ctx cd sl dq id n $$ [Hsl] as %err Hpost
+  · iintro !> %ctx %cd %sl %dq %id %n %Qr %Φ !> ⟨#Hctx, Hsl, #Hc, #HRA⟩ HΦ
+    wp_apply hRI E γ r ctx cd sl dq id n Qr $$ [Hsl] as %err Hpost
     · iframe #; iframe Hsl
     iapply HΦ
     iexact Hpost

@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Storage).Snapshot()` (register.go:64): the `MemoryStorage`'s snapshot, but
+`(*Storage).Snapshot()` (register.go:69): the `MemoryStorage`'s snapshot, but
 `ErrSnapshotTemporarilyUnavailable` for an empty one -- what raft's `Storage` contract asks
 (a non-empty snapshot or that error).
 -/
@@ -35,8 +35,9 @@ abbrev Storage.Snapshot.spec : Prop :=
   {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-        ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
+       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0 ∧
+          snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+        ownCSL snap.Metadata'.ConfState' σ.scs)) }}
 
 end spec
 

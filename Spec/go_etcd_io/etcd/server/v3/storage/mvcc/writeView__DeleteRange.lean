@@ -30,7 +30,7 @@ abbrev mvcc.writeView.DeleteRange.spec : Prop :=
     (key endk : GoSlice) (k e : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗
-      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ key ↦*□ k ∗
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
       endk ↦*□ e ∗
       ⌜∀ ilog : mvcc.Log, (mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).length < mvcc.putMax γ⌝ }}
     (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"DeleteRange")) (Val #key))

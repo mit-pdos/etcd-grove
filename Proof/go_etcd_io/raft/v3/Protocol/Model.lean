@@ -19,9 +19,11 @@ Scope. Everything here (and the proofs in `Link.lean`) assumes:
 * no snapshot received   (phase 2 of notes/raft-replication-model.md: the rules
                           `Step.snap*` and `isMessage` for `snap` are here since
                           2026-10-02, but `Step` is not yet specified for `MsgSnap`),
-* **no configuration change is ever requested** -- so the log contains no
-  `EntryConfChange` or `EntryConfChangeV2` entry, and `r.hasUnappliedConfChanges()` is
-  always `false`. See notes/raft-implementation-facts.md.
+* (until 2026-10-13) no configuration change was ever requested -- the log contained no
+  `EntryConfChange` or `EntryConfChangeV2` entry. Since reconfiguration stage D conf-change
+  entries are in the log as data (proposed, appended -- or, refused by the leader, replaced
+  by the empty normal entry, `PropRepl` -- replicated, committed), while every node's
+  configuration stays `cfg` (no node applies one).
 
 **Since 2026-10-01 the model has a log** (notes/raft-replication-model.md): a node's
 protocol state is `(term, vote, lead, role, votes, outbox)` plus the log (`base`,
@@ -63,6 +65,8 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Plog
+public import Proof.go_etcd_io.raft.v3.CCModel
+public import Perennial.Std.Word.LittleEndian
 public import Proof.go_etcd_io.raft.v3.ProjSimps
 
 @[expose] public section
@@ -121,6 +125,9 @@ structure Msg [FfiSyntax] where
   entries : List raftpb.Entry
   /-- a `snap`'s `ConfState.Voters`; `[]` otherwise -/
   voters : List w64
+  /-- `Context` (2026-10-12, for read-index): the bytes `Message.Context` holds; `[]`
+  for every message but a heartbeat and its response carrying a read position -/
+  ctx : List w8
 
 section msgs
 variable [FfiSyntax]
@@ -132,7 +139,7 @@ nothing that reduces, injects or rewrites a message has to unfold anything by ha
 changed). -/
 @[reducible] def Msg.mk (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
     (es : List raftpb.Entry) : Msg :=
-  Msg.mkV t0 fr to0 tm rj ix lt cm rh es []
+  Msg.mkV t0 fr to0 tm rj ix lt cm rh es [] []
 
 /-- A message with no payload: every replication field zero. -/
 def Msg.plain (ty : MsgType) (src dst term : w64) (reject : Bool) : Msg :=
@@ -144,6 +151,199 @@ end msgs
 def fromLeader : MsgType → Bool
   | .app | .heartbeat | .snap => true
   | _ => false
+
+/-! ### The read-index state (2026-10-12; the records moved from `InvMisc.lean`)
+
+A queued read-index request and the read-only object, as `InvMisc.lean`'s `ownReadOnly`
+sees them. -/
+
+structure ReadReq [FfiSyntax] where
+  index : w64
+  src : w64
+  ents : List raftpb.Entry
+
+/-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
+`acks`: each voter's acknowledged *position* -- the largest context (as a number) the
+voter echoed in a heartbeat response; the context of a heartbeat is
+`confirmed + length pending` at the time it was sent (`readonlyPosition`).
+`confirmed`: `confirmedReads`, the number of requests ever removed from the front of
+`pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
+states it (`stepLeader` reads the field and case-splits on the value; until
+2026-10-08 a `safe` field recorded it). -/
+structure ReadOnly [FfiSyntax] where
+  pending : List ReadReq
+  acks : GMap w64 w64
+  confirmed : w64
+
+/-- The physical read-index state (2026-10-12): `r.readStates` (as the Goose values),
+`r.readOnly` (as `ReadOnly`), and `r.pendingReadIndexMessages`, each with the entries
+its slice holds. -/
+structure RdState [FfiSyntax] where
+  states : List ReadState := []
+  ro : ReadOnly := ⟨[], ∅, W64 0⟩
+  pend : List (raftpb.Message × List raftpb.Entry) := []
+
+/-- The read state with a fresh read-only object, what `reset` installs (and a non-leader's,
+in the protocol reading). -/
+def rdNL [FfiSyntax] (rd : RdState) : RdState := { rd with ro := ⟨[], ∅, W64 0⟩ }
+
+@[simp] theorem rdNL_rdNL [FfiSyntax] (rd : RdState) : rdNL (rdNL rd) = rdNL rd := rfl
+
+@[simp] theorem rdNL_ite [FfiSyntax] (c : Prop) [Decidable c] (rd : RdState) :
+    rdNL (if c then rd else rdNL rd) = rdNL rd := by
+  split <;> rfl
+
+section readonly_fns
+variable [FfiSyntax]
+
+/-- Go's `min`/`max` builtins on `uint64`, exactly as Goose's `minⁱᵐᵖˡ`/`maxⁱᵐᵖˡ`
+compute them: `min x y = if x < y then x else y`, `max x y = if x > y then x else y`
+(and Goose renders `x > y` as `y < x`). Stated with `decide`, the form of the
+framework's `wp_max2_uint64`. (Moved here from `InvTracker.lean` with the `Progress`
+methods.) -/
+def w64Min (x y : w64) : w64 := if uint.Z x < uint.Z y then x else y
+def w64Max (x y : w64) : w64 := if uint.Z y < uint.Z x then x else y
+
+theorem w64Min_spec (x y : w64) : uint.Z (w64Min x y) = min (uint.Z x) (uint.Z y) := by
+  unfold w64Min; split <;> omega
+
+theorem w64Max_spec (x y : w64) : uint.Z (w64Max x y) = max (uint.Z x) (uint.Z y) := by
+  unfold w64Max; split <;> omega
+
+/-- The position a heartbeat context encodes: `confirmedReads + len unconfirmedReads`
+(wrapping, as the `uint64` sum does). -/
+def readonlyPosition (r : ReadOnly) : w64 :=
+  r.confirmed + W64 r.pending.length
+
+/-- The position is at most the unwrapped sum. -/
+theorem readonlyPosition_le (r : ReadOnly) :
+    uint.nat (readonlyPosition r) ≤ uint.nat r.confirmed + r.pending.length := by
+  unfold readonlyPosition
+  have h1 : uint.nat (W64 r.pending.length) ≤ r.pending.length := by
+    word
+  have h2 : uint.nat (r.confirmed + W64 r.pending.length) ≤
+      uint.nat r.confirmed + uint.nat (W64 r.pending.length) := by
+    word
+  omega
+
+/-- A heartbeat context a leader may send (2026-10-13): none, or a position its queue
+reaches (unwrapped). `bcastHeartbeat`'s `hbCtx` is one (`hbCtx_ok`), and so is any
+position a release passed (`releasePendingReadIndexMessages` broadcasts after each). -/
+def HbCtxOk (r : ReadOnly) (ctx : List w8) : Prop :=
+  ctx = [] ∨ ∃ q, ctx = u64Le q ∧ uint.nat q ≤ uint.nat r.confirmed + r.pending.length
+
+theorem HbCtxOk_mono (r r' : ReadOnly) (ctx : List w8) :
+    r'.confirmed = r.confirmed → r.pending.length ≤ r'.pending.length →
+    HbCtxOk r ctx → HbCtxOk r' ctx := by
+  intro hc hl h
+  rcases h with h | ⟨q, hq, hle⟩
+  · left; exact h
+  · right; exact ⟨q, hq, by rw [hc]; omega⟩
+
+/-- `addRequest`: append to the queue. -/
+def readonlyAdd (r : ReadOnly) (q : ReadReq) : ReadOnly :=
+  { r with pending := r.pending ++ [q] }
+
+/-- `recvAck from ctx`, `ctx` as the bytes it holds: nothing for an empty context, else
+the voter's ack becomes the larger of its old one (`0` if none) and the first eight
+bytes read little-endian. -/
+def readonlyRecvAck (r : ReadOnly) (src : w64) (ctx : List w8) : ReadOnly :=
+  if ctx = [] then r
+  else { r with acks := <[src := w64Max ((r.acks !! src).getD (W64 0))
+                                         (leToU64 (ctx.take 8))]> r.acks }
+
+/-- `maybeAdvance`, given `N`, the quorum index of the voters' acks
+(`CommittedIndex`): nothing when `N` is not past `confirmed`; else the first
+`N - confirmed` requests leave the queue, `confirmed` becomes `N` and the removed
+requests are returned. -/
+def readonlyAdvance (r : ReadOnly) (N : w64) : ReadOnly × List ReadReq :=
+  if uint.Z N ≤ uint.Z r.confirmed then (r, [])
+  else
+    let k := uint.nat (N - r.confirmed)
+    ({ r with pending := r.pending.drop k, confirmed := N }, r.pending.take k)
+
+/-- The context `heartbeatCtx` returns (2026-10-12): none for an empty queue, else the
+position, little-endian. -/
+def hbCtx (r : ReadOnly) : List w8 :=
+  if r.pending = [] then [] else u64Le (readonlyPosition r)
+
+/-- `sendMsgReadIndexResponse` on the read-only object (`ReadOnlySafe`): the request is
+queued, then the leader acknowledges the new position itself. -/
+def readonlyArrive (r : ReadOnly) (id : w64) (q : ReadReq) : ReadOnly :=
+  readonlyRecvAck (readonlyAdd r q) id (hbCtx (readonlyAdd r q))
+
+/-- `releasePendingReadIndexMessages` on the read-only object: each pending request
+arrives, read at the commit index `c`, in order. -/
+def readonlyRelease (r : ReadOnly) (id c : w64)
+    (pend : List (raftpb.Message × List raftpb.Entry)) : ReadOnly :=
+  pend.foldl (fun r p => readonlyArrive r id ⟨c, p.1.From', p.2⟩) r
+
+/-- An acknowledgement of a position `q`: the larger of the old ack and `q`. -/
+theorem readonlyRecvAck_eq (r : ReadOnly) (src q : w64) :
+    readonlyRecvAck r src (u64Le q) =
+      { r with acks := <[src := w64Max ((r.acks !! src).getD (W64 0)) q]> r.acks } := by
+  have hl : (u64Le q).length = 8 := u64Le_length _
+  have hne : u64Le q ≠ [] := by intro h; rw [h] at hl; simp at hl
+  unfold readonlyRecvAck
+  simp only [hne, ↓reduceIte, List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
+
+theorem hbCtx_ok (r : ReadOnly) : HbCtxOk r (hbCtx r) := by
+  unfold hbCtx HbCtxOk
+  split
+  · left; rfl
+  · right; exact ⟨_, rfl, readonlyPosition_le r⟩
+
+theorem readonlyRelease_append (r : ReadOnly) (id c : w64)
+    (l1 l2 : List (raftpb.Message × List raftpb.Entry)) :
+    readonlyRelease r id c (l1 ++ l2) = readonlyRelease (readonlyRelease r id c l1) id c l2 := by
+  unfold readonlyRelease; exact List.foldl_append
+
+/-- What an arrival does: the request queued, the leader's ack raised to the new
+position. -/
+theorem readonlyArrive_eq (r : ReadOnly) (id : w64) (q : ReadReq) :
+    readonlyArrive r id q =
+      { pending := r.pending ++ [q]
+        acks := <[id := w64Max ((r.acks !! id).getD (W64 0))
+                          (r.confirmed + W64 (r.pending ++ [q]).length)]> r.acks
+        confirmed := r.confirmed } := by
+  have hl : (u64Le (r.confirmed + W64 (r.pending ++ [q]).length)).length = 8 := u64Le_length _
+  have hne : u64Le (r.confirmed + W64 (r.pending ++ [q]).length) ≠ [] := by
+    intro h; rw [h] at hl; simp at hl
+  unfold readonlyArrive readonlyRecvAck hbCtx readonlyAdd readonlyPosition
+  simp only [List.append_eq_nil_iff, List.cons_ne_self, and_false, ↓reduceIte, hne,
+    List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
+
+theorem readonlyRelease_shape (r : ReadOnly) (id c : w64)
+    (l : List (raftpb.Message × List raftpb.Entry)) :
+    (readonlyRelease r id c l).confirmed = r.confirmed ∧
+    (readonlyRelease r id c l).pending.length = r.pending.length + l.length := by
+  induction l generalizing r with
+  | nil => exact ⟨rfl, rfl⟩
+  | cons p l ih =>
+    unfold readonlyRelease at ih ⊢
+    rw [List.foldl_cons]
+    obtain ⟨h1, h2⟩ := ih (readonlyArrive r id ⟨c, p.1.From', p.2⟩)
+    have ha := readonlyArrive_eq r id ⟨c, p.1.From', p.2⟩
+    refine ⟨by rw [h1, ha], ?_⟩
+    rw [h2, ha]
+    simp only [List.length_append, List.length_cons, List.length_nil]
+    omega
+
+/-- A heartbeat a release sent after `k` of the pending requests is allowed after all of
+them. -/
+theorem HbCtxOk_release (r : ReadOnly) (id c : w64) (l : List (raftpb.Message × List raftpb.Entry))
+    (k : Nat) :
+    HbCtxOk (readonlyRelease r id c l) (hbCtx (readonlyRelease r id c (l.take k))) := by
+  have h := hbCtx_ok (readonlyRelease r id c (l.take k))
+  have e : readonlyRelease r id c l =
+      readonlyRelease (readonlyRelease r id c (l.take k)) id c (l.drop k) := by
+    rw [← readonlyRelease_append, List.take_append_drop]
+  rw [e]
+  apply HbCtxOk_mono _ _ _ (readonlyRelease_shape _ id c _).1 ?_ h
+  rw [(readonlyRelease_shape _ id c (l.drop k)).2]
+  omega
+
+end readonly_fns
 
 /-! ## Protocol node state
 
@@ -183,12 +383,15 @@ structure PState [FfiSyntax] where
   commit : w64
   /-- `Progress.Match` per voter, leaders only -/
   matched : GMap w64 w64
+  /-- the read-index state (2026-10-12): the `ReadState`s, a leader's read-only object
+  (fresh for a non-leader) and the pending requests -/
+  rd : RdState := {}
 
 /-! ### The client log (2026-10-10)
 
-The data of committed client entries in commit order, first occurrences only: what
-`cLog` (`GhostState.lean`) holds of the committed log, given each entry's data
-(`none` for a leader's own entry). -/
+The data of committed client entries in commit order, first occurrences only, given each
+entry's data (`none` for a leader's own entry): until 2026-10-14 (stage R) what raft's client log
+`cLog` held; now the register's history over raft's full log (`regInv`). -/
 
 /-- One entry's data added to the client log: a new data is appended; a repeated one, or
 a leader's own entry (`none`), leaves it. -/
@@ -300,8 +503,7 @@ section pure
 variable [FfiSyntax]
 
 /-- `appendEntry`'s stamping loop: `es[k].Term = r.Term` and `es[k].Index = li+1+k`;
-nothing else about an entry changes, which is what keeps `Type = EntryNormal` true of
-the appended entries. (Moved here from `Defs.lean` on 2026-10-01: the model's
+nothing else about an entry changes (its `Type` and `Data` are the proposal's). (Moved here from `Defs.lean` on 2026-10-01: the model's
 `Step.win` and `Step.propose` stamp too.)
 
 An entry stamped at term `t` and index `i`: what a proposed (unstamped) entry `e0`
@@ -343,11 +545,11 @@ theorem stamp_index_eq (L : Int) (k : Nat) :
   omega
 
 /-- What a receiver of an `app` needs of its batch (`raftLog.maybeAppend`'s premises):
-consecutive indices from `index + 1`, no wrap, no conf change (phase-1 scope). -/
+consecutive indices from `index + 1`, no wrap. (Until 2026-10-13 also no conf change, the
+no-reconfiguration scope.) -/
 def AppPayloadOk (m : Msg) : Prop :=
   PlogWf (entryID.mk m.logterm m.index) m.entries ∧
-  uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64 ∧
-  ∀ e ∈ m.entries, e.Type' = W32 0
+  uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64
 
 omit [FfiSyntax] in
 /-- stdpp `drop_S`. -/
@@ -363,26 +565,24 @@ theorem prefix_lookup_Some {A : Type _} {l1 l2 : List A} {k : Nat} {e : A}
   obtain ⟨t, rfl⟩ := h
   rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp hk).1]; exact hk
 
-/-- A prefix of a well-formed, no-wrap, conf-change-free log from `i + 1` on is a
-batch `AppPayloadOk` accepts at `(t, i)`. -/
+/-- A prefix of a well-formed, no-wrap log from `i + 1` on is a batch `AppPayloadOk`
+accepts at `(t, i)`. -/
 theorem app_payload_from_log (b : entryID) (L : List raftpb.Entry) (t i : w64)
     (es : List raftpb.Entry) :
     PlogWf b L →
     uint.Z b.index' + (L.length : Int) + 1 < 2 ^ 64 →
     (uint.Z b.index' ≤ uint.Z i ∧ uint.Z i ≤ plogLastIndexZ b L) →
-    (∀ e ∈ L, e.Type' = W32 0) →
     es <+: plogFrom b L (i + W64 1) →
     PlogWf (entryID.mk t i) es ∧
-    uint.Z i + (es.length : Int) + 1 < 2 ^ 64 ∧
-    ∀ e ∈ es, e.Type' = W32 0 := by
-  intro Hwf Hnw Hi HN Hpre
+    uint.Z i + (es.length : Int) + 1 < 2 ^ 64 := by
+  intro Hwf Hnw Hi Hpre
   unfold plogLastIndexZ at Hi
   unfold plogFrom at Hpre
   have Hadd : uint.Z (i + W64 1) = uint.Z i + 1 := by word
   rw [Hadd] at Hpre
   have Hlen := Hpre.length_le
   rw [List.length_drop] at Hlen
-  refine ⟨fun j e Hj => ?_, by omega, fun e He => HN e (List.mem_of_mem_drop (Hpre.subset He))⟩
+  refine ⟨fun j e Hj => ?_, by omega⟩
   have Hj' := prefix_lookup_Some Hj Hpre
   rw [List.getElem?_drop] at Hj'
   have := Hwf _ _ Hj'
@@ -1167,6 +1367,7 @@ def pbecomeFollower (s : PState) (term lead : w64) : PState where
   log := s.log
   commit := s.commit
   matched := ∅
+  rd := rdNL s.rd
 
 def pbecomeCandidate (s : PState) : PState where
   term := s.term + W64 1
@@ -1179,6 +1380,7 @@ def pbecomeCandidate (s : PState) : PState where
   log := s.log
   commit := s.commit
   matched := ∅
+  rd := rdNL s.rd
 
 def pbecomeLeader (s : PState) (mt : GMap w64 w64) : PState where
   term := s.term
@@ -1191,6 +1393,7 @@ def pbecomeLeader (s : PState) (mt : GMap w64 w64) : PState where
   log := s.log
   commit := s.commit
   matched := mt
+  rd := rdNL s.rd
 
 /-- What `reset` leaves in `Progress.Match` (`raft.go:779-808`): `0` for every voter,
 then `lastIndex()` for the node itself. Stated without the voter set: a `0` claims
@@ -1218,9 +1421,10 @@ def pselfAck (s : PState) : Msg :=
   Msg.mk .appResp id id s.term false (plastIndex s) (W64 0) (W64 0) (W64 0) []
 
 /-- `campaign`'s vote request to `dst`, carrying the last entry id it read (`Index:
-last.index, LogTerm: last.term`). -/
-def pvoteReq (dst term : w64) (last : entryID) : Msg :=
-  Msg.mk .vote id dst term false last.index' last.term' (W64 0) (W64 0) []
+last.index, LogTerm: last.term`), and (2026-10-13) the `Context` `cl`: the leader-transfer
+marker for a transfer's campaign (`campaignTransfer`), `[]` otherwise. -/
+def pvoteReq (dst term : w64) (last : entryID) (cl : List w8 := []) : Msg :=
+  Msg.mkV .vote id dst term false last.index' last.term' (W64 0) (W64 0) [] [] cl
 
 /-- Receiving a message from the leader of the current term: `stepFollower`'s
 `r.lead = m.From` or `stepCandidate`'s `becomeFollower(m.Term, m.From)`, which agree on
@@ -1274,7 +1478,7 @@ returns), and the entries are the leader's from `index + 1` on, cut short
 (`raftLog.entries` / `raftLog.slice` return a prefix of the log from the index asked
 for). `AppPayloadOk` is what a receiver needs of the batch itself
 (`raftLog.maybeAppend`'s premises); the sender has it from its own log's
-well-formedness, no-wrap and no-conf-change facts (`app_payload_from_log`), and
+well-formedness and no-wrap facts (`app_payload_from_log`), and
 `isMessage` carries it. -/
 def AppOk (s : PState) (m : Msg) : Prop :=
   m.ty = .app ∧ m.src = id ∧ m.term = s.term ∧
@@ -1323,6 +1527,60 @@ output: they are the growth of `s'.outbox`.
 Reflexivity and transitivity are part of the relation so that a single Go function
 which performs several protocol steps refines a single `Step`. -/
 
+/-! ### Read-index (2026-10-13)
+
+A confirmed request is answered (`responseToReadIndexReq`): a local one (from `0`, or from
+the leader itself) becomes a `ReadState` whose context is its entry's data, a forwarded one
+a `MsgReadIndexResp` to its sender carrying its entries. `N` is acknowledged by a quorum
+when a quorum's acks are at least `N` (what `maybeAdvance`'s `CommittedIndex` gives). -/
+
+def preadRespond (s : PState) (q : ReadReq) : PState :=
+  if q.src = W64 0 ∨ q.src = id then
+    match q.ents with
+    | e :: _ => { s with rd := { s.rd with states := s.rd.states ++ [⟨q.index, e.Data'⟩] } }
+    | [] => s
+  else psendMsgs s [Msg.mk .readIndexResp id q.src s.term false q.index (W64 0) (W64 0)
+                      (W64 0) q.ents]
+
+def preadRespondAll (s : PState) (qs : List ReadReq) : PState :=
+  qs.foldl (preadRespond id) s
+
+theorem readonlyAdvance_acks (r : ReadOnly) (a : GMap w64 w64) (N : w64) :
+    readonlyAdvance { r with acks := a } N =
+      if uint.Z N ≤ uint.Z r.confirmed then ({ r with acks := a }, [])
+      else ({ pending := r.pending.drop (uint.nat (N - r.confirmed)), acks := a, confirmed := N },
+            r.pending.take (uint.nat (N - r.confirmed))) := rfl
+
+theorem preadRespondAll_cons (s : PState) (q : ReadReq) (qs : List ReadReq) :
+    preadRespondAll id s (q :: qs) = preadRespondAll id (preadRespond id s q) qs := rfl
+
+theorem preadRespondAll_nil (s : PState) : preadRespondAll id s [] = s := rfl
+
+/-- Answering changes only the outbox and the read state. -/
+theorem preadRespond_eq (s : PState) (q : ReadReq) :
+    ∃ o r, preadRespond id s q = { s with outbox := o, rd := r } := by
+  unfold preadRespond
+  split
+  · split
+    · exact ⟨_, _, rfl⟩
+    · exact ⟨s.outbox, s.rd, by cases s; rfl⟩
+  · exact ⟨_, _, rfl⟩
+
+theorem preadRespondAll_eq (s : PState) (qs : List ReadReq) :
+    ∃ o r, preadRespondAll id s qs = { s with outbox := o, rd := r } := by
+  unfold preadRespondAll
+  induction qs generalizing s with
+  | nil => exact ⟨s.outbox, s.rd, by cases s; rfl⟩
+  | cons q qs ih =>
+    rw [List.foldl_cons]
+    obtain ⟨o1, r1, h1⟩ := preadRespond_eq id s q
+    rw [h1]
+    obtain ⟨o, r, h⟩ := ih { s with outbox := o1, rd := r1 }
+    exact ⟨o, r, h⟩
+
+def QuorumAcked (f : w64 → w64) (N : w64) : Prop :=
+  ∃ Q, IsQuorum cfg Q ∧ ∀ v ∈ Q, uint.Z N ≤ uint.Z (f v)
+
 inductive Step : PState → List Msg → PState → Prop where
   /-- Structural rules. -/
   | refl (s : PState) : Step s [] s
@@ -1346,8 +1604,13 @@ inductive Step : PState → List Msg → PState → Prop where
   log.
 
   The no-wrap premise: the term increments, and a term that wrapped round to one the
-  node has already voted in would let it vote twice in that term. -/
-  | campaign (s : PState) (peers : List w64) :
+  node has already voted in would let it vote twice in that term.
+
+  The requests' `Context` is `cl` (2026-10-13): a leader transfer's campaign
+  (`campaignTransfer`, after a `MsgTimeoutNow`) marks them so that a voter in a lease
+  grants them anyway (`force`); with `checkQuorum` off there is no lease, and the
+  campaign is an ordinary one. -/
+  | campaign (s : PState) (peers : List w64) (cl : List w8) :
       s.role ≠ .leader →
       id ∈ cfg →
       uint.Z s.term + 1 < 2 ^ 64 →
@@ -1356,7 +1619,7 @@ inductive Step : PState → List Msg → PState → Prop where
         (psendMsgs (pbecomeCandidate id s)
           ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
            peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term
-                                   (plogLast s.base s.log))))
+                                   (plogLast s.base s.log) cl)))
   /-- Granting a vote: the candidate's last entry, as the request reports it, is at
   least as recent as ours (`raftLog.isUpToDate`). Leader completeness rests on this
   check.
@@ -1470,7 +1733,8 @@ inductive Step : PState → List Msg → PState → Prop where
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])
   /-- `handleHeartbeat`: `commitTo(m.Commit)`, whose `Panicf` the premise rules out
-  (`heartbeat_commit_le_last`). -/
+  (`heartbeat_commit_le_last`). The response echoes the heartbeat's context (2026-10-12):
+  a read-index position, which the leader counts as an acknowledgement. -/
   | heartbeat (m : Msg) (s : PState) :
       m.ty = .heartbeat →
       m.dst = id →
@@ -1481,11 +1745,13 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [m]
         (psendMsgs
           { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
-          [Msg.plain .heartbeatResp id m.src s.term false])
-  /-- `MsgBeat` / `bcastHeartbeat`: any heartbeats `HeartbeatOk` allows. -/
+          [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }])
+  /-- `MsgBeat` / `bcastHeartbeat`: any heartbeats `HeartbeatOk` allows, with the read-only
+  object's context (2026-10-13). -/
   | beat (s : PState) (ms : List Msg) :
       s.role = .leader →
       (∀ m ∈ ms, HeartbeatOk id s m) →
+      (∀ m ∈ ms, HbCtxOk s.rd.ro m.ctx) →
       Step s [] (psendMsgs s ms)
   /-- `stepLeader`'s `MsgAppResp`, accepting: `pr.MaybeUpdate(m.Index)` raises the
   sender's `Match`. A *rejecting* `appResp` changes no protocol state (`MaybeDecrTo`
@@ -1515,16 +1781,18 @@ inductive Step : PState → List Msg → PState → Prop where
       (∀ m ∈ ms, ReplOk id s m) →
       Step s [] (psendMsgs s ms)
   /-- `MsgProp` at the leader: `appendEntry` of the batch, which queues the
-  self-acknowledgement. `EntryNormal` only: no conf change in phase 1. The proposal is
-  received (2026-10-10): its `isMessage` carries each entry's data (`entData`).
+  self-acknowledgement. The batch is the proposal's after `stepLeader`'s conf-change
+  loop (`PropRepl`: each entry kept, or a refused conf-change entry replaced by the empty
+  normal entry; since 2026-10-13, reconfiguration stage D -- until then `EntryNormal`
+  entries only, appended as proposed). The proposal is received (2026-10-10): its
+  `isMessage` carries each entry's data (`entData`).
 
   The third premise: the stamped indices do not wrap (`appendEntry`'s `Hsmall` and the
   log's own bound give it). Rocq's `let s' := pappend s (imap …) in` is inlined. -/
   | propose (m : Msg) (s : PState) (ents : List raftpb.Entry) :
       m.ty = .propose →
-      m.entries = ents →
+      PropRepl m.entries ents →
       s.role = .leader →
-      (∀ e ∈ ents, e.Type' = W32 0) →
       plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
       Step s [m]
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
@@ -1537,8 +1805,8 @@ inductive Step : PState → List Msg → PState → Prop where
       s.lead ≠ W64 0 →
       Step s [m]
         (psendMsgs s
-          [Msg.mk .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
-             m.rejecthint m.entries])
+          [Msg.mkV .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
+             m.rejecthint m.entries [] m.ctx])
 
   /- ### Snapshots (phase 2 of notes/raft-replication-model.md)
 
@@ -1547,8 +1815,8 @@ inductive Step : PState → List Msg → PState → Prop where
   an `app` (`padoptLeader`). `restore(s)` (raft.go:1849) returns `false` when
   `Metadata.Index ≤ committed` (`Step.snapStale`); when the node is not a follower
   (dead: both callers have just made it one); when `r.id` is in none of the
-  `ConfState`'s sets (dead under the fixed voter set: the voters are `cfg` and
-  `id ∈ cfg`, premises below); and when the log already has `(Term, Index)`, after
+  `ConfState`'s sets (the physical layer's scope: `SnapScope`; until 2026-10-13 the
+  premises `m.voters ≡ₚ elements cfg` and `id ∈ cfg` here, which no refinement read); and when the log already has `(Term, Index)`, after
   `commitTo(Index)` (`Step.snapFastfwd`). Otherwise the log is replaced by the snapshot
   (`Step.snapRestore`). The reply is `MsgAppResp{Index: lastIndex()}` after a restore
   -- `Index`, the unstable log being empty at offset `Index + 1` -- and
@@ -1564,8 +1832,6 @@ inductive Step : PState → List Msg → PState → Prop where
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      m.voters ≡ₚ elements cfg →
-      id ∈ cfg →
       uint.Z s.commit < uint.Z m.index →
       ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
       Step s [m]
@@ -1580,8 +1846,6 @@ inductive Step : PState → List Msg → PState → Prop where
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      m.voters ≡ₚ elements cfg →
-      id ∈ cfg →
       uint.Z s.commit < uint.Z m.index →
       PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
       Step s [m]
@@ -1598,6 +1862,69 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])
+
+  /-- `acceptReady` (2026-10-13): the `ReadState`s are handed out with the `Ready`
+  (`r.readStates = nil`). -/
+  | takeReads (s : PState) :
+      Step s [] ({ s with rd := { s.rd with states := [] } })
+
+  /- ### Read-index (2026-10-13; `notes/decisions.md`, "Read-index")
+
+  A request carries a read credit (`rdOwn`), which `Step`'s refinement takes with it. -/
+
+  /-- `stepFollower`'s `MsgReadIndex`: forwarded to the leader, from the node itself for a
+  local request (`From = 0`). (No leader: dropped, `Step.refl`.) -/
+  | readFwd (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role ≠ .leader → s.lead ≠ W64 0 →
+      Step s [m] (psendMsgs s [{ m with
+        src := if m.src = W64 0 then id else m.src
+        dst := s.lead
+        term := W64 0 }])
+  /-- `stepLeader`'s `MsgReadIndex` before an entry of the term is committed: pending. -/
+  | readPend (m : Msg) (s : PState) (pm : raftpb.Message) :
+      m.ty = .readIndex → s.role = .leader → m.src = pm.From' →
+      Step s [m] ({ s with rd := { s.rd with pend := s.rd.pend ++ [(pm, m.entries)] } })
+  /-- `sendMsgReadIndexResponse`: the request queued at the commit index, which is at an
+  entry of the term, and acknowledged by the leader itself. -/
+  | readArrive (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role = .leader →
+      plogTermAt s.base s.log s.commit = some s.term →
+      Step s [m] ({ s with rd := { s.rd with
+                     ro := readonlyArrive s.rd.ro id ⟨s.commit, m.src, m.entries⟩ } })
+  /-- `releasePendingReadIndexMessages`: the pending requests arrive, in order. -/
+  | readRelease (s : PState) :
+      s.role = .leader → plogTermAt s.base s.log s.commit = some s.term →
+      Step s [] ({ s with rd := { s.rd with
+        pend := []
+        ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } })
+  /-- `sendMsgReadIndexResponse` at a single voter that is the leader itself (2026-10-14, the
+  fix of `issues/raft-readindex-singleton-stale.md`): answered at once at the commit index,
+  which is at an entry of the term. -/
+  | readSingle (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role = .leader →
+      plogTermAt s.base s.log s.commit = some s.term → cfg = {[id]} →
+      Step s [m] (preadRespondAll id s [⟨s.commit, m.src, m.entries⟩])
+  /-- `releasePendingReadIndexMessages` at a single voter that is the leader itself: every
+  pending request answered at the commit index, in order. -/
+  | readReleaseSingle (s : PState) :
+      s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → cfg = {[id]} →
+      Step s [] (preadRespondAll id { s with rd := { s.rd with pend := [] } }
+        (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩)))
+  /-- `stepLeader`'s `MsgHeartbeatResp` with a context: the sender's acknowledgement,
+  then the requests up to a position a quorum acknowledged confirmed and answered. -/
+  | readAck (m : Msg) (s : PState) (N : w64) :
+      m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader →
+      m.ctx ≠ [] →
+      QuorumAcked cfg (fun v => ((readonlyRecvAck s.rd.ro m.src m.ctx).acks !! v).getD (W64 0))
+        N →
+      Step s [m] (preadRespondAll id
+        ({ s with rd := { s.rd with
+             ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
+        (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2)
+  /-- `stepFollower`'s `MsgReadIndexResp`: a `ReadState`. -/
+  | readState (m : Msg) (s : PState) (e : raftpb.Entry) :
+      m.ty = .readIndexResp → m.entries = [e] →
+      Step s [m] ({ s with rd := { s.rd with states := s.rd.states ++ [⟨m.index, e.Data'⟩] } })
 
   /- ### Pre-vote (phase 3, 2026-10-04)
 
@@ -1627,6 +1954,16 @@ inductive Step : PState → List Msg → PState → Prop where
   | zeroAck (s : PState) (dst : w64) :
       Step s [] (psendMsgs s [Msg.mk .appResp id dst s.term false
                                 (W64 0) (W64 0) (W64 0) (W64 0) []])
+  /-- `ApplyConfChange` at a leader (2026-10-13, reconfiguration stage D): `switchToConfig`
+  installs the progress map `confchange` built, each `Progress` a copy of the old one of
+  the same peer (its `Match` kept) or a fresh one (`initProgress`: `Match = 0`), for a peer
+  added or removed and re-added in one change. So each new `Match` is `0` or the peer's old
+  one; peers may also leave the map. Lowering a `Match` acknowledges less (`isAcked` at
+  `0` holds for free), so nothing the leader has committed or will commit is affected. -/
+  | reMatch (s : PState) (mt : GMap w64 w64) :
+      s.role = .leader →
+      (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ s.matched !! v = some i) →
+      Step s [] { s with matched := mt }
 
 end model
 

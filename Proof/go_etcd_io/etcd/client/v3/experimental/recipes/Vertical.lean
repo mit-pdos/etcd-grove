@@ -127,7 +127,8 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
           (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs }}
+        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
         (Val #kp))
     {{ (q : Loc), RET #q;
@@ -149,7 +150,7 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
                 dequeueOrder (EM := v3rpc.etcdModelOfServer E) kp kp modRevLe it r ∗
                 ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
               ⌜err ≠ GoInterface.nil⌝ }}) }} := by
-  iintro %Φ ⟨#Pr, #Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei⟩ HΦ
+  iintro %Φ ⟨#Pr, #Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩ HΦ
   ihave #Hcl := isEtcdRecipesClient_of_kv cl w api addr s E γw γr cid mid kp hkp hAs $$ []
   · iframe #
   iapply (wp_NewQueue (EM := v3rpc.etcdModelOfServer E) cl kp) $$ []

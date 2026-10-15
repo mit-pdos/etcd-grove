@@ -157,6 +157,12 @@ structure StorState [FfiSyntax] where
   answer only what both agree on ("Storage: a pending append, for node.go",
   notes/decisions.md). -/
   pend : List raftpb.Entry
+  /-- (2026-10-15, stage S) The snapshot's `ConfState`: the lists behind its four slices and
+  its `AutoLeave` (`HSnapshot` hands them out with the snapshot), so that raft knows which
+  certified snapshot (`raftSnapCert`, `ownRaftLog`'s `Hsksn`) it sends. `∅`/`false` for the empty
+  snapshot a fresh storage holds. -/
+  scs : CSLists := ⟨[], [], [], []⟩
+  sal : Bool := false
 
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
 of the development, not an assumption: abstract because the implementation is not
@@ -226,6 +232,16 @@ def PendOk (σ : StorState) (p : List raftpb.Entry) : Prop :=
     uint.Z σ.prev.index' < uint.Z e0.Index' ∧
     uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1
 
+/-- Each list a permutation of the other's. -/
+def CSLists.Perm (a b : CSLists) : Prop :=
+  a.voters ≡ₚ b.voters ∧ a.learners ≡ₚ b.learners ∧ a.outgoing ≡ₚ b.outgoing ∧
+  a.learnersNext ≡ₚ b.learnersNext
+
+/-- Each list at most `2^62` long (`slices.Sort`'s bound). -/
+def CSLists.Bounded (a : CSLists) : Prop :=
+  (a.voters.length : Int) ≤ 2 ^ 62 ∧ (a.learners.length : Int) ≤ 2 ^ 62 ∧
+  (a.outgoing.length : Int) ≤ 2 ^ 62 ∧ (a.learnersNext.length : Int) ≤ 2 ^ 62
+
 end termAt
 
 section proof
@@ -234,6 +250,22 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A `ConfState`'s four slices read-only, holding the lists `cl` (2026-10-14, reconfiguration
+stage B8): what a snapshot's `ConfState` comes with, from the storage (`HSnapshot`) to a
+`MsgSnap` (`msgAbs`) to its receiver (`raft.Step`'s `"Hsnap"`). -/
+def ownCSL (cs : raftpb.ConfState) (cl : CSLists) : IProp GF :=
+  iprop(cs.Voters' ↦*□ cl.voters ∗ cs.Learners' ↦*□ cl.learners ∗
+    cs.VotersOutgoing' ↦*□ cl.outgoing ∗ cs.LearnersNext' ↦*□ cl.learnersNext)
+
+instance ownCSL_persistent (cs : raftpb.ConfState) (cl : CSLists) :
+    Persistent (ownCSL (GF := GF) cs cl) := by
+  unfold ownCSL; infer_instance
+
+open Iris.ProofMode in
+theorem ownCSL_voters (cs : raftpb.ConfState) (cl : CSLists) :
+    ownCSL (GF := GF) cs cl ⊢ cs.Voters' ↦*□ cl.voters := by
+  unfold ownCSL; iintro ⟨H, -⟩; iexact H
 
 /-- The interface contract, against an arbitrary ownership predicate `P` for the
 storage's contents (a `StorState`, as in `ownStorage`). Persistent: it is a
@@ -354,7 +386,9 @@ def isStorageWith (P : StorState → IProp GF)
      premise on the initial storage, and preserved because nothing in scope changes
      the storage. And the snapshot's `ConfState.Voters` slice is handed out
      **read-only, for good** (`↦*□`), like `Entries`' result: the snapshot comes back
-     by value, but its slices are the storage's, which `MemoryStorage` never writes in
+     by value, but its slices are the storage's (since 2026-10-15, stage S, the lists `σ.scs`
+     and `AutoLeave` `σ.sal` the storage's state records, so that raft knows which certified
+     snapshot it forwards), which `MemoryStorage` never writes in
      place (`CreateSnapshot` replaces the whole `ConfState`; `ApplySnapshot` the whole
      snapshot). raft puts that slice in a `MsgSnap` (`maybeSendSnapshot`) and the
      abstraction of the queued message reads it (`msgAbs`, `InvRaftPhys.lean`).
@@ -371,8 +405,9 @@ def isStorageWith (P : StorState → IProp GF)
      {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
          P σ ∗
          (⌜err = esu⌝ ∨
-          (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-           ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}) ∗
+          (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0 ∧
+             snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+           ownCSL snap.Metadata'.ConfState' σ.scs)) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
      pending append, for node.go"). The application appends a `Ready`'s entries on its own
      goroutine while raft keeps reading the storage. Two laws, ghost updates of the

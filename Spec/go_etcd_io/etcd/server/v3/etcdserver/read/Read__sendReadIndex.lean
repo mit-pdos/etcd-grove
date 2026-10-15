@@ -28,12 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 can take (raft's, or `nil`), and if `nil` the registration of `id` at `n` (`RQ id n`). The
 logger's resource `LR` is given back. -/
 abbrev read.Read.sendReadIndex.spec : Prop :=
-  ∀ (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) (LR NR : IProp GF) (id n : w64),
+  ∀ (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) (id n : w64)
+    (Qr : List EntryModel → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
-      isReadLoopPre r γr RQ LR NR ∗ LR ∗ committedAtLeast γr n }}
+      isReadLoopPre r γr RQ LR NR ∗ LR ∗ committedAtLeast γr n ∗ srvReadAu γr.raft Qr }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"sendReadIndex")) (Val #id))
   {{ (err : GoInterface), RET #err; LR ∗ applyErrIs err ∗
-      (⌜err = GoInterface.nil⌝ -∗ □ RQ id n) }}
+      (⌜err = GoInterface.nil⌝ -∗ □ RQ id n Qr) }}
 
 end spec
 

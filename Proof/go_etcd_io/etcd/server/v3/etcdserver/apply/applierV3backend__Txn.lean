@@ -37,7 +37,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.txnPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
@@ -53,8 +53,20 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
   obtain ⟨ht, hk, hpre⟩ := Hrq
+  ihave Hcok : iprop(if txn.txnReadonly t then iprop(True) else
+      ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
+      mvcc.certOkNext E.γ log
+      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) $$ []
+  · cases hro : txn.txnReadonly t
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      iintro %hig
+      iapply apply.certOkNext_of_commitLog
+      iapply (apply.certPre_backend_applied E rq log _ false
+        (by unfold apply.backendStep; rw [hk]
+            exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig⟩⟩)) $$ Hcp
+    · simp only [↓reduceIte]; itrivial
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu]
+      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu $Hcok]
     as %resp %trace %err ⟨Hrd, Hu, Hout⟩
   · iframe #
     isplitr
@@ -78,7 +90,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨t, ht, Or.inl rfl⟩, fun _ _ h => by cases h⟩
+      exact ⟨⟨t, ht, Or.inl ⟨rfl, Herr.2.2.2⟩⟩, fun _ _ h => by cases h⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres He
     isplitl []
@@ -97,7 +109,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2⟩⟩, fun _ _ _ => Hok.2.2.1⟩
+      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2.1, Hok.2.2.2.2⟩⟩, fun _ _ _ => Hok.2.2.1⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
       Bool.false_eq_true, ↓reduceIte, txn.srvRunTxn, apply.appliedHdr]
     iframe Hres Hresp Hhdr

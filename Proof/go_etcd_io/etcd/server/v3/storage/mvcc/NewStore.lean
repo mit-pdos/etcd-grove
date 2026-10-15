@@ -196,11 +196,12 @@ theorem mvcc.NewStore.wp_proof
   -- compaction's: the meta keys' record (nothing written), the finished compactions' counter
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm, Hmeta⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin, Hfin, -⟩
-  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs⟩ : ∃ γ : mvcc.StoreNames,
+  imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok⟩
+  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok⟩ : ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
-      γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl⟩
+      γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+      rfl, rfl, rfl, rfl⟩
   ihave #Hhook : mvcc.hookIs γ P f $$ []
   · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
   ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin]
@@ -375,6 +376,8 @@ theorem mvcc.NewStore.wp_proof
     rw [mvcc.bucketMap_init, ← hone]
     iframe HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR
     iframe #
+    isplitl []
+    · iunfold mvcc.certOk; ileft; ipureintro; simp
     ipureintro; simp
   icases mvcc.guard_of_slots _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
   -- the deferred `s.mu.Unlock()`
@@ -397,11 +400,13 @@ theorem mvcc.NewStore.wp_proof
     iframe #
     ipureintro; exact ⟨Hlgnn, Hcfg2⟩
   ispecialize Hmus $$ Hmu1
+  ihave Hok' : (ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) : IProp GF) $$ [Hok]
+  · rw [hγok]; iexact Hok
   iapply HΦ
   iexists γ
   isplitr
   · ipureintro; exact ⟨hγb, hγl, rfl⟩
-  iframe Hs Hhook Htoks Hcert
+  iframe Hs Hok' Hhook Htoks Hcert
   isplitl [ReadView WriteView]
   · iexists rv, wv
     iunfold mvcc.isReadView

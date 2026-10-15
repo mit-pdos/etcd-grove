@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/confchange_symdiff.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/confchange/symdiff.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -21,6 +21,26 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- What the loop over one pair counts: the ids of `src` not in `other`, in any order. -/
+theorem symdiff_count (src other : GMap w64 Unit) (keys : List w64)
+    (Hkset : ∀ k, k ∈ keys ↔ (src !! k).isSome) (Hnd : keys.Nodup) :
+    (keys.filter (fun k => !(other !! k).isSome)).length = GMap.size (src \ other) := by
+  symm
+  apply GMap.size_eq_length
+  · exact Hnd.filter _
+  · intro k
+    rw [List.mem_filter, Hkset, GMap.lookup_sdiff]
+    cases (other !! k).isSome <;> simp
+
+theorem symdiff_take_succ (other : GMap w64 Unit) (keys : List w64) (i : Int) (key : w64)
+    (Hi : 0 ≤ i) (Hkey : keys[i.toNat]? = some key) :
+    ((keys.take (i + 1).toNat).filter (fun k => !(other !! k).isSome)).length =
+      ((keys.take i.toNat).filter (fun k => !(other !! k).isSome)).length +
+        (if (other !! key).isSome then 0 else 1) := by
+  rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, Hkey]
+  simp only [Option.toList_some, List.filter_append, List.length_append]
+  rcases h : other !! key with _ | v <;> simp [h]
+
 theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := hG) := by
   intro l r ml mr dql dqr
   wp_start as ⟨Hl, Hr⟩
@@ -33,29 +53,29 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
   simp only [go.arrayLiteralSize, List.foldl]
   rw [show (max (max ((0 : Int) + 1 + 1) 0) 0) = 2 by decide]
   wp_auto
-  -- `for _, p := range pairs`: pair 0 counts the ids of `l` not in `r` (none, under
-  -- `l ⊆ r`), pair 1 the ids of `r` not in `l` (at most `x`). Everything is said under
-  -- the two premises of the postcondition.
+  -- `for _, p := range pairs`: pair 0 counts the ids of `l` not in `r`, pair 1 those of
+  -- `r` not in `l`
   ihave IH : iprop(∃ (n nv : w64) (pv : GoArray GoMap 2),
       "i" ∷ i_ptr ↦ n ∗
       "n" ∷ n_ptr ↦ nv ∗
       "p" ∷ p_ptr ↦ pv ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2 ∧
-        ((∀ k, (ml !! k).isSome → (mr !! k).isSome) →
-          ∀ x, (∀ k, (mr !! k).isSome → (ml !! k).isSome ∨ k = x) →
-          (sint.Z n ≤ 1 → nv = W64 0) ∧ (sint.Z n = 2 → 0 ≤ sint.Z nv ∧ sint.Z nv ≤ 1))⌝)
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2 ∧ (sint.Z n = 0 → nv = W64 0) ∧
+        (sint.Z n = 1 → nv = W64 (GMap.size (ml \ mr) : Int)) ∧
+        (sint.Z n = 2 → nv = W64 (symdiffN ml mr : Int))⌝)
     $$ [i n p]
   · iexists W64 0, zero_val w64, zero_val (GoArray GoMap 2)
     iframe
     ipureintro
-    refine ⟨by decide, by decide, fun _ _ _ => ⟨fun _ => rfl, fun h => absurd h (by decide)⟩⟩
+    refine ⟨by decide, by decide, fun _ => rfl, fun h => absurd h (by decide),
+      fun h => absurd h (by decide)⟩
   wp_for IH
   wp_if_destruct
   · have Hcase : sint.nat n = 0 ∨ sint.nat n = 1 := by word
     have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z (W64 2) := ⟨Hn.1, by word⟩
     simp only [Hbnd', and_self]
     rcases Hcase with Hc | Hc
-    · -- pair `{l, r}`: `n` counts the ids of `l` not in `r`; none under `l ⊆ r`
+    · -- pair `{l, r}`
+      have Hnv0 : nv = W64 0 := Hn.2.2.1 (by word)
       wp_apply wp_load_slice_index _ (sint.Z n) _ _ (array.mk 2 [l, r]) Hn.1 $$ [Hsl] with Hsl
       · iframe Hsl; ipureintro
         show [array.mk 2 [l, r], array.mk 2 [r, l]][sint.nat n]? = _; rw [Hc]; rfl
@@ -71,37 +91,44 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
           "n" ∷ n_ptr ↦ nv' ∗
           "Hr" ∷ r ↦${dqr} mr ∗
           "Hp1" ∷ arrayIndexRef GoMap (sint.Z (W64 1)) p_ptr ↦ r ∗
-          "%Hnv" ∷ ⌜(∀ k, (ml !! k).isSome → (mr !! k).isSome) → nv' = nv⌝)) $$ Hl
+          "%Hnv" ∷ ⌜nv' = W64 (((keys.take i.toNat).filter
+            (fun k => !(mr !! k).isSome)).length : Int)⌝)) $$ Hl
       iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
       isplitl [id n Hr Hp1]
       · iexists zero_val w64, nv
         iframe
-        ipureintro; exact ⟨Int.le_refl _, fun _ => rfl⟩
+        ipureintro; exact ⟨Int.le_refl _, by simpa using Hnv0⟩
       isplitr
       · imodintro
         iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
         iNamed HP
         wp_auto
         wp_apply wp_map_lookup2 $$ Hr as Hr
+        have Hstep := symdiff_take_succ mr keys i key Hi Hkey
         wp_if_destruct
-        · -- `key ∈ r`: nothing to count
-          unfold forMapPostcondition
+        · unfold forMapPostcondition
           iright; ileft
           isplitr
           · ipureintro; rfl
           iexists key, _
           iframe
           ipureintro
-          exact ⟨by omega, fun H1 => Hnv H1⟩
-        · -- `key ∉ r`: `n++`, only without the premise
-          unfold forMapPostcondition
+          refine ⟨by omega, ?_⟩
+          rw [Hstep, Hnv]
+          cases h : (mr !! key).isSome <;> simp_all
+        · unfold forMapPostcondition
           iright; ileft
           isplitr
           · ipureintro; rfl
           iexists key, _
           iframe
           ipureintro
-          exact ⟨by omega, fun H1 => absurd (H1 key (by rw [Hvv]; rfl)) Hif⟩
+          refine ⟨by omega, ?_⟩
+          rw [Hstep, Hnv]
+          have h : (mr !! key).isSome = false := by simpa using Hif
+          rw [h]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          word
       iintro HP Hl
       iNamed HP
       ihave p := Hpback $$ Hp1
@@ -110,10 +137,13 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       iexists n + W64 1, nv', _
       iframe
       ipureintro
-      refine ⟨by word, by word, fun H1 x H2 => ⟨fun _ => ?_, fun h => absurd h (by word)⟩⟩
-      rw [Hnv H1]
-      exact (Hn.2.2 H1 x H2).1 (by word)
-    · -- pair `{r, l}`: `n` counts the ids of `r` not in `l`; at most one, `x`
+      have Hall : (keys.take (GMap.size ml : Int).toNat) = keys := by
+        rw [Int.toNat_natCast, ← Hklen, List.take_length]
+      rw [Hall, symdiff_count ml mr keys Hkset Hknodup] at Hnv
+      refine ⟨by word, by word, fun h => absurd h (by word), fun _ => Hnv,
+        fun h => absurd h (by word)⟩
+    · -- pair `{r, l}`
+      have Hnv1 : nv = W64 (GMap.size (ml \ mr) : Int) := Hn.2.2.2.1 (by word)
       wp_apply wp_load_slice_index _ (sint.Z n) _ _ (array.mk 2 [r, l]) Hn.1 $$ [Hsl] with Hsl
       · iframe Hsl; ipureintro
         show [array.mk 2 [l, r], array.mk 2 [r, l]][sint.nat n]? = _; rw [Hc]; rfl
@@ -129,63 +159,45 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
           "n" ∷ n_ptr ↦ nv' ∗
           "Hl" ∷ l ↦${dql} ml ∗
           "Hp1" ∷ arrayIndexRef GoMap (sint.Z (W64 1)) p_ptr ↦ l ∗
-          "%Hnv" ∷ ⌜(∀ k, (ml !! k).isSome → (mr !! k).isSome) →
-            ∀ x, (∀ k, (mr !! k).isSome → (ml !! k).isSome ∨ k = x) →
-            0 ≤ sint.Z nv' ∧ sint.Z nv' ≤ 1 ∧ (sint.Z nv' = 1 → x ∈ keys.take i.toNat)⌝))
-        $$ Hr
+          "%Hnv" ∷ ⌜nv' = nv + W64 (((keys.take i.toNat).filter
+            (fun k => !(ml !! k).isSome)).length : Int)⌝)) $$ Hr
       iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
       isplitl [id n Hl Hp1]
       · iexists zero_val w64, nv
         iframe
-        ipureintro
-        refine ⟨Int.le_refl _, fun H1 x H2 => ?_⟩
-        have h0 := (Hn.2.2 H1 x H2).1 (by word)
-        rw [h0]
-        refine ⟨by decide, by decide, fun h => absurd h (by decide)⟩
+        ipureintro; refine ⟨Int.le_refl _, ?_⟩
+        simp
       isplitr
       · imodintro
         iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
         iNamed HP
         wp_auto
         wp_apply wp_map_lookup2 $$ Hl as Hl
+        have Hstep := symdiff_take_succ ml keys i key Hi Hkey
         wp_if_destruct
-        · -- `key ∈ l`: nothing to count
-          unfold forMapPostcondition
+        · unfold forMapPostcondition
           iright; ileft
           isplitr
           · ipureintro; rfl
           iexists key, _
           iframe
           ipureintro
-          refine ⟨by omega, fun H1 x H2 => ?_⟩
-          obtain ⟨h0, h1, h2⟩ := Hnv H1 x H2
-          refine ⟨h0, h1, fun h => ?_⟩
-          rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, Hkey]
-          exact List.mem_append_left _ (h2 h)
-        · -- `key ∉ l`: `key = x`, and it is the first such key
-          unfold forMapPostcondition
+          refine ⟨by omega, ?_⟩
+          rw [Hstep, Hnv]
+          cases h : (ml !! key).isSome <;> simp_all
+        · unfold forMapPostcondition
           iright; ileft
           isplitr
           · ipureintro; rfl
           iexists key, _
           iframe
           ipureintro
-          refine ⟨by omega, fun H1 x H2 => ?_⟩
-          obtain ⟨h0, h1, h2⟩ := Hnv H1 x H2
-          have Hkx : key = x := by
-            rcases H2 key (by rw [Hvv]; rfl) with h | h
-            · exact absurd h Hif
-            · exact h
-          have Hnv0 : sint.Z nv' = 0 := by
-            rcases (show sint.Z nv' = 0 ∨ sint.Z nv' = 1 by omega) with h | h
-            · exact h
-            · exfalso
-              have := h2 h
-              rw [← Hkx] at this
-              exact not_mem_take_of_nodup Hknodup Hkey this
-          refine ⟨by word, by word, fun _ => ?_⟩
-          rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, Hkey, ← Hkx]
-          exact List.mem_append_right _ (List.mem_singleton.2 rfl)
+          refine ⟨by omega, ?_⟩
+          rw [Hstep, Hnv]
+          have h : (ml !! key).isSome = false := by simpa using Hif
+          rw [h]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          word
       iintro HP Hr
       iNamed HP
       ihave p := Hpback $$ Hp1
@@ -194,15 +206,19 @@ theorem confchange.symdiff.wp_proof : confchange.symdiff.spec (GF := GF) (hG := 
       iexists n + W64 1, nv', _
       iframe
       ipureintro
-      refine ⟨by word, by word, fun H1 x H2 => ⟨fun h => absurd h (by word), fun _ => ?_⟩⟩
-      obtain ⟨h0, h1, -⟩ := Hnv H1 x H2
-      exact ⟨h0, h1⟩
+      have Hall : (keys.take (GMap.size mr : Int).toNat) = keys := by
+        rw [Int.toNat_natCast, ← Hklen, List.take_length]
+      rw [Hall, symdiff_count mr ml keys Hkset Hknodup, Hnv1] at Hnv
+      refine ⟨by word, by word, fun h => absurd h (by word), fun h => absurd h (by word),
+        fun _ => ?_⟩
+      rw [Hnv]
+      unfold symdiffN
+      word
   · -- `return n`
+    have : sint.Z n = 2 := by word
+    rw [Hn.2.2.2.2 this]
     iapply HΦ
     iframe
-    ipureintro
-    intro H1 x H2
-    exact (Hn.2.2 H1 x H2).2 (by word)
 
 end proof
 

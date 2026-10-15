@@ -97,6 +97,12 @@ def MsgReadIndexResp : w32 := W32 16
 def MsgPreVote : w32 := W32 17
 def MsgPreVoteResp : w32 := W32 18
 def MsgStorageAppendResp : w32 := W32 20
+-- (2026-10-13) the local reports, leader transfer and `ForgetLeader`
+def MsgUnreachable : w32 := W32 10
+def MsgSnapStatus : w32 := W32 11
+def MsgTransferLeader : w32 := W32 13
+def MsgTimeoutNow : w32 := W32 14
+def MsgForgetLeader : w32 := W32 23
 
 def StateFollower : w64 := W64 0
 def StateCandidate : w64 := W64 1
@@ -111,6 +117,11 @@ def campaignPreElection : CampaignType := go!"CampaignPreElection"
 def campaignTransfer : CampaignType := go!"CampaignTransfer"
 
 end consts
+
+/-- The `Context` of `campaign(t)`'s vote requests (2026-10-13): the leader-transfer
+marker for a transfer's campaign (`[]byte(t)`), nothing otherwise. -/
+def transferCtx [FfiSyntax] (t : CampaignType) : List w8 :=
+  if t = campaignTransfer then campaignTransfer else []
 
 def VotePending : w8 := W8 1
 def VoteLost : w8 := W8 2
@@ -180,31 +191,74 @@ the sender and term given separately: `send` stamps both (`From := r.id` when un
 `Term := r.Term` for most types), so what reaches the queue is `m` with those two
 fields replaced. -/
 def absMsgFrom (ty : MsgType) (m : raftpb.Message) (src term : w64)
-    (ents : List raftpb.Entry) : Msg :=
-  Msg.mk ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents
+    (ents : List raftpb.Entry) (ctx : List w8 := []) : Msg :=
+  Msg.mkV ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents [] ctx
 
 /-- The abstraction of a physical message. Not a function of `m` alone: `m.Entries` is
 a slice, and `ents` is the list it points to -- `ownRaftPhys` holds `m.Entries ↦*□ ents`
 for every queued message (`outboxRel`, `InvRaftPhys.lean`). Not for a `MsgSnap`: see
 `absSnap`. -/
-def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry) : Msg :=
-  absMsgFrom ty m m.From' m.Term' ents
+def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry)
+    (ctx : List w8 := []) : Msg :=
+  absMsgFrom ty m m.From' m.Term' ents ctx
+
+/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
+`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
+`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). -/
+structure CSLists where
+  voters : List w64
+  learners : List w64
+  outgoing : List w64
+  learnersNext : List w64
+
+/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
+instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+
+/-- A snapshot as raft knows it (2026-10-15, stage S): its entry id `(Term, Index)`, its
+`ConfState`'s four lists and its `AutoLeave` -- what the log records of the snapshots it may send
+(`LogState.ksn`) and what the application certifies (`raftSnapCert`, `SnapConf.lean`). -/
+structure SnapTrip [FfiSyntax] where
+  sid : entryID
+  cl : CSLists
+  al : Bool
 
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
 is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to, and `voters`
-the list behind `sv`'s `Metadata.ConfState.Voters` slice. `index`/`logterm` are the
+the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
+the abstract message keeps the incoming voters). `index`/`logterm` are the
 snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
 `maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
 `src`/`term` are given separately because `send` stamps them. -/
 def absSnapFrom (m : raftpb.Message) (src term : w64) (sv : raftpb.Snapshot)
-    (voters : List w64) : Msg :=
+    (voters : CSLists) : Msg :=
   Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
-    m.Commit' m.RejectHint' [] voters
+    m.Commit' m.RejectHint' [] voters.voters []
 
-def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) : Msg :=
+def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
 
 end msgs
+
+section msgs_ghost
+variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+
+/-- What a message other than a heartbeat or its response carries as a protocol message
+does not depend on its `Context` (2026-10-12; a heartbeat's is a read-index position): the
+branches that do not echo it work at the abstraction with none. -/
+theorem isMessage_absMsg_ctx (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8)
+    (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
+    isMessage (GF := GF) γ (absMsg ty m ents ctx) = isMessage γ (absMsg ty m ents) := by
+  obtain ⟨h1, h2⟩ := hty
+  cases ty <;> first | contradiction | rfl
+
+theorem isMessage_ctx_intro (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8)
+    (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
+    isMessage (GF := GF) γ (absMsg ty m ents) ⊢ isMessage γ (absMsg ty m ents ctx) := by
+  rw [isMessage_absMsg_ctx γ ty m ents ctx hty]
+
+end msgs_ghost
 
 /-! ## The abstract state of a `raftLog`
 
@@ -279,6 +333,11 @@ structure LogState [FfiSyntax] where
   (`appendedTok st σ p`, `InvStorage.lean`) is for one storage, and only the log that
   reads that storage may absorb it (`ownRaftLog_absorb`). -/
   storage : Storage
+  /-- The snapshots the node may send (2026-10-15, stage S): ghost, not a Go field. The
+  `Storage`'s snapshot (once it is not the empty one) and every snapshot the log restored are
+  in it (`ownRaftLog`'s `Hsksn`, `Hpksn`), so `raftLog.snapshot` returns one of them. Only a
+  restore (`logRestore`) adds to it. The protocol does not read it (`toPState`). -/
+  ksn : List SnapTrip
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -290,19 +349,6 @@ predicates"). They live here and not in `InvTracker.lean` because `NState.prvals
 below is a map of `Progress`, and `InvTracker.lean` builds on this file -- the same
 reason `LogState` is here. -/
 
-/-- Go's `min`/`max` builtins on `uint64`, exactly as Goose's `minⁱᵐᵖˡ`/`maxⁱᵐᵖˡ`
-compute them: `min x y = if x < y then x else y`, `max x y = if x > y then x else y`
-(and Goose renders `x > y` as `y < x`). Stated with `decide`, the form of the
-framework's `wp_max2_uint64`. (Moved here from `InvTracker.lean` with the `Progress`
-methods.) -/
-def w64Min (x y : w64) : w64 := if uint.Z x < uint.Z y then x else y
-def w64Max (x y : w64) : w64 := if uint.Z y < uint.Z x then x else y
-
-theorem w64Min_spec (x y : w64) : uint.Z (w64Min x y) = min (uint.Z x) (uint.Z y) := by
-  unfold w64Min; split <;> omega
-
-theorem w64Max_spec (x y : w64) : uint.Z (w64Max x y) = max (uint.Z x) (uint.Z y) := by
-  unfold w64Max; split <;> omega
 
 /-- An `Inflights` window, as its methods' callers see it: how many messages and bytes
 are in flight, and the two limits. The ring buffer (`start`, `buffer` and its
@@ -322,8 +368,9 @@ inductive PRState where
   | probe | replicate | snapshot
   deriving DecidableEq, Inhabited
 
-/-- A `Progress`, without `IsLearner` (no learners are in scope: the abstraction
-function below is undefined on one) and with the state an inductive. `paused` is
+/-- A `Progress`, with the state an inductive. `learner` is `IsLearner` (since 2026-10-13,
+reconfiguration stage L; until then the abstraction function below was undefined on a
+learner). `paused` is
 `MsgAppFlowPaused`; `infl` is the window `Inflights` points at. `RecentActive` is not in
 it: no spec states it (checkQuorum, which reads it, is out of scope; `maybeSendSnapshot`
 reads the Go field and case-splits on it). Until 2026-10-08 it was a field. -/
@@ -335,6 +382,7 @@ structure Progress where
   pendingSnapshot : w64
   paused : Bool
   infl : Inflights
+  learner : Bool
 
 /-- The tracker, as `ownTracker` is indexed by it: the vote tally, the progress map (id
 to `*Progress` -- physical state, like `NState.log`, because callers hold a raw
@@ -389,17 +437,17 @@ variable [FfiSyntax]
 def inflightsAbs (iv : tracker.Inflights) : Inflights :=
   ⟨sint.Z iv.count', sint.Z iv.size', uint.Z iv.bytes', uint.Z iv.maxBytes'⟩
 
-/-- `none` on a learner and on a state outside the three: what the two pure conjuncts
-of `ownProgress` used to rule out. -/
+/-- `none` on a state outside the three: what the pure conjunct of `ownProgress` rules
+out. (Until 2026-10-13 also `none` on a learner.) -/
 def progressAbs (pv : tracker.Progress) (i : Inflights) : Option Progress :=
-  if pv.IsLearner' then none else
   (prstateOfW64 pv.State').map fun st =>
-    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i⟩
+    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i,
+      pv.IsLearner'⟩
 
 /-- What `progressAbs pv i = some p` says, field by field. -/
 theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) :
     progressAbs pv i = some p ↔
-    pv.IsLearner' = false ∧
+    pv.IsLearner' = p.learner ∧
     pv.State' = prstateW64 p.state ∧
     pv.Match' = p.matched ∧
     pv.Next' = p.next ∧
@@ -408,20 +456,17 @@ theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) 
     pv.MsgAppFlowPaused' = p.paused ∧
     i = p.infl := by
   unfold progressAbs
-  obtain ⟨m, n, sc, st, ps, pa, inf⟩ := p
-  cases hl : pv.IsLearner'
-  · simp only [Bool.false_eq_true, ↓reduceIte, true_and]
-    rw [← prstateOfW64_Some]
-    cases hs : prstateOfW64 pv.State' with
-    | none => simp
-    | some st' =>
-      simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
-      constructor
-      · rintro ⟨h1, h2, h3, h4, h5, h6, h7⟩
-        exact ⟨h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
-      · rintro ⟨h4, h1, h2, h3, h5, h6, h7⟩
-        exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
-  · simp
+  obtain ⟨m, n, sc, st, ps, pa, inf, l⟩ := p
+  rw [← prstateOfW64_Some]
+  cases hs : prstateOfW64 pv.State' with
+  | none => simp
+  | some st' =>
+    simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
+    constructor
+    · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
+    · rintro ⟨h8, h4, h1, h2, h3, h5, h6, h7⟩
+      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
 
 end abs
 
@@ -529,6 +574,21 @@ def progressMaybeDecrTo (p : Progress) (rejected matchHint : w64) : Bool × Prog
                     paused := false })
   else (false, p)
 
+/-! The `Progress` methods keep `IsLearner` (2026-10-13): what a give-back to the tracker
+needs (`ownTracker_lookup`). -/
+
+@[simp] theorem progressSentEntries_learner (p : Progress) (e b : w64) :
+    (progressSentEntries p e b).learner = p.learner := by
+  unfold progressSentEntries; split <;> (try split) <;> rfl
+
+@[simp] theorem progressMaybeUpdate_learner (p : Progress) (n : w64) :
+    (progressMaybeUpdate p n).learner = p.learner := by
+  unfold progressMaybeUpdate; split <;> rfl
+
+@[simp] theorem progressMaybeDecrTo_learner (p : Progress) (a b : w64) :
+    (progressMaybeDecrTo p a b).2.learner = p.learner := by
+  unfold progressMaybeDecrTo; split <;> (try split) <;> rfl
+
 section logstate
 variable [FfiSyntax]
 
@@ -565,10 +625,16 @@ def snapId (sv : raftpb.Snapshot) : entryID :=
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
 id is the boundary, nothing after it, committed up to it, `applied` untouched, the
 snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
-`applying` and the unpersisted entries are untouched. -/
-def logRestore (ls : LogState) (sid : entryID) : LogState :=
-  ⟨sid, [], [], sid.index', ls.applied, some sid, sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage⟩
+`applying` and the unpersisted entries are untouched. (2026-10-15, stage S) The snapshot `k`
+(its id, lists and `AutoLeave`) joins the ones the node may send (`ksn`). -/
+def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
+  ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k]⟩
+
+/-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
+`ConfState` and its `AutoLeave`. -/
+def snapTrip (sv : raftpb.Snapshot) (cl : CSLists) : SnapTrip :=
+  ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave'⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/
@@ -640,6 +706,8 @@ structure NGhost where
   unst : Bool := false
 deriving DecidableEq
 
+
+
 structure NState [FfiSyntax] where
   term : w64
   vote : w64
@@ -666,6 +734,34 @@ structure NState [FfiSyntax] where
   prevote : Bool
   /-- ghost lower bounds for `node.go` (2026-10-10), see `NGhost` -/
   gh : NGhost := {}
+  /-- the read-index state (2026-10-12), see `RdState` -/
+  rd : RdState := {}
+  /-- `r.leadTransferee` (2026-10-13): the leader-transfer target, `0` for none. Only a
+  leader's `MsgTransferLeader` sets it (to another node: `ownRaftPhys` keeps it `≠ id`);
+  `reset` (every `becomeX` but `becomePreCandidate`) and `abortLeaderTransfer` clear it.
+  Invisible to the protocol (`toPState`). -/
+  lt : w64 := W64 0
+  /-- `r.pendingConfIndex` (2026-10-13, reconfiguration stage D): the index of the last
+  conf-change entry the leader appended (or, after `becomeLeader`, its last index, which may
+  hide one), against which `stepLeader` refuses another conf change until it is applied.
+  `reset` clears it, `becomeLeader` sets it, `stepLeader`'s proposal loop moves it.
+  Invisible to the protocol (`toPState`). -/
+  pci : w64 := W64 0
+  /-- `r.isLearner` (2026-10-13, reconfiguration stage L; until then a scope conjunct pinned
+  it to `false`): what `switchToConfig` last stored, `ok && pr.IsLearner` for the node's own
+  `Progress`. Read only by `switchToConfig` itself, right after the store. Invisible to the
+  protocol (`toPState`). -/
+  isLearner : Bool := false
+  /-- `r.stepDownOnRemoval` (2026-10-13, reconfiguration stage A2), recorded: a removed or
+  demoted leader steps down in `switchToConfig` exactly when it is set. Never written after
+  `newRaft` (`Config.StepDownOnRemoval`). Invisible to the protocol (`toPState`). -/
+  sdr : Bool := false
+
+/-- What `switchToConfig` stores in `r.isLearner` (2026-10-13): `ok && pr.IsLearner` for the
+node's own `Progress` in the new progress map `prs` -- tracked, and outside the voters `cfg`
+(`LearnerFlags`). -/
+def learnerOf (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) : Bool :=
+  decide (id ∈ domSet prs ∧ id ∉ cfg)
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -695,9 +791,14 @@ def sendMsgs (s : NState) (ms : List Msg) : NState :=
 
 /-- `reset(term)`: clears `Vote` only when the term actually changes, always clears
 `lead` and the tally. -/
-def resetTo (s : NState) (term : w64) : NState :=
+def resetTo0 (s : NState) (term : w64) : NState :=
   { s with term := term, vote := if term = s.term then s.vote else W64 0, lead := W64 0,
-           votes := ∅ }
+           votes := ∅, lt := W64 0 }
+
+/-- (2026-10-12) and the fresh `readOnly` object `reset` installs last; (2026-10-13) and
+`pendingConfIndex` cleared. -/
+def resetTo (s : NState) (term : w64) : NState :=
+  { resetTo0 s term with rd := { s.rd with ro := ⟨[], ∅, W64 0⟩ }, pci := W64 0 }
 
 def becomeFollower (s : NState) (term lead : w64) : NState :=
   { resetTo s term with lead := lead, role := .follower, stepfn := stepFuncOf .follower,
@@ -723,8 +824,10 @@ def prevoteReq (id dst term : w64) (last : entryID) : Msg :=
 transition, then the self-addressed response and one request per peer in `peers`,
 each carrying the log's last entry id. An election is `becomeCandidate` and `MsgVote`s
 at the new term; a pre-election is `becomePrecandidate` and `MsgPreVote`s at `Term + 1`
-(the term itself does not move). -/
-def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) : NState :=
+(the term itself does not move). The requests of an election carry the `Context` `cl`
+(2026-10-13): `transferCtx t`, the marker for a leader transfer's campaign. -/
+def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
+    (cl : List w8 := []) : NState :=
   if pre then
     sendMsgs (becomePrecandidate s)
       ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
@@ -734,7 +837,7 @@ def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) : NSta
     sendMsgs (becomeCandidate id s)
       ([Msg.plain .voteResp id id (becomeCandidate id s).term false] ++
        peers.map fun dst => pvoteReq id dst (becomeCandidate id s).term
-                 (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))
+                 (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) cl)
 
 /-- `becomeLeader` up to its `appendEntry`: what `reset`, the `lead` and `state` writes
 and `r.step` leave. -/
@@ -754,10 +857,11 @@ Visible in the abstract outbox since 2026-10-01. -/
 def selfAck (id : w64) (s : NState) : Msg :=
   Msg.mk .appResp id id s.term false (logLast s.logst) (W64 0) (W64 0) (W64 0) []
 
-/-- `becomeLeader` up to `appendEntry`'s `send`: `becomeLeaderPre`, then the empty
-entry appended. -/
+/-- `becomeLeader` up to `appendEntry`'s `send`: `becomeLeaderPre`, `pendingConfIndex` at
+the last index (2026-10-13), then the empty entry appended. -/
 def becomeLeaderLog (id : w64) (s : NState) : NState :=
-  { becomeLeaderPre id s with logst := logAppend s.logst [leaderEntry s] }
+  { becomeLeaderPre id s with pci := logLast s.logst,
+                              logst := logAppend s.logst [leaderEntry s] }
 
 /-- `becomeLeader`: the empty entry appended and self-acknowledged. -/
 def becomeLeader (id : w64) (s : NState) : NState :=
@@ -823,6 +927,8 @@ def toPState (s : NState) : PState where
   log := s.logst.sents ++ s.logst.uents
   commit := s.logst.committed
   matched := if s.role = .leader then prvalsMatch s.prvals else ∅
+  -- (2026-10-12) a non-leader's read-only object is the fresh one `reset` installed
+  rd := if s.role = .leader then s.rd else rdNL s.rd
 
 /-- A physical state that can take a protocol step: `r.step` agrees with the role, and
 `r.tick` is set (2026-10-09).
@@ -834,9 +940,17 @@ def NStateRel (s : NState) (ps : PState) : Prop := toPState s = ps ∧ NStateWf 
 
 /-- What `maybeSendAppend` and its callers may send, at the state `s` they were called
 in: `ReplOk` (`Protocol/Model.lean`) of the protocol reading of `s`. Replaced
-`AppSends` on 2026-10-01. -/
+`AppSends` on 2026-10-01. (2026-10-14, reconfiguration stage B7) and an `MsgApp` carries the
+sender's commit index exactly (`AppCommitEq`: `sendAppend`'s `Commit: r.raftLog.committed`),
+which the dynamic model's `StepR.sendApps`/`win` require (stage B3's finding: I1 fails for an
+`MsgApp` with an older commit index). -/
 def ReplSends (id : w64) (s : NState) (ms : List Msg) : Prop :=
-  ∀ m ∈ ms, ReplOk id (toPState s) m
+  ∀ m ∈ ms, ReplOk id (toPState s) m ∧ AppCommitEq (toPState s) m
+
+/-- The `ReplOk` half of `ReplSends`: what `StepC.sendApps` takes. -/
+theorem ReplSends.replOk {id : w64} {s : NState} {ms : List Msg} (H : ReplSends id s ms) :
+    ∀ m ∈ ms, ReplOk id (toPState s) m :=
+  fun m hm => (H m hm).1
 
 /-! Each physical transition is its protocol counterpart on `toPState`. Stated so that
 proofs rewrite rather than unfold. -/
@@ -844,12 +958,24 @@ proofs rewrite rather than unfold. -/
 theorem toPState_sendMsgs (s : NState) (ms : List Msg) :
     toPState (sendMsgs s ms) = psendMsgs (toPState s) ms := rfl
 
+/-- The protocol reading's read state, with the read-only object reset (2026-10-12). -/
+theorem rdNL_toPState (s : NState) : rdNL (toPState s).rd = rdNL s.rd := by
+  by_cases h : s.role = .leader <;> simp [toPState, h, rdNL]
+
 theorem toPState_becomeFollower (s : NState) (term lead : w64) :
-    toPState (becomeFollower s term lead) = pbecomeFollower (toPState s) term lead := rfl
+    toPState (becomeFollower s term lead) = pbecomeFollower (toPState s) term lead := by
+  have h := rdNL_toPState s
+  unfold toPState becomeFollower resetTo resetTo0 pbecomeFollower at *
+  simp only at *
+  rw [h]; rfl
 
 /-- `reset`'s conditional clear of the vote is overwritten by `vote := id`. -/
 theorem toPState_becomeCandidate (id : w64) (s : NState) :
-    toPState (becomeCandidate id s) = pbecomeCandidate id (toPState s) := rfl
+    toPState (becomeCandidate id s) = pbecomeCandidate id (toPState s) := by
+  have h := rdNL_toPState s
+  unfold toPState becomeCandidate resetTo resetTo0 pbecomeCandidate at *
+  simp only at *
+  rw [h]; rfl
 
 /-- `lastIndex()` as the two layers write it. -/
 theorem plastIndex_toPState (s : NState) : plastIndex (toPState s) = logLast s.logst := by
@@ -867,8 +993,8 @@ theorem toPState_becomeLeader (id : w64) (s : NState) (pvs : GMap w64 Progress) 
         [pselfAck id (pwinState id (toPState s) (prvalsMatch pvs))] := by
   have Hw : toPState { becomeLeaderLog id s with prvals := pvs } =
       pwinState id (toPState s) (prvalsMatch pvs) := by
-    simp only [becomeLeaderLog, becomeLeaderPre, resetTo, toPState, pwinState, pappend,
-      pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true]
+    simp only [becomeLeaderLog, becomeLeaderPre, resetTo, resetTo0, toPState, pwinState, pappend,
+      pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true, rdNL_ite]
     rfl
   rw [← Hw]
   simp only [becomeLeader, pselfAck, sendMsgs, psendMsgs]
@@ -889,7 +1015,8 @@ theorem toPState_votes_pre (s : NState) (v : GMap w64 Bool) (Hr : s.role = .preC
 the same term: the vote is kept, the tally cleared. -/
 theorem toPState_becomePrecandidate (s : NState) :
     toPState (becomePrecandidate s) = pbecomeFollower (toPState s) s.term (W64 0) := by
-  simp [toPState, becomePrecandidate, pbecomeFollower, proleRole]
+  by_cases h : s.role = .leader <;>
+    simp [toPState, becomePrecandidate, pbecomeFollower, proleRole, h, rdNL]
 
 /-- The protocol's reading of the role, the leader and a follower's tally. -/
 theorem toPState_role (s : NState) : (toPState s).role = proleRole s.role := rfl
@@ -956,10 +1083,18 @@ theorem replOk_proper (id : w64) (ps ps' : PState) (m : Msg)
   unfold ReplOk AppOk SnapOk at *
   rw [Ht, Hb, Hl, Hc]; exact H
 
+/-- `replOk_proper` for `ReplSends`'s element (with `AppCommitEq`, 2026-10-14). -/
+theorem replAC_proper (id : w64) (ps ps' : PState) (m : Msg)
+    (Ht : ps'.term = ps.term) (Hb : ps'.base = ps.base) (Hl : ps'.log = ps.log)
+    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m ∧ AppCommitEq ps m) :
+    ReplOk id ps' m ∧ AppCommitEq ps' m :=
+  ⟨replOk_proper id ps ps' m Ht Hb Hl Hc H.1, fun h => by rw [Hc]; exact H.2 h⟩
+
 theorem replSends_prvals (id : w64) (s : NState) (pvs : GMap w64 Progress) (ms : List Msg) :
     ReplSends id { s with prvals := pvs } ms ↔ ReplSends id s ms := by
   unfold ReplSends
-  constructor <;> intro H m Hm <;> exact replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm)
+  constructor <;> intro H m Hm <;>
+    exact ⟨replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm).1, (H m Hm).2⟩
 
 theorem replSends_app (id : w64) (s : NState) (ms1 ms2 : List Msg)
     (H1 : ReplSends id s ms1) (H2 : ReplSends id s ms2) : ReplSends id s (ms1 ++ ms2) := by
@@ -974,7 +1109,8 @@ theorem replSends_send_prvals (id : w64) (s : NState) (ms0 : List Msg)
     (pvs : GMap w64 Progress) (ms : List Msg) :
     ReplSends id { sendMsgs s ms0 with prvals := pvs } ms ↔ ReplSends id s ms := by
   unfold ReplSends
-  constructor <;> intro H m Hm <;> exact replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm)
+  constructor <;> intro H m Hm <;>
+    exact ⟨replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm).1, (H m Hm).2⟩
 
 end phys_state
 

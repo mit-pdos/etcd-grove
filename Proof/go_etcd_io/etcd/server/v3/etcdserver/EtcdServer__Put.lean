@@ -44,8 +44,8 @@ theorem EtcdServer.Put.wp_proof
     (hAS : «attribute».String.spec (GF := GF) (hG := hG))
     (hWV : context.WithValue.spec (GF := GF) (hG := hG)) :
     EtcdServer.Put.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r op F
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hput, #HF⟩
+  intro s E ρ ctx cd r op Q F
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hput, Hperm, #HF⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -132,11 +132,15 @@ theorem EtcdServer.Put.wp_proof
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
-  wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op) F rfl $$ [Hrd Hard Hcred Header] as %resp %err ⟨Hrd, Hard, Hres⟩
+  wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op)
+      (fun L => iprop(□ Q (kvStateOf (kvModel ρ.kv L)))) F rfl
+      $$ [Hrd Hard Hcred Header Hperm] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
+    isplitl [Hperm]
+    · iapply putPermit_reqPropOk $$ Hperm
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, %Lq, #HLq, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     have Hrq : rq' = apply.withHeader (irrPut op) hm := by
       refine (Hwire.2.2.2 ?_)
@@ -168,7 +172,10 @@ theorem EtcdServer.Put.wp_proof
     · ipureintro; rfl
     iexists hm, x, x', .applied log' false, skip
     iframe Hpo Hhdr Hcert HMint Hwit
-    ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
+    isplitr
+    · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
+    iexists kvStateOf (kvModel ρ.kv Lq)
+    iexact HQq
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _

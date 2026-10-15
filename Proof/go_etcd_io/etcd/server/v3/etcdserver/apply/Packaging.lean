@@ -112,9 +112,9 @@ theorem chainRes_corrupt_in (c : Chain) (p : Loc) (inner : GoInterface) :
 
 /-! ## The auth layer: its `authInfo` beside the inner's -/
 
-theorem chainRes_auth_out (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_auth_out {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) -∗
+      chainRes (GF := GF) (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) -∗
         authInfoOwn p ∗ chainRes c inner := by
   iintro #Hf Hr
   simp only [chainRes]
@@ -127,10 +127,10 @@ theorem chainRes_auth_out (c : Chain) (p : Loc) (inner : GoInterface) :
   iunfold authInfoOwn
   iexact Hi
 
-theorem chainRes_auth_in (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_auth_in {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       authInfoOwn (GF := GF) p -∗ chainRes c inner -∗
-        chainRes (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) := by
+        chainRes (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) := by
   iintro #Hf Hi Hr
   simp only [chainRes]
   iexists p, inner

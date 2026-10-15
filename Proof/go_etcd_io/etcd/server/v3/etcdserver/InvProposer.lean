@@ -20,10 +20,10 @@ leader's atomic, the cluster and the transport, the applied and committed indice
 some read names, `srvIndexInvs`: 2026-10-13, unit 4b), and two
 invariants of the request path's ghost state: the **mint** (`srvMintInv`: the authority of raft's
 fresh-data tokens; every token is of data that decode to a request claimed under its id, so a
-proposer that claims a fresh id for its data mints the data's token: `srv_claim_mint`), and the
-**client log's other half** (`srvCLogInv`: the server does not linearize at raft's commit, the
-proposer's result comes through the wait, so the update a proposal deposits is the trivial one,
-`srvPropAu_trivial`, its `Q` `True`).
+proposer that claims a fresh id for its data mints the data's token: `srv_claim_mint`), and (2026-10-14,
+unit T1) the **KV invariant** (`kvInv ρ.raft ρ.kv`: the server's half of raft's committed log with
+the KV ghost state; a proposal's update is built from it, `kv_prop_au`; until then the client
+log's other half, `srvCLogInv`, and a trivial update).
 
 **The proposer's own resources**: a reader slot of `s.leadTimeMu` (`srvLeadTimeReader`:
 `parseProposeCtxErr` read-locks it, Perennial's `RWMutex` admits a bounded number of readers,
@@ -147,10 +147,6 @@ instance notInterface_int64 : go.NotInterface go.int64 := ⟨by unfold go.int64;
 
 /-- Namespaces of the request path's invariants (disjoint from raft's commit, `srvRaftN`). -/
 def srvMintN : Namespace := nroot .@ "server_mint"
-def srvCLogN : Namespace := nroot .@ "server_clog"
-
-theorem srvCLogN_raftN : (↑srvCLogN : CoPset) ⊆ ⊤ \ ↑srvRaftN :=
-  mask_ndot_ne' nroot "server_clog" "server_raft_commit" (by decide)
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -206,6 +202,79 @@ instance irrNoHdrIs_persistent (p : Loc) (rq : apply.IRRModel) :
     apply.downgradeInfoSetIs
   infer_instance
 
+
+/-- **A put's permission is its proposal's** (2026-10-14, unit T1; 2026-10-15, unit T2: the
+whole state). -/
+theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
+    putPermit (GF := GF) γk op Q ⊢
+      reqPropOk γk (irrPut op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+  unfold putPermit reqPropOk
+  iintro ⟨%Hl, #Hau⟩
+  iright
+  iexists .put op, Q
+  iframe Hau
+  ipureintro
+  have hk : apply.dispatchKind (irrPut op) = .put := by
+    simp [apply.dispatchKind, irrPut, apply.irrEmpty]
+  refine ⟨?_, ?_, ?_, rfl⟩
+  · unfold plainReq
+    rw [hk]
+    refine ⟨by simp [apply.noSideEffect, irrPut, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrPut, apply.irrEmpty], ?_⟩
+    intro op' hop'
+    simp only [irrPut, Option.some.injEq] at hop'
+    subst hop'
+    exact Hl
+  · unfold reqKVOp; rw [hk]; rfl
+  · refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
+
+/-- **A delete's permission is its proposal's** (2026-10-15, unit T2). -/
+theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
+    deletePermit (GF := GF) γk op Q ⊢
+      reqPropOk γk (irrDeleteRange op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+  unfold deletePermit reqPropOk
+  iintro ⟨%Hz, #Hau⟩
+  iright
+  iexists .deleteRange op, Q
+  iframe Hau
+  ipureintro
+  have hk : apply.dispatchKind (irrDeleteRange op) = .deleteRange := by
+    simp [apply.dispatchKind, irrDeleteRange, apply.irrEmpty]
+  refine ⟨?_, ?_, ?_, rfl⟩
+  · unfold plainReq
+    rw [hk]
+    exact ⟨by simp [apply.noSideEffect, irrDeleteRange, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrDeleteRange, apply.irrEmpty]⟩
+  · unfold reqKVOp; rw [hk]; rfl
+  · refine ⟨?_, ?_, ?_⟩
+    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+    · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hz
+    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+
+/-- **A writing transaction's permission is its proposal's** (2026-10-15, unit T2). -/
+theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) :
+    txnPermit (GF := GF) γk t Q ⊢
+      reqPropOk γk (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+  unfold txnPermit reqPropOk
+  iintro ⟨%Ht, #Hau⟩
+  iright
+  iexists .txn t, Q
+  iframe Hau
+  ipureintro
+  have hk : apply.dispatchKind (irrTxn t) = .txn := by
+    simp [apply.dispatchKind, irrTxn, apply.irrEmpty]
+  refine ⟨?_, ?_, ?_, rfl⟩
+  · unfold plainReq
+    rw [hk]
+    refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
+    intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.1
+  · unfold reqKVOp; rw [hk]; rfl
+  · refine ⟨?_, ?_, ?_⟩
+    · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+    · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+    · intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.2
+
 end defs
 
 /-! ## The server, as a proposer sees it -/
@@ -259,12 +328,6 @@ def srvMintInv (ρ : ReqNames) : IProp GF :=
 instance srvMintInv_persistent (ρ : ReqNames) : Persistent (srvMintInv (GF := GF) ρ) := by
   unfold srvMintInv; infer_instance
 
-/-- **The client log's other half** (see the file header). -/
-def srvCLogInv (γ : ServerRaftNames) : IProp GF :=
-  inv srvCLogN iprop(∃ L : List (List w8), srvCLog γ L)
-
-instance srvCLogInv_persistent (γ : ServerRaftNames) : Persistent (srvCLogInv (GF := GF) γ) := by
-  unfold srvCLogInv; infer_instance
 
 /-- The server's `done` channel (closed when it stops; receiving gives nothing). -/
 def srvDoneChan (ch : GoChan) : IProp GF :=
@@ -339,7 +402,7 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvs s E ∗
-    srvMintInv ρ ∗ srvCLogInv ρ.raft ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     Persistent (srvReqFieldsAt s E ρ v) := by

@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`encode(replica, seq, kind, val)` (register.go:24): the operation's encoding, a new slice with
+`encode(replica, seq, kind, val)` (register.go:28): the operation's encoding, a new slice with
 its capacity.
 -/
 module

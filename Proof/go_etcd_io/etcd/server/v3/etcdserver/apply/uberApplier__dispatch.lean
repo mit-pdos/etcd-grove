@@ -141,7 +141,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log F Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, Hwt, Hc, %Hok, #HF⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
@@ -312,6 +312,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   (try wp_auto)
   ihave Hc : iprop(mvcc.csContract E.P E.f Pre Q Post) $$ [Hc]
   · simp only [apply.cPre, ↓reduceIte]; iexact Hc
+  ihave #Hcp := apply.certPreV_true E c rq log $$ Hcp
   -- the second `switch`: each case computes `ar` and `op` and establishes the postcondition
   -- at `ar`; the `return` and the deferred metrics, after the join, are verified once (not
   -- once per request kind)
@@ -362,7 +363,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.putPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok⟩
-      iframe HR
+      iframe HR Hcp
       iunfold apply.mPre
       iframe
     iunfold apply.kvPostF at Hpost
@@ -385,7 +386,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.deletePre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
-      iframe HR
+      iframe HR Hcp
       iunfold apply.mPre
       iframe
     iunfold apply.kvPostF at Hpost
@@ -408,7 +409,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.txnPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
-      iframe HR
+      iframe HR Hcp
       iunfold apply.mPre
       iframe
     iunfold apply.kvPostF at Hpost
@@ -456,7 +457,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · iunfold apply.revokePre
       isplitr
       · ipureintro; exact ⟨hs, hk⟩
-      iframe HR
+      iframe HR Hcp
       iunfold apply.mPre
       iframe
     iunfold apply.kvPost at Hpost
@@ -510,7 +511,7 @@ theorem apply.uberApplier.dispatch.wp_proof
         by simp [apply.kvFloorOk, apply.isFloorKind, hk]⟩
       rcases hc' with ⟨h1, -⟩ | h2
       · exact Or.inl h1
-      · exact Or.inr ⟨rfl, hk, h2⟩
+      · exact Or.inr ⟨rfl, hk, by rw [HcE]; exact h2⟩
     first | isplitl [Htrc] | isplitl []
     · iapply apply.resTrace_of $$ H0
       first | iexact Htrc | iapply apply.traceRes_null
@@ -550,8 +551,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       · exact absurd (nAE.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authEnable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, hs]
-    wp_apply HResp0 $$ %go!"AuthEnable" %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp0 $$ %go!"AuthEnable" %log %Pre %Q %Post [] [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.resp0Methods]
+    · ipureintro; intro _; exact Hok.2.2.2 hk
     · iunfold apply.mPre
       iframe
     iunfold apply.mPost at Hpost
@@ -568,8 +570,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       · exact absurd (nAD.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authDisable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, hs]
-    wp_apply HResp0 $$ %go!"AuthDisable" %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp0 $$ %go!"AuthDisable" %log %Pre %Q %Post [] [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.resp0Methods]
+    · ipureintro; intro h; exact absurd h (by decide)
     · iunfold apply.mPre
       iframe
     iunfold apply.mPost at Hpost
@@ -865,7 +868,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
   -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
   exfalso
-  exact Hok.2.2 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
+  exact Hok.2.2.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
   -- after the join: `return ar` and the deferred metrics
   iintro Hj
   imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, #H0, #HeI, Hpost⟩

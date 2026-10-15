@@ -99,18 +99,27 @@ def readInvN : Namespace := nroot .@ "read_notifier"
 
 /-- **The need `γn` is frozen at `n`** (persistent): its authority, in an invariant (no update can
 happen any more: the notifier was swapped out, no client deposits in it). -/
-def needFrozen (γn : GName) (n : w64) : IProp GF :=
-  inv readFrozenN (monoNatAuthOwn γn 1 (uint.nat n))
+def needFrozen (γn : NeedNames) (n : w64) : IProp GF :=
+  inv readFrozenN (monoNatAuthOwn γn.need 1 (uint.nat n))
 
-/-- **The loop's answer to the clients of a notifier with need `γn`** (persistent): its need was
-frozen at `n`, and the applied index has reached `i ≥ n`. -/
-def frozenOk (γn : GName) (γr : ReadNames) : IProp GF :=
-  iprop(∃ (n i : w64), needFrozen γn n ∗ appliedAtLeast γr i ∗ ⌜uint.Z n ≤ uint.Z i⌝)
+/-- **The clients' list of `γn` is frozen at `gs`** (persistent; 2026-10-14, unit T1): its
+authority, in an invariant (the notifier was swapped out). -/
+def listFrozen (γn : NeedNames) (gs : List GName) : IProp GF :=
+  inv readFrozenN (monoListAuthOwn γn.list 1 gs)
+
+/-- **The loop's answer to the clients of a notifier with names `γn`** (persistent): its need was
+frozen at `n`, its clients' list at `gs`, the applied index has reached the read index `ci ≥ n`,
+and (2026-10-14, unit T1) raft's witness of the round's read update at `ci` (`srvReadWit`: the
+clients' results at every committed log through an index at least `ci`). -/
+def frozenOk (γn : NeedNames) (γr : ReadNames) : IProp GF :=
+  iprop(∃ (n ci ai : w64) (gs : List GName), needFrozen γn n ∗ listFrozen γn gs ∗
+    appliedAtLeast γr ai ∗ ⌜uint.Z n ≤ uint.Z ci ∧ uint.Z ci ≤ uint.Z ai⌝ ∗
+    srvReadWit γr.raft (readQs gs) ci)
 
 /-- **What the close of a notifier `nc` tells every waiter** (persistent): its error, stored
 before the close for good (`nc.err ↦□`), one the gRPC layer can take (`applyErrIs`), and, if
 `nil`, the loop's answer (`frozenOk`). -/
-def notified (nc : Loc) (γn : GName) (γr : ReadNames) : IProp GF :=
+def notified (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
   iprop(∃ err : GoInterface, ncErrAddr nc ↦□ err ∗ applyErrIs err ∗
     (⌜err ≠ GoInterface.nil⌝ ∨ frozenOk γn γr))
 
@@ -121,12 +130,12 @@ def bcastChan (ch : Loc) (Q : IProp GF) : IProp GF :=
 
 /-- **The notifier `nc` with need `γn`** (persistent; a waiter's view): its channel, closed with
 `notified`. -/
-def notifierIs (nc : Loc) (γn : GName) (γr : ReadNames) : IProp GF :=
+def notifierIs (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
   iprop(∃ ch : Loc, ncCAddr nc ↦□ ch ∗ bcastChan ch (notified nc γn γr))
 
 /-- **The right to notify `nc`** (the loop's, once it swapped `nc` out): the channel not closed
 yet, and `nc.err` (written once, before the close). -/
-def notifierOwn (nc : Loc) (γn : GName) (γr : ReadNames) : IProp GF :=
+def notifierOwn (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
   iprop(∃ (ch : Loc) (γ : ChanNames) (e : GoInterface), ncCAddr nc ↦□ ch ∗
     ownBroadcastChan ch γ (notified nc γn γr) .Pending ∗ ncErrAddr nc ↦ e)
 
@@ -134,20 +143,24 @@ def notifierOwn (nc : Loc) (γn : GName) (γr : ReadNames) : IProp GF :=
 the current notifier `nc` and its need `γn` (its waiter's view and the right to notify it), the
 need's authority `n`, and a lower bound of the committed index at least the need. -/
 def readInv (γr : ReadNames) : IProp GF :=
-  inv readInvN iprop(∃ (nc : Loc) (γn : GName) (n : w64),
+  inv readInvN iprop(∃ (nc : Loc) (γn : NeedNames) (n : w64) (gs : List GName),
     ghostVar γr.notifier (1 : Qp).half (nc, γn) ∗ notifierIs nc γn γr ∗ notifierOwn nc γn γr ∗
-    monoNatAuthOwn γn 1 (uint.nat n) ∗ committedAtLeast γr n)
+    monoNatAuthOwn γn.need 1 (uint.nat n) ∗ committedAtLeast γr n ∗
+    monoListAuthOwn γn.list 1 gs ∗ [∗list] g ∈ gs, regOk γr.kv g)
 
-instance needFrozen_persistent (γn : GName) (n : w64) : Persistent (needFrozen (GF := GF) γn n) := by
+instance needFrozen_persistent (γn : NeedNames) (n : w64) : Persistent (needFrozen (GF := GF) γn n) := by
   unfold needFrozen; infer_instance
-instance frozenOk_persistent (γn : GName) (γr : ReadNames) : Persistent (frozenOk (GF := GF) γn γr) := by
+instance listFrozen_persistent (γn : NeedNames) (gs : List GName) :
+    Persistent (listFrozen (GF := GF) γn gs) := by
+  unfold listFrozen; infer_instance
+instance frozenOk_persistent (γn : NeedNames) (γr : ReadNames) : Persistent (frozenOk (GF := GF) γn γr) := by
   unfold frozenOk; infer_instance
-instance notified_persistent (nc : Loc) (γn : GName) (γr : ReadNames) :
+instance notified_persistent (nc : Loc) (γn : NeedNames) (γr : ReadNames) :
     Persistent (notified (GF := GF) nc γn γr) := by
   unfold notified; infer_instance
 instance bcastChan_persistent (ch : Loc) (Q : IProp GF) : Persistent (bcastChan ch Q) := by
   unfold bcastChan; infer_instance
-instance notifierIs_persistent (nc : Loc) (γn : GName) (γr : ReadNames) :
+instance notifierIs_persistent (nc : Loc) (γn : NeedNames) (γr : ReadNames) :
     Persistent (notifierIs (GF := GF) nc γn γr) := by
   unfold notifierIs; infer_instance
 instance readIndexOk_persistent_read (γr : ReadNames) (c : w64) :
@@ -232,16 +245,20 @@ instance isReadServer_persistent (srv : GoInterface) (γr : ReadNames) (LR NR : 
 
 /-- **A read state `rs` on raft's `ReadState()` channel** (persistent): its request context, eight
 bytes, read-only, and its index answers every registration of the id they encode: a request
-`ReadIndex` registered at a committed bound `n` (`RQ id n`) has `n ≤ rs.Index`. -/
-def readStateOk (RQ : w64 → w64 → IProp GF)
+`ReadIndex` registered at a committed bound `n` with the read update of result `Qr` (`RQ id n Qr`)
+has `n ≤ rs.Index`, and (2026-10-14, unit T1) raft's witness of the update at the read index
+(`srvReadWit γ Qr rs.Index`). -/
+def readStateOk (γ : ServerRaftNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
     (rs : go_etcd_io.raft.v3.ReadState) : IProp GF :=
   iprop(∃ bs : List w8, rs.RequestCtx' ↦*□ bs ∗ ⌜bs.length = 8⌝ ∗
-    □ (∀ (id n : w64), ⌜bs = beBytes id⌝ -∗ RQ id n -∗ ⌜uint.Z n ≤ uint.Z rs.Index'⌝))
+    □ (∀ (id n : w64) (Qr : List EntryModel → IProp GF), ⌜bs = beBytes id⌝ -∗ RQ id n Qr -∗
+      ⌜uint.Z n ≤ uint.Z rs.Index'⌝ ∗ srvReadWit γ Qr rs.Index'))
 
 /-- **`ReadState()`'s channel** (persistent): a bag channel of read states, each `readStateOk`
 (the raft wrapper's `readStateC`, `isRNReadStateC` with content). -/
-def isReadStateC (c : Loc) (RQ : w64 → w64 → IProp GF) : IProp GF :=
-  iprop(∃ γ : ChanNames, isChanBag γ c (V := go_etcd_io.raft.v3.ReadState) (readStateOk RQ))
+def isReadStateC (c : Loc) (γ : ServerRaftNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := go_etcd_io.raft.v3.ReadState) (readStateOk γ RQ))
 
 /-- **The `raftInterface` value `rf`** (persistent; unit 4b discharges it for the server's
 `raftNode`, as `raftPropose`): `ReadState()` returns a channel of answered read states
@@ -251,27 +268,40 @@ registration `RQ id n` (persistent). Sound of raft, given the request path's pre
 ids do not repeat within the process (the `2^48` budget): a read state's index is the leader's
 commit index when it served the request, at least every index committed cluster-wide by then; a
 repeated id would let an old read state answer a new request's bound. -/
-def isReadRaft (rf : GoInterface) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) : IProp GF :=
+def isReadRaft (rf : GoInterface) (γr : ReadNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rf = GoInterface.ok ri⌝ ∗
     □ ({{ True }} (App (Val #(methods ri.ty go!"ReadState" ri.v)) (Val #()))
-      {{ (c : Loc), RET #c; isReadStateC c RQ }}) ∗
+      {{ (c : Loc), RET #c; isReadStateC c γr.raft RQ }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
-        (id n : w64),
-      {{ context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast γr n }}
+        (id n : w64) (Qr : List EntryModel → IProp GF),
+      {{ context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast γr n ∗
+          srvReadAu γr.raft Qr }}
         (App (App (Val #(methods ri.ty go!"ReadIndex" ri.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
       {{ (err : GoInterface), RET #err; sl ↦*{dq} beBytes id ∗ applyErrIs err ∗
-          (⌜err = GoInterface.nil⌝ -∗ □ RQ id n) }}))
+          (⌜err = GoInterface.nil⌝ -∗ □ RQ id n Qr) }}))
 
-instance readStateOk_persistent (RQ : w64 → w64 → IProp GF)
-    (rs : go_etcd_io.raft.v3.ReadState) : Persistent (readStateOk (GF := GF) RQ rs) := by
+instance readStateOk_persistent (γ : ServerRaftNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
+    (rs : go_etcd_io.raft.v3.ReadState) : Persistent (readStateOk (GF := GF) γ RQ rs) := by
   unfold readStateOk; infer_instance
-instance isReadStateC_persistent (c : Loc) (RQ : w64 → w64 → IProp GF) :
-    Persistent (isReadStateC (GF := GF) c RQ) := by
+instance isReadStateC_persistent (c : Loc) (γ : ServerRaftNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) :
+    Persistent (isReadStateC (GF := GF) c γ RQ) := by
   unfold isReadStateC; infer_instance
-instance isReadRaft_persistent (rf : GoInterface) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) :
+instance isReadRaft_persistent (rf : GoInterface) (γr : ReadNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) :
     Persistent (isReadRaft rf γr RQ) := by
   unfold isReadRaft; infer_instance
+
+/-- **One read update for a list of clients** (persistent; 2026-10-14, unit T1; the server's
+`kv_read_compose`, from its KV invariant): the round's update, of the clients' results. -/
+def readCompose (γr : ReadNames) : IProp GF :=
+  iprop(□ ∀ gs : List GName, ([∗list] g ∈ gs, regOk γr.kv g) -∗ srvReadAu γr.raft (readQs gs))
+
+instance readCompose_persistent (γr : ReadNames) : Persistent (readCompose (GF := GF) γr) := by
+  unfold readCompose; infer_instance
 
 /-! ## The `*Read` -/
 
@@ -288,17 +318,19 @@ the two contracts (`isReadServer` with the logger's resource `LR` and the id res
 `isReadRaft` with the registrations `RQ`), the wake-up channel, the read invariant, the write
 side of `r.mux` (`sync.isRWMutexGuard`), and `context`'s ghost fact (`closedchan` closed: what
 `sendReadIndex`'s `context.WithTimeout` of `Background()` needs). -/
-def isReadLoopPre (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) (LR NR : IProp GF) :
-    IProp GF :=
+def isReadLoopPre (r : Loc) (γr : ReadNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) : IProp GF :=
   iprop(∃ (srv rf : GoInterface) (wc : Loc) (γw : ChanNames),
     readServerAddr r ↦□ srv ∗ isReadServer srv γr LR NR ∗
     readRaftAddr r ↦□ rf ∗ isReadRaft rf γr RQ ∗
     readWaitCAddr r ↦□ wc ∗ isChanBag γw wc (V := Unit) (fun _ => iprop(True)) ∗
-    readInv γr ∗ sync.isRWMutexGuard (readMuAddr r) (readMuP r γr) ∗ context.isClosedchanInit)
+    readInv γr ∗ sync.isRWMutexGuard (readMuAddr r) (readMuP r γr) ∗ context.isClosedchanInit ∗
+    readCompose γr)
 
 instance isReadPre_persistent (r : Loc) (γr : ReadNames) : Persistent (isReadPre (GF := GF) r γr) := by
   unfold isReadPre; infer_instance
-instance isReadLoopPre_persistent (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → IProp GF)
+instance isReadLoopPre_persistent (r : Loc) (γr : ReadNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
     (LR NR : IProp GF) : Persistent (isReadLoopPre r γr RQ LR NR) := by
   unfold isReadLoopPre; infer_instance
 
@@ -311,10 +343,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The loop's view gives the clients'. -/
-theorem isReadLoopPre_pre (r : Loc) (γr : ReadNames) (RQ : w64 → w64 → IProp GF) (LR NR : IProp GF) :
+theorem isReadLoopPre_pre (r : Loc) (γr : ReadNames)
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) :
     isReadLoopPre r γr RQ LR NR ⊢ isReadPre r γr := by
   iunfold isReadLoopPre
-  iintro ⟨%srv, %rf, %wc, %γw, #Hs, #Hsrv, -, -, #Hw, #Hb, #Hi, -, -⟩
+  iintro ⟨%srv, %rf, %wc, %γw, #Hs, #Hsrv, -, -, #Hw, #Hb, #Hi, -, -, -⟩
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨#Hd, -⟩
   iunfold isReadPre
@@ -368,7 +401,7 @@ instance readMuP_fractional (r : Loc) (γr : ReadNames) : Fractional (readMuP (G
         readNotifierAddr r ↦{DFrac.own q1} v ∗ readNotifierAddr r ↦{DFrac.own q2} v :=
       fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1)
         (DFrac.own q2)
-    have hgv := fun (x : Loc × GName) =>
+    have hgv := fun (x : Loc × NeedNames) =>
       (ghostVar_fractional (GF := GF) γr.notifier x).fractional q1.half q2.half
     unfold readMuP
     rw [read_qp_half_add]
@@ -390,41 +423,58 @@ instance readMuP_fractional (r : Loc) (γr : ReadNames) : Fractional (readMuP (G
 /-! ## The ghost steps -/
 
 /-- **A client's deposit** (`LinearizableReadNotify`, holding the read lock's ghost fraction of the
-current notifier `nc` with need `γn`): the client's bound `c` raises the need (the read invariant
-keeps a committed lower bound at least the need: the larger of the two bounds), and the client
-gets a lower bound of the need and the notifier's waiters' view. -/
-theorem read_deposit (γr : ReadNames) (q : Qp) (nc : Loc) (γn : GName) (c : w64) :
-    ⊢ readInv (GF := GF) γr -∗ £ 1 -∗ ghostVar γr.notifier q (nc, γn) -∗ committedAtLeast γr c
-      ={⊤}=∗ ghostVar γr.notifier q (nc, γn) ∗ notifierIs nc γn γr ∗ monoNatLbOwn γn (uint.nat c) := by
-  iintro #Hinv Hlc Hg #Hc
+current notifier `nc` with names `γn`): the client's bound `c` raises the need (the read invariant
+keeps a committed lower bound at least the need: the larger of the two bounds), and (2026-10-14,
+unit T1) the client's result predicate `Q` (a saved predicate at `g`) and deposit are appended to
+the notifier's clients' list; the client gets a lower bound of the need, its position `k` in the
+list and the notifier's waiters' view. -/
+theorem read_deposit (γr : ReadNames) (q : Qp) (nc : Loc) (γn : NeedNames) (c : w64) (g : GName)
+    (Q : List EntryModel → IProp GF) :
+    ⊢ readInv (GF := GF) γr -∗ £ 1 -∗ ghostVar γr.notifier q (nc, γn) -∗ committedAtLeast γr c -∗
+      savedPredOwn g DFrac.discard Q -∗ kvDep γr.kv Q
+      ={⊤}=∗ ghostVar γr.notifier q (nc, γn) ∗ notifierIs nc γn γr ∗
+        monoNatLbOwn γn.need (uint.nat c) ∗ ∃ k : Nat, monoListIdxOwn γn.list k g := by
+  iintro #Hinv Hlc Hg #Hc #HQ #HD
   iunfold readInv at Hinv
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑readInvN) $$ Hlc Hi with Hi
-  icases Hi with ⟨%nc', %γn', %n, Hg', #His, Hown, Hauth, #Hn⟩
+  icases Hi with ⟨%nc', %γn', %n, %gs, Hg', #His, Hown, Hauth, #Hn, Hlist, #Hregs⟩
   ihave %Hag := ghostVar_agree γr.notifier _ _ _ _ $$ Hg Hg'
   simp only [Prod.mk.injEq] at Hag
   obtain ⟨rfl, rfl⟩ := Hag
+  imod monoListAuthOwn_update_app [g] $$ Hlist with ⟨Hlist, #Hllb⟩
+  ihave #Hidx : iprop(monoListIdxOwn γn.list gs.length g) $$ []
+  · iapply monoListIdxOwn_get gs.length g (by simp) $$ Hllb
+  ihave #Hregs' : iprop([∗list] g' ∈ gs ++ [g], regOk γr.kv g') $$ []
+  · iapply BigSepL.bigSepL_snoc.2
+    iframe Hregs
+    iunfold regOk
+    iexists Q
+    iframe HQ HD
   by_cases hle : uint.Z c ≤ uint.Z n
-  · ihave #Hlb := monoNatLbOwn_get γn 1 _ $$ Hauth
-    imod Hclose $$ [Hg' Hown Hauth] with -
-    · inext; iexists nc, γn, n; iframe Hg' His Hown Hauth Hn
+  · ihave #Hlb := monoNatLbOwn_get γn.need 1 _ $$ Hauth
+    imod Hclose $$ [Hg' Hown Hauth Hlist] with -
+    · inext; iexists nc, γn, n, gs ++ [g]; iframe Hg' His Hown Hauth Hn Hlist Hregs'
     imodintro
     iframe Hg His
-    iapply monoNatLbOwn_le (uint.nat c) (by word) $$ Hlb
+    isplitl []
+    · iapply monoNatLbOwn_le (uint.nat c) (by word) $$ Hlb
+    iexists gs.length; iexact Hidx
   · imod mono_nat_own_update (uint.nat c) (by word) $$ Hauth with ⟨Hauth, #Hlb⟩
-    imod Hclose $$ [Hg' Hown Hauth] with -
-    · inext; iexists nc, γn, c; iframe Hg' His Hown Hauth Hc
+    imod Hclose $$ [Hg' Hown Hauth Hlist] with -
+    · inext; iexists nc, γn, c, gs ++ [g]; iframe Hg' His Hown Hauth Hc Hlist Hregs'
     imodintro
     iframe Hg His Hlb
+    iexists gs.length; iexact Hidx
 
 /-- A frozen need bounds every lower bound of it. -/
-theorem needFrozen_le (γn : GName) (n : w64) (m : Nat) :
-    ⊢ needFrozen (GF := GF) γn n -∗ monoNatLbOwn γn m ={⊤}=∗ ⌜m ≤ uint.nat n⌝ := by
+theorem needFrozen_le (γn : NeedNames) (n : w64) (m : Nat) :
+    ⊢ needFrozen (GF := GF) γn n -∗ monoNatLbOwn γn.need m ={⊤}=∗ ⌜m ≤ uint.nat n⌝ := by
   iintro #Hf #Hlb
   iunfold needFrozen at Hf
   iinv Hf with Ha Hclose
   icases Ha with >Ha
-  ihave %h := monoNatLbOwn_valid γn 1 _ _ $$ Ha Hlb
+  ihave %h := monoNatLbOwn_valid γn.need 1 _ _ $$ Ha Hlb
   imod Hclose $$ [Ha] with -
   · inext; iexact Ha
   imodintro
@@ -433,55 +483,88 @@ theorem needFrozen_le (γn : GName) (n : w64) (m : Nat) :
 
 /-- **The loop's answer, for a client of the notifier** whose bound `c` is in the need: the
 applied index reached an index at least `c`. -/
-theorem read_frozenOk_readIndexOk (γn : GName) (γr : ReadNames) (c : w64) :
-    ⊢ frozenOk (GF := GF) γn γr -∗ monoNatLbOwn γn (uint.nat c) ={⊤}=∗ readIndexOk γr c := by
+theorem read_frozenOk_readIndexOk (γn : NeedNames) (γr : ReadNames) (c : w64) :
+    ⊢ frozenOk (GF := GF) γn γr -∗ monoNatLbOwn γn.need (uint.nat c) ={⊤}=∗ readIndexOk γr c := by
   iintro #Hfz #Hlb
   iunfold frozenOk at Hfz
-  icases Hfz with ⟨%n, %i, #Hf, #Hi, %Hni⟩
+  icases Hfz with ⟨%n, %ci, %i, %gs, #Hf, -, #Hi, %Hni, -⟩
   imod needFrozen_le γn n (uint.nat c) $$ Hf Hlb with %hcn
   imodintro
   iunfold readIndexOk
   iexists i
   iframe Hi
   ipureintro
+  have := Hni.1; have := Hni.2
   word
 
+/-- **The loop's answer, for a client registered at position `k`** (2026-10-14, unit T1): the
+read served (`readServed`): the client is in the frozen list of the round, whose read index is at
+least the client's bound. -/
+theorem read_frozenOk_served (γn : NeedNames) (γr : ReadNames) (c : w64) (k : Nat) (g : GName) :
+    ⊢ frozenOk (GF := GF) γn γr -∗ monoNatLbOwn γn.need (uint.nat c) -∗
+      monoListIdxOwn γn.list k g ={⊤}=∗ readServed γr c g := by
+  iintro #Hfz #Hlb #Hidx
+  iunfold frozenOk at Hfz
+  icases Hfz with ⟨%n, %ci, %ai, %gs, #Hf, #Hlf, #Hi, %Hni, #Hw⟩
+  imod needFrozen_le γn n (uint.nat c) $$ Hf Hlb with %hcn
+  iunfold listFrozen at Hlf
+  iinv Hlf with >Ha Hclose
+  ihave %Hk := mono_list_auth_idx_lookup γn.list 1 gs k g $$ Ha Hidx
+  imod Hclose $$ [Ha] with -
+  · inext; iexact Ha
+  imodintro
+  iunfold readServed
+  iexists ci, ai, gs, k
+  iframe Hi Hw
+  ipureintro
+  have := Hni.1
+  exact ⟨by word, Hni.2, Hk⟩
+
 /-- **The loop's swap** (`LinearizableReadLoop`, holding the write lock's ghost half of the current
-notifier `nc` with need `γn`, swapping in the new notifier `nc'` with need `γn'` at `0`): the read
-invariant takes `nc'`; the loop gets the right to notify `nc`, its need frozen at `n` (no client
-can deposit in it any more) and a lower bound `n` of the committed index. -/
-theorem read_swap (γr : ReadNames) (nc : Loc) (γn : GName) (nc' : Loc) (γn' : GName) :
+notifier `nc` with names `γn`, swapping in the new notifier `nc'` with names `γn'`, its need at `0`
+and its list empty): the read invariant takes `nc'`; the loop gets the right to notify `nc`, its
+need frozen at `n` (no client can deposit in it any more), a lower bound `n` of the committed
+index, and (2026-10-14, unit T1) its clients' list frozen at `gs` with their deposits. -/
+theorem read_swap (γr : ReadNames) (nc : Loc) (γn : NeedNames) (nc' : Loc) (γn' : NeedNames) :
     ⊢ readInv (GF := GF) γr -∗ £ 1 -∗ ghostVar γr.notifier (1 : Qp).half (nc, γn) -∗
-      notifierIs nc' γn' γr -∗ notifierOwn nc' γn' γr -∗ monoNatAuthOwn γn' 1 0 ={⊤}=∗
+      notifierIs nc' γn' γr -∗ notifierOwn nc' γn' γr -∗ monoNatAuthOwn γn'.need 1 0 -∗
+      monoListAuthOwn γn'.list 1 ([] : List GName) ={⊤}=∗
       ghostVar γr.notifier (1 : Qp).half (nc', γn') ∗ notifierOwn nc γn γr ∗
-      ∃ n : w64, needFrozen γn n ∗ committedAtLeast γr n := by
-  iintro #Hinv Hlc Hg #Hnis' Hown' Hauth'
+      ∃ (n : w64) (gs : List GName), needFrozen γn n ∗ committedAtLeast γr n ∗
+        listFrozen γn gs ∗ [∗list] g ∈ gs, regOk γr.kv g := by
+  iintro #Hinv Hlc Hg #Hnis' Hown' Hauth' Hlist'
   iunfold readInv at Hinv
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑readInvN) $$ Hlc Hi with Hi
-  icases Hi with ⟨%nc0, %γn0, %n, Hg', #His, Hown, Hauth, #Hn⟩
+  icases Hi with ⟨%nc0, %γn0, %n, %gs, Hg', #His, Hown, Hauth, #Hn, Hlist, #Hregs⟩
   ihave %Hag := ghostVar_agree γr.notifier _ _ _ _ $$ Hg Hg'
   simp only [Prod.mk.injEq] at Hag
   obtain ⟨rfl, rfl⟩ := Hag
   imod ghostVar_update_halves (nc', γn') γr.notifier _ _ $$ Hg Hg' with ⟨Hg, Hg'⟩
   imod monoNatLbOwn_0 γr.committed with #H0
-  imod Hclose $$ [Hg' Hown' Hauth'] with -
+  imod Hclose $$ [Hg' Hown' Hauth' Hlist'] with -
   · inext
-    iexists nc', γn', (W64 0)
+    iexists nc', γn', (W64 0), []
     iframe Hg' Hnis' Hown'
     rw [show uint.nat (W64 0) = 0 by word]
-    iframe Hauth'
-    iunfold committedAtLeast
-    rw [show uint.nat (W64 0) = 0 by word]
-    iexact H0
-  imod inv_alloc readFrozenN ⊤ (monoNatAuthOwn γn 1 (uint.nat n)) $$ [Hauth] with #Hfz
+    iframe Hauth' Hlist'
+    isplitl []
+    · iunfold committedAtLeast
+      rw [show uint.nat (W64 0) = 0 by word]
+      iexact H0
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    itrivial
+  imod inv_alloc readFrozenN ⊤ (monoNatAuthOwn γn.need 1 (uint.nat n)) $$ [Hauth] with #Hfz
   · inext; iexact Hauth
+  imod inv_alloc readFrozenN ⊤ (monoListAuthOwn γn.list 1 gs) $$ [Hlist] with #Hlf
+  · inext; iexact Hlist
   imodintro
   iframe Hg Hown
-  iexists n
-  iframe Hn
+  iexists n, gs
+  iframe Hn Hregs
   iunfold needFrozen
-  iexact Hfz
+  iunfold listFrozen
+  iframe Hfz Hlf
 
 end lemmas
 

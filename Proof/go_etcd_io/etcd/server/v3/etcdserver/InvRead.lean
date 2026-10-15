@@ -108,13 +108,13 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.P E.f ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD E.authOn ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     storeSmall E.γ ∗
     (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
-    srvAppliedInv s E γr ∗ srvCommittedInv s γr ∗
+    srvAppliedInv s E γr ∗ srvKVInvs E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
     srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping)
@@ -171,12 +171,16 @@ log `log` of at least `NewStore`'s two revisions (so the header's revision, `log
 index reached the committed index `c` the caller knew of, and `log` extends the log applied through
 an index at least `c`; 2026-10-13, unit 4b: `readIndexOk` until then), the response header's id
 fields owned; and (the vertical slice's unit V2) `log` extends the floor `F`, a certified log
-the caller saw (the read's transaction is opened at a log extending it: linearizability). -/
+the caller saw (the read's transaction is opened at a log extending it: linearizability).
+2026-10-14 (unit T1): a linearizable read's `log` is the KV model of a committed raft log `L`, at
+which the read's update (`Q`, deposited with the read index: `kvDep`) gave `□ Q L`. -/
 def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
-    (resp : Loc) : IProp GF :=
+    (resp : Loc) (Q : List EntryModel → IProp GF) : IProp GF :=
   iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
+    (if o.base.serializable then iprop(True) else
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L) ∗
     txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
     txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp))
 

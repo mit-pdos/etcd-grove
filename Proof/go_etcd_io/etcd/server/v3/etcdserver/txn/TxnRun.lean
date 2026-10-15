@@ -529,6 +529,71 @@ theorem srvOps_gets (s0 : List EtcdKv) (r : w64) :
       exact srvOps_gets s0 r _ ops (fun x hx => h x (List.mem_cons_of_mem _ hx))
     | _ => simp [opIsGet] at hop
 
+/-! ## Plain transactions (2026-10-15, unit T2)
+
+A transaction whose `checkTxn` is a function of the state: every get of either branch, nested
+ones included, reads the transaction's revision (`0`: `checkRange` passes), and every put names
+the lease `0` and keeps no lease (no `IgnoreLease`: the model's `putKeep`/`putIgnVal _ none`
+drop the request's `Lease` field, which `checkPut` still looks up; a lease's lookup is an
+oracle of the model). For such a transaction `checkTxn` fails exactly when a put of the path
+that needs the previous key-value does not find it (`PathsIgnOk`). -/
+
+mutual
+/-- A plain operation (see the section header). -/
+def opPlain : TxnOp → Prop
+  | .get o => o.base.rev = W64 0
+  | .put _ _ l => l = W64 0
+  | .putIgnVal _ l => l = some (W64 0)
+  | .putKeep _ _ => False
+  | .delete _ => True
+  | .txn _ ts es => opsPlain ts ∧ opsPlain es
+
+/-- Every operation plain. -/
+def opsPlain : List TxnOp → Prop
+  | [] => True
+  | op :: ops => opPlain op ∧ opsPlain ops
+end
+
+/-- **A plain transaction**: both branches plain (see the section header). -/
+def txnPlain (t : TxnModel) : Prop := opsPlain t.thenOps ∧ opsPlain t.elseOps
+
+theorem opsPlain_get : ∀ (ops : List TxnOp) (i : Nat) (op : TxnOp), ops[i]? = some op →
+    opsPlain ops → opPlain op
+  | [], _, _, h, _ => by simp at h
+  | x :: ops, 0, op, h, hp => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h; exact hp.1
+  | x :: ops, i + 1, op, h, hp => by
+    simp only [List.getElem?_cons_succ] at h
+    exact opsPlain_get ops i op h hp.2
+
+theorem txnPlain_branch (t : TxnModel) (b : Bool) (h : txnPlain t) : opsPlain (t.branch b) := by
+  unfold TxnModel.branch; cases b
+  · exact h.2
+  · exact h.1
+
+theorem pathsIgnOk_get (s0 : List EtcdKv) : ∀ (ops : List TxnOp) (i : Nat) (op : TxnOp),
+    ops[i]? = some op → PathsIgnOk s0 ops → PathIgnOk s0 op
+  | [], _, _, h, _ => by simp at h
+  | x :: ops, 0, op, h, hp => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h; exact hp.1
+  | x :: ops, i + 1, op, h, hp => by
+    simp only [List.getElem?_cons_succ] at h
+    exact pathsIgnOk_get s0 ops i op h hp.2
+
+/-- A plain put's request names the lease `0`. -/
+theorem putTxnOp_plain_lease (o : OpFull) (h : opPlain (putTxnOp o)) : o.leaseID = W64 0 := by
+  unfold putTxnOp at h
+  cases hv : o.ignoreValue <;> cases hl : o.ignoreLease <;> simp_all [opPlain]
+
+/-- A put of the path that needs the previous key-value finds it at `s0`. -/
+theorem putTxnOp_ign_isSome (s0 : List EtcdKv) (o : OpFull) (h : PathIgnOk s0 (putTxnOp o))
+    (hn : needsPrev o = true) : (findKey o.key s0).isSome := by
+  unfold putTxnOp at h
+  unfold needsPrev at hn
+  cases hv : o.ignoreValue <;> cases hl : o.ignoreLease <;> simp_all [PathIgnOk]
+
 end txn
 end EtcdGrove
 end Perennial

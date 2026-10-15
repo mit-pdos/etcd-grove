@@ -31,13 +31,14 @@ and the read names' notifier meets the read contract (`isRead`) and returns the 
 request path's unit 4c: the server's `start` calls `NewRead` before it sets `s.leaderChanged`,
 which `isReadServer`'s `LeaderChanged()` reads; until then they were `NewRead`'s premises). -/
 abbrev read.NewRead.spec : Prop :=
-  ∀ (srv rf : GoInterface) (γr : ReadNames) (x : Loc × GName),
+  ∀ (srv rf : GoInterface) (γr : ReadNames) (x : Loc × NeedNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
       srvDoneOk srv ∗ context.isClosedchanInit ∗ ghostVar γr.notifier 1 x }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.read.NewRead)) (Val #srv)) (Val #rf))
   {{ (r : Loc), RET #r; isRead r γr ∗
-      (□ ∀ (RQ : w64 → w64 → IProp GF) (LR NR : IProp GF),
-        isReadServer srv γr LR NR -∗ isReadRaft rf γr RQ -∗ isReadLoopPre r γr RQ LR NR) ∗
+      (□ ∀ (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF),
+        isReadServer srv γr LR NR -∗ isReadRaft rf γr RQ -∗ readCompose γr -∗
+          isReadLoopPre r γr RQ LR NR) ∗
       [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), readReader r γr }}
 
 end spec

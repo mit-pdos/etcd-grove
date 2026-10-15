@@ -51,7 +51,9 @@ backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
   (`dispatchStep`: a KV request as the chain's `chainStep backendStep`, the txn package's results;
   without `v3`, nothing), the result `applyResultIs`. It spends one write token of the store
   (`mvcc.storeWT E.γ`: a KV write or a revocation opens one store write transaction, whose
-  `Unlock` over the real backend may cost a write-back; 2026-10-13, unit 6). -/
+  `Unlock` over the real backend may cost a write-back; 2026-10-13, unit 6). The caller certifies
+  the logs the request may commit (`certPre`: the store's `txnEndPre` asks it of every commit;
+  2026-10-14, unit T1). -/
 abbrev apply.Apply.spec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF)
@@ -61,9 +63,9 @@ abbrev apply.Apply.spec : Prop :=
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post))
        else iprop(True)) ∗ Pre ∗
-      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗
+      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
-        apply.dispatchOk rq⌝ ∗ mvcc.idxCert E.γ.idx F }}
+        apply.dispatchOk E.authOn rq⌝ ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗

@@ -33,8 +33,11 @@ application appended its entries (in `node.go`: `advancec == nil`).
 
 What the application gets with `rd` (all of `RawNode.Ready.spec`'s postcondition but the
 node and the right to append): the committed entries `ce` extending `rs.delivered`, the
-entries `es` to append, the messages to send, each `isRaftMsg`, no snapshot and no read
-states. The node is `ownRawNodeReady` (`InvRawnodeReady.lean`): the outbox's slice is now
+entries `es` to append, the messages to send, each `isRaftMsg`, no snapshot, and (since
+2026-10-13) the read states `sts`: `rd.ReadStates` read-only, each `ReadState`
+`readStateOk` -- its context a proposed slice whose read was created knowing a committed
+log of length at most its index (`readOk`). The slice is read-only because the node
+keeps it until `acceptReady` (which sets `r.readStates` to `nil`). The node is `ownRawNodeReady` (`InvRawnodeReady.lean`): the outbox's slice is now
 `rd.Messages`, and `acceptReady rd` takes it to `ownRawNode` at the post-`Ready` state.
 
 Since 2026-10-10 also:
@@ -52,7 +55,8 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
-  {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message), RET #rd;
+  {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message)
+      (sts : List ReadState), RET #rd;
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms ∗
       "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
@@ -69,8 +73,10 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
                        (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
                          uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
                       ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c }) ∗
-      "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧
-                   rd.ReadStates' = slice.nil⌝ }}
+      "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝ ∗
+      -- the read states (2026-10-13)
+      "#Hrs" ∷ rd.ReadStates' ↦*□ sts ∗
+      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) }}
 
 end spec
 

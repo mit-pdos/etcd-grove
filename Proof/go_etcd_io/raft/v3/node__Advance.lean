@@ -22,10 +22,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The `dlv` halves move on past the `Ready` (`run` will recognize its record), one goes
 with the receipt on `advancec`; `n.done` never fires. -/
 theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
-  intro γ id n ds es
-  wp_start as ⟨Hbusy, Hrcpt⟩
+  intro γ id n ds es ca cfg HA1
+  wp_start as ⟨Hbusy, Hrcpt, Hcfg⟩
   unfold nodeDriverBusy
-  icases Hbusy with ⟨#Hnode, %d, %ce, Hd1, Hd2, Hrof, %Hds⟩
+  icases Hbusy with ⟨#Hnode, #Hdlb, %d, %ce, Hd1, Hd2, Hrof, %Hds⟩
+  ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
+  · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
   subst Hds
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -47,12 +49,16 @@ theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
     · unfold advanceP
       iexists d, ce, es
       iframe Hd1 Hrof Hrcpt
+      iexists ca
+      iframe Hcamlb
+      ipureintro; exact HA1
     inext
     iintro -
     wp_auto
     iapply HΦ
+    iframe Hcfg
     unfold nodeDriver
-    iframe Hnode Hd2
+    iframe Hnode Hd2 Hdlb
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-n.done`: never

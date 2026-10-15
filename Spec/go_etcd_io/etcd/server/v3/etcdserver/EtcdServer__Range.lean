@@ -28,19 +28,21 @@ logger's, the committed index `c` the caller knew of): success, the txn package'
 certified log of at least two revisions, after the read index unless serializable, the header's
 id fields owned (`rangeReadOk`); failure, no response and an error the gRPC layer can take (the
 read loop's, the auth store's, mvcc's `ErrFutureRev`, or the context's: `fmt.Errorf`'s in
-Perennial's model, `applyErrIs` by the server's package facts). -/
+Perennial's model, `applyErrIs` by the server's package facts). 2026-10-14 (unit T1): with a read
+deposit `kvDep γr.kv Q` (a client's `Get` update, or nothing), a linearizable success read the KV
+model of a committed raft log `L` at which the deposit gave `□ Q L` (`rangeReadOk`). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
-    (ot : Option Loc) (te : Bool) (F : mvcc.Log),
+    (ot : Option Loc) (te : Bool) (Q : List EntryModel → IProp GF) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-      mvcc.idxCert E.γ.idx F }}
+      kvDep γr.kv Q ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ rangeReadOk E γr c F o resp) ∨
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ rangeReadOk E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

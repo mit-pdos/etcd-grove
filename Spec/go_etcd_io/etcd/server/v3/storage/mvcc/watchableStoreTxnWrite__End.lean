@@ -33,7 +33,8 @@ abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (puts deletes putSize : w64) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ∗ mvcc.hookIs γ.st P f ∗ P }}
+      mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ∗ mvcc.hookIs γ.st P f ∗ P ∗
+      mvcc.certOkNext γ.st ilog pend }}
     (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
       mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}

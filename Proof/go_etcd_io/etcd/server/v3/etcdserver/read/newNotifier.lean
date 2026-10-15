@@ -27,17 +27,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 theorem read.newNotifier.wp_proof : read.newNotifier.spec (GF := GF) (hG := hG) := by
   intro γr
   wp_start
-  imod mono_nat_own_alloc 0 with ⟨%γn, Hauth, -⟩
+  imod mono_nat_own_alloc 0 with ⟨%γneed, Hauth, -⟩
+  imod mono_list_own_alloc ([] : List GName) with ⟨%γl, Hlist, -⟩
   wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#Hch, -, Hoc⟩
   wp_alloc nc as Hnc
   iStructNamed Hnc
   ipersist c
-  imod alloc_broadcast_chan (notified nc γn γr) γ ch $$ Hch Hoc with Hbc
+  imod alloc_broadcast_chan (notified nc ⟨γneed, γl⟩ γr) γ ch $$ Hch Hoc with Hbc
   icases bcast_pending_unknown _ _ _ $$ Hbc with ⟨Hbc, #Hbu⟩
   wp_auto
   iapply HΦ
-  iexists γn
-  iframe Hauth
+  iexists ⟨γneed, γl⟩
+  iframe Hauth Hlist
   isplitr
   · iunfold notifierIs; iexists ch; iframe c; iunfold bcastChan; iexists γ; iexact Hbu
   · iunfold notifierOwn; iexists ch, γ, GoInterface.nil; iframe c Hbc err

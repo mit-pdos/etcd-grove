@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend chs ps sealed P f crev Z
-  wp_start as ⟨Htw, #HhookC, HP⟩
+  wp_start as ⟨Htw, #HhookC, HP, #HokN⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
   obtain ⟨Hps, Hlen⟩ := Hps
@@ -170,6 +170,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
         simp only [named]
         iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL
         iframe #
+        isplitl []
+        · iunfold mvcc.certOkNext at HokN
+          icases HokN with (%Hp0 | #Hok')
+          · exact absurd Hp0 hne'
+          · iexact Hok'
         ipureintro; simp; omega
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`

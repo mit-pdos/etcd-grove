@@ -110,7 +110,7 @@ theorem txn.Txn_sole
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
   intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te F
-  wp_start as ⟨#Hkv, Hrd, Hsw, #HF, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Hsw, #HF, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, #Hcok, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -182,7 +182,7 @@ theorem txn.Txn_sole
   icases Hres with (⟨%Hok, #Hleases⟩ | ⟨%Herr, #Hce⟩)
   rotate_left
   · -- a check failed: the read transaction ended, nothing written
-    obtain ⟨Hne, rfl⟩ := Herr
+    obtain ⟨Hne, rfl, Hnp⟩ := Herr
     cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
@@ -198,7 +198,7 @@ theorem txn.Txn_sole
       ileft
       iframe Hce Hsw HPre
       isplitr
-      · ipureintro; exact ⟨rfl, rfl, Hne⟩
+      · ipureintro; exact ⟨rfl, rfl, Hne, Hnp⟩
       iexists trace, te9
       iframe Htrc
       ipureintro; exact Hteq
@@ -262,7 +262,7 @@ theorem txn.Txn_sole
     simp only [srvRunTxn]
     rw [hch]
     isplitl []
-    · ipureintro; simp [Htr, HFl]
+    · ipureintro; simp [Htr, HFl]; exact Hign
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -318,7 +318,7 @@ theorem txn.Txn_sole
     ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te5, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP; simp only [hro, Bool.false_eq_true, ↓reduceIte]; isimp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn] at Hcok; iapply Hcok; ipureintro; exact Hign
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
     · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
     ihave #Hresp2 := Hresp
@@ -346,7 +346,7 @@ theorem txn.Txn_sole
     · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
     iright
     isplitl []
-    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => by rw [hro] at h; cases h⟩
+    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => (by rw [hro] at h; cases h), Hign⟩
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -395,7 +395,7 @@ theorem txn.Txn_read
   · (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
-  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, -, %Hpin⟩
   · ipureintro; exact Htr
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩
@@ -436,7 +436,7 @@ theorem txn.Txn_read
   icases Hres with (⟨%Hok, #Hleases⟩ | ⟨%Herr, #Hce⟩)
   rotate_left
   · -- a check failed: the read transaction ended
-    obtain ⟨Hne, rfl⟩ := Herr
+    obtain ⟨Hne, rfl, Hnp⟩ := Herr
     cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>

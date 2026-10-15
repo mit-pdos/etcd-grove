@@ -15,7 +15,8 @@ between `10` and `2 ^ 62` nanoseconds: `intervalP`), and the contract of mvcc's 
 **The server's contract** (`watchSrvOk s E γ wsl`, persistent): the server's KV is the watchable
 store `wsl` (`mvcc.isWatchableStore wsl E.s γ`, its names over the apply thread's store names
 `E.γ`), `Term()`/`Leader()` return (`raftStatusOk`), and its auth store (`isReqAuth`, A2's, and the
-apply package's `isAuthStore`, both at the reader resource `E.RD`).
+apply package's `isAuthStore`, both at the reader resource `E.RD`, the latter in the store's mode
+`E.authOn`).
 
 **The watch server** (`isWatchServer p R`, persistent): `NewWatchServer`'s `*watchServer`, its
 fields fixed (`WSrv`: the server, its environment, the watchable store and its names, the cluster
@@ -239,7 +240,7 @@ def watchSrvOk (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) : I
   iprop(mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝ ∗ raftStatusOk s ∗
     (∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st P f E.RD) ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st P f E.RD E.authOn) ∗
     watchVars)
 
 instance watchSrvOk_persistent (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) :

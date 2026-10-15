@@ -21,10 +21,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem tracker.ProgressTracker.RecordVote.wp_proof :
     tracker.ProgressTracker.RecordVote.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t src v
+  intro c trk tv t src v
   obtain ⟨votes, prs, pvs⟩ := t
   dsimp only
   wp_start as ⟨Htrk, Hown⟩
+  iunfold ownTrackerC at Hown
   iNamed Hown
   wp_auto
   wp_apply wp_map_lookup2 $$ [$Hvotes] as Hvotes
@@ -36,9 +37,8 @@ theorem tracker.ProgressTracker.RecordVote.wp_proof :
     iapply HΦ
     iframe Htrk
     simp only [recordVote, Hok]
-    iapply ownTracker_intro (Hprs_dom := Hprs_dom) (Hvoters_arr := Hvoters_arr)
-      (Hautoleave := Hautoleave) (Hvoters_dom := Hvoters_dom) (Hno_learners := Hno_learners)
-      (Hcfg_size := Hcfg_size) (HmaxInfl := HmaxInfl) $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
+    iapply ownTrackerC_intro (Hinv := Hinv) (Hdom := Hdom) (Hflags := Hflags) (Hsize := Hsize)
+      (HmaxInfl := HmaxInfl) $$ Hvotes Hprs Hprogs Hcfg
   | none =>
     -- first vote from `src`
     simp only [Option.isSome_none, Bool.false_eq_true, decide_false, Bool.not_false]
@@ -47,9 +47,8 @@ theorem tracker.ProgressTracker.RecordVote.wp_proof :
     iapply HΦ
     iframe Htrk
     simp only [recordVote, Hok]
-    iapply ownTracker_intro (Hprs_dom := Hprs_dom) (Hvoters_arr := Hvoters_arr)
-      (Hautoleave := Hautoleave) (Hvoters_dom := Hvoters_dom) (Hno_learners := Hno_learners)
-      (Hcfg_size := Hcfg_size) (HmaxInfl := HmaxInfl) $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
+    iapply ownTrackerC_intro (Hinv := Hinv) (Hdom := Hdom) (Hflags := Hflags) (Hsize := Hsize)
+      (HmaxInfl := HmaxInfl) $$ Hvotes Hprs Hprogs Hcfg
 
 end proof
 

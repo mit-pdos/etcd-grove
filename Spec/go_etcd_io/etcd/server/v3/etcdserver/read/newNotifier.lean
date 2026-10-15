@@ -30,8 +30,8 @@ abbrev read.newNotifier.spec : Prop :=
   ∀ (γr : ReadNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.read.newNotifier)) (Val #()))
-  {{ (nc : Loc), RET #nc; ∃ γn : GName, notifierIs nc γn γr ∗ notifierOwn nc γn γr ∗
-      monoNatAuthOwn γn 1 0 }}
+  {{ (nc : Loc), RET #nc; ∃ γn : NeedNames, notifierIs nc γn γr ∗ notifierOwn nc γn γr ∗
+      monoNatAuthOwn γn.need 1 0 ∗ monoListAuthOwn γn.list 1 ([] : List GName) }}
 
 end spec
 

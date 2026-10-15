@@ -44,7 +44,7 @@ theorem txn.Put.wp_proof
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f L ot te
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlprem, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlprem, #Hcok, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -134,7 +134,7 @@ theorem txn.Put.wp_proof
     (try wp_auto)
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP; iunfold mvcc.certOkNext; ileft; ipureintro; rfl
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
@@ -180,6 +180,7 @@ theorem txn.Put.wp_proof
   ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
   wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
   · iapply mvcc.txnEndPre_write; iframe Hhook HP
+    iunfold mvcc.certOkNext; iright; iapply Hcok; ipureintro; exact ⟨Hpin, Hn⟩
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_nil, ↓reduceIte]
   icases Hpost with ⟨#Hc, -⟩
   (try wp_auto)
@@ -200,7 +201,7 @@ theorem txn.Put.wp_proof
   iframe HPost
   iright
   iframe Hresp Hhdr Hc Hlok2
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, Hn⟩
 
 end proof
 

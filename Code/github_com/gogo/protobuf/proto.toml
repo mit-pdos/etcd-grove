@@ -1,0 +1,6 @@
+trust_proofgen = true
+# Names only: raftpb's `ConfChangeV2.LeaveJoint` calls `proto.Equal`, specified at the trust
+# boundary for the one use raft makes of it (Spec/github_com/gogo/protobuf/proto/Equal.lean).
+# `Message`, the type of `Equal`'s arguments, is translated so that a conversion to it steps.
+translate = ["!*", "Message"]
+imports = ["!*"]

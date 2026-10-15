@@ -42,8 +42,9 @@ local macro "notify_nc_clause" : tactic => `(tactic| (
   · wp_auto
     iapply HΦ; iunfold readReader; iframe Hrr HerrE; iintro %h; exact absurd h Hne
   · imod read_frozenOk_readIndexOk γn γr c $$ Hfz Hlb with #Hok
+    imod read_frozenOk_served γn γr c k g $$ Hfz Hlb Hidx with #Hsv
     wp_auto
-    iapply HΦ; iunfold readReader; iframe Hrr HerrE; iintro -; iexact Hok))
+    iapply HΦ; iunfold readReader; iframe Hrr HerrE; iintro -; iframe Hok Hsv))
 
 set_option hygiene false in
 /-- The server's `Done()` case of the final `select`: `ErrStopped`. -/
@@ -63,8 +64,8 @@ local macro "notify_done_clause" : tactic => `(tactic| (
 theorem read.Read.LinearizableReadNotify.wp_proof
     (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
     read.Read.LinearizableReadNotify.spec (GF := GF) (hG := hG) := by
-  intro r γr ctx cd c
-  wp_start as ⟨#Hpre, #Hctx, #Hc, Hrr⟩
+  intro r γr ctx cd c g Q
+  wp_start as ⟨#Hpre, #Hctx, #Hc, Hrr, #HsQ, #HdQ⟩
   iunfold isReadPre at Hpre
   icases Hpre with ⟨%srv, %wc, %γw, #Hsf, #Hdone, #Hwcf, #Hbag, #Hinv⟩
   iunfold readReader at Hrr
@@ -76,7 +77,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
   iunfold readMuP at HP
   icases HP with ⟨%nc, %γn, Hpt, Hg⟩
   wp_auto_lc 3
-  imod read_deposit γr _ nc γn c $$ Hinv Hlc1 Hg Hc with ⟨Hg, #Hnis, #Hlb⟩
+  imod read_deposit γr _ nc γn c g Q $$ Hinv Hlc1 Hg Hc HsQ HdQ with ⟨Hg, #Hnis, #Hlb, %k, #Hidx⟩
   wp_apply sync.RWMutex.wp_RUnlock (readMuAddr r) (readMuP r γr) $$ [Hrl Hpt Hg] as Hrr
   · iframe #; iframe Hrl; iunfold readMuP; iexists nc, γn; iframe Hpt Hg
   wp_join iprop(r_ptr ↦ r ∗ ctx_ptr ↦ GoInterface.ok ctx ∗ nc_ptr ↦ nc ∗

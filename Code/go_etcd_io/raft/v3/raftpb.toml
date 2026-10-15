@@ -41,6 +41,18 @@ translate = [
   "MsgForgetLeader",
 
   "ConfChangeI",
+  # confchange.go (hand-written): the conf-change helpers. The gogoproto `Marshal`/`Unmarshal`
+  # methods they call stay names-only (axiomatized; specs at the trust boundary, `InvCCCodec.lean`)
+  "MarshalConfChange",
+  "ConfChange.AsV2",
+  "ConfChange.AsV1",
+  "ConfChangeV2.AsV2",
+  "ConfChangeV2.AsV1",
+  "ConfChangeV2.EnterJoint",
+  "ConfChangeV2.LeaveJoint",
+  "ConfChangeTransitionAuto",
+  "ConfChangeTransitionJointImplicit",
+  "ConfChangeTransitionJointExplicit",
 
   "EntryNormal",
   "EntryConfChangeV2",
@@ -60,8 +72,9 @@ translate = [
 ]
 
 # `ConfState.Equivalent` (confstate.go, hand-written) calls into fmt, reflect and slices;
-# `Entry.Size` (raft.pb.go, gogoproto) calls `sovRaft`, which calls `math/bits.Len64`
-imports = ["fmt", "reflect", "slices", "math/bits"]
+# `Entry.Size` (raft.pb.go, gogoproto) calls `sovRaft`, which calls `math/bits.Len64`;
+# `ConfChangeV2.LeaveJoint` calls gogoproto's `proto.Equal` (names-only)
+imports = ["fmt", "reflect", "slices", "math/bits", "github.com/gogo/protobuf/proto"]
 
 trust_proofgen = true
 

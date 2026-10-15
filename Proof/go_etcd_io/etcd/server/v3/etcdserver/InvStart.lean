@@ -102,7 +102,7 @@ def srvReqBuilt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : 
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
-    srvMintInv ρ ∗ srvCLogInv ρ.raft ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqBuilt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     Persistent (srvReqBuilt (GF := GF) s E ρ v) := by
@@ -117,7 +117,7 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.P E.f ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD E.authOn ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
@@ -171,7 +171,8 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReader s ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x₀) ∗ revAuth E x₀.log ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ srvForceSnapAddr s ↦ f)
+    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗
+    srvForceSnapAddr s ↦ f)
 
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof
 discharges). -/
@@ -188,6 +189,8 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hsab" ∷ srvApplyAllBuilt s ∗
     -- the indices' invariants at the read names
     "#Hai" ∷ srvAppliedInv s E γr ∗
+    -- the KV invariants (2026-10-14, unit T1)
+    "#Hkvi" ∷ srvKVInvs E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
     -- the raft wrapper over the server's `E.C`
@@ -220,7 +223,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     -- the ghost state `start` hands on
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
-    "Hnot" ∷ (∃ x : Loc × GName, ghostVar γr.notifier 1 x) ∗
+    "Hnot" ∷ (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
     "Happ" ∷ applyBuilt s γ ci b E γr ai₀ c₀ x₀ ∗
     -- the reader slots `start` hands on: `run`'s and the read loop's
     "Hlr" ∷ srvLgReader s ∗
@@ -233,7 +236,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
 `Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the
 reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`), `s.wgMu`'s
 (`srvWgReader`), `s.leaderChanged`'s. -/
-def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → IProp GF) : IProp GF :=
+def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
   iprop("Hgo" ∷ srvWgReader s ∗
     "Hrl" ∷ (∃ r : Loc, srvReadAddr s ↦□ r ∗
       isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1)) ∗

@@ -21,10 +21,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.softState()`: `SoftState{Lead: r.lead, RaftState: r.state}`. -/
 abbrev raft.softState.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  {{ ownRaftPhys (GF := GF) cfg r id s }}
+  -- (2026-10-14, stage B7 part 2) at any configuration (until then `ownRaftPhys cfg`)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"softState")) (Val #()))
-  {{ RET #(softstateVal (nodeSoftstate s)); ownRaftPhys cfg r id s }}
+  {{ RET #(softstateVal (nodeSoftstate s)); ownRaftPhysCV c c.voters r id s }}
 
 end spec
 

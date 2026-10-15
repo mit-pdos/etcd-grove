@@ -97,8 +97,9 @@ theorem nstateWf_voteRespResult (id : w64) (s : NState) (src : w64) (reject won 
     | exact nstateWf_becomeFollower _ _ _
     | exact nstateWf_sendMsgs _ _ (nstateWf_becomeLeader _ _)
 
-theorem nstateWf_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) :
-    NStateWf (campaignState id s pre peers) := by
+theorem nstateWf_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
+    (cl : List w8 := []) :
+    NStateWf (campaignState id s pre peers cl) := by
   unfold campaignState; cases pre <;> exact ⟨rfl, rfl⟩
 
 theorem nstateWf_prevoteRespResult (id : w64) (s : NState) (src : w64)
@@ -109,7 +110,7 @@ theorem nstateWf_prevoteRespResult (id : w64) (s : NState) (src : w64)
   all_goals first
     | exact Hsf
     | exact nstateWf_becomeFollower _ _ _
-    | exact nstateWf_campaignState _ _ _ _
+    | exact nstateWf_campaignState _ _ _ _ _
 
 /-! ## Branch lemmas
 
@@ -143,15 +144,16 @@ theorem step_send_frees (id : w64) (ps : PState) (ms : List Msg)
 self-addressed `MsgPreVoteResp`, all free. -/
 theorem step_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
     (pvs : GMap w64 Progress) (Hnl : s.role ≠ .leader) (Hin : id ∈ cfg)
-    (Hnw : uint.Z s.term + 1 < 2 ^ 64) (Hperm : peers ≡ₚ elements (cfg \ {[id]})) :
-    Step cfg id (toPState s) [] (toPState { campaignState id s pre peers with prvals := pvs }) := by
-  have Hrole : (campaignState id s pre peers).role ≠ .leader := by
+    (Hnw : uint.Z s.term + 1 < 2 ^ 64) (Hperm : peers ≡ₚ elements (cfg \ {[id]}))
+    (cl : List w8 := []) :
+    Step cfg id (toPState s) [] (toPState { campaignState id s pre peers cl with prvals := pvs }) := by
+  have Hrole : (campaignState id s pre peers cl).role ≠ .leader := by
     cases pre <;> simp [campaignState, sendMsgs, becomePrecandidate, becomeCandidate]
-  rw [toPState_prvals_nl (campaignState id s pre peers) pvs Hrole]
+  rw [toPState_prvals_nl (campaignState id s pre peers cl) pvs Hrole]
   cases pre
   · show Step cfg id (toPState s) [] (toPState (sendMsgs (becomeCandidate id s) _))
     rw [toPState_sendMsgs, toPState_becomeCandidate]
-    exact Step.campaign (toPState s) peers (by rw [toPState_role]; exact proleRole_not_leader _ Hnl)
+    exact Step.campaign (toPState s) peers cl (by rw [toPState_role]; exact proleRole_not_leader _ Hnl)
       Hin Hnw Hperm
   · show Step cfg id (toPState s) [] (toPState (sendMsgs (becomePrecandidate s) _))
     rw [toPState_sendMsgs, toPState_becomePrecandidate]
@@ -193,7 +195,8 @@ theorem step_prevoteRespResult (id : w64) (s : NState) (src : w64) (reject won l
       (toPState { campaignState id { s with votes := recordVote s.votes src (!reject) } false peers
         with prvals := pvs })
     rw [← Hs1]
-    exact step_campaignState cfg id _ false peers pvs Hnl Hin Hnw (Hperm rfl)
+    exact step_campaignState cfg id { s with votes := recordVote s.votes src (!reject) } false
+      peers pvs Hnl Hin Hnw (Hperm rfl)
 
 omit [GoGlobalContext] [GoSemanticsFunctions] in
 /-- Stepping down and then answering a vote request, in one protocol step. -/

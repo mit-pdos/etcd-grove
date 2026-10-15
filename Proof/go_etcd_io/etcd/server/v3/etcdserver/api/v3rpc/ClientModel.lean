@@ -411,20 +411,16 @@ theorem chainStep_applied_false : ∀ (c : apply.Chain) {rq : apply.IRRModel} {l
         · cases h
         · exact chainStep_applied_false c h
       · exact chainStep_applied_false c h
-  | .auth c, _, _, _, h => by
+  | .auth _ c, _, _, _, h => by
     simp only [apply.chainStep] at h
     split at h
-    · rcases h with h | h
+    · rcases h with ⟨-, h⟩ | h
       · cases h
       · exact chainStep_applied_false c h
     · exact chainStep_applied_false c h
   | .quota c, _, _, _, h => by
     simp only [apply.chainStep] at h
-    split at h
-    · obtain ⟨o', h1, h2 | ⟨l', -, h2⟩⟩ := h
-      · subst h2; exact chainStep_applied_false c h1
-      · cases h2
-    · exact chainStep_applied_false c h
+    exact chainStep_applied_false c h
 
 /-- **A successful put appended a revision**: the request's application (applied, no
 `ErrNoSpace`) appended one revision to the KV's log. -/
@@ -447,7 +443,7 @@ theorem put_appended (o : OpFull) (hm : apply.HeaderModel) (x x' : apply.ApplyKV
   obtain ⟨op, -, hb | hb | hb⟩ := hb
   · cases hb.2
   · cases hb.2.2
-  · cases hb
+  · cases hb.2
     exact ⟨_, rfl⟩
 
 end model

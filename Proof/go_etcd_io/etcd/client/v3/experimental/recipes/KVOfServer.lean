@@ -54,9 +54,12 @@ theorem isRecipesKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ⊢
+        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩
+  iunfold EtcdGrove.client.kvWritesOk at Hnp
+  icases Hnp with ⟨#Hany, #Hlp, #Hlc⟩
   unfold isRecipesKV
   simp only
   isplitl []
@@ -87,9 +90,10 @@ theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (ad
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ⊢
+        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩
   ihave #HK := isRecipesKV_of_kv api addr s E γw γr cid mid pfx hpfx hAs $$ []
   · iframe #
   unfold isEtcdRecipesClient

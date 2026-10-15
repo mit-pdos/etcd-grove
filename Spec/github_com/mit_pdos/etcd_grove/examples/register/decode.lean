@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`decode(b)` (register.go:34): what `encode` wrote (`decodeOp`), or `ok = false` for fewer than
+`decode(b)` (register.go:38): what `encode` wrote (`decodeOp`), or `ok = false` for fewer than
 17 bytes.
 -/
 module

@@ -44,6 +44,8 @@ theorem readOnly.addRequest.wp_proof : readOnly.addRequest.spec (GF := GF) (hG :
   iframe Hro Hacks Hs' Hcap'
   isplitr
   · ipureintro; exact Hro_conf
+  isplitr
+  · ipureintro; exact Hro_safe
   iapply BigSepL2.bigSepL2_snoc.2
   iframe Hreqs
   unfold ownReadreq

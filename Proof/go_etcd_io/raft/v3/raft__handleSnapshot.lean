@@ -29,7 +29,7 @@ private theorem appResp_sendOk (id : w64) (s : NState) (dst idx : w64) (Hdst : d
       { Type' := W32 4, To' := dst, From' := 0, Term' := 0, LogTerm' := 0, Index' := idx,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
         RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-      [] [appResp id s dst false idx (W64 0) (W64 0)] :=
+      [] [] [appResp id s dst false idx (W64 0) (W64 0)] :=
   Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))
 
 /-- `m.Snapshot` points to `sv`, so the copy `s = *m.Snapshot` is taken and the `nil`
@@ -42,82 +42,96 @@ theorem raft.handleSnapshot.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m sv voters Hrole Hvotes Hin Hscope Hfid
+  intro c r id s m sv cl Hrole Hvotes Hin Hscope Hfid
   wp_start as H
   iNamed H
   wp_auto
   ihave %Hnn := typedPointsto_not_null $$ Hsv
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply wp_raft_restore _ _ _ _ sv voters Hrole Hvotes Hin Hscope $$ [$Hphys $Hvoters]
+  wp_apply wp_raft_restore c _ _ _ sv cl Hrole Hvotes Hin Hscope
+    $$ [$Hphys $Hcs]
     as %b %s1 ⟨Hphys, %Hres⟩
-  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hm, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, rfl⟩
+  generalize Hc1 : restoreCfg c sv cl b = c1
+  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hm, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, il, rfl⟩
   · -- obsolete: acknowledge the commit index
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    wp_raft_log
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_raft_logC
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
-    wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
+    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
+      isplitr
+      · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
-    iapply HΦ
+    iapply HΦ $$ %_ %c1
     iframe Hphys
+    isplitr
+    · ipureintro
+      exact Or.inl ⟨Hst, rfl⟩
     ipureintro
-    exact Or.inl ⟨Hst, rfl⟩
+    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
+    exact Or.inr ⟨fun h => absurd Hst (Int.not_le.2 h.1), Hc1.symm⟩
   · -- fast-forward: acknowledge the new commit index, the snapshot's
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    wp_raft_log
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_raft_logC
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
-    wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
+    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
+      isplitr
+      · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
-    iapply HΦ
+    iapply HΦ $$ %_ %c1
     iframe Hphys
+    isplitr
+    · ipureintro
+      exact Or.inr (Or.inl ⟨Hlt, Hm, rfl⟩)
     ipureintro
-    exact Or.inr (Or.inl ⟨Hlt, Hm, rfl⟩)
+    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
+    exact Or.inr ⟨fun h => h.2 Hm, Hc1.symm⟩
   · -- a restore: acknowledge the new last index, the snapshot's
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    wp_raft_log
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_raft_logC
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     ihave Hphys := Hlogback $$ Hlog
     have Hli' : li = sv.Metadata'.Index' := by
@@ -125,16 +139,22 @@ theorem raft.handleSnapshot.wp_proof
       simp only [logRestore, List.length_nil, Int.natCast_zero, Int.add_zero] at Hli
       exact Hli
     subst Hli'
-    wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
+    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
+      isplitr
+      · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
-    iapply HΦ
+    iapply HΦ $$ %_ %c1
     iframe Hphys
+    isplitr
+    · ipureintro
+      exact Or.inr (Or.inr ⟨Hlt, Hnm, prs, pvs, il, rfl⟩)
     ipureintro
-    exact Or.inr (Or.inr ⟨Hlt, Hnm, prs, pvs, rfl⟩)
+    simp only [restoreCfg, ↓reduceIte] at Hc1
+    exact Or.inl ⟨⟨Hlt, Hnm⟩, Hc1.symm⟩
 
 end proof
 

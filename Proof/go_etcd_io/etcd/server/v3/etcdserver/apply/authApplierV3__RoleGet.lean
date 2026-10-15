@@ -51,7 +51,7 @@ theorem apply.authApplierV3.RoleGet.wp_proof :
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, -, -, #HResp, -⟩
   wp_auto
-  wp_apply HAdmin $$ [$Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI⟩
+  wp_apply HAdmin $$ [$Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI, -⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | nil =>

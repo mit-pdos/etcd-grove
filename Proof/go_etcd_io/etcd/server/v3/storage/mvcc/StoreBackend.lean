@@ -92,7 +92,7 @@ theorem mvcc.NewStore_backend
         (Val #le)) (Val #cfg))
     {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
         ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
-        mvcc.isStore s γ ∗ mvcc.hookIs γ Pk #f ∗
+        mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
         (∃ rv wv : Loc,
           s.[store, go!"ReadView"] ↦
             (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗

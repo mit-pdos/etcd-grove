@@ -21,11 +21,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem raft.pastElectionTimeout.wp_proof :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s
+  intro c r id s
   wp_start as Hphys
   wp_auto
-  wp_apply raft.wp_load_electionElapsed $$ Hphys as %v1 Hphys
-  wp_apply raft.wp_load_randomizedElectionTimeout $$ Hphys as %v2 Hphys
+  wp_apply raft.wp_load_electionElapsedC $$ Hphys as %v1 Hphys
+  wp_apply raft.wp_load_randomizedElectionTimeoutC $$ Hphys as %v2 Hphys
   iapply HΦ $$ Hphys
 
 end proof

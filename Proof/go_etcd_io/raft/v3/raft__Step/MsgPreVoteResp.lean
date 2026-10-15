@@ -7,7 +7,7 @@ in its own file so that they check in parallel. Proof structure, not specificati
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 -/
 module
 
@@ -34,37 +34,36 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 /-- `MsgPreVoteResp`: a rejection of a higher term steps the node down
-(`Step.higherTerm`); otherwise only a pre-candidate acts on it
-(`step_prevoteRespResult`); a stale one is dropped. -/
+(`StepC.higherTerm`); otherwise only a pre-candidate acts on it
+(`stepC_prevoteRespResult`); a stale one is dropped. -/
 theorem wp_Step_MsgPreVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
     m.Type' = MsgPreVoteResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
     -- a pre-candidate's term does not wrap (a won pre-vote campaigns)
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hnw Hcfg Hwf
+  intro Hty Hto Hterm Hnw Hwf
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgPreVoteResp_gt _P cfg r id s m ents Hty Hto Hterm Hgt Hnw Hcfg Hwf
+  · exact wp_Step_MsgPreVoteResp_gt _P c r id s m ents Hty Hto Hterm Hgt Hnw Hwf
   by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-  · exact wp_Step_MsgPreVoteResp_lt _P cfg r id s m ents Hty Hterm Hlt Hwf
+  · exact wp_Step_MsgPreVoteResp_lt _P c r id s m ents Hty Hterm Hlt Hwf
   have Heq : m.Term' = s.term := by word
-  exact wp_Step_MsgPreVoteResp_eq _P cfg r id s m ents Hty Hto Hterm Heq Hnw Hcfg Hwf
+  exact wp_Step_MsgPreVoteResp_eq _P c r id s m ents Hty Hto Hterm Heq Hnw Hwf
 
 end StepProof
 

@@ -1,0 +1,794 @@
+diff --git a/bootstrap.go b/bootstrap.go
+index 6f943fe..a6e2827 100644
+--- a/bootstrap.go
++++ b/bootstrap.go
+@@ -76,5 +76,14 @@ func (rn *RawNode) Bootstrap(peers []Peer) error {
+ 	for _, peer := range peers {
+ 		rn.raft.applyConfChange(pb.ConfChange{NodeId: peer.ID, Type: pb.ConfChangeAddNode}.AsV2())
+ 	}
++	// The configuration in use reflects these entries already: they are not
++	// conf changes the application has yet to apply (raft.confChangesToApply),
++	// whether or not it passes them to ApplyConfChange.
++	if rn.raft.trackConfChanges {
++		rn.raft.bootstrapLastIndex = uint64(len(ents))
++		for _, peer := range peers {
++			rn.raft.bootstrapConfChanges = append(rn.raft.bootstrapConfChanges, peer.ID)
++		}
++	}
+ 	return nil
+ }
+diff --git a/confchange_lag_test.go b/confchange_lag_test.go
+new file mode 100644
+index 0000000..264b944
+--- /dev/null
++++ b/confchange_lag_test.go
+@@ -0,0 +1,503 @@
++// Copyright 2026 The etcd Authors
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package raft
++
++// Tests of the guards against overlapping configuration changes when the
++// application lets the applied index run ahead of ApplyConfChange: it calls
++// Advance (or, with AsyncStorageWrites, delivers the MsgStorageApplyResp)
++// before it has called ApplyConfChange for the conf changes of that Ready,
++// which doc.go step 4 allows. The guards (hasUnappliedConfChanges, the leader's
++// pendingConfIndex check) must go by the conf changes actually applied, not by
++// the applied index: otherwise two entries can be committed at the same index
++// (TestConfChangeLagLeaderLag), and a node whose removal is committed can
++// campaign, be removed while a candidate, win, and panic in becomeLeader
++// (TestConfChangeLagRemovedCandidate).
++//
++// Everything goes through the public RawNode API and MemoryStorage; messages
++// are routed by hand.
++
++import (
++	"bytes"
++	"testing"
++
++	pb "go.etcd.io/raft/v3/raftpb"
++)
++
++type lagNode struct {
++	id      uint64
++	rn      *RawNode
++	st      *MemoryStorage
++	async   bool // AsyncStorageWrites
++	lagging bool // the applied index runs ahead of ApplyConfChange
++	// conf changes committed, Advanced past (or their MsgStorageApplyResp
++	// delivered), not yet passed to ApplyConfChange.
++	pendingCC []pb.ConfChangeI
++	committed map[uint64]pb.Entry // what the application was told is committed
++}
++
++type lagCluster struct {
++	t     *testing.T
++	nodes map[uint64]*lagNode
++	queue []pb.Message
++	drop  func(m pb.Message) bool // network partition (local messages are never dropped)
++}
++
++func newLagNode(t *testing.T, id uint64, voters []uint64, async, lagging bool) *lagNode {
++	st := NewMemoryStorage()
++	if len(voters) > 0 {
++		if err := st.ApplySnapshot(pb.Snapshot{Metadata: pb.SnapshotMetadata{
++			ConfState: pb.ConfState{Voters: voters},
++		}}); err != nil {
++			t.Fatal(err)
++		}
++	}
++	rn, err := NewRawNode(&Config{
++		ID:                 id,
++		ElectionTick:       10,
++		HeartbeatTick:      1,
++		Storage:            st,
++		MaxSizePerMsg:      noLimit,
++		MaxInflightMsgs:    256,
++		AsyncStorageWrites: async,
++		// The fix under test; set it to false to see the tests fail.
++		TrackConfChangeApplication: true,
++		Logger:                     discardLogger,
++	})
++	if err != nil {
++		t.Fatal(err)
++	}
++	return &lagNode{id: id, rn: rn, st: st, async: async, lagging: lagging, committed: map[uint64]pb.Entry{}}
++}
++
++func lagDecodeCC(t *testing.T, e pb.Entry) pb.ConfChangeI {
++	switch e.Type {
++	case pb.EntryConfChange:
++		var cc pb.ConfChange
++		if err := cc.Unmarshal(e.Data); err != nil {
++			t.Fatal(err)
++		}
++		return cc
++	case pb.EntryConfChangeV2:
++		var cc pb.ConfChangeV2
++		if err := cc.Unmarshal(e.Data); err != nil {
++			t.Fatal(err)
++		}
++		return cc
++	}
++	return nil
++}
++
++// apply records committed entries and applies (or, lagging, holds back) their
++// conf changes.
++func (c *lagCluster) apply(n *lagNode, ents []pb.Entry) {
++	for _, e := range ents {
++		if old, ok := n.committed[e.Index]; ok && (old.Term != e.Term || !bytes.Equal(old.Data, e.Data)) {
++			c.t.Fatalf("node %d: index %d committed twice differently", n.id, e.Index)
++		}
++		n.committed[e.Index] = e
++		if cc := lagDecodeCC(c.t, e); cc != nil {
++			if n.lagging {
++				n.pendingCC = append(n.pendingCC, cc)
++			} else {
++				n.rn.ApplyConfChange(cc)
++			}
++		}
++	}
++}
++
++func (c *lagCluster) persist(n *lagNode, hs pb.HardState, ents []pb.Entry, snap pb.Snapshot) {
++	if !IsEmptyHardState(hs) {
++		if err := n.st.SetHardState(hs); err != nil {
++			c.t.Fatal(err)
++		}
++	}
++	if !IsEmptySnap(snap) {
++		if err := n.st.ApplySnapshot(snap); err != nil {
++			c.t.Fatal(err)
++		}
++	}
++	if err := n.st.Append(ents); err != nil {
++		c.t.Fatal(err)
++	}
++}
++
++func (c *lagCluster) handleReady(n *lagNode) {
++	rd := n.rn.Ready()
++	if !n.async {
++		c.persist(n, rd.HardState, rd.Entries, rd.Snapshot)
++		c.queue = append(c.queue, rd.Messages...)
++		c.apply(n, rd.CommittedEntries)
++		n.rn.Advance(rd)
++		return
++	}
++	for _, m := range rd.Messages {
++		switch m.To {
++		case LocalAppendThread:
++			var snap pb.Snapshot
++			if m.Snapshot != nil {
++				snap = *m.Snapshot
++			}
++			c.persist(n, pb.HardState{Term: m.Term, Vote: m.Vote, Commit: m.Commit}, m.Entries, snap)
++			c.queue = append(c.queue, m.Responses...)
++		case LocalApplyThread:
++			// The apply thread applies the entries and delivers the
++			// MsgStorageApplyResp; a lagging application has its raft
++			// goroutine call ApplyConfChange only later.
++			c.apply(n, m.Entries)
++			c.queue = append(c.queue, m.Responses...)
++		default:
++			c.queue = append(c.queue, m)
++		}
++	}
++}
++
++func (c *lagCluster) stabilize() {
++	for i := 0; i < 10000; i++ {
++		progress := false
++		for id := uint64(1); id <= 4; id++ {
++			if n := c.nodes[id]; n != nil && n.rn.HasReady() {
++				c.handleReady(n)
++				progress = true
++			}
++		}
++		msgs := c.queue
++		c.queue = nil
++		for _, m := range msgs {
++			to := c.nodes[m.To]
++			local := IsLocalMsgTarget(m.From) || IsLocalMsgTarget(m.To)
++			if to == nil || (!local && c.drop(m)) {
++				continue
++			}
++			progress = true
++			_ = to.rn.Step(m)
++		}
++		if !progress {
++			return
++		}
++	}
++	c.t.Fatal("did not stabilize")
++}
++
++func (c *lagCluster) applyPending(id uint64) {
++	n := c.nodes[id]
++	for _, cc := range n.pendingCC {
++		n.rn.ApplyConfChange(cc)
++	}
++	n.pendingCC = nil
++}
++
++func (c *lagCluster) cfg(id uint64) string { return c.nodes[id].rn.Status().Config.String() }
++
++// checkCommitted fails if two nodes report different entries committed at the
++// same index.
++func (c *lagCluster) checkCommitted() {
++	for i, a := range c.nodes {
++		for j, b := range c.nodes {
++			if i >= j {
++				continue
++			}
++			for idx, ea := range a.committed {
++				if eb, ok := b.committed[idx]; ok && (ea.Term != eb.Term || !bytes.Equal(ea.Data, eb.Data)) {
++					c.t.Fatalf("SAFETY VIOLATION: index %d committed as %q (term %d) on node %d and as %q (term %d) on node %d",
++						idx, ea.Data, ea.Term, i, eb.Data, eb.Term, j)
++				}
++			}
++		}
++	}
++}
++
++func isolateFn(ids ...uint64) func(pb.Message) bool {
++	in := map[uint64]bool{}
++	for _, id := range ids {
++		in[id] = true
++	}
++	return func(m pb.Message) bool { return in[m.From] != in[m.To] }
++}
++
++func noDrop(pb.Message) bool { return false }
++
++// leaderLagSetup: C0 = {1,2,3}, node 1 leads term 1 and commits C1 = add 4
++// (index 2), its application holding back ApplyConfChange; node 1 proposes
++// C2 = remove 2.
++func leaderLagSetup(t *testing.T, async bool) *lagCluster {
++	c := &lagCluster{t: t, drop: noDrop, nodes: map[uint64]*lagNode{
++		1: newLagNode(t, 1, []uint64{1, 2, 3}, async, true),
++		2: newLagNode(t, 2, []uint64{1, 2, 3}, false, false),
++		3: newLagNode(t, 3, []uint64{1, 2, 3}, false, false),
++		// Node 4 joins starting from C0 (with an empty ConfState it would fold the
++		// conf changes onto an empty configuration and could win alone).
++		4: newLagNode(t, 4, []uint64{1, 2, 3}, false, false),
++	}}
++	if err := c.nodes[1].rn.Campaign(); err != nil {
++		t.Fatal(err)
++	}
++	c.stabilize()
++	if c.nodes[1].rn.BasicStatus().RaftState != StateLeader {
++		t.Fatal("node 1 is not leader")
++	}
++	if err := c.nodes[1].rn.ProposeConfChange(pb.ConfChange{Type: pb.ConfChangeAddNode, NodeId: 4}); err != nil {
++		t.Fatal(err)
++	}
++	c.stabilize()
++	if e := c.nodes[1].committed[2]; e.Type != pb.EntryConfChange || len(c.nodes[1].pendingCC) != 1 {
++		t.Fatalf("C1 not committed and held back at index 2: %+v", e)
++	}
++	if got := c.nodes[1].rn.raft.raftLog.applied; got != 2 {
++		t.Fatalf("node 1 applied index = %d, want 2 (ahead of ApplyConfChange)", got)
++	}
++	if err := c.nodes[1].rn.ProposeConfChange(pb.ConfChange{Type: pb.ConfChangeRemoveNode, NodeId: 2}); err != nil {
++		t.Fatal(err)
++	}
++	c.stabilize()
++	return c
++}
++
++// The leader-lag execution of issues/raft-advance-before-applyconfchange.md:
++// with the fix, C2 is refused (C1 is not applied to the leader's configuration),
++// so node 3 stays on {1,2,3,4} and cannot win with {3,4}.
++func TestConfChangeLagLeaderLag(t *testing.T) {
++	for _, async := range []bool{false, true} {
++		t.Run(map[bool]string{false: "sync", true: "async"}[async], func(t *testing.T) {
++			c := leaderLagSetup(t, async)
++			if e := c.nodes[1].committed[3]; e.Type != pb.EntryNormal || len(e.Data) != 0 {
++				t.Fatalf("C2 should have been refused (replaced by an empty normal entry), got %+v", e)
++			}
++			t.Logf("node 1 config %v (unapplied: %d); node 3 config %v", c.cfg(1), len(c.nodes[1].pendingCC), c.cfg(3))
++
++			c.drop = isolateFn(3, 4)
++			if err := c.nodes[1].rn.Propose([]byte("x")); err != nil {
++				t.Fatal(err)
++			}
++			c.stabilize()
++
++			c.drop = isolateFn(1, 2)
++			if err := c.nodes[3].rn.Campaign(); err != nil {
++				t.Fatal(err)
++			}
++			c.stabilize()
++			if st := c.nodes[3].rn.BasicStatus().RaftState; st == StateLeader {
++				t.Fatalf("node 3 won with {3,4} (config %v)", c.cfg(3))
++			}
++			c.applyPending(1)
++			c.checkCommitted()
++		})
++	}
++}
++
++// Liveness: once the lagging application applies C1, C2 is accepted and
++// commits; a lagging follower cannot campaign until it applies.
++func TestConfChangeLagLiveness(t *testing.T) {
++	for _, async := range []bool{false, true} {
++		t.Run(map[bool]string{false: "sync", true: "async"}[async], func(t *testing.T) {
++			c := leaderLagSetup(t, async)
++			c.nodes[2].lagging = true
++			c.applyPending(1)
++			if err := c.nodes[1].rn.ProposeConfChange(pb.ConfChange{Type: pb.ConfChangeRemoveNode, NodeId: 2}); err != nil {
++				t.Fatal(err)
++			}
++			c.stabilize()
++			if e := c.nodes[1].committed[4]; e.Type != pb.EntryConfChange {
++				t.Fatalf("C2 not accepted after C1 was applied: %+v", e)
++			}
++			c.applyPending(1)
++			if got, want := c.cfg(1), "voters=(1 3 4)"; got != want {
++				t.Fatalf("node 1 config %s, want %s", got, want)
++			}
++			// Node 2 (lagging) holds C2 = remove 2 back: it must not campaign.
++			if len(c.nodes[2].pendingCC) != 1 {
++				t.Fatalf("node 2 holds %d conf changes back, want 1", len(c.nodes[2].pendingCC))
++			}
++			term := c.nodes[2].rn.BasicStatus().Term
++			if err := c.nodes[2].rn.Campaign(); err != nil {
++				t.Fatal(err)
++			}
++			if bs := c.nodes[2].rn.BasicStatus(); bs.RaftState != StateFollower || bs.Term != term {
++				t.Fatalf("node 2 campaigned with an unapplied conf change: %v term %d", bs.RaftState, bs.Term)
++			}
++			c.checkCommitted()
++		})
++	}
++}
++
++// A lagging follower whose own removal is committed: without the fix it can
++// campaign, be removed while a candidate (ApplyConfChange), get the votes of
++// the remaining voters and panic in becomeLeader (no Progress for itself).
++func TestConfChangeLagRemovedCandidate(t *testing.T) {
++	for _, async := range []bool{false, true} {
++		t.Run(map[bool]string{false: "sync", true: "async"}[async], func(t *testing.T) {
++			c := &lagCluster{t: t, drop: noDrop, nodes: map[uint64]*lagNode{
++				1: newLagNode(t, 1, []uint64{1, 2, 3}, false, false),
++				2: newLagNode(t, 2, []uint64{1, 2, 3}, false, false),
++				3: newLagNode(t, 3, []uint64{1, 2, 3}, async, true),
++			}}
++			if err := c.nodes[1].rn.Campaign(); err != nil {
++				t.Fatal(err)
++			}
++			c.stabilize()
++			if err := c.nodes[1].rn.ProposeConfChange(pb.ConfChange{Type: pb.ConfChangeRemoveNode, NodeId: 3}); err != nil {
++				t.Fatal(err)
++			}
++			c.stabilize()
++			if len(c.nodes[3].pendingCC) != 1 || c.nodes[3].rn.raft.raftLog.applied != 2 {
++				t.Fatalf("node 3 should have Advanced past its removal without applying it")
++			}
++			if err := c.nodes[3].rn.Campaign(); err != nil {
++				t.Fatal(err)
++			}
++			if st := c.nodes[3].rn.BasicStatus().RaftState; st != StateFollower {
++				t.Fatalf("node 3 campaigned with its removal unapplied: %v", st)
++			}
++			c.applyPending(3) // node 3 is removed
++			if err := c.nodes[3].rn.Campaign(); err != nil {
++				t.Fatal(err)
++			}
++			c.stabilize() // no panic
++			if st := c.nodes[3].rn.BasicStatus().RaftState; st == StateLeader {
++				t.Fatal("removed node 3 became leader")
++			}
++			c.checkCommitted()
++		})
++	}
++}
++
++// Auto-leave: a leader that enters a joint configuration with auto-leave after
++// the applied index passed the entry still initiates the transition out of it
++// (from ApplyConfChange, since appliedTo saw the old configuration).
++func TestConfChangeLagAutoLeave(t *testing.T) {
++	c := &lagCluster{t: t, drop: noDrop, nodes: map[uint64]*lagNode{
++		1: newLagNode(t, 1, []uint64{1, 2, 3}, false, true),
++		2: newLagNode(t, 2, []uint64{1, 2, 3}, false, false),
++		3: newLagNode(t, 3, []uint64{1, 2, 3}, false, false),
++	}}
++	if err := c.nodes[1].rn.Campaign(); err != nil {
++		t.Fatal(err)
++	}
++	c.stabilize()
++	cc := pb.ConfChangeV2{Transition: pb.ConfChangeTransitionJointImplicit, Changes: []pb.ConfChangeSingle{
++		{Type: pb.ConfChangeRemoveNode, NodeId: 3},
++	}}
++	if err := c.nodes[1].rn.ProposeConfChange(cc); err != nil {
++		t.Fatal(err)
++	}
++	c.stabilize()
++	c.applyPending(1) // enters the joint config after Advance; proposes leaving it
++	c.stabilize()
++	c.applyPending(1) // leaves it
++	if got, want := c.cfg(1), "voters=(1 2)"; got != want {
++		t.Fatalf("node 1 config %s, want %s", got, want)
++	}
++	c.checkCommitted()
++}
++
++// Restart: the entries above the applied index are handed out again, and so is
++// a conf change among them; until the application has passed it to
++// ApplyConfChange again, the node does not campaign.
++func TestConfChangeLagRestart(t *testing.T) {
++	c := leaderLagSetup(t, false)
++	c.applyPending(1)
++	old := c.nodes[3]
++	rn, err := NewRawNode(&Config{
++		ID:                         3,
++		ElectionTick:               10,
++		HeartbeatTick:              1,
++		Storage:                    old.st,
++		MaxSizePerMsg:              noLimit,
++		MaxInflightMsgs:            256,
++		Logger:                     discardLogger,
++		TrackConfChangeApplication: true,
++	})
++	if err != nil {
++		t.Fatal(err)
++	}
++	n := &lagNode{id: 3, rn: rn, st: old.st, lagging: true, committed: map[uint64]pb.Entry{}}
++	c.nodes[3] = n
++	c.drop = isolateFn(3) // node 3 is cut off
++	c.stabilize()         // node 3 replays its log, C1 = add 4 among it
++	if len(n.pendingCC) != 1 {
++		t.Fatalf("node 3 replayed %d conf changes, want 1", len(n.pendingCC))
++	}
++	if err := n.rn.Campaign(); err != nil {
++		t.Fatal(err)
++	}
++	if st := n.rn.BasicStatus().RaftState; st != StateFollower {
++		t.Fatalf("node 3 campaigned with a replayed conf change unapplied: %v", st)
++	}
++	c.applyPending(3)
++	if err := n.rn.Campaign(); err != nil {
++		t.Fatal(err)
++	}
++	if st := n.rn.BasicStatus().RaftState; st != StateCandidate {
++		t.Fatalf("node 3 cannot campaign after applying the replayed conf change: %v", st)
++	}
++}
++
++// A snapshot restored while the application is still applying the previous
++// Ready (node.run steps messages while it waits for Advance): the application's
++// ApplyConfChange call for that Ready's conf change is ignored, since the
++// snapshot's configuration reflects it already. Without tracking it is applied
++// on top of the snapshot's configuration: voters=(1 2 3 4) below, and a panic
++// ("config is already joint") for a joint configuration.
++func TestConfChangeLagSnapshotDuringApply(t *testing.T) {
++	enterJoint := pb.ConfChangeV2{Transition: pb.ConfChangeTransitionJointExplicit,
++		Changes: []pb.ConfChangeSingle{{Type: pb.ConfChangeAddNode, NodeId: 4}}}
++	for _, tt := range []struct {
++		name string
++		cc   pb.ConfChangeI
++		snap pb.ConfState // at index 3, after the conf change at index 1
++	}{
++		{"simple", pb.ConfChange{Type: pb.ConfChangeAddNode, NodeId: 4}, pb.ConfState{Voters: []uint64{1, 2, 3}}},
++		{"joint", enterJoint, pb.ConfState{Voters: []uint64{1, 2, 3, 4}, VotersOutgoing: []uint64{1, 2, 3}}},
++	} {
++		t.Run(tt.name, func(t *testing.T) {
++			n := newLagNode(t, 2, []uint64{1, 2, 3}, false, false)
++			ent := pb.Entry{Term: 1, Index: 1, Type: pb.EntryConfChange}
++			var err error
++			if v1, ok := tt.cc.(pb.ConfChange); ok {
++				ent.Data, err = v1.Marshal()
++			} else {
++				ent.Type = pb.EntryConfChangeV2
++				v2 := tt.cc.AsV2()
++				ent.Data, err = v2.Marshal()
++			}
++			if err != nil {
++				t.Fatal(err)
++			}
++			if err := n.rn.Step(pb.Message{From: 1, To: 2, Term: 1, Type: pb.MsgApp,
++				Entries: []pb.Entry{ent}, Commit: 1}); err != nil {
++				t.Fatal(err)
++			}
++			rd := n.rn.Ready()
++			if len(rd.CommittedEntries) != 1 {
++				t.Fatalf("expected the conf change committed, got %+v", rd.CommittedEntries)
++			}
++			if err := n.st.SetHardState(rd.HardState); err != nil {
++				t.Fatal(err)
++			}
++			if err := n.st.Append(rd.Entries); err != nil {
++				t.Fatal(err)
++			}
++			snap := pb.Snapshot{Metadata: pb.SnapshotMetadata{Index: 3, Term: 1, ConfState: tt.snap}}
++			if err := n.rn.Step(pb.Message{From: 1, To: 2, Term: 1, Type: pb.MsgSnap, Snapshot: &snap}); err != nil {
++				t.Fatal(err)
++			}
++			want := n.rn.Status().Config.String()
++			n.rn.ApplyConfChange(tt.cc) // the application finishes applying the entry
++			n.rn.Advance(rd)
++			if got := n.rn.Status().Config.String(); got != want {
++				t.Fatalf("configuration %s after the stale conf change, want the snapshot's %s", got, want)
++			}
++		})
++	}
++}
+diff --git a/doc.go b/doc.go
+index 78b4eab..9329975 100644
+--- a/doc.go
++++ b/doc.go
+@@ -100,7 +100,10 @@ the observed health of the node).
+ 
+ 4. Call Node.Advance() to signal readiness for the next batch of updates.
+ This may be done at any time after step 1, although all updates must be processed
+-in the order they were returned by Ready.
++in the order they were returned by Ready. However, unless
++Config.TrackConfChangeApplication is set, the configuration changes of step 3
++must have been applied (ApplyConfChange) before Advance: raft's guards against
++overlapping configuration changes go by the applied index, which Advance moves.
+ 
+ Second, all persisted log entries must be made available via an
+ implementation of the Storage interface. The provided MemoryStorage
+diff --git a/node.go b/node.go
+index e2a261c..596a7ec 100644
+--- a/node.go
++++ b/node.go
+@@ -172,6 +172,9 @@ type Node interface {
+ 	// commands. For example. when the last Ready contains a snapshot, the application might take
+ 	// a long time to apply the snapshot data. To continue receiving Ready without blocking raft
+ 	// progress, it can call Advance before finishing applying the last ready.
++	// Unless Config.TrackConfChangeApplication is set, this does not extend to
++	// configuration changes: those of the last Ready must have been passed to
++	// ApplyConfChange before Advance.
+ 	//
+ 	// NOTE: Advance must not be called when using AsyncStorageWrites. Response messages from the
+ 	// local append and apply threads take its place.
+@@ -180,7 +183,10 @@ type Node interface {
+ 	// ProposeConfChange) to the node. This must be called whenever a config
+ 	// change is observed in Ready.CommittedEntries, except when the app decides
+ 	// to reject the configuration change (i.e. treats it as a noop instead), in
+-	// which case it must not be called.
++	// which case it must not be called (or, with
++	// Config.TrackConfChangeApplication, it is called with the NodeId set to
++	// zero). Unless Config.TrackConfChangeApplication is set, it must be called
++	// for the conf changes of a Ready before Advance.
+ 	//
+ 	// Returns an opaque non-nil ConfState protobuf which must be recorded in
+ 	// snapshots.
+diff --git a/raft.go b/raft.go
+index 5164c16..70ca957 100644
+--- a/raft.go
++++ b/raft.go
+@@ -284,6 +284,28 @@ type Config struct {
+ 	// https://github.com/etcd-io/raft/issues/83
+ 	StepDownOnRemoval bool
+ 
++	// TrackConfChangeApplication makes raft track which committed conf change
++	// entries the application has passed to ApplyConfChange, and use that
++	// instead of the applied index in the guards against overlapping
++	// configuration changes: a node does not campaign while a committed conf
++	// change has not been passed to ApplyConfChange, and a leader does not
++	// accept a conf change proposal while one of its log's conf changes has
++	// not. Without it, an application that calls Advance (or delivers the
++	// MsgStorageApplyResp, with AsyncStorageWrites) before ApplyConfChange for
++	// the conf changes of a Ready -- which the documentation allows -- lets a
++	// node act on a configuration older than the one its guards assume, and
++	// two different entries can be committed at the same index.
++	//
++	// With it, the application must call ApplyConfChange exactly once for
++	// every conf change entry above Config.Applied that it receives in
++	// Ready.CommittedEntries (or MsgStorageApply), in log order, including
++	// those it rejects or whose effect its restored ConfState already reflects:
++	// for these, it passes a ConfChange whose NodeId is zero, which raft
++	// ignores. (The entries appended by Bootstrap/StartNode may be skipped.)
++	// A conf change entry never passed to ApplyConfChange blocks campaigning
++	// and further conf changes.
++	TrackConfChangeApplication bool
++
+ 	// raft state tracer
+ 	TraceLogger TraceLogger
+ }
+@@ -388,6 +410,34 @@ type raft struct {
+ 	// be proposed if the leader's applied index is greater than this
+ 	// value.
+ 	pendingConfIndex uint64
++	// confChangesToApply holds, in log order, the indexes of the conf change
++	// entries that were handed to the application (in Ready.CommittedEntries,
++	// or MsgStorageApply with AsyncStorageWrites) and for which ApplyConfChange
++	// has not been called yet. The configuration in use (r.trk.Config) reflects
++	// every conf change entry up to confApplied(), and no later one.
++	//
++	// The applied index alone does not tell this: it moves on Advance (or on
++	// MsgStorageApplyResp), which the application may deliver before it calls
++	// ApplyConfChange for the entries of that Ready. The guards against
++	// overlapping configuration changes (hasUnappliedConfChanges and the
++	// leader's pendingConfIndex check) therefore use confApplied().
++	confChangesToApply []uint64
++	// trackConfChanges is Config.TrackConfChangeApplication: whether
++	// confChangesToApply is maintained (otherwise it stays empty).
++	trackConfChanges bool
++	// confRestoredIndex is the index of the last snapshot restored (raft.restore)
++	// while tracking: an ApplyConfChange call for a conf change entry at or below
++	// it is ignored, since the snapshot's configuration already reflects it.
++	confRestoredIndex uint64
++	// bootstrapLastIndex is the index of the last conf change entry appended
++	// and applied by RawNode.Bootstrap (zero if there was none). These entries
++	// are never added to confChangesToApply.
++	bootstrapLastIndex uint64
++	// bootstrapConfChanges holds the node IDs added by the bootstrap entries for
++	// which the application has not called ApplyConfChange (if it does: it
++	// may also never pass them to ApplyConfChange, which then does nothing for
++	// them; a call that is not for the next of them shows that it skips them).
++	bootstrapConfChanges []uint64
+ 	// disableConfChangeValidation is Config.DisableConfChangeValidation,
+ 	// see there for details.
+ 	disableConfChangeValidation bool
+@@ -461,6 +511,7 @@ func newRaft(c *Config) *raft {
+ 		disableProposalForwarding:   c.DisableProposalForwarding,
+ 		disableConfChangeValidation: c.DisableConfChangeValidation,
+ 		stepDownOnRemoval:           c.StepDownOnRemoval,
++		trackConfChanges:            c.TrackConfChangeApplication,
+ 		traceLogger:                 c.TraceLogger,
+ 	}
+ 
+@@ -736,8 +787,24 @@ func (r *raft) appliedTo(index uint64, size entryEncodingSize) {
+ 	oldApplied := r.raftLog.applied
+ 	newApplied := max(index, oldApplied)
+ 	r.raftLog.appliedTo(newApplied, size)
++	r.maybeAutoLeave()
++}
+ 
+-	if r.trk.Config.AutoLeave && newApplied >= r.pendingConfIndex && r.state == StateLeader {
++// confApplied returns the index up to which the configuration in use reflects
++// the log's conf change entries: the applied index, or less when a conf change
++// entry at or below it has not been passed to ApplyConfChange yet.
++func (r *raft) confApplied() uint64 {
++	if len(r.confChangesToApply) > 0 && r.confChangesToApply[0] <= r.raftLog.applied {
++		return r.confChangesToApply[0] - 1
++	}
++	return r.raftLog.applied
++}
++
++// maybeAutoLeave proposes leaving the current joint configuration if it
++// should be auto-left and every conf change entry of the leader's log has
++// been applied to it.
++func (r *raft) maybeAutoLeave() {
++	if r.trk.Config.AutoLeave && r.confApplied() >= r.pendingConfIndex && r.state == StateLeader {
+ 		// If the current (and most recent, at least for this leader's term)
+ 		// configuration should be auto-left, initiate that now. We use a
+ 		// nil Data which unmarshals into an empty ConfChangeV2 and has the
+@@ -988,6 +1055,13 @@ func (r *raft) hup(t CampaignType) {
+ var errBreak = errors.New("break")
+ 
+ func (r *raft) hasUnappliedConfChanges() bool {
++	if len(r.confChangesToApply) > 0 {
++		// A committed conf change was handed to the application and has not
++		// been passed to ApplyConfChange yet (possibly although Advance moved
++		// the applied index past it): the configuration in use is not that of
++		// the committed log.
++		return true
++	}
+ 	if r.raftLog.applied >= r.raftLog.committed { // in fact applied == committed
+ 		return false
+ 	}
+@@ -1310,13 +1384,13 @@ func stepLeader(r *raft, m pb.Message) error {
+ 				cc = ccc
+ 			}
+ 			if cc != nil {
+-				alreadyPending := r.pendingConfIndex > r.raftLog.applied
++				alreadyPending := r.pendingConfIndex > r.confApplied()
+ 				alreadyJoint := len(r.trk.Config.Voters[1]) > 0
+ 				wantsLeaveJoint := len(cc.AsV2().Changes) == 0
+ 
+ 				var failedCheck string
+ 				if alreadyPending {
+-					failedCheck = fmt.Sprintf("possible unapplied conf change at index %d (applied to %d)", r.pendingConfIndex, r.raftLog.applied)
++					failedCheck = fmt.Sprintf("possible unapplied conf change at index %d (applied to %d)", r.pendingConfIndex, r.confApplied())
+ 				} else if alreadyJoint && !wantsLeaveJoint {
+ 					failedCheck = "must transition out of joint config first"
+ 				} else if !alreadyJoint && wantsLeaveJoint {
+@@ -1922,6 +1996,7 @@ func (r *raft) restore(s pb.Snapshot) bool {
+ 	}
+ 
+ 	assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))
++	r.confRestoredIndex = s.Metadata.Index
+ 
+ 	last := r.raftLog.lastEntryID()
+ 	r.logger.Infof("%x [commit: %d, lastindex: %d, lastterm: %d] restored snapshot [index: %d, term: %d]",
+@@ -1937,6 +2012,36 @@ func (r *raft) promotable() bool {
+ }
+ 
+ func (r *raft) applyConfChange(cc pb.ConfChangeV2) pb.ConfState {
++	// This call applies the oldest conf change entry handed to the application
++	// and not yet applied (the application applies them in log order).
++	var index uint64
++	forBootstrap := false
++	if len(r.bootstrapConfChanges) > 0 {
++		if len(cc.Changes) == 1 && cc.Changes[0].Type == pb.ConfChangeAddNode &&
++			cc.Changes[0].NodeId == r.bootstrapConfChanges[0] {
++			// The application applies a bootstrap entry (already applied by
++			// Bootstrap): not one of confChangesToApply.
++			r.bootstrapConfChanges = r.bootstrapConfChanges[1:]
++			forBootstrap = true
++		} else {
++			// The application does not pass the bootstrap entries to
++			// ApplyConfChange: this call is for a later entry.
++			r.bootstrapConfChanges = nil
++		}
++	}
++	if !forBootstrap && len(r.confChangesToApply) > 0 {
++		index = r.confChangesToApply[0]
++		r.confChangesToApply = r.confChangesToApply[1:]
++	}
++	if index != 0 && index <= r.confRestoredIndex {
++		// A snapshot restored since this entry was handed to the application
++		// carries a configuration that already reflects it (and possibly later
++		// changes): applying it on top would make the configuration in use
++		// that of no log prefix.
++		r.logger.Infof("%x ignoring conf change at index %d, superseded by the snapshot at index %d",
++			r.id, index, r.confRestoredIndex)
++		return r.trk.ConfState()
++	}
+ 	cfg, trk, err := func() (tracker.Config, tracker.ProgressMap, error) {
+ 		changer := confchange.Changer{
+ 			Tracker:   r.trk,
+@@ -1955,7 +2060,14 @@ func (r *raft) applyConfChange(cc pb.ConfChangeV2) pb.ConfState {
+ 		panic(err)
+ 	}
+ 
+-	return r.switchToConfig(cfg, trk)
++	cs := r.switchToConfig(cfg, trk)
++	if index != 0 && index <= r.raftLog.applied {
++		// The applied index already moved past this entry (Advance, or
++		// MsgStorageApplyResp, came first), so appliedTo could not initiate
++		// the transition out of a joint configuration it enters: do it now.
++		r.maybeAutoLeave()
++	}
++	return cs
+ }
+ 
+ // switchToConfig reconfigures this node to use the provided configuration. It
+diff --git a/rawnode.go b/rawnode.go
+index a4da2ae..c151f64 100644
+--- a/rawnode.go
++++ b/rawnode.go
+@@ -108,7 +108,12 @@ func (rn *RawNode) ProposeConfChange(cc pb.ConfChangeI) error {
+ 
+ // ApplyConfChange applies a config change to the local node. The app must call
+ // this when it applies a configuration change, except when it decides to reject
+-// the configuration change, in which case no call must take place.
++// the configuration change, in which case no call must take place (or, with
++// Config.TrackConfChangeApplication, a call with the NodeId set to zero).
++//
++// Unless Config.TrackConfChangeApplication is set, the conf changes of a Ready
++// must be applied before Advance is called for it (with AsyncStorageWrites,
++// before its MsgStorageApplyResp is stepped).
+ func (rn *RawNode) ApplyConfChange(cc pb.ConfChangeI) *pb.ConfState {
+ 	cs := rn.raft.applyConfChange(cc.AsV2())
+ 	return &cs
+@@ -437,6 +442,12 @@ func (rn *RawNode) acceptReady(rd Ready) {
+ 		ents := rd.CommittedEntries
+ 		index := ents[len(ents)-1].Index
+ 		rn.raft.raftLog.acceptApplying(index, entsSize(ents), rn.applyUnstableEntries())
++		for i := 0; rn.raft.trackConfChanges && i < len(ents); i++ {
++			if (ents[i].Type == pb.EntryConfChange || ents[i].Type == pb.EntryConfChangeV2) &&
++				ents[i].Index > rn.raft.bootstrapLastIndex {
++				rn.raft.confChangesToApply = append(rn.raft.confChangesToApply, ents[i].Index)
++			}
++		}
+ 	}
+ 
+ 	traceReady(rn.raft)

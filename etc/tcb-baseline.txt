@@ -97,6 +97,7 @@ axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom gogoproto.Equal.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.Peer.wp_proof
@@ -136,6 +137,11 @@ axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
+axiom raftpb.ConfChange.Marshal.wp_proof
+axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
+axiom raftpb.ConfChangeV2.Marshal.wp_proof
+axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom reflect.ValueOf.wp_proof

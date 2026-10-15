@@ -12,7 +12,7 @@ moved out of the top-level directory).
 
 Lean notes: the branch lemma takes the callee specs (Rocq's functor argument
 `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-section variable `cfg` as its second.
+section variable `c` as its second.
 -/
 module
 
@@ -43,7 +43,7 @@ Like the other branch lemmas this is ghost-free: it establishes the `Step` witne
 pure fact, and `raft.Step.wp_proof` turns them into the single `ownRaftGhost_step` of
 the whole development. -/
 theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
     m.Type' = MsgHup →
     m.Term' = W64 0 →
     -- an election increments the term; `send` panics if that wraps to zero
@@ -51,12 +51,12 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `r.step` matches the role
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -73,24 +73,35 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;
   -- `hup`'s spec covers both
-  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
+  -- (2026-10-14, stage B7) the log facts the campaign guard reads on the full log
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
+  icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
+  icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hlnw, Hlog⟩
+  ihave Hphys := Hback $$ Hlog
+  have Hlogf : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
+      uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64 :=
+    ⟨Hcm.2, Hcm.1.2.1, by have := Hcm.1.2.2; omega⟩
   -- `hup(campaignPreElection)` exactly when `r.preVote`
   cases Hpv : s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup cfg r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
-      as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2, %Hpv', %Hg'⟩
+    wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
+      as %s' ⟨Hphys, %Hok⟩
     case Hpvt =>
       first
         | exact fun _ => Hpv
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignPreElection] at this
+    have HCD := stepCD_hup (m := m) Hok Hnowrap Hlogf
+    obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
-      fun h _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _⟩
+    exact ⟨Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
+      fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
+      fun h => absurd (Hty.symm.trans h) (by w32_ne)⟩
 
 end StepProof
 

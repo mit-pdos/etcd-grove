@@ -53,10 +53,10 @@ theorem apply.uberApplier.Alarm.wp_proof
     · iframe #
       iexact Ha
     iunfold apply.uberOwn at Hown
-    icases Hown with ⟨%a', Ha', #Hs''⟩
+    icases Hown with ⟨%a', Ha', #Hs'', -⟩
     iapply HΦ
     iframe Hpost HeI
-    iexists a', (apply.alarmChain ns cr)
+    iexists a', (apply.alarmChain E.authOn ns cr)
     iframe Ha' Hs''
     ipureintro; right; exact ⟨ns, cr, rfl⟩
   wp_if_destruct
@@ -65,10 +65,10 @@ theorem apply.uberApplier.Alarm.wp_proof
     · iframe #
       iexact Ha
     iunfold apply.uberOwn at Hown
-    icases Hown with ⟨%a', Ha', #Hs''⟩
+    icases Hown with ⟨%a', Ha', #Hs'', -⟩
     iapply HΦ
     iframe Hpost HeI
-    iexists a', (apply.alarmChain ns cr)
+    iexists a', (apply.alarmChain E.authOn ns cr)
     iframe Ha' Hs''
     ipureintro; right; exact ⟨ns, cr, rfl⟩
   · -- `GET` (or another action): the chain as it is

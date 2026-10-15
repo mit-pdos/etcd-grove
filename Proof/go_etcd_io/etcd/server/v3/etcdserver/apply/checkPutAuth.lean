@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkPutAuth.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.checkPutAuth.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD ai info dq r o
+  intro st le γ P f RD on ai info dq r o
   wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hr⟩
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
@@ -39,37 +39,37 @@ theorem apply.checkPutAuth.wp_proof
   icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, #HL, #HPK, -, -, -, -, %Hkb⟩
   wp_auto
   rw [Hsti]
-  wp_apply HPut $$ [$Hai $Hk $Hrd] as %err ⟨Hai, -, Hrd, #HeI1⟩
+  wp_apply HPut $$ [$Hai $Hk $Hrd] as %err ⟨Hai, -, Hrd, #HeI1, %Hoff1⟩
   · ipureintro; exact Hkb
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
   | nil =>
   wp_auto
   rw [← Hsti]
-  wp_apply (hLP st le γ P f RD ai info dq lease) $$ [$Hst $Hle $Hai $Hrd] as %err ⟨Hai, Hrd, #HeI2⟩
+  wp_apply (hLP st le γ P f RD on ai info dq lease) $$ [$Hst $Hle $Hai $Hrd] as %err ⟨Hai, Hrd, #HeI2, %Hoff2⟩
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
   | nil =>
   wp_auto
   cases pk
   · wp_auto
-    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
   wp_auto
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   rw [Hsti]
-  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil Hrd] as %err ⟨Hai, -, -, Hrd, #HeI3⟩
+  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil Hrd] as %err ⟨Hai, -, -, Hrd, #HeI3, %Hoff3⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
   | nil =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; isplitl []; (first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil); (ipureintro; first | (intro _; rfl) | (intro h; exact Hoff3 h) | (intro h; exact Hoff2 h) | (intro h; exact Hoff1 h))
 
 end proof
 

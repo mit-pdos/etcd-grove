@@ -55,14 +55,18 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
+  have wp_confchange_Restore := confchange.Restore.spec_simple wp_confchange_Restore
+  have wp_assertConfStatesEquivalent := assertConfStatesEquivalent.spec_simple wp_assertConfStatesEquivalent
   intro c cv lok si σ hs cs voters dqv
-    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
+    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
-  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW⟩ := Hpres
+  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO, HpDCC,
+    HpSDR⟩ :=
+    Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
     rw [HpMC]
@@ -75,46 +79,50 @@ theorem newRaft.wp_proof
     · rename_i Hz
       have : uint.Z cv.MaxCommittedSizePerReady' ≠ 0 := fun H0 => Hz (by word)
       word
-  wp_apply wp_newLogWithSize _ _ _ _ lok Hidx Hncc Hss Hpe rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
+  wp_apply wp_newLogWithSize _ _ _ _ lok Hidx Hss Hpe rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
     as %l %ip ⟨%Hip0, HSto, HLback⟩
   rw [HpSt, Hsto]
   wp_apply HInit $$ [$HSto] as HSto Hvoters
   ihave HL := HLback $$ HSto
   wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
-  wp_apply wp_newReadOnly as %ro Hro
+  wp_apply wp_newReadOnly _ (HpRO.trans Hros) as %ro Hro
   wp_apply wp_traceInitState
   wp_apply wp_raftLog_lastEntryID $$ [$HL] as %lastID ⟨HL, -⟩
   have Hmi : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
     rw [Htv0mi, HpMI]; omega
   ipersist Hprs0
-  wp_apply wp_confchange_Restore ⟨tv0, lastID.index'⟩ _ voters dqv v0 Hvne Hv0 Hcs1 Hcs2 Hcs3
-    Hmi Htv0arr Htv0l Htv0ln $$ [$Hvoters $Hv0 $Hprs0]
-    as %cfgv %prsm %prs %vref %vm ⟨Hvoters, Hv0, -, %Hcfgv, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
-  obtain ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal⟩ := Hcfgv
+  ihave #Hl0 : ownIdList (GF := GF) cs.Learners' DFrac.discard [] $$ []
+  · unfold ownIdList; ileft; ipureintro; exact ⟨Hcs2, rfl⟩
+  wp_apply wp_confchange_Restore ⟨tv0, lastID.index'⟩ _ voters [] dqv DFrac.discard v0 Hvne Hv0
+    (by simp) (by simp) Hcs1 Hcs3 Hmi Htv0arr Htv0l Htv0ln Htv0al $$ [$Hvoters $Hl0 $Hv0 $Hprs0]
+    as %cfgv %prsm %prs %vref %vm ⟨Hvoters, -, Hv0, -, %Hcfgv, Hlm, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
+  obtain ⟨Hcfgarr, Hcfgln, Hcfgal⟩ := Hcfgv
+  have Hprs' : domSet prs = GMap.listToSet voters := by
+    rw [Hprs]; exact GMap.map_union_empty _
   -- the struct, over the empty configuration: its tracker is the empty
   -- one `MakeProgressTracker` built, and its log is at the state
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
   -- empty.
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
-    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si⟩
+    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
-    cv.PreVote', {}⟩
+    cv.PreVote', {}, {}, W64 0, W64 0, false, cv'.StepDownOnRemoval'⟩
   ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
-  ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil $$ [Hro]
+  ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
   · unfold ownRaftMisc
-    iexists _
     simp only [named]
-    iframe Hro
     isplitr
     · iapply ownSlice_nil
     isplitr
     · iapply ownSliceCap_nil
+    isplitl [Hro]
+    · iexact Hro
     isplitr
-    · ipureintro; rfl
+    · rw [List.map_nil]; iapply ownSlice_nil
     isplitr
-    · iapply ownSlice_nil
-    iapply ownSliceCap_nil
+    · iapply ownSliceCap_nil
+    iapply (BigSepL.bigSepL_nil).2; iempintro
   ihave Hnil1 := ownSlice_nil (V := raftpb.Message) (GF := GF) (DFrac.own 1)
   ihave Hnil2 := ownSlice_nil (V := raftpb.Message) (GF := GF) (DFrac.own 1)
   ihave Hcap1 := ownSliceCap_nil (V := raftpb.Message) (GF := GF)
@@ -122,39 +130,41 @@ theorem newRaft.wp_proof
   ihave Hob := outboxRel_nil (GF := GF)
   imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   ihave Hphys := ownRaftPhys_intro ∅ «$r0_ptr» cv.ID' s0 _ [] [] lok
-    HpID rfl rfl rfl rfl rfl HpPV (by rw [HpDPF, Hdpf]) (by rw [HpCQ, Hcq]) rfl rfl HvID
+    HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s0]; decide)⟩ (by rw [HpDPF, Hdpf]) (by rw [HpDCC, Hdccv]) (by rw [HpCQ, Hcq]) rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
+    (fun h => absurd rfl h)
     $$ «$r0» Hlg0 Htrk0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob
   -- the configuration `Restore` built, as `switchToConfig` installs it
   ipersist Hprsm
   ihave %Hvlen := ownSlice_len $$ Hvoters
   have Hcsz : (GMap.size (GMap.listToSet voters) : Int) ≤ 2 ^ 62 := by
     rw [GMap.size_list_to_set _ Hvnd]; exact Hvlen62
-  ihave Hcfg : ownConfig (GF := GF) (GMap.listToSet voters) cfgv prsm prs $$ [Hvref Hprogs]
-  · unfold ownConfig
-    iexists vref, vm
-    simp only [named]
-    iframe Hvref Hprsm Hprogs
-    ipureintro
-    exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcsz⟩
-  wp_apply wp_raft_switchToConfig _ _ _ _ s0 cfgv prsm prs (by simp only [s0]; decide) $$ [$Hphys $Hcfg]
+  ihave Hcfg := ownConfig_restore (GF := GF) (GMap.listToSet voters) (GMap.listToSet []) cfgv
+    prsm prs vref vm Hcfgarr Hcfgln Hcfgal Hvm Hprs
+    (fun k hk => absurd hk (GMap.not_elem_of_empty _))
+    (by rw [show GMap.listToSet ([] : List w64) = ∅ from rfl, GMap.map_union_empty]; exact Hcsz)
+    $$ Hvref Hlm Hprsm Hprogs
+  wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ s0 cfgv prsm prs (by simp only [s0]) Hprs' $$ [$Hphys $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
   obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
   have Hperm : voters ≡ₚ xs2 := by
     refine List.Perm.trans ?_ Hxs2.symm
     refine (List.perm_ext_iff_of_nodup Hvnd (GMap.NoDup_elements _)).2 ?_
     intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
-  wp_apply wp_assertConfStatesEquivalent _ cs cs2 voters xs2 dqv (DFrac.own 1)
-    Hperm Hvlen62 Hcs1 Hcs2 Hcs3 Hc2a Hc2b Hc2c (by rw [Hal, Hc2al]) $$ [$Hvoters $Hcs2v]
-    as ⟨Hvoters, Hcs2v⟩
+  ihave #Hl2 : ownIdList (GF := GF) cs2.Learners' DFrac.discard [] $$ []
+  · unfold ownIdList; ileft; ipureintro; exact ⟨Hc2b, rfl⟩
+  wp_apply wp_assertConfStatesEquivalent _ cs cs2 voters xs2 [] [] dqv (DFrac.own 1)
+    DFrac.discard DFrac.discard
+    Hperm Hvlen62 (List.Perm.refl _) (by simp) Hcs1 Hcs3 Hc2a Hc2c (by rw [Hal, Hc2al])
+    $$ [$Hvoters $Hcs2v $Hl0 $Hl2] as ⟨Hvoters, Hcs2v, -, -⟩
   -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
   -- same struct state `s1` and log state `ls1`, so the rest of the proof
   -- is done once, for both.
   let ls1 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, σ.prev.index', none, ip,
     σ.prev.index', [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si⟩
+    interface.ok si, initKsn σ⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hs ∗
@@ -197,7 +207,7 @@ theorem newRaft.wp_proof
   let ap : w64 := if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied'
   let ls2 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, ap, none, ip,
     w64Max σ.prev.index' ap, [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si⟩
+    interface.ok si, initKsn σ⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
   wp_join iprop(ownRaftPhys (listToSet voters) «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
@@ -223,12 +233,12 @@ theorem newRaft.wp_proof
     simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+  wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
     as %pvs3 Hphys
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
-  wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
+  wp_apply (tracker.ProgressTracker.VoterNodes.spec_simple wp_ProgressTracker_VoterNodes) $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
   ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
   -- the log line's `nodesStrs` loop; what it builds is never read
   ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),
@@ -295,7 +305,7 @@ theorem newRaft.wp_proof
   -- vote: the state is the persisted `HardState`'s
   ipureintro
   refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-    rfl⟩
+    rfl, rfl, rfl, HpSDR, Hprs'⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl

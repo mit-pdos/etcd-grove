@@ -118,8 +118,8 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     iright
     iframe Hv
     ipureintro
-    refine ⟨Herr.1, Herr.2, ?_⟩
-    have H := congrArg entryID.index' Herr.2
+    refine ⟨Herr.1, Herr.2.1, ?_, Herr.2.2⟩
+    have H := congrArg entryID.index' Herr.2.1
     simp only [snapId] at H
     rw [H]; exact Hss
   isplitr

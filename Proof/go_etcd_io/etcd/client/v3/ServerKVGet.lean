@@ -272,7 +272,8 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     iexact H0
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
   iapply (v3.kv.wp_Get api addr todoCtxVal cd key sl gs R (etcdRangeSpec E γr cid mid)
-    (rangeReplyOk E γr (W64 0) F (rangeWireOf (opGetModel key gs)) cid mid)) $$ [HR]
+    (rangeReplyOk E γr (W64 0) F (rangeWireOf (opGetModel key gs)) cid mid (fun _ => iprop(True))))
+    $$ [HR]
   · iframe #
     iframe
     isplitl []
@@ -280,8 +281,10 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     imodintro
     inext
     unfold etcdRangeSpec
-    iexists (W64 0), F
+    iexists (W64 0), F, (fun _ => iprop(True))
     iframe #
+    isplitr
+    · ileft; ipureintro; rfl
     iintro %m Hm
     iexact Hm
   inext

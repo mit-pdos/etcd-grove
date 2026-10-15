@@ -31,7 +31,7 @@ theorem EtcdServer.setTerm.wp_proof :
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   iunfold srvAtomics at Hat
-  icases Hat with ⟨#Hai, #Ht⟩
+  icases Hat with ⟨#Hai, #Ht, -⟩
   wp_auto
   wp_apply_core sync.atomic.Uint64.wp_Store (srvTermAddr s) v $$ [] [HΦ]
   · iexact Hatomic

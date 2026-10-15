@@ -45,11 +45,11 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply sync.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H6⟩
-  wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H5⟩
-  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #H4⟩
-  wp_apply go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #H3⟩
-  wp_apply time.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #H2⟩
+  wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H6⟩
+  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H5⟩
+  wp_apply go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #H4⟩
+  wp_apply time.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #H3⟩
+  wp_apply sync.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #H2⟩
   wp_apply context.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #H1⟩
   iframe Hown
   is_pkg_init_finish

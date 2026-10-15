@@ -8,7 +8,7 @@ it checks in parallel with the others -- see `proof_raft__Step_MsgVote_le.v`
 
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument `P : STEP_POSTULATES`)
-  as its first argument `_P : raft.Step.Postulates`, and Rocq's section variable `cfg`
+  as its first argument `_P : raft.Step.Postulates`, and Rocq's section variable `c`
   as its second.
 * Rocq's `Local Ltac recv_elem` (`∀ m' ∈ recv, m' = a` for the concrete `recv` lists
   `[]`, `[a]`, `[a] ++ [a]`, by rewriting the membership away rather than `set_solver`,
@@ -39,7 +39,7 @@ namespace StepProof
 /-- `MsgVote` with `m.Term < r.Term`: a stale vote request, dropped silently after the
 log line. -/
 theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
     m.Type' = MsgVote →
     m.To' = id →
@@ -51,20 +51,20 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `r.step` matches the role
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- the message's `Context` is readable and is not the leader-transfer marker:
         -- leader transfer is out of scope
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
+        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- `recv` is whatever this branch consumed -- nothing, or the incoming message
         -- once or twice. Naming its elements rather than the list lets
         -- `raft.Step.wp_proof` discharge the `isMessage` side of `ownRaftGhost_step`
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -75,15 +75,15 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
   wp_auto
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_true Hlt0]
   wp_auto
   -- `checkQuorum` is off; with pre-vote on the type test runs: not MsgHeartbeat, not MsgApp
-  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
-  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
   cases s.prevote
   all_goals try wp_auto
   -- pre-vote on: not MsgHeartbeat, not MsgApp
@@ -99,14 +99,14 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   all_goals rw [decide_eq_false (show m.Type' ≠ W32 20 by rw [Hty]; w32_ne)]
   all_goals try wp_auto
   all_goals
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_raft_log
-    -- nothing was sent and nothing changed: dropping is `Step.refl`
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_raft_logC
+    -- nothing was sent and nothing changed: dropping is `StepC.refl`
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, step_drop cfg id _⟩, rfl,
+    exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, StepCD.frame (stepCF_drop c id _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof

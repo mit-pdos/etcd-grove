@@ -47,11 +47,12 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  ihave #Hcp := apply.certPre_quota E c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   wp_auto
-  wp_apply HAvail $$ %_ %r [] as %ok -
+  wp_apply HAvail $$ %_ %r [] as %ok %Hok
   · ipureintro; exact Or.inr (Or.inl rfl)
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
   wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
@@ -76,33 +77,15 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     iexists oc
     iframe HR Hkv HPP Hres
     ipureintro
-    simp only [apply.chainStep, hq, ↓reduceIte]
-    exact ⟨⟨_, Hst, Or.inl rfl⟩, Hfl⟩
+    simp only [apply.chainStep]
+    exact ⟨Hst, Hfl⟩
 
   · -- `err == nil`: the inner applied the put
     ihave %Hap := apply.txnAnswerIs_nil log t skip resp oc $$ HR
     obtain ⟨log', rfl⟩ := Hap
     wp_auto
     cases ok
-    · -- the quota said no: `ErrNoSpace`, the put committed
-      wp_auto
-      iapply HΦ
-      isplitr [Htrc]
-      rotate_left
-      · iexact Htrc
-      iunfold apply.kvPostF
-      iexists (.applied log' true)
-      isplitr
-      · ipureintro
-        simp only [apply.chainStep, hq, ↓reduceIte]
-        exact ⟨⟨_, Hst, Or.inr ⟨log', rfl, rfl⟩⟩, fun l b h => by cases h; exact Hfl _ _ rfl⟩
-      simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, ↓reduceIte]
-      icases HR with ⟨⟨Hresp, -⟩, Hhdr⟩
-      iframe Hresp Hhdr Hkv HPP Hres
-      iunfold txn.errVarIs
-      iexists eN
-      iframe HeN
-      ipureintro; rfl
+    · cases Hok
     · wp_auto
       iapply HΦ
       isplitr [Htrc]
@@ -112,8 +95,8 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
       iexists (.applied log' false)
       iframe HR Hkv HPP Hres
       ipureintro
-      simp only [apply.chainStep, hq, ↓reduceIte]
-      exact ⟨⟨_, Hst, Or.inl rfl⟩, Hfl⟩
+      simp only [apply.chainStep]
+      exact ⟨Hst, Hfl⟩
 
 end proof
 

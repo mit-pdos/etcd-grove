@@ -35,7 +35,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.revokePre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   iunfold EtcdGrove.lease.lessorUser at Hu
@@ -49,11 +49,18 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   icases Hle with ⟨-, %li, %Hli, -, #HRevoke, -⟩
   iunfold apply.leaseRevokeIs at Hr
   icases Hr with ⟨%Hrn, #Hid⟩
+  ihave #Hcok : iprop(□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
+      mvcc.certOkNext E.γ log pend) $$ []
+  · imodintro
+    iintro %pend %hd
+    iapply apply.certOkNext_of_commitLog
+    iapply (apply.certPre_backend_applied E rq log _ false
+      (by unfold apply.backendStep; rw [Hrq.2]; exact ⟨pend, hd, rfl⟩)) $$ Hcp
   iStructNamed Hopts
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HRevoke $$ [$Hcs $Hsw $Hwt $Hown $Hknown] as %err ⟨HPP, ⟨%pend, %L', %Hdel, Hsw, Hown, #Hknown'⟩, #HeI⟩
+  wp_apply HRevoke $$ [$Hcs $Hsw $Hwt $Hown $Hknown $Hcok] as %err ⟨HPP, ⟨%pend, %L', %Hdel, Hsw, Hown, #Hknown'⟩, #HeI⟩
   wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
   · iexact Hb
   wp_alloc resp as Hresp

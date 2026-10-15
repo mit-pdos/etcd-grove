@@ -194,12 +194,32 @@ originals' inflight rings; the originals come back as bare points-tos (dropped).
 path they are garbage anyway (`chain` replaces them), except `MakeProgressTracker`'s
 empty map, which has none to lose.
 
-**Specs are stated for the case reached, not in general.** `joint` only for a `nil`
-outgoing map, `nilAwareDelete` only for a `nil` map, `apply`/`Simple` only for
-`[AddNode id]` with `id ≠ 0`, `symdiff` with a postcondition that says only "at most 1
-under the two inclusions `Simple` establishes" (the exact count would need a bound on
-the maps' sizes to rule out `n++` wrapping, which nothing on this path has). Widening
-them is ordinary proof work when a reconfiguration path needs it.
+**Specs are stated for the case reached, not in general** (superseded 2026-10-12, below).
+`joint` only for a `nil` outgoing map, `nilAwareDelete` only for a `nil` map,
+`apply`/`Simple` only for `[AddNode id]` with `id ≠ 0`, `symdiff` with a postcondition that
+said only "at most 1 under the two inclusions `Simple` establishes".
+
+**Generalized 2026-10-12: a pure model, every function for all inputs.** Each `Changer`
+method's result is a pure function of the tracker's state (`InvConfchange.lean`: `CfgM`,
+`CCState`, `simpleM`/`enterJointM`/`leaveJointM`/`applyM`/...), `none` exactly on its
+error paths; `checkInvariants` returns `nil` iff `CfgInv`. Choices:
+- the progress map is modelled by each id's `IsLearner` only (the one field `confchange`
+  touches); the specs relate the result's `Progress` values to the tracker's (`ownNewPr`: a
+  copy with `IsLearner` changed, or a fresh one owning its `Inflights`), and
+  `ownNewPr_transfer` moves whatever the caller holds for the originals (inflight rings) to
+  the copies, so the tracker's own objects are only read (any fractions);
+- `symdiff` returns the exact count modulo `2^64` (`symdiffN`); `Simple`'s check is stated
+  on Go's `int` (`SymdiffTooBig`), with no size premise;
+- the outgoing voter map, `Learners` and `LearnersNext` are represented canonically (`nil`
+  exactly when empty, `ownIdsetC`): every operation keeps them so and `checkInvariants`
+  checks two of them; an empty non-`nil` `Learners` map (legal for the Go code, never
+  created by it) is outside the specs. Needed so that `Restore`'s statement, which promises
+  `Learners = nil`, follows from the general `Simple`;
+- the old specs are replaced, not kept beside the new ones; `Restore`'s statement is
+  unchanged, and its proof derives the old `Simple` statement (`Simple_votersOnly`).
+Two findings: `Config.Clone` drops `AutoLeave` (`issues/raft-config-clone-autoleave.md`);
+a tracker with a `nil` incoming voter map panics (`issues/raft-changer-nil-incoming.md`,
+excluded by `ownCfgCC`).
 
 **A Goose bug found on the way.** `cc := cc` (Go's loop-local-copy idiom, used twice in
 `Restore`) was translated as "allocate a fresh zero `cc`, then read `cc`", i.e. the new
@@ -3276,6 +3296,718 @@ transaction's range is `storeTxnWrite.Range`'s, `TxnKind.readLog`/`readRev`), an
 in the post (`TxnRange.lean`); the old statements are the instances `kind := .read …`, `todo :=
 false`. `metricsTxnWrite.Range` links `storeTxnWrite.Range` too.
 
+---
+
+## Read-index: a request registry per leader term, acks bounded by the event history
+
+**2026-10-12 · accepted** (branch `worktree-raft-rest`)
+
+`ReadIndex` (`ReadOnlySafe`; `ReadOnlyLeaseBased` needs bounded clock drift and stays out
+of scope) is verified against the pinned raft, whose `readOnly` is the fixed one
+(etcd-io/raft#392's stale validation is gone: a heartbeat's context is the leader's
+request *position* in the term, `confirmedReads + len(unconfirmedReads)`, not the
+client's context, and `maybeAdvance` confirms the positions a quorum acknowledged).
+
+**What a `ReadState` promises.** A client creates a read context `c` with a fresh token
+(`propFresh`, the proposals' token space); creation snapshots the global committed log
+`Lc` into a registry in `raftCommitInv` (`readReq γ c Lc`, persistent, agreeing). A
+`ReadState{Index: i, RequestCtx: c}` that `Ready` hands out carries `readOk γ c i`:
+`|Lc| ≤ i`. Since committed logs are prefixes of one another, any committed log of length
+at least `i` extends `Lc`: reading the applied state at an index `a ≥ i` reads a version
+between the request's creation and now -- a linearizable read, stated with lower bounds
+(the register's `Get`), not as an atomic update (the version is known only after the
+fact).
+
+**Why it holds.** At a request's arrival at the leader `L` of term `T` (commit `i`,
+an entry of `T` committed, or a single voter), the global log `C` is justified by a
+quorum `q` that acknowledged it at some term `t` (`committedJust`, `cq`). Either `t ≤ T`,
+and then `|C| ≤ i`: for `t < T` because `C`'s last entry is of a term below `T` and `L`'s
+log has an entry of `T` at `i`; for `t = T` because `C` was extended only by `L`'s own
+commit (the commit lower bound `cmtLb γ L T n` now stored with the justification, against
+the leader's monotone `cmtAuth`); or `t > T`, and then the request is *doomed*: every
+member of `q` has acknowledged at a term above `T`. The arrival records which, under the
+request's position `p`, in a per-(leader, term) mono list (`rqRec`). A heartbeat of
+context `q ≥ p` carries the list's prefix (`rqLb`); a follower `v` answering it at term
+`T` holds its event history (`ownEvs`, every event at or below its term), so `v` is in no
+doomed request's quorum: its response carries `hbAck γ L T v q`. A quorum of such acks
+for position `p` meets the doomed quorum, so a confirmed request is never doomed: its
+`|Lc| ≤ |C| ≤ i`.
+
+**Where the facts live.** `isMessage` is unchanged. The abstract `Msg` gained `ctx`
+(default `[]`; `absMsg` takes it, default `[]`; `msgAbs` records `Context ↦*□ ctx`), and
+the facts about contexts and read messages are `isCtx γ m` (heartbeat: the registry
+prefix; heartbeat response: the ack; `MsgReadIndex`: `readReq`; `MsgReadIndexResp`:
+`readOk`). They, the per-term registry, the leader's acks and the `ReadState`s are in a
+predicate beside `ownRaftGhost`, `ownReadGhost γ id ps rd` (`rd` is the physical read
+state, now `NState.rd`, which `ownRaftMisc` is indexed by). `ownRaftGhost` gains only
+`cmtAuth` for a leader's terms (and `raftCommitInv` the read registry and `cmtLb`).
+
+**Read credits.** The model lets the transport redeliver a message, so arrivals -- and
+positions -- are unbounded, and a position that wrapped at `2^64` would confirm the wrong
+requests. A `MsgReadIndex` therefore carries one read credit (`rdCred`, an `Auth Nat`
+fragment, like the tick credits), linear: the client pays it at `ReadIndex`, a forward
+moves it, an arrival moves it into the leader's stash, and the stash bounds the position.
+`Ready` hands out each queued `MsgReadIndex`'s credit with it; the transport passes it
+to `Step`. *Rejected*: a no-wrap premise on `Step` (no client could discharge it); a
+credit per node (a forwarded request's destination is not known when it is paid).
+
+**As built (2026-10-13), replacing "Where the facts live" above.** The facts went *into*
+`isMessage` after all (a heartbeat's registry prefix, a heartbeat response's `HbAckOk`, a
+request's `readReq`, a response's `readOk`): the transport and `Step` already carry
+`isMessage` of every message, and a second predicate beside it would have doubled every
+message invariant. The read state is protocol state (`PState.rd`, with `toPState` reading a
+non-leader's read-only object as the fresh one `reset` installs), so each read path is a
+`Step` rule refined once (`Refinement.lean`), and the ghost state is one more conjunct of
+`ownRaftGhost` (`rdOwn`: the per-term registries `reRdq`, the leader's records and acks,
+the `ReadState`s' and pending requests' facts, the outbox's credits). A context's bytes are
+`isPropData` (the proposed-slice registry, read through `propDataInv`) rather than a heap
+points-to, so the facts stay persistent. `Step.beat` takes any context a leader may send
+(`HbCtxOk`: none, or a position up to its queue's end, unwrapped) rather than exactly the
+current one, because a release broadcasts after each request and the spec collapses those
+heartbeats. `stepLeader`'s read premises (`RdOk`, a nonzero term) are conditional on the
+three types that read them, so the other branches discharge them by type.
+*Rejected*: making `RdOk` a field of `ownRaftPhys` (it is a fact about the ghost records,
+which the physical predicate does not see); a logically atomic `Read` for the register (the
+linearization point is in the past when the `ReadState` arrives: it would need prophecy).
+
+---
+
+## Reconfiguration stage D: conf-change entries as data, their bytes through the proposal
+
+**2026-10-13 · accepted**
+
+Conf-change entries are in the log as data (notes/STATUS.md, "Reconfiguration, stage D");
+three choices in how:
+
+- **The leader's decoding needs the bytes; they travel with the protocol message.** `stepLeader`
+  `Unmarshal`s each proposed conf-change entry and panics on an error, so `raft.Step` needs each
+  conf entry's bytes, which decode (`ccEntsOk`, a heap fact). A local proposal
+  (`RawNode.ProposeConfChange`) has them from `confChangeToMsg`; a forwarded one reaches the
+  leader through the network, where only `isMessage` (ghost, heap-free) survives. So the bytes are
+  recorded where the client data already are: the proposed slices' registry (`isPropData`,
+  `propDataInv`), and a conf entry's `entDataIs γ e none` carries `∃ bs, isPropData γ e.Data' bs ∗
+  ⌜CCDecodes e.Type' bs⌝`; `node.run` turns it back into bytes (`propData_ccEnts`).
+  *Rejected*: restricting forwarded proposals to normal entries (a follower's `ProposeConfChange`
+  would be unspecifiable); a pure premise (bytes are heap); putting heap points-to into
+  `isMessage` (the protocol layer is heap-free and imports no `Base`).
+- **The client log stays a log of normal entries.** `entDataIs`'s `some d` keeps `Type = 0`, so a
+  conf entry is `none` and `firstOcc`/`cLog`/`propsOwn` skip it with no change; the zero-slice
+  `none` case now also requires `Type = 0` (else a `Type = 1` entry with no data would escape the
+  decoding fact).
+- **`stepLeader`'s exact answer, existentially.** The loop's result depends on what each entry
+  decodes to (an empty `ConfChangeV2` is refused); `LeaderProposeResult` quantifies over the decoded
+  changes (`∃ cs, CCTypesOk ents cs ∧ ...`) rather than adding a parameter, so that the fifteen
+  non-proposal call sites of `stepLeader` are unchanged; `Step.propose` takes any batch related to
+  the proposal by `PropRepl` (each entry kept or a conf entry replaced by the zero entry), which is
+  all the ghost state needs (`entData_propRepl`).
+
+`Config.DisableConfChangeValidation = false` is a scope premise (with validation off a leader may
+append a second conf change before the first is applied), like `ReadOnlyOption = 0`.
+
+---
+
+## Reconfiguration stage D: `ApplyConfChange` of an unchanged configuration -- `Step.reMatch`, `switchToConfig` open at its tracker
+
+**2026-10-13 · accepted**
+
+- **A model rule that lowers `Match`.** Even a change that leaves the configuration as it is
+  makes `switchToConfig` install new `Progress` objects, and `confchange`'s specs (`ownNewPr`)
+  say only that each is a copy of an old one *or* fresh (`Match = 0`): a remove and re-add of a
+  voter in one `Simple` really does reset its `Progress`. A leader's `matched` can therefore
+  drop to `0`; `Step.reMatch` says exactly that (each new entry `0` or the old one; entries may
+  come and go). It is sound because `matchedOk` asks only `isAcked`, which holds of `0`.
+  *Rejected*: strengthening `confchange`'s specs to track which objects are copies (every
+  `Changer` proof would change, and remove-then-add still resets); a premise excluding resets
+  (not expressible on `ownResult`).
+- **`switchToConfig` takes the struct open at its tracker.** The new `Progress` objects share
+  the old ones' `Inflights`, whose rings the old tracker owns; the caller must move them before
+  the old tracker disappears, so the spec takes the tracker field and the re-sealing wand
+  (`ownRaftPhys_reconfig`'s), the old tally and bound, and the new configuration with its
+  records (`ownConfigV`). The old sealed statement is derived (`spec_nonleader`).
+  *Rejected*: a wand in the precondition from the old `Progress` objects to the new
+  configuration (the copies' values must agree with the old ones', which the wand could not
+  see without the old points-tos).
+- **No `Advance`-ordering premise yet**: for an unchanged configuration the order is harmless
+  (issue file), and `ownRawNode` does not record applied entries; documented on the specs.
+
+---
+
+## Reconfiguration stage L: learners in the `Progress` record, the voter set as the index
+
+**2026-10-13 · accepted**
+
+- **The flag is in the record** (`Progress.learner`), and `ownTracker` relates it to the index:
+  a tracked id is a learner exactly when it is outside `cfg` (`LearnerFlags`), so the learner
+  set needs no index of its own -- it is `domSet s.progress \ cfg`. The price is that every
+  give-back of a borrowed `Progress` carries `⌜p'.learner = p.learner⌝` (the methods' records are
+  record updates, so it is `rfl`, or a `@[simp]` lemma for the branching ones).
+  *Rejected*: a per-id flag map in `Trk` (a second index to keep in step with `peers`); an
+  `ownProgress` indexed by the expected flag (the same premise on every give-back, plus a
+  signature change everywhere).
+- **A non-follower is a voter, in `ownRaftPhys`** (`Hvoter`), not in the ghost state: only
+  `raft.wp_store_state` changes the role, and all its callers already know `id ∈ cfg`. So
+  `raft.Step`, `stepCandidate`, `stepLeader` and `applyConfChange` no longer take it.
+  *Rejected*: a `RoleOk`-style conjunct in `ownRaftGhost` (82 sites build or open it).
+- **`RawNode` keeps its voter scope for now**: a learner node needs the configuration in
+  `RNState` (part 3), because `node.run` looks the node up in its progress map around
+  `applyConfChange`, and `NetFrame` says nothing about the progress map's domain. The
+  `RawNode`/`node` `ApplyConfChange` premise is `CCNoop` (a no-op whatever the learners) until
+  then.
+
+---
+
+## Reconfiguration stage A1: one body for both struct predicates, old specs as corollaries
+
+**2026-10-13 · accepted**
+
+- **`ownRaftPhysC` beside `ownRaftPhys`, one private body.** The body of the raft-struct
+  predicate is generic in the tracker predicate and in `Hvoter`'s voter set
+  (`ownRaftPhysG T V`, private to `InvRaftPhys.lean`); `ownRaftPhys cfg` is it at
+  `ownTracker cfg`/`cfg`, `ownRaftPhysC c` at `ownTrackerC c`/`c.voters`, each sealed. The 134
+  files on `ownRaftPhys` are untouched; `ownRaftPhys_toC`/`ownRaftPhysC_toPhys` convert at
+  `CfgM.simple cfg (domSet s.progress \ cfg)`. *Rejected*: redefining `ownRaftPhys cfg` as
+  `ownRaftPhysC (CfgM.simple ...)` (every accessor in `InvRaftPhys.lean` would go through the
+  conversion); making `ownRaftPhys` an `abbrev` of a sealed generic predicate (changes
+  elaboration in every caller). The ~60 field lemmas are still stated on `ownRaftPhys`; A2 can
+  restate them on `ownRaftPhysC` and derive the old ones through the equivalence (a field
+  access leaves `s.progress` alone).
+- **`ownTrackerC` uses `confchange`'s representation** (`ownCfgCC`, `CfgInv`) so that a
+  `Changer` result can be installed without translation; the learner flags are
+  `decide (k ∈ c.learners)` (`LearnerFlagsC`), which every `Changer` operation preserves on a
+  reachable state (a voter is never flagged; to be proved in A2). `ownTracker` stays a separate
+  definition with a two-way conversion, not a special case by definition: 19 files unfold it.
+- **Generalized specs replace the old ones; the old statements are corollaries**
+  (`<fn>.spec_simple` in the `Spec` file, derived from the new `spec` through the tracker
+  conversion), so that `Link.lean` still links one triple per function and each caller changes
+  one line (`wp_apply (X.spec_simple wp_X) ...`). `JointConfig.VoteResult` is general in its
+  receiver and vote map (any `*JointConfig`, any fractions), which also let `QuorumActive` stop
+  inlining it.
+- **`StepC` is a copy of `Step` with five rules generalized**, not a parameterization of
+  `Step` (which would change every constructor use in the ghost layer); `step_iff_stepC` ties
+  them. `CfgM` moved to `Protocol/StepC.lean` so that the protocol layer can name it.
+
+---
+
+## Reconfiguration stage A2: `ownRaftPhysCV` with an abbreviation, `specS` corollaries, a recorded `stepDownOnRemoval`, a detached `RawNode`
+
+**2026-10-14 · accepted**
+
+- **The specs move, the old statements stay.** Each raft function whose callers can be at a
+  joint configuration gets its `spec` restated on `ownRaftPhysC`; the old statement is an
+  `abbrev <fn>.specS` with `<fn>.spec_simple : spec → specS` (through `ownRaftPhys_toC'` and
+  `ownRaftPhysC_toS`), so `Link.lean` still links one triple per function and an old caller
+  changes one line (`wp_apply (X.spec_simple wp_X)`; `raft.Step.Postulates` fields are `specS`).
+  Config-independent proofs were converted by renaming (the field lemmas' `C` copies), not
+  duplicated. *Rejected*: proving each function twice.
+- **`Hvoter`'s set is a parameter (`ownRaftPhysCV c V`), `ownRaftPhysC` its abbreviation.** A
+  removed or demoted leader is, between `switchToConfig`'s install and its `becomeFollower`, a
+  leader outside its configuration; the struct must be sealed there for `becomeFollower` (and
+  `reset`), so their specs and the field lemmas are generic in `V`. Specs write
+  `ownRaftPhysCV c c.voters` rather than the abbreviation: `iframe` does not unify an `abbrev`
+  head with its unfolding up to the record equalities states need.
+- **`r.stepDownOnRemoval` is recorded (`NState.sdr`)**, so that `switchToConfig`'s spec can ask
+  for it when the leader leaves the voters; with it off the Go leader stays leader outside the
+  configuration, which `Hvoter` excludes. A removed candidate is likewise excluded (and is a
+  finding: it can win and panic).
+- **The configuration after a `RawNode.ApplyConfChange` that changes it is not `γ`'s**:
+  `ownRawNodeC` keeps the memory and drops the ghost state, rather than asserting
+  `γ.reCfg = votersOf c'` (the protocol is proved at a fixed voter set). The `Advance` ordering
+  is documentation, not a premise: no predicate records which entries the configuration
+  reflects.
+- **`CCGood` instead of strengthening `confchange`'s specs**: reachability is a pure invariant of
+  the model (`ccApplyM_good`), so the `Changer` proofs are untouched.
+
+---
+
+## Reconfiguration stage A3: `joint` as a parameter of the loop's model, snapshots of any voters, no `StepC` step-down rule
+
+**2026-10-14 · accepted**
+
+- **`propConf` and `LeaderProposeResult` take `joint`, default `false`**, rather than a second
+  copy of the conf-change loop's model: the refusal is `pending ∨ ccWantsLeave cc ≠ joint`,
+  which is the old `pending ∨ ccWantsLeave cc = true` at `joint = false`. The ghost layer
+  (`raft__Step/MsgProp.lean`, `PropRepl`) keeps elaborating against the default; the C result
+  passes `c.joint`. *Rejected*: a `LeaderProposeResultC` duplicate (the dispatcher's `MsgProp`
+  branch would need its own copy of the reasoning).
+- **`readOnly.maybeAdvance.spec` replaced, no `spec_simple`**: its only caller is `stepLeader`,
+  now at any configuration.
+- **A snapshot of any (non-joint) voters, at any configuration.** `restore` never reads the old
+  configuration except to drop it (`MakeProgressTracker`), so generalizing the node's
+  configuration costs only the retrack; generalizing the snapshot's voters away from the node's
+  is free (`SnapScope cfg` was already a parameter). The snapshot's voters are a new spec
+  parameter (`scfg`) of `stepFollower`/`stepCandidate` rather than existential in `Hsnap`, so
+  that the result can name the configuration after a restore. A joint snapshot `ConfState`
+  stays out (`confchange.Restore` of a joint state is not specified); stated, not hidden.
+- **The removed leader's step-down is a disjunct of `applyCCOkC_step`, not a `StepC` rule**:
+  `StepC` is tied to `Step` by `step_iff_stepC` at non-joint configurations, and `Step` has no
+  such rule either (a leader there is always a voter). The protocol at joint configurations will
+  have to add one (or forbid self-removal).
+- **Items 3-5 left with a plan** (notes/STATUS.md, "Reconfiguration, stage A3"): the `raft.Step`
+  branches are physical triples with pure `Step` witnesses, so `raft.Step` at `c` is their
+  conversion to `StepC` (with C result and step lemmas), and the old branch lemmas follow at
+  `CfgM.simple`; the `RawNode` client's view (`RNState`) needs the learner set (and, for
+  self-removal, the role) before `CCApplies` can be discharged for growing changes.
+
+---
+
+## Reconfiguration stage B2: non-empty voters in `RaftNames`, one `CfgStatic` constraint
+
+**2026-10-14 · accepted**
+
+- **`RaftNames.reCfg_ne`, a proof field**, rather than a premise of `ownRaftGhost_step(C)`'s
+  callers or a conjunct of `ownRaftGhost`. `StepC` at an empty configuration lets anyone win
+  (Go's `MajQ` convention), so the refinement needs `reCfg ≠ ∅`; `raft.Step`'s spec has no way
+  to supply it (learners step, `ownRaftPhys` has no non-emptiness by design, and changing the
+  Go-facing spec was out of scope), and a conjunct of `ownRaftGhost` would touch every rule's
+  re-sealing. The field costs one premise of `ownRaftGhost_alloc`. *Rejected*: mapping `Step`
+  at an empty configuration into `StepC` (`Step.lose` there has no `StepC.lose`, and no `c`
+  makes every `JQuorum c` an `IsQuorum ∅`).
+- **The constraint is `CfgStatic γ c` (incoming = `γ.reCfg`, not joint)**, not
+  `c = CfgM.simple γ.reCfg lrn`: the same at B2, but with no learner bookkeeping, and the shape
+  B4 replaces. The three quorum-reading rules convert `JQuorum c` to `IsQuorum γ.reCfg` at their
+  start; the ghost definitions keep `IsQuorum γ.reCfg` (moving them is the winners table's
+  work).
+
+---
+
+## Reconfiguration stage B3: a separate state `RState` and relation `StepR`, `Adm` for the configurations
+
+**2026-10-14 · accepted**
+
+- **The new fields are on `RState` (`Protocol/StepR.lean`), not on `PState`.** `PState` is what
+  the ghost state holds and what `toPState` (`Defs.lean`) computes from the physical `NState`
+  in ~100 places; adding `applied`/`pci`/`snap` there would make every code-side witness
+  (`raft.Step`'s branches, `RawNode.Advance`'s `appliedTo`, which steps `MsgStorageApplyResp`)
+  prove the new fields equal, and the configuration index, the configuration and the full
+  prefix are not in `NState` at all. `RState` is `PState` plus `applied`, `pci`, `snap`,
+  `cidx` (Nat, ghost), `cfg : CCState` and `fp` (ghost full prefix). `StepC`,
+  `step_iff_stepC`, `ownRaftGhost_stepC` and every code proof are untouched. *Rejected*:
+  fields with defaults on `PState` (the `where`-built states `pbecomeFollower` etc. would
+  silently reset them; `toPState` would have to supply them, and then every `Step` witness
+  that moves them would change).
+- **`StepR` duplicates `StepC`'s rules** (as `StepC` duplicated `Step`) rather than lifting a
+  `StepC` step: a lift constructor would let `StepC.campaign`/`propose` bypass the guard and
+  the exact proposal loop, and `StepC`'s constructors cannot be split into "touches the new
+  fields" and "does not" without renaming the ones the code-level C specs use.
+- **`step_iff_stepC`'s replacement is a projection, not an equivalence.** `StepR` is strictly
+  stronger than `StepC` (the guard, `propConf` instead of any `PropRepl`, `AppCommitEq`), so no
+  embedding `StepC → StepR` exists; what the ghost needs is `stepR_static`: at a static
+  configuration (`StaticAdm V`), from a state whose non-follower is a voter (`RoleVoter`, the
+  code's `Hvoter`), a `StepR` derivation is a `StepC (CfgM.simple V ∅)` derivation of the
+  `PState`s, and `ownRaftGhost_stepR` follows from `ownRaftGhost_stepC` in one line. The
+  dispatcher boundary is unchanged: the code still produces `Step` witnesses.
+- **`Adm : List Entry → CCState → Prop` parameterizes `StepR`**: the configurations a node may
+  take on after a prefix, by `applyConf` or `snapRestore`. One relation serves both the static
+  model (`StaticAdm V`, under which the projection holds) and the dynamic one (`AdmFold dec c0`:
+  A3, a snapshot's `ConfState` is its prefix's fold); `StepR.mono` moves between them. A
+  snapshot's configuration being its prefix's fold is not something the receiving node checks,
+  so it is not a premise of its own; `Adm` carries it. *Rejected*: `c0` as a parameter with A3
+  as a premise of `snapRestore` (then the static model, which has no `c0`, needs one), or A3 as
+  a hypothesis of `RInv_stepR` only (then it would quantify over the derivation's choices).
+- **The decoder is in `StepR`'s `applyConf`** (`dec (full.take k) e = some op`): the application
+  passing the decoded change, in order, once per entry, is A1's scope, so the rule states it.
+  `CCDec` takes the prefix (the review's gap 3): `cfgFold` is now `cfgFoldFrom dec []`, which
+  passes the prefix along; `CfgOverlap.lean`'s lemmas are generic in it and kept their proofs up
+  to the `pre` argument. `decOfData data` is the entry-only decoder from the proposed bytes
+  (`isPropData`'s map as a function).
+- **The invariants' message knowledge is a hypothesis per rule** (`AppKnow` for `appAccept`):
+  the sender's log `G` with I1 at the message's commit index and log matching with the
+  receiver's full log are ghost facts (B4). The induction `RInv_stepR` states it for any state
+  with the invariant, since a derivation does not name the receiving state; B4 can use the
+  per-rule lemmas inside its own induction instead.
+- **`AppCommitEq` is a premise of `StepR.sendApps`/`win`.** I1 is false under `StepC`'s `AppOk`
+  (`m.commit ≤ s.commit`); Go sends the exact commit index. Recorded in notes/STATUS.md as a
+  finding about the model, not about Go.
+- **`propDrop` receives nothing**: the code's dropped proposal takes no protocol step (its
+  `Step` witness is `refl`), but `stepLeader`'s loop has already moved `pendingConfIndex`.
+
+---
+
+## Reconfiguration stage B4: winners table as a ghost map, `CfgAt` as the one static hook, the ghost stays on `StepC`
+
+**2026-10-14 · accepted**
+
+- **The winners table is a global ghost map `term ↦ ((winner, configuration), quorum)` whose
+  persistent elements are part of `isWin`**, with the authority (and each entry's record) in
+  `raftCommitInv`. So election safety (`isLeader_unique`) is the elements' agreement and stays
+  a persistent, invariant-free lemma: the code proofs that use it (`raft__Step.lean`,
+  `MsgSnap*`, `Facts.lean`, `Results.lean`) are untouched, and in the dynamic proof it needs no
+  quorum intersection at all. The intersection argument moved to win time (`win_fresh`), the
+  only place that inserts. *Rejected*: the table as a pure map inside the invariant read through
+  the invariant (every `isLeader_unique` user would open `raftCommitInv`, code included).
+  `isWin`'s signature is unchanged (the configuration is existential inside it), so `klOk`,
+  `voteJust` and their users did not change.
+- **`CfgAt γ P c`, defined at B4 as `CfgStatic γ c`, is the single hook for the configuration**,
+  and `CfgAt.overlap` the single static lemma; the definitions record `(P, c)` with each quorum
+  so B5 changes `CfgAt`'s body and the three uses of `CfgAt.overlap`, not the predicates' shapes.
+  *Rejected*: a static/dynamic mode field in `RaftNames` (B4 would prove everything under a
+  `mode = static` premise threaded to the code), and recording configuration indices `j` now
+  (they need the decoder and `c0` in the ghost, i.e. B5's `cfgFold` link).
+- **The dynamic-only facts (commit facts' at-most-one and witnesses, the campaign's witnesses,
+  `W`) are not added as placeholders.** They are false for `StepC` runs (no `pendingConfIndex`,
+  any commit index on `MsgApp`), so their content cannot be proved before the ghost follows
+  `StepR`, and `True` placeholders would not save B5 any rule's proof.
+- **The ghost keeps refining `StepC`, not `StepR`.** Nothing produces a `StepR` derivation (the
+  code produces `Step`), and the dispatcher cannot convert one: `StepR` is strictly stronger
+  (the campaign guard, the exact proposal loop, `AppCommitEq`), and its extra state (`applied`,
+  `pci`, `snap`, and the ghost `cidx`, `cfg`, `fp`) is not in `PState`/`NState`. Refining
+  `StepR` directly needs B7's code-side witnesses and an `ownRaftGhost` that holds the `RState`
+  fields with `RInv`; `ownRaftGhost_stepR` (B3) stays the projection.
+
+## Reconfiguration stage B5: a mode in `RaftNames`, guarded dynamic facts, the ghost refines `StepR` beside `StepC`
+
+**2026-10-14 · accepted**
+
+- **The mode is a field, `RaftNames.reDyn : Option (∀ e, DynCfg)`, and `ownRaftGhost` carries a
+  flag `md` (default `false`) with `⌜γ.reDyn.isSome = md⌝`.** B4 rejected a mode field to keep
+  the code proofs free of a `mode = static` premise; with the flag defaulting to `false` they
+  are, and the code gets the static mode from its own `ownRaftGhost` (`ownRaftGhost_static`,
+  two dispatcher lines). `DynCfg` is the configuration function of committed prefixes with the
+  one fact the ghost uses (`adj`: overlap for prefixes at most one conf entry apart,
+  `fold_adjacent`); `DynCfg.ofFold dec c0` instantiates it, so `Ghost.lean` does not import
+  `CfgOverlap`. *Rejected*: two ghost states (static and dynamic) -- every rule's proof twice.
+- **Dynamic-only facts are guarded, `dynOn γ P := ⌜γ.reDyn = none⌝ ∨ P`**, inside the shared
+  predicates (commit facts, campaign facts on votes, I1 on `MsgApp`). The static mode proves
+  them by the left disjunct, so the `StepC` refinement (where they are false, B4) is unchanged;
+  the dynamic mode uses the right. *Rejected*: separate dynamic predicates (every message and
+  record shape duplicated).
+- **The commit fact is recursive** (`cqAt`, well-founded on the configuration index): in the
+  dynamic mode it carries `ConfI1` (at most one conf entry above `a`) and, for the conf
+  positions `≤ a`, witnesses that are themselves commit facts (`witsB`); `commitIn` (a node's
+  commit index) carries the witnesses of its prefix. Campaign facts (`campDyn`: `ConfI1`, the
+  witnesses, `commitIn` below the term) travel with each vote instead of in the campaign
+  record, since the voter, not the candidate, is where `lc_core`'s far case needs them.
+- **`doomed` keeps a witness set `U`** (the doom quorum and every witness quorum above `T`), with
+  a finite choice (`doom_choice`) to pick it when a read is confirmed; repair 4 needs the
+  reader's acknowledgement in each.
+- **The step environment `dynEnv`** is a premise of the configuration-reading rules: static,
+  `CfgStatic γ c`; dynamic, the facts of `RInv` they read (full log, `cidx`, `ConfI1`, `CfgAt` of
+  the applied prefix, the leader's I3, the candidate's campaign record at its commit index).
+  `ownRaftGhostR` (`ownRaftGhost … true ∗ RInv ∗` the records of the full prefix `∗` a
+  candidate's campaign record) provides it; the per-rule lemmas do not know about `RState`.
+- **Snapshot prefixes as a premise.** `StepR.snapRestore`'s new full prefix is constrained only
+  by `FullOk` and `Adm`; rather than strengthen `StepR` (B3's model), the refinement takes the
+  records of the derivation's admissible prefixes (`AdmS dec c0 S`, `□ ∀ fp, ⌜S fp⌝ -∗ logRecs`).
+  The code (B7) supplies them from the snapshot message's knowledge.
+- **`stepDown` by weakening, not by excluding it.** `TermsOk`/`WinsOk`/`LcmOk` allowed a term's
+  entry only below the node's term or at it as leader; now at it as a non-candidate, so a
+  leader may become a follower at its term. What that loses (a non-leader's acknowledgements of
+  its term need a justification, `acksOk`) is restored by `LeadAcksOk` in `ownLogGhost` (a
+  leader acknowledges only entries of its log, a candidate none of its term), which lets
+  `ownLogGhost_stepDown` justify them by the leader's own prefix. *Rejected*: assuming
+  `StepDownOnRemoval = false` (Go's default) -- a premise on the configuration that the code
+  would have to carry, for a rule the model already has.
+- **The ghost refines `StepR` in the dynamic mode and `StepC` in the static mode**, both from the
+  same per-rule lemmas; B4's decision (the code-facing ghost stays on `StepC`) stands until B7.
+
+## Model-level theorems in `Results.lean` are scaffolding (2026-10-14)
+
+The verified boundary is the Go public API: the specs of `RawNode`/`node`/`NewRawNode`/...
+(`Link.lean`). A protocol-level theorem restated in `Proof/go_etcd_io/raft/v3/Results.lean`
+(`raft_election_safety`; the reconfiguration stage B5/B6 results `raft_reconfig_*`, with the
+collection `etc/tcb-collections/raft-dyn.txt`) is kept only while it drives development: a
+check that the model is not vacuous, or a root of the trust report that keeps a model proof
+checked (no `sorry`, no axiom) before any Go spec reaches it. Once the Go code that reaches
+it is verified (for `raft_reconfig_*`, stages B7/B8: the public specs carrying the dynamic
+ghost), the stage that does so deletes the restatement and its collection. New stages do not
+add model-level theorems as deliverables. (The user's decision, 2026-10-14.)
+
+
+---
+
+## Reconfiguration stage B7: `raft.Step`'s branches deliver `StepCD`; the spec is generic in a ghost mode
+
+**2026-10-14 · accepted**
+
+- **`raft.Step` at a configuration first (B7a), by conversion.** The branch lemmas are physical
+  triples with pure witnesses, so moving them to `ownRaftPhysCV c c.voters` and `StepC c` was a
+  textual conversion (accessor names, `Step` to `StepC` constructors) followed by fixes: the C
+  inversion lemmas give `c = c'` off a snapshot. Five forks converted the leaf families in
+  parallel against a recipe validated on one file. *Rejected*: keeping the static branch lemmas
+  and lifting at the dispatcher, because `ownRaftPhys` cannot express a joint configuration.
+- **`StepCF` plus `RFrame`, not `StepR` witnesses written per site.** Most rules leave
+  `StepR`'s extra fields alone. So a sub-relation `StepCF` of `StepC` (without `campaign`,
+  `win`, `propose`, `snapRestore`; `sendApps` with `AppCommitEq`) lifts to `StepR` once
+  (`StepCF.toR`), and a branch only proves `RFrame s s'` (`applied`, the pending snapshot, a
+  leader's `pci`) for `rOf` to agree. The constructor names are shared, so the frame branches
+  converted textually. Only six special branches needed a hand-written `StepR` witness.
+  *Rejected*: a lift of arbitrary `StepC` derivations (no inductive shape to inspect), and
+  writing `StepR` at every site (about 80 sites, each with its own frame equation).
+- **`StepCD` bundles both witnesses.** A branch delivers the `StepC` witness (static mode) and,
+  under `DynHyp`, a `StepR` witness for every ghost part over `c`. This keeps the static path
+  intact and makes the dynamic path available with no second set of branch lemmas. Branches
+  outside the dynamic scope (a `MsgSnap`, a pre-candidate's campaign) give only the first
+  (`StepCD.of_excluded`).
+- **`pci` is the code's at a leader and `0` elsewhere** (`pciR`). The model's
+  `lose`/`abandon` keep `pci`, while the code's `becomeFollower` clears it. A pre-candidate
+  keeps it, since Go's `becomePreCandidate` does not `reset`. Mapping non-leaders to `0` makes
+  the two agree with no new code invariant, and `StepR` reads `pci` only at a leader.
+- **One spec, generic in a mode (`GMode`), not a conjunction of two triples.** The ghost-fact
+  lemmas the dispatcher reads are generic in `ownRaftGhost`'s flag, and only the update depends
+  on the mode (`ghost_stepCD`). So one dispatcher proof serves both modes, `raft.Step.spec`
+  stays one Hoare triple, and the static statement is derived (`spec_simple`). *Rejected*:
+  moving `RawNode`, `node.go` and the register to the dynamic mode in the same step, which is
+  part 2's work.
+- **The dynamic mode's unchecked conditions are premises (`GMode.Pre`), named.** They are: no
+  `MsgSnap` (B8), no pre-candidate, A1 at `MsgStorageApplyResp`, and the dropped-proposal
+  index bound. The A1 premise is on the acknowledged entry's index. The branch gives the new
+  `applied` (`Happ`), and `RInv`'s `applied ≤ cidx` covers the case where `applied` does not
+  move (`GMode.Pre.dynHyp`).
+- **`appliedTo`'s auto-leave excluded at a leader rather than specified.** Its `r.Step` makes
+  `appliedTo` and `raft.Step` mutually recursive, and the link (one proof per function,
+  callees' specs as hypotheses) has no form for that.
+- **`AppCommitEq` went into `ReplSends`'s definition** rather than into a separate
+  postcondition conjunct. Every producer already satisfies it (`maybeSendAppend` is the only
+  one that builds an `MsgApp`). Consumers that need only `ReplOk` take `ReplSends.replOk`.
+
+## Reconfiguration stage B8: the general statements as `spec`, a snapshot's lists as a record, A3 as the receiver's premise
+
+**2026-10-14 · accepted**
+
+- **The general statement is the `.spec` and the old one `specS`** for `confchange.Restore`,
+  `ConfState.Equivalent` and `assertConfStatesEquivalent` (as A1/A2 did for the raft
+  functions). The link (`Link.lean`) gives each callee's `.spec`, so a caller needing the
+  general statement gets it with no new link entry; the callers keeping the old statement
+  (`newRaft`) convert in one line (`spec_simple`). *Rejected*: keeping `specG` beside `spec`
+  -- a caller of `specG` would need its own link entry.
+- **A snapshot's `ConfState` lists as one record, `CSLists`**, with one read-only predicate
+  `ownCSL` for its four slices, from the storage (`HSnapshot`) through `raftLog.snapshot`, the
+  pending snapshot, `send` and the outbox (`msgAbs`) to the receiver (`"Hsnap"`).
+  `absSnap`/`absSnapFrom` take the record, so every pattern on `msgAbs` and every mention of
+  `absSnap m sv voters` kept its text (the binder's type changed). The abstract message
+  (`Msg`) still keeps the incoming voters only.
+- **`SnapScope sv cl`** is `CSWf` plus what the comparison with `switchToConfig`'s sets needs
+  (no repeats, `AutoLeave` off when not joint) and the bounds; the node is in one of the three
+  lists `found` searches (`CSLists.Has`). The `ConfState`'s configuration is `snapCfg sv cl`
+  (`csCfgM`), which `Restore` answers exactly (`restoreM_wf`).
+- **The `MsgSnap` branch delivers `StepCDS`, not `StepCD`.** `StepCD` keeps the ghost part but
+  its configuration index, which a restore replaces wholesale (configuration index,
+  configuration, full prefix); and it is universal in `Adm`, which a restore cannot be (its
+  prefix and configuration must be admitted). `StepCDS` quantifies over the prefix `fp'` and
+  configuration state `cs'` the dynamic model admits, and gives some ghost part over the
+  configuration afterwards. `GMode.StepOut` moves to any ghost part, at `AdmFold`
+  (`StepR.mono` from `AdmS`).
+- **A3 is a premise of the receiving `raft.Step`, stated on the snapshot's recorded prefix**
+  (`GMode.SnapOk`, dynamic: `□ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk (snapId sv) fp⌝ -∗
+  ⌜SnapConfOk ...⌝`). The prefix itself comes from the message (`isMessage_snap_prefix`: the
+  sender's leader prefix taken to the snapshot's index, with records), so B5's
+  snapshot-prefix premise `S` is supplied by the code without changing `StepR` (B5's plan).
+  The form quantifies over recorded prefixes rather than naming one: records agree, so it is
+  one prefix, and the statement names no node's log -- it is a fact about the ghost records
+  that, once true, stays true, which is what a sender could later hand along with the message.
+  *Rejected for now*: `isMessage` carrying A3 (the message from the sender's storage). The
+  abstract `Msg` keeps only the incoming voters, so `isMessage` cannot name the other three
+  lists; the physical outbox relation (`msgAbs`, in `ownRaftPhys`) has no ghost names. Either
+  needs a structural change (the lists in `Msg` and every `Msg.mkV` site, with the refinement's
+  `sendApps` taking the A3 of the snapshots it sends; or the `RawNode` delivery predicate
+  handing the fact out), recorded in notes/STATUS.md as left.
+- **The static mode's snapshot** is `GMode.SnapOk`'s static clause, `listToSet scfg.voters =
+  γ.reCfg ∧ scfg.outgoing = []`: the configuration a restore installs is still `CfgStatic`.
+  `raft.Step.specS` keeps its premise list (its callers, the `RawNode` files, discharge
+  `"Hsnap"` by the message type and did not change).
+
+
+---
+
+## Reconfiguration stage B7 part 2: one `ownRawNode`, generic in a mode
+
+**2026-10-14 · accepted**
+
+- **The mode is a field of `RNState`, not a parameter of `ownRawNode`.** Every spec already
+  says `ownRawNode γ rn id { rs with … }`, which keeps the mode, so no statement of a spec
+  that does not care about reconfiguration changed shape. The mode is the ghost state's
+  (`ownRawNode_mode`: static iff `γ.reDyn = none`).
+- **One body for both modes** (`ownRaftPhysCV cf`, `ownStepGhost` in `rs.mode.toG …`), not a
+  `match` on the mode: every proof is written once, through `raft.Step.spec` in the node's
+  mode. The static view (`ownRaftPhys γ.reCfg`, `ownRaftGhost`) is recovered where a proof is
+  about the static mode only (`ownRawNode_static_open`/`_intro_static`).
+- **Discharge the dynamic premises from the struct rather than state them to the client.** No
+  pre-candidate: a new conjunct of `ownRaftPhys` (a pre-candidate has pre-vote on), kept by the
+  one role store that makes one. The dropped proposal's index room: the log's own bound
+  (stable part below `isStorage`'s `2^61`, unstable part a Go slice), as `appendEntry` already
+  derives it. *Rejected*: an index budget like `node.go`'s term budget (nothing to budget: the
+  bound always holds).
+- **`stepDownOnRemoval` persistent in `raftOwn`.** The dynamic `ApplyConfChange` needs `sdr`
+  on at the current state; carrying `s'.sdr = s.sdr` through `raft.Step`'s frames would touch
+  every branch and callee result (tried: the cascade reaches `stepLeader`'s results). The field
+  is never written after `newRaft`, so a persistent points-to gives it for free.
+  `ownRawNode` keeps `sdrOk` (the field's value, on in the dynamic mode).
+- **`GMove` in `GMode.StepOut`** (merged with B8b's `∃ g'`): the RawNode layer needs to know
+  that the configuration index moves only at a `MsgStorageApplyResp` (and how), to keep
+  `RNState.capplied` exact for the client's A1.
+- **`ApplyConfChange` is one triple with a mode split** in its premises and its post, the
+  static outcome unchanged under `⌜rs.mode = .static⌝`.
+- **`node.go` stays static** (`isNode`'s `Hstatic`): its `confc` arm and channel protocols carry
+  the static premise; making them dynamic needs the configuration index shared with the driver
+  (left).
+
+## Verifying a fork revision of raft: the single-voter read-index fix (stage F)
+
+**2026-10-14 · accepted**
+
+- **The raft pin is a fork revision, not upstream.** `issues/raft-readindex-singleton-stale.md`
+  is a real stale read under reconfiguration; a spec premise can exclude it statically
+  (`1 < size cfg`) but not once configurations change, where it would be a restriction on runs.
+  So the verified code is etcd-io/raft `40f8be7` plus the fix (and its regression test): commit
+  `0560cb7` on branch `raft-goose-lean` of `upamanyus/etcd`, a branch holding etcd-io/raft's
+  history (the fork repository otherwise holds etcd). `etc/goose.py` pins it (comment there),
+  CLAUDE.md says so, and the register's `go.mod` replaces `go.etcd.io/raft/v3` by the same
+  revision under the path `github.com/upamanyus/etcd/v3` (Go refuses the plain path: the fork's
+  `go.mod` declares a `/v3` module). Not reported upstream yet. *Rejected*: restricting runs
+  (no single-voter configuration while a leader may get `MsgReadIndex`), or keeping the shortcut
+  static-only -- both leave the code as shipped unverified on a path users reach.
+- **The shortcut is two model rules, refined by the heartbeat argument with the quorum `{id}`.**
+  `readSingle`/`readReleaseSingle` (a request, or every pending one, answered at the commit
+  index) for a leader with an entry of its term committed, at `CfgSingle c id`. The leader's own
+  acknowledgement confirms the arrival's record: no new ghost state, and the same proof in both
+  modes. *Rejected*: the static-only route of `notes/raft-readindex-spec.md` §4.4 (voter
+  membership of campaigners in `isCampK`, past-term commit bounds in `lcmOwn`), which would have
+  changed the ghost definitions and still not covered the dynamic mode.
+
+## ReadIndex and proposals as persistent atomic updates over the full log (stage R)
+
+**2026-10-14 · accepted** (`notes/raft-readindex-spec.md`, the backend unit T1's handoff; the
+user's defaults for its open questions)
+
+- **The client's view is the full committed log** (`rLog γ L`, ghost variable `reRLog`, replacing
+  the first-occurrence client log `cLog`), moved only by deposited **persistent** atomic
+  updates: `propAu γ d Q` at every committed occurrence of `d` (result `□ Q L`, the log before),
+  the standing `noopAu γ` at raft's own entries (given by the client at allocation, through a
+  continuation `allocClient` of `ownRaftGhost_alloc(_gen)`), and a read's `readAu γ Qr`, which
+  leaves the log as it is. The register, whose operations are linear and must run once, keeps the
+  first-occurrence slots itself (`opSlot`, the client's update with a later credit), which raft's
+  `propSlot` used to be.
+- **Reads fire at the deposit and at every commit after it** (open question 1, the user's
+  default): an update over the live log cannot be fired at a prefix already committed, so "from
+  the safe index on" is impossible; the read index enters only in what may be collected
+  (`readWit`, `read_collect`: every committed log at least `i ≥ |Lc|` long was fired at).
+  `readReq γ c Lc` now records the **exact** global log at the deposit.
+- **The updates bind raft's entry with `∀∀`, not `∃∃`** (correcting the note's pair `∃∃ (L, e)`;
+  open question 7 moot): in an atomic update the `∃∃` value is the client's choice (it hands over
+  the precondition), the `∀∀` the linearizer's. So `propAu γ d Q = □ AU <{ ∃∃ L, rLog γ L }> @
+  ⊤ ∖ ↑raftN, ∅ <{ ∀∀ e, rLog γ (L ++ [e]) ∗ entDataIs γ e (some d), COMM □ Q L }>`, the client
+  learning the entry's data from the binder. (The notation does take several `∃∃` binders.)
+- **One later credit per ghost step, with the commit invariant in two halves.** The note's plan
+  (one `£ 1` per ghost step, used by `commit_extend`) does not work as stated: `Step`/`StepC`/
+  `StepR` are transitive closures, so one derivation may commit several times, each commit firing
+  updates under the invariant's later, and one credit strips one later. The commit invariant is
+  split: the log half (`raftLogInv`, at `raftN.@"log"`) and the registry half (`raftRegInv`, at
+  `raftN.@"reg"`: the registries, `noopAu`, a quarter of `reRLog`; the log half has the other
+  quarter, so both are at the global log). A ghost step opens the registry half once with its
+  credit (`regs_open`) and threads its contents (`regsOwn`) through the derivation
+  (`ownRaftGhost_stepC_in`, `ownRaftGhostR_stepR_in`), whose case lemmas run at
+  `⊤ ∖ ↑raftRegN` and open the log half only; the updates' outer mask `⊤ ∖ ↑raftN` excludes both.
+  *Rejected*: a commit-counting index on the step relation (a copy of `StepC`'s forty rules and
+  of every branch's derivation); deferring the firing to whoever collects (the log of `rLog`
+  lagging the committed one, against the user's firing discipline, and a credit at `⊤` at every
+  collection).
+- **The credit comes from `raft.Step.spec`'s precondition** (the note's fallback; the
+  [unsure] of §4.2): `raft.Step`'s dispatch applies the branch lemmas to the whole call, so no
+  pure step precedes a branch's ghost update without restating them; `stepPost` carries the
+  credit to each branch's `finish_branch`. Its callers (the `RawNode` methods, `tickElection`/
+  `tickHeartbeat`, `node.run`'s arms, `Advance`'s pending loop, `ApplyConfChange`) take it from
+  their own pure steps; no public `RawNode`/`node` spec changed for it.
+- **A separate token map for read contexts** (`reRdFresh`, `rdFresh`; open question 5); the
+  read registry's authority (`reReads`) is raft's, in the registry half.
+- **The deposit is in the spec** (open question 9): `RawNode.ReadIndex`/`node.ReadIndex` take
+  `rdFresh γ c ∗ readAu γ Qr ∗ isCommitted γ L0` and return `∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗
+  isRead γ c Qr`. Consequence for the register: its read's waiter is made (under the lock) before
+  the call, so it cannot hold the deposit's record; the applier answers with the read state's
+  index and the value after a committed log at least that long (`readAns`), and the reader, with
+  the call's post, turns it into `readP`.
+- **`▷ ▷` at collection** (open question 6): `read_collect`, `prop_collect` give `▷ ▷ □ Q`; a
+  client spends `£ 2` (the register does, in `do`).
+- **No extra facts in `readAu`'s precondition** (open question 8); lease-based reads and
+  crash-restart stay out (10, 11).
+- Raft's read registry is `readsReg` (the register already had a `readsOwn`).
+
+## Stage N: `node.go`'s configuration shared with the driver, by slots and lower bounds
+
+**2026-10-15 · accepted**
+
+- **What is shared, and how.** In the dynamic mode `run` must check a conf change against its
+  `RawNode` (`DynCCPre`: the entry handed out, past the configuration index, at the
+  configuration in use) from what the driver knows, and A1 at `Advance`. The committed log
+  handed out is a `mono_list` (`dlm`): `run` holds the authority, the driver lower bounds, enough
+  since the change's facts are about a prefix. The configuration of the last applied change is a
+  ghost variable in halves (`cap`), which `confc` carries to `run` and `confstatec` back; its
+  index is also a monotone nat (`cam`) whose lower bound the driver hands to `advancec` with A1.
+  `Advance` may move the `RawNode`'s index past the shared one over no conf entry, so `runCfg`
+  states `ca ≤ rs.capplied` and `NoConfIn` between, rather than equality.
+- **The answer slot `ccq`.** A handshake's receiver gives its `Q` before it sees the payload
+  (`handshake_receive_au`), so neither `confstatec` nor `advancec` can hand back a resource whose
+  value depends on the request. The driver therefore keeps half of `ccq` at the answer it expects
+  (`(k + 1, cs')`) and sends the other half with the request; `run`'s answer carries `cap`'s half
+  with `ccq`'s at the same value, and agreement tells the driver which value came back.
+  *Rejected*: `advancec` returning the `cap` half (the `Q` problem: `Advance`'s new index is only
+  known after the receive); the driver sending `dlv` or `rof` halves as witnesses of the log
+  (in the busy state the driver holds both `dlv` halves, so `run` cannot tie them to its own).
+- **Statement shapes kept.** `nodeDriver`/`nodeDriverBusy` keep their parameters (the lower
+  bound is inside); the driver's view is a separate token `nodeCfg γ ca cfg`, which
+  `RestartNode` hands out and `Advance` frames; the static mode never moves it.
+
+## Stage N: the conf-change bytes a cluster admits (`RaftNames.reCCOk`)
+
+**2026-10-15 · accepted**
+
+- **Why.** B3's decoder (`CCDec`) is a pure function of an entry (and its prefix); an entry's
+  data is a `GoSlice`, whose bytes are in the heap, recorded only in the ghost map of proposed
+  slices (`reSl`), which grows after allocation. So no decoder fixed at allocation can be what an
+  application's `Unmarshal` computes (`decOfData`'s `data : GoSlice → List w8` cannot be
+  chosen). A client applying conf entries by decoding them must instead know which bytes a
+  conf-change entry can carry: `RaftNames.reCCOk ty bs`, fixed at allocation, recorded with each
+  conf entry's data (`entDataIs`), asked of each change proposed (`CCAllowed`). A client that
+  admits one change `op` (the register: removing replica 3) then uses the constant decoder
+  `ccDecOf op` and proves that what it decoded is `op`.
+- *Rejected*: a register-only invariant over the proposed conf changes (raft's ghost state does
+  not record who proposed an entry, and any holder of `isNode` may propose any change); not
+  decoding in Go (the apply loop passing a fixed change for every conf entry: not idiomatic, and
+  wrong as Go code); a ghost decoder (B5's model and every `cfgFold` are pure).
+- **Cost.** One field, one conjunct in `entDataIs`'s conf-entry case, one premise of the two
+  `ProposeConfChange` specs; static clusters admit everything.
+
+## Stage N: the register removes a voter (not adds a learner)
+
+**2026-10-15 · accepted**
+
+- **The change** is `RemoveNode 3` from {1, 2, 3}: a simple change of the voters (quorums
+  shrink to {1, 2}; a removed leader steps down, `StepDownOnRemoval`), no joint consensus, no new
+  node (so no node outside the initial voters and no `MsgSnap`, both out of scope). Removing it
+  again is nothing, so the configuration is `c0` or `c1` whatever number of conf entries is
+  committed. *Rejected*: adding a learner (simpler model lemmas exist, but the voters do not
+  change and the learner node would not exist).
+- **`Main` proposes once, and no operation waits after it** (raft may drop the proposal;
+  `do`/`Read` do not retry a request dropped by a leader that steps down, as during a
+  transfer). The transfers that end `Main` go to replica 2. `TestRemoveMember` (unverified)
+  retries the proposal, waits for a leader of the remaining voters, and checks the operations.
+
+## Stage S: a snapshot's `ConfState` recorded by the storage and the log; the certificate's carrier deferred
+
+**2026-10-15 · accepted (partial)**
+
+- **The storage records the lists, the log the certified snapshots it may send.**
+  `StorState.scs`/`sal` (the storage returns exactly what `CreateSnapshot`/`ApplySnapshot`
+  stored) and `LogState.ksn` (the storage's snapshot and every restored one). Raft keeps
+  `raftLog.snapshot`'s result in `ksn` as an invariant of `ownRaftLog` (`Hsksn`, `pendKsn`) rather
+  than as a fact of each call, so that the outbox (later) can name it. The pending snapshot's
+  membership lives in `ownUnstable` too (`UnstableSt.ksn`): the `unstable` methods return an
+  existential struct value, so a pointer-keyed fact held beside the log would be lost at each call.
+- **The certificate `raftSnapCert` is stated on the ghost records**, as `GMode.SnapOk`'s dynamic
+  clause is (any recorded prefix ending at the snapshot's id), plus `SnapScope`'s facts and the
+  static clause, so one persistent fact serves both modes and the transport premise `SnapScope`.
+- **Carrying it to the receiver: the abstract message was extended, then parked.** The first
+  version (branch `stage-s-msg-extension`) put the lists in `Msg` and the certificate in
+  `isMessage`, with `PState.snaps` and certificates in `ownRaftGhost`: the producer (`sendApps`)
+  then gets the certificate from the sender's ghost state, the receiver from the message, and
+  `raft.Step` loses two premises. The integration session asked to avoid changing `Msg`,
+  `isMessage` and `ownRaftGhost` when a route local to the `RawNode`/node layer exists. One does
+  (notes/STATUS.md, stage S, "Left" 1: an outbox invariant on the physical messages, certificates
+  in `ownRawNode`, `Ready` handing one out with each `MsgSnap`, the transport carrying it to
+  `RawNode.Step`), but it pays off only with `MsgSnap` at `RawNode.Step` (S2), so neither is on the
+  branch: the records stay, the carrier waits for S2.
+
+---
+
 ## The server's apply: the hook through mvcc, the chain as triples, compaction out of the model
 
 **2026-10-12 · plan, unit 0 implemented** (`server/v3/etcdserver/apply`, ~1180 Go lines: the
@@ -5435,12 +6167,19 @@ contracts that took `isContext` (`grpcInvokerOk`, `withVersion`, `waitRetryBacko
 only, which the queue needs (`NewQueue`'s `kp ≠ []`); the priority queue (contracts at `""`) is not
 covered.
 
-## Put and Get as persistent atomic updates linearized by raft (unit T1, 2026-10-14 · adopted in part)
+## Put and Get as persistent atomic updates linearized by raft (unit T1, 2026-10-14 · adopted)
 
-**Status.** The user confirmed the direction and decided the open points (2026-10-14). Done in Lean
-so far: the pure KV model (`etcdserver/KVModel.lean`). Not done: the contract restatement and the
-re-proofs, because of the two gaps below ("Two gaps found"), which need decisions before the
-ghost and contract layers are built.
+**Status.** Implemented (2026-10-14): the model, the KV ghost state and its invariants, the raft
+contract restated, the read loop's registry, mvcc's log certificates, the apply thread's KV
+ghost state, the server's `Put`/`Range`, the gRPC layer's deposits, the client's `kv.Put`/`kv.Get`
+with persistent updates. Full build green, no new axiom, no new `sorry` (`notes/STATUS.md`, "Unit
+T1"). The two gaps found while designing are resolved below ("The two gaps, resolved").
+**Superseded in part (2026-10-15, unit T2)**: the per-key points-to (`k ↦kv vo`, `kvPutAu`,
+`kvGetAu`), the plain workload's limits (puts without ignore flags, deletes without `PrevKv`, no
+transaction) and the non-plain credit `srvNonPlain` below are replaced by one exclusive state
+`etcdKV γ σ` and a transition for every KV operation: "Every KV operation as a persistent atomic
+update on the whole state". The raft contract, the read loop's registry, mvcc's certificates and
+the two gaps' resolutions stand.
 
 **Goal.** TaDa-style specs, linearized by raft:
 
@@ -5481,10 +6220,10 @@ that turns these into ordinary atomic specs is later work.
   map `γkv`. The authority holds only the keys handed out. A key not in it is allocated at its
   current value (`kv_alloc`, inside the invariant).
 - **The KV invariant** `kvInv γ γkv` (namespace `kvN`, disjoint from `srvRaftN`): `∃ L, srvRLog γ
-  L ∗ ghostMapAuth γkv M ∗ ⌜plainLog L ∧ ∀ k vo, M !! k = some vo → vo = kvVal (kvOf c₀ ch₀ x₀.log
+  L ∗ ghostMapAuth γkv M ∗ ⌜plainLog L ∧ ∀ k vo, M !! k = some vo → vo = kvVal (kvRaftOf c₀ ch₀ x₀.log
   L) k⌝`. `srvRLog γ L` is the server's half of the committed raft log after `ai₀`. Raft holds the
   other half and moves both at each commit.
-- **The model** (`KVModel.lean`, done): `kvOf c₀ ch log₀ A`, the fold of `kvEntry` over raft
+- **The model** (`KVModel.lean`, done): `kvRaftOf c₀ ch log₀ A`, the fold of `kvEntry` over raft
   entries. A normal entry with data that decodes goes through `dispatchLog` (`chainLog` through the
   chain `ch`, the start's: `restoreAlarms`' chain at `x₀`, fixed since no alarm request is plain);
   everything else is the identity. `kvVal log k` is the value of `k` after `log`. The model's value
@@ -5504,8 +6243,8 @@ that turns these into ordinary atomic specs is later work.
     layer.
 
   The auth disjunct is what `authOn` removes.
-- **The intermediate value lemma** (`kvOf_ivt`, done): a log between `kvOf A₀` and `kvOf B`, with
-  `A₀ <+: B`, is `kvOf A` for some `A` between them, since each entry appends at most one revision
+- **The intermediate value lemma** (`kvRaftOf_ivt`, done): a log between `kvRaftOf A₀` and `kvRaftOf B`, with
+  `A₀ <+: B`, is `kvRaftOf A` for some `A` between them, since each entry appends at most one revision
   (`kvEntry_grow`).
 
 ### `authOn` in the model (next step; mechanical but wide)
@@ -5561,29 +6300,44 @@ some rq → plainReq rq⌝`. So:
 - **The NOSPACE alarm** (the apply thread's goroutine, `raftRequestAlarm`, an axiom) is the hard
   case; see "Two gaps found", gap 2.
 
-### The raft contract, restated (to implement)
+### The raft contract, restated (implemented, `InvRequest.lean`)
 
-It is stated over `ServerRaftNames`, with `cLog`/`committed` replaced by the committed raft log
-`srvRLog γ L` (halves) and its persistent lower bounds `srvRLogLb γ L`.
+It is stated over `ServerRaftNames` (`rlog`, `rlb`, `fresh`, `props`, `ai0`): the committed raft log
+after `ai0` as a ghost variable in halves (`srvRLog γ L`: the KV invariant's; raft's in its commit
+invariant `srvRaftLogInv`, with the lower bounds' authority) and its persistent lower bounds
+`srvRLogLb γ L`.
 
-- **Proposals**:
+- **Proposals** (`Propose` takes `srvPropArg`: a fresh token and the update, or a retry's
+  `srvDeposited`; gives `srvPropRes`):
   ```
-  srvPropAu γ d Q := □ AU <{∃∃ (L : List EntryModel) (e : EntryModel),
-      srvRLog γ L ∗ ⌜e.typ = W32 0 ∧ e.data = d⌝}> @ ⊤ ∖ ↑srvRaftN, ∅
-    <{srvRLog γ (L ++ [e]), COMM □ Q L}>
+  srvPropAu γ d Q := □ AU <{∃∃ L, srvRLog γ L}> @ ⊤ ∖ ↑srvRaftN, ∅
+      <{∀∀ e, ⌜e.typ = W32 0 ∧ e.data = d ∧ srvIdxOk γ.ai0 (L ++ [e])⌝ ∗ srvRLog γ (L ++ [e]),
+        COMM □ Q L}>
   ```
-  It is fired at every committed occurrence of `d`. Raft records `srvPropWit γ d Q := □ ∀ L,
-  srvRLogLb γ L -∗ ∀ m, ⌜m < L.length ∧ L[m].data = d ∧ L[m].typ = 0⌝ ={⊤}=∗ □ Q (L.take m)`. A
-  retry needs `srvDeposited γ d`.
-- **Raft's own entries**: a standing update given at the node's start, `□ ∀ e, ⌜noopEntry e⌝ → AU
-  <{∃∃ L, srvRLog γ L}> <{srvRLog γ (L ++ [e])}>`, where `noopEntry` is empty data or a conf change.
-  `kvInv` gives it.
-- **The apply side**: `rnReadyData`'s `□ E.C (d ++ ce)` carries `srvRLogLb γ (d ++ ce)`.
-- **Reads**: `ReadIndex(ctx, beBytes id)` takes `srvReadAu γ Qr := □ AU <{∃∃ L, srvRLog γ L}> @ ⊤ ∖
-  ↑srvRaftN, ∅ <{srvRLog γ L, COMM □ Qr L}>` and registers `RQ id Qr`. A read state answering `id`
-  gives its safe index `i = rs.Index` and `srvReadWit γ Qr i := □ ∀ L, srvRLogLb γ L -∗ ⌜uint.Z i ≤
-  uint.Z ai₀ + L.length⌝ ={⊤}=∗ □ Qr L` (pitfall (a): the log through a raft index includes raft's
-  own entries, which `kvOf` skips). One spec, with no voter-count premise (pitfall (c)).
+  fired at every committed occurrence of `d`; raft records it:
+  ```
+  srvPropWits γ := □ ∀ d Q L m e, srvIsProp γ d Q -∗ srvRLogLb γ L -∗
+      ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ e.data = d⌝ -∗ £ 2 ={⊤}=∗ □ Q (L.take m)
+  ```
+  (two credits: raft's collection is under its invariant's later and the saved predicate's).
+- **Raft's own entries**: `srvNoopAu γ := □ ∀ e, ⌜e.data = [] ∨ e.typ ≠ W32 0⌝ -∗ AU <{∃∃ L,
+  srvRLog γ L}> @ ⊤ ∖ ↑srvRaftN, ∅ <{⌜srvIdxOk γ.ai0 (L ++ [e])⌝ ∗ srvRLog γ (L ++ [e]), COMM
+  True}>`, which the KV invariant gives (`kv_noop_au`) for raft to take at the node's start.
+- **The apply side**: `srvC ρ E ai₀ c₀ x₀ L` (raft's `E.C` of every `Ready`'s committed entries)
+  carries `srvRLogLb ρ.raft L`.
+- **Reads** (`raftNode.ReadIndex`, `isRaftNodeIfc`, `isReadRaft`): `ReadIndex(ctx, beBytes id)` with
+  `committedAtLeast γr n` takes `srvReadAu γ Qr := □ AU <{∃∃ L, srvRLog γ L}> @ ⊤ ∖ ↑srvRaftN, ∅
+  <{srvRLog γ L, COMM □ Qr L}>` and registers `□ RQ id n Qr`. A read state answering `id`
+  (`readStateOk`) gives `n ≤ rs.Index` and `srvReadWit γ Qr rs.Index`, with
+  ```
+  srvReadWit γ Qr i := □ ∀ L, srvRLogLb γ L -∗ ⌜uint.Z i ≤ uint.Z γ.ai0 + L.length⌝ -∗
+      £ 2 ={⊤}=∗ □ Qr L
+  ```
+  Raft deposits the update at the `ReadIndex` call and fires it then and at every later commit,
+  on the committed log of the moment (`notes/raft-readindex-spec.md`: `read_deposit`); the read
+  index bounds the committed log at the deposit, so every committed log through an index `≥ i`
+  was fired at (pitfall (a): the log through a raft index includes raft's own entries, which
+  `kvRaftOf` skips). One spec, with no voter-count premise (pitfall (c)).
 
 ### The read loop: one update per `ReadIndex`, a list of registered `Q`s (decision 2)
 
@@ -5608,13 +6362,45 @@ The `read` package stays generic: it is parameterized by the deposit (a persiste
 registered predicates' companions) and a composition premise, which the server instantiates with
 `kv_read_compose`.
 
-### Two gaps found (need decisions)
+### The two gaps, resolved (2026-10-14)
+
+1. **The read's log, pinned to a raft index** (the user's decision: mvcc's certificates, ghost
+   only, no Go change, no observer at `store.Read`'s linearization point). mvcc's store certifies
+   every log it commits by its *caller's* ghost map `γ.cok` (length ↦ log, persistent elements):
+   `certOk γ log := ⌜log.length ≤ 2⌝ ∨ (W64 log.length) ↪[γ.cok]□ log ∨ (W64 0) ↪[γ.cok]□ []` (the
+   last the free certificate a caller that does not use them mints, `certFree`). `revMuInv` keeps
+   `certOk` of the committed log; a write transaction's `End` takes `certOkNext γ ilog pend`
+   (`txnEndPre`), `store.Read` returns `certOk γ log` of the log it read; `NewStore` hands the
+   caller `ghostMapAuth γ.cok 1 ∅`. The txn package passes the premise up (`txn.Put`: `□ ∀ ilog,
+   ⌜Pinned log₀ m ilog⌝ -∗ certOk γ (ilog ++ [[putChangeOf …]])`; `DeleteRange`: `certOkNext` of
+   its changes; `Txn`: `certOkNext` of a writing run), and the apply package as `certPre E c rq log
+   := □ ∀ oc, ⌜chainStep backendStep c rq log oc⌝ -∗ certOk E.γ (oc.logAfter log)` (each layer's
+   `certPre_mono`), `certPreV v3` at `dispatch`/`uberApplier.Apply`/`apply.Apply`, and the lessor's
+   `Revoke` contract the same of its deletions. The server's elements say a log is the KV model of
+   a committed raft log: `kvCertInv γ γk := inv kvcN (∃ C hi Lb, ghostMapAuth γk.cok 1 C ∗
+   ghostVar γk.hi ½ hi ∗ srvRLogLb γ Lb ∗ ⌜certMapOk γk C hi Lb ∧ 2 ≤ γk.log0.length⌝)` with
+   `certMapOk`: every element `n ↦ l` has `|l| ≤ hi`, `n = W64 |l|`, `|l| < 2^63` and `l =
+   kvModel γk A` for some `A <+: Lb`. The apply thread holds the other half of `hi` at its log's
+   length (`kvApplied γ γk A x`: `srvRLogLb γ A`, the half, `kvCert γk x.log`, `x.log = kvModel γk
+   A`, `x.chain = γk.ch0`) and, before applying the next committed entry `m`, mints the
+   certificate of `kvEntry … x.log m = kvModel (A ++ [m])` at a length above every certified one
+   (`kv_cert_step`, `kv_applied_step`); by determinism (`chainStep_plain`, auth off) every outcome
+   of the request's chain has that log (`kv_certPre`). A reader (`kv_cert_read`, `kv_read_log`):
+   a certified `l` extending the log `L₀` applied through `i` (`kvLogAt`, from the applied index's
+   invariant, `kvLogsOk`) is `kvModel A` of a committed `A` through an index `≥ i` (if `A` is
+   shorter than `L₀`'s raft log, both models are prefixes of each other, so equal).
+2. **The NOSPACE alarm** (the user's decision): the quota's contract says `Available` returns
+   `true` ("the backend never reaches its quota: the disk never fills", a construction premise of
+   `isQuota`); `chainStep`'s quota case is the inner outcome, so `ErrNoSpace` and the server's
+   NOSPACE `Alarm` proposal are unreachable in the model.
+
+The design discussion, as it was before the decisions:
 
 1. **The read's log is not pinned to a raft index.** A linearizable `Range` reads mvcc's *current*
    log `l` (`txn.Range`: a certified `l` between the caller's certificate `log₀` and its revision
    tokens). The read side knows only `readLogOk`: `l` extends the log applied through some `ci₀ ≥
-   i`. To get `□ Q (kvVal l k)` from `srvReadWit`, `l` must be `kvOf A` for a committed `A` with
-   `|A| ≥ i - ai₀`. `kvOf_ivt` gives that from an **upper bound** `l <+: kvOf B` for some committed
+   i`. To get `□ Q (kvVal l k)` from `srvReadWit`, `l` must be `kvRaftOf A` for a committed `A` with
+   `|A| ≥ i - ai₀`. `kvRaftOf_ivt` gives that from an **upper bound** `l <+: kvRaftOf B` for some committed
    `B`. No existing fact gives one. The apply thread commits an entry's changes to mvcc before
    depositing its log (`applied_predeposit`), so a reader may see a log that no deposit names yet.
    The sole writer's revision tokens bound every committed log, but they are the apply thread's, so
@@ -5624,7 +6410,7 @@ registered predicates' companions) and a composition premise, which the server i
    - (a) mvcc's read transaction exposes its linearization point: `store.Read` (and through it
      `txn.Range`) takes an observer, run while it holds `revMu` with the committed log
      (`revMuInv`'s `ghostVar γ.clog`). The apply thread deposits its next log *before* the mvcc
-     commit (it is `kvOf` of the batch, known in advance by determinism), with an invariant that
+     commit (it is `kvRaftOf` of the batch, known in advance by determinism), with an invariant that
      the store's committed log is the deposited log at the applied index or the next. This is a
      change to mvcc's read and write-transaction specs (`store.Read`, `storeTxnWrite.End`) and to
      the apply thread's deposit.
@@ -5658,14 +6444,21 @@ Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
   is exactly `i` long), recording `srvReadWit`.
 - The safe-index lemma becomes "the committed log at the call is at most `i` long", strengthened
   from `readReq γ c Lc`'s log the request knew.
-- **One spec for every configuration.** The verified `node.ReadIndex`/`RawNode.ReadIndex` premise
-  `1 < GMap.size γ.raft.reCfg` is dropped. The singleton branch (`raft.go:1343`: `IsSingleton()`
-  answers at once with `r.raftLog.committed`, skipping the heartbeat round and
-  `committedEntryInCurrentTerm`) is another case of the same spec:
-  - immediate for a static single voter, whose committed log is the cluster's;
-  - for a configuration reduced to one voter, it rests on the reconfiguration invariants: the node
-    applies the change that makes it the sole voter only once its commit index has passed that
-    change.
+- **One spec for every configuration** (static membership). The verified
+  `node.ReadIndex`/`RawNode.ReadIndex` premise `1 < GMap.size γ.raft.reCfg` is dropped. The
+  singleton branch (`raft.go:1343`: `IsSingleton()` answers at once with `r.raftLog.committed`,
+  skipping the heartbeat round and `committedEntryInCurrentTerm`) is another case of the same
+  spec, provable in the static mode only (a static single voter's committed log is the
+  cluster's). Under reconfiguration the singleton branch can answer with a stale index (the raft
+  team's `issues/raft-readindex-singleton-stale.md`); nothing more is claimed.
+- **The read update deposited at the call** (`notes/raft-readindex-spec.md`): `readReq γ c Lc`
+  with the exact committed log at the deposit, fired then and at every later commit; the
+  witness's collection costs two later credits (`£ 2` in `srvReadWit`, as `srvPropWits`).
+- **The delivered log is committed**: `srvC`'s `srvRLogLb` of every `Ready`'s committed entries
+  from the start.
+- **Raft's own entries** through `srvNoopAu`, taken at the node's start.
+
+---
 
 ## The watch stream's server end: indexed queues, the delivery accounted by position (unit W-S, 2026-10-14)
 
@@ -5704,3 +6497,204 @@ context is done but whose receive is not), so the receive loop's resources are n
 the slot is per stream for the server's life, as the note's open point on the pool says. (3)
 Modeling fragmentation, `prev_kv` and filters now: no client of the slice sends them; the
 restriction `watchReqOk` (a premise on `Up`) leaves them to a later unit.
+
+---
+
+## Every KV operation as a persistent atomic update on the whole state (unit T2, 2026-10-15 · adopted)
+
+**Status.** Implemented (2026-10-15, `notes/STATUS.md`, "Unit T2"): puts (any flag but a lease),
+ranges, deletes (with or without `PrevKv`) and plain transactions are deterministic in the KV
+model and step one exclusive abstract state; the server's and the client's `Put`, `Range`/`Get`,
+`DeleteRange` and `Txn` take persistent atomic updates over it. It supersedes unit T1's per-key
+points-to (`k ↦kv vo`, `kvPutAu`, `kvGetAu`) and merge M1's non-plain credit (`srvNonPlain`,
+`srvNonPlainAll`), both removed. No new axiom, no new `sorry`.
+
+### The user's decisions (2026-10-15)
+
+- Every etcd KV operation (leases included, later) has a transition on the abstract etcd state;
+  an operation not handled yet has no spec (no unobtainable token).
+- **The abstract state is the whole store**: one exclusive predicate `etcdKV γ σ`, `σ` the store
+  at its latest revision. Each operation's spec takes `□ AU <{∃∃ σ, etcdKV γ σ}> <{etcdKV γ (step
+  op σ), COMM □ Q σ}>` (a read's step the identity, a rejected request's too) and returns `□ Q` of
+  the state it linearized at. A per-key points-to is a client-side view (a ghost map in the
+  client's own invariant beside `etcdKV`).
+- Writes' updates stay persistent (retries, raft's duplicates); reads use raft's persistent read
+  update (T1), pinned to a committed raft prefix through mvcc's certificates (T1).
+
+### The state and the step (`KVModelDefs.lean`)
+
+- `KVState := {kvs : List EtcdKv, rev : Nat}` (every key's value, create and mod revisions,
+  version and lease; the current revision), `kvStateOf l := ⟨stateAfter l, l.length - 1⟩` (a read
+  at `l` answers revision `l.length - 1`). `KVState.commit σ cs`: no change for no change
+  (`commitLog`'s), else the changes at revision `σ.rev + 1`.
+- `KVOp := put o | range o | deleteRange o | txn t`, `kvOpStep`: a put whose ignore flag's key is
+  missing changes nothing (`ErrKeyNotFound`), else commits `putChangeOf`; a range nothing; a delete
+  commits its range's deletions (`delChanges`); a transaction whose path does not find a key an
+  ignore flag needs changes nothing (`checkTxn`'s error), else commits the server's run
+  (`srvRunTxn`, nested branches by their verdicts at the state).
+- `reqKVOp rq` (by `dispatch`'s kind), `kvReqStep`; the backend's deterministic log (`backendLog`,
+  now with the put's rejection and the transaction) follows the state: `kvStateOf_backendLog`
+  (`kvStateOf (backendLog rq l) = kvReqStep rq (kvStateOf l)` for `l ≠ []`); `dispatchLog_base`,
+  `kvEntry_base`: at the start's chain with `v3`, an entry's effect is its request's backend log.
+- **Plain** (`plainReq`): a put with lease `0` (any other flags), any delete, a plain transaction
+  (`txn.txnPlain`: gets at revision `0`, puts naming lease `0` and keeping none: no
+  `IgnoreLease`, whose `putKeep`/`putIgnVal _ none` drop the request's `Lease` field that
+  `checkPut` still looks up), a range, or a request that does not write. Excluded (no spec):
+  leases (grant, revoke, a put or transaction naming one), compaction, alarms (the quota
+  assumption already excludes NOSPACE), `AuthEnable` and the admin requests.
+
+### Making the apply relation exact (what determinism needed)
+
+The apply package's outcome relation left four choices open; each is now closed by a
+strengthened spec of the code, not by a premise:
+
+- **A put's ignore flag**: `txn.Put.spec`'s commit now says the previous key-value an ignore flag
+  needs was found, and the caller certifies only such a put's log (`□ ∀ ilog, ⌜Pinned ∧ (needsPrev
+  → found)⌝ -∗ certOk …`); `backendStep`'s applied put carries it.
+- **A delete with `PrevKv`**: its range read cannot fail at the apply thread's never-done context
+  (`txn.DeleteRange.spec`'s `nd`); `backendStep`'s delete is the applied commit only.
+- **A transaction's check**: `checkTxn.spec`'s error says, for a plain transaction, that a put of
+  the path did not find a key it needed (`txnPlain t → ¬ PathsIgnOk …`: a range at revision `0`
+  passes `checkRange`, a put naming lease `0` passes `checkLease`); `txn.Txn.specSole`'s success
+  says `PathsIgnOk`, its error the same as `checkTxn`, and the caller certifies only a write whose
+  path finds its keys; `backendStep`'s transaction carries both.
+- **The auth layer on a transaction with auth disabled**: `CheckTxnAuth`/`checkTxnPermission`/
+  `checkTxnReqsPermission` now return `nil` when the store is disabled (`on = false`: they are made
+  of the permission checks, which do); `authMayReject` no longer lets a disabled auth layer reject
+  a transaction.
+- The capped layer (a `NOSPACE` alarm) may reject a transaction or not; the start's chain has no
+  capped layer, so the determinism lemmas take `c.kvExact` (auth disabled, no capped layer:
+  `Chain.kvExact`, `alarmChain false false false`'s) instead of T1's `authOn = false`.
+
+### The KV ghost state (`InvRequest.lean`, `KVLemmas.lean`)
+
+- `KVNames` has `st` (the state's ghost variable) in place of T1's `map` and `np`; `etcdKV γk σ :=
+  ghostVar γk.st ½ σ`; the KV invariant holds the other half at `kvStateOf (kvModel γk L)` of the
+  committed log `L`, with T1's plain/index facts and `γk.log0 ≠ []` (`kvInv_alloc` allocates both
+  halves from an empty committed log).
+- `kvAu γk f Q := □ AU <{∃∃ σ, etcdKV γk σ}> @ (⊤∖↑srvRaftN)∖↑kvN, ∅ <{etcdKV γk (f σ), COMM □ Q
+  σ}>`, `kvOpAu γk op Q := kvAu γk (kvOpStep op) Q`, `kvReadAu γk Q := kvAu γk id Q`.
+- `reqPropOk γk rq Qr`: a plain request with no write (`Qr` trivial), or a plain request of the
+  operation `op` (`reqKVOp rq = some op`), no range end `[0]` (`irrNoZeroEnd`: the wire keeps it),
+  with its client's `kvOpAu γk op Q`, `Qr L = □ Q (kvStateOf (kvModel γk L))`. `kv_prop_au` fires
+  the client's update at the commit (`kvModel_snoc_state`: the entry steps the state by its
+  request). The permits: `putPermit` (lease `0`), `deletePermit` (range end not `[0]`),
+  `txnPermit` (`txnPlain`, `txnNoZeroEnd`), each with its `*_reqPropOk`.
+- `kvDep γk Q`: a read update `kvReadAu γk Q0` with `Q L = □ Q0 (kvStateOf (kvModel γk L))`, or
+  none; `kv_fire_reads`/`kv_read_compose` fire every registered read at the current state.
+
+### The specs
+
+- Server: `EtcdServer.Put … Q` (pre `putPermit`), `DeleteRange … Q` (pre `deletePermit`), `Txn … t
+  Q` (a writing `t`: pre `txnPermit`), success adding `∃ σ, □ Q σ`; `Range … Q` with `kvDep`.
+- gRPC layer: `KVDep := none | op o Q | read Q`; a put, a delete and a writing transaction take
+  the deposited operation's update (`kvDepPre`), their answers add `∃ σ, □ opDepQ d σ`.
+- Client: `etcdPutSpec` (`∃ Q, ⌜lease 0⌝ ∗ kvOpAu (.put o) Q ∗ ∀ m, putReplied … m ∗ (∃ σ, □ Q σ) -∗
+  Φ m`), `etcdDeleteSpec` (likewise, range end not `[0]`), `etcdTxnSpec` (read-only and `Q`
+  trivial, or writing, `txnPlain`, `txnNoZeroEnd`, `kvOpAu (.txn t) Q`), `etcdRangeSpec` (`kvReadAu
+  Q` or nothing; `rangeReplyOk` carries `□ Q (kvStateOf log)` of the log read). End to end:
+  `client_put_end_to_end`, `client_get_end_to_end`, `client_range_end_to_end` (any options that keep
+  a range), `client_delete_end_to_end`, `client_txn_end_to_end`; `client_get_value`,
+  `rangeReply_state` (the reply is the state's selection, count and revision).
+
+### How `σ` meets the vertical slice's `EtcdModel`
+
+The class is unchanged. `σ` is always the state of a certified log (`kvStateOf l`, `l` the KV
+model of a committed raft log, which mvcc certified): a read's `□ Q σ` comes with `idxCert l`
+(`rangeReplyOk`), so `rangeReply_etcdState` gives `etcdState (W64 σ.rev) pfx (underPfx pfx σ.kvs)`
+in `v3rpc.etcdModelOfServer E` (`etcdState_of_cert_last`): the instance's `etcdState` at `σ.rev`
+is `σ` restricted to the prefix. A write's `σ` is the state before the entry, at the log the
+apply thread met (`x.log`, certified: the reply's `putReplied` etc.); the specs do not yet tie
+`σ` to the reply's `x.log` (the proposal's witness is collected at the occurrence the reply is
+of, but `resultIs` does not name the raft prefix): a refinement for the next unit.
+
+### The V2b client contracts
+
+A client that does not track the abstract state holds every operation's update with no result,
+`kvAnyAu γ := □ ∀ op, kvOpAu γ.kv op True`, from `etcdKV` in an invariant of its own
+(`kvAnyAu_of_inv`). The derived contracts (`kv_put_result`, `kv_delete_result`, `kv_txn_commit`,
+`isEtcd*KVTodo_of_kv`, the recipes', `queue_vertical`) take it in place of `srvNonPlainAll`, plus,
+for the operations with a lease, which no server spec covers until unit T3, their client-level
+triples as premises (`kvLeasedPutTodo`, `kvLeasedCommitTodo`; bundled as `kvWritesOk`). Deletes and
+lease-free puts and transactions are meaningful again; leased ones wait for T3.
+
+### Unit T3: leases (the plan; not implemented)
+
+- **State**: `σ.leases : List (w64 × Nat)` (id, granted TTL), the lessor's table; a key-value's
+  `lease` field already in `σ.kvs`.
+- **Transitions**: `LeaseGrant(id, ttl)` (the id fixed before the proposal, `reqIDGen` if `0`;
+  `ErrLeaseExists` the identity; TTL raised to the minimum) adds the lease; `LeaseRevoke(id)`
+  (`ErrLeaseNotFound` the identity) deletes every key attached to `id` (`σ.kvs` with `lease = id`,
+  one revision, sorted as the lessor's revoke deletes them) and removes `id`; a put or a
+  transaction naming a lease not in `σ.leases` is rejected (`ErrLeaseNotFound`), else attaches;
+  `IgnoreLease` keeps the previous key-value's lease. `LeaseCheckpoint` and keep-alives change no
+  `σ` (the remaining TTL is not in `σ`: expiry is not a function of the log).
+- **Determinism**: the lessor's lookups at the apply thread must be `σ.leases` (`lessorUser γ.leases
+  L` related to the model's table: the apply thread's `leasesKnown` becomes an equality with the
+  committed log's lease table), and the lessor's `Revoke` contract (unit 9) must delete exactly the
+  attached keys (its item set kept equal to `{k | σ.kvs[k].lease = id}` by `Attach`/`Detach`, the
+  put and delete paths).
+- **Expiry**: the lessor's expiry loop (`revokeExpiredLeases`, names-only) proposes revocations no
+  client asked for. Leases may expire at any time, so a client holding `etcdKV` agrees to any
+  revocation: the server's construction takes `□ ∀ id, kvOpAu (.leaseRevoke id) True` (what
+  `kvAnyAu` gives), which the expiry loop deposits with its proposals.
+- **Specs**: server `LeaseGrant`/`LeaseRevoke` (and `LeaseRenew`, `LeaseTimeToLive`, outside raft,
+  no `σ` step), the client's `Grant`/`Revoke`/`KeepAlive`; `kvLeasedPutTodo` and
+  `kvLeasedCommitTodo` then become theorems and leave `kvWritesOk`.
+
+## Porcupine: vendored, complete only, a model as closure specs, a driver over TaDa
+
+**2026-10-14 · proposed**
+
+- **Vendored, not forked** (`third_party/porcupine`, a local Goose project like the register):
+  upstream v1.3.1 (etcd's `tests/go.mod`), with the one rewrite Goose needs (a labeled `break`
+  out of a `select` becomes a `done` flag, `UPSTREAM.md`; upstream's tests pass on it). Its Go
+  module path is upstream's, so the translation's names are those etcd's tests import.
+  *Rejected:* a GitHub fork (an outward-facing step for a one-hunk change; the vendored copy can
+  move to one later, as etcd's `goose-lean` branch).
+- **Completeness only**: the specs say a linearizable history is never `Illegal` (and is `Ok`
+  without a timeout), not that `Ok` means linearizable. That is what "testing a linearizable
+  library never fails" needs, and it makes the search's argument a backtracking invariant
+  (`Theory.Inv`: the stack's configurations, a cursor past calls already tried, a cache of
+  configurations each on the stack or without completion) with no termination argument
+  (partial correctness).
+- **The model is specified by its closures** (`ModelSpec`: a deterministic `SeqModel` over
+  `(input, output)` interface values, a persistent `rep` of states, a persistent `ioOk` of an
+  operation's input and output): what porcupine calls is exactly `Init`, `Step`/`StepContext`,
+  `Equal`, `Hash`. `Equal` need only be sound (true ⇒ same state), `Hash` nothing: the cache is
+  sound for any hash. *Rejected:* a pure model with the closures as a trusted translation.
+- **Cancellation as a token**: `checkSingle` returns `true`, or the history is not linearizable,
+  or its context's Done proposition holds; `checkParallel` picks that proposition to be "this
+  thread called `cancel`", minted from a token it holds until then, so a `false` result before it
+  cancels refutes linearizability.
+- **The driver is generic** (`examples/lintest`): the library, the inputs and the clock are
+  closures with specs (`applySpec` logically atomic, `genSpec` with an input predicate `inOk`
+  that `apply` assumes, `clockSpec` logically atomic and monotone); the linearization order is a
+  ghost log of the linearization points with the clock value at each. `CounterClock` is proved;
+  `MonotonicClock` (etcd's `time.Since`) is not specifiable in Perennial's time model
+  (`STATUS.md`, "Porcupine").
+- **No alias `Results.lean`** for porcupine and the driver (decided with the user): their
+  `Link.lean` results (`porcupine.wp_CheckOperations*`, `lintest.wp_Run`) are the exported
+  results, and the Links are the TCB report's roots; a file restating them would only repeat
+  them. `lintest/counter/Results.lean` stays: it holds a new statement, `Check` on
+  `CounterClock()`'s clock, closed (`wp_CheckCounterClock`).
+
+---
+
+## Changes to Perennial are general-purpose and separate (2026-10-15)
+
+**The user's decision.** Perennial (the Go framework, its standard-library models and Goose) is a
+shared, general-purpose dependency. It is not changed to unblock a particular proof here: no model
+assumption, axiom or spec is added to Perennial because a proof in this repository is stuck, and no
+change is shaped by one proof's needs. When a proof hits a limitation of Perennial (a missing or
+too-weak spec, a translator gap, a tactic problem), the limitation is recorded (`notes/STATUS.md`,
+and here for the reasoning), worked around locally in this repository (a lemma, a clearly marked
+trust-boundary axiom here, or a local override, like `stepLeader.lean`'s `iframe ∗`), and the
+general fix is proposed as an independent Perennial change, designed and reviewed on its own. Pin
+bumps that bring such general changes are fine.
+
+Why: a change made for one proof's convenience can be unsound for everyone. The cautionary case:
+Perennial `9092f8eaa` made `WaitGroup.Add`'s counter overflow a model assumption, to unblock the
+cache's proof; the assumption was false, and `105fb79f5` reverted it in favour of thread tokens
+(`notes/STATUS.md`, "The wait-group counter and thread tokens"). The rule is in `CLAUDE.md`,
+"Changes to Perennial".

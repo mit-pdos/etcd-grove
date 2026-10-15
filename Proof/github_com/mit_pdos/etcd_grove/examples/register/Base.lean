@@ -59,6 +59,9 @@ namespace EtcdGrove
 /-- `opPut`. -/
 def opPutB : w8 := W8 1
 
+/-- `opRead` (2026-10-13): the kind of a read's context. -/
+def opReadB : w8 := W8 3
+
 /-- What `encode(replica, seq, kind, val)` returns. -/
 def encodeOp (replica seq : w64) (kind : w8) (val : List w8) : List w8 :=
   u64Le replica ++ u64Le seq ++ [kind] ++ val

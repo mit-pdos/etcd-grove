@@ -42,7 +42,11 @@ response header has its id fields owned (`respHdrOwn`: `newTxnResp` allocates it
 layer's `header.fill` writes them; 2026-10-12, the request path's unit 3b). It spends a write
 token (`mvcc.storeWT γ`, whether or not it writes; 2026-10-13, unit 6).
 2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
-(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one. -/
+(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
+2026-10-14 (unit T1): the caller certifies the log a write commits (`certOkNext`).
+2026-10-15 (unit T2): a success's path finds every previous key-value it needs (`PathsIgnOk`), and
+a plain transaction's check fails only without it (`checkTxn`'s); the caller certifies the log of
+a write whose path finds them. -/
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log)
@@ -54,18 +58,24 @@ abbrev txn.Txn.specSole : Prop :=
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗
       ⌜txn.TxnPre log t⌝ ∗
+      (if txn.txnReadonly t then iprop(True) else
+        ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
+        mvcc.certOkNext γ log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗
-      ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ txn.checkErrIs err ∗
+      ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil ∧
+            (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
+              (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err ∗
           txn.soleWriter γ log ∗ Pre ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
             ⌜∀ t0, ot = some t0 → te = false → t' = t0⌝)) ∨
        (⌜err = GoInterface.nil ∧ trace ≠ null ∧ F <+: log ∧
           (txn.txnReadonly t = true →
-            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = [])⌝ ∗
+            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = []) ∧
+          txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
         txn.txnResponseIs skip resp
           (W64 (mvcc.writeRev log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1

@@ -9,7 +9,7 @@ this module.
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 -/
 module
 
@@ -40,32 +40,32 @@ namespace StepProof
 `stepLeader`'s: a rejecting response from the node itself would make `sendAppend`
 address itself. -/
 theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry)
+    (Hlrd : s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     (m.Reject' = true → m.From' ≠ id) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hents" ∷ m.Entries' ↦*□ ents }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hrej Hcfg Hwf
+  intro Hty Hto Hterm Hfnz Hrej Hwf
   wp_start_folded as ⟨Hphys, -⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · wp_apply (wp_Step_Resp_gt _P cfg r id s m ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
+  · wp_apply (wp_Step_Resp_gt _P c r id s m ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
       $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
     iapply HΦ $$ %err %s'
     iframe Hphys
@@ -73,10 +73,11 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
       Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_Resp_lt _P cfg r id s m ents .appResp (.inl Hty) Hterm Hlt Hwf
+    · iapply wp_Step_Resp_lt _P c r id s m ents .appResp (.inl Hty) Hterm Hlt Hwf
         $$ [$Hpkg $Hphys] HΦ
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P cfg r id s m ents Hty Hto Hterm Hteq Hfnz Hrej Hcfg Hwf)
+      wp_apply (wp_Step_MsgAppResp_eq _P c r id s m ents Hlrd Hty Hto Hterm Hteq Hfnz Hrej
+        Hwf)
         $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys

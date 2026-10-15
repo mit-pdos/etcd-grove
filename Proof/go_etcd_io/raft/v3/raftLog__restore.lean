@@ -47,26 +47,26 @@ theorem raftLog.restore.wp_proof
   rw [Hlg]
   wp_apply Logger.wp_logf lg _ _ _ (by decide) $$ Hlgr
   icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip
-    $$ Hl Huents_cap Huents Husnap Hu_logger with ⟨Hun, Hlback⟩
+    $$ Hl Huents_cap Huents Husnap Hpksn Hu_logger with ⟨Hun, Hlback⟩
   wp_apply wp_unstable_restore _ _ _ voters $$ [$Hun $Hvoters] as Hun
   iclear Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-    with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hu_logger, %Hoff', %Hoip'⟩
+    with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hpk, #Hu_logger, %Hoff', %Hoip'⟩
   iapply HΦ
   rw [← Hlg]
   simp only [snapId] at Hcmlt Hlt
   iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
-      lv.storage' σ _ _ (logRestore ls (snapId sv))
-      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
-      ⟨Hpend.1, fun h => by simp [logRestore] at h⟩ ?_ ?_
-    $$ Hl HisStorage HStorage Hsn Hents Hents_cap Hl_logger Hu_logger
-  all_goals simp only [logRestore, snapId, List.append_nil, List.length_nil, Int.natCast_zero,
-    Int.add_zero]
+      lv.storage' σ _ _ (logRestore ls (snapTrip sv voters))
+      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
+      ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
+      (fun h => List.mem_append_left _ (Hsksn h)) ?_ ?_ ?_
+    $$ Hl HisStorage HStorage Hsn Hpk Hents Hents_cap Hl_logger Hu_logger
+  all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,
+    Int.natCast_zero, Int.add_zero]
   · intro k e h; simp at h
   · word
   · exact ⟨rfl, rfl, by word, by word⟩
   · rw [Hoff']; word
-  · intro e h; simp at h
   · constructor <;> omega
   · intro h; cases h
   · omega

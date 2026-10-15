@@ -75,7 +75,9 @@ theorem isApplyLessor_of_lessorInv
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f ∗
       □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
         {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
-            lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) }}
+            lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
+            (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
+              mvcc.certOkNext γ log pend) }}
           (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Revoke")) (Val #id))
         {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
             (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗

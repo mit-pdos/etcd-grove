@@ -52,7 +52,7 @@ abbrev mvcc.store.Read.specFrozen : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       ∃ (log : mvcc.Log) (rev : w64), mvcc.isTxnRead mw s γ trace log rev ∗ ownToks γ.revs m ∗
-        ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ }}
+        mvcc.certOk γ log ∗ ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ }}
 
 open Iris.ProofMode in
 /-- **The frozen statement is a corollary**: the frozen fact makes the observed compaction
@@ -68,13 +68,13 @@ theorem mvcc.store.Read.spec_frozen (h : mvcc.store.Read.spec (GF := GF) (hG := 
     [Hrd Hm Htrc]
   · iframe Hrd Hm Htrc; iframe #; ipureintro; exact Ht
   inext
-  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', %Hp⟩
+  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', #Hrok, %Hp⟩
   imod mvcc.isTxnRead_frozen mw s γ trace log rev crev $$ Htx with ⟨Htx, %Hcr⟩
   subst Hcr
   imodintro
   iapply HΦ
   iexists log, rev
-  iframe Htx Hm
+  iframe Htx Hm Hrok
   ipureintro; exact ⟨Hp.1, Hp.2.1⟩
 
 /-! ### `store__Write` -/
@@ -253,7 +253,8 @@ abbrev mvcc.storeTxnWrite.End.specFrozen : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed ∗ mvcc.hookIs γ P f ∗ P }}
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed ∗ mvcc.hookIs γ P f ∗ P ∗
+      mvcc.certOkNext γ ilog pend }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
       (if pend = [] then mvcc.revToken γ else iprop(True)) }}

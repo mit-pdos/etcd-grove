@@ -37,12 +37,13 @@ ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV
 `snapshot`/`compactRaftLog` contracts), and a pending merged-snapshot request on `msgSnapC`
 (names-only contracts). The apply thread's resources come back at `ai'`, with `loopOk`. **The
 write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one write token of the
-store per entry above `ai` (`txn.storeWTs E.γ (unapplied ai ms).length`), spent. -/
+store per entry above `ai` (`txn.storeWTs E.γ (unapplied ai ms).length`), spent. **The KV model**
+(2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). -/
 abbrev EtcdServer.applyAll.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
-    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV),
+    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → entriesOk (ciEff γ st.k) (unapplied ai ms) x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -52,7 +53,8 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvSnapState s ep ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ (unapplied ai ms).length }}
+      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ (unapplied ai ms).length ∗
+      kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
@@ -61,7 +63,8 @@ abbrev EtcdServer.applyAll.spec : Prop :=
         srvSnapState s ep ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
-          ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log) ∗
+          ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
+          kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x') ∗
         ⌜loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ st'.k = ciEff γ st.k ∨

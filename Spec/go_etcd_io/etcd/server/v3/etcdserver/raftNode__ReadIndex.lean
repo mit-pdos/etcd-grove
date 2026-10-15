@@ -28,13 +28,15 @@ the big-endian bytes of a request id read-only and a lower bound `n` of the comm
 error the gRPC layer can take, and if `nil` the registration `E.RQ id n`. -/
 abbrev raftNode.ReadIndex.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac) (id n : w64),
+    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac) (id n : w64)
+    (Qr : List EntryModel → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
-      context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast E.γr n }}
+      context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast E.γr n ∗
+      srvReadAu E.γr.raft Qr }}
     (App (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"ReadIndex"))
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (err : GoInterface), RET #err; sl ↦*{dq} beBytes id ∗ applyErrIs err ∗
-      (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n) }}
+      (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}
 
 end spec
 

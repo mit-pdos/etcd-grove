@@ -166,7 +166,7 @@ theorem apply.newAuthApplierV3.wp_proof
   isplitr
   · -- `AuthEnable`, `AuthDisable`: the inner applier's (promoted)
     imodintro
-    iintro %m %log %Pre %Q %Post %hm
+    iintro %m %log %Pre %Q %Post %hm %hon
     imodintro
     iintro %Φ' Hpre HΦ'
     simp only [apply.resp0Methods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
@@ -178,8 +178,9 @@ theorem apply.newAuthApplierV3.wp_proof
       iunfold apply.mPre at Hpre
       icases Hpre with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [Hkv Hres Hcs]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs]
       · ipureintro; simp [apply.resp0Methods]
+      · ipureintro; exact hon
       · iunfold apply.mPre
         iframe
       inext

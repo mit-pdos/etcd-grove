@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Perennial.Proof.context
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 
 @[expose] public section
 
@@ -135,7 +136,7 @@ theorem EtcdServer.start.wp_proof
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
-  wp_apply hWN ρ.ids (reqWaitR ρ.ids E ρ.rd) as %w ⟨%γw, %RD, #Hwait, HRD⟩
+  wp_apply hWN ρ.ids (reqWaitR ρ E) as %w ⟨%γw, %RD, #Hwait, HRD⟩
   icases Hw with ⟨%w0, Hw⟩
   wp_auto
   -- `s.applyWait = wait.NewTimeList()`
@@ -333,6 +334,8 @@ theorem EtcdServer.start.wp_proof
       isplitr
       · iunfold waitInv
         iexists RD
+        have hwr : reqWaitR (GF := GF) { ρ with wait := γw } E = reqWaitR ρ E := rfl
+        rw [hwr]
         iexact Hwait
       ipureintro; exact F5
     isplitr
@@ -367,11 +370,11 @@ theorem EtcdServer.start.wp_proof
   -- the apply thread's resources
   iunfold applyBuilt at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, ⟨%ua, #Hua, Hkv⟩, HRA, Hao,
-    #Hlog, Hfs⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hkv HRA Hao Hfs Hwg1 HRD]
+    #Hlog, Hkr, Hfs⟩
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hkv HRA Hao Hfs Hwg1 HRD Hkr]
   · iunfold applyStart
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog
+    iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog Hkr
     isplitr
     · ipureintro; exact Hlo
     iunfold srvApplyKV
@@ -412,6 +415,8 @@ theorem EtcdServer.start.wp_proof
     isplitr
     · iunfold waitInv
       iexists RD
+      have hwr : reqWaitR (GF := GF) { ρ with wait := γw } E = reqWaitR ρ E := rfl
+      rw [hwr]
       iexact Hwait
     isplitr
     · iunfold srvDoneChan
@@ -457,6 +462,12 @@ theorem EtcdServer.start.wp_proof
   · iexists rd
     iframe Hread
     iapply Hrlp $$ Hrs Hrr
+    iunfold readCompose
+    iintro !> %gs #Hgs
+    ihave #Hkvi2 := Hkvi
+    iunfold srvKVInvs at Hkvi2
+    icases Hkvi2 with ⟨#HkvI, -⟩
+    iapply kv_read_compose γr.raft γr.kv gs $$ HkvI Hgs
   isplitl [Hlrl Hlc1 Hfcr]
   · iunfold srvReadLR
     isplitl [Hlrl]

@@ -7,7 +7,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft, etcd or register; repeatable; default: all).
+  --project    only this project (etcd-raft, etcd, register, porcupine or lintest;
+               repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -93,21 +94,26 @@ class Project:
 PROJECTS = [
     Project(
         name="etcd-raft",
-        # Upstream, unmodified: the last commit before raftpb moved to protobuf-go v2
-        # (2026-04-15; from the next commit on, messages are pointers with getters, see
-        # notes/STATUS.md, "Retargeting raft to upstream").
-        repo="https://github.com/etcd-io/raft",
-        rev="40f8be730b181c22b430ad83845ce477ca76ad15",
+        # Upstream etcd-io/raft 40f8be7 (the last commit before raftpb moved to
+        # protobuf-go v2, 2026-04-15; from the next commit on, messages are pointers with
+        # getters, see notes/STATUS.md, "Retargeting raft to upstream") plus one fix (the
+        # single-voter read-index shortcut, issues/raft-readindex-singleton-stale.md) and
+        # its regression test: branch raft-goose-lean of the etcd fork (a branch holding
+        # etcd-io/raft's history).
+        repo="https://github.com/upamanyus/etcd",
+        rev="0560cb75ad8e21c68f3323228520776820c5090a",
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
-        lean_roots=["go.etcd.io/raft/v3="],
+        lean_roots=["go.etcd.io/raft/v3=", "github.com/gogo/protobuf="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
             "go.etcd.io/raft/v3/quorum",
             "go.etcd.io/raft/v3/raftpb",
             "go.etcd.io/raft/v3/tracker",
+            # names only: what raftpb's `ConfChangeV2.LeaveJoint` calls (`proto.Equal`)
+            "github.com/gogo/protobuf/proto",
         ],
-        owned=[os.path.join("go_etcd_io", "raft")],
+        owned=[os.path.join("go_etcd_io", "raft"), os.path.join("github_com", "gogo")],
         counted_modules=["go.etcd.io/raft/v3"],
     ),
     Project(
@@ -292,14 +298,40 @@ PROJECTS = [
     Project(
         name="register",
         # An example application on raft's Node: a replicated string register. A Go
-        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 at the
-        # revision pinned above (keep the two in step).
+        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 and replaces
+        # it by the revision pinned above (`github.com/upamanyus/etcd/v3`, the fork's
+        # pseudo-version under a /v3 path, since its go.mod declares go.etcd.io/raft/v3;
+        # keep the two in step).
         repo=None,
         rev=None,
         local=os.path.join("examples", "register"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3="],
         packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove")],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "register")],
+    ),
+    Project(
+        name="porcupine",
+        # The linearizability checker of etcd's robustness tests (github.com/anishathalye/
+        # porcupine v1.3.1, the version in etcd's tests/go.mod), vendored with the one change
+        # that makes it translatable (third_party/porcupine/UPSTREAM.md).
+        repo=None,
+        rev=None,
+        local=os.path.join("third_party", "porcupine"),
+        lean_roots=["github.com/anishathalye/porcupine="],
+        packages=["."],
+        owned=[os.path.join("github_com", "anishathalye")],
+    ),
+    Project(
+        name="lintest",
+        # A generic driver over porcupine: clients that run a linearizable library's
+        # operations, traced as etcd's robustness tests trace them, then checked.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lintest"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine="],
+        # the driver, and an instance of it (a counter under a mutex, its model)
+        packages=[".", "./counter"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lintest")],
     ),
 ]
 

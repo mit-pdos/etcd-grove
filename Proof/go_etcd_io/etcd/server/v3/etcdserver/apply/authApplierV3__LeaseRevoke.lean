@@ -34,7 +34,8 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.revokePre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
@@ -52,13 +53,13 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.leaseRevokeIs at Hr'
   icases Hr' with ⟨%Hrn, #HID⟩
   wp_auto
-  wp_apply (hLP st le E.γ E.P E.f E.RD _ info (DFrac.own 1) id) $$ [$Hst $Hle $Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI⟩
+  wp_apply (hLP st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) id) $$ [$Hst $Hle $Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI, -⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
     wp_auto
     iapply HΦ
-    iapply apply.auth_reject_kvPost E c p (.ok bi) rq log _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPost E E.authOn c p (.ok bi) rq log _ Pre Q Post hk (Or.inr (Or.inr (by rw [Hk.2]; decide))) $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.revokeOutcomeIs, apply.rejErrIs]
       isplitr
@@ -74,7 +75,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     iframe #
     ipureintro; exact Hk
   iapply HΦ
-  iapply apply.auth_pass_kvPost E c p (.ok bi) rq log _ Pre Post $$ Happ Hpost
+  iapply apply.auth_pass_kvPost E E.authOn c p (.ok bi) rq log _ Pre Post $$ Happ Hpost
   iunfold apply.authInfoOwn; iexists info; iexact Hinfo
 
 end proof

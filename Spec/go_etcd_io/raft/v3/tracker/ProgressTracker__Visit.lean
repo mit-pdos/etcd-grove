@@ -1,6 +1,7 @@
 /- Port of election_proof/spec_ProgressTracker__Visit.v (feb5c73d4). -/
 module
 
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
@@ -19,7 +20,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **This statement was FALSE until 2026-09-16** and is now repaired. The repair is
+/-- **At any configuration since 2026-10-13** (reconfiguration stage A1): stated on
+`ownTrackerC c` and `visitClosureC c` (`InvTrackerC.lean`), the visited ids ending at the
+progress map's domain, which is every voter of either half and every learner. The statement
+on `ownTracker cfg`/`visitClosure cfg` is `spec_simple` below. The history that follows is of
+the simple statement.
+
+**This statement was FALSE until 2026-09-16** and is now repaired. The repair is
 recorded here rather than silently applied, because a `Qed` resting on a false
 `Admitted` is unsound and `proof_raft__reset.v` -- hence `becomeFollower`,
 `becomeCandidate`, `becomeLeader` and everything above them -- was resting on this one.
@@ -101,7 +108,8 @@ it is defined, `InvTracker.lean`):
   tracker back, rather than being lent one `ownProgress` and handing that back.
   `bcastAppend`'s closure re-enters the tracker through `maybeSendAppend`'s own
   `r.trk.Progress[to]` lookup, so one `Progress` is not enough;
-- it is told `i ∈ cfg`, which is what makes that lookup hit;
+- it is told `i ∈ cfg`, which is what makes that lookup hit (since 2026-10-13, with
+  learners tracked, `i ∈ domSet prs`: a voter or a learner);
 - the tracker *value* may change across the call, so this postcondition is existential
   in it. `ownRaftPhys` hides the struct value, so a closure that calls back into the
   raft struct cannot promise to return the field at the value it was handed.
@@ -111,15 +119,42 @@ at a value that moves, and re-splits one `Progress` out each iteration with
 `ownTracker_lookup` -- which is possible only because the progress map is now held
 read-only, so the key/pointer fact survives the rebuild. -/
 abbrev tracker.ProgressTracker.Visit.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) (f : GoFunc)
+  ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) (f : GoFunc)
     (I : GSet w64 → GMap w64 Progress → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
+      ownTrackerC c tv t ∗ I ∅ t.peers ∗
+      □ visitClosureC c trk t.votes t.prs f I }}
+    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Visit"))
+      (Val #f))
+  {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTrackerC c tv' ⟨t.votes, t.prs, pvs'⟩ ∗
+      I (domSet t.prs) pvs' }}
+
+open Iris.ProofMode in
+/-- The statement at a simple configuration (`ownTracker cfg`, `visitClosure cfg`), which
+`reset`, `bcastAppend`, `bcastHeartbeatWithCtx` and `switchToConfig` use. (Since 2026-10-13
+`Visit.spec` is stated at any configuration, `ownTrackerC`, `visitClosureC`.) -/
+theorem tracker.ProgressTracker.Visit.spec_simple
+    (H : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
+    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) (f : GoFunc)
+    (I : GSet w64 → GMap w64 Progress → IProp GF) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
       ownTracker cfg tv t ∗ I ∅ t.peers ∗
       □ visitClosure cfg trk t.votes t.prs f I }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Visit"))
       (Val #f))
   {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTracker cfg tv' ⟨t.votes, t.prs, pvs'⟩ ∗
-      I cfg pvs' }}
+      I (domSet t.prs) pvs' }} := by
+  iintro %Φ ⟨#Hpkg, Htrk, Hown, HI, #Hf⟩ HΦ
+  ihave Hown := ownTracker_toC _ _ _ $$ Hown
+  iapply H _ trk tv t f I $$ [$Hpkg $Htrk $Hown $HI]
+  · imodintro
+    iapply visitClosure_toC $$ Hf
+  inext
+  iintro ⟨%tv', %pvs', Htrk, Hown, HI⟩
+  icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
+  iapply HΦ
+  iexists tv', pvs'
+  iframe Htrk Hown HI
 
 end spec
 

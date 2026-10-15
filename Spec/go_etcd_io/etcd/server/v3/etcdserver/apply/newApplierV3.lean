@@ -33,7 +33,7 @@ abbrev apply.newApplierV3.spec : Prop :=
   ∀ (E : AEnv GF) (opts : ApplierOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts ∗ E.RD }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
-  {{ (a : GoInterface), RET #a; apply.applierSpec E apply.baseChain a }}
+  {{ (a : GoInterface), RET #a; apply.applierSpec E (apply.baseChain E.authOn) a }}
 
 end spec
 

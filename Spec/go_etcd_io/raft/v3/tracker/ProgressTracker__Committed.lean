@@ -4,6 +4,7 @@ Lean notes: Rocq's untyped binder `tv` gets its type written out.
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
@@ -23,31 +24,37 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `p.Committed()`: the largest index a quorum of voters has acknowledged
-(`tracker.ProgressTracker.Committed.impl`,
-`Code/go_etcd_io/raft/v3/tracker.lean`; tracker.go:179):
+(`tracker.ProgressTracker.Committed.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`;
+tracker.go:179):
 
     return uint64(p.Voters.CommittedIndex(matchAckIndexer(p.Progress)))
 
-One exit, no panic. One call, `JointConfig.CommittedIndex` on `&p.Config.Voters` with
-the progress map converted to the `quorum.AckedIndexer` interface (Goose:
-`Convert matchAckIndexer quorum.AckedIndexer (![ProgressMap] p.Progress)`, i.e.
+One exit, no panic. One call, `JointConfig.CommittedIndex` on `&p.Config.Voters` with the
+progress map converted to the `quorum.AckedIndexer` interface (Goose:
 `interface.mkOk tracker.matchAckIndexer.ty #p.Progress`).
 
-The tracker is unchanged. The result `N` is `MaxUint64` for an empty configuration
-(never the case for a raft node, whose voter set contains itself, but `ownTracker`
-allows it), and otherwise the quorum index of the voters' `Match` (`IsQuorumIndex`,
-`InvTracker.lean`):
-
-  - `N` is some voter's `Match`;
-  - `IsQuorum cfg (filter (fun v => N ≤ Match v) cfg)` -- a quorum of voters have
-    acknowledged `N`, in `Protocol/Model.lean`'s sense of `IsQuorum`
-    (`size cfg < 2 * size (q ∩ cfg)`);
-  - no larger index has such a quorum.
-
-`pvsMatchAt t.peers v` is `v`'s `Match` (`0` off the map, which no voter is:
-`ownTracker`'s maps have domain `cfg`). -/
+**At any configuration since 2026-10-13** (reconfiguration stage A1; `ownTrackerC`): the
+tracker is unchanged and the result is `JCommittedIdx` of the two voter halves over the
+voters' `Match` (`pvsMatchAt t.peers v`, `0` off the map, which no voter is: the map tracks
+every voter): the smaller of the halves' quorum indices, an empty half counting `MaxUint64`.
+The statement at a simple configuration (`ownTracker cfg`: `MaxUint64` for `cfg = ∅`,
+otherwise the quorum index over `cfg`, `IsQuorumIndex`) is
+`tracker.ProgressTracker.Committed.spec_simple`, which `raft.maybeCommit` uses. -/
 abbrev tracker.ProgressTracker.Committed.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
+  ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
+      ownTrackerC c tv t }}
+    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Committed"))
+      (Val #()))
+  {{ (N : w64), RET #N;
+      trk ↦ tv ∗ ownTrackerC c tv t ∗
+      ⌜JCommittedIdx c.incoming c.outgoing (pvsMatchAt t.peers) N⌝ }}
+
+open Iris.ProofMode in
+/-- The statement until 2026-10-13, at a simple configuration (`ownTracker`). -/
+theorem tracker.ProgressTracker.Committed.spec_simple
+    (H : tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG))
+    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
       ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Committed"))
@@ -55,7 +62,18 @@ abbrev tracker.ProgressTracker.Committed.spec : Prop :=
   {{ (N : w64), RET #N;
       trk ↦ tv ∗ ownTracker cfg tv t ∗
       ⌜cfg = ∅ → N = W64 (2 ^ 64 - 1)⌝ ∗
-      ⌜cfg ≠ ∅ → IsQuorumIndex cfg (pvsMatchAt t.peers) N⌝ }}
+      ⌜cfg ≠ ∅ → IsQuorumIndex cfg (pvsMatchAt t.peers) N⌝ }} := by
+  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
+  ihave Hown := ownTracker_toC _ _ _ $$ Hown
+  iapply H _ trk tv t $$ [$Hpkg $Htrk $Hown]
+  inext
+  iintro %N ⟨Htrk, Hown, %HN⟩
+  icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
+  have HN' := JCommittedIdx_simple _ _ _ HN
+  iapply HΦ
+  iframe Htrk Hown
+  ipureintro
+  exact HN'
 
 end spec
 

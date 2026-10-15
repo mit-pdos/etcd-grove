@@ -90,7 +90,7 @@ abbrev proto.MarshalIRR.spec : Prop :=
   {{ (d : GoSlice) (err : GoInterface), RET (PairV #d #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (bs : List w8) (rq' : apply.IRRModel),
         d ↦* bs ∗ ownSliceCap w8 d (DFrac.own 1) ∗
-        ⌜apply.irrDecode bs = some rq' ∧ irrWireOf rq rq'⌝) ∨
+        ⌜apply.irrDecode bs = some rq' ∧ irrWireOf rq rq' ∧ (rq.header ≠ none → bs ≠ [])⌝) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err) }}
 
 end spec
