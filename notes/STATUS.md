@@ -1,6 +1,32 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-15 (unit T2: every KV operation as a persistent atomic update on the whole state: one exclusive `etcdKV γ σ`, `σ` the store at its latest revision; puts (any flag but a lease), ranges, deletes and plain transactions deterministic in the KV model (`kvOpStep`), the apply relation made exact by strengthened specs of `txn.Put`, `checkTxn`, `Txn`, `CheckTxnAuth`; server and client `Put`/`Range`/`DeleteRange`/`Txn` over the state; `srvNonPlain` and `srvNonPlainAll` removed, V2b's delete and lease-free results meaningful again, the leased ones under `kvLeasedPutTodo`/`kvLeasedCommitTodo` until unit T3; 4693 jobs, 202 axioms, 11 sorries, every collection unchanged; see "Unit T2"; merge M1: `origin/lean` (the vertical slice's V2b, porcupine) merged into unit T1: T1's updates and V2b's certified floors compose as extra conjuncts; DeleteRange, the writing Txn and non-plain puts under the non-plain credit, so V2b's derived write contracts and the recipes' are vacuous until the next unit (premise `srvNonPlainAll`); 4693 jobs, 202 axioms, 11 sorries, every collection unchanged; see "Merge M1"; unit T1: `kv.Put`/`kv.Get` with persistent atomic updates linearized by raft, end to end: the KV ghost state over the full committed raft log, the raft contract restated, mvcc's log certificates, the apply thread's KV model, the read loop's registry; no new axiom; see "Unit T1porcupine: verified complete -- `CheckOperations*` never answer `Illegal` on a linearizable history, `Ok` with no timeout -- and a generic driver `examples/lintest` whose `Run` passes porcupine for any TaDa-linearizable library traced as etcd's robustness tests trace etcd, instantiated end to end with a counter; `MonotonicClock` and failed requests not covered; see "Porcupine"; the vertical slice's unit V2b on `slice-v2b`: the recipes' client contracts derived at the server's model for a real `*kv` (`isRecipesKV_of_kv`, `isEtcdRecipesClient_of_kv`, the transaction's `isEtcdTxnKVTodo_of_kv`), certified floors for linearizability, `Delete`/`Txn` over the generic gRPC spec, `queue_vertical`; 4594 jobs, 202 axioms, 11 sorries, etcd 940 of 3599 functions verified, see "V2: the client contracts at the server's instance, the queue"; `origin/lean` (unit A2: the auth premises over a reader resource `RD`; unit T1 in part: the pure KV model `KVModel.lean`; the ReadIndex handoff note) merged into `lean` on `merge-origin8`: every request-path spec takes both A2's `E.RD` and key bound and V2b's floor (`idxCert F`), `quotaAlarmer.check` over the request type with `E.RD`, `quotaKVServer.Txn` and `quotaKV_txnHandlerOk_of` given `E.RD` as `Put`'s; 4595 jobs, 202 axioms, 11 sorries, every collection unchanged, etcd 940 of 3599 functions verified, see "Merge of `origin/lean` (A2, T1 in part)"; unit A2: the server's auth premises in forms the real auth store meets: `isReqAuth st RD` and `isAuthStore st P f RD` take the caller's reader resource `RD` (`apply.AEnv.RD`, held in `kvOwn`, the auth layer's mutex, `srvRdCall`, the write path beside `srvLeadTimeReader`, the gRPC run slots), the permission checks the key bound `len(key) < 2^63 - 1` (a conjunct of the request models); `isReqAuth_of_authInv`, `apply.isAuthStore_of_authInv` derive them of the real store at `RD := auth.authRd st R`; see "Unit A2"; `origin/lean` (unit C2a: a `Get` after a `Put` sees the `Put`) merged into `lean` on `merge-origin7`: the witness and the revision's token travel together (`resultIsW`, `appliedOk`, `EtcdServer.Put`'s success, `v3rpc.putApplied`, the client's `putReplied` carry both `revMinted` and `appliedWit`; `etcdPutSpec E γr` over `putReplied`; `client_get_after_put` over `putReplyOk`, `putReplied_ok` keeping the witness); 4560 jobs, 202 axioms, 11 sorries, every collection unchanged, etcd 929 of 3599 functions verified, see "Merge of `origin/lean` (C2a: the write's witness)"; `origin/lean` (units P1–P4, P2, P3a, P3b, integration I1, the generic gRPC specification) merged into `lean` on `merge-origin6`: mvcc's and txn's transaction predicates and specs take both 6a's `crev Z` and P1b's `trace`/`te` (the frozen corollaries of `FrozenSpecs.lean` restated over the traced shapes), the wire is theirs (`isGrpcRpc`, `grpc.serve`) with V1's split answers and the revision's token carried by the reply's `Φ` (`putReplied`, `deleteReplied`); gates 4560 jobs, 202 axioms, 11 sorries, etcd 929 of 3599 functions verified, see "Merge of `origin/lean` (P1–P4, the generic gRPC specification, P3b)"; `origin/lean` (units 8, 9 of the backend, unit C1 of the client) merged into `lean` on `merge-origin5`: C1's wire supersedes V1's (`v3rpc/Wire.lean`, `grpcConnTo`, the stub's four axioms and `kvclient_of_conn` deleted; `kVClient.Put`/`Range` the proved C1 stubs), mvcc's write specs take both 6a's `crev Z` and unit 8's `lease.leaseOwn`, `etcd_putRunOk` adapted to the split `putAppliedOk` (the token dropped: `putRunOk`'s knowledge is persistent); gates 4371 jobs, 186 axioms, 11 sorries, slice 9 → 0, v3rpc 55 → 50, etcd 855 of 3599 functions verified, see "Merge of `origin/lean` (units 8, 9, C1)"; the vertical slice's unit V1 on `slice-v1`: the clients' model of etcd a class `EtcdModel GF` (the cache's fourteen axioms its fields) with a proved server instance `etcdModelOfServer`, the revisions' tokens minted by the apply thread and carried to the gRPC handler, the gRPC KV stub's contract as four trust-boundary axioms and `grpcConnTo`, `isKVClient` proved of the stub; gates 4264 jobs, 188 → 179 axioms (−14 + 5), 11 sorries, collections cache 14 → 6, concurrency 13 → 6, leasing 8 → 3, recipes 11 → 2, v3rpc 50 → 55, new slice 9/0, etcd 820 of 3599 functions verified, see "The vertical slice: client to server"; 2026-10-13 (unit 6a on `mvcc`: compaction-aware readers, `NoDelPutAt` a premise of `Compact` (`crevSafe` in `s.mu`'s resource and on every deletable key), the transactions at a compaction revision `crev` with a reader's tag (the frozen ones their defaults), `rangeOutcomeC` from every `Range`, `FirstRev` the compaction revision, the frozen statements corollaries (`spec_frozen`), one-line edits in 12 files above mvcc, no statement there changed; gates 4251 jobs, 188 axioms, 11 sorries, every collection unchanged, see "The store's compaction", unit 6a; unit C2a: a `Get` after a `Put` sees the `Put` (one server): every apply result now carries the witness `appliedWit γr` (its log is applied through an index of the committed index's lower bounds, and applied logs grow with the index), carried to the `Put`'s reply; `client_get_after_put` (`client/v3/Results.lean`) proved, no new axiom; see "Unit C2a"; unit P3b: the server end of the gRPC boundary: grpc's `serve` runs the generated `MethodDesc.Handler` with grpc's `dec` and the server's interceptor chain; the generated KV handlers, the quota wrapper and etcd's two unary interceptors proved, `etcd_kv_served` restated; see "Unit P3b"; integration I1: the Links of units P1b, P2 and P3a regenerated, `apply`/`etcdserver` `Results.lean` restated for P1b's traces, `ReqTimeout`'s six type `sorry`s removed; full build green; the auth premises not switched yet (plan below); see "Integration I1"; unit P3a: the client's retry interceptor translated and proved, grpc's client boundary moved below it (the interceptor chain over one attempt), `rpctypes.Error` proved with the premise `statusErrOk`; see "Unit P3a"; the generic gRPC specification: one `ClientConn.Invoke` axiom for every registered method (urpc-style predicate-transformer specs, `isGrpcRpc`), `grpc.serve` on the server side with a bounded pool of run slots, etcd's `Put`/`Range`/`DeleteRange` handlers proved against etcd's specs (`etcd_kv_served`), the client's results over the registration; `isKVConn` gone; see "The generic gRPC specification" under Unit C1; unit C1, the client meets the server: `kv.Put`/`kv.Get` proved from the client's API to grpc's `ClientConn.Invoke` (the transport contract, an axiom, the retry interceptor inside) and joined to the server's handlers, `client_put_end_to_end`, `client_get_end_to_end` (`client/v3/Results.lean`); 16 client functions translated and proved, new Link mode `--client`; issue `etcd-client-retry-put-ctx-error`; see "Unit C1"; unit 9 of the backend: the lessor's `Grant`, `Checkpoint`, `ExpiredLeasesC` and their callees proved (the expiry notifier over `container/heap`'s contract), `apply.isApplyLessor`'s `Grant`/`Checkpoint` clauses and the server's `lessorOk` derived of the real lessor; `Revoke` not proved (`issues/etcd-lessor-revoke-rd-unlocked.md`); gates +7 trust-boundary axioms, no new sorry, `server` collection +7, etcd 844 of 3599; see "Unit 9" under the backend; unit 8 of the backend: the server's pre-commit hook `BackendHooks.OnPreCommitUnsafe` and `NewBackendHooks` proved, the backend's hooks' contract derived by Löb induction (`isBackendNH`, `server_kv_backend_hooks`); the lessor's `GetLease`, `Attach`, `Detach`, `Lookup`, `SetRangeDeleter` proved over `le.mu`'s invariant, mvcc's `isLessor` and the txn package's `isTxnLessor` derived; a lease is live relative to the apply thread's half of the lessor's live set (the persistent `leaseKnown` was false after `Revoke`): mvcc's put, the txn package's lease-checking specs and the apply package's `kvOwn`/`Grant`/`Revoke` contracts adjusted; gates 173 axioms (+`schema.MustUnsafeSaveConfStateToBackend`), 31 sorries, `server` 120, etcd 801 of 3599; see "Unit 8" under the backend; `lean` (`cc7c10389`: the request path's unit 4d, the scheduler's three job proofs, the request path closed) merged into `mvcc` after unit 5c: conflicts in this line and the baselines only, no proof changed; gates 4251 jobs, 188 axioms, 11 sorries (the hasher's two generated instances and the nine package-initialization ones), mvcc 36/2, mvcc-compaction 23/2, every other collection unchanged, see "Merge: lean into mvcc, the request path's unit 4d"; `rp-u4d` (unit 4d: the scheduler's jobs, `IsRegistered` tied to live registrations, `request_delivered`, the request path's final account) merged into `lean` (`75b9f2982`: units 5b and 7) on branch `merge-u4d`: six text conflicts (the baseline and two collections, `issues/README.md`, `decisions.md`, this file), no proof adapted; gates 187 axioms, 23 sorries, mvcc 35/14, mvcc-compaction 22/14, server 141/0, etcd 808 of 3599 functions verified, see "Merge of unit 4d"; `origin/lean` (`965752592`: the backend's unit 7, the consistent index's pre-commit hook over the real backend) merged into `mvcc` (after unit 5b) on branch `merge-u7`: three conflicts (the server's `Results.lean`, `decisions.md`, this line), no proof adapted, no result restated; gates 187 axioms, 26 sorries, every collection unchanged, etcd 805 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 7: the hook over the real backend)"; `lean` (`b4b5ba9d0`: the request path's unit 4c, `run`'s apply case over the scheduler, the `Schedule` axiom in its single tracked/untracked form) merged into `mvcc` after unit 5b: one conflict (this line), no proof changed, see "Merge: lean into mvcc, the request path's unit 4c"; `rp-u4c` (unit 4c) merged into `lean` (unit 6) on branch `merge-u4c`: the apply-thread specs take both `srvGoRes` and the write budget, the write-budget hooks closed (`WB := txn.storeWTs E.γ`, the split `txn.storeWTs_add`, each batch's tokens passed to `applyAll`); gates 187 axioms, 31 sorries, server 141/1, mvcc 35/22, etcd 800 of 3599 functions verified, see "Merge of unit 4c onto the write budget"; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4c on branch `rp-u4c`: the server's goroutines: `run` (the apply loop over the FIFO scheduler, the apply thread's resources chained through saved postconditions, the ready handler, the shutdown), `start` (from the construction premise `isServerBuilt`, named clauses) and `Start` (the read loop and nine names-only monitors through `GoAttach`, proved over Perennial's `WaitGroup`) translated and proved; one `Schedule` axiom with tracked and untracked jobs; `stopping` a capacity-1 channel closed once (`StopChan.lean`); the committed index raised by the ready handler; the backend's write budget carried with a marked hook (not merged); gates 187 axioms (+16, `GoAttach` gone), 31 sorries, server 93/1 (mvcc's pending `schedule.NewJob`), mvcc 35/22, etcd 800 of 3599 functions verified, see "Unit 4c: `run`, `start`, the scheduler and the committed index" under the request path; mvcc: the store's compaction, unit 5b: the index's side proved (`keyIndex.doCompact`/`compact`/`keep`, `treeIndex.Compact`/`Keep`), `generation.walk`'s closure effectful (`walkFnSpecR`), `treeIndex.Compact` takes the compactor's exclusive token (`idxCompactor`, the lock's `idxCmpOwn`; overlapping passes are unsafe in Go), `doCompact` at any fraction; gates 172 axioms, 26 sorries, mvcc 34/17, mvcc-compaction 22/17, others unchanged, mvcc 113 of 155 functions verified, etcd 799 of 3599, one finding (`etcd-index-compact-overlapping`), see "The store's compaction"; unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4d on branch `rp-u4d`: the scheduler's jobs (`NewJob`, `job.Do`, `job.Name`) proved; `pkg/wait`'s `IsRegistered` tied to the live registrations (`waitGone`) and the new result `request_delivered`; `storeSmall`, the `%w` limitation and `raftRequestAlarm` decided and documented; the construction table for `isServerBuilt` and the request path's final account (results, premises, counts); gates 187 axioms, 28 sorries, server 141/0, mvcc 35/19, etcd 803 of 3599 functions verified, see "Unit 4d: the wrap-up", "Server construction: what `NewServer` must discharge" and "The request path: results and premises"; mvcc: the store's compaction, unit 5c: the store's side proved (`Compact`, `updateCompactRev`, `compact`, the job `scheduleCompaction`, the barriers, `compactLockfree`, `checkPrevCompactionCompleted`, the six meta-key functions); the compaction right carries the store scheduler's tracked queue (`compactQueue`: the index compactor's token handed from job to job); contract corrections (`compactRes`'s counter at least the finished revision, `Compact` takes `-1 ≤ c`, `crevFrozen` of the revision half); gates 188 axioms (+`time.Time.Unix`), 14 sorries (the 13 proved; +the hasher's generated instance), mvcc 36/5, mvcc-compaction 23/5, others unchanged, mvcc 125 of 155 functions verified, etcd 817 of 3599, see "The store's compaction"; `origin/lean` (`965752592`: the backend's unit 7, the consistent index's pre-commit hook over the real backend) merged into `mvcc` (after unit 5b) on branch `merge-u7`: three conflicts (the server's `Results.lean`, `decisions.md`, this line), no proof adapted, no result restated; gates 187 axioms, 26 sorries, every collection unchanged, etcd 805 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 7: the hook over the real backend)"; `lean` (`b4b5ba9d0`: the request path's unit 4c, `run`'s apply case over the scheduler, the `Schedule` axiom in its single tracked/untracked form) merged into `mvcc` after unit 5b: one conflict (this line), no proof changed, see "Merge: lean into mvcc, the request path's unit 4c"; `rp-u4c` (unit 4c) merged into `lean` (unit 6) on branch `merge-u4c`: the apply-thread specs take both `srvGoRes` and the write budget, the write-budget hooks closed (`WB := txn.storeWTs E.γ`, the split `txn.storeWTs_add`, each batch's tokens passed to `applyAll`); gates 187 axioms, 31 sorries, server 141/1, mvcc 35/22, etcd 800 of 3599 functions verified, see "Merge of unit 4c onto the write budget"; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4c on branch `rp-u4c`: the server's goroutines: `run` (the apply loop over the FIFO scheduler, the apply thread's resources chained through saved postconditions, the ready handler, the shutdown), `start` (from the construction premise `isServerBuilt`, named clauses) and `Start` (the read loop and nine names-only monitors through `GoAttach`, proved over Perennial's `WaitGroup`) translated and proved; one `Schedule` axiom with tracked and untracked jobs; `stopping` a capacity-1 channel closed once (`StopChan.lean`); the committed index raised by the ready handler; the backend's write budget carried with a marked hook (not merged); gates 187 axioms (+16, `GoAttach` gone), 31 sorries, server 93/1 (mvcc's pending `schedule.NewJob`), mvcc 35/22, etcd 800 of 3599 functions verified, see "Unit 4c: `run`, `start`, the scheduler and the committed index" under the request path; mvcc: the store's compaction, unit 5b: the index's side proved (`keyIndex.doCompact`/`compact`/`keep`, `treeIndex.Compact`/`Keep`), `generation.walk`'s closure effectful (`walkFnSpecR`), `treeIndex.Compact` takes the compactor's exclusive token (`idxCompactor`, the lock's `idxCmpOwn`; overlapping passes are unsafe in Go), `doCompact` at any fraction; gates 172 axioms, 26 sorries, mvcc 34/17, mvcc-compaction 22/17, others unchanged, mvcc 113 of 155 functions verified, etcd 799 of 3599, one finding (`etcd-index-compact-overlapping`), see "The store's compaction"; unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; `lean` (`deccecdff`: the backend's units 1–5 and the request path's 4a/4b) merged into `mvcc` after unit 5a: one backend contract and one store (`isKeyBackendG` with unit 5a's deletable keys, deposit witness, size queries and, under the condition `Cmp`, the compaction-only calls), the bridge extended (snapshots exact, the job's `LockOutsideApply`, `Size`/`SizeInUse` proved of the backend; the deletion from `Key`, the limited range, the `Meta` keys and the safe-range-delete lock not: the backend's model forbids deleting from a safe-range bucket, so `Cmp` is false of it and the compaction's specs take `storeCmp`); gates 172 axioms, 31 sorries (the union), mvcc 34/22, mvcc-compaction 22/22 (+4 bbolt predicates), every other collection unchanged (backend 59/0), etcd 794 of 3599 functions verified, 21 unfinished, see "Merge: lean into mvcc, the backend meets the compaction"; `lean` (`4f2c96322`: the request path's unit 4b, the apply loop and the applied index) merged into `mvcc`: one conflict (this line), no proof changed; gates 118 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4b"; the request path's unit 4b on branch `rp-u4b`: the apply loop and the applied index: `applyAll` translated and proved (under raft's no-snapshot contract), `pkg/wait`'s `wait_time.go` and `pkg/notify`'s `NewNotifier`/`Receive` proved, the read loop's contracts discharged for `*EtcdServer` (`read_server`) and its `raftNode` (`read_raft`, `ReadIndex` and read states in the node contract), the ghost applied index tied to `s.appliedIndex` with a certified log deposited per index at `setAppliedIndex`, so `range_linearizable` says the read's log extends the log applied through an index at least `c`; 4a's `ApplyWait` and notifier clauses adapted; gates 112 axioms (+5: `VerifyBackendConsistency`, `snapshot`, `compactRaftLog`, `createMergedSnapshotMessage`, `sendMergedSnap`), 9 sorries, server 66/0, etcd 720 of 3599 functions verified, see "Unit 4b: the apply loop and the applied index" under the request path; `lean` (`17575d236`: the request path's unit 4a, the read loop) merged into `mvcc` after unit 5a: conflicts only in the baseline (union) and the notes, no proof changed; gates 113 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4a"; mvcc: the store's compaction, unit 5a: the compaction functions translated (with `pkg/schedule`'s jobs), the pure model (`Compact.lean`), the compaction revision's counter and right, the backend contract with deletions, the 21 specs pending (`sorry`); the existing statements are of a store never compacted (`crevFrozen`); 6 new axioms, 22 new sorries (gates 110 axioms, 31 sorries, mvcc 30/22, new collection mvcc-compaction), two findings (`issues/etcd-compaction-*`), see "The store's compaction"; the request path's unit 4a on branch `rp-u4a`: etcd's linearizable read loop (`server/v3/etcdserver/read`) translated with bodies and proved over two contracts (`isReadServer`, `isReadRaft`), `isRead` met by `NewRead`'s result; `isRead` takes a reader slot of `r.mux` (`ReadNames` gains `notifier`), `applyErrIs`' typing clause is for pointer targets; gates 107 axioms (+3: `context.WithTimeoutBackground`, `strconv.FormatUint`, `traceutil.Trace.LogAllStepsIfLong`), 9 sorries, read 12/0, etcd 700 of 3599 functions verified, see "Unit 4a: the read loop" under the request path; `origin/lean` (the backend's unit 5: mvcc's store over the real backend) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin3`: two conflicts (this line; the server collection's baseline, the union), no adaptation needed (the request path's proofs are over `txn.isKV`, which now carries `γ.kb = none`, and never destructure it); gates 166 axioms, 9 sorries, server 66 -> 70, apply 32 -> 36, mvcc 18 -> 22, txn 18 -> 22, v3rpc 46 -> 50 (bbolt's four opaque predicates, which `StoreNames.kb` names), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 5)" under the request path; `origin/lean` (the storage backend, units 1–4, and the mvcc bridge) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin2`: no adaptation needed; gates 166 axioms, 9 sorries, collections unchanged (backend 59/0, server 66/0, read 12/0), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, units 1–4)" under the request path; unit 6: the txn, apply, server and v3rpc results generic in the backend instance (`txn.isKV` no longer pins `γ.kb = none`): a write token per store write transaction, `txn.storeWTs` one per entry at `applyEntries`; the change bound `2^56` (a delete's range, `TxnPre`); `server_kv_backend` (the apply thread's KV made by `NewStore` over the real backend, on `keySized`); gates 158 axioms, 9 sorries, the `server` collection 114 axioms; see "Unit 6" under the backend; unit 5: mvcc's store over the real backend: the store generic in its backend's instance (`StoreNames.kb`), the late-bound lock resource `lateW`, reader and write tokens, the puts' safe-range condition proved of revision keys, the safe-range discipline in the backend's invariant, an oversized put fatal instead of a premise; `mvcc_NewStore_backend` and `mvcc_store_Write_backend` linked, no `sorry`; the layers above mvcc stay over the assumed backend (`txn.isKV`: `γ.kb = none`); a third reproduction of the cache finding (a range repeats a committed key); gates 158 axioms, 9 sorries, see "Unit 5" under the backend; unit 4, part 2: the backend bridge: mvcc's backend contract generalized (`isKeyBackendG`: reader and session tokens, the puts' condition, the snapshot chosen at `RLock`, `NewStore`'s session) and proved of the real backend (`isKeyBackendG_of_backend`, linked as `mvcc_backend_bridge`, no `sorry`; the range read on the premise `rangeSafe`); schema's `bucket` methods and `Key` translated and proved; mvcc's store not yet over it (five gaps listed); gates unchanged (158 axioms, 9 sorries), see "Unit 4" under the backend; a finding (`etcd-backend-put-value-too-large-fatal`); the backend (`server/v3/storage/backend`) translated with bodies and proved over bbolt as a key-value contract (20 trust-boundary specs): the buffers, the read and batch transactions, the commit, `run`, `Close`, 78 linked results, no `sorry`; the constructor not proved (bbolt's `Options` axiomatized); merged into `lean` with Perennial `a54e1999f` (two proofs adapted: `bucketBuffer.Swap`, Goose's multiple-assignment order; `backend.run`, `Timer.wp_Stop`'s new precondition); gates 158 axioms, 9 sorries, etcd 761 of 3599 functions verified; two findings reproduced, see "The backend"; earlier: `origin/lean` (Perennial `a54e1999f`, its proof layout; the fmt/time/context trust-boundary axioms) merged into `lean` on branch `merge-origin`: no adaptation needed; the `%w` errors of `rangeKeys`/`executeTxn` keep Perennial's model (the axiom cannot give the leaf `applyErrIs` needs without being false of Go), `context.Err` and `context.ErrDone` both kept; gates 104 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions verified, see "Merge of `origin/lean` (Perennial `a54e1999f`)" under the request path; `lean` (`a95ad2bb4`: the request path's unit 3b, the read side and `Txn`) merged into `mvcc`: one conflict (this line); their new `specRead` proof of `txn.Txn` takes our `isTxn_toEnd` before `End`, their `v3rpc.txn_end_to_end` loses its four `h_adt_*` hypotheses (the tree's contract is proved); gates 99 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions, see "Merge: lean into mvcc, the request path's unit 3b"; adt: unit 4d: `Union` proved over `Visit` and `Insert`; the visitor protocol tells the visitor its position (a third contract correction, for `Insert`'s count bound); no pending spec in any link list, the request path's `checkIntervals`/`Txn` unconditional, see "The watchable store"; `lean` (`fd5d5306e`: the request path `v3rpc` units 0–3a, the raft wrapper, the apply package units 1–3, Perennial `5857c495a`) merged into `mvcc`: the tree's contract reconciled (`InsertAny` gone, our `Insert` is it; `Union` restated at fractions with the count bound, pending for unit 4d; `checkIntervals` adapted, the count bound from a new `delCount` premise), `trace ≠ null` threaded into our write core and `watchableStore.Write`; gates 99 axioms, 9 sorries (the union), adt 0/0, mvcc 18/0, v3rpc 24/0, etcd 674 of 3599 functions, see "Merge: lean into mvcc, the request path"; adt: unit 4c: `Delete` proved with `deleteFixup` (CLRS 13.4's invariant), `min`, `successor`; the hole predicate with its frames' locations (`CtxAt.lean`) for the helpers that walk up through the caller's nodes; the tree's contract fully discharged, no pending spec left, the nine conditional mvcc results now theorems, see "The watchable store", "The whole watchable store"; adt: unit 4b: `Insert` proved with `insertFixup` (CLRS's invariant on a tree with a hole), the rotations, `replaceParent`, `updateMax`, `createIntervalNode`; the watcher budget (ghost tokens: `New` returns `2^63 - 3`, a stream's `Watch` spends one) supplies the tree's count bound; the tree allows equal intervals (the request path inserts the same range twice), see "The watchable store"; adt: the interval tree's proof, unit 4a: the red-black tree's representation (`Tree.lean`, `Defs.lean`: `ownIvt` defined, the `opaque` gone), `ownIvt_split` and the reads proved (`NewIntervalTree`, `Len`, `find`/`Find`, `Intersects`, `visit`/`Visit`/`Stab`); two contract corrections (`Find`/`Stab` lend their pointers; `Stab` needs a proper query), see "The watchable store"; mvcc: the watchable store, unit 3c: the client's receive lemma and the watch-guarantee theorems (`wp_watch_receive`, `watchRecvOk_cert`, `watchGuarantee_unfiltered`, `watchRecvOk_revs`: no `sorry`, no trust-boundary axiom of the package), the watchable store complete but `Restore` and the tree's proof (unit 4), see "The watchable store"; mvcc: the watchable store, unit 3b: the sync machinery and the constructors proved (`syncWatchers`, `moveVictims`, the two loops, `rangeEvents`/`kvsToEvents` over the backend's range read, `New`/`newWatchableStore`/`Close`/`NewWatchStream`); tickers, `time.Since` and `store.Close` axioms; a finding: `syncWatchersLoop` resets its ticker with a zero duration on a coarse clock (`issues/etcd-watch-sync-ticker-reset-zero.md`), see "The watchable store"; `lean` merged into `mvcc` (the apply package, units 0 and A; the batch lock runs the post-lock hook: `storeTxnWriteCore` carries `hookIs`, the watchable `Write`/`End` take the hook's resources as the inner ones), see "Merge: lean into mvcc, the hook (2026-10-12)"; mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; the request path's unit 3b on branch `rp-u3b`: the read side and `Txn`: `EtcdServer.Range`, `Txn` (both branches), `doSerialize`, `newHeader`, the getters and `tracing.go`'s loops verified and linked, `txn.Txn` at a reader (`specRead`), the response headers owned for the reads and `Txn`, the read side's context error through Perennial's `fmt.Errorf` (no `%w`) with an `errorString` leaf premise, the server's contract `raftKV` discharged with no premise but `isServerReq`/`isServerRead` (`range_end_to_end`, `txn_end_to_end`, `range_linearizable`, `txn_applied`, ...), gates 94 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 639 of 3599 functions verified, see "Unit 3b" under the request path; Perennial `a54e1999f` pinned (its proof layout; not its current `lean`, whose panic model cannot verify the STM: the port so far on branch `perennial-d0324-wip`); five new trust-boundary axioms for fmt, `time.Duration.String` and `context.Err`, seven strengthened assumptions, every one listed; gates 98 axioms, 9 sorries, see "Perennial `a54e1999f`: the proof layout"; the request path's unit 3a on branch `rp-u3a`: the gRPC `Put`/`DeleteRange` end to end (`put_end_to_end`, `deleteRange_end_to_end`: the handler's `(resp, nil)` is the apply thread's application at the log the entry met, the header filled), the server's contract `raftKV` split per method and discharged for `Put`/`DeleteRange` (`ServerKV.lean`), the response header's id fields owned from the txn package to the handler, `applyErrIs` with the gRPC facts, one new axiom (`context.ErrDone`), gates 94 axioms, 9 sorries, server 48/0, v3rpc 23/0, etcd 625 of 3599 functions verified, see "Unit 3a" under the request path; `origin/lean` merged into `lean` (the raft wrapper, build performance, the iframe race): the Goose configurations' union regenerated, `srvInit` the raft wrapper's and the request path's facts, gates 93 axioms, 9 sorries, server 47/0, server-raft 6/0, etcd 625 of 3599 functions verified, see "Merge of `origin/lean`" under the request path; the request path's units 1 and 2 merged into `lean` (notes and baseline conflicts only; `NewKVServer`'s `TypeRepr` of `EtcdServer` reached the axiomatized fields' `sorry` instances after the merge, fixed by an import; both `errors.Is` axioms kept; gates 91 axioms, 9 sorries, server 44/0, v3rpc 3/0, etcd 615 of 3599 functions verified), see "Merge 1/2"; the request path's unit 1 on branch `rp-u1`: every function of `key.go` but `RangeStream`/`Compact`, `header.go` and `togRPCError` specified and proved over the server's contract `raftKV s A` (parameters units 2/3 instantiate), `check_gives_nodup` (with the key check: unit 0's statement was false), `checkRequestOp_nonempty`; `api.Cluster`, `etcdserverpb.KVServer`/`RangeStreamResponse` translated; one new axiom (`errors.IsDeadlineExceeded`); adt's `InsertAny` (pending); gates 89 axioms, 9 sorries, v3rpc 3/0, etcd 592 of 3599 functions verified; see "Unit 1: the checks and the handlers"; the request path's unit 2 on branch `rp-u2`: `pkg/wait` and `pkg/idutil` verified, the proposal path (`processInternalRaftRequestOnce`, `raftRequest`, `Put`, `DeleteRange`) verified over the raft contract and the wait registry, the apply thread triggering the registry (`waitInv`); results `request_handoff`, `put_applied`, `deleteRange_applied`; 2 new axioms (90), 9 sorries, server 44, etcd 600 of 3599; `Txn` left to unit 3; see "Unit 2: the wait protocol and the proposal path"; the request path's unit 0 on branch `rp-u0`: `v3rpc`'s KV service, the server's request path, `pkg/wait` and `pkg/idutil` translated; the checks as pure functions (`v3rpc/Defs.lean`), the raft contract, the id generator, the wait registry and the read contract (`InvRequest.lean`); 22 new axioms, gates 88 axioms, 9 sorries, server 40/0, v3rpc 2/0; three findings (`checkIntervals` misses a later sibling's delete, `--max-txn-ops` is per level, request ids of two members collide when their ids agree in the low 16 bits), see "The request path"; the server's raft wrapper proved: `raftNode.start` and every method of raft.go, linked, gates 68 axioms, 9 sorries, server 22/0, server-raft 6/0, etcd 587 of 3599; see "etcd's server: the raft wrapper"; build performance on branch `proof-perf`: three proofs verify a common tail once (`wp_join`), `raftOwn_access` frames by name, the Results modules print axioms with full names, Perennial `afc8f0432` (not yet pinned) gives the WP tactics per-thread caches without a lookup per access, see "Build performance"; the intermittent failure of `InvSTMRun.lean` (`stmMethods_ser`) in loaded full builds was a race in Perennial's `iframe` (a global flag shared by declarations elaborated in parallel), fixed in Perennial `fb1ecb030` (in `5857c495a`); the proof unfolds `STMSt.empty` and no longer needs `iframe`'s prepass, see "Parallel elaboration and tactic state"; the apply package's unit 3 on branch `apply-u3`: the server bridge: the apply thread on the proved `apply.Apply` (`applierFor`, `applierFor_persistent`, `apply.Apply_server.wp_proof` gone; `isServer s γ ci TM E`, `srvApplyKV`), the KV threaded through `applyEntryNormal`/`apply`/`applyEntries` (`entryOk`/`entryStep`, `entriesOk`/`entriesStep`), the server's `Results.lean` (`applyEntries_model`, `_kv`, `_replay_no_write`, `_rejected_no_write`); gates 66 axioms, 9 sorries, server 19/0, apply 32/0, apply 71 of 73, etcd 577 of 3599; see "Unit 3: the server bridge" and "The whole package" in the apply section; the apply package's unit 2 merged into `lean`: `uber_applier.go` and `apply.go` specified and proved, `apply.Apply.spec` with the KV (`applyKV`, `applyStep`), the server still on its assumed contract (`apply.Apply_server`, unit 3); the `applyErrIs` gap closed (the contracts' errors and `applyErrVars` the two assumptions; `txn.Range`/`DeleteRange` take `nd`); gates 69 axioms, 9 sorries, apply 32/0, server 18/0, apply 71 of 73 functions verified, etcd 577 of 3599, see "Merge 2" in the apply section; Perennial `5857c495a` pinned: soundness fixes (unsigned `uint32` division, division by zero panics, shift counts not truncated, `^x`; `time.isTimer` unforgeable; `errors.wp_As` requires an interface or `error` target), the ring buffer's three divisions and `leasingKV.acquire`'s `errors.As` repaired, gates unchanged (69 axioms, 9 sorries), see "Perennial `5857c495a`: soundness fixes"; `origin/lean`'s eight small etcd axioms merged into `lean` (`MustUnmarshalMessage` a case per message type, each with its decoding premise; `store.Write` takes the non-nil trace and the hook; gates 69 axioms, 10 sorries, apply 31/0, server 18/0, mvcc 12/0, txn 18/0, etcd 568 of 3599 functions verified), see "Merges of `origin/lean`" in the apply section and "Small etcd axioms"; the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver; Perennial `f8f01eb44` pinned: `time.wp_Since`/`Time.wp_Add` proved and `context.wp_WithDeadlineCause` proved (the `sorry` the concurrency proofs reached is gone; one new Perennial axiom `Timer.wp_Stop_func`), `isContext` stronger; `context.DeadlineExceededIsError` (a method-set fact, like `ErrorStringIsError`) added to raft's and the register's initialization premises; gates 57 axioms, 9 sorries (all the register's); small etcd axioms replaced by proofs on branch `etcd-small-axioms`: `NewHashStorage`, `UnsafeCreateMetaBucket`, `traceutil.TODO`, `Notifier.Notify`, `ServerConfig.ElectionTimeout`, `AlarmStore.Get`, `EtcdServer.Logger`/`isLeader` (with `MemberID`/`Lead`/`getLead`); `Trace.Step` requires a non-nil trace; `MustUnmarshalMessage`'s axiom made true (an encoding premise); gates on the branch 62 axioms, 1 sorry (57 axioms, 10 sorries once merged into `lean` with the standard-library axioms and the register's adequacy), etcd 505 verified of 3599 functions, 5202 of 45570 lines, see "Small etcd axioms"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; five standard-library axioms of etcd-grove proved from Perennial `e6ec34885` (pinned): `binary.bigEndian.{Uint64,PutUint64}`, `sort.Sort`, `sort.Reverse`, `errors.Is` (whose axiom was false as stated, now restated with Perennial's premises), see "Standard-library axioms from Perennial"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-15 (unit T2: every KV operation as a persistent atomic update on the whole state: one exclusive `etcdKV γ σ`, `σ` the store at its latest revision; puts (any flag but a lease), ranges, deletes and plain transactions deterministic in the KV model (`kvOpStep`), the apply relation made exact by strengthened specs of `txn.Put`, `checkTxn`, `Txn`, `CheckTxnAuth`; server and client `Put`/`Range`/`DeleteRange`/`Txn` over the state; `srvNonPlain` and `srvNonPlainAll` removed, V2b's delete and lease-free results meaningful again, the leased ones under `kvLeasedPutTodo`/`kvLeasedCommitTodo` until unit T3; 4693 jobs, 202 axioms, 11 sorries, every collection unchanged; see "Unit T2"; merge M1: `origin/lean` (the vertical slice's V2b, porcupine) merged into unit T1: T1's updates and V2b's certified floors compose as extra conjuncts; DeleteRange, the writing Txn and non-plain puts under the non-plain credit, so V2b's derived write contracts and the recipes' are vacuous until the next unit (premise `srvNonPlainAll`); 4693 jobs, 202 axioms, 11 sorries, every collection unchanged; see "Merge M1"; unit T1: `kv.Put`/`kv.Get` with persistent atomic updates linearized by raft, end to end: the KV ghost state over the full committed raft log, the raft contract restated, mvcc's log certificates, the apply thread's KV model, the read loop's registry; no new axiom; see "Unit T1porcupine: verified complete -- `CheckOperations*` never answer `Illegal` on a linearizable history, `Ok` with no timeout -- and a generic driver `examples/lintest` whose `Run` passes porcupine for any TaDa-linearizable library traced as etcd's robustness tests trace etcd, instantiated end to end with a counter; `MonotonicClock` and failed requests not covered; see "Porcupine"; the vertical slice's unit V2b on `slice-v2b`: the recipes' client contracts derived at the server's model for a real `*kv` (`isRecipesKV_of_kv`, `isEtcdRecipesClient_of_kv`, the transaction's `isEtcdTxnKVTodo_of_kv`), certified floors for linearizability, `Delete`/`Txn` over the generic gRPC spec, `queue_vertical`; 4594 jobs, 202 axioms, 11 sorries, etcd 940 of 3599 functions verified, see "V2: the client contracts at the server's instance, the queue"; `origin/lean` (unit A2: the auth premises over a reader resource `RD`; unit T1 in part: the pure KV model `KVModel.lean`; the ReadIndex handoff note) merged into `lean` on `merge-origin8`: every request-path spec takes both A2's `E.RD` and key bound and V2b's floor (`idxCert F`), `quotaAlarmer.check` over the request type with `E.RD`, `quotaKVServer.Txn` and `quotaKV_txnHandlerOk_of` given `E.RD` as `Put`'s; 4595 jobs, 202 axioms, 11 sorries, every collection unchanged, etcd 940 of 3599 functions verified, see "Merge of `origin/lean` (A2, T1 in part)"; unit A2: the server's auth premises in forms the real auth store meets: `isReqAuth st RD` and `isAuthStore st P f RD` take the caller's reader resource `RD` (`apply.AEnv.RD`, held in `kvOwn`, the auth layer's mutex, `srvRdCall`, the write path beside `srvLeadTimeReader`, the gRPC run slots), the permission checks the key bound `len(key) < 2^63 - 1` (a conjunct of the request models); `isReqAuth_of_authInv`, `apply.isAuthStore_of_authInv` derive them of the real store at `RD := auth.authRd st R`; see "Unit A2"; `origin/lean` (unit C2a: a `Get` after a `Put` sees the `Put`) merged into `lean` on `merge-origin7`: the witness and the revision's token travel together (`resultIsW`, `appliedOk`, `EtcdServer.Put`'s success, `v3rpc.putApplied`, the client's `putReplied` carry both `revMinted` and `appliedWit`; `etcdPutSpec E γr` over `putReplied`; `client_get_after_put` over `putReplyOk`, `putReplied_ok` keeping the witness); 4560 jobs, 202 axioms, 11 sorries, every collection unchanged, etcd 929 of 3599 functions verified, see "Merge of `origin/lean` (C2a: the write's witness)"; `origin/lean` (units P1–P4, P2, P3a, P3b, integration I1, the generic gRPC specification) merged into `lean` on `merge-origin6`: mvcc's and txn's transaction predicates and specs take both 6a's `crev Z` and P1b's `trace`/`te` (the frozen corollaries of `FrozenSpecs.lean` restated over the traced shapes), the wire is theirs (`isGrpcRpc`, `grpc.serve`) with V1's split answers and the revision's token carried by the reply's `Φ` (`putReplied`, `deleteReplied`); gates 4560 jobs, 202 axioms, 11 sorries, etcd 929 of 3599 functions verified, see "Merge of `origin/lean` (P1–P4, the generic gRPC specification, P3b)"; `origin/lean` (units 8, 9 of the backend, unit C1 of the client) merged into `lean` on `merge-origin5`: C1's wire supersedes V1's (`v3rpc/Wire.lean`, `grpcConnTo`, the stub's four axioms and `kvclient_of_conn` deleted; `kVClient.Put`/`Range` the proved C1 stubs), mvcc's write specs take both 6a's `crev Z` and unit 8's `lease.leaseOwn`, `etcd_putRunOk` adapted to the split `putAppliedOk` (the token dropped: `putRunOk`'s knowledge is persistent); gates 4371 jobs, 186 axioms, 11 sorries, slice 9 → 0, v3rpc 55 → 50, etcd 855 of 3599 functions verified, see "Merge of `origin/lean` (units 8, 9, C1)"; the vertical slice's unit V1 on `slice-v1`: the clients' model of etcd a class `EtcdModel GF` (the cache's fourteen axioms its fields) with a proved server instance `etcdModelOfServer`, the revisions' tokens minted by the apply thread and carried to the gRPC handler, the gRPC KV stub's contract as four trust-boundary axioms and `grpcConnTo`, `isKVClient` proved of the stub; gates 4264 jobs, 188 → 179 axioms (−14 + 5), 11 sorries, collections cache 14 → 6, concurrency 13 → 6, leasing 8 → 3, recipes 11 → 2, v3rpc 50 → 55, new slice 9/0, etcd 820 of 3599 functions verified, see "The vertical slice: client to server"; 2026-10-13 (unit 6a on `mvcc`: compaction-aware readers, `NoDelPutAt` a premise of `Compact` (`crevSafe` in `s.mu`'s resource and on every deletable key), the transactions at a compaction revision `crev` with a reader's tag (the frozen ones their defaults), `rangeOutcomeC` from every `Range`, `FirstRev` the compaction revision, the frozen statements corollaries (`spec_frozen`), one-line edits in 12 files above mvcc, no statement there changed; gates 4251 jobs, 188 axioms, 11 sorries, every collection unchanged, see "The store's compaction", unit 6a; unit C2a: a `Get` after a `Put` sees the `Put` (one server): every apply result now carries the witness `appliedWit γr` (its log is applied through an index of the committed index's lower bounds, and applied logs grow with the index), carried to the `Put`'s reply; `client_get_after_put` (`client/v3/Results.lean`) proved, no new axiom; see "Unit C2a"; unit P3b: the server end of the gRPC boundary: grpc's `serve` runs the generated `MethodDesc.Handler` with grpc's `dec` and the server's interceptor chain; the generated KV handlers, the quota wrapper and etcd's two unary interceptors proved, `etcd_kv_served` restated; see "Unit P3b"; integration I1: the Links of units P1b, P2 and P3a regenerated, `apply`/`etcdserver` `Results.lean` restated for P1b's traces, `ReqTimeout`'s six type `sorry`s removed; full build green; the auth premises not switched yet (plan below); see "Integration I1"; unit P3a: the client's retry interceptor translated and proved, grpc's client boundary moved below it (the interceptor chain over one attempt), `rpctypes.Error` proved with the premise `statusErrOk`; see "Unit P3a"; the generic gRPC specification: one `ClientConn.Invoke` axiom for every registered method (urpc-style predicate-transformer specs, `isGrpcRpc`), `grpc.serve` on the server side with a bounded pool of run slots, etcd's `Put`/`Range`/`DeleteRange` handlers proved against etcd's specs (`etcd_kv_served`), the client's results over the registration; `isKVConn` gone; see "The generic gRPC specification" under Unit C1; unit C1, the client meets the server: `kv.Put`/`kv.Get` proved from the client's API to grpc's `ClientConn.Invoke` (the transport contract, an axiom, the retry interceptor inside) and joined to the server's handlers, `client_put_end_to_end`, `client_get_end_to_end` (`client/v3/Results.lean`); 16 client functions translated and proved, new Link mode `--client`; issue `etcd-client-retry-put-ctx-error`; see "Unit C1"; unit 9 of the backend: the lessor's `Grant`, `Checkpoint`, `ExpiredLeasesC` and their callees proved (the expiry notifier over `container/heap`'s contract), `apply.isApplyLessor`'s `Grant`/`Checkpoint` clauses and the server's `lessorOk` derived of the real lessor; `Revoke` not proved (`issues/etcd-lessor-revoke-rd-unlocked.md`); gates +7 trust-boundary axioms, no new sorry, `server` collection +7, etcd 844 of 3599; see "Unit 9" under the backend; unit 8 of the backend: the server's pre-commit hook `BackendHooks.OnPreCommitUnsafe` and `NewBackendHooks` proved, the backend's hooks' contract derived by Löb induction (`isBackendNH`, `server_kv_backend_hooks`); the lessor's `GetLease`, `Attach`, `Detach`, `Lookup`, `SetRangeDeleter` proved over `le.mu`'s invariant, mvcc's `isLessor` and the txn package's `isTxnLessor` derived; a lease is live relative to the apply thread's half of the lessor's live set (the persistent `leaseKnown` was false after `Revoke`): mvcc's put, the txn package's lease-checking specs and the apply package's `kvOwn`/`Grant`/`Revoke` contracts adjusted; gates 173 axioms (+`schema.MustUnsafeSaveConfStateToBackend`), 31 sorries, `server` 120, etcd 801 of 3599; see "Unit 8" under the backend; `lean` (`cc7c10389`: the request path's unit 4d, the scheduler's three job proofs, the request path closed) merged into `mvcc` after unit 5c: conflicts in this line and the baselines only, no proof changed; gates 4251 jobs, 188 axioms, 11 sorries (the hasher's two generated instances and the nine package-initialization ones), mvcc 36/2, mvcc-compaction 23/2, every other collection unchanged, see "Merge: lean into mvcc, the request path's unit 4d"; `rp-u4d` (unit 4d: the scheduler's jobs, `IsRegistered` tied to live registrations, `request_delivered`, the request path's final account) merged into `lean` (`75b9f2982`: units 5b and 7) on branch `merge-u4d`: six text conflicts (the baseline and two collections, `issues/README.md`, `decisions.md`, this file), no proof adapted; gates 187 axioms, 23 sorries, mvcc 35/14, mvcc-compaction 22/14, server 141/0, etcd 808 of 3599 functions verified, see "Merge of unit 4d"; `origin/lean` (`965752592`: the backend's unit 7, the consistent index's pre-commit hook over the real backend) merged into `mvcc` (after unit 5b) on branch `merge-u7`: three conflicts (the server's `Results.lean`, `decisions.md`, this line), no proof adapted, no result restated; gates 187 axioms, 26 sorries, every collection unchanged, etcd 805 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 7: the hook over the real backend)"; `lean` (`b4b5ba9d0`: the request path's unit 4c, `run`'s apply case over the scheduler, the `Schedule` axiom in its single tracked/untracked form) merged into `mvcc` after unit 5b: one conflict (this line), no proof changed, see "Merge: lean into mvcc, the request path's unit 4c"; `rp-u4c` (unit 4c) merged into `lean` (unit 6) on branch `merge-u4c`: the apply-thread specs take both `srvGoRes` and the write budget, the write-budget hooks closed (`WB := txn.storeWTs E.γ`, the split `txn.storeWTs_add`, each batch's tokens passed to `applyAll`); gates 187 axioms, 31 sorries, server 141/1, mvcc 35/22, etcd 800 of 3599 functions verified, see "Merge of unit 4c onto the write budget"; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4c on branch `rp-u4c`: the server's goroutines: `run` (the apply loop over the FIFO scheduler, the apply thread's resources chained through saved postconditions, the ready handler, the shutdown), `start` (from the construction premise `isServerBuilt`, named clauses) and `Start` (the read loop and nine names-only monitors through `GoAttach`, proved over Perennial's `WaitGroup`) translated and proved; one `Schedule` axiom with tracked and untracked jobs; `stopping` a capacity-1 channel closed once (`StopChan.lean`); the committed index raised by the ready handler; the backend's write budget carried with a marked hook (not merged); gates 187 axioms (+16, `GoAttach` gone), 31 sorries, server 93/1 (mvcc's pending `schedule.NewJob`), mvcc 35/22, etcd 800 of 3599 functions verified, see "Unit 4c: `run`, `start`, the scheduler and the committed index" under the request path; mvcc: the store's compaction, unit 5b: the index's side proved (`keyIndex.doCompact`/`compact`/`keep`, `treeIndex.Compact`/`Keep`), `generation.walk`'s closure effectful (`walkFnSpecR`), `treeIndex.Compact` takes the compactor's exclusive token (`idxCompactor`, the lock's `idxCmpOwn`; overlapping passes are unsafe in Go), `doCompact` at any fraction; gates 172 axioms, 26 sorries, mvcc 34/17, mvcc-compaction 22/17, others unchanged, mvcc 113 of 155 functions verified, etcd 799 of 3599, one finding (`etcd-index-compact-overlapping`), see "The store's compaction"; unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4d on branch `rp-u4d`: the scheduler's jobs (`NewJob`, `job.Do`, `job.Name`) proved; `pkg/wait`'s `IsRegistered` tied to the live registrations (`waitGone`) and the new result `request_delivered`; `storeSmall`, the `%w` limitation and `raftRequestAlarm` decided and documented; the construction table for `isServerBuilt` and the request path's final account (results, premises, counts); gates 187 axioms, 28 sorries, server 141/0, mvcc 35/19, etcd 803 of 3599 functions verified, see "Unit 4d: the wrap-up", "Server construction: what `NewServer` must discharge" and "The request path: results and premises"; mvcc: the store's compaction, unit 5c: the store's side proved (`Compact`, `updateCompactRev`, `compact`, the job `scheduleCompaction`, the barriers, `compactLockfree`, `checkPrevCompactionCompleted`, the six meta-key functions); the compaction right carries the store scheduler's tracked queue (`compactQueue`: the index compactor's token handed from job to job); contract corrections (`compactRes`'s counter at least the finished revision, `Compact` takes `-1 ≤ c`, `crevFrozen` of the revision half); gates 188 axioms (+`time.Time.Unix`), 14 sorries (the 13 proved; +the hasher's generated instance), mvcc 36/5, mvcc-compaction 23/5, others unchanged, mvcc 125 of 155 functions verified, etcd 817 of 3599, see "The store's compaction"; `origin/lean` (`965752592`: the backend's unit 7, the consistent index's pre-commit hook over the real backend) merged into `mvcc` (after unit 5b) on branch `merge-u7`: three conflicts (the server's `Results.lean`, `decisions.md`, this line), no proof adapted, no result restated; gates 187 axioms, 26 sorries, every collection unchanged, etcd 805 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 7: the hook over the real backend)"; `lean` (`b4b5ba9d0`: the request path's unit 4c, `run`'s apply case over the scheduler, the `Schedule` axiom in its single tracked/untracked form) merged into `mvcc` after unit 5b: one conflict (this line), no proof changed, see "Merge: lean into mvcc, the request path's unit 4c"; `rp-u4c` (unit 4c) merged into `lean` (unit 6) on branch `merge-u4c`: the apply-thread specs take both `srvGoRes` and the write budget, the write-budget hooks closed (`WB := txn.storeWTs E.γ`, the split `txn.storeWTs_add`, each batch's tokens passed to `applyAll`); gates 187 axioms, 31 sorries, server 141/1, mvcc 35/22, etcd 800 of 3599 functions verified, see "Merge of unit 4c onto the write budget"; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4c on branch `rp-u4c`: the server's goroutines: `run` (the apply loop over the FIFO scheduler, the apply thread's resources chained through saved postconditions, the ready handler, the shutdown), `start` (from the construction premise `isServerBuilt`, named clauses) and `Start` (the read loop and nine names-only monitors through `GoAttach`, proved over Perennial's `WaitGroup`) translated and proved; one `Schedule` axiom with tracked and untracked jobs; `stopping` a capacity-1 channel closed once (`StopChan.lean`); the committed index raised by the ready handler; the backend's write budget carried with a marked hook (not merged); gates 187 axioms (+16, `GoAttach` gone), 31 sorries, server 93/1 (mvcc's pending `schedule.NewJob`), mvcc 35/22, etcd 800 of 3599 functions verified, see "Unit 4c: `run`, `start`, the scheduler and the committed index" under the request path; mvcc: the store's compaction, unit 5b: the index's side proved (`keyIndex.doCompact`/`compact`/`keep`, `treeIndex.Compact`/`Keep`), `generation.walk`'s closure effectful (`walkFnSpecR`), `treeIndex.Compact` takes the compactor's exclusive token (`idxCompactor`, the lock's `idxCmpOwn`; overlapping passes are unsafe in Go), `doCompact` at any fraction; gates 172 axioms, 26 sorries, mvcc 34/17, mvcc-compaction 22/17, others unchanged, mvcc 113 of 155 functions verified, etcd 799 of 3599, one finding (`etcd-index-compact-overlapping`), see "The store's compaction"; unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; `lean` (`deccecdff`: the backend's units 1–5 and the request path's 4a/4b) merged into `mvcc` after unit 5a: one backend contract and one store (`isKeyBackendG` with unit 5a's deletable keys, deposit witness, size queries and, under the condition `Cmp`, the compaction-only calls), the bridge extended (snapshots exact, the job's `LockOutsideApply`, `Size`/`SizeInUse` proved of the backend; the deletion from `Key`, the limited range, the `Meta` keys and the safe-range-delete lock not: the backend's model forbids deleting from a safe-range bucket, so `Cmp` is false of it and the compaction's specs take `storeCmp`); gates 172 axioms, 31 sorries (the union), mvcc 34/22, mvcc-compaction 22/22 (+4 bbolt predicates), every other collection unchanged (backend 59/0), etcd 794 of 3599 functions verified, 21 unfinished, see "Merge: lean into mvcc, the backend meets the compaction"; `lean` (`4f2c96322`: the request path's unit 4b, the apply loop and the applied index) merged into `mvcc`: one conflict (this line), no proof changed; gates 118 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4b"; the request path's unit 4b on branch `rp-u4b`: the apply loop and the applied index: `applyAll` translated and proved (under raft's no-snapshot contract), `pkg/wait`'s `wait_time.go` and `pkg/notify`'s `NewNotifier`/`Receive` proved, the read loop's contracts discharged for `*EtcdServer` (`read_server`) and its `raftNode` (`read_raft`, `ReadIndex` and read states in the node contract), the ghost applied index tied to `s.appliedIndex` with a certified log deposited per index at `setAppliedIndex`, so `range_linearizable` says the read's log extends the log applied through an index at least `c`; 4a's `ApplyWait` and notifier clauses adapted; gates 112 axioms (+5: `VerifyBackendConsistency`, `snapshot`, `compactRaftLog`, `createMergedSnapshotMessage`, `sendMergedSnap`), 9 sorries, server 66/0, etcd 720 of 3599 functions verified, see "Unit 4b: the apply loop and the applied index" under the request path; `lean` (`17575d236`: the request path's unit 4a, the read loop) merged into `mvcc` after unit 5a: conflicts only in the baseline (union) and the notes, no proof changed; gates 113 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4a"; mvcc: the store's compaction, unit 5a: the compaction functions translated (with `pkg/schedule`'s jobs), the pure model (`Compact.lean`), the compaction revision's counter and right, the backend contract with deletions, the 21 specs pending (`sorry`); the existing statements are of a store never compacted (`crevFrozen`); 6 new axioms, 22 new sorries (gates 110 axioms, 31 sorries, mvcc 30/22, new collection mvcc-compaction), two findings (`issues/etcd-compaction-*`), see "The store's compaction"; the request path's unit 4a on branch `rp-u4a`: etcd's linearizable read loop (`server/v3/etcdserver/read`) translated with bodies and proved over two contracts (`isReadServer`, `isReadRaft`), `isRead` met by `NewRead`'s result; `isRead` takes a reader slot of `r.mux` (`ReadNames` gains `notifier`), `applyErrIs`' typing clause is for pointer targets; gates 107 axioms (+3: `context.WithTimeoutBackground`, `strconv.FormatUint`, `traceutil.Trace.LogAllStepsIfLong`), 9 sorries, read 12/0, etcd 700 of 3599 functions verified, see "Unit 4a: the read loop" under the request path; `origin/lean` (the backend's unit 5: mvcc's store over the real backend) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin3`: two conflicts (this line; the server collection's baseline, the union), no adaptation needed (the request path's proofs are over `txn.isKV`, which now carries `γ.kb = none`, and never destructure it); gates 166 axioms, 9 sorries, server 66 -> 70, apply 32 -> 36, mvcc 18 -> 22, txn 18 -> 22, v3rpc 46 -> 50 (bbolt's four opaque predicates, which `StoreNames.kb` names), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 5)" under the request path; `origin/lean` (the storage backend, units 1–4, and the mvcc bridge) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin2`: no adaptation needed; gates 166 axioms, 9 sorries, collections unchanged (backend 59/0, server 66/0, read 12/0), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, units 1–4)" under the request path; unit 6: the txn, apply, server and v3rpc results generic in the backend instance (`txn.isKV` no longer pins `γ.kb = none`): a write token per store write transaction, `txn.storeWTs` one per entry at `applyEntries`; the change bound `2^56` (a delete's range, `TxnPre`); `server_kv_backend` (the apply thread's KV made by `NewStore` over the real backend, on `keySized`); gates 158 axioms, 9 sorries, the `server` collection 114 axioms; see "Unit 6" under the backend; unit 5: mvcc's store over the real backend: the store generic in its backend's instance (`StoreNames.kb`), the late-bound lock resource `lateW`, reader and write tokens, the puts' safe-range condition proved of revision keys, the safe-range discipline in the backend's invariant, an oversized put fatal instead of a premise; `mvcc_NewStore_backend` and `mvcc_store_Write_backend` linked, no `sorry`; the layers above mvcc stay over the assumed backend (`txn.isKV`: `γ.kb = none`); a third reproduction of the cache finding (a range repeats a committed key); gates 158 axioms, 9 sorries, see "Unit 5" under the backend; unit 4, part 2: the backend bridge: mvcc's backend contract generalized (`isKeyBackendG`: reader and session tokens, the puts' condition, the snapshot chosen at `RLock`, `NewStore`'s session) and proved of the real backend (`isKeyBackendG_of_backend`, linked as `mvcc_backend_bridge`, no `sorry`; the range read on the premise `rangeSafe`); schema's `bucket` methods and `Key` translated and proved; mvcc's store not yet over it (five gaps listed); gates unchanged (158 axioms, 9 sorries), see "Unit 4" under the backend; a finding (`etcd-backend-put-value-too-large-fatal`); the backend (`server/v3/storage/backend`) translated with bodies and proved over bbolt as a key-value contract (20 trust-boundary specs): the buffers, the read and batch transactions, the commit, `run`, `Close`, 78 linked results, no `sorry`; the constructor not proved (bbolt's `Options` axiomatized); merged into `lean` with Perennial `a54e1999f` (two proofs adapted: `bucketBuffer.Swap`, Goose's multiple-assignment order; `backend.run`, `Timer.wp_Stop`'s new precondition); gates 158 axioms, 9 sorries, etcd 761 of 3599 functions verified; two findings reproduced, see "The backend"; earlier: `origin/lean` (Perennial `a54e1999f`, its proof layout; the fmt/time/context trust-boundary axioms) merged into `lean` on branch `merge-origin`: no adaptation needed; the `%w` errors of `rangeKeys`/`executeTxn` keep Perennial's model (the axiom cannot give the leaf `applyErrIs` needs without being false of Go), `context.Err` and `context.ErrDone` both kept; gates 104 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions verified, see "Merge of `origin/lean` (Perennial `a54e1999f`)" under the request path; `lean` (`a95ad2bb4`: the request path's unit 3b, the read side and `Txn`) merged into `mvcc`: one conflict (this line); their new `specRead` proof of `txn.Txn` takes our `isTxn_toEnd` before `End`, their `v3rpc.txn_end_to_end` loses its four `h_adt_*` hypotheses (the tree's contract is proved); gates 99 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions, see "Merge: lean into mvcc, the request path's unit 3b"; adt: unit 4d: `Union` proved over `Visit` and `Insert`; the visitor protocol tells the visitor its position (a third contract correction, for `Insert`'s count bound); no pending spec in any link list, the request path's `checkIntervals`/`Txn` unconditional, see "The watchable store"; `lean` (`fd5d5306e`: the request path `v3rpc` units 0–3a, the raft wrapper, the apply package units 1–3, Perennial `5857c495a`) merged into `mvcc`: the tree's contract reconciled (`InsertAny` gone, our `Insert` is it; `Union` restated at fractions with the count bound, pending for unit 4d; `checkIntervals` adapted, the count bound from a new `delCount` premise), `trace ≠ null` threaded into our write core and `watchableStore.Write`; gates 99 axioms, 9 sorries (the union), adt 0/0, mvcc 18/0, v3rpc 24/0, etcd 674 of 3599 functions, see "Merge: lean into mvcc, the request path"; adt: unit 4c: `Delete` proved with `deleteFixup` (CLRS 13.4's invariant), `min`, `successor`; the hole predicate with its frames' locations (`CtxAt.lean`) for the helpers that walk up through the caller's nodes; the tree's contract fully discharged, no pending spec left, the nine conditional mvcc results now theorems, see "The watchable store", "The whole watchable store"; adt: unit 4b: `Insert` proved with `insertFixup` (CLRS's invariant on a tree with a hole), the rotations, `replaceParent`, `updateMax`, `createIntervalNode`; the watcher budget (ghost tokens: `New` returns `2^63 - 3`, a stream's `Watch` spends one) supplies the tree's count bound; the tree allows equal intervals (the request path inserts the same range twice), see "The watchable store"; adt: the interval tree's proof, unit 4a: the red-black tree's representation (`Tree.lean`, `Defs.lean`: `ownIvt` defined, the `opaque` gone), `ownIvt_split` and the reads proved (`NewIntervalTree`, `Len`, `find`/`Find`, `Intersects`, `visit`/`Visit`/`Stab`); two contract corrections (`Find`/`Stab` lend their pointers; `Stab` needs a proper query), see "The watchable store"; mvcc: the watchable store, unit 3c: the client's receive lemma and the watch-guarantee theorems (`wp_watch_receive`, `watchRecvOk_cert`, `watchGuarantee_unfiltered`, `watchRecvOk_revs`: no `sorry`, no trust-boundary axiom of the package), the watchable store complete but `Restore` and the tree's proof (unit 4), see "The watchable store"; mvcc: the watchable store, unit 3b: the sync machinery and the constructors proved (`syncWatchers`, `moveVictims`, the two loops, `rangeEvents`/`kvsToEvents` over the backend's range read, `New`/`newWatchableStore`/`Close`/`NewWatchStream`); tickers, `time.Since` and `store.Close` axioms; a finding: `syncWatchersLoop` resets its ticker with a zero duration on a coarse clock (`issues/etcd-watch-sync-ticker-reset-zero.md`), see "The watchable store"; `lean` merged into `mvcc` (the apply package, units 0 and A; the batch lock runs the post-lock hook: `storeTxnWriteCore` carries `hookIs`, the watchable `Write`/`End` take the hook's resources as the inner ones), see "Merge: lean into mvcc, the hook (2026-10-12)"; mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; the request path's unit 3b on branch `rp-u3b`: the read side and `Txn`: `EtcdServer.Range`, `Txn` (both branches), `doSerialize`, `newHeader`, the getters and `tracing.go`'s loops verified and linked, `txn.Txn` at a reader (`specRead`), the response headers owned for the reads and `Txn`, the read side's context error through Perennial's `fmt.Errorf` (no `%w`) with an `errorString` leaf premise, the server's contract `raftKV` discharged with no premise but `isServerReq`/`isServerRead` (`range_end_to_end`, `txn_end_to_end`, `range_linearizable`, `txn_applied`, ...), gates 94 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 639 of 3599 functions verified, see "Unit 3b" under the request path; Perennial `a54e1999f` pinned (its proof layout; not its current `lean`, whose panic model cannot verify the STM: the port so far on branch `perennial-d0324-wip`); five new trust-boundary axioms for fmt, `time.Duration.String` and `context.Err`, seven strengthened assumptions, every one listed; gates 98 axioms, 9 sorries, see "Perennial `a54e1999f`: the proof layout"; the request path's unit 3a on branch `rp-u3a`: the gRPC `Put`/`DeleteRange` end to end (`put_end_to_end`, `deleteRange_end_to_end`: the handler's `(resp, nil)` is the apply thread's application at the log the entry met, the header filled), the server's contract `raftKV` split per method and discharged for `Put`/`DeleteRange` (`ServerKV.lean`), the response header's id fields owned from the txn package to the handler, `applyErrIs` with the gRPC facts, one new axiom (`context.ErrDone`), gates 94 axioms, 9 sorries, server 48/0, v3rpc 23/0, etcd 625 of 3599 functions verified, see "Unit 3a" under the request path; `origin/lean` merged into `lean` (the raft wrapper, build performance, the iframe race): the Goose configurations' union regenerated, `srvInit` the raft wrapper's and the request path's facts, gates 93 axioms, 9 sorries, server 47/0, server-raft 6/0, etcd 625 of 3599 functions verified, see "Merge of `origin/lean`" under the request path; the request path's units 1 and 2 merged into `lean` (notes and baseline conflicts only; `NewKVServer`'s `TypeRepr` of `EtcdServer` reached the axiomatized fields' `sorry` instances after the merge, fixed by an import; both `errors.Is` axioms kept; gates 91 axioms, 9 sorries, server 44/0, v3rpc 3/0, etcd 615 of 3599 functions verified), see "Merge 1/2"; the request path's unit 1 on branch `rp-u1`: every function of `key.go` but `RangeStream`/`Compact`, `header.go` and `togRPCError` specified and proved over the server's contract `raftKV s A` (parameters units 2/3 instantiate), `check_gives_nodup` (with the key check: unit 0's statement was false), `checkRequestOp_nonempty`; `api.Cluster`, `etcdserverpb.KVServer`/`RangeStreamResponse` translated; one new axiom (`errors.IsDeadlineExceeded`); adt's `InsertAny` (pending); gates 89 axioms, 9 sorries, v3rpc 3/0, etcd 592 of 3599 functions verified; see "Unit 1: the checks and the handlers"; the request path's unit 2 on branch `rp-u2`: `pkg/wait` and `pkg/idutil` verified, the proposal path (`processInternalRaftRequestOnce`, `raftRequest`, `Put`, `DeleteRange`) verified over the raft contract and the wait registry, the apply thread triggering the registry (`waitInv`); results `request_handoff`, `put_applied`, `deleteRange_applied`; 2 new axioms (90), 9 sorries, server 44, etcd 600 of 3599; `Txn` left to unit 3; see "Unit 2: the wait protocol and the proposal path"; the request path's unit 0 on branch `rp-u0`: `v3rpc`'s KV service, the server's request path, `pkg/wait` and `pkg/idutil` translated; the checks as pure functions (`v3rpc/Defs.lean`), the raft contract, the id generator, the wait registry and the read contract (`InvRequest.lean`); 22 new axioms, gates 88 axioms, 9 sorries, server 40/0, v3rpc 2/0; three findings (`checkIntervals` misses a later sibling's delete, `--max-txn-ops` is per level, request ids of two members collide when their ids agree in the low 16 bits), see "The request path"; the server's raft wrapper proved: `raftNode.start` and every method of raft.go, linked, gates 68 axioms, 9 sorries, server 22/0, server-raft 6/0, etcd 587 of 3599; see "etcd's server: the raft wrapper"; build performance on branch `proof-perf`: three proofs verify a common tail once (`wp_join`), `raftOwn_access` frames by name, the Results modules print axioms with full names, Perennial `afc8f0432` (not yet pinned) gives the WP tactics per-thread caches without a lookup per access, see "Build performance"; the intermittent failure of `InvSTMRun.lean` (`stmMethods_ser`) in loaded full builds was a race in Perennial's `iframe` (a global flag shared by declarations elaborated in parallel), fixed in Perennial `fb1ecb030` (in `5857c495a`); the proof unfolds `STMSt.empty` and no longer needs `iframe`'s prepass, see "Parallel elaboration and tactic state"; the apply package's unit 3 on branch `apply-u3`: the server bridge: the apply thread on the proved `apply.Apply` (`applierFor`, `applierFor_persistent`, `apply.Apply_server.wp_proof` gone; `isServer s γ ci TM E`, `srvApplyKV`), the KV threaded through `applyEntryNormal`/`apply`/`applyEntries` (`entryOk`/`entryStep`, `entriesOk`/`entriesStep`), the server's `Results.lean` (`applyEntries_model`, `_kv`, `_replay_no_write`, `_rejected_no_write`); gates 66 axioms, 9 sorries, server 19/0, apply 32/0, apply 71 of 73, etcd 577 of 3599; see "Unit 3: the server bridge" and "The whole package" in the apply section; the apply package's unit 2 merged into `lean`: `uber_applier.go` and `apply.go` specified and proved, `apply.Apply.spec` with the KV (`applyKV`, `applyStep`), the server still on its assumed contract (`apply.Apply_server`, unit 3); the `applyErrIs` gap closed (the contracts' errors and `applyErrVars` the two assumptions; `txn.Range`/`DeleteRange` take `nd`); gates 69 axioms, 9 sorries, apply 32/0, server 18/0, apply 71 of 73 functions verified, etcd 577 of 3599, see "Merge 2" in the apply section; Perennial `5857c495a` pinned: soundness fixes (unsigned `uint32` division, division by zero panics, shift counts not truncated, `^x`; `time.isTimer` unforgeable; `errors.wp_As` requires an interface or `error` target), the ring buffer's three divisions and `leasingKV.acquire`'s `errors.As` repaired, gates unchanged (69 axioms, 9 sorries), see "Perennial `5857c495a`: soundness fixes"; `origin/lean`'s eight small etcd axioms merged into `lean` (`MustUnmarshalMessage` a case per message type, each with its decoding premise; `store.Write` takes the non-nil trace and the hook; gates 69 axioms, 10 sorries, apply 31/0, server 18/0, mvcc 12/0, txn 18/0, etcd 568 of 3599 functions verified), see "Merges of `origin/lean`" in the apply section and "Small etcd axioms"; the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver; Perennial `f8f01eb44` pinned: `time.wp_Since`/`Time.wp_Add` proved and `context.wp_WithDeadlineCause` proved (the `sorry` the concurrency proofs reached is gone; one new Perennial axiom `Timer.wp_Stop_func`), `isContext` stronger; `context.DeadlineExceededIsError` (a method-set fact, like `ErrorStringIsError`) added to raft's and the register's initialization premises; gates 57 axioms, 9 sorries (all the register's); small etcd axioms replaced by proofs on branch `etcd-small-axioms`: `NewHashStorage`, `UnsafeCreateMetaBucket`, `traceutil.TODO`, `Notifier.Notify`, `ServerConfig.ElectionTimeout`, `AlarmStore.Get`, `EtcdServer.Logger`/`isLeader` (with `MemberID`/`Lead`/`getLead`); `Trace.Step` requires a non-nil trace; `MustUnmarshalMessage`'s axiom made true (an encoding premise); gates on the branch 62 axioms, 1 sorry (57 axioms, 10 sorries once merged into `lean` with the standard-library axioms and the register's adequacy), etcd 505 verified of 3599 functions, 5202 of 45570 lines, see "Small etcd axioms"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; five standard-library axioms of etcd-grove proved from Perennial `e6ec34885` (pinned): `binary.bigEndian.{Uint64,PutUint64}`, `sort.Sort`, `sort.Reverse`, `errors.Is` (whose axiom was false as stated, now restated with Perennial's premises), see "Standard-library axioms from Perennial"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it; **`worktree-raft-rest` merged with `lean`** (`origin/lean` `50b57c990`, then its notes-only `29c85ba9e`; Perennial `a54e1999f`): raft repinned to the fork's `raft-goose-lean` `0560cb7` kept, the translations reproduce unchanged, every `Link.lean` reproduces; three raft proofs fixed for the new Perennial's `fmt` (`ArgsWf`), `stepLeader.lean`'s `iframe ∗` override deleted (Perennial `fb1ecb030` fixed the race), one new trust-boundary axiom (`raftpb.ConfChangeType.String.wp_proof`); see "Merge: `worktree-raft-rest` into `lean` (2026-10-15)"; the vertical slice's goal revised by the user: end-to-end specs and adequacy for the client's `Put` and `Range`, the client-side libraries and the watch slice out of scope, see "The vertical slice"; stage S, partial: **the snapshot's `ConfState` recorded by the
+storage and the log** -- `StorState.scs`/`sal`, `LogState.ksn` (the certified snapshots a node may
+send), the certificate `raftSnapCert` defined; carrying it to the receiver, `MsgSnap` at
+`RawNode.Step` and a pending snapshot in `Ready`/`Advance` left, with costs; see "Snapshots at the
+public API (stage S)"; stage N: **node.go and the register under reconfiguration** --
+`node.go` verified in raft's dynamic mode (the run loop's configuration shared with the driver:
+`dlm`, `cap`, `ccq`, `cam`, `runCfg`; `isNode`'s static restriction gone, `RestartNode` in either
+mode, `node.Advance` with A1, `node.ApplyConfChange` for any in-order change), `RaftNames.reCCOk`
+(the conf-change bytes a cluster admits, since a pure decoder cannot read a slice), and the
+register in the dynamic mode: its apply loop applies conf entries before `Advance`, `Main` removes
+replica 3 at run time (`RemoveMember`), `Put`/`Get`/`Read` and adequacy statements unchanged; see
+"node.go and the register under reconfiguration (stage N)"; stage R: **ReadIndex and proposals as persistent atomic updates over the full committed log** (`notes/raft-readindex-spec.md`) -- `rLog` replaces the client log, `propAu` fires at every committed occurrence, `noopAu` at raft's own entries, a read's `readAu` is deposited by `RawNode.ReadIndex`/`node.ReadIndex` and fired at every commit after, `read_collect`/`prop_collect` give `▷ ▷ □` results; one later credit per ghost step with the commit invariant in a log half and a registry half held open across the step; no voter-count premise left at the public API or in the register; see "The new ReadIndex and proposal specs (stage R)"; stage F: **the single-voter read-index fix verified at `raft.Step`** -- the raft pin is the fork revision `0560cb7` (etcd-io/raft `40f8be7` plus the fix of `issues/raft-readindex-singleton-stale.md`), `sendMsgReadIndexResponse`'s shortcut (the leader as single voter, after `committedEntryInCurrentTerm`) is the model's `readSingle`/`readReleaseSingle`, refined in both modes by the leader's own acknowledgement (quorum `{id}`), `raft.Step.spec`'s single-voter read-index premise gone; see "The single-voter read-index fix"; reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
+for any `ConfState`** (`Restore.specG`, joint included, against `restoreM`; the non-joint
+`Restore.spec` derived), A3 as definitions (`SnapConf.lean`: `SnapConfOk`, `SnapObl`),
+`MemoryStorage` keeping a snapshot's four `ConfState` slices, and the asynchronous-storage
+window found unreachable; see "Reconfiguration, stage B8 (standalone part)"; reconfiguration, stage B6: **the read-index guarantee under
+reconfiguration, at the model level** -- every `ReadState` a node of the dynamic model holds (and
+hands out at `StepR.takeReads`) is `readStateOk`, and the committed prefix of any node whose
+commit index reaches its index extends the request's log (`Results.lean`:
+`raft_reconfig_read_states`/`_read_index`); no gap in B5's read argument; see "Reconfiguration,
+stage B6"; reconfiguration, stage B5: **safety under reconfiguration at the
+model level** -- the ghost state in a dynamic mode (`RaftNames.reDyn`, `CfgAt` the fold of the
+prefix) follows every `StepR` step at the dynamic configurations `AdmFold dec c0`
+(`ownRaftGhostR_stepR`, no `sorry`), allocated for fresh nodes from `c0`, giving log agreement
+and election safety (`Results.lean`: `raft_reconfig_alloc`/`_step`/`_log_agreement`/
+`_election_safety`); not yet reached from Go (B7); the static code path and every Go-facing
+statement unchanged; see "Reconfiguration, stage B5"; reconfiguration, stage B4: the ghost state shaped for dynamic configurations at a static one -- the winners table in `raftCommitInv` with `isLeader_unique` as its agreement and election safety at win time (`win_fresh`), quorums that record their configuration (`CfgAt`, static; `isWinCore`, `cq`'s configuration index, `doomed` keeping its `cqAt`), the campaign record's commit index (`isCampK`), `lc_core` dispatching to `lc_adj`; the static instance's one overlap lemma `CfgAt.overlap` marks B5's three case splits; the ghost still refines `StepC`, see "Reconfiguration, stage B4"; reconfiguration, stage B3: the model with what reconfiguration reads -- `RState`/`StepR` (`applied`, `pendingConfIndex`, a pending snapshot, the configuration and its index, the campaign guard, the exact conf-change loop, `advance`/`applySnap`/`applyConf`/`stepDown`), I1/I3 and the configuration invariant `RInv` (`cfgFold` of the applied prefix) for every rule, `stepR_static`/`ownRaftGhost_stepR` at a static configuration, the prefix-dependent decoder; a finding: I1 on `MsgApp` slices is false under `StepC`'s `AppOk`, see "Reconfiguration, stage B3"; reconfiguration, stage B2: the refinement on `StepC c` at a constant configuration -- `ownRaftGhost_stepC` with `CfgStatic γ c`, `win`/`commit`/`readAck` taking joint quorums, `RaftNames.reCfg_ne`, the dispatcher converting its `Step` witness; no semantic change, see "Reconfiguration, stage B2"; reconfiguration, stage A3: `stepLeader` on `ownRaftPhysC` (`LeaderStepResultC`: `maybeAdvance` over both voter halves, a joint commit, the conf-change loop judging `alreadyJoint`), `readOnly.maybeAdvance` general, `restore`/`handleSnapshot` and `MsgSnap` in `stepFollower`/`stepCandidate` at any configuration (a non-joint snapshot `ConfState` of any voters), `applyCCOkC_step` (the `StepC` reading of a configuration-changing `applyConfChange`); `raft.Step` and `RawNode` on `ownRawNodeC`, `CCApplies`'s size bound and self-removal left, see "Reconfiguration, stage A3"; reconfiguration, stage B1: the paper proof of protocol-level safety under arbitrary configuration changes, `notes/reconfiguration-safety.md`, five repairs to the plan's design and no counterexample; its pure Lean foundation `Protocol/CfgOverlap.lean` -- quorum overlap across one `confchange` step and `fold_adjacent` -- proved; a finding, `issues/raft-joint-empty-transition-panic.md`; see "Reconfiguration, stage B1"; reconfiguration, stage A2: the raft functions at any `confchange` configuration, code level -- the field lemmas on `ownRaftPhysCV c V`, 34 raft functions restated on `ownRaftPhysC` with their old statements as `specS` (`maybeCommit`/`poll`/`campaign`/`hup`/`stepCandidate` joint, `becomeLeader` with no config premise), `switchToConfig` at any configuration with `stepDownOnRemoval` (`NState.sdr`), `raft.applyConfChange` for any change, `CCGood` (every `Changer` operation keeps a reachable state), a detached `ownRawNodeC` for a configuration-changing `RawNode.ApplyConfChange`; `stepLeader` left; a finding (a removed candidate that wins panics in `becomeLeader`), see "Reconfiguration, stage A2"; 2026-10-13: reconfiguration, stage A1: `ownTrackerC`/`ownRaftPhysC` at any `confchange` configuration (`ownRaftPhys` the simple case, unchanged), the quorum/tracker specs at joint configurations (`JointConfig.VoteResult`/`CommittedIndex`, `Committed`, `TallyVotes`, `VoterNodes`, `Visit`, `ConfState`, `QuorumActive`; old statements as `spec_simple`), the joint step relation `StepC` with `step_iff_stepC`, see "Reconfiguration, stage A1"; reconfiguration, stage L parts 1-3: snapshots with learners (`SnapScope`, `confchange.Restore` over voters then learners), `raft.applyConfChange` for learner-only changes and `RawNode`/`node.ApplyConfChange` for learner removal (`CCShrink`); part 1: learners tracked with the voter set fixed -- `Progress.learner`, `ownTracker` over voters and learners (`LearnersOk`), the tracker's loops over every tracked id, `NState.isLearner`, a non-follower is a voter (`Hvoter`), `raft.Step` at a learner (only `MsgSnap` still needs `id ∈ cfg`), `ApplyConfChange` of an unchanged configuration on any learner set; snapshots with learners (part 2) and learner-changing `ApplyConfChange` (part 3) left, see "Reconfiguration, stage L: learners"; reconfiguration, stage D finished for changes that leave the configuration unchanged: `Step.reMatch`, `switchToConfig` at a leader, `raft.applyConfChange`, `RawNode.ApplyConfChange`, `node.ApplyConfChange` with the `confc`/`confstatec` handshake in `node.run`, see "Reconfiguration, stage D: `ApplyConfChange` for an unchanged configuration"; stage L (learners) planned, not started, see "Reconfiguration, stage L: learners"; reconfiguration, stage D: conf-change entries flow through the log as data while every node's configuration stays fixed -- `ownRaftLog`'s `HnoConfChange` dropped, `hasUnappliedConfChanges`'s real answer (a generalized `scan`), `hup`'s refusal, `pendingConfIndex` tracked (`NState.pci`), `stepLeader`'s conf-change loop proved (decode, the three checks, the overwrite of a refused change), `Step.propose` over the loop's batch (`PropRepl`), conf entries outside the client log, `RawNode.ProposeConfChange`/`node.ProposeConfChange` specified and proved, `RawNode.ApplyConfChange` left; leader transfer at the node layer and in the register: `netP`/`RawNode.Step` admit `MsgTimeoutNow` (with a term-budget tick credit), an unstamped `MsgTransferLeader`, the local reports and transfer vote contexts; `node.TransferLeadership`/`ForgetLeader`/`ReportUnreachable`/`ReportSnapshot` verified; the register's transport passes `MsgTimeoutNow` (bounded, `transfers`) and transfer votes, `Register.TransferLeadership`, `Main` asks for a transfer; see "Leader transfer at the node layer and in the register"; leader transfer, `MsgForgetLeader`, `MsgUnreachable`, `MsgSnapStatus` and basic status verified through `raft.Step` and `RawNode` (the transfer target tracked in `ownRaftPhys`, transfer campaigns are ordinary campaigns, `ctx ≠ campaignTransfer` dropped from `raft.Step`), see "Leader transfer and the rest of the message types"; a safety violation reproduced on etcd-raft when `Advance` precedes `ApplyConfChange` (allowed by its documentation), `issues/raft-advance-before-applyconfchange.md`; reconfiguration, stage 0: raftpb's conf-change helpers translated and proved (`AsV1`/`AsV2`, `EnterJoint`, `LeaveJoint`, `MarshalConfChange`) with `confChangeToMsg`, five trust-boundary axioms (gogoproto's `Marshal`/`Unmarshal` of `ConfChange`/`ConfChangeV2` over the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `proto.Equal`), `ProposeConfChange` left for the log stage, a finding (an undefined `Transition` panics every node at apply), see "Reconfiguration, stage 0"; raft's read-index (`ReadOnlySafe`) verified end to end: six protocol rules refined (forward, pending, arrival, release, acknowledgement and quorum confirmation, the answer), `raft.Step` for `MsgReadIndex`/`MsgReadIndexResp` and heartbeats with read positions, `RawNode.ReadIndex`/`node.ReadIndex`, `Ready`'s `ReadState`s with what each promises (`readOk`), read credits against position wrap-around; no new axiom or `sorry`, see "Read-index (`ReadOnlySafe`)"; 2026-10-12: raft's `MemoryStorage` complete: `InitialState`, `SetHardState`, `ApplySnapshot`, `CreateSnapshot`, `Compact` specified and proved over `memStorMeta` (the hard state and snapshot, half of each outside the lock), two findings (`CreateSnapshot`'s undocumented range, below the compaction boundary a runtime panic; `InitialState` races, unlocked), see "`MemoryStorage`: the rest of the storage"; raft's `confchange` specified and proved for all inputs against a pure model (joint configs, learners, `EnterJoint`/`LeaveJoint`, every error path), `Restore.spec` unchanged, six `quorum`/`tracker` functions, two findings, see "`confchange`, `quorum`, `tracker`: general specs for reconfiguration"; porcupine: verified complete -- `CheckOperations*` never answer `Illegal` on a linearizable history, `Ok` with no timeout -- and a generic driver `examples/lintest` whose `Run` passes porcupine for any TaDa-linearizable library traced as etcd's robustness tests trace etcd, instantiated end to end with a counter; `MonotonicClock` and failed requests not covered; see "Porcupine"; the vertical slice's unit V2b on `slice-v2b`: the recipes' client contracts derived at the server's model for a real `*kv` (`isRecipesKV_of_kv`, `isEtcdRecipesClient_of_kv`, the transaction's `isEtcdTxnKVTodo_of_kv`), certified floors for linearizability, `Delete`/`Txn` over the generic gRPC spec, `queue_vertical`; 4594 jobs, 202 axioms, 11 sorries, etcd 940 of 3599 functions verified, see "V2: the client contracts at the server's instance, the queue"; `origin/lean` (unit A2: the auth premises over a reader resource `RD`; unit T1 in part: the pure KV model `KVModel.lean`; the ReadIndex handoff note) merged into `lean` on `merge-origin8`: every request-path spec takes both A2's `E.RD` and key bound and V2b's floor (`idxCert F`), `quotaAlarmer.check` over the request type with `E.RD`, `quotaKVServer.Txn` and `quotaKV_txnHandlerOk_of` given `E.RD` as `Put`'s; 4595 jobs, 202 axioms, 11 sorries, every collection unchanged, etcd 940 of 3599 functions verified, see "Merge of `origin/lean` (A2, T1 in part)"; unit A2: the server's auth premises in forms the real auth store meets: `isReqAuth st RD` and `isAuthStore st P f RD` take the caller's reader resource `RD` (`apply.AEnv.RD`, held in `kvOwn`, the auth layer's mutex, `srvRdCall`, the write path beside `srvLeadTimeReader`, the gRPC run slots), the permission checks the key bound `len(key) < 2^63 - 1` (a conjunct of the request models); `isReqAuth_of_authInv`, `apply.isAuthStore_of_authInv` derive them of the real store at `RD := auth.authRd st R`; see "Unit A2"; `origin/lean` (unit C2a: a `Get` after a `Put` sees the `Put`) merged into `lean` on `merge-origin7`: the witness and the revision's token travel together (`resultIsW`, `appliedOk`, `EtcdServer.Put`'s success, `v3rpc.putApplied`, the client's `putReplied` carry both `revMinted` and `appliedWit`; `etcdPutSpec E γr` over `putReplied`; `client_get_after_put` over `putReplyOk`, `putReplied_ok` keeping the witness); 4560 jobs, 202 axioms, 11 sorries, every collection unchanged, etcd 929 of 3599 functions verified, see "Merge of `origin/lean` (C2a: the write's witness)"; `origin/lean` (units P1–P4, P2, P3a, P3b, integration I1, the generic gRPC specification) merged into `lean` on `merge-origin6`: mvcc's and txn's transaction predicates and specs take both 6a's `crev Z` and P1b's `trace`/`te` (the frozen corollaries of `FrozenSpecs.lean` restated over the traced shapes), the wire is theirs (`isGrpcRpc`, `grpc.serve`) with V1's split answers and the revision's token carried by the reply's `Φ` (`putReplied`, `deleteReplied`); gates 4560 jobs, 202 axioms, 11 sorries, etcd 929 of 3599 functions verified, see "Merge of `origin/lean` (P1–P4, the generic gRPC specification, P3b)"; `origin/lean` (units 8, 9 of the backend, unit C1 of the client) merged into `lean` on `merge-origin5`: C1's wire supersedes V1's (`v3rpc/Wire.lean`, `grpcConnTo`, the stub's four axioms and `kvclient_of_conn` deleted; `kVClient.Put`/`Range` the proved C1 stubs), mvcc's write specs take both 6a's `crev Z` and unit 8's `lease.leaseOwn`, `etcd_putRunOk` adapted to the split `putAppliedOk` (the token dropped: `putRunOk`'s knowledge is persistent); gates 4371 jobs, 186 axioms, 11 sorries, slice 9 → 0, v3rpc 55 → 50, etcd 855 of 3599 functions verified, see "Merge of `origin/lean` (units 8, 9, C1)"; the vertical slice's unit V1 on `slice-v1`: the clients' model of etcd a class `EtcdModel GF` (the cache's fourteen axioms its fields) with a proved server instance `etcdModelOfServer`, the revisions' tokens minted by the apply thread and carried to the gRPC handler, the gRPC KV stub's contract as four trust-boundary axioms and `grpcConnTo`, `isKVClient` proved of the stub; gates 4264 jobs, 188 → 179 axioms (−14 + 5), 11 sorries, collections cache 14 → 6, concurrency 13 → 6, leasing 8 → 3, recipes 11 → 2, v3rpc 50 → 55, new slice 9/0, etcd 820 of 3599 functions verified, see "The vertical slice: client to server"; 2026-10-13 (unit 6a on `mvcc`: compaction-aware readers, `NoDelPutAt` a premise of `Compact` (`crevSafe` in `s.mu`'s resource and on every deletable key), the transactions at a compaction revision `crev` with a reader's tag (the frozen ones their defaults), `rangeOutcomeC` from every `Range`, `FirstRev` the compaction revision, the frozen statements corollaries (`spec_frozen`), one-line edits in 12 files above mvcc, no statement there changed; gates 4251 jobs, 188 axioms, 11 sorries, every collection unchanged, see "The store's compaction", unit 6a; unit C2a: a `Get` after a `Put` sees the `Put` (one server): every apply result now carries the witness `appliedWit γr` (its log is applied through an index of the committed index's lower bounds, and applied logs grow with the index), carried to the `Put`'s reply; `client_get_after_put` (`client/v3/Results.lean`) proved, no new axiom; see "Unit C2a"; unit P3b: the server end of the gRPC boundary: grpc's `serve` runs the generated `MethodDesc.Handler` with grpc's `dec` and the server's interceptor chain; the generated KV handlers, the quota wrapper and etcd's two unary interceptors proved, `etcd_kv_served` restated; see "Unit P3b"; integration I1: the Links of units P1b, P2 and P3a regenerated, `apply`/`etcdserver` `Results.lean` restated for P1b's traces, `ReqTimeout`'s six type `sorry`s removed; full build green; the auth premises not switched yet (plan below); see "Integration I1"; unit P3a: the client's retry interceptor translated and proved, grpc's client boundary moved below it (the interceptor chain over one attempt), `rpctypes.Error` proved with the premise `statusErrOk`; see "Unit P3a"; the generic gRPC specification: one `ClientConn.Invoke` axiom for every registered method (urpc-style predicate-transformer specs, `isGrpcRpc`), `grpc.serve` on the server side with a bounded pool of run slots, etcd's `Put`/`Range`/`DeleteRange` handlers proved against etcd's specs (`etcd_kv_served`), the client's results over the registration; `isKVConn` gone; see "The generic gRPC specification" under Unit C1; unit C1, the client meets the server: `kv.Put`/`kv.Get` proved from the client's API to grpc's `ClientConn.Invoke` (the transport contract, an axiom, the retry interceptor inside) and joined to the server's handlers, `client_put_end_to_end`, `client_get_end_to_end` (`client/v3/Results.lean`); 16 client functions translated and proved, new Link mode `--client`; issue `etcd-client-retry-put-ctx-error`; see "Unit C1"; unit 9 of the backend: the lessor's `Grant`, `Checkpoint`, `ExpiredLeasesC` and their callees proved (the expiry notifier over `container/heap`'s contract), `apply.isApplyLessor`'s `Grant`/`Checkpoint` clauses and the server's `lessorOk` derived of the real lessor; `Revoke` not proved (`issues/etcd-lessor-revoke-rd-unlocked.md`); gates +7 trust-boundary axioms, no new sorry, `server` collection +7, etcd 844 of 3599; see "Unit 9" under the backend; unit 8 of the backend: the server's pre-commit hook `BackendHooks.OnPreCommitUnsafe` and `NewBackendHooks` proved, the backend's hooks' contract derived by Löb induction (`isBackendNH`, `server_kv_backend_hooks`); the lessor's `GetLease`, `Attach`, `Detach`, `Lookup`, `SetRangeDeleter` proved over `le.mu`'s invariant, mvcc's `isLessor` and the txn package's `isTxnLessor` derived; a lease is live relative to the apply thread's half of the lessor's live set (the persistent `leaseKnown` was false after `Revoke`): mvcc's put, the txn package's lease-checking specs and the apply package's `kvOwn`/`Grant`/`Revoke` contracts adjusted; gates 173 axioms (+`schema.MustUnsafeSaveConfStateToBackend`), 31 sorries, `server` 120, etcd 801 of 3599; see "Unit 8" under the backend; `lean` (`cc7c10389`: the request path's unit 4d, the scheduler's three job proofs, the request path closed) merged into `mvcc` after unit 5c: conflicts in this line and the baselines only, no proof changed; gates 4251 jobs, 188 axioms, 11 sorries (the hasher's two generated instances and the nine package-initialization ones), mvcc 36/2, mvcc-compaction 23/2, every other collection unchanged, see "Merge: lean into mvcc, the request path's unit 4d"; `rp-u4d` (unit 4d: the scheduler's jobs, `IsRegistered` tied to live registrations, `request_delivered`, the request path's final account) merged into `lean` (`75b9f2982`: units 5b and 7) on branch `merge-u4d`: six text conflicts (the baseline and two collections, `issues/README.md`, `decisions.md`, this file), no proof adapted; gates 187 axioms, 23 sorries, mvcc 35/14, mvcc-compaction 22/14, server 141/0, etcd 808 of 3599 functions verified, see "Merge of unit 4d"; `origin/lean` (`965752592`: the backend's unit 7, the consistent index's pre-commit hook over the real backend) merged into `mvcc` (after unit 5b) on branch `merge-u7`: three conflicts (the server's `Results.lean`, `decisions.md`, this line), no proof adapted, no result restated; gates 187 axioms, 26 sorries, every collection unchanged, etcd 805 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 7: the hook over the real backend)"; `lean` (`b4b5ba9d0`: the request path's unit 4c, `run`'s apply case over the scheduler, the `Schedule` axiom in its single tracked/untracked form) merged into `mvcc` after unit 5b: one conflict (this line), no proof changed, see "Merge: lean into mvcc, the request path's unit 4c"; `rp-u4c` (unit 4c) merged into `lean` (unit 6) on branch `merge-u4c`: the apply-thread specs take both `srvGoRes` and the write budget, the write-budget hooks closed (`WB := txn.storeWTs E.γ`, the split `txn.storeWTs_add`, each batch's tokens passed to `applyAll`); gates 187 axioms, 31 sorries, server 141/1, mvcc 35/22, etcd 800 of 3599 functions verified, see "Merge of unit 4c onto the write budget"; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4c on branch `rp-u4c`: the server's goroutines: `run` (the apply loop over the FIFO scheduler, the apply thread's resources chained through saved postconditions, the ready handler, the shutdown), `start` (from the construction premise `isServerBuilt`, named clauses) and `Start` (the read loop and nine names-only monitors through `GoAttach`, proved over Perennial's `WaitGroup`) translated and proved; one `Schedule` axiom with tracked and untracked jobs; `stopping` a capacity-1 channel closed once (`StopChan.lean`); the committed index raised by the ready handler; the backend's write budget carried with a marked hook (not merged); gates 187 axioms (+16, `GoAttach` gone), 31 sorries, server 93/1 (mvcc's pending `schedule.NewJob`), mvcc 35/22, etcd 800 of 3599 functions verified, see "Unit 4c: `run`, `start`, the scheduler and the committed index" under the request path; mvcc: the store's compaction, unit 5b: the index's side proved (`keyIndex.doCompact`/`compact`/`keep`, `treeIndex.Compact`/`Keep`), `generation.walk`'s closure effectful (`walkFnSpecR`), `treeIndex.Compact` takes the compactor's exclusive token (`idxCompactor`, the lock's `idxCmpOwn`; overlapping passes are unsafe in Go), `doCompact` at any fraction; gates 172 axioms, 26 sorries, mvcc 34/17, mvcc-compaction 22/17, others unchanged, mvcc 113 of 155 functions verified, etcd 799 of 3599, one finding (`etcd-index-compact-overlapping`), see "The store's compaction"; unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4d on branch `rp-u4d`: the scheduler's jobs (`NewJob`, `job.Do`, `job.Name`) proved; `pkg/wait`'s `IsRegistered` tied to the live registrations (`waitGone`) and the new result `request_delivered`; `storeSmall`, the `%w` limitation and `raftRequestAlarm` decided and documented; the construction table for `isServerBuilt` and the request path's final account (results, premises, counts); gates 187 axioms, 28 sorries, server 141/0, mvcc 35/19, etcd 803 of 3599 functions verified, see "Unit 4d: the wrap-up", "Server construction: what `NewServer` must discharge" and "The request path: results and premises"; mvcc: the store's compaction, unit 5c: the store's side proved (`Compact`, `updateCompactRev`, `compact`, the job `scheduleCompaction`, the barriers, `compactLockfree`, `checkPrevCompactionCompleted`, the six meta-key functions); the compaction right carries the store scheduler's tracked queue (`compactQueue`: the index compactor's token handed from job to job); contract corrections (`compactRes`'s counter at least the finished revision, `Compact` takes `-1 ≤ c`, `crevFrozen` of the revision half); gates 188 axioms (+`time.Time.Unix`), 14 sorries (the 13 proved; +the hasher's generated instance), mvcc 36/5, mvcc-compaction 23/5, others unchanged, mvcc 125 of 155 functions verified, etcd 817 of 3599, see "The store's compaction"; `origin/lean` (`965752592`: the backend's unit 7, the consistent index's pre-commit hook over the real backend) merged into `mvcc` (after unit 5b) on branch `merge-u7`: three conflicts (the server's `Results.lean`, `decisions.md`, this line), no proof adapted, no result restated; gates 187 axioms, 26 sorries, every collection unchanged, etcd 805 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 7: the hook over the real backend)"; `lean` (`b4b5ba9d0`: the request path's unit 4c, `run`'s apply case over the scheduler, the `Schedule` axiom in its single tracked/untracked form) merged into `mvcc` after unit 5b: one conflict (this line), no proof changed, see "Merge: lean into mvcc, the request path's unit 4c"; `rp-u4c` (unit 4c) merged into `lean` (unit 6) on branch `merge-u4c`: the apply-thread specs take both `srvGoRes` and the write budget, the write-budget hooks closed (`WB := txn.storeWTs E.γ`, the split `txn.storeWTs_add`, each batch's tokens passed to `applyAll`); gates 187 axioms, 31 sorries, server 141/1, mvcc 35/22, etcd 800 of 3599 functions verified, see "Merge of unit 4c onto the write budget"; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; the request path's unit 4c on branch `rp-u4c`: the server's goroutines: `run` (the apply loop over the FIFO scheduler, the apply thread's resources chained through saved postconditions, the ready handler, the shutdown), `start` (from the construction premise `isServerBuilt`, named clauses) and `Start` (the read loop and nine names-only monitors through `GoAttach`, proved over Perennial's `WaitGroup`) translated and proved; one `Schedule` axiom with tracked and untracked jobs; `stopping` a capacity-1 channel closed once (`StopChan.lean`); the committed index raised by the ready handler; the backend's write budget carried with a marked hook (not merged); gates 187 axioms (+16, `GoAttach` gone), 31 sorries, server 93/1 (mvcc's pending `schedule.NewJob`), mvcc 35/22, etcd 800 of 3599 functions verified, see "Unit 4c: `run`, `start`, the scheduler and the committed index" under the request path; mvcc: the store's compaction, unit 5b: the index's side proved (`keyIndex.doCompact`/`compact`/`keep`, `treeIndex.Compact`/`Keep`), `generation.walk`'s closure effectful (`walkFnSpecR`), `treeIndex.Compact` takes the compactor's exclusive token (`idxCompactor`, the lock's `idxCmpOwn`; overlapping passes are unsafe in Go), `doCompact` at any fraction; gates 172 axioms, 26 sorries, mvcc 34/17, mvcc-compaction 22/17, others unchanged, mvcc 113 of 155 functions verified, etcd 799 of 3599, one finding (`etcd-index-compact-overlapping`), see "The store's compaction"; unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; `lean` (`deccecdff`: the backend's units 1–5 and the request path's 4a/4b) merged into `mvcc` after unit 5a: one backend contract and one store (`isKeyBackendG` with unit 5a's deletable keys, deposit witness, size queries and, under the condition `Cmp`, the compaction-only calls), the bridge extended (snapshots exact, the job's `LockOutsideApply`, `Size`/`SizeInUse` proved of the backend; the deletion from `Key`, the limited range, the `Meta` keys and the safe-range-delete lock not: the backend's model forbids deleting from a safe-range bucket, so `Cmp` is false of it and the compaction's specs take `storeCmp`); gates 172 axioms, 31 sorries (the union), mvcc 34/22, mvcc-compaction 22/22 (+4 bbolt predicates), every other collection unchanged (backend 59/0), etcd 794 of 3599 functions verified, 21 unfinished, see "Merge: lean into mvcc, the backend meets the compaction"; `lean` (`4f2c96322`: the request path's unit 4b, the apply loop and the applied index) merged into `mvcc`: one conflict (this line), no proof changed; gates 118 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4b"; the request path's unit 4b on branch `rp-u4b`: the apply loop and the applied index: `applyAll` translated and proved (under raft's no-snapshot contract), `pkg/wait`'s `wait_time.go` and `pkg/notify`'s `NewNotifier`/`Receive` proved, the read loop's contracts discharged for `*EtcdServer` (`read_server`) and its `raftNode` (`read_raft`, `ReadIndex` and read states in the node contract), the ghost applied index tied to `s.appliedIndex` with a certified log deposited per index at `setAppliedIndex`, so `range_linearizable` says the read's log extends the log applied through an index at least `c`; 4a's `ApplyWait` and notifier clauses adapted; gates 112 axioms (+5: `VerifyBackendConsistency`, `snapshot`, `compactRaftLog`, `createMergedSnapshotMessage`, `sendMergedSnap`), 9 sorries, server 66/0, etcd 720 of 3599 functions verified, see "Unit 4b: the apply loop and the applied index" under the request path; `lean` (`17575d236`: the request path's unit 4a, the read loop) merged into `mvcc` after unit 5a: conflicts only in the baseline (union) and the notes, no proof changed; gates 113 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4a"; mvcc: the store's compaction, unit 5a: the compaction functions translated (with `pkg/schedule`'s jobs), the pure model (`Compact.lean`), the compaction revision's counter and right, the backend contract with deletions, the 21 specs pending (`sorry`); the existing statements are of a store never compacted (`crevFrozen`); 6 new axioms, 22 new sorries (gates 110 axioms, 31 sorries, mvcc 30/22, new collection mvcc-compaction), two findings (`issues/etcd-compaction-*`), see "The store's compaction"; the request path's unit 4a on branch `rp-u4a`: etcd's linearizable read loop (`server/v3/etcdserver/read`) translated with bodies and proved over two contracts (`isReadServer`, `isReadRaft`), `isRead` met by `NewRead`'s result; `isRead` takes a reader slot of `r.mux` (`ReadNames` gains `notifier`), `applyErrIs`' typing clause is for pointer targets; gates 107 axioms (+3: `context.WithTimeoutBackground`, `strconv.FormatUint`, `traceutil.Trace.LogAllStepsIfLong`), 9 sorries, read 12/0, etcd 700 of 3599 functions verified, see "Unit 4a: the read loop" under the request path; `origin/lean` (the backend's unit 5: mvcc's store over the real backend) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin3`: two conflicts (this line; the server collection's baseline, the union), no adaptation needed (the request path's proofs are over `txn.isKV`, which now carries `γ.kb = none`, and never destructure it); gates 166 axioms, 9 sorries, server 66 -> 70, apply 32 -> 36, mvcc 18 -> 22, txn 18 -> 22, v3rpc 46 -> 50 (bbolt's four opaque predicates, which `StoreNames.kb` names), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 5)" under the request path; `origin/lean` (the storage backend, units 1–4, and the mvcc bridge) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin2`: no adaptation needed; gates 166 axioms, 9 sorries, collections unchanged (backend 59/0, server 66/0, read 12/0), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, units 1–4)" under the request path; unit 6: the txn, apply, server and v3rpc results generic in the backend instance (`txn.isKV` no longer pins `γ.kb = none`): a write token per store write transaction, `txn.storeWTs` one per entry at `applyEntries`; the change bound `2^56` (a delete's range, `TxnPre`); `server_kv_backend` (the apply thread's KV made by `NewStore` over the real backend, on `keySized`); gates 158 axioms, 9 sorries, the `server` collection 114 axioms; see "Unit 6" under the backend; unit 5: mvcc's store over the real backend: the store generic in its backend's instance (`StoreNames.kb`), the late-bound lock resource `lateW`, reader and write tokens, the puts' safe-range condition proved of revision keys, the safe-range discipline in the backend's invariant, an oversized put fatal instead of a premise; `mvcc_NewStore_backend` and `mvcc_store_Write_backend` linked, no `sorry`; the layers above mvcc stay over the assumed backend (`txn.isKV`: `γ.kb = none`); a third reproduction of the cache finding (a range repeats a committed key); gates 158 axioms, 9 sorries, see "Unit 5" under the backend; unit 4, part 2: the backend bridge: mvcc's backend contract generalized (`isKeyBackendG`: reader and session tokens, the puts' condition, the snapshot chosen at `RLock`, `NewStore`'s session) and proved of the real backend (`isKeyBackendG_of_backend`, linked as `mvcc_backend_bridge`, no `sorry`; the range read on the premise `rangeSafe`); schema's `bucket` methods and `Key` translated and proved; mvcc's store not yet over it (five gaps listed); gates unchanged (158 axioms, 9 sorries), see "Unit 4" under the backend; a finding (`etcd-backend-put-value-too-large-fatal`); the backend (`server/v3/storage/backend`) translated with bodies and proved over bbolt as a key-value contract (20 trust-boundary specs): the buffers, the read and batch transactions, the commit, `run`, `Close`, 78 linked results, no `sorry`; the constructor not proved (bbolt's `Options` axiomatized); merged into `lean` with Perennial `a54e1999f` (two proofs adapted: `bucketBuffer.Swap`, Goose's multiple-assignment order; `backend.run`, `Timer.wp_Stop`'s new precondition); gates 158 axioms, 9 sorries, etcd 761 of 3599 functions verified; two findings reproduced, see "The backend"; earlier: `origin/lean` (Perennial `a54e1999f`, its proof layout; the fmt/time/context trust-boundary axioms) merged into `lean` on branch `merge-origin`: no adaptation needed; the `%w` errors of `rangeKeys`/`executeTxn` keep Perennial's model (the axiom cannot give the leaf `applyErrIs` needs without being false of Go), `context.Err` and `context.ErrDone` both kept; gates 104 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions verified, see "Merge of `origin/lean` (Perennial `a54e1999f`)" under the request path; `lean` (`a95ad2bb4`: the request path's unit 3b, the read side and `Txn`) merged into `mvcc`: one conflict (this line); their new `specRead` proof of `txn.Txn` takes our `isTxn_toEnd` before `End`, their `v3rpc.txn_end_to_end` loses its four `h_adt_*` hypotheses (the tree's contract is proved); gates 99 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions, see "Merge: lean into mvcc, the request path's unit 3b"; adt: unit 4d: `Union` proved over `Visit` and `Insert`; the visitor protocol tells the visitor its position (a third contract correction, for `Insert`'s count bound); no pending spec in any link list, the request path's `checkIntervals`/`Txn` unconditional, see "The watchable store"; `lean` (`fd5d5306e`: the request path `v3rpc` units 0–3a, the raft wrapper, the apply package units 1–3, Perennial `5857c495a`) merged into `mvcc`: the tree's contract reconciled (`InsertAny` gone, our `Insert` is it; `Union` restated at fractions with the count bound, pending for unit 4d; `checkIntervals` adapted, the count bound from a new `delCount` premise), `trace ≠ null` threaded into our write core and `watchableStore.Write`; gates 99 axioms, 9 sorries (the union), adt 0/0, mvcc 18/0, v3rpc 24/0, etcd 674 of 3599 functions, see "Merge: lean into mvcc, the request path"; adt: unit 4c: `Delete` proved with `deleteFixup` (CLRS 13.4's invariant), `min`, `successor`; the hole predicate with its frames' locations (`CtxAt.lean`) for the helpers that walk up through the caller's nodes; the tree's contract fully discharged, no pending spec left, the nine conditional mvcc results now theorems, see "The watchable store", "The whole watchable store"; adt: unit 4b: `Insert` proved with `insertFixup` (CLRS's invariant on a tree with a hole), the rotations, `replaceParent`, `updateMax`, `createIntervalNode`; the watcher budget (ghost tokens: `New` returns `2^63 - 3`, a stream's `Watch` spends one) supplies the tree's count bound; the tree allows equal intervals (the request path inserts the same range twice), see "The watchable store"; adt: the interval tree's proof, unit 4a: the red-black tree's representation (`Tree.lean`, `Defs.lean`: `ownIvt` defined, the `opaque` gone), `ownIvt_split` and the reads proved (`NewIntervalTree`, `Len`, `find`/`Find`, `Intersects`, `visit`/`Visit`/`Stab`); two contract corrections (`Find`/`Stab` lend their pointers; `Stab` needs a proper query), see "The watchable store"; mvcc: the watchable store, unit 3c: the client's receive lemma and the watch-guarantee theorems (`wp_watch_receive`, `watchRecvOk_cert`, `watchGuarantee_unfiltered`, `watchRecvOk_revs`: no `sorry`, no trust-boundary axiom of the package), the watchable store complete but `Restore` and the tree's proof (unit 4), see "The watchable store"; mvcc: the watchable store, unit 3b: the sync machinery and the constructors proved (`syncWatchers`, `moveVictims`, the two loops, `rangeEvents`/`kvsToEvents` over the backend's range read, `New`/`newWatchableStore`/`Close`/`NewWatchStream`); tickers, `time.Since` and `store.Close` axioms; a finding: `syncWatchersLoop` resets its ticker with a zero duration on a coarse clock (`issues/etcd-watch-sync-ticker-reset-zero.md`), see "The watchable store"; `lean` merged into `mvcc` (the apply package, units 0 and A; the batch lock runs the post-lock hook: `storeTxnWriteCore` carries `hookIs`, the watchable `Write`/`End` take the hook's resources as the inner ones), see "Merge: lean into mvcc, the hook (2026-10-12)"; mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; the request path's unit 3b on branch `rp-u3b`: the read side and `Txn`: `EtcdServer.Range`, `Txn` (both branches), `doSerialize`, `newHeader`, the getters and `tracing.go`'s loops verified and linked, `txn.Txn` at a reader (`specRead`), the response headers owned for the reads and `Txn`, the read side's context error through Perennial's `fmt.Errorf` (no `%w`) with an `errorString` leaf premise, the server's contract `raftKV` discharged with no premise but `isServerReq`/`isServerRead` (`range_end_to_end`, `txn_end_to_end`, `range_linearizable`, `txn_applied`, ...), gates 94 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 639 of 3599 functions verified, see "Unit 3b" under the request path; Perennial `a54e1999f` pinned (its proof layout; not its current `lean`, whose panic model cannot verify the STM: the port so far on branch `perennial-d0324-wip`); five new trust-boundary axioms for fmt, `time.Duration.String` and `context.Err`, seven strengthened assumptions, every one listed; gates 98 axioms, 9 sorries, see "Perennial `a54e1999f`: the proof layout"; the request path's unit 3a on branch `rp-u3a`: the gRPC `Put`/`DeleteRange` end to end (`put_end_to_end`, `deleteRange_end_to_end`: the handler's `(resp, nil)` is the apply thread's application at the log the entry met, the header filled), the server's contract `raftKV` split per method and discharged for `Put`/`DeleteRange` (`ServerKV.lean`), the response header's id fields owned from the txn package to the handler, `applyErrIs` with the gRPC facts, one new axiom (`context.ErrDone`), gates 94 axioms, 9 sorries, server 48/0, v3rpc 23/0, etcd 625 of 3599 functions verified, see "Unit 3a" under the request path; `origin/lean` merged into `lean` (the raft wrapper, build performance, the iframe race): the Goose configurations' union regenerated, `srvInit` the raft wrapper's and the request path's facts, gates 93 axioms, 9 sorries, server 47/0, server-raft 6/0, etcd 625 of 3599 functions verified, see "Merge of `origin/lean`" under the request path; the request path's units 1 and 2 merged into `lean` (notes and baseline conflicts only; `NewKVServer`'s `TypeRepr` of `EtcdServer` reached the axiomatized fields' `sorry` instances after the merge, fixed by an import; both `errors.Is` axioms kept; gates 91 axioms, 9 sorries, server 44/0, v3rpc 3/0, etcd 615 of 3599 functions verified), see "Merge 1/2"; the request path's unit 1 on branch `rp-u1`: every function of `key.go` but `RangeStream`/`Compact`, `header.go` and `togRPCError` specified and proved over the server's contract `raftKV s A` (parameters units 2/3 instantiate), `check_gives_nodup` (with the key check: unit 0's statement was false), `checkRequestOp_nonempty`; `api.Cluster`, `etcdserverpb.KVServer`/`RangeStreamResponse` translated; one new axiom (`errors.IsDeadlineExceeded`); adt's `InsertAny` (pending); gates 89 axioms, 9 sorries, v3rpc 3/0, etcd 592 of 3599 functions verified; see "Unit 1: the checks and the handlers"; the request path's unit 2 on branch `rp-u2`: `pkg/wait` and `pkg/idutil` verified, the proposal path (`processInternalRaftRequestOnce`, `raftRequest`, `Put`, `DeleteRange`) verified over the raft contract and the wait registry, the apply thread triggering the registry (`waitInv`); results `request_handoff`, `put_applied`, `deleteRange_applied`; 2 new axioms (90), 9 sorries, server 44, etcd 600 of 3599; `Txn` left to unit 3; see "Unit 2: the wait protocol and the proposal path"; the request path's unit 0 on branch `rp-u0`: `v3rpc`'s KV service, the server's request path, `pkg/wait` and `pkg/idutil` translated; the checks as pure functions (`v3rpc/Defs.lean`), the raft contract, the id generator, the wait registry and the read contract (`InvRequest.lean`); 22 new axioms, gates 88 axioms, 9 sorries, server 40/0, v3rpc 2/0; three findings (`checkIntervals` misses a later sibling's delete, `--max-txn-ops` is per level, request ids of two members collide when their ids agree in the low 16 bits), see "The request path"; the server's raft wrapper proved: `raftNode.start` and every method of raft.go, linked, gates 68 axioms, 9 sorries, server 22/0, server-raft 6/0, etcd 587 of 3599; see "etcd's server: the raft wrapper"; build performance on branch `proof-perf`: three proofs verify a common tail once (`wp_join`), `raftOwn_access` frames by name, the Results modules print axioms with full names, Perennial `afc8f0432` (not yet pinned) gives the WP tactics per-thread caches without a lookup per access, see "Build performance"; the intermittent failure of `InvSTMRun.lean` (`stmMethods_ser`) in loaded full builds was a race in Perennial's `iframe` (a global flag shared by declarations elaborated in parallel), fixed in Perennial `fb1ecb030` (in `5857c495a`); the proof unfolds `STMSt.empty` and no longer needs `iframe`'s prepass, see "Parallel elaboration and tactic state"; the apply package's unit 3 on branch `apply-u3`: the server bridge: the apply thread on the proved `apply.Apply` (`applierFor`, `applierFor_persistent`, `apply.Apply_server.wp_proof` gone; `isServer s γ ci TM E`, `srvApplyKV`), the KV threaded through `applyEntryNormal`/`apply`/`applyEntries` (`entryOk`/`entryStep`, `entriesOk`/`entriesStep`), the server's `Results.lean` (`applyEntries_model`, `_kv`, `_replay_no_write`, `_rejected_no_write`); gates 66 axioms, 9 sorries, server 19/0, apply 32/0, apply 71 of 73, etcd 577 of 3599; see "Unit 3: the server bridge" and "The whole package" in the apply section; the apply package's unit 2 merged into `lean`: `uber_applier.go` and `apply.go` specified and proved, `apply.Apply.spec` with the KV (`applyKV`, `applyStep`), the server still on its assumed contract (`apply.Apply_server`, unit 3); the `applyErrIs` gap closed (the contracts' errors and `applyErrVars` the two assumptions; `txn.Range`/`DeleteRange` take `nd`); gates 69 axioms, 9 sorries, apply 32/0, server 18/0, apply 71 of 73 functions verified, etcd 577 of 3599, see "Merge 2" in the apply section; Perennial `5857c495a` pinned: soundness fixes (unsigned `uint32` division, division by zero panics, shift counts not truncated, `^x`; `time.isTimer` unforgeable; `errors.wp_As` requires an interface or `error` target), the ring buffer's three divisions and `leasingKV.acquire`'s `errors.As` repaired, gates unchanged (69 axioms, 9 sorries), see "Perennial `5857c495a`: soundness fixes"; `origin/lean`'s eight small etcd axioms merged into `lean` (`MustUnmarshalMessage` a case per message type, each with its decoding premise; `store.Write` takes the non-nil trace and the hook; gates 69 axioms, 10 sorries, apply 31/0, server 18/0, mvcc 12/0, txn 18/0, etcd 568 of 3599 functions verified), see "Merges of `origin/lean`" in the apply section and "Small etcd axioms"; the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver; Perennial `f8f01eb44` pinned: `time.wp_Since`/`Time.wp_Add` proved and `context.wp_WithDeadlineCause` proved (the `sorry` the concurrency proofs reached is gone; one new Perennial axiom `Timer.wp_Stop_func`), `isContext` stronger; `context.DeadlineExceededIsError` (a method-set fact, like `ErrorStringIsError`) added to raft's and the register's initialization premises; gates 57 axioms, 9 sorries (all the register's); small etcd axioms replaced by proofs on branch `etcd-small-axioms`: `NewHashStorage`, `UnsafeCreateMetaBucket`, `traceutil.TODO`, `Notifier.Notify`, `ServerConfig.ElectionTimeout`, `AlarmStore.Get`, `EtcdServer.Logger`/`isLeader` (with `MemberID`/`Lead`/`getLead`); `Trace.Step` requires a non-nil trace; `MustUnmarshalMessage`'s axiom made true (an encoding premise); gates on the branch 62 axioms, 1 sorry (57 axioms, 10 sorries once merged into `lean` with the standard-library axioms and the register's adequacy), etcd 505 verified of 3599 functions, 5202 of 45570 lines, see "Small etcd axioms"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; five standard-library axioms of etcd-grove proved from Perennial `e6ec34885` (pinned): `binary.bigEndian.{Uint64,PutUint64}`, `sort.Sort`, `sort.Reverse`, `errors.Is` (whose axiom was false as stated, now restated with Perennial's premises), see "Standard-library axioms from Perennial"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -135,6 +161,2141 @@ Not vacuous: `isEtcdKVTodo_of_kv` (gets: no update needed, `Q` trivial), the rea
 transaction, `client_put_end_to_end`/`client_get_end_to_end` (T1's updates, with V2b's floor),
 `client_get_after_put`, `client_get_value`, `queue_vertical_once`.
 
+## Merge: `worktree-raft-rest` into `lean` (2026-10-15)
+
+`worktree-raft-rest` (`7d5226ddb`: read index, leader transfer, learners, reconfiguration end to
+end, snapshots at any configuration, the ReadIndex/proposal specs, the register in the dynamic
+mode, raft repinned to the fork) merged with `origin/lean` at `50b57c990` (the server, backend,
+mvcc, lessor and request path, porcupine/lintest, Perennial `008979bd0` → `a54e1999f`).
+
+**Conflicts and how they were resolved.**
+- 13 raft proofs (`InvNodeRun`, `RawNode__Campaign`/`Propose`/`Step`, `raft__campaign`/`reset`/
+  `tickElection`/`tickHeartbeat`, `stepLeader`, `Protocol/Facts`, `Protocol/LeaderCompleteness`,
+  `raft__Step/MsgHup`, `confchange/Restore`): this branch's versions (it rewrote those statements
+  for the dynamic mode), with `lean`'s non-conflicting warning fixes merged in; one of them undone
+  (`stepLeader`'s `_wp_raftLog_lastIndex`: this branch's `appresp` uses it).
+- `etc/gen-link.py`: both (this branch's `external_link` for an outside callee, `lean`'s reuse of
+  an imported Link's results); and raft's mode (the Rocq-driven one) now takes `@` callees too,
+  imported from their package's `Link.lean`, for `fmt_Errorf`.
+- `etc/goose.py`, `CLAUDE.md`: merged cleanly (`lean`'s new projects and packages, this branch's
+  raft pin `0560cb7`); `CLAUDE.md` names the commit and has the new section "Changes to
+  Perennial" (the user's rule, `decisions.md`).
+- Notes: both sides' Last updated items, sections and `decisions.md` entries kept;
+  `notes/raft-readindex-spec.md` with this branch's status (implemented).
+- Generated files: `etc/goose.py` (lean's Perennial, this branch's raft pin) updates nothing;
+  every `Link.lean` reproduces (raft's from the Rocq directory at `857d09190`).
+
+**The Perennial bump on this branch's proofs** (`008979bd0` → `a54e1999f`): everything built but
+three files, all from Perennial's new `fmt.ArgsWf` (Errorf/Sprintf only for arguments of
+predeclared basic types):
+- `confchange.checkInvariants`: Perennial's `fmt.wp_Errorf` with its `ArgsWf` premise (the
+  arguments are `uint64`s; a local `raft_args_wf`), `wp_auto` after the slice literals.
+- `confchange.Changer.apply`: `fmt.Errorf("unexpected conf type %d", cc.Type)` passes a
+  `ConfChangeType`, a named type: etcd-grove's `fmt.Errorf` axiom (`Spec/fmt/Errorf.lean`, `lean`'s
+  trust boundary) with the enum's `String()` as a new trust-boundary axiom,
+  `raftpb.ConfChangeType.String.wp_proof` (`Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`:
+  gogoproto's `proto.EnumName` lookup, not translated). Perennial is not changed
+  (CLAUDE.md, "Changes to Perennial"); the general fix would be a Perennial `wp_Errorf` for
+  arguments whose `String()` is specified, or an `IntArgValue` for named integer types under `%d`
+  (Go calls no method for `%d`).
+- `raftpb.ConfChangeV2.EnterJoint`: its panic `panic(fmt.Sprintf("unknown transition: %+v", c))`
+  formats a struct (Go calls the enums' `String()` and reads `c.Context`, which the spec does not
+  own): the spec now excludes that case by a premise (`enterJointOf ... ≠ none`), which its one
+  caller, `raft.applyConfChange`, already had (`ccApplyM ... = some _`); `fmt_Sprintf` is no longer
+  its callee. `issues/raft-unknown-transition-panic.md` updated.
+- `stepLeader.lean`'s temporary `iframe ∗` override deleted: Perennial `fb1ecb030` (in
+  `a54e1999f`) keeps the guard in an option (`notes/flaky-stepleader-build.md`).
+
+**Trust base** (`etc/tcb-report.py --check`, after a clean full build): this branch 75 axioms /
+10 sorries, `lean` 202 / 11, merged **208 / 11**: `lean`'s set, this branch's five gogoproto
+axioms (`gogoproto.Equal`, `raftpb.ConfChange{,V2}.{Marshal,Unmarshal}`), and the one new
+`raftpb.ConfChangeType.String.wp_proof`; the sorries are `lean`'s (Perennial's initializers under
+their new names, mvcc's two `kvHasher` instances; `context.wp_WithDeadlineCause` gone with
+Perennial `f8f01eb44`). Collections: `raft.txt` 6/0 → **8/0** and `register.txt` 6/9 → **8/9**
+(both gain `fmt.Errorf.wp_proof` and the `ConfChangeType.String` axiom); `lean`'s collections
+unchanged, every `--check` passes. `etc/goose.py --check` passes; `go test ./...` in
+`examples/register` passes.
+
+## Snapshots at the public API (stage S) (2026-10-15, partial)
+
+Goal: A3 (a snapshot's `ConfState` is the configuration of the prefix it covers) carried by a
+`MsgSnap` from the sender's storage to the receiving `raft.Step`, `MsgSnap` admitted at
+`RawNode.Step`, `Ready` handing out a pending snapshot, the register exercising it. **Done: the
+records at the storage and the log (S1, reduced). Not done: carrying the certificate to the
+receiver, S2, S3, S4, item 4** -- costs below. Trust base unchanged (`etc/tcb-report.py --check`:
+75 axioms, 10 sorries; `raft.txt` 6/0, `register.txt` 6/9); `etc/goose.py --check` passes; raft's
+`Link.lean` reproduces (no callee list moved); no Go change.
+
+Commits: `a477b29dc`, `781472e65`, `8fdbfceb4` (the full S1 by extending the abstract message,
+building, 75/10 -- now only on branch `stage-s-msg-extension`, see below), `fc81faf6e` (S1
+reduced to the parts that touch no central ghost definition, per the integration session's
+guidance), and this notes commit.
+
+**What is on the branch** (`fc81faf6e`):
+- **The storage records its snapshot's `ConfState`.** `StorState` has `scs : CSLists` and
+  `sal : Bool` (defaults empty/false). `isStorage`'s `HSnapshot` returns `ownCSL snap.cs σ.scs`
+  and `AutoLeave = σ.sal` (was `∃ voters, ownCSL …`). `memstorageFields` holds `ownCSL
+  snap.cs σ.scs` and `AutoLeave = σ.sal` (was `ownCSRO snap.cs voters`, voters existential);
+  `MemView` relates them. `MemoryStorage.Snapshot.spec`: returns `σ.scs`/`σ.sal`.
+  `MemoryStorage.CreateSnapshot.spec`: binder `cl`, a non-`nil` `cs` comes with `ownCSL c cl`
+  (was `∃ voters, ownCSRO c voters`); success state `{ σ with ss := snapId snap', scs := if cs =
+  null then σ.scs else cl, sal := snap'.…AutoLeave' }`. `MemoryStorage.ApplySnapshot.spec`:
+  binder `cl` (was `voters`), `ownCSL snap'.cs cl`, success state `memStorApplied snap' cl`.
+  The register's `Storage.Snapshot.spec` follows.
+- **The log records the snapshots it may send.** `LogState.ksn : List SnapTrip` (`SnapTrip`:
+  id, lists, `AutoLeave`, `Defs.lean`); `ownRaftLog` keeps the storage's snapshot in it once it is
+  not the empty one (`Hsksn`) and the pending one (`pendKsn`, also in `ownUnstable` through
+  `UnstableSt.ksn`, so that it survives the `unstable` methods' existential values);
+  `raftLog.snapshot.spec` adds `⌜snapTrip snap voters ∈ ls.ksn⌝`; `logRestore ls k` (was
+  `logRestore ls sid`) takes the restored snapshot `k = snapTrip sv cl` and adds it to `ksn`;
+  `unstable.restore.spec`, `raftLog.restore.spec`, `RestoreResult s sv cl b s'`,
+  `HandleSnapResult id s m sv cl s'` and the (dead) static `FollowerStepResult`/
+  `CandidateStepResult` take the lists. `newLogWithSize`'s log starts at `initKsn σ`. The
+  protocol does not read `ksn` (`toPState` unchanged).
+- **The certificate, as a definition** (`SnapConf.lean`): `raftSnapCert γ k` -- `SnapListsOk k`
+  (`SnapScope`'s facts), statically the ghost state's voters and not joint, dynamically A3 on any
+  recorded prefix ending at the snapshot's id (`γ.dyn`'s fold). Nothing produces or consumes it on
+  the branch.
+
+**What `stage-s-msg-extension` does on top** (builds the five targets, TCB 75/10, not merged):
+the abstract `Msg` gets the snapshot's four lists and `AutoLeave` (`cs`, `al`, replacing
+`voters`; every `Msg.mkV` site), `isMessage`'s `snap` case carries `raftSnapCert γ m.trip`,
+`PState.snaps` (= `LogState.ksn`) with the certificates in `ownRaftGhost` (`Hsnaps`), `SnapOk`
+asks a sent snapshot to be in `snaps`, `snapRestore` adds the restored one (all three step
+relations, the refinement's 29 `ownRaftGhost_intro` sites by a `snaps_keep` tactic); then
+`raft.Step.spec`'s `"Hsnap"` drops `SnapScope` and `md.SnapOk` (derived from the message:
+`isMessage_absSnap_cert`, `raftSnapCert_scope`, `snapOk_of_cert`). The integration session asked
+not to change `Msg`/`isMessage`/`ownRaftGhost` when a local route exists, so it is parked there.
+
+**Left, with what each costs:**
+1. **The certificate from `ksn` to the receiver.** Two routes:
+   - *on the message* (the branch above): done and building; touches `Msg`, `PState`,
+     `isMessage`, `ownRaftGhost`, the three step relations and `Refinement.lean`;
+   - *local* (`ownRawNode`/`netP`): `msgAbs`'s snap disjunct records `snapTrip sv voters ∈ ksn`
+     (`outboxRel` takes the log's `ksn`, weakened when `ksn` grows at a restore; `raft.send`
+     asks it of a `MsgSnap`); `ownRawNode` holds `[∗list] k ∈ s.logst.ksn, raftSnapCert γ k`,
+     which needs `ksn` kept by every step but a restore (`NetFrame`/`LocalFrame` gain `ksn`, so
+     do `HandleAppResult` and `raftLog.maybeAppend`'s frames); `RawNode.Ready` hands out a
+     certificate with each `MsgSnap` (`isRaftMsg` or a new conjunct), node.go's `netP` and the
+     register's transport carry it, and `RawNode.Step`'s precondition gives it to `raft.Step`
+     (which keeps `md.SnapOk`/`SnapScope` as premises, derived from the certificate at the
+     `RawNode` layer). It is usable only once `RawNode.Step` takes a `MsgSnap` (item 2).
+   Either way the application still has to certify a snapshot it makes: a lemma from `SnapObl`
+   and a node's committed records (`ownRaftGhost_cmt`, `ownStepGhost_deliv`, Log Matching as in
+   `stored_agree`) to `raftSnapCert` is not written; in scope no storage snapshot ever changes
+   while raft runs, so the obligation is vacuous today.
+2. **`MsgSnap` at `RawNode.Step` (S2).** `ownRawNode` asks `s.logst.snap = none`; a restore makes
+   a snapshot pending, so admitting `MsgSnap` means a pending snapshot in `ownRawNode` and in
+   every `RawNode` proof that reads `Hsnap` (19 files), plus `netStepTypes`/`NetMsgOk` (stamped,
+   `From ≠ id`) and the certificate in the precondition (item 1).
+3. **A pending snapshot through `Ready`/`Advance` (S3).** Unverified raft code on the path:
+   `raftLog.stableSnapTo`, `unstable.stableSnapTo`, `raft.appliedSnap`, `MsgStorageAppendResp`'s
+   snapshot arm (`raft.Step`'s spec asks `m.Snapshot' = null`), `newStorageAppendRespMsg` with a
+   snapshot, `readyWithoutAccept`/`acceptReady` with `snapshotInProgress`; and design: what
+   `RNState.delivered`/`capplied`/`cfg` become when the application installs a snapshot (a
+   committed prefix it never saw), the application's obligation on the snapshot's data, and a
+   protocol for the application to write the storage (`ApplySnapshot`, `CreateSnapshot`,
+   `Compact`) while raft holds `ownStorage` (as `Hhandout`/`Habsorb` do for appends).
+4. **The register (S4)** needs 2 and 3 and a storage-write protocol: today no storage snapshot
+   ever exists while a node runs (`NewRawNode`/`RestartNode` ask an empty storage; compaction
+   needs the storage the node owns), so no `MsgSnap` is ever sent in the register. Its
+   Results/Adequacy statements are unchanged.
+5. **A node outside the snapshot's lists** (`restore`'s `!found` exit): kept as the premise
+   `scfg.Has id`. Cheap to describe: the exit returns `false` after the stale test and before the
+   fast-forward, and `handleSnapshot` then acknowledges the commit index -- `StepC.snapStale`'s
+   message without its `index ≤ commit` premise, which `ownRaftGhost_step_stale` does not read;
+   `RestoreResult`/`HandleSnapResult`/`SnapRestores` would gain the case, `raft.restore`'s proof
+   the `Warningf` branch. Not done (a model rule change, deferred with item 1's choice).
+
+Findings: no Go bug; no false statement. The cache package has its own `snapCert` in the same
+namespace (hence `raftSnapCert`).
+
+## node.go and the register under reconfiguration (stage N) (2026-10-15)
+
+**Changing the voters is now verified from the Go public API up to the register example's
+closed theorem.** `node.go` is verified in raft's dynamic mode (its `confc` arm applies any
+change the driver applies in order, its `advancec` arm takes A1 from the driver), and the
+register runs its cluster in that mode: its apply loop applies every committed conf-change entry
+to its node (`Node.ApplyConfChange`) before the `Advance` that acknowledges it
+(`issues/raft-advance-before-applyconfchange.md`), and `Main` removes replica 3 from the voters
+at run time through `Node.ProposeConfChange`. The register's `Put`/`Get`/`Read` statements and
+the adequacy theorem are unchanged: they now hold of a cluster whose voters change. This
+completes B7 part 2's "Left" items 1 and 2.
+
+Commits: `cdc8b3316` (N1, `node.go`), `38ca63186` (N2a, the conf-change bytes a cluster admits),
+`fd2dbe641` (N2b, the register), and this notes commit.
+
+- **N1, `node.go` in either mode** (`InvNode.lean`, `InvNodeRun.lean`, `node__run.lean`).
+  `run` and the driver share, besides `dlv`/`rof`: the committed log handed out as a `mono_list`
+  (`NodeNames.dlm`: `run` the authority, the driver lower bounds, `dlvLb`); the configuration
+  as of the last applied conf change (`cap`, halves: `run`'s in `runCfg`, the driver's in
+  `nodeCfg`), its index as a monotone nat (`cam`: `run` the authority, the driver lower bounds,
+  for A1), and an answer slot (`ccq`) by which the driver recognizes `run`'s answer on
+  `confstatec`. `runCfg γ rs` (in `headRest`/`runMid`, `runPre`) ties them to the `RawNode`:
+  `rs.mode = γ.mode`, `rs.capplied ≤ |rs.delivered|`, the shared index `ca ≤ rs.capplied` with
+  no conf entry in between (`Advance` may move the `RawNode`'s index past `ca`).
+  - The `confc` arm, dynamic: the payload (`confcP`) carries the driver's `cap` half,
+    `ccq`'s half at the expected answer `(k + 1, cs')`, `dlvLb ds` and `DynCCPreOp` on the
+    driver's view; `runCfg_confc` turns it into `DynCCPreOp` on the `RawNode`
+    (`dynCCPreOp_transfer`: `ds` a prefix of `rs.delivered`, the conf entry at `k` cannot be
+    below `rs.capplied`), moves the shared configuration, and `wp_rn_raft_applyConfChange_dyn`
+    (B7c-3's `wp_applyConf_dyn`, moved from `RawNode__ApplyConfChange.lean` to
+    `InvNodeRun.lean`) applies it. The arm's removed-node code (`okBefore && !okAfter`: the
+    `found` loops over `cs.Voters`, `cs.VotersOutgoing`, `propc = nil`) is verified (in the
+    static mode it was unreachable). The answer (`confstateP`) gives `cap`'s half back with
+    `ccq`'s other half at the same value and the new configuration's `ConfState`
+    (`confstateOk`).
+  - The `advancec` arm: `advanceP` carries a `cam` lower bound `ca` and A1 on it
+    (`NoConfIn (d ++ ce) ca |d ++ ce|`, dynamic mode only), which `runCfg_a1` makes A1 at the
+    `RawNode`; `runCfg_advance` re-establishes `runCfg` at `Advance`'s new index.
+  - The `readyc` arm: `runCfg_extend` (the `dlm` authority grows with the `Ready`'s committed
+    entries; `readyP` hands out the lower bound).
+  - `isNode`'s `⌜γ.raft.reDyn = none⌝` is gone; `node.run`'s proof needs
+    `maxHeartbeats 1000000` (60 s).
+- **N2a, the conf-change bytes a cluster admits** (`RaftNames.reCCOk`). A decoder (`CCDec`) is
+  a pure function of an entry and its prefix, and an entry's data is a slice, whose bytes are in
+  the heap: no pure decoder can decode what an application's `Unmarshal` reads. So a client that
+  applies conf entries pins, at allocation, which bytes a conf-change entry may carry:
+  `entDataIs γ e none` of a conf-change entry now also gives `γ.reCCOk e.Type' bs`, and
+  `ProposeConfChange` (RawNode and node) asks `CCAllowed γ o` (the marshaled bytes satisfy it).
+  `ownRaftGhost_alloc` (static) admits everything; `ownRaftGhost_alloc_gen` and
+  `raft_dyn_alloc` take the predicate.
+- **N2b, the register** (`examples/register`, Go changed).
+  - Go: `run` applies each committed `EntryConfChange` (`var cc pb.ConfChange;
+    cc.Unmarshal(e.Data); r.node.ApplyConfChange(cc)`, as etcd's raftexample) before `apply`
+    and the `Advance`; `RemoveMember(id)` proposes `pb.ConfChange{Type: ConfChangeRemoveNode,
+    NodeId: id}`; `Main` sets `StepDownOnRemoval`, after the read asks replica 1 to remove
+    replica 3 and then moves the leadership to replica 2 (was 3). `TestRemoveMember` (removes
+    replica 3, waits until both remaining voters applied it and know a leader among them, then
+    `Put`/`Get`/`Read` on replicas 1 and 2); `go test -race ./...` passes (60 runs of
+    `TestRemoveMember`/`TestCluster` without a hang). Translation regenerated.
+  - The cluster's conf changes are fixed in advance (`RegCC γn op c0 c1`, `Defs.lean`): every
+    conf-change entry carries `op` (raft's `reCCOk`: type 1, bytes decoding to a `ConfChange`
+    whose change is `op`), the decoder answers `op` (`ccDecOf`), `op` applies at `c0` giving
+    `c1` and at `c1` giving `c1`. `run`'s invariant `RunCfg` (the configuration index past
+    every applied conf entry, the configuration `c0` or `c1`) discharges `DynCCPreOp` at each
+    conf entry and A1 at `Advance`; a non-type-1 entry is no conf entry (`regCC_notConf`).
+  - `Main` allocates with `raft_dyn_alloc` (now also returning `isCommitted γ []`, the read
+    credits and `γ.reCfg`): `c0R` the voters {1, 2, 3}, `opR` = remove 3, `c1R` = {1, 2}
+    (`ccStepB_removeVoter`, `ccStepB_removeAbsent`, `cfgOk_cfgState`, `ccGood_cfgState`,
+    `InvApplyConf.lean`/`CfgOverlap.lean`/`InvApplyConfC.lean`); `RestartNode` in the dynamic
+    mode.
+  - `etc/gen-link.py`: an external callee's `Link` is its nearest enclosing package's
+    (`raftpb.ConfChange.wp_Unmarshal` is in raft's `Link.lean`).
+
+**The public specs that changed** (statement shapes):
+- `NodeNames`: `mode : RNMode`, `dlm`, `cap`, `ccq`, `cam`. `isNode`: no
+  `⌜γ.raft.reDyn = none⌝`. `nodeDriver`/`nodeDriverBusy` also hold `dlvLb` (same parameters;
+  `nodeDriver_lb`, `nodeDriverBusy_lb`). New: `nodeCfg γ ca cfg`, `dlvLb γ ds`.
+- `RestartNode.spec`: binder `md : RNMode`; premise `md.isDyn = true →
+  cv.StepDownOnRemoval' = true`; `rnInit γ md cv.ID' (listToSet voters)` (was `ownRaftGhost γ
+  cv.ID' initPState`); post adds `γn.mode = md` and `nodeCfg γn 0 (cfgState (listToSet voters)
+  ∅)`.
+- `node.Advance.spec`: binders `ca cfg`; premise `γ.mode.isDyn = true → NoConfIn ds ca
+  ds.length`; `nodeCfg γ ca cfg` in the pre and the post.
+- `node.ApplyConfChange.spec`: binders `ds ca cfg k e cs'`; premises `γ.mode = .static →
+  CCShrink …` (was unconditional) and `γ.mode = .dyn dec … → DynCCPreOp dec ds ca cfg (ccV2Of
+  o) k e cs'`; pre adds `⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds`; post `csp ↦ cs ∗
+  ((⌜static⌝ ∗ confstateS γ cs) ∨ (⌜isDyn⌝ ∗ nodeCfg γ (k + 1) cs' ∗ confstateOk cs cs'.cfg))`
+  (was `csp ↦ cs ∗ confstateP γ cs`, now the channel payload).
+- `node.ProposeConfChange.spec`, `RawNode.ProposeConfChange.spec`: premise `CCAllowed γ o`.
+- `RaftNames.reCCOk`; `entDataIs`'s conf-entry case; `ownRaftGhost_alloc_gen` (parameter
+  `ccOk`, post `γ.reCCOk = ccOk`), `ownRaftGhost_alloc` (post `γ.reCCOk = fun _ _ => True`),
+  `raft_dyn_alloc` (parameter `ccOk`; post `γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming`,
+  `isCommitted γ []`, `rdCred γ (2^64 - 2)`, `rdCredInv γ`).
+- `RawNode.ApplyConfChange.spec`: unchanged (`DynCCPre` is now `DynCCPreOp` of the state's
+  fields, the same proposition).
+- The register: `New.spec`, `Register.run.spec` take binders `op c0 c1` and `⌜RegCC γn op c0
+  c1⌝ ∗ nodeCfg γn 0 c0`; new `Register.RemoveMember.spec` (`CCAllowed γr.raft (.v1 (rmCC id))
+  → {{ isRegister }} r.RemoveMember(id) {{ True }}`, `register_RemoveMember` in `Results.lean`).
+  Unchanged: `Put`, `Get`, `Read`, `TransferLeadership`, `register_regLb_current`,
+  `register_Main` (`{{ isPkgInit register }} Main() {{ True }}`), `register_adequate`,
+  `register_cluster_safe`.
+
+Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries;
+`raft.txt` 6/0 unchanged). `register.txt` updated on purpose (`--check --update`): 4/9 to 6/9,
+the new axioms `raftpb.ConfChange.Marshal.wp_proof` and `raftpb.ConfChangeV2.Marshal.wp_proof`
+(gogoproto's encoders, trust-boundary axioms already in the baseline, now reached through
+`RemoveMember`'s `ProposeConfChange`). `etc/goose.py --check` passes; raft's `Link.lean`
+reproduces (no callee list moved); the register's regenerated (`run`: `ConfChange__Unmarshal`,
+`node__ApplyConfChange`; `RemoveMember`; `Main`).
+
+**Limits** (recorded, not started):
+- The register's conf changes are one fixed change (`RegCC`), applied idempotently: a general
+  application decoding arbitrary changes needs a decoder that reads the bytes, which a pure
+  `CCDec` cannot (`RaftNames.reCCOk` is the workaround: the bytes are pinned in advance).
+- Only a simple voter removal is exercised (no joint consensus, no auto-leave), with
+  `StepDownOnRemoval` on; only `EntryConfChange` (v1) entries (no `EntryConfChangeV2`: `reCCOk`
+  excludes them).
+- No node joins: adding a node (as voter or learner) needs a node started outside the initial
+  voters (`NewRawNode`/`RestartNode` ask `cv.ID' ∈ voters`) and, once logs are compacted, a
+  `MsgSnap` at the `RawNode` layer (B7 part 2's item 3, the next stage). The removed replica 3
+  keeps running, outside the configuration.
+- `Main` proposes the removal once (raft may drop it) and no operation waits after it
+  (liveness: a proposal forwarded to a leader that steps down is dropped and `do` does not
+  retry it, as during a leadership transfer); `TestRemoveMember` shows the operations going
+  on, unverified.
+
+Findings: no Go bug. The register's `do`, already documented as partial (a proposal dropped by
+the leader it was forwarded to is not retried), hangs after a removed leader steps down: a first
+`TestRemoveMember` that did not wait for a new leader hung in 1 run of 40.
+
+## The new ReadIndex and proposal specs (stage R) (2026-10-14)
+
+The read index and proposals now hand raft **persistent atomic updates over the full committed
+log**, as the backend unit T1 asked (`notes/raft-readindex-spec.md`, implemented with the user's
+defaults; design in decisions.md, "ReadIndex and proposals as persistent atomic updates over the
+full log (stage R)"). Trust base unchanged (75 axioms, 10 sorries; see below).
+
+Commits: `5b226157f` (R1-R3, the raft side: ghost state, credits, specs, premises; the register
+not yet building), `30f1eb308` (R4, the register), and this notes commit.
+
+- **The ghost state** (`Protocol/GhostState.lean`). `rLog γ L` (the full committed log, client
+  half; `reRLog` replaces `reCLog`); `propAu` (persistent, `∀∀ e` with the entry's data, result
+  `□ Q L` at every committed occurrence), `noopAu` (raft's own entries), `readAu`;
+  `rdFresh`/`reRdFresh`; `readReq γ c Lc` (`Lc` the global log at the deposit, with the result
+  predicate's name), `isRead`, `readWit`; the registries `propsOwn`/`readsReg` with `propSlot`/
+  `readSlot` (results at every log fired at), `regsAt`/`regsOwn`. The commit invariant has two
+  halves, `raftLogInv` (log, justification, tables, the entries' data, a quarter of `reRLog`) and
+  `raftRegInv` (the registries, `noopAu`, the other quarter).
+- **Firing** (`Protocol/LeaderCompleteness.lean`). `fire_one`: the entry's own update moves the
+  log (`propAu_fire`/`noopAu_fire`), every read slot is fired at the new log (`readsReg_fire`,
+  over the map with the log's half threaded, `bigSepM_fupd_thread`), the other proposal slots keep
+  their results (`propSlot_grow`). `commit_extend` takes the held registry half (`regsOwn`) at
+  `⊤ ∖ ↑raftRegN`.
+- **One later credit per ghost step.** `ownRaftGhost_stepC`/`ownRaftGhostR_stepR` take `£ 1`,
+  open the registry half once (`regs_open`) and thread it through the derivation
+  (`ownRaftGhost_stepC_in`, `ownRaftGhostR_stepR_in`; every case lemma of `Refinement.lean` at
+  `⊤ ∖ ↑raftRegN`), since a derivation of the transitive closure may commit several times; also
+  `ghost_stepCD`/`ghost_stepCDS`/`ghost_step_md(0)`/`ghost_step_recv`, `ownRaftGhost_step(_0/1/1c)`,
+  `rawNode_applyCC_reseal`. The credit is in `raft.Step.spec`'s precondition (`"Hlc" ∷ £ 1`;
+  carried by `stepPost` to the branches) and its callers take it from a pure step.
+- **Deposits and collections** (`Protocol/ReadIndex.lean`, `Protocol/Facts.lean`, `InvNode.lean`,
+  `InvRawnodeReady.lean`): `read_deposit` (at `⊤`, fires at once), `read_collect`
+  (`▷ ▷ □ Qr L` for a committed `L` at least `i` long), `readStateOk_readWit`;
+  `prop_deposit` (no credit, no ticket), `prop_collect` (`▷ ▷ □ Q (L.take m)` at every committed
+  occurrence `L[m]? = some e` with `entDataIs γ e (some d)`); `node_read_deposit`,
+  `node_read_collect`, `node_collect`, `node_propose_ghost` (no credit).
+- **The public specs that changed** (statement shapes):
+  - `RawNode.ReadIndex.spec`: binders `Qr L0` (was `Lc`), no `NotSingleton` premise; pre
+    `isPropData γ rctx c ∗ rdFresh γ c ∗ readAu γ Qr ∗ isCommitted γ L0 ∗ rdCred γ 1` (was
+    `readReq γ c Lc ∗ rdCred γ 1`); post `ownRawNode … ∗ ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗
+    isRead γ c Qr`.
+  - `node.ReadIndex.spec`: the same (binders `Qr L0`, no `1 < GMap.size` premise, post
+    `∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr` whatever the error).
+  - `node.Propose.spec`: `Q : List raftpb.Entry → IProp GF` (was over the client log); `propArg`
+    hands in the persistent `propAu`, `propRes` returns `∃ γq, isProp γ d γq Q` (no ticket).
+  - `RawNode.Step.spec`: the premise `m.Type' = MsgReadIndex → NotSingleton (rs.vcfg γ)` gone
+    (`NotSingleton`/`notSingleton_static` deleted); `InvNode.lean`'s `netP` lost its
+    `MsgReadIndex → 1 < GMap.size` clause, `InvNodeRun.wp_rn_raft_Step_net` its `Hsing`.
+  - `raft.Step.spec` (internal): `"Hlc" ∷ £ 1`; `raft.Step.specS`: the same, and its
+    read-index premise is `m.Term' = W64 0` (the `∧ 1 < GMap.size cfg` gone).
+  - Allocation: `ownRaftGhost_alloc(_gen)` take the client's continuation (`allocClient`: given
+    `γ`, `rLog γ []` and the fresh-token/slice authorities, it returns `noopAu γ ∗ C γ`) and return
+    `C γ`; `raft_dyn_alloc` likewise.
+  - Unchanged: every other `RawNode`/`node` spec, `RawNode.Ready.spec`'s `readStateOk`.
+- **The register** (`examples/register`). `regInv` holds `rLog` with the entries' data (the
+  history is their `firstOcc`), the value, the token authorities (`reFresh`, `reRdFresh`), the
+  operations' slots (`RegNames.ops`, `opSlot`); `reg_mint` creates the slot from the client's
+  update (with a credit from a pure step); `reg_propAu` is the persistent update `Propose`
+  deposits (it moves the log at every occurrence and runs the client's update at the first),
+  `reg_noopAu` the standing one (built in `Main`'s allocation continuation), `reg_readAu` a
+  read's (`Qr := fun _ => True`); `reg_collect` gives the client's result with its ticket; `Read`
+  passes its `regLb` log as `L0`, and the applier's answer is `readAns` (a read index and the
+  value after a log at least that long), which the reader turns into `readP` with the deposit's
+  record. `deliver.spec` and `Register.Read.spec` lost `1 < GMap.size …reCfg` (`Main`'s
+  `clusterIds_size` uses, `Cluster.lean`'s `Hcfg`). Results/Adequacy: the statements are the
+  same but `register_Read`'s (its spec has no size premise); `register_regLb_current` and the
+  adequacy theorem unchanged. No Go change.
+- **The note's [unsure] points.** Masks: no invariant is open around a commit -- commits happen
+  in ghost steps inside `raft.Step`'s WP (a non-atomic call, so at `⊤`), `ApplyConfChange`'s and
+  `node.run`'s re-seal (WP level); `open_node` only unfolds the persistent `isNode`; the clients'
+  update bodies run at `⊤ ∖ ↑raftN` (the register's opens `regN`, its client's AU then at
+  `regMask`). Credits: the branches have no pure step of their own before the ghost update (the
+  dispatch applies each branch lemma to the whole call), so the fallback was used: one `£ 1` in
+  `raft.Step.spec`'s precondition, paid by its callers.
+- **Findings.** The note's §4.2 is unsound as stated (several commits per derivation); its §5
+  binder is the client's choice (`∀∀` needed); the deposit inside the spec forces the register's
+  answer to carry the read index (its waiter precedes the deposit). No Go bug.
+
+Checks: `lake build` of the five targets; `etc/tcb-report.py --check` (75 axioms, 10 sorries;
+`raft.txt`, `register.txt` pass); `etc/goose.py --check`; `Link.lean` reproduces
+(`etc/gen-link.py`: no callee list moved).
+
+## The single-voter read-index fix (2026-10-14, stage F)
+
+`ReadOnlySafe` read index at a single-voter configuration was stale in the pinned raft
+(`issues/raft-readindex-singleton-stale.md`): `stepLeader` answered at once when `IsSingleton`,
+before `committedEntryInCurrentTerm` and whoever the voter was. The pin is now the fork revision
+with the fix, and `raft.Step` is verified on it in both ghost modes with no single-voter
+exclusion. Trust base unchanged (`etc/tcb-report.py --check`: 75 axioms, 10 sorries;
+`raft.txt`, `register.txt` pass; `raft-dyn.txt` was deleted by B7 part 2).
+
+Commits:
+- `92b66cc08`: the repin. `etc/goose.py`'s `etcd-raft` is `upamanyus/etcd` at
+  `0560cb75ad8e` (branch `raft-goose-lean`: etcd-io/raft `40f8be7` plus the fix and its
+  regression test); the translation differs in `stepLeader` (the `IsSingleton` branch gone) and
+  `sendMsgReadIndexResponse` (the new branch). The register's `go.mod` replaces
+  `go.etcd.io/raft/v3` by `github.com/upamanyus/etcd/v3 v3.0.0-20261014191125-0560cb75ad8e`
+  (the fork's `go.mod` declares `module go.etcd.io/raft/v3`; a replacement under the plain
+  `github.com/upamanyus/etcd` path is refused by `go` -- "post-v0 module path" -- so the
+  replacement path carries `/v3`). `go test ./...` in `examples/register` passes.
+- `6fd84dc22`: the model. `Step`, `StepC`, `StepCF`, `StepR` gain `readSingle` (a request
+  answered at once at the commit index: `preadRespondAll` of one request) and
+  `readReleaseSingle` (every pending request answered so), each for a leader whose commit index
+  is at an entry of its term and whose configuration's only voter is itself (`CfgSingle c id`:
+  `c.incoming = {[id]} ∧ c.outgoing = ∅`, `StepC.lean`, with `cfgSingle_iff` against Go's test
+  and `JQuorum_single`). Refined in both modes (`ownRaftGhost_single_confirm`,
+  `Protocol/Refinement.lean`): the heartbeat path's argument with the quorum `{id}` -- the
+  arrival's record (`ownRaftGhost_read_arrive`) is confirmed by `rqRecOk_confirm` (static) or
+  `rqRecOk_confirm_dyn` (dynamic, inside the commit invariant), the leader being in no doom
+  quorum of its term (`ownLogGhost_not_doomed`). **That route worked**: the static-only facts
+  `notes/raft-readindex-spec.md` §4.4 asked for (campaigners' voter membership in `isCampK`,
+  past-term bounds in `lcmOwn`) are not needed, and no ghost definition changed. A request's
+  read credit is dropped (the shortcut stashes no record).
+- `6350abf69`: the code.
+  - `sendMsgReadIndexResponse.spec`: premise `ents ≠ []` (`req.Entries[0]`); post
+    `∃ s', ownRaftPhysCV c … s' ∗ ⌜SendRIResult c id s m ents s'⌝` -- `CfgSingle c id ∧ s' =
+    readRespond id s (arriveReq s m ents)` or `¬ CfgSingle c id ∧` the heartbeat result of
+    before. Callees: `IsSingleton`, `responseToReadIndexReq`, `send` added (the voter lookup is
+    `wp_idset_lookup2` on `Voters[0]`, through the generated field accessors and `array_acc`).
+    `readRespond`/`readRespondAll` moved into its Spec, with `readRespond_eq`,
+    `readRespondAll_eq`/`_fields`/`_prvals`/`_take_succ`.
+  - `releasePendingReadIndexMessages.spec`: premise `∀ p ∈ s.rd.pend, p.2 ≠ []`; post
+    `∃ s', … ∗ ⌜ReleaseResult c id s s'⌝` -- answered at once (`readRespondAll` of
+    `pendReqs s` from `s` with nothing pending) or released with heartbeats as before.
+  - `stepLeader.spec`: premise `MsgReadIndex → ents ≠ []` (was also `¬ (size c.incoming = 1 ∧
+    size c.outgoing = 0)`); `LeaderNonpropResultC`'s read-index case is `SendRIResult`;
+    `AppRespAcceptedC`'s release is either branch. `IsSingleton` is no longer its callee. The
+    static `stepLeader.specS` and the simple-configuration results (`AppRespAccepted`,
+    `ReadAckResult`, `LeaderNonpropResult`, `LeaderStepResult` and their `.simple`; no caller)
+    are gone, as are `sendMsgReadIndexResponse.specS`/`releasePending….specS` (no caller).
+  - `raft.Step.spec`: `MsgReadIndex → m.Term' = W64 0` (the single-voter conjunct gone). The
+    `MsgReadIndex` branch and `MsgAppResp`'s release produce `StepCF.readSingle` /
+    `readReleaseSingle`. `raft.Step.specS` keeps `1 < GMap.size cfg` (its callers pass it).
+  - `Link.lean` regenerated (`etc/link-lean-first.txt`: the two callee lists).
+- the merge of `worktree-raft-rest` `4c8e4cd3a` (B7 part 2), with the one-line adaptations of
+  the three `raft.Step.spec` call sites it added (`RawNode__Step`, `RawNode__ReadIndex`,
+  `InvNodeRun`: the read-index argument is now just `m.Term' = 0`), and `StepGhostMode`'s
+  `commit_mono` over the two new rules.
+
+**What the public API can drop next** (B7 part 2's files, untouched here but for the call
+sites above; `raft.Step` needs none of these any more):
+- `RawNode.Step.spec`'s `(m.Type' = MsgReadIndex → NotSingleton (rs.vcfg γ))` and
+  `RawNode.ReadIndex.spec`'s `NotSingleton (rs.vcfg γ)` (with `NotSingleton`,
+  `NotSingleton_static`, `InvRawnode.lean`; `ownStepGhost_vcfg`'s use at the three call sites);
+- `InvNodeRun.wp_rn_raft_Step_net`'s `Hsing`, `InvNode.lean`'s network-message clause
+  `m.Type' = MsgReadIndex → 1 < GMap.size γ.raft.reCfg`, `node.ReadIndex.spec`'s
+  `1 < GMap.size γ.raft.reCfg`;
+- the register's `deliver.spec` and `Register.Read.spec` `1 < GMap.size …reCfg`
+  (`Main.lean`'s `clusterIds_size`, `Cluster.lean`'s `Hcfg`);
+- `raft.Step.specS`'s `∧ 1 < GMap.size cfg` (with its callers' argument).
+
+Findings: no new Go bug (the fix behaves as the issue's patch says; no other path reaches the
+shortcut). One proof-engineering note: `etc/goose.py`'s register comment now records the `/v3`
+replacement path.
+
+## Reconfiguration, stage B7, part 2: the `RawNode` API in the dynamic model (2026-10-14)
+
+**Changing the voter set is now verified from the Go public API, at the `RawNode` layer.** A
+`RawNode` is in one of two modes (`RNState.mode`, constant): static (the voters fixed at
+`γ.reCfg`, as before) or dynamic (`RNMode.dyn dec c0 h0 h1`: the configuration changes by
+applied conf entries, B5's `ownRaftGhostR` underneath). Every `RawNode` spec holds in both
+modes; the dynamic mode is reached from `NewRawNode`. `node.go` and the register stay in the
+static mode (below, "Left").
+
+Commits on the worktree branch, each a building state (`Link`, `Results`, the register's
+`Results`/`Adequacy`): `a620ecba1` (B7c-1), `8f29b04f8` (B7c-2), `f3b825caa`, `8bf69789d`
+(B7c-3), `feb8f34b7` (B7c-4), `13b5e02e7` (scaffolding deleted), the merge of B8b
+(`b7bb3d987`), and this notes commit.
+
+- **B7c-1, raft level.**
+  - `ownRaftPhys` records that a pre-candidate has pre-vote on (`Hprevote`'s second conjunct;
+    `raft.wp_store_stateC` premise, `becomePreCandidate.spec` takes `s.prevote = true`), so a
+    node with pre-vote off is never a pre-candidate (`ownRaftPhysC_precand`): the dynamic
+    mode's "no pre-candidate" premise is discharged, not assumed.
+  - `stepDownOnRemoval` is persistent in `raftOwn` (`ownRaftPhysC_sdr`): a later state of the
+    same struct has the same `sdr`, with no frame lemma.
+  - `GMode.StepOut` takes the message and says how the ghost part moves (`GMove`: freely only
+    at a snapshot (B8), the configuration index at a `MsgStorageApplyResp` (`CidxMove`), else
+    not at all); `StepOut.keep`, `StepOut.commit_mono` (also `StepC`/`StepR.commit_mono`).
+  - `raft.tickElection`/`tickHeartbeat` specs in either mode; `pastElectionTimeout`,
+    `hardState`, `softState`, `getBasicStatus` at any configuration.
+- **B7c-2, `ownRawNode` in either mode** (`InvRawnode.lean`). `RNState` gains `mode`, `cfg`
+  (the configuration in use, with learner flags) and `capplied` (the configuration index:
+  every conf entry of the committed log below it applied). `ownRawNode` holds
+  `ownRaftPhysCV cf` and `ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf`,
+  `sdrOk` (in the dynamic mode `StepDownOnRemoval` on), no auto-leave joint configuration;
+  `ownRawNodeReady`/`Idle` likewise. Every `RawNode` proof calls `raft.Step.spec` in the
+  node's mode; the dynamic premises are discharged from the struct (`PreFacts`: no
+  pre-candidate; the dropped proposal's index room `plogLastIndexZ + 2^61 < 2^64` from the
+  log's own bound, `ownRaftLog_last_bound` -- **no client premise, no index budget needed**).
+  `ownRawNode_static_open`/`_intro_static` give the old static view.
+- **B7c-3, `RawNode.ApplyConfChange` in the dynamic mode** (`wp_applyConf_dyn`): the change is
+  the next committed conf entry's decoded change (`DynCCPre`: position `k ≥ capplied`, none in
+  between, `dec (delivered.take k) e = some (ccV2Of o)`, `ccStepB` applies at `rs.cfg`, no
+  auto-leave), proved as `StepR.applyConf` followed by `applyCCOkC_stepR` (reMatch, commit by a
+  joint quorum, sendApps; or reMatch and **`StepR.stepDown` for a removed leader**). A
+  candidate is excluded by the model (`RInv.cand`: no conf entry past `applied`), a
+  pre-candidate by pre-vote off, `StepDownOnRemoval` by `sdrOk`. `RNMode.dyn` carries
+  `CCGood c0`, so the code's configuration is the model's (`cfgStateC_of_good`).
+- **B7c-4, `NewRawNode` in either mode** (`rnInit γ md id V`: statically `ownRaftGhost` at
+  `initPState`, dynamically `ownRaftGhostR` at `rinit c0` with `c0 = cfgState V ∅` and
+  `γ.dyn = some (DynCfg.ofFold dec c0 h0)`, what `raft_dyn_alloc` hands out). `newRaft`'s post
+  also gives `s.sdr = cv.StepDownOnRemoval'` and the voters tracked (`ConfigPreserved` keeps
+  `StepDownOnRemoval`).
+
+**The public specs that changed** (statement shapes):
+- `RNState`: `mode : RNMode := .static`, `cfg : CCState`, `capplied : Nat := 0`.
+- `NewRawNode.spec`: binder `md : RNMode`, premise `md.isDyn = true →
+  cv.StepDownOnRemoval' = true`, `"Hghost" ∷ rnInit γ md cv.ID' (listToSet voters)`; post at
+  `{ …, mode := md, cfg := cfgState (listToSet voters) ∅ }`.
+- `RawNode.Advance.spec`: premise A1 `rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied
+  rs.delivered.length`; post `∃ t ca`, `ownRawNode … { rs with steps := [], term := t,
+  capplied := ca }`, `rs.capplied ≤ ca ≤ max rs.capplied rs.delivered.length`, `ca =
+  rs.capplied` statically.
+- `RawNode.ApplyConfChange.spec`: binders `k e cs'`; premises `rs.mode = .static → CCApplies …`
+  and `rs.mode = .dyn … → DynCCPre dec rs o k e cs'`; post `Hres` is the old disjunction under
+  `⌜rs.mode = .static⌝`, or `⌜rs.mode.isDyn⌝ ∗ ownRawNode … { rs with cfg := cs', capplied :=
+  k + 1 } ∗` the four `ConfState` lists as `cs'`'s.
+- `RawNode.Step.spec`: new premise `DynNoSnap rs m` (`rs.mode.isDyn = true → m.Type' ≠
+  MsgSnap`; implied today by `NetMsgOk`, kept separate for a later RawNode-level snapshot);
+  the read-index premise is `NotSingleton (rs.vcfg γ)` (was `1 < size γ.reCfg`). Same change
+  in `RawNode.ReadIndex.spec`.
+- Unchanged statements: `Propose`, `ProposeConfChange`, `Campaign`, `Tick`, `Ready`
+  (`readyWithoutAccept`/`acceptReady`), `HasReady`, `BasicStatus`, the reports, `TransferLeader`,
+  `ForgetLeader` -- all now hold in either mode.
+- `node.go`: `isNode` gains `⌜γ.raft.reDyn = none⌝` (node.go is verified in the static mode);
+  `RestartNode` passes the static mode. No `node.*` statement changed.
+
+**Scaffolding deleted:** the `raft_reconfig_*` restatements, `etc/tcb-collections/raft-dyn.txt`
+and `raft_election_safety` (nothing needed it). `Results.lean` only prints axioms.
+
+Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries;
+`raft.txt` 6/0, `register.txt` 4/9). `Link.lean` reproduces (`etc/gen-link.py`): no callee
+list moved.
+
+Findings: no Go bug. Two scope facts discharged rather than assumed (no pre-candidate with
+pre-vote off; the dropped proposal's index room). Scope kept: no auto-leave joint
+configuration at a `RawNode` (`appliedTo`'s auto-leave proposal, B7 part 1), and
+`StepDownOnRemoval` on in the dynamic mode (a removed leader that does not step down leaves
+`Hvoter`, which `ownRaftPhysCV c c.voters` does not admit).
+
+**Left:** (items 1 and 2 done in stage N, 2026-10-15: "node.go and the register under
+reconfiguration (stage N)")
+1. **`node.go` in the dynamic mode.** Its `confc` arm calls `raft.applyConfChange` with the
+   static premise (`CCShrink` through `confcP`); the dynamic one needs `DynCCPre` against the
+   run loop's `RNState` (`capplied`, `cfg`), which the driver would have to share as ghost
+   state as it shares `delivered` (`dlv`), and the `advancec` arm A1 from the driver.
+   `isNode`'s `Hstatic` then goes.
+2. **The register in the dynamic mode**, which waits for (1): its Go apply loop would call
+   `ApplyConfChange` for each committed conf entry before `Advance`.
+3. A snapshot at a `RawNode` (from the network, `DynNoSnap`; `GMode.SnapOk` in the dynamic
+   mode), and `Ready`'s hand-out of a pending snapshot.
+
+## Reconfiguration, stage B8 (snapshots at a changing configuration) (2026-10-14)
+
+A snapshot whose `ConfState` is any well-formed one, joint included, is now restored through
+`raft.restore`, `handleSnapshot`, `stepFollower`/`stepCandidate` and `raft.Step`, and
+`raft.Step`'s `MsgSnap` branch is in scope in the dynamic mode: it is a `StepR.snapRestore`
+step (or a frame step) of B5's model, and `ownRaftGhostR` follows it. The A3 obligation (the
+snapshot's `ConfState` is the configuration of the log prefix it covers) is a premise of the
+receiving `raft.Step`, stated on the snapshot's recorded prefix; it is not yet carried by the
+message from the sender's storage (left, below). Trust base unchanged
+(`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft.txt` 6/0, `register.txt` 4/9,
+`raft-dyn.txt` 0/0). `Link.lean` unchanged (`etc/gen-link.py` reproduces it: no callee list
+moved).
+
+Commits, each building the five targets (`Link`, `Results`, the register's
+`Results`/`Adequacy`, `SnapConf`):
+- `6a8c5a672`: the general `confchange.Restore`, `ConfState.Equivalent`,
+  `assertConfStatesEquivalent` as `spec`.
+- `894e6ee10`: joint snapshots through `raft.restore` .. `raft.Step`; `MsgSnap` in the
+  dynamic mode.
+- `cabbe8de2`: the four `ConfState` lists from the storage to the outbox.
+- `05cf5c611`: `restore`'s `found` search over all three lists.
+- this notes commit.
+
+**Specs changed** (statement shapes):
+- **`confchange.Restore.spec`** is the general statement (was `specG`): any `ConfState`, the
+  model's answer `restoreM`. The non-joint statement is `Restore.specS`, derived
+  (`Restore.spec_simple`, was `spec_of_specG`). `newRaft` takes `specS` in one line.
+- **`raftpb.ConfState.Equivalent.spec`**, **`assertConfStatesEquivalent.spec`**: any two
+  `ConfState`s with equal `AutoLeave` and each of the four id lists of one a permutation of the
+  other's (`CSLists.Perm`, `CSLists.Bounded`; slices as `ownCSIds cs dq dl cl`: `Voters` a
+  points-to, the other three `ownIdList`). The non-joint statements are `specS`, derived
+  (`spec_simple`); `newRaft` takes `assertConfStatesEquivalent.specS` in one line.
+- **`CSLists`** (`Defs.lean`): the four id lists of a `ConfState`; **`ownCSL cs cl`**
+  (`InvStorage.lean`): its four slices read-only.
+- **`raft.restore.spec`**: `∀ c r id s sv cl`, premises `s.role = .follower`, `s.votes = ∅`,
+  `cl.Has id` (`CSLists.Has`: an incoming voter, a learner or an outgoing voter -- the three
+  lists `restore`'s `found` search reads; until now the node had to be a voter), `SnapScope sv
+  cl`; pre `ownRaftPhysCV c c.voters r id s ∗ ownCSL
+  sv.Metadata'.ConfState' cl`; post at `restoreCfg c sv cl b` (the configuration the
+  `ConfState` denotes, `snapCfg sv cl = csCfgM ...`, after a restore; `c` otherwise).
+  **`SnapScope sv cl`** (was `SnapScope cfg sv voters learners`, non-joint with the voters
+  `cfg`): `CSWf` of the lists, each without repeats (the comparison with `switchToConfig`'s
+  sets), their total length at most `2^62`, `AutoLeave` off when not joint (`Restore` drops it
+  then), the index below `2^61`. The proof: `Restore.spec` answers `cfgStateC (csCfgM ...)`
+  (`restoreM_wf`), which is an `ownConfigC` (`ownConfigC_of_restore`), `switchToConfig` at that
+  configuration, the general `assertConfStatesEquivalent`; the `found` search over all three
+  lists (`FoundBefore`, `csl_found_slice`). `raft.restore.specS` (no caller) is gone.
+- **`raft.handleSnapshot.spec`**, **`stepFollower.spec`**, **`stepCandidate.spec`**: the
+  snapshot's lists `scfg : CSLists` in place of `scfg : GSet w64` and `voters`;
+  `SnapCfgOk c s sv scfg c'` (the snapshot's `snapCfg` after a restore). Their `specS` (no
+  caller) are gone. The other branch files pass `∅ : CSLists` (an `EmptyCollection`
+  instance) and one argument fewer.
+- **`raft.Step.spec`**: the premise `m.Type' = MsgSnap → id ∈ γ.reCfg` is gone; `"Hsnap"` is
+  `□ (⌜m.Type' = MsgSnap⌝ -∗ ∃ sv scfg, m.Snapshot' ↦□ sv ∗ ownCSL sv.Metadata'.ConfState'
+  scfg ∗ ⌜SnapScope sv scfg ∧ scfg.Has id⌝ ∗ md.SnapOk γ sv scfg ∗ isMessage γ (absSnap m
+  sv scfg))`. **`GMode.SnapOk`** (`StepGhostMode.lean`): statically `⌜GMap.listToSet
+  scfg.voters = γ.reCfg ∧ scfg.outgoing = []⌝` (the restored configuration is still
+  `CfgStatic`); dynamically A3, `□ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk (snapId sv) fp⌝ -∗
+  ⌜SnapConfOk dec c0 fp scfg.outgoing scfg.voters scfg.learners scfg.learnersNext
+  AutoLeave⌝` -- for any recorded prefix ending at the snapshot's entry id (records agree, so
+  there is one; the message shows one exists, `isMessage_snap_prefix`). `raft.Step.specS`
+  keeps its premises; its `"Hsnap"` is the static one over `CSLists` (`GMap.listToSet
+  scfg.voters = cfg ∧ scfg.outgoing = []`).
+- **`GMode.Pre`** (dynamic): no longer excludes `MsgSnap`. **`GMode.StepOut`** (dynamic):
+  `∃ g', md' = .dyn dec c0 h0 g' ∧ ∃ recv, StepR (AdmFold dec c0) dec id (rOf s g) recv (rOf
+  s' g')` (was: only the configuration index moved, at `AdmS dec c0 (fun _ => False)`).
+- **`isStorage`'s `HSnapshot`**, **`MemoryStorage.Snapshot.spec`**, **`raftLog.snapshot.spec`**,
+  `ownSnap` (the pending snapshot), **`unstable.restore.spec`**, **`raftLog.restore.spec`**,
+  **`raft.send.spec`**'s `"Hsnap"` and **`msgAbs`**: the snapshot's four lists (`∃ voters :
+  CSLists, ownCSL ... voters`, was `Voters ↦*□ voters`); `absSnap`/`absSnapFrom` take the
+  lists (the abstract message keeps `voters.voters`). The register's `Storage.Snapshot.spec`
+  follows (its proof, and every pattern on `msgAbs`, unchanged).
+
+**The dynamic `MsgSnap` step** (`StepLemmasR.lean`, `repl_lemmas.lean`, `StepGhostMode.lean`):
+- `StepCDS c c' cn id sid s recv s'`: the `MsgSnap` branch's witness, beside `StepCD`: the
+  `StepC` step, and for every ghost part over `c`, prefix `fp'` with `FullOk sid fp'`, and
+  configuration state `cs'` over `cn` admitted after `fp'`, a `StepR` step to some ghost part
+  over `c'`. (`StepCD` keeps the ghost part but its configuration index; a restore replaces
+  configuration index, configuration and full prefix.)
+- `stepR_snap_restore` (`StepR.snapRestore` at `rOf`: `applied` kept, the snapshot pending,
+  `pci` `0` at a non-leader), `StepCDS.frame`, `StepCDS.trans_frame`;
+  `stepCDS_handle_snap` (`handleSnapshot`'s three exits), `stepCF_handle_snap_keep`,
+  `stepCF_higher_term_snap`.
+- `ghost_stepCDS`: either mode. Statically `ownRaftGhost_stepC`; dynamically the prefix `fp0`
+  the message shows (`isMessage_snap_prefix`, new in `Protocol/Refinement.lean`: the sender's
+  leader prefix taken to the snapshot's index, with its records), A3 of it from
+  `GMode.SnapOk`, then `ownRaftGhostR_stepR` with `S := (· = fp0)` (B5's snapshot-prefix
+  premise, supplied by `fp0`'s records).
+- B5's under-constraint of `StepR.snapRestore` (its `fp'` only `FullOk` and `Adm`) is handled
+  as B5 planned, by the records: the code picks the message's prefix, no model change.
+
+**Scope** (stated where it applies):
+- The node is one of the snapshot's ids (`CSLists.Has`); a learner and a voter of the outgoing
+  half only (a node being removed) are in scope (stage L's "a learner receiving a snapshot needs
+  the `found` search over the learners" is done). A node in none of them makes Go's `restore`
+  ignore the snapshot (`return false`), which `RestoreResult` does not describe: left out by the
+  premise.
+- A3 is a premise of the receiving `raft.Step` in the dynamic mode (`GMode.SnapOk`), not yet a
+  fact the message carries (below).
+
+Findings: no Go bug, no false statement.
+
+**Left** (precisely):
+1. **A3 from the sender's storage to the message** (the task's item 3). What it needs:
+   - `StorState` with the snapshot's lists and `AutoLeave` (or a persistent per-id record),
+     `isStorage`'s `HSnapshot` returning them, `memstorageFields` relating them (`ownCSRO`
+     already keeps the four slices), `CreateSnapshot`/`ApplySnapshot` updating them, and the
+     application's obligation at `CreateSnapshot`/`ApplySnapshot` (`SnapObl`, as a persistent
+     fact of the shape of `GMode.SnapOk`'s dynamic clause, keyed by `γ` through `γ.dyn`);
+   - raft keeping that fact for its stored and its pending snapshot (`ghostRest`'s dynamic
+     clause; the pending snapshot's lists then a field of the log state);
+   - and the message carrying it: the abstract `Msg` keeps only `voters`, so `isMessage`
+     cannot name the other three lists, and the outbox relation (`msgAbs`, in the physical
+     `ownRaftPhys`) cannot name the ghost fact. Either `Msg` gains the lists (every `Msg.mkV`
+     site, `isMessage`'s `snap` case with a `dynOn`-guarded A3, and the refinement's
+     `sendApps` taking the A3 of the snapshots it sends as a premise, like B5's `S`), or the
+     `RawNode` delivery predicate (B7 part 2) hands the fact out with each `MsgSnap`. Until
+     then a client stepping a `MsgSnap` in the dynamic mode supplies `GMode.SnapOk` itself.
+2. `RawNode.Step` takes no `MsgSnap` from the network (`netStepTypes`), in either mode: a
+   `MsgSnap` reaches `raft.Step` only through a client of `raft.Step` itself. Admitting it at
+   the `RawNode` API is B7 part 2's (with item 1's fact, or `GMode.SnapOk` as a premise).
+
+**Edits needed in B7 part 2's files** (none was needed for this stage's build: every `RawNode`
+caller uses `raft.Step.specS` and discharges `"Hsnap"` by the message type):
+- a call of `raft.Step.spec` (not `specS`) drops the argument for the removed premise
+  `m.Type' = MsgSnap → id ∈ γ.reCfg` (the one after `StepMsg m`);
+- a dynamic-mode `GMode.Pre` is built without its former first conjunct `m.Type' ≠ MsgSnap`;
+- a consumer of `GMode.StepOut` in the dynamic mode gets `∃ g', md' = .dyn dec c0 h0 g' ∧ ∃ recv,
+  StepR (AdmFold dec c0) ...` (was `∃ cidx'`, `{ g with cidx := cidx' }`, `AdmS dec c0 (fun _ =>
+  False)`);
+- `RawNode.Step`'s planned "no `MsgSnap` in the dynamic mode" premise is not needed by
+  `raft.Step` (it would be by `RawNode.Step` only while it does not supply `GMode.SnapOk`);
+- `msgAbs`'s snapshot disjunct binds `voters : CSLists` (patterns `⟨%sv, %voters, %H, -, -⟩`
+  unchanged); `absSnap m sv voters` takes the lists.
+- Decisions: notes/decisions.md, "Reconfiguration stage B8".
+
+## Reconfiguration, stage B7, part 1: `raft.Step` in the dynamic model (2026-10-14)
+
+The Go function `raft.Step` is now verified against the dynamic reconfiguration model of
+stages B3/B5. Its spec takes the ghost state in either of two modes. The static mode is the
+ghost state as before. In the dynamic mode the ghost state is `ownRaftGhostR` (B5), and each
+step is a `StepR` step at the dynamic configurations, so the dynamic ghost state (log
+agreement, election safety, read index) follows the code. **The public API does not reach
+this yet:** `RawNode`/`node`/`NewRawNode` still use the static mode through
+`raft.Step.specS`, the statement of before this stage. Part 2 of B7, below, is what remains.
+The `raft_reconfig_*` restatements in `Results.lean` and the collection `raft-dyn.txt` stay
+until then.
+
+Commits, each a building state (`Link`, `Results`, the register's `Results`/`Adequacy`):
+- `8b2b68e8e`..`e8979064d` (B7a): `raft.Step` at a configuration.
+- `cccb9b86c` (B7b-1): `AppCommitEq` in `ReplSends`.
+- `fefd28f87` (B7b-2): `HupGuard`.
+- `6381579ef` (B7b-3): `StepCD` from every branch.
+- `c08ce1687`, `f281cf6a2`, `7ee5b149f` (B7b-4): the two modes.
+
+Link unchanged: `etc/gen-link.py` reproduces it, because no callee list moved.
+
+- **B7a, `raft.Step` at a configuration `c`.**
+  - Every branch lemma under `raft__Step/` is now stated on `ownRaftPhysCV c c.voters` and
+    produces `StepC c` witnesses. `raft.Step.Postulates` holds the callees' C specs (`hup`,
+    `becomeFollower`, `send`, `stepCandidate`, `stepFollower`, `stepLeader`). The pure lemmas
+    (`repl_lemmas`/`resp_lemmas`/`prevote_lemmas`, `StepLemmasC`) were converted the same way.
+  - `readAck_step` takes the joint quorum index (`JCommittedIdx.acked`: the answer of
+    `JointConfig.CommittedIndex` is acknowledged by a joint quorum).
+  - `MsgSnap` branches take the snapshot's voters `scfg` and give the configuration
+    afterwards: `c`, or `CfgM.simple scfg L`.
+  - `raft.appliedTo.spec` and `raft.reduceUncommittedSize.spec` are now at `c` (they had no
+    other caller).
+  - **`appliedTo`'s auto-leave branch is excluded at a leader** (premise
+    `c.autoLeave = true → s.role ≠ .leader`, also on `raft.Step` for a
+    `MsgStorageApplyResp`). That branch calls `r.Step`, which would make `appliedTo` and
+    `raft.Step` mutually recursive. The link (one proof per function, callees' specs as
+    hypotheses) does not express that recursion. Joint configurations entered with an explicit
+    transition are in scope.
+- **B7b-1, `ReplSends` carries `AppCommitEq`** (`Defs.lean`): an `MsgApp` carries the sender's
+  commit index. `maybeSendAppend` proves it (`Commit: r.raftLog.committed`). Every result that
+  broadcasts inherits it: `sendAppend`, `bcastAppend`, `switchToConfig`, `stepLeader`'s,
+  `stepCandidate`'s. Lemmas: `ReplSends.replOk`, `replAC_proper`. `StepR.sendApps` and
+  `StepR.win` require this (B3's finding about I1).
+- **B7b-2, `hup` records what it checked** (`HupGuard` in `HupOkC`). It either did nothing, or
+  it ran `campaignState` from a non-leader voter of either half, with no snapshot pending and
+  no unapplied conf entry (`hasUnappliedConfChanges`' answer), asking every other voter.
+- **B7b-3, the bridge to `StepR`** (new `StepLemmasR.lean`):
+  - `StepCF` is `StepC` without the rules that move `StepR`'s extra fields (`campaign`, `win`,
+    `propose`, `snapRestore`), with `sendApps` carrying `AppCommitEq`.
+  - `StepCF.toC` turns it back into `StepC`.
+  - `StepCF.toR` makes it a `StepR` step at any `RState` over it (the `pci` is kept at a
+    leader and cleared on a step-down).
+  - `RGh` is the ghost part (configuration index, configuration, full prefix).
+  - `rOf s g` is the `RState` of the code's `NState`. Its `pci` is `pciR`: the code's at a
+    leader, `0` elsewhere. Go clears it in every `becomeX` but `becomePreCandidate`.
+  - `RFrame` (with `rframe_handle_app`) records the code-side facts `rOf` needs to agree
+    across a frame step.
+  - `StepCD c id m s recv s'` bundles the `StepC` witness with, under `DynHyp`, a `StepR`
+    witness for every ghost part over `c` (the configuration index may move).
+  - Every branch now delivers `StepCD` (the `rframe` macro handles most frame proofs). The
+    special branches:
+    - `MsgHup`/`MsgTimeoutNow`: `stepCD_hup`, a campaign with the guard on the full log via
+      `noConfIn_of_unapplied`.
+    - `MsgVoteResp`'s win: `StepR.win`, whose `pci` is `plastIndex`, which is
+      `becomeLeader`'s `logLast`.
+    - `MsgProp`: `StepR.propose`, which is the loop exactly
+      (`propBatch (rOf s g) = leaderPropConf s _ _ c.joint`), and `StepR.propDrop` for a
+      batch `appendEntry` refused.
+    - `MsgStorageApplyResp`: `StepR.advance`, which moves the configuration index
+      (`stepCD_appliedTo`).
+    - `MsgSnap`, and the pre-candidate's campaign after a won pre-vote: `StepCD.of_excluded`,
+      which gives the `StepC` witness only.
+- **B7b-4, the modes** (new `StepGhostMode.lean`):
+  - `GMode` is `.static` or `.dyn dec c0 h0 g`.
+  - `ownStepGhost γ md c id s` is `ownRaftGhost` of `toPState s` in the mode's flag, together
+    with `ghostRest`: `CfgStatic` in the static mode; in the dynamic mode `RInv`, the records
+    of the full prefix and the campaign record, so that it equals `ownRaftGhostR` at
+    `rOf s g` (`ownStepGhost_dyn`).
+  - `GMode.StepOut` is the step in the mode's model.
+  - `ghost_stepCD` updates either mode: the static one by `ownRaftGhost_stepC`, the dynamic one
+    by `ownRaftGhostR_stepR` with no snapshot prefixes.
+  - The dispatcher and its helpers are generic in the mode (`stepPost`, `finish_branch`,
+    `ghost_step_md`). `dispatch_Snap` stays static.
+  - Facts' message lemmas (`app_recv_wf`, `app_no_conflict_below_commit`,
+    `heartbeat_commit_le_last`, `app_commit_le_lastnewi`), `ghost_rdOk` (now `RdOk` over any
+    set) and `ghost_hbResp_ctx` are generic in the mode flag.
+  - `MsgStorageApplyResp`'s branch gives the new `applied` (`Happ`).
+
+**The public spec changed: `raft.Step.spec`** (`Spec/raft__Step.lean`).
+- Binders: `∀ c md γ r id s m ents ctx`.
+- Premises:
+  - the message premises as before;
+  - `MsgReadIndex → Term = 0 ∧ ¬ (size c.incoming = 1 ∧ size c.outgoing = 0)`;
+  - `MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader`;
+  - `NStateWf s` (was `NStateRel s ps`);
+  - `md.Pre m ents s`.
+- Precondition: `ownRaftPhysCV c c.voters r id s ∗ ownStepGhost γ md c id s ∗ …`. The snapshot
+  is `SnapScope γ.reCfg`.
+- Postcondition: `∃ err s' c' md'`, with `ownRaftPhysCV c' c'.voters r id s' ∗
+  ownStepGhost γ md' c' id s' ∗ ⌜NStateWf s'⌝ ∗ ⌜md.StepOut c id s s' md'⌝ ∗
+  ⌜m.Type' ≠ MsgSnap → c' = c⌝` and the frames as before.
+- `raft.Step.specS`, the statement on `ownRaftPhys cfg` of before this stage, is derived
+  (`raft.Step.spec_simple`, static mode). Its callers (`RawNode.*`, `tickElection`,
+  `tickHeartbeat`, `node.run`, `InvNodeRun`) convert in one line.
+- Also changed: `raft.hup.spec` (`HupOkC` with `HupGuard`), `raft.appliedTo.spec`,
+  `raft.reduceUncommittedSize.spec`, and the `ReplSends`-carrying specs.
+
+**The dynamic mode's premises** (`GMode.Pre`; `DynHyp`): each is a scope restriction, stated.
+- No `MsgSnap`. A snapshot restore at a dynamic configuration is B8. (Gone with B8: a `MsgSnap`
+  is a `StepCDS` step, its A3 `"Hsnap"`'s `GMode.SnapOk`; see "Reconfiguration, stage B8
+  (snapshots at a changing configuration)".)
+- No pre-candidate. Pre-vote is off at the `RawNode` API, and the campaign after a won
+  pre-vote checks nothing in Go.
+- At a `MsgStorageApplyResp`, no snapshot pending and A1: no conf entry between the
+  configuration index and the acknowledged index (`ApplyConfChange` before `Advance`).
+- For a `MsgProp`, `plogLastIndexZ + 2^61 < 2^64`. `StepR.propDrop` computes the dropped
+  batch's `pendingConfIndex` without wrapping, and Go checks no bound when `appendEntry`
+  refuses the batch.
+
+Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft.txt` 6/0, `register.txt` 4/9, `raft-dyn.txt` 0/0 unchanged).
+
+Findings: no Go bug. Two scope notes, above: auto-leave at a leader (a recursion the link
+cannot express), and the dropped proposal's index bound.
+
+**Left, B7 part 2 (the public API):**
+1. **The `RawNode` predicate in the dynamic mode.** `ownRawNode` (`InvRawnode.lean`) holds
+   `ownRaftPhys γ.reCfg` and `ownRaftGhost`. Generalize it to `ownRaftPhysCV c` and
+   `ownStepGhost γ md c` with the ghost part `g` existential. `RNState` gains what the client
+   needs to state the dynamic premises: the configuration (`cfg : CCState`) and the
+   configuration index (`capplied`, a prefix of `delivered`). The predicate also needs:
+   - pre-vote off implies no pre-candidate (`s.prevote = false → s.role ≠ .preCandidate`), as
+     a conjunct to re-establish;
+   - `RawNode.Step` excluding `MsgSnap` in the dynamic mode until B8;
+   - the dropped-proposal bound, as a premise of `Propose`/`ProposeConfChange` or as an index
+     budget like `node.go`'s term budget.
+
+   Each `RawNode` spec then calls `raft.Step.spec` with the node's mode instead of `specS`.
+2. **`RawNode.Advance`** with A1 as a premise on `rs.delivered`/`rs.capplied`
+   (`issues/raft-advance-before-applyconfchange.md`).
+3. **`RawNode.ApplyConfChange` in general**, as `StepR.applyConf`:
+   - the application's decoder obligation: `dec (delivered.take k) e = some op`, with `op` the
+     change it passes;
+   - `CCApplies`' size bound at `rs.cfg`;
+   - `switchToConfig`'s `ApplyCCOkC` read as `StepR` steps (`reMatch`, `commit`, `sendApps`,
+     `stepDown`): a `StepR` version of `applyCCOkC_step`;
+   - leader step-down on removal.
+4. **`NewRawNode` and the rest of the API**: allocate in the dynamic mode (`raft_dyn_alloc`),
+   carry `node.go`'s specs over, and move the register to the dynamic mode or keep it static.
+   Then delete the `raft_reconfig_*` restatements, `raft-dyn.txt` and, if nothing else needs
+   it, `raft_election_safety`.
+- Decisions: notes/decisions.md, "Reconfiguration stage B7".
+
+## Reconfiguration, stage B8 (standalone part): snapshots carrying a configuration (2026-10-14)
+
+The part of B8 that does not wait for B7 (which rewrites `raft.Step`, the RawNode files and the
+ghost files in parallel): `confchange.Restore` of any `ConfState`, what `MemoryStorage` keeps of a
+snapshot's `ConfState`, A3 as a definition, and the asynchronous-storage window. No caller's file
+changed (`raft.restore`, `newRaft` still use the non-joint `Restore.spec`). Trust base: no new
+axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft.txt`,
+`register.txt`, `raft-dyn.txt` pass).
+
+- **`InvRestore.lean`** (new, pure): `restoreM vo v l ln al`, `Restore`'s replay of a `ConfState`
+  on the model `ccApplyM` is made of -- not joint: one `simpleM` per change of `in`
+  (`restoreInCC`: `AddNode` per voter, `AddLearnerNode` per learner and staged learner); joint:
+  `simpleM [AddNode id]` per outgoing voter (`restoreOutCC`), then one `enterJointM al in` with
+  `in` = `RemoveNode` per outgoing voter, then the same. `CSWf` (at least one voter, no `0`, a
+  learner no voter of either half, a staged learner an outgoing voter that is neither an incoming
+  voter nor a learner, no staged learner when not joint), `csCfgM` (the configuration the lists
+  denote; `AutoLeave` only when joint, as `Restore` keeps it), **`restoreM_wf`**: `CSWf → restoreM
+  ... = some (cfgStateC (csCfgM ...))`; `restoreM_cfgInv`, `simpleFold_step`/`_append`.
+- **`confchange.toConfChangeSingle.spec` general** (any lists; `out` holds `restoreOutCC`, `in`
+  `restoreInCC`; the three non-voter lists as `ownIdList`). Its only caller is `Restore`'s proof.
+- **`confchange.Restore.specG`** (new statement, same Spec file): any `ConfState`; premises
+  `voters ≠ []`, `restoreM outgoing voters learners learnersNext cs.AutoLeave' = some s'` (no
+  `Changer` error: raft's callers `panic` on one), `MaxInflight`'s bound and the empty tracker
+  `MakeProgressTracker` builds (as before); the four lists (`Voters` as `↦*`, the others as
+  `ownIdList`) given back; post `ownCfgCC cfgv (DFrac.own 1) s'.cfg`, `prsm ↦$ prs`, `domSet prs =
+  domSet s'.prs`, each `Progress` owned with `s'.prs !! k = some p.learner`. Proved
+  (`wp_proofG`, from `toConfChangeSingle`, `Changer.Simple`, `Changer.EnterJoint`, `chain`): the
+  pair threaded by `chain` held as `ownCCSt` at the model state (`RestoreAt`: the fold of the
+  first `j` `Simple` ops, then `s'` after the `EnterJoint`); the `EnterJoint` closure reads
+  `cs.AutoLeave` and `incoming` through persistent points-tos. **`Restore.spec` unchanged**,
+  derived by `spec_of_specG` (`wp_proof := spec_of_specG (wp_proofG ...)`); the link gains
+  `Changer__EnterJoint` (`etc/link-lean-first.txt`, `Link.lean` regenerated). The proof file sets
+  `Elab.async false`, a precaution against Perennial's `iframe ∗` race
+  (notes/flaky-stepleader-build.md): its first draft failed with that race's symptoms ("not
+  pure" after `iframe`, "unknown free variable"), though other errors were mixed in and the file
+  also passed once without the option.
+- **`SnapConf.lean`** (new, pure; A3 for the B7/B8 specs to take as a premise):
+  `SnapConfOk dec c0 pre vo v l ln al` (`CSWf`, and `csCfgM ... = s.cfg` for `cfgFold dec c0 pre
+  = some s`: B5's `AdmFold` read on a `ConfState`), `SnapObl dec c0 applied i ...` (`i ≤
+  |applied|` and `SnapConfOk` of `applied.take i`: the snapshot is of an applied prefix and its
+  `ConfState` that prefix's configuration). `SnapConfOk.restoreM_eq`/`SnapObl.restoreM_eq`:
+  `Restore` of such a `ConfState` answers exactly the fold's state, given `CCGood c0`
+  (`cfgFold_good`, `cfgStateC_of_good`).
+- **`MemoryStorage`**: what was there (U3) already states the `ConfState` exactly where the
+  application is involved: `CreateSnapshot` stores `*cs` (now named, `memSnapCreated_confState`,
+  `_none`, `_snapId`), `ApplySnapshot` stores `snap'`, both hand back `memStorMeta` at the stored
+  snapshot, `InitialState` returns its `ConfState`, `Compact` leaves it (`memStorMeta` not
+  taken). Added: **`ownCSRO cs voters`** (all four slices read-only) in `memstorageFields` and
+  `memStorMeta` in place of `Voters` alone, so a joint `ConfState` passes through the storage;
+  `CreateSnapshot`/`ApplySnapshot` take it for the `ConfState` they store (no caller in a proof).
+  `Snapshot.spec` (and the register's use of it) unchanged.
+- **The asynchronous-storage window: unreachable** at the pinned raft. B1's scope note (4.10 of
+  notes/reconfiguration-safety.md, now corrected) had `stableSnapTo` (append response) and
+  `appliedSnap` (apply response) stepped apart, leaving the node promotable with `applied < base`.
+  In this raft `appliedSnap` *is* `stableSnapTo` followed by `appliedTo(index)`, both run when the
+  `MsgStorageAppendResp` carrying the snapshot is stepped (`raft.go:764`, `1166`, `1189`; also
+  under a term change), and the node is unpromotable until then (`hasNextOrInProgressSnapshot`).
+  Checked with a Go test against a scratch copy (both orders of the append and apply responses,
+  then `Campaign`: no panic, `applied = 10` before it; not committed: it shows an absence).
+  What remains is the application compacting its storage above raft's `applied` (with
+  asynchronous writes, before stepping the apply response): then `hasUnappliedConfChanges`
+  scans compacted entries and `Panicf`s, but `Compact`'s documentation forbids it ("not compact an
+  index greater than raftLog.applied"), so it is not recorded in `issues/`.
+
+**What B8's remaining part (restore at a dynamic configuration through `raft.Step`/`RawNode`, after
+B7) needs from this** (done, but for the `StorState` relation and A3 in the message, in
+"Reconfiguration, stage B8 (snapshots at a changing configuration)" above)**:**
+- swap the names (`Restore.spec` := `specG`, the old one `specS` with `spec_simple :=
+  spec_of_specG`) and switch `raft.restore`'s and `newRaft`'s hypotheses (one line each), then
+  `raft.restore.spec` at a joint `ConfState` from `specG` + `restoreM_wf`; `SnapScope`'s
+  `VotersOutgoing = []` goes;
+- the snapshot's four lists in a `MsgSnap`: `msgAbs` (`InvRaftPhys.lean`) reads only `Voters`,
+  and `isStorage`'s `HSnapshot` (`InvStorage.lean`) hands out only `Voters ↦*□`; the storage now
+  keeps all four (`ownCSRO`), so `MemoryStorage.Snapshot.spec` can hand them out once `HSnapshot`
+  asks (the register's `Storage.Snapshot` proof then changes by one pattern);
+- **which** `ConfState` `Snapshot()` returns: raft's view (`StorState`) records the snapshot's id
+  only. To carry A3 from the application to a leader's `MsgSnap`, `StorState` needs the
+  snapshot's `ConfState` lists (or a persistent record per snapshot index, agreeing; index `0` is
+  rewritable by `ApplySnapshot`, raft never sends it), related in `memstorageFields`, with raft
+  keeping `SnapConfOk` of it as it keeps `StoredSnapOk`; and the writers under a running node
+  still need a protocol (`MemoryStorage`'s open item);
+- the premise to take: `SnapObl` (or `SnapConfOk`) on the lists, `CCGood c0` for
+  `restoreM_eq`; a fold state is `CSWf`-shaped only with two invariants not proved yet (no `0` id
+  in a configuration, a staged learner no incoming voter): until then the obligation includes
+  `CSWf`.
+
+Commits `d23e28bf7` (confchange, `SnapConf.lean`), `7265be18b` (`MemoryStorage`) and this notes
+commit.
+
+## Reconfiguration, stage B6: the read-index guarantee under reconfiguration, at the model level (2026-10-14)
+
+The read-index guarantee (section "Read-index (`ReadOnlySafe`)") now holds in the dynamic model
+of B5 (`Protocol/ResultsDyn.lean`, restated in `Results.lean`, roots of `raft-dyn.txt`, which
+stays at 0 axioms of this repository and 0 `sorry`s):
+- `raft_reconfig_read_states` (`raft_dyn_read_states`): `ownRaftGhostR γ dec c0 id r -∗
+  [∗list] st ∈ r.p.rd.states, readStateOk γ st` -- the `ReadState`s a node holds, i.e. what
+  `StepR.takeReads` (`acceptReady`) hands out, each carry `readStateOk`.
+- `raft_reconfig_read_index` (`raft_dyn_read_index`): for `st ∈ r1.p.rd.states` with
+  `st.Index ≤ r2.p.commit`, `ownRaftGhostR … id1 r1 -∗ ownRaftGhostR … id2 r2 -∗
+  isPropData γ st.RequestCtx c -∗ readReq γ c Lc -∗ ⌜Lc <+: r2.full.take r2.p.commit⌝`: the
+  committed log the request was created knowing is a prefix of the committed prefix of every
+  node whose commit index reaches the read index.
+
+Nothing static-only was in the way: `readOk_prefix` rests only on `isCommitted_agree`, and
+`readStateOk` lives in `rdOwn`, which `ownRaftGhost` carries in either mode; B5 already keeps
+`rdOwn` across the read rules (`rqRecOk_confirm_dyn` at `readAck`). The commit-index bound
+(`commit ≤` the log's length) comes from `RInv.commit_last`. No gap found in B5's read argument;
+no new model rule or premise. As for B5, a model theorem: B7 must reach it from Go (the static
+code path hands out `readStateOk` through `ownRaftGhost_readStates`, unchanged).
+
+## Reconfiguration, stage B5: safety under reconfiguration, at the model level (2026-10-14)
+
+The paper proof (`notes/reconfiguration-safety.md`) is now a Lean proof about the model: raft
+with configurations changing by applied conf entries (`StepR` at `Adm = AdmFold dec c0` and
+snapshot prefixes `S`, below) keeps the safety ghost state, which gives **log agreement** (the
+committed prefixes of any two nodes are prefixes of one another) and **election safety**.
+No `sorry` in the dynamic proof; trust base unchanged (75 axioms, 10 `sorry`s, `raft.txt`,
+`register.txt` pass; new collection `etc/tcb-collections/raft-dyn.txt`: the four results below
+rest on no axiom of this repository and no `sorry`).
+
+**A model theorem, not yet reached from Go.** The code's specs produce `Step` witnesses at a
+static configuration and keep `ownRaftGhost γ id s` (static mode); stage B7 must produce `StepR`
+witnesses and hold the `RState` fields (`ownRaftGhostR`). The static path is unchanged: no
+Go-facing spec, and neither of the register's `Results`/`Adequacy` statements, changed; the
+code side changed only in the two dispatchers (`raft__Step.lean`, `raft__Step/Base.lean`: one
+line each, the static mode from `ownRaftGhost_static`).
+
+Results (`Proof/go_etcd_io/raft/v3/Results.lean`, restating `Protocol/ResultsDyn.lean` and
+`Protocol/RefinementDyn.lean`):
+- `raft_reconfig_alloc`: the dynamic ghost state for nodes `ids` starting at `rinit c0` (the
+  initial `PState`, configuration `c0` with `CfgOk c0`, empty log, nothing applied), with the
+  commit invariant and `γ.dyn = some (DynCfg.ofFold dec c0 h0)`.
+- `raft_reconfig_step` (`ownRaftGhostR_stepR`): every `StepR (AdmS dec c0 S) dec id r recv r'`
+  step updates `ownRaftGhostR γ dec c0 id r` to `r'`, given `isMessage` of each consumed message,
+  their read credits, and `□ ∀ fp, ⌜S fp⌝ -∗ logRecs γ base0 fp`; every message it sends is an
+  `isMessage` (in the ghost state's outbox).
+- `raft_reconfig_log_agreement`, `raft_reconfig_election_safety`.
+
+Assumptions (each a restriction of the model, not a premise found false):
+- **A1**: the application calls `ApplyConfChange` for every committed conf entry, in order, once,
+  before the `Advance` that acknowledges it (`StepR.advance`/`applyConf`; violating it is
+  `issues/raft-advance-before-applyconfchange.md`).
+- **A3**: a snapshot's configuration is its prefix's fold (`AdmFold`), and the prefix a node
+  restores is the committed one the snapshot covers: the refinement takes the records of the
+  derivation's admissible prefixes `S` (`StepR.snapRestore` constrains its `fp'` only by
+  `FullOk` and `Adm`, so a run with an arbitrary `fp'` is not one of a real system; B7 supplies
+  the records from the message's knowledge).
+- Fresh nodes from one `c0` (`CfgOk c0`, empty log); no crash-restart (atomic persistence moot);
+  no panic (`cfgFold` defined on the applied prefixes: `RInv`).
+- The single-voter read-index shortcut is not modelled (`StepR.readAck` confirms with a joint
+  quorum, as Go's fixed code would; `issues/raft-readindex-singleton-stale.md`). (Gone with stage
+  F: the fixed shortcut is `StepR.readSingle`/`readReleaseSingle`; see "The single-voter
+  read-index fix".)
+- `AppCommitEq`: an `MsgApp` carries the sender's commit index (as `sendAppend` does).
+- `StepDownOnRemoval` either way: `StepR.stepDown` is refined.
+
+What the proof added (definitions in `notes/decisions.md`, "Reconfiguration stage B5"):
+- **Mode.** `RaftNames.reDyn : Option (∀ e, DynCfg)` (a configuration function of committed
+  prefixes with the adjacency overlap); `CfgAt γ P c` is `CfgStatic γ c` (static, which now
+  includes `reDyn = none`) or `D.fold P = some c`. `ownRaftGhost γ id s md` (default `false`)
+  records `γ.reDyn.isSome = md`; every per-rule refinement lemma is generic in `md`, the
+  configuration-reading ones (`campaign`, `win`, `commit`, `send_apps`, `read_ack`) take a
+  step environment `dynEnv` (static: `CfgStatic`; dynamic: from `RInv`, `ownRaftGhostR_env`).
+- **The dynamic-only facts**, guarded by `dynOn γ P := ⌜reDyn = none⌝ ∨ P` so the static mode
+  never proves them: the commit fact's "at most one conf entry above `a`" (`ConfI1`) and its
+  witnesses (`cqAt` recursive, `witsB`, `commitIn`), the campaign facts carried by votes
+  (`campDyn`, in `isMessage` of a vote and in `voteJust`), I1 at an `MsgApp`'s commit.
+- **The three case splits** of `CfgAt.overlap`: `lc_core`'s far cases (`lc_far_newer`,
+  `lc_far_older`, `cq_agree_ih`), `win_fresh`'s far cases with repair 2 (`lc_adj_gen`: a winner
+  not yet in the table), and `rqRecOk_confirm_dyn` (repair 4: `doomed`'s witness set `U` and a
+  finite choice, `doom_choice`).
+- **`stepDown`**: `TermsOk`/`WinsOk`/`LcmOk` allow a non-candidate at its term (was: a leader),
+  `LeadAcksOk` (a candidate has no acknowledgement of its term, a leader's are within its log)
+  is a new conjunct of `ownLogGhost`; `ownLogGhost_stepDown` justifies the stepped-down
+  leader's acknowledgements by its own prefix. `lcmOwn_mono'`/`rdOwn_mono'` drop the old
+  "a leader leaves its term only for a higher one" premise (the old names are wrappers).
+
+No false paper statement and no Go bug found. One under-constraint of the B3 model noted:
+`StepR.snapRestore`'s `fp'` (handled by the premise `S` above, not changed in `StepR`).
+
+**Left.** B7: produce `StepR` witnesses from the code and keep `ownRaftGhostR` in the code
+proofs (the `RState` fields `applied`, `pci`, `snap`, and the ghost `cidx`, `cfg`, `fp`), then
+restate the Go-facing results in the dynamic mode.
+
+## Reconfiguration, stage B4: the ghost state shaped for dynamic configurations, at a static configuration (2026-10-14)
+
+The safety ghost now has the paper proof's structure (`notes/reconfiguration-safety.md`,
+sections 2, 5, 7, 8) -- a winners table, quorums that record their configuration, the campaign
+record's commit index, `lc_core` split into its dispatch and the adjacent case -- while every
+result is still proved at the static configuration. No Go-facing spec changed; the code side
+changed only in the register's `Lemmas.lean` (two invariant-opening patterns: the commit
+invariant has one more conjunct). Trust base unchanged (75 axioms, 10 `sorry`s; `raft.txt`,
+`register.txt` pass); no new `sorry` or axiom.
+
+- **`CfgAt γ P c`** (`Protocol/Ghost.lean`): "`c` is the configuration of the committed prefix
+  `P`" -- at B4 `CfgStatic γ c` (the prefix unused). Every quorum the ghost keeps is a
+  `JQuorum c` of a configuration with `CfgAt`. **`CfgAt.overlap`** (two recorded configurations
+  overlap) is the one place the static instance discharges what the dynamic proof argues by
+  cases; it is used exactly three times: `win_fresh`, `lc_core`, `rqRecOk_confirm`.
+  (`CfgAt.member`, `CfgAt.of_static`.) `QOverlap` and its basic lemmas moved from
+  `CfgOverlap.lean` to `StepC.lean` (the ghost files cannot import `CfgOverlap`: it sits above
+  `InvRaftPhys`, which imports the ghost).
+- **Campaign record with `k`** (paper repair 3, first half): `isCampK γ c T F k` -- the campaign
+  map stores `(F, k)`, `k` the commit index at the campaign (`≤` the log's last index), with
+  `isCommitted γ (F.take k)`; `isCamp γ c T F := ∃ k, isCampK …` (every old use unchanged;
+  `isCampK_agree`, `isCampK_ok`, `isCampK_camp`). The global committed log's definitions moved
+  up in `Ghost.lean` for it.
+- **Winners table** (`RaftNames.reTbl`, `WinRec := (winner × CfgM) × quorum`, `CfgM_countable`):
+  `isWinCore γ id T c q` (the frozen `reWins` quorum, `JQuorum c q`, the campaign record
+  `isCampK γ id T F0 k` with `CfgAt γ (F0.take k) c`, the votes); `isWin γ id T q := ∃ c,
+  isWinCore … ∗ T ↪[reTbl]□ ((id, c), q)` (signature unchanged). `winTbl γ` (authority plus
+  each entry's `isWinCore` and element) is a new last conjunct of `raftCommitInv`.
+  **`isLeader_unique` is now table agreement** (`isWin_tbl_agree`), not quorum intersection, so
+  its statement and every code-side use are unchanged and it no longer needs a voter set.
+  Election safety moved to win time: `win_fresh` (the new winner's quorum meets every entry's
+  of its term; static: `CfgAt.overlap`), `winTbl_insert` (given that, an existing entry is the
+  same winner with the same quorum, else insert), `win_register` (inside the invariant);
+  `ownRaftGhost_step_win` is now a fancy update (`={⊤}=∗`). `isWin_votes`, `isWin_core`.
+- **Commit facts with configuration** (paper's `cqW` without its dynamic-only parts): `cq γ t n
+  G` keeps its signature; its quorum is `∃ a c q`, `a ≤ n` the configuration index,
+  `CfgAt γ (G.take a) c`, `JQuorum c q`, `isCommitted γ (G.take a)`. `Step.commit` records
+  `a := commit` (static). `cqAt γ t n G a c q` exposes the data (`cq_cqAt`, `cqAt_cq`).
+- **Read index**: `doomed γ T t' q` keeps the doom fact itself (`∃ n G a c, T < t' ∧ 0 < n ∗
+  cqAt γ t' n G a c q`; paper section 8), was the acknowledgements and `IsQuorum γ.reCfg`;
+  `rqRecOk_confirm` takes the reader's `CfgAt γ P c` and `JQuorum c Q`, `rdOwn_ack` a
+  `JQuorumAcked c` (was `QuorumAcked γ.reCfg`). `ownRaftGhost_step_read_ack` no longer converts.
+- **Leader completeness** (`LeaderCompleteness.lean`): `lc_adj` is the old pivot argument, given
+  the induction hypothesis below `T` (`LcIH`, now public) and a voter in both the commit quorum
+  and the winning quorum; its `d` branch is the table's agreement. `lc_core` is the induction
+  that, at `T`, reads both recorded configurations and calls `lc_adj` with the voter from
+  `CfgAt.overlap`. `win`, `commit`, `readAck` keep their `CfgStatic γ c` premise
+  (`ownRaftGhost_stepC` unchanged) and pass `CfgAt.of_static`.
+
+**Not done, and why (B5's work).** (1) The commit fact's "at most one conf entry of `G` above
+`a`" (repair 1), its witnesses and the campaign record's witnesses for the conf positions
+`≤ k` (repair 3), and the node-local witness invariant `W` carried by `MsgApp`/heartbeat/`MsgSnap`
+(repair 5): none of them holds at the static model. `StepC` lets a leader propose any number
+of conf-change entries (no `pendingConfIndex`) and an `MsgApp` carry any commit index up to the
+sender's, so "at most one conf entry above `a`" (I3(b)) and witnesses whose configuration index
+is exactly the one before the position are false for `StepC` runs; they need the ghost to
+follow `StepR` (I1/I3/`RInv`). Plumbing them as `True` placeholders would only fix positions,
+and every rule would still have to be redone in B5, so they are left out; their places are
+named in `cq`'s and `isCampK`'s documentation. (2) The ghost still refines `StepC`, not
+`StepR` (`notes/decisions.md`, "stage B4"). (3) `lc_adj` requires its winner to be a table
+member (`isWin`); `win_fresh`'s case "new winner older" (repair 2) needs it for a winner not yet
+in the table, with the hypothesis "every leader of `T` a voter of `V` knew is `c` or satisfies
+`lc_core` at `T`".
+
+**What B5 must supply**, each where B4 uses the static instance:
+- `CfgAt`'s definition: `cfgFold dec c0 P = some s ∧ s.cfg.cfg = c` (with `dec`, `c0` in `γ`
+  or the invariant), and its producers: `Step.win` (`CfgAt γ (F0.take k) c` from I2 at the
+  campaign, `RInv.cand_cfg`), `Step.commit` (`a := cidx`, `CfgAt γ (G.take cidx) c` from `RInv`),
+  `readAck` (the reader's `cidx` prefix; B4 passes `[]`).
+- `CfgAt.overlap`'s three uses: `win_fresh` (adjacent: `fold_adjacent`; far: section 5 with
+  `lc_adj` at a campaign witness and I1 at a campaign, plus repair 2), `lc_core` (section 7's
+  far cases: the commit fact's at-most-one, or `lc_adj` at its witness and I1), `rqRecOk_confirm`
+  (section 8's far cases: the doom fact's at-most-one and `lc_core` at the doom term; its
+  witness and I3(b) at the reader). `CfgAt.member` (a joint quorum is non-empty) holds for any
+  `CfgOk` configuration.
+- The dynamic-only data of (1) and their creation sites (`Step.commit` from I3(b) and `W`;
+  `Step.campaign` from `W`), and `W` through every rule and message.
+
+## Reconfiguration, stage B3: the model with what reconfiguration reads, at a static configuration (2026-10-14)
+
+The protocol model gains `applied`, `pendingConfIndex`, a pending snapshot, the configuration
+with its configuration index and Go's guards, as a new relation `StepR` on a new state
+`RState` (`PState` unchanged); I1, I3 and the configuration invariant are proved for every rule;
+at a static configuration `StepR` projects to `StepC`, so the ghost refinement goes through for
+every rule. No code file changed (the code still produces `Step` witnesses); the trust base is
+unchanged (75 axioms, 10 `sorry`s; the new results depend on `propext`, `Classical.choice`,
+`Quot.sound` only).
+
+- **`RState`** (`Protocol/StepR.lean`): `p : PState`, `applied` (`raftLog.applied`), `pci`
+  (`pendingConfIndex`), `snap` (a restored snapshot not yet applied: unpromotable), `cidx : Nat`
+  (the configuration index), `cfg : CCState` (the configuration with learner flags), `fp` (ghost:
+  the full prefix below `p.base`); `RState.full r = r.fp ++ r.p.log`.
+- **`StepR Adm dec id : RState → List Msg → RState → Prop`**: `StepC`'s rules at `r.cfg.cfg`, with
+  - `campaign`: `id ∈ voters`, `snap = false`, `NoConfIn r.full applied commit` (no conf entry in
+    `(applied, commit]`: `hasUnappliedConfChanges`), `pci := 0`;
+  - `win`: `pci := plastIndex r.p` (before the empty entry, `becomeLeader`);
+  - `propose m r cs`: `CCTypesOk m.entries cs`, the batch and `pci` of `propBatch r m.entries cs`
+    = `propConf applied lastIndex pci ents cs (CfgM.joint r.cfg.cfg)` (Go's loop exactly; was any
+    `PropRepl`); `propDrop`: the loop's `pci` with nothing appended, receiving nothing;
+  - `sendApps`/`win`: `AppCommitEq` (an `MsgApp` carries the sender's commit index);
+  - `higherTerm`, `stepDown`: `pci := 0`;
+  - `snapRestore m r fp' cs'`: `FullOk (logterm, index) fp'`, `id ∈ cs'.cfg.ids`, `Adm fp' cs'`;
+    `snap := true`, `cidx := index`, `cfg := cs'`, `fp := fp'`;
+  - new `advance r a`: `snap = false`, `applied ≤ a ≤ commit`, `NoConfIn full cidx a` (A1);
+    `applied := a`, `cidx := max cidx a`; new `applySnap`: `applied := base`, `snap := false`;
+  - new `applyConf r k e op cs'`: `snap = false`, `cidx ≤ k < commit`, `full[k] = e` a conf entry,
+    `NoConfIn full cidx k` (the next one, in order), `dec (full.take k) e = some op`,
+    `ccStepB op r.cfg = some cs'`, `Adm (full.take (k+1)) cs'`; `cidx := k + 1`, `cfg := cs'`;
+  - new `stepDown`: a leader with `id ∉ voters` becomes a follower at its term.
+  `Adm`: `AdmFold dec c0` (dynamic: the prefix's fold, A3 for snapshots) or `StaticAdm V` (the
+  voters `V`, not joint). `StepR.mono` (weaker `Adm`). `CfgM.joint` moved to `StepC.lean`.
+- **`stepR_static`**: `StepR (StaticAdm V) dec id r ms r' → StaticR V r → RoleVoter id V r →
+  StepC (CfgM.simple V ∅) id r.p ms r'.p ∧ StaticR V r' ∧ RoleVoter id V r'` (`RoleVoter`: a
+  non-follower is a voter, the code's `Hvoter`; it rules out `stepDown`). **`ownRaftGhost_stepR`**
+  (`Protocol/RefinementR.lean`): the ghost update for every `StepR` rule at `StaticAdm γ.reCfg`,
+  from `ownRaftGhost_stepC`. The new rules are stuttering steps for the ghost.
+- **The decoder** (`CfgOverlap.lean`): `CCDec := List Entry → Entry → Option CCOp` takes the
+  prefix (the review's gap: etcd zeroes a refused change's `NodeID`); `cfgFold dec s l =
+  cfgFoldFrom dec [] s l`, `cfgFoldFrom_append`, `cfgFold_snoc`, every lemma generalized (no proof
+  idea changed); `decOfData data` decodes from the proposed bytes (`ccMsgOfBytes`, then
+  `ccV2Of`), `decOfData_some` (a conf entry whose bytes decode, `CCDecodes`, has a change).
+- **Invariants** (`Protocol/StepRInv.lean`): `ConfI1 l c` (I1: of two conf entries the first is
+  below `c`), `ConfI3 l pci a` (I3), and `RInv dec c0 r`: `FullOk`, `base ≤ commit ≤ lastIndex`,
+  `applied ≤ cidx ≤ commit`, `snap → cidx = base`, `¬snap → base ≤ applied`, a leader has no
+  pending snapshot, **`cfgFold dec c0 (full.take cidx) = some cfg`**, `ConfI1 full commit`, a
+  leader's `ConfI3 full pci applied`, a candidate's guard (`¬snap`, `NoConfIn full applied
+  commit`). One lemma per rule that moves a field it reads (`RInv_campaign`, `_win`, `_propose`,
+  `_propDrop`, `_commit`, `_heartbeat`, `_snapFastfwd`, `_snapRestore`, `_advance`, `_applySnap`,
+  `_applyConf`, `_appAccept`), the rest by `RInv.frame`/`RInv_keep`; `RInv_stepR` (every
+  derivation, given `Adm ⊆ AdmFold` and `AppKnow` for each received `MsgApp`), `RInv_stepR_nil`,
+  `RInv_init` (a committed and applied bootstrap log from `c0`). `AppKnow r m`: `AppPayloadOk`
+  and the sender's log `G` up to the batch's end with `ConfI1 G m.commit`, the previous term,
+  and log matching with the receiver's full log (`LogMatchL`); the sender's side is
+  `ConfI1_appOk` (from `AppOk` and `AppCommitEq`). Corollaries: `RInv.cand_cfg` (I2: a
+  candidate's configuration is the fold of its whole committed prefix, at most one conf entry
+  past it), `RInv.leader_drop_cidx`, `RInv.i1_of_i3`, `RInv.cfgOk`. The loop's facts:
+  `propConf_inv` (`PCInv`: `pci` grows, accepted conf entries below it, at most one, only when
+  `pci ≤ applied`).
+- **Finding: I1 on `MsgApp` slices is false against `StepC`'s `AppOk`**, which allows an `MsgApp`
+  any commit index up to the sender's. Counterexample in the model: a leader with conf entries
+  at 5 and 7 and commit index 6 (I3 holds) sends entries 5..7 with commit 0; a follower at commit
+  4 accepts and holds two conf entries above its commit index, and its campaign guard (which
+  reads only `(applied, commit]`) does not stop it, so I2's "at most one conf entry above `k`"
+  fails at its campaign. Go is not affected (`sendAppend` sets `Commit: r.raftLog.committed`):
+  `StepR` requires `AppCommitEq`. The paper's I1 statements are otherwise right against the model;
+  no Go bug found this stage.
+
+**For B4/B5.** (1) The code produces no `StepR` witness. To do so: `ownRawNode`/the ghost state
+must hold the aux fields (`applied` and `snap` are `NState.logst.applied`/`.snap`, `pci` is
+`NState.pci`; `cidx`, `cfg`, `fp` are ghost); the dispatcher converts each branch's witness
+(frame rules lift unchanged), with `campaign`'s guard from `hup`'s `hasUnappliedConfChanges`
+answer (on the code's log: needs `base ≤ applied`) and, for the campaign after a pre-vote win
+(`stepCandidate`, which checks nothing), a pre-candidate invariant that the guard still holds;
+`propose` from `LeaderProposeResult` (`leaderPropConf` is `propBatch` given the field
+correspondences and `joint = c.joint`); `win`'s `pci` from `becomeLeader`; `AppCommitEq` needs
+`maybeSendAppend`'s spec strengthened from "commit index no larger" to equality; `advance` and
+`applySnap` from `RawNode.Advance` (`appliedTo`/`appliedSnap`) with A1 as a premise;
+`applyConf` from `RawNode.ApplyConfChange` with the application's decoder obligation.
+(2) `AppKnow`'s `G` and log matching are what `isMessage` for `app` must carry (B4: the
+witness invariant `W` travels the same way). (3) `Adm := AdmFold dec c0` needs the snapshot
+knowledge to say its configuration is the fold of its prefix (A3). (4) `stepDown` is in the
+dynamic model; `ownRaftGhost` assumes a leader stays leader for its term (`klOk`), which the
+dynamic refinement must relax (paper 4.11).
+
+## Reconfiguration, stage B2: the refinement on `StepC`, at a constant configuration (2026-10-14)
+
+The protocol's ghost layer now takes steps of `StepC c id` (`Protocol/StepC.lean`, the relation
+at a `confchange` configuration) instead of `Step γ.reCfg id`; the configuration is a parameter,
+constrained for now to the ghost state's. No Go-facing spec changed meaning; the trust base is
+unchanged (75 axioms, 10 `sorry`s).
+
+- **`RaftNames.reCfg_ne : reCfg ≠ ∅`** (`Protocol/Ghost.lean`), a new proof field. Needed
+  because `StepC` reads quorums by Go's convention (`MajQ`: every set is a majority of an empty
+  voter set), so at an empty configuration `StepC.win` admits any votes, while the ghost state
+  needs a real `IsQuorum`. `raft.Step`'s spec cannot supply it (learners step too, so `id ∈ cfg`
+  is not a premise, and `ownRaftPhys` has no non-emptiness conjunct by design), so it lives in
+  `γ`: `ownRaftGhost_alloc` takes `cfg ≠ ∅` (the register: `clusterIds_ne`).
+- **`CfgStatic γ c := c.incoming = γ.reCfg ∧ c.outgoing = ∅`** (`Ghost.lean`, learners, staged
+  learners and `AutoLeave` free), with `CfgStatic.simple`, `.voters`, `.isQuorum` (a `JQuorum c`
+  is an `IsQuorum γ.reCfg`), `.quorumAcked`, `.stepC_iff` (`step_iff_stepC` at
+  `CfgM.simple γ.reCfg lrn`, non-emptiness from `reCfg_ne`).
+- **`ownRaftGhost_stepC γ c (HC : CfgStatic γ c) id s recv s' : StepC c id s recv s' → …`**
+  (`Protocol/Refinement.lean`), same conclusion as before. Only three per-rule lemmas read the
+  configuration and now take `(c) (HC)` and Go's quorum forms, converting at their start:
+  `ownRaftGhost_step_win` (`JQuorum c (granted s.votes)`), `ownRaftGhost_step_commit`
+  (`JQuorum c (ackedBy s n)`), `ownRaftGhost_step_read_ack` (`JQuorumAcked c …`). Every other
+  per-rule lemma never mentioned the configuration and is unchanged. `ownRaftGhost_step` (the
+  `Step γ.reCfg` form) is kept as a corollary, and the wrappers `ownRaftGhost_step_0/1/1c`
+  (`Facts.lean`) use it.
+- **The code boundary**: the dispatcher's two ghost updates (`raft__Step.lean`'s
+  `MsgReadIndex` branch and `raft__Step/Base.lean`'s `ghost_step_recv`, which every branch goes
+  through) now call `ownRaftGhost_stepC` at `CfgM.simple γ.reCfg ∅`, converting the branch's
+  `Step` witness with `CfgStatic.stepC_iff`. The branches, `RawNode` and `node` keep their
+  `Step cfg` witnesses.
+- **Kept in the `cfg` form** (not cheap to move, B4's work): the quorums inside ghost
+  definitions -- `isWin`'s and `cq`'s `IsQuorum γ.reCfg` (`Ghost.lean`), the vote-record one in
+  `GhostState.lean`, read index's in `ReadIndex.lean`. These are where the winners table's
+  per-term configuration goes.
+
+**For B3/B4.** (1) `CfgStatic` is the one constraint to replace (by "the configuration of the
+term's winner", etc.); `CfgStatic.isQuorum` is what each of `win`/`commit`/`readAck` uses, so
+generalizing means changing those three proofs and the ghost definitions above, not the
+induction. (2) `reCfg_ne` matches `CfgOk`'s "an incoming voter" (`CfgOverlap.lean`): when
+`reCfg` becomes the initial configuration, the field still holds, and later configurations get
+it from `CfgOk`. (3) The ghost proof of `campaign` does not use `id ∈ c.voters` or the peer list
+(both unused hypotheses), so the campaign guard of B3 can be added to `StepC.campaign` without
+touching the refinement except where the guard is used. (4) Once `raft.Step` is at `c` at code
+level (A3's plan, `StepLemmasC`), the dispatcher should pass its `StepC` witness straight to
+`ownRaftGhost_stepC` and the `stepC_iff` conversion at `CfgM.simple γ.reCfg ∅` goes.
+
+## Reconfiguration, stage A3: `stepLeader` and snapshots at any configuration (2026-10-14)
+
+Code-level verification of arbitrary configuration changes, continued from A2; no protocol claim
+(the ghost link stays at fixed voters: `raft.Step.spec`, `ownRawNode γ`, `γ.reCfg` unchanged).
+Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries;
+`raft.txt` 6/0 and `register.txt` 4/9 unchanged). `Link.lean` unchanged (`etc/gen-link.py`
+reproduces it: no callee lists moved). Commits `e3639931c`, `302b48fc3`, `0d6a701d4` and this
+notes commit. Items 1, 2 and part of 5 of the stage's plan are done; 3, 4 and the rest of 5 are
+left (below).
+
+- **`stepLeader.spec` on `ownRaftPhysCV c c.voters`** (`Spec/stepLeader.lean`; the old statement
+  is `stepLeader.specS`, derived by `stepLeader.spec_simple`; `raft.Step.Postulates.stepLeader`
+  is now `specS`). Result `LeaderStepResultC c`; the changed premises: `RdOk c.voters s.rd`
+  (was `RdOk cfg`), a `MsgReadIndex` needs `¬ (size c.incoming = 1 ∧ size c.outgoing = 0)`
+  (`IsSingleton`, was `1 < size cfg`), `id ∈ cfg` gone (a leader is a voter by `Hvoter`).
+  - `LeaderNonpropResultC c`: `LeaderNonpropResult` with `ReadAckResultC c` (the confirmed
+    position `N` is `JCommittedIdx c.incoming c.outgoing` of the acknowledgements, was
+    `IsQuorumIndex cfg`) and `AppRespAcceptedC c` (the commit `CommitOkC c`, a joint quorum).
+    `.simple` lemmas for both (`cfg ≠ ∅`).
+  - `MsgProp`: `LeaderProposeResult id s ents dropped s' c.joint`. **`propConf`/`propConfStep`/
+    `leaderPropConf`/`LeaderProposeResult` take `joint`** (`CCModel.lean`; default `false` for
+    the last three, so the ghost layer's uses are unchanged): a conf change is refused when one
+    is pending or `ccWantsLeave c ≠ joint` -- inside a joint configuration only a request to
+    leave it is accepted ("must transition out of joint config first"), outside one only a
+    change ("not in joint state; refusing empty conf change"). `CfgM.joint c := decide (0 <
+    size c.outgoing)` is `alreadyJoint` (`len(r.trk.Config.Voters[1]) > 0`, read with
+    `wp_idset_len`).
+  - `ownTrackerC_halves` (`stepLeader/MsgProp.lean`): the tracker's two voter halves as
+    `ownIdsetQ`, with their bounds, given back unchanged.
+- **`readOnly.maybeAdvance.spec` general**: the configuration value's two halves `v0`, `v1` as
+  `ownIdsetQ` (was `[m0, nil]`), premises `s0 ∪ s1 ≠ ∅` and the acknowledgement bound over
+  `s0 ∪ s1`; result `JCommittedIdx s0 s1 (acks) N`. The answer is at most some voter's
+  acknowledgement (`jcommitted_le`: a non-empty half's quorum index is a voter's value), which
+  keeps the two reslices in bounds. Its only caller is `stepLeader` (no `spec_simple`).
+- **`raft.restore.spec` at any configuration** (old statement `specS`): the struct at any `c`
+  (joint or not), the snapshot's `ConfState` non-joint with any voters `cfg ∋ id`
+  (`SnapScope cfg`, which no longer has to be the node's voters); post at `restoreCfg c cfg b
+  s'` (the snapshot's `CfgM.simple cfg (domSet s'.progress \ cfg)` after a restore, `c`
+  otherwise). The proof retracks the struct from `c` to the empty tracker (`ownRaftPhysC_retrack`
+  to `CfgM.simple ∅ ∅`, then `ownRaftPhysC_toS`) and goes on as before.
+  **`raft.handleSnapshot.spec`** likewise (old `specS`), post `∃ c'` with `SnapCfgOk c cfg s sv
+  s' c'` (`SnapRestores s sv`: restored, at the snapshot's configuration; else at `c`).
+- **`stepFollower.spec`/`stepCandidate.spec`: `MsgSnap` at any `c`**: a new parameter `scfg`
+  (the snapshot's voters), `Hsnap`'s scope `SnapScope scfg ... ∧ id ∈ scfg` (A2 had `c.outgoing =
+  ∅ ∧ SnapScope c.incoming`), `FollowerStepResultC`/`CandidateStepResultC` take `scfg` and say
+  `SnapCfgOk c scfg s sv s' c'` for a `MsgSnap`. The `specS` derivations take `scfg := cfg`.
+  **A joint snapshot `ConfState` is out of scope** (`SnapScope`'s `VotersOutgoing = []`): not
+  unreachable -- a snapshot taken at a joint configuration has one -- but `confchange.Restore`'s
+  spec covers the non-joint case only (`Restore` of a joint state runs `Simple` over the
+  outgoing voters, then `EnterJoint`; left).
+- **`applyCCOkC_step`** (`Spec/raft__applyConfChange.lean`): the protocol reading of `ApplyCCOkC
+  c'` -- a non-leader, or a leader that stays a voter of either half, takes one `StepC c'` step
+  receiving nothing (`reMatch`, `commit` by a joint quorum, `sendApps`; `refl`), with
+  `applyCCOk_step`'s frame; a removed or demoted leader takes the `reMatch` step and then steps
+  down at its own term, which no `StepC` rule describes (`abandon` is a non-leader's; the
+  equivalence `step_iff_stepC` would not survive adding one, since `Step` has none either).
+- Build note: the full parallel build passed twice this stage, `stepLeader.lean` included (also
+  rebuilt alone once); the "unknown free variable" flakiness was not reproduced, its cause not
+  found.
+
+**Left** (precisely):
+- **`raft.Step` on `ownRaftPhysC`** (item 3) and **`RawNode.Step`/`Ready`/`Advance`/`Tick` on
+  `ownRawNodeC`** (item 4): not started. `raft.Step`'s ~40 branch lemmas (`raft__Step/`, ~8000
+  lines) are physical triples with a pure `Step cfg` witness (the ghost update is in the
+  dispatcher only, `finish_branch`), so the C version is their conversion: `ownRaftPhysCV c
+  c.voters`, `StepC c` witnesses, the C specs of the callees (a `PostulatesC` with `hup`,
+  `becomeFollower`, `send`, `stepCandidate`, `stepFollower`, `stepLeader` at `c`), C versions of
+  the result lemmas (`repl_lemmas`/`resp_lemmas`/`prevote_lemmas`: `followerStepResult_app`,
+  `leader_appresp_step`, `readAck_step`, ...) and of `StepLemmas.lean` (`StepLemmasC.lean` has 5
+  of its 12); the old branch lemmas then derived at `CfgM.simple` (`step_of_stepC`,
+  `ownRaftPhysC_toS`). A physical-only `raft.Step` at `c` would need the protocol facts the
+  dispatcher now draws from the ghost state (`PlogWf`, the conflict above the commit index, a
+  heartbeat's commit within the log, the read-index context bound) as premises on the message.
+  `RawNode.Ready` on `ownRawNodeC` (`readyWithoutAccept`/`acceptReady`, ~1300 lines) is
+  independent of `raft.Step` but useful only with `Step`/`Advance`.
+- **`CCApplies`'s size bound** (item 5): a client still cannot show it for a change that tracks a
+  new id. A tighter bound in `ownRawNode` or the learner set in `RNState` both need the progress
+  map's domain to survive every `RawNode` operation, which no spec says: `raft.Step.spec`'s
+  `NetFrame` would gain `m.Type' ≠ MsgSnap → s'.progress = s.progress` (true: only `restore`
+  changes the map; `reset`/`becomeLeader` rewrite `Progress` objects in place), established in
+  the ~100 places `NetFrame` is built (mostly through `keep_frame`/`stepdown_frame`/`app_frame`
+  with `rfl` defaults), then `RNState.lrn` with `ownRawNode`'s `domSet s.progress \ γ.reCfg =
+  rs.lrn` re-established at the 28 `ownRawNode_intro` sites, and `CCApplies` at `rs.lrn` instead
+  of every learner set. (A tighter bound in `ownTracker` itself would break the `ownRaftPhys` ↔
+  `ownRaftPhysC` equivalence, whose `ownTrackerC` bound is `2^62`.)
+- **Self-removal at the `RawNode` layer** (item 5): `Config.StepDownOnRemoval` would be visible
+  the same way (`s.sdr` survives every step; `RNState.sdr`), but it is not enough: a removed
+  *candidate* stays a candidate outside the configuration (and panics if it wins,
+  `issues/raft-advance-before-applyconfchange.md`), so the premise needs the node's role, which
+  `RNState` does not carry either (every `RawNode` spec would have to say how a step moves it).
+  The premise "stays a voter" remains.
+- The protocol at joint configurations (the ghost layer on `StepC`), beyond stage A.
+- Decisions: notes/decisions.md, "Reconfiguration stage A3".
+
+## Reconfiguration, stage B1: adversarial review (2026-10-14, parallel task 3)
+
+`notes/reconfiguration-safety-review.md` (branch `parallel/b1-review`): the paper proof read
+against the Go code, claim by claim. The core argument (I1-I3, `W`, the winners table and
+`win_fresh`, `cqW`'s witnesses, the three `lc_core` cases, read index's joint cases) holds. Two
+counterexamples outside it, both Go tests under `issues/raft-conf-lag-model/`:
+`issues/raft-readindex-singleton-stale.md` (the `IsSingleton` read-index shortcut answers stale
+reads once a conf change leaves one voter: a new leader before its first commit, or a removed
+leader; a fix patch) and `issues/raft-joiner-empty-confstate.md` (with `c0` in an index-0
+`ConfState` snapshot, a node added later folds conf changes onto an empty configuration and
+wins alone: section 0's claim about added nodes is false for that bootstrap). Gaps for B2's
+scope: `dec` must be allowed to depend on the prefix (etcd zeroes the `NodeId` of a change it
+rejects); A1/A3 must say "in order, once per entry" and "compaction and snapshots at most
+`applied`"; the read-index premise must exclude single-voter configurations (or the code fixed).
+
+## Parallel tasks 1, 2, 4, 5 (2026-10-14, notes/parallel-work.md)
+
+- Tasks 1-2 (`issues/raft-conf-lag-model/guard-fix.{md,patch}`): the guard fix, opt-in
+  (`Config.TrackConfChangeApplication`; on by default it costs liveness where an application
+  does not call `ApplyConfChange` once per conf entry: refused changes per `node.go`, etcd's
+  replay below its consistent index). It closes the lag class (not the empty-`ConfState`
+  joiner, non-atomic persistence, or a restart with `Applied` ahead of the `ConfState`).
+  New Go bug: `issues/raft-snapshot-during-apply-stale-confchange.md` (a snapshot restored
+  while a `Ready`'s conf change is applied; the change then lands on the snapshot's
+  configuration). Upstream drafts, unfiled: `issues/raft-document-confchange-before-advance.md`,
+  `issues/raft-track-confchange-application.md`, `issues/etcd-leader-advance-before-applyconfchange.md`
+  (etcd's leader path; by code reading only, not reproduced end to end).
+- Task 4 (`notes/flaky-stepleader-build.md`): the flaky `stepLeader.lean` build is a race on
+  Perennial's process-global `inIframe` flag (`IrisTactics.lean`), shared by theorems
+  elaborated in parallel; fix proposed (an option via `withOptions`), not
+  in Perennial yet. **TODO: delete the TEMPORARY `local elab_rules` for `iframe ∗` at the top of
+  `stepLeader.lean`** (the stopgap, applied there only) once the pinned Perennial has the fix.
+- Task 5 (`notes/reconfiguration-model-check.md`, `issues/raft-conf-lag-model/checker/`): a Go
+  explicit-state checker of `model.py`. Lag and crash modes: counterexamples at depths 16-20.
+  Faithful mode: no violation in eight exhaustive runs (up to 1.6e9 states; no messages in
+  flight, no snapshots/learners/restarts, at most 2 conf changes, 3 terms, 5 entries).
+  Guard-fix mode: none (exhaustive at 3 nodes).
+
+## Reconfiguration, stage B1: the safety argument on paper, its pure foundation (2026-10-14)
+
+Stage B is protocol-level safety (state machine safety, read index) with configurations taking
+effect at apply time. B1 is the paper proof and its Lean foundation; no existing file changed.
+Trust base: no new axiom, no new `sorry` (`CfgOverlap.lean` depends on `propext`,
+`Classical.choice`, `Quot.sound` only).
+
+- **The paper proof**: `notes/reconfiguration-safety.md` -- scope (A1: `ApplyConfChange` before
+  `Advance`; fresh nodes; A3: a snapshot's `ConfState` is its prefix's configuration; no panic),
+  definitions, invariants (I1: two conf entries in a log, the first is committed; I2: the
+  campaign guard makes the configuration the fold of the whole committed prefix; I3: a leader has
+  every conf entry `≤ pendingConfIndex` and at most one above `applied`; `W`: node-local witnesses
+  for committed conf positions), every rule, the winners table and `win_fresh`, commit facts
+  with configuration index and witnesses, `lc_core` with the three cases, read index. The plan's
+  design holds with five repairs (the notes' "[gap]" marks): a commit fact records the
+  committer's "at most one conf entry above `a`"; `win_fresh` needs the existing winner's
+  `lc_core` when the new winner has the older configuration (real-time order alone does not
+  close the `d` branch); the campaign record carries the commit index and witnesses of terms
+  `< T`; read index's `j_r ≥ j_m + 2` case is a contradiction through the doomer's campaign; the
+  witness invariant is node-local and travels with `MsgApp`/heartbeat/`MsgSnap`.
+- **`Proof/go_etcd_io/raft/v3/Protocol/CfgOverlap.lean`** (new, imports `InvApplyConf`; in the
+  build through `lakefile.toml`'s `Proof.+` glob): `QOverlap`, `CfgOk` (`CfgInv`, an incoming
+  voter, `size ids < 2^62` -- not raft's `≤ 2^62`: at the boundary `Simple`'s `int` symmetric
+  difference wraps and a disjoint swap is accepted), `maj_symdiff_overlap`,
+  `simpleM_overlap`/`enterJointM_overlap`/`leaveJointM_overlap`/`ccApplyM_overlap` (each keeping
+  `CfgOk`), `JQuorum_intersect`, `cfgFold` (over entries, the decoder `dec` a parameter),
+  `cfgFold_append`, `cfgFold_ok`, `cfgFold_zero`, `confPos`/`confCount` (`mem_confPos`,
+  `length_confPos`), `fold_adjacent`/`fold_adjacent'`.
+- **Finding** (`issues/raft-joint-empty-transition-panic.md`, reproduced by a Go test): at a joint
+  configuration `stepLeader` accepts an empty `ConfChangeV2` with a non-`Auto` transition as a
+  leave proposal (`wantsLeaveJoint` reads only `len(Changes)`); `applyConfChange` takes it for
+  `EnterJoint` and panics ("config is already joint") on every node.
+
+**Next (B2)**, in order (the notes' section 9): the model's state gains `applied`,
+`pendingConfIndex`, the configuration index and the pending snapshot, with the guard, `propConf`
+at joint configurations and the rules `Advance`/`ApplyConfChange`/leader step-down; I1 and I3
+as pure invariants with per-rule lemmas; the decoder from `isPropData`; then the ghost (campaign
+record, `cqW`, `W`, the winners table, `lc_core`, read index).
+
+## Reconfiguration, stage A2: the raft functions at any configuration (2026-10-14)
+
+Code-level verification of arbitrary configuration changes against the `confchange` model, no
+protocol claim: the ghost link stays at fixed voters (`raft.Step`, `ownRawNode γ`, `γ.reCfg`
+unchanged). Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms,
+10 sorries; `raft.txt` 6/0 and `register.txt` 4/9 unchanged). Commits `0ba20404b` to `3da239183`.
+
+- **`ownRaftPhysCV c V r id s`** (`InvRaftPhys.lean`): A1's body at `ownTrackerC c` with
+  `Hvoter`'s set `V` a parameter, sealed; **`ownRaftPhysC c` is an `abbrev`** for it at
+  `V = c.voters`. Specs and proofs write `ownRaftPhysCV c c.voters` (an `abbrev` head next to an
+  unfolded one defeats `iframe` on states equal only up to unfolding, e.g. `becomePrecandidate s`).
+  `V` differs from `c.voters` only for a removed or demoted leader between `switchToConfig`'s
+  install and its `becomeFollower`: `ownRaftPhysCV_widen`, `_follower`, `_reconfig`,
+  `ownRaftPhysC_retrack` (any `V0`, `V'`) move between sets.
+- **The interface on `ownRaftPhysCV`**: every field lemma and accessor of `InvRaftPhys.lean`,
+  restated with a `C` (`raft.wp_load_TermC`, `raft.wp_store_stateC` with `id ∈ V`,
+  `ownRaftPhysC_log_at`, `_pr`, `_msgs`, `_view`, ...; `V` implicit), generated from
+  `ownRaftPhys`'s proofs (`iNamed_physC`/`resealC`); the old lemmas keep their proofs.
+  `ownRaftPhysC_toS`/`ownRaftPhys_toC'` convert at a simple configuration; `wp_raft_logC`.
+  `InvTrackerC.lean`: `ownTrackerC_lookup_same`, `_prvals_dom`, `_maxinflight`, `_votes`,
+  `_reconfig`, `wp_trackerC_progress_lookup`, **`ownConfigC`** (a new configuration as
+  `switchToConfig` installs it), `ownConfigV_toC`.
+- **`NState.sdr`** (`r.stepDownOnRemoval`, default `false`, never written after `newRaft`),
+  recorded in `ownRaftPhys`'s body (`Hsdr`; one more premise of the two intro lemmas);
+  `raft.wp_load_stepDownOnRemovalC`. `newRaft`'s state sets it from the `Config`.
+- **34 raft functions on `ownRaftPhysC`**, each `<fn>.spec` now at `c : CfgM`, the old statement
+  `<fn>.specS` derived by `<fn>.spec_simple` (callers on `ownRaftPhys` switched by one line;
+  `raft.Step.Postulates` holds the `specS` of `send`, `hup`, `becomeFollower`, `stepCandidate`,
+  `stepFollower`): `send`, `increaseUncommittedSize`, `committedEntryInCurrentTerm`, `maybeSendSnapshot`,
+  `sendHeartbeat`, `sendTimeoutNow`, `appendEntry`, `responseToReadIndexReq`,
+  `handleAppendEntries`, `handleHeartbeat`, `maybeSendAppend`, `sendAppend`, `bcastAppend`,
+  `bcastHeartbeatWithCtx`, `bcastHeartbeat`, `releasePendingReadIndexMessages`,
+  `sendMsgReadIndexResponse`, `hasUnappliedConfChanges`, `becomePreCandidate` (`id ∈ c.voters`),
+  `becomeCandidate` (`id ∈ c.voters`), and (statements on `ownRaftPhysCV c V`, any `V`, for the
+  removed leader's step-down) `becomeFollower`, `reset`, `resetRandomizedElectionTimeout`,
+  `abortLeaderTransfer`. Config-dependent statements:
+  - `maybeCommit`: premise `s.role = .leader` only; `b = true → CommitOkC c (toPState s) N`
+    (`JQuorum c (ackedBy ...)`; an empty half has committed everything).
+  - `poll`: no premise; `res = VoteWon ↔ JQuorum c (granted votes')`, `res = VoteLost ↔ JLost c
+    votes'`.
+  - `promotable`: `b = decide (id ∈ c.voters ∧ snap = none)`.
+  - `becomeLeader`: **no configuration premise** (it dereferences `r.trk.Progress[r.id]`: a
+    non-follower is a voter of either half by `Hvoter`, every voter is tracked).
+  - `campaign`: `id ∈ c.voters`, `peers ≡ₚ elements (c.voters \ {[id]})`.
+  - `hup`: post `HupOkC c id s s'` -- `StepC c` (`Protocol/StepC.lean`), and `id ∉ c.voters → s' =
+    s` (what derives `HupOk` at an empty voter set, where `StepC` and `Step` differ).
+  - `stepFollower`/`stepCandidate`: `FollowerStepResultC`/`CandidateStepResultC c ... c'` with the
+    configuration `c'` afterwards (`c`, or the snapshot's after a `MsgSnap`, accepted only at a
+    non-joint `c` and handled by the old `handleSnapshot` spec through `ownRaftPhysC_toPhys`);
+    `CandVoteRespResultC`/`PrecandVoteRespResultC` joint; `StepLemmasC.lean` (`stepC_*`).
+  - `tracker.ProgressTracker.RecordVote`/`ResetVotes` on `ownTrackerC`.
+- **`raft.switchToConfig.spec`** at any `c` (`ownConfigC c cfgv prsm prs pvs`; `Hback` re-seals
+  at `ownRaftPhysCV c (c.voters ∪ {[id]})`; the `ConfState`'s four lists and `AutoLeave`).
+  Premises: `s.role = .leader → (id ∈ c.voters ∧ MatchKept s.prvals pvs) ∨ (id ∉ c.voters ∧ s.sdr =
+  true)`, and `s.role = .candidate ∨ .preCandidate → id ∈ c.voters`. Post `SwitchOkC c id {s with
+  progress, prvals, isLearner := learnerOfC c id} s'`: a non-leader stops, a voter-leader goes on
+  (`LeaderSwitchC`, joint commit, which includes doing nothing when `len(cs.Voters) == 0`), a
+  removed/demoted leader steps down (`becomeFollower(r.Term, None)`). **`specS` changed**: it
+  gained the candidate premise (every caller has it). The link gains `raft__becomeFollower`.
+- **`raft.applyConfChange.spec`** for any change: premise `ccApplyM cc.Transition' ccs (cfgStateC
+  c) = some c'` (the `confchange` errors -- `applyConfChange`'s `panic(err)` -- and the undefined
+  transition, `issues/raft-unknown-transition-panic.md`, are `none`), `size c'.cfg.ids ≤ 2^62`, the
+  two `switchToConfig` premises over `c'.cfg.voters`; post `ownRaftPhysCV c'.cfg c'.cfg.voters`,
+  the `ConfState` of `c'`, `ApplyCCOkC c'.cfg id s s'`. `LeaveJoint`, `EnterJoint`, `Simple` all
+  proved; the link gains `Changer__LeaveJoint`/`Changer__EnterJoint`.
+- **`CCGood`** (`InvApplyConfC.lean`): tracked ids = `CfgM.ids`, flags = `decide (k ∈ learners)`,
+  learners no voters, staged learners outgoing voters; kept by `initProgressM`, `makeVoterM`,
+  `makeLearnerM`, `removeM`, `applyOne`/`applyAll`/`applyM`, `simpleM`, `enterJointM`,
+  `leaveJointM` (`ccApplyM_good`; `ccApplyM_inv`: the answer passes `checkInvariants`). So a
+  `Changer` result is an `ownTrackerC` configuration (A1 checked it by hand). `ownTrackerC_toCC`
+  (the tracker as the `Changer` reads it: state `⟨c, trkFlags⟩ = cfgStateC c`, `CCGood.flags`),
+  `ownResult_transfer` (any reachable result, rings moved, `ownConfigC` with `MatchKept` and the
+  domain): the generalization of `ownResult_noop_transfer`.
+- **`ownRawNodeC c rn id s`** (`InvRawnodeC.lean`): the `RawNode` struct, the raft struct at `c`
+  (`ownRaftPhysCV c c.voters`), the soft-state pointer, the `Advance` queue with its
+  `pendingOwn`; no `γ`, no ghost state, no `isCommitted`/client-log promise, nothing about
+  `γ.reCfg`. **`RawNode.ApplyConfChange.spec` replaced**: premise `CCApplies γ.reCfg id t ccs`
+  (for every learner set the node may track within the old bound: `ccApplyM` answers, the node
+  stays a voter, at most `2^62` ids; `CCShrink.applies` at a voter); post: for a `CCShrink`
+  change `ownRawNode γ` kept with the stage-L facts, otherwise `∃ lrn c' s s'`, `ownRawNodeC
+  c'.cfg rn id s'`, the `ConfState` of `c'` and `ApplyCCOkC`. The `Advance` ordering is stated in
+  the documentation (`RawNode__ApplyConfChange.lean`, `InvRawnodeC.lean`), not as a premise:
+  neither predicate records which conf-change entries the configuration in use reflects (the
+  decoded entries' history).
+- **Finding** (added to `issues/raft-advance-before-applyconfchange.md`, with
+  `raft-conf-lag-model/removed_candidate_test.go`, which passes by recovering the panic): a
+  candidate whose removal is applied while it campaigns stays a candidate outside the
+  configuration; if the remaining voters grant it the vote, `becomeLeader` dereferences its
+  missing `Progress` (nil pointer). Reachable through the public API only with `Advance` before
+  `ApplyConfChange`; excluded here by the candidate premise.
+- Build note: the full parallel build failed in `stepLeader.lean` ("unknown free variable") four
+  times this stage and passed each time rebuilt alone.
+
+**Left** (precisely):
+- **`stepLeader` on `ownRaftPhysC`** (1687 + 640 lines, `stepLeader/MsgProp.lean`): it needs
+  `readOnly.maybeAdvance` at a joint `JointConfig` (`JCommittedIdx` of two `ownIdsetQ` halves;
+  the witness lemma "a nonempty half's quorum index is some voter's ack"), `ReadAckResult` over
+  `JCommittedIdx c.incoming c.outgoing`, `RdOk` over `c.voters`, `MsgReadIndex`'s `1 < size cfg`
+  as `¬ IsSingleton` (`size c.incoming = 1 ∧ c.outgoing = ∅`), `AppRespAccepted` with `CommitOkC`,
+  and the conf-change loop's validation at a joint configuration: `propConf` (`CCModel.lean`)
+  assumes `alreadyJoint = false`; at `c` it is `c.outgoing ≠ ∅`, so `LeaderProposeResult` and
+  the loop's proof gain the two joint refusals. Until then `stepLeader.spec` is on `ownRaftPhys`.
+- `restore`/`handleSnapshot` at a joint configuration (`MsgSnap` is accepted only at a
+  non-joint `c` by the step specs above); `confchange.Restore` of a joint `ConfState`.
+- `Step`/`Ready`/`Advance`/`Tick` on `ownRawNodeC`: they need `raft.Step` on `ownRaftPhysC`
+  (all its branch files and `stepLeader`), not attempted.
+- `CCApplies`'s size conjunct cannot be shown by a client for a change that tracks a new id (the
+  node's learner count is invisible and only bounded by `2^62`): adding a voter or learner at the
+  `RawNode` layer needs a tighter bound or the configuration in `RNState`. Self-removal at the
+  `RawNode` layer needs `Config.StepDownOnRemoval` visible to the client (premise "stays a
+  voter" for now).
+- A `StepC` reading of `ApplyCCOkC` (`applyCCOk_step` at `c'`), and the protocol at joint
+  configurations (beyond A).
+- Decisions: notes/decisions.md, "Reconfiguration stage A2".
+
+## Reconfiguration, stage A1: the foundation for arbitrary configurations (2026-10-13)
+
+Stage A is code-level verification of arbitrary configuration changes (joint consensus, voter
+changes) against the `confchange` model, with no protocol claim (the ghost link stays at fixed
+voters). A1 is its foundation: the tracker and the raft struct at any configuration, the
+quorum/tracker specs at joint configurations, the joint step relation. Trust base: no new
+axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries). No existing spec
+of a raft function changed; no existing proof changed beyond one line per caller of a
+generalized spec.
+
+- **`ownTrackerC c tv t`** (new `InvTrackerC.lean`): the tracker at any `c : CfgM` --
+  `ownCfgCC tv.Config' 1 c` (`confchange`'s representation: incoming map owned, outgoing,
+  `Learners`, `LearnersNext` canonical, `AutoLeave = c.autoLeave`), the vote map, the progress
+  map (`DFrac.discard`) and `Progress` objects, `CfgInv ⟨c, trkFlags t.peers⟩`,
+  `domSet t.prs = c.ids` (voters of both halves and learners), `LearnerFlagsC` (`IsLearner =
+  decide (k ∈ c.learners)`), the two bounds. `ownTracker_toC` / `ownTrackerC_toSimple`
+  (`ownTrackerC_toTracker` at `CfgM.simple cfg lrn`) convert. Readers: `ownTrackerC_intro`,
+  `_pure`, `_progress_map`, `_voters_size`, `_lookup`, `ownCfgCC_voters` (the two halves as
+  `ownIdsetQ`, with the re-sealing wand), `ownIdsetQ_toMaj`/`_ofMaj`. Pure: `CfgM.ids`,
+  `trkFlags`, `MajIdx`, `JCommittedIdx` (+ `JCommittedIdx_simple`), `domSet_gset` (moved from
+  `InvApplyConf.lean`), `perm_elements_empty`.
+- **`ownRaftPhysC c r id s`** (`InvRaftPhys.lean`): the private body is now
+  `ownRaftPhysG T V` (tracker predicate, `Hvoter`'s voter set); `ownRaftPhys cfg` is it at
+  `ownTracker cfg`/`cfg` (unchanged statement and interface), `ownRaftPhysC c` at
+  `ownTrackerC c`/`c.voters`, sealed. `ownRaftPhys_toC` (to `CfgM.simple cfg (domSet
+  s.progress \ cfg)`), `ownRaftPhysC_toPhys` (an empty outgoing half), `_simple_toPhys`;
+  accessors `ownRaftPhysC_intro`, `_tracker`, `_tracker_prvals`, `_reconfig` (any `c0` to any
+  `c`, new progress map), `_voter`, `_progress_dom`.
+- **Specs generalized** (old statements derived as `<fn>.spec_simple` in the `Spec` file,
+  callers switched to them):
+  - `quorum.JointConfig.VoteResult`: any `*JointConfig` at any fraction, halves `ownIdsetQ v0
+    1 s0`, `ownIdsetQ v1 1 s1`, any vote map at any fraction; `res = VoteWon ↔ MajQ s0
+    (granted votes) ∧ MajQ s1 (granted votes)`, `res = VoteLost ↔ ¬ MajQ s0 (s0 \ rejected) ∨
+    ¬ MajQ s1 (s1 \ rejected)` (no premise; no `spec_simple`: its two callers are re-proved).
+  - `quorum.JointConfig.CommittedIndex`: halves as above; `JCommittedIdx s0 s1 f N`.
+    `spec_simple` (the `[m0, nil]` statement) for `readOnly.maybeAdvance`.
+  - `tracker.ProgressTracker.Committed` (`JCommittedIdx c.incoming c.outgoing (pvsMatchAt
+    t.peers) N`), `TallyVotes` (`res = VoteWon ↔ JQuorum c (granted t.votes)`, `res =
+    VoteLost ↔ JLost c t.votes`, no `cfg ≠ ∅`), `VoterNodes` (`xs ≡ₚ elements c.voters`),
+    `Visit` (on `visitClosureC c`, `visitClosure_toC` converts), `ConfState` (all four lists
+    as permutations of `c`'s sets, `AutoLeave = c.autoLeave`), `QuorumActive` (`act ⊆
+    c.voters`, `b = true ↔ JQuorum c act`; now calls `JointConfig.VoteResult` instead of
+    inlining it: `etc/link-lean-first.txt` updated) -- all on `ownTrackerC c`.
+  - New corollaries: `quorum.JointConfig.IDs.spec_trackerC` (`mref ↦$ c.voters`),
+    `tracker.ProgressTracker.IsSingleton.spec_trackerC` (`decide (size c.incoming = 1 ∧ size
+    c.outgoing = 0)`); `IsSingleton.spec` itself was already general.
+- **`StepC c id`** (new `Protocol/StepC.lean`, pure, imported by `InvConfchange.lean`, not yet
+  by the ghost layer): `Step` with `campaign` (`id ∈ c.voters`, peers `c.voters \ {id}`),
+  `win`/`commit` (`JQuorum`), `lose` (`JLost`), `readAck` (`JQuorumAcked`) generalized; `MajQ
+  s q := s = ∅ ∨ IsQuorum s q` (Go's empty-majority convention); `step_iff_stepC cfg lrn`:
+  `Step cfg id s ms s' ↔ StepC (CfgM.simple cfg lrn) id s ms s'` for `cfg ≠ ∅`. `CfgM` moved
+  here from `InvConfchange.lean` (same name).
+- Decisions: notes/decisions.md, "Reconfiguration stage A1".
+
+**Left for A2** (the raft functions at joint configurations, none started):
+- the field lemmas of `InvRaftPhys.lean` (`raft.wp_load_*`/`wp_store_*`, `_pr`, `_log_*`,
+  `_msgs`, `_view`, `_readOnly`, ...) on `ownRaftPhysC` (restate on C, derive the old through
+  `ownRaftPhys_toC`/`ownRaftPhysC_simple_toPhys`; a field access leaves `s.progress` alone);
+- C specs of `maybeCommit`, `poll`, `campaign` (`IDs.spec_trackerC`), `becomeLeader`,
+  `stepLeader`/`stepCandidate`/`stepFollower`, `bcastAppend`/`bcastHeartbeat`/`reset` (Visit
+  at C), `switchToConfig` at joint configurations (`ownRaftPhysC_reconfig`, `ConfState` C),
+  `applyConfChange` in general (`EnterJoint`/`LeaveJoint`, voter changes), `stepDownOnRemoval`;
+- the lemma that every `Changer` operation keeps `LearnerFlagsC` and `domSet = c.ids` on a
+  reachable state (so a `Changer` result is an `ownTrackerC`), and an `ownResult` →
+  `ownTrackerC` transfer (the generalization of `ownResult_noop_transfer`);
+- a detached `ownRawNodeC` for voter-changing `ApplyConfChange`, with the `Advance`-ordering
+  precondition (`issues/raft-advance-before-applyconfchange.md`);
+- the protocol at joint configurations (the ghost layer on `StepC`) is beyond A.
+
+## Reconfiguration, stage D: `ApplyConfChange` for an unchanged configuration (2026-10-13)
+
+`RawNode.ApplyConfChange` and `node.ApplyConfChange` are specified and proved for a change whose
+model answer is the configuration it started from; `ownRawNode γ` is kept, the ghost step is
+taken inside. Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms,
+10 sorries; `raft.txt` unchanged; `register.txt` gains `gogoproto.Equal.wp_proof`, which `node.run`
+now reaches through `applyConfChange` -> `ConfChangeV2.LeaveJoint`: baseline updated).
+
+- **Scope** (`InvApplyConf.lean`): `ccApplyM t ccs s` is `applyConfChange`'s choice
+  (`LeaveJoint` / `EnterJoint` / `Simple`, `none` where `EnterJoint` panics) on what `AsV2`
+  makes of the change (`ccV2Of`); `cfgState cfg` is what `confchange` sees of a node at `cfg`
+  (voters only, every `Progress` a non-learner). The premise of every spec below is
+  `ccApplyM (ccV2Of o) (cfgState cfg) = some (cfgState cfg)`; only `Simple` can answer that
+  (`ccApplyM_noop`, through `applyM_outgoing`), e.g. any change with `NodeId = 0`
+  (`ccApplyM_single_noop`, `ccApplyM_v1_noop`), an `UpdateNode`, an `AddNode` of a voter, a
+  `RemoveNode` of an untracked id, a remove and re-add of one voter.
+- **The model: `Step.reMatch`** (Model.lean, refined in Refinement.lean by
+  `ownRaftGhost_step_rematch`): a leader's `matched` replaced by a map whose every entry is `0`
+  or the peer's old one. Needed because even a no-op change installs *new* `Progress` objects:
+  copies (`checkAndCopy`), or fresh ones (`Match = 0`) for a peer removed and re-added in one
+  `Simple` -- `ownNewPr`'s disjunction does not say which. `isAcked` at `0` holds for free, so
+  `matchedOk` survives. (Also what stage L needs: a learner added gets a fresh `Progress`.)
+- **`ownTracker`**: its `Learners`/`LearnersNext` are now `ownIdsetC` (canonical, so `nil` while
+  empty) rather than `ownIdsetOpt`, as `ownTrackerCC` needs; `ProgressTracker.ConfState`'s proof
+  adapted. `ownTracker_toCC` gives the tracker as the `Changer` reads it, the inflight rings set
+  apart (`progRAt`); `ownResult_noop_transfer` moves them to `Simple`'s result (`ownNewPr_transfer`)
+  and gives `ownConfigV` (`ownConfig` with the records named) with `MatchKept` (InvTracker.lean).
+- **`raft.switchToConfig.spec` changed**: it now takes the struct *open at its tracker* -- the
+  field, `ownRaftPhys_reconfig`'s wand, the old tally and inflight bound (`ownTracker_votes`) --
+  and the new configuration as `ownConfigV cfg cfgv prsm prs pvs`; premise `s.role = .leader →
+  id ∈ cfg ∧ MatchKept s.prvals pvs`; post `∃ cs xs s', ownRaftPhys cfg r id s' ∗ ... ∗
+  ⌜SwitchOk cfg id {s with progress := prs, prvals := pvs} s'⌝` (non-leader: `s' = s1`; leader:
+  `LeaderSwitch`: `maybeCommit` to `c` or not, the appends `ReplSends` allows, no `Match` moved,
+  `leadTransferee` possibly cleared). The open form lets the caller move the old objects' rings
+  to the copies before the call. The old statement is `raft.switchToConfig.spec_nonleader`
+  (derived, in the Spec file), which `newRaft` and `restore` now call. Not covered: a leader
+  removed or demoted (`stepDownOnRemoval`).
+- **`raft.applyConfChange`** (new spec): on `ownRaftPhys cfg` and the change's `Changes`, with
+  `id ∈ cfg` and the scope premise; post `ApplyCCOk cfg id s s'`, whose protocol reading
+  (`applyCCOk_step`) is one `Step` receiving nothing (`reMatch`, then `commit`, then `sendApps`;
+  `refl` at a non-leader) and a frame (role, `r.step`, `r.tick`, term, pre-vote, ghost bounds,
+  the log but a raised commit index). `LeaveJoint`/`EnterJoint` of the `Changer` are unreachable
+  (no specs needed).
+- **`RawNode.ApplyConfChange`** (new spec): `ownRawNode γ rn id rs` and `ownCCI c dq (some o)`
+  kept, a fresh `*ConfState` with the voters. `rawNode_applyCC_reseal` (InvNodeRun.lean) is the
+  ghost step and the re-seal.
+- **`node.ApplyConfChange`** (new spec, `{{ isNode γ id n ∗ ownCCI c DFrac.discard (some o) }}
+  ... {{ csp cs, csp ↦ cs ∗ confstateP γ cs }}`): `isNode`'s `confc` handshake now carries
+  `confcP` (the changes read-only, in scope) and a new `confstatec` handshake `confstateP`
+  (`NodeNames.confstatec`, `newNodeChans` gains the channel, `RestartNode` starts both);
+  `node.run`'s `confc` arm is proved (`okBefore`/`okAfter` both true: the node stays a voter,
+  `ownRawNode_borrow_in`; `wp_rn_raft_applyConfChange`; the send on `confstatec`).
+- **The `Advance` ordering** (`issues/raft-advance-before-applyconfchange.md`): stated in the
+  documentation of `RawNode.ApplyConfChange` and `node.ApplyConfChange`. For the covered changes
+  it is not needed (the configuration in use does not change, so neither guard is misled); no
+  premise, and `ownRawNode` could not state one (it does not record which entries the
+  application applied). A configuration-changing spec will need it.
+- Lean-first link entries (`etc/link-lean-first.txt`): `raft__switchToConfig` (overridden),
+  `raft__applyConfChange`, `RawNode__ApplyConfChange`, `node__ApplyConfChange`, `node__run` (+
+  `raft__applyConfChange`).
+- Build note: a parallel full build once failed in `stepLeader.lean` (`ipureintro` at line 711,
+  an unknown free variable at 813) and passed when rebuilt alone -- the same flakiness noted in
+  stage 0.
+- Not a Go bug, noted: `switchToConfig`'s commit (`maybeCommit` after a configuration change)
+  does not release pending read-index requests as `stepLeader`'s does; they wait for the next
+  commit (liveness only).
+
+## Reconfiguration, stage L: learners (2026-10-13; parts 1-3 done, with the limits below)
+
+Learners are tracked with the voter set fixed (`ownRaftPhys cfg`, `cfg` the voters,
+`γ.reCfg = voters`). Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75
+axioms, 10 sorries; `register.txt` and `raft.txt` unchanged). The protocol is unchanged
+(`IsQuorum cfg q` intersects with `cfg`, `grantVote` has no `cfg` premise, `Step.campaign`
+needs `id ∈ cfg`).
+
+**Part 1 (`479a17a68`, `7fe44ed10`): learners tracked, `raft.Step` at a learner.**
+
+- **`Progress.learner`** (`Defs.lean`): `IsLearner`; `progressAbs` no longer refuses a learner
+  (`progressAbs_Some` has `pv.IsLearner' = p.learner` first). The `Progress` methods keep it
+  (`progressSentEntries_learner`, `progressMaybeUpdate_learner`, `progressMaybeDecrTo_learner`,
+  `@[simp]`).
+- **`ownTracker cfg tv t`** (`InvTracker.lean`): `Hprs_dom : cfg ⊆ domSet t.prs` (was `=`);
+  `Hno_learners : LearnersOk cfg t.prs t.peers learners learnersNext` -- `Learners` is the
+  tracked ids outside `cfg`, `LearnersNext = ∅`, `LearnerFlags cfg t.peers` (each tracked
+  `Progress`'s `learner` is `decide (k ∉ cfg)`); `Hcfg_size` bounds `size t.prs` (Visit sorts
+  every tracked id; `cfg_size_le` gives `size cfg`). New readers `ownTracker_flags`,
+  `ownTracker_size_prs`. **The give-back wands keep the flag**: `ownTracker_lookup`,
+  `wp_tracker_progress_lookup`, `visitClosure`, `ownRaftPhys_pr_upd`/`_pr_any` take
+  `∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗ ...` (the pure premise after the
+  spatial one, so the spatial argument fixes `p'`). `ownRaftPhys_progress_dom` gives
+  `cfg ⊆ domSet s.progress`.
+- **`visitClosure`**: `⌜i ∈ domSet prs⌝` (was `i ∈ cfg`); **`Visit`** ends at
+  `I (domSet t.prs)`. `reset` re-initialises every tracked `Progress`, `IsLearner` copied.
+- **`maybeSendAppend`, `sendAppend`, `sendHeartbeat`**: `to ∈ domSet s.progress` (was
+  `to ∈ cfg`); `bcastAppend`/`bcastHeartbeat` reach the learners.
+- Flag readers: `TallyVotes` (its counters now count voters only), `QuorumActive` (the vote map
+  is the visited voters), `promotable` (spec unchanged: `b = decide (id ∈ cfg ∧ snap = none)`;
+  a learner's lookup hits, `!pr.IsLearner` is false), `stepLeader`'s `MsgTransferLeader`
+  (a learner target is ignored, `rest_res_self`).
+- **`ConfState.spec`**: returns the learners, `cs.Learners' ↦* ls`, `ls ≡ₚ elements (domSet
+  t.prs \ cfg)` (`Learners.len = 0` dropped).
+- **`NState.isLearner`** (`r.isLearner`, default `false`) replaces the scope conjunct
+  `HnoLearner`; `raft.wp_store_isLearner` stores any `b`, `wp_load_isLearner` returns it.
+  `learnerOf cfg prs id := decide (id ∈ domSet prs ∧ id ∉ cfg)` is what `switchToConfig`
+  stores.
+- **`ownRaftPhys`'s `Hvoter`**: `s.role ≠ .follower → id ∈ cfg`. Only `raft.wp_store_state`
+  changes the role; it takes `ro ≠ .follower → id ∈ cfg`, so `becomeCandidate` and
+  `becomePreCandidate` take `id ∈ cfg` (campaign has it), `becomeLeader` already did.
+  `ownRaftPhys_voter` reads it; `ownRaftPhys_reconfig`/`_retrack` take it for the new `cfg`.
+- **`raft.switchToConfig.spec` changed**: `ownConfigV` has learners (an `ownIdsetC` learner set
+  with `LearnersOk`, `cfg ⊆ domSet prs`, `size prs ≤ 2^62`; `ownConfig` is now `∃ pvs,
+  ownConfigV ...`, built by `ownConfig_voters`/`ownConfigV_voters` for a voters-only one); the
+  post returns `cs.Learners' ↦* ls`, `ls ≡ₚ elements (domSet prs \ cfg)`, and `SwitchOk` is from
+  `{ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }`.
+  `spec_nonleader` takes `s.role = .follower` and `domSet prs = cfg`, post at
+  `isLearner := false`. `RestoreResult`/`HandleSnapResult`: `∃ prs pvs il`, `isLearner := il`.
+- **`confchange.Restore.spec`**: its `Progress` objects are non-learners
+  (`∃ p, ownProgress pr p ∗ ⌜p.learner = false⌝`).
+- **ApplyConfChange (unchanged configuration) on any learner set**: `cfgFlags`/`cfgM`/
+  `cfgState` take the learners (`cfgState cfg lrn`); `ownTracker_toCC` gives
+  `cfgM cfg (domSet t.prs \ cfg)`; `ownResult_noop_transfer` takes `lrn` (disjoint) and gives
+  `domSet prs = cfg ∪ lrn`. `raft.applyConfChange.spec`: premise
+  `ccApplyM ... (cfgState cfg (domSet s.progress \ cfg)) = some (...)`, `id ∈ cfg` dropped (a
+  leader is a voter by `Hvoter`), post returns the learners and their `ConfState` list.
+  `RawNode.ApplyConfChange`/`node.ApplyConfChange`/`confcP`: premise `CCNoop γ.reCfg t ccs`
+  (a no-op on every learner set: `ccApplyM_v1_noop`), post/`confstateP` with
+  `cs.Learners' ↦* ls`, none of them a voter.
+- **`raft.Step.spec` changed**: `id ∈ cfg` → `m.Type' = MsgSnap → id ∈ cfg` (restore's scope,
+  part 2). `stepCandidate.spec`/`stepLeader.spec` drop `id ∈ cfg` (read from `Hvoter` with the
+  role premise); the `raft__Step/*` branches drop it; `FollowerStepResult` takes `cfg` (its
+  `MsgTimeoutNow` clause was `HupOk (domSet s.progress)`, which is no longer the voter set).
+  `tickElection`/`tickHeartbeat` drop it. A learner never campaigns: `promotable` is false.
+- **Not changed**: `ownRawNode` still has `Hin : id ∈ γ.reCfg` (a learner node at the `RawNode`
+  and `node` layers needs part 3's configuration in `RNState`: `node.run`'s `okBefore`/
+  `okAfter` lookups and `RawNode.Step` of a `MsgSnap` read it).
+
+**Part 2 (`157e9d6fa`): snapshots with learners.**
+
+- **`SnapScope cfg sv voters learners`**: the learners are outside `cfg`, zero-free, without
+  repeats, `size cfg + |learners| ≤ 2^62`; `Learners.len = 0` dropped. The slice is
+  `ownIdList` (new, `InvTracker.lean`: empty by length, or owned; persistent at `discard`).
+  `raft.Step`'s `"Hsnap"`, `stepFollower`/`stepCandidate`'s (an `∃ learners`),
+  `raft.handleSnapshot`/`raft.restore` (a `learners` argument) carry it.
+- **`confchange.Restore.spec`**: `ownIdList cs.Learners' dql learners` (disjoint from the
+  voters, `0` not among them), `AutoLeave = false` of the empty tracker; post: the learner set
+  as `ownIdsetC cfgv.Learners' (listToSet learners)`, `domSet prs = voters ∪ learners`, each
+  `Progress`'s `learner = decide (k ∉ voters)` (`Learners = nil` dropped). Proof rewritten:
+  each op is a `Simple` step on `cfgState V L` (`simpleM_cfgState_addNode`/`_addLearner`,
+  `InvApplyConf.lean`), the configuration held as `ownCfgSt`; `wp_Simple_cfgSt`,
+  `wp_Simple_empty`.
+- **`toConfChangeSingle.spec`**: the learners' `AddLearnerNode` (`addLearnerCC`) after the
+  voters' `AddNode`.
+- **`ConfState.Equivalent.spec`, `assertConfStatesEquivalent.spec`**: learner lists `l1 ≡ₚ l2`
+  as `ownIdList`s (`Learners.len = 0` dropped); proof via `wp_sortCopy_idlist`.
+- **`raft.restore`**: `ownConfig_restore` (a non-joint `ownConfig` with learners) and
+  `raft.switchToConfig.spec_follower` (new, learners `lrn`); `spec_nonleader` (voters only)
+  kept for `newRaft` (which passes `learners = []` through `ownIdList` by length).
+- **Protocol**: `Step.snapRestore`/`snapFastfwd` drop the premises `m.voters ≡ₚ elements cfg`
+  and `id ∈ cfg` (no refinement read them).
+- Left: the receiver is still a voter (`raft.Step`'s `MsgSnap → id ∈ cfg`); a learner
+  receiving a snapshot needs `restore`'s `found` search over the learners.
+
+**Part 3 (`7a7fd2c2a`): `ApplyConfChange` of voter-preserving changes.**
+
+- Model (`InvApplyConf.lean`): `ccApplyM_simple` (any answer `cfgState cfg lrn'` is a `Simple`
+  one), `simpleM_cfgState_removeLearner`, `CCVoterKeep` with `ccVoterKeep_addLearner` and
+  `ccVoterKeep_removeLearner` (an `AddLearnerNode`/`RemoveNode` of a non-voter), `CCShrink`
+  (voters kept, learners only dropped) with `ccShrink_removeLearner`, `CCNoop.shrink`,
+  `applyCC_of_shrink`.
+- **`raft.applyConfChange.spec`**: a new argument `lrn'` with `lrn'` disjoint from `cfg`,
+  `size (cfg ∪ lrn') ≤ 2^62` and `ccApplyM ... (cfgState cfg (domSet s.progress \ cfg)) =
+  some (cfgState cfg lrn')`; post `ls ≡ₚ elements lrn'`. Covers adding a learner.
+- **`RawNode.ApplyConfChange`, `node.ApplyConfChange`, `confcP`**: premise `CCShrink` (was
+  `CCNoop`): removing a learner (or no-ops); `ownRawNode γ` kept. New reader
+  `ownRaftPhys_progress_size`.
+- Left: **adding a learner at the `RawNode`/`node` layers** -- the bound on the tracked ids
+  (`ownTracker`'s `Hcfg_size`, which `Visit`'s sort needs) is about the learner set, which a
+  client cannot see: it needs `RNState` to expose the configuration (`rs.learners = domSet
+  s.progress \ γ.reCfg` in `ownRawNode`), and that needs every `RawNode` operation to say how
+  the progress map's domain moves (`raft.Step`'s post, `NetFrame`, `HupOk`, the step results do
+  not say it today). Also left: a learner *node* at the `RawNode` layer (`ownRawNode`'s
+  `Hin : id ∈ γ.reCfg`), and a learner receiving a snapshot (part 2).
+- The `Advance` ordering (`issues/raft-advance-before-applyconfchange.md`): still no premise;
+  a learner change cannot affect a quorum, so a misled guard cannot break the ghost state.
+
+## Leader transfer at the node layer and in the register (2026-10-13)
+
+Leader transfer, `ForgetLeader` and the local reports now go through `node.go` and the
+register. Trust base unchanged (`etc/tcb-report.py --check`: 75 axioms, 10 `sorry`s; the raft
+collection 6/0, the register's 1/9).
+
+- **`raft.Step`** (`TermStep`, one conjunct more): a `MsgTimeoutNow` moves the term to at
+  most one past the larger of the node's and the message's (a step-down, then the
+  campaign; from `HupOk`). No premise changed.
+- **`RawNode.Step`/`NetMsgOk`** (`Spec/.../RawNode__Step.lean`): `netStepTypes` adds
+  `MsgTimeoutNow`, `MsgTransferLeader`, `MsgForgetLeader`, `MsgUnreachable`,
+  `MsgSnapStatus`; `UnstampedType` (those four and `MsgReadIndex`) replaces the
+  `MsgReadIndex` special case (`Term = 0`, no target/sender premise); a transfer request
+  carries no entries and no context. New premise: a `MsgTimeoutNow`'s two terms do not wrap
+  (`raft.Step`'s `RestMsgOk`, derived by `NetMsgOk.restMsgOk`). `ctx ≠ campaignTransfer`
+  dropped (`RawNode.Step`, `netP`, `fwdP`, `wp_rn_raft_Step_net`/`_prop`). The term
+  postcondition: `t ≤ max(term, m.Term) + (1 if MsgTimeoutNow)`.
+- **The term budget** (`netP`): a network `MsgTimeoutNow` comes with one tick credit
+  (`tickCred γ.bud 1`): its campaign raises the term past every term the budget covers,
+  as a tick's campaign does, so whoever delivers it pays like a tick (`budget_step`,
+  InvNode.lean, spends it in `run`'s `recvc` arm). The alternative -- the credit flowing
+  with the request from `TransferLeadership` through raft's ghost state to the leader's
+  `MsgTimeoutNow` (each one clears `leadTransferee`, so at most one per accepted request) --
+  would need ghost state in `raft.Step`/`stepLeader` like the read credits; not done.
+- **Not admitted**: a `MsgTransferLeader` a follower forwarded (stamped). `raft.Step` takes
+  it only of a receiver that is no follower with a leader at its term (`RestMsgOk`), a fact
+  of the receiver's state no message carries; a ghost fact ("the target led that term", and
+  a leader keeps its term's leadership with `checkQuorum` off) could replace it.
+- **`node.go`**: `node.TransferLeadership`, `ForgetLeader` (through `step`),
+  `ReportUnreachable`, `ReportSnapshot` (each `recvc <- m` with `n.done`, and
+  `ctx.Done()` for `Background()`), specs `{{ isNode γ id n }} ... {{ True }}`; the
+  message by `netP_local` (InvNode.lean). Lean-first entries in `etc/link-lean-first.txt`.
+- **The register** (`examples/register`, Go changed): `deliverable` passes `MsgTimeoutNow`
+  (of a term, no entries, no context) and a vote request's context (the transfer marker);
+  still drops a forwarded `MsgTransferLeader`. `deliver(peers, tr, ms)` takes a
+  `*transfers` (a mutex-protected count, `timeouts = 2^20`, like `ticks`) and passes a
+  `MsgTimeoutNow` on only if `tr.take()`; its lock invariant holds one tick credit per
+  count (`transfersInv`, `isTransfers`, Cluster.lean), allocated with the budget in `Main`
+  (`3 * ticksN + timeoutsN`). `Register.TransferLeadership(to)` (spec: `{{ isRegister }}
+  ... {{ True }}`). `Main` ends by asking every replica to transfer to replica 3 (after
+  the read: an operation during a transfer may wait forever -- `do` does not retry a
+  proposal the transferring leader drops after forwarding, `Read` a read index dropped for
+  want of a leader; `do`'s comment now says so: partial correctness). Tests: `TestTransfer`
+  (leadership moved 1 -> 2 -> 3 -> 1 over `deliver`, `Get`/`Read` on every replica after
+  each), `TestTransfersTake`, `TestDeliverable` cases; `go test -race` passes. The package
+  initialization order changed (`Init.lean`).
+- **Left**: a forwarded `MsgTransferLeader` at the node layer (above); a register
+  `TransferLeadership` that finds the leader (`node.Status` is unverified); the credit
+  through raft's ghost state instead of the transport (above).
+## Reconfiguration, stage D: conf-change entries in the log as data (2026-10-13)
+
+Conf-change entries are proposed, decoded by the leader, appended (or refused and replaced),
+replicated, committed and handed out like any entry; no node applies one, so every node's
+configuration stays `cfg` (`ownRaftPhys cfg`, `γ.reCfg = cfg`). No new axiom, no new `sorry`
+(`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft.txt` unchanged; `register.txt` now
+also rests on gogoproto's two `Unmarshal` axioms, which every `Step` reaches through
+`stepLeader`'s loop: baseline updated).
+
+- **The log.** `ownRaftLog`'s `HnoConfChange` is gone (`InvRaftlog.lean`; `ownRaftLog_intro`,
+  `ownRaftLog_pure` lose the premise, `ownRaftLog_no_confchange` is deleted), and with it the
+  `EntryNormal` premises of `raftLog.append`, `appendEntry`, `raftLog.maybeAppend`,
+  `handleAppendEntries`, `stepFollower`/`stepCandidate` (`MsgApp`), the `MsgApp` branches of
+  `raft.Step`, `newLogWithSize` and `newRaft` (the stored entries), `AppPayloadOk`'s third
+  conjunct and `app_payload_from_log`'s.
+- **`raftLog.scan`** (generalized): the callback gets each page with its position in the
+  scanned range (`scanRange`) and the caller's state at the pages before (`I acc`), and may
+  stop the scan with an error (`B err`); `scan` returns `nil` with `I` of the whole range or
+  the callback's error.
+- **`hasUnappliedConfChanges`**: `b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e` (the
+  log at `(applied, committed]`; `IsConfEnt`: type 1 or 2). `isInitialized` gains `errBreak`
+  (`ErrBreak`, a pointer error), so `err != errBreak` steps. **`hup`** refuses a campaign then
+  (`Step.refl`); its spec is unchanged (it already named the model's relation).
+- **`NState.pci`** (`r.pendingConfIndex`, `ownRaftPhys`'s `Hpci`): `resetTo` clears it,
+  `becomeLeaderLog` sets it to the last index before the empty entry, `stepLeader`'s loop
+  moves it; `raft.wp_load_pendingConfIndex` returns it, `wp_store_pendingConfIndex` sets it.
+  Invisible to the protocol.
+- **`Config.DisableConfChangeValidation = false`**: a premise of `newRaft`/`NewRawNode`/
+  `RestartNode` (as `ReadOnlyOption = 0`), kept by `ownRaftPhys` (`HnoCCV`,
+  `raft.wp_load_disableConfChangeValidation`); `ConfigPreserved` gains the field. The register's
+  `Main` passes `rfl`.
+- **`stepLeader`'s `MsgProp`** (`Proof/.../stepLeader/MsgProp.lean`, split out of
+  `stepLeader.lean`): the loop, per entry `n`, at the loop's state `propConf` of the first `n`
+  (`CCModel.lean`): a conf-change entry is decoded (gogoproto `Unmarshal`, never failing:
+  `stepLeader`'s new `Hents` component `∃ cs, ccEntsOk ents cs` gives each conf entry's bytes
+  and what they decode to), then refused -- `m.Entries[i] = pb.Entry{Type: EntryNormal}` --
+  when `pendingConfIndex > applied` (the message by `fmt.Sprintf`, whose spec now states its
+  output, `SprintfOut`, so that it is non-empty) or it is an empty `ConfChangeV2` (`alreadyJoint`
+  is false: `Voters[1]` is `nil`), else accepted (`pendingConfIndex := lastIndex() + i + 1`,
+  `traceChangeConfEvent`, new trivial spec). `LeaderProposeResult` is now `∃ cs, CCTypesOk ents
+  cs ∧ ...` with the loop's batch and `pendingConfIndex` (`leaderPropConf`); a drop leaves `s`
+  (transfer in progress) or `{ s with pci := ... }` (`appendEntry` refused); the batch comes
+  back as `∃ ents'`.
+- **`raft.Step`**: a proposal's `Hents` is `m.Entries' ↦* ents ∗ ∃ cs, ccEntsOk ents cs`; its
+  pure premise lost `EntryNormal`. Its `MsgProp` branch builds `Step.propose` at the loop's
+  batch.
+- **Model and ghost state.** `Step.propose` takes any batch `ents'` with `PropRepl m.entries
+  ents'` (each entry kept, or a conf-change entry replaced by the zero entry) and no type
+  premise; `isMessage .propose` dropped its `Type = 0` conjunct. The client log leaves conf
+  entries out: `entDataIs γ e none` is now a normal entry with the zero slice, or an entry of
+  another type whose proposed slice (`isPropData`) holds bytes that decode (`CCDecodes`);
+  `some d` is unchanged (normal entries only), so `firstOcc`, `cLog`, `propsOwn` are unchanged.
+  `entData_propRepl` carries the data across the loop. The register's `apply` skips a non-normal
+  entry (its Go code already did).
+- **APIs.** `RawNode.ProposeConfChange` (`ownRawNode` kept, `ownCCI c dq (some o)` kept, the
+  error `nil` or `ErrProposalDropped`; it records the data slice through `propRegister`, what
+  `propData_register` gives) and `node.ProposeConfChange` (through `node.Step`'s `fwdP`, the
+  slice recorded by `node_read_register`); `confChangeToMsg` now also returns the entries'
+  capacity. A forwarded conf proposal is stepped by `node.run`: `wp_rn_raft_Step_prop` takes the
+  proposed slices' invariant and reads each conf entry's bytes back (`propData_ccEnts`).
+  `confChangeToMsg(nil)` (auto-leave's empty `ConfChangeV2`) is out: `ccDecodeV2 []` is unknown.
+- **Edits to the other agent's files** (minimal): `InvNode.lean` (`node_propose_ghost`'s `none`
+  case is the new disjunct, one line); `node__run.lean` (passes the invariant to
+  `wp_rn_raft_Step_prop`). `RawNode__Step`, `netP`, `Cluster.lean` untouched.
+- **Left** (since done for an unchanged configuration: see "Reconfiguration, stage D:
+  `ApplyConfChange` for an unchanged configuration"): `ApplyConfChange` of a change that changes
+  the configuration.
+
+## Leader transfer and the rest of the message types (2026-10-13)
+
+`raft.Step` is now specified for every message type raft handles, except the configuration
+change path (stage D of reconfiguration) and `MsgCheckQuorum` (`checkQuorum` is off in scope).
+
+- **Physical state.** `NState.lt` is `r.leadTransferee`, tracked in `ownRaftPhys`
+  (`HnoTransfer` became `rv.leadTransferee' = s.lt ∧ s.lt ≠ id`); `reset` and
+  `abortLeaderTransfer` clear it; `tickHeartbeat` aborts a transfer past the election timeout.
+- **Transfer.** `MsgTransferLeader` at a leader records the transferee and appends to it, or
+  sends `MsgTimeoutNow` (`sendTimeoutNow`, new spec) once it is caught up, also from an accepted
+  `MsgAppResp`; proposals are dropped (`ErrProposalDropped`) while a transfer is in progress
+  (`stepLeader`'s entries postcondition: stamped, or unchanged when dropped). At a follower a
+  `MsgTransferLeader` is forwarded to the leader, a `MsgTimeoutNow` campaigns with
+  `campaignTransfer`. The model needs no new rule: a transfer campaign is `Step.campaign` with
+  the requests' context (`cl`), and with `checkQuorum` off the votes' `force` flag changes
+  nothing (proved in the `MsgVote`/`MsgPreVote` higher-term branches). `campaign`/`hup` lost
+  their `t ≠ campaignTransfer` premise and `raft.Step` its `ctx ≠ campaignTransfer`.
+- **The rest.** `MsgForgetLeader` at a follower is `Step.abandon`; `MsgUnreachable`,
+  `MsgSnapStatus` only move `Progress` (`Step.sendApps`/`Step.refl`); a step-down caused by one
+  of the out-of-model types is `Step.higherTerm` of a free message. Branches in
+  `raft__Step/MsgRest.lean`; `raft.Step` takes `RestMsgOk s m` (the local types unstamped, the
+  terms not wrapping on `MsgTimeoutNow`, and a transport premise for a forwarded
+  `MsgTransferLeader`: it never reaches a follower that has a leader at the same term -- true in
+  Go, where the target led that term; a ghost invariant could replace it).
+- **APIs.** `RawNode.TransferLeader`, `ForgetLeader`, `ReportUnreachable`, `ReportSnapshot`,
+  `BasicStatus` (and `getBasicStatus`), new.
+- **Left.** `node.TransferLeadership`/`ForgetLeader`/`ReportUnreachable`/`ReportSnapshot` (they
+  go through `recvc`, whose `netP` does not admit these types yet, nor `MsgTimeoutNow` or a
+  `campaignTransfer` vote from the network: transfers over the network are covered at
+  `raft.Step` only); `getStatus`/`RawNode.Status`/`node.Status` (`Config.Clone`'s spec needs
+  canonical learner sets that `ownTracker` lacks; `node.run`'s status channel is unused).
+- Trust base unchanged (75 axioms, 10 `sorry`s). No Go bug found.
+
+## Read-index (`ReadOnlySafe`) (2026-10-13, branch `worktree-raft-rest`)
+
+Raft's linearizable read path is verified from the protocol model down to the `Node` API.
+The design is in decisions.md, "Read-index: ..." (its last section); in short:
+
+- **What a read promises.** A `ReadState{Index: i, RequestCtx: c}` handed out by `Ready`
+  carries `readStateOk`: the context is a proposed slice holding bytes `c`, and `readOk γ c i`
+  -- the committed log the request was created knowing (`readReq γ c Lc`) is at most `i` long,
+  so every committed log of length at least `i` extends `Lc` (`readOk_prefix`,
+  `readStateOk_prefix`). That is the read-index guarantee: apply up to `i`, then read.
+- **The protocol.** `PState` has the read state (`rd`: `ReadState`s, the leader's read-only
+  object, the pending requests), and `Step` six rules (`readFwd`, `readPend`, `readArrive`,
+  `readRelease`, `readAck`, `readState`) plus `takeReads` (`acceptReady`); `Step.beat` takes
+  any context a leader may send (`HbCtxOk`). Each is refined (`Protocol/Refinement.lean`,
+  `ownRaftGhost_step_read_*`): a leader's per-term registry of request records (`rqRecOk`:
+  read at the commit index, or *doomed* by a quorum acknowledged at a higher term), a
+  heartbeat carrying a registry prefix, a follower's response acknowledging it (`HbAckOk`:
+  a node of the term is in no doom quorum, from its event history), and a quorum of
+  acknowledgements confirming a record (`rqRecOk_confirm`). The ghost state is `rdOwn` in
+  `ownRaftGhost`.
+- **Read credits.** A `MsgReadIndex` carries an `Auth Nat` credit (`rdCred`), linear: the
+  client pays it (`node.ReadIndex`), a forward and the transport move it, an arrival stashes
+  it with the leader's record, so the positions never wrap (`rdCredInv`, `2^64 - 2` credits
+  allocated with the cluster). `ownRaftGhost_step` takes the received requests' credits;
+  `ownRaftGhost_drain` hands the drained ones to `Ready`.
+- **The code.** `raft.Step` for `MsgReadIndex` (`raft__Step/MsgReadIndex.lean`) and
+  `MsgReadIndexResp` (`MsgReadIndexResp.lean`); heartbeat responses with a position
+  (`MsgHeartbeatResp`), the release after a commit (`MsgAppResp`); `stepLeader` (the read
+  paths, `recvAck`/`maybeAdvance`/`responseToReadIndexReq`), `stepFollower`,
+  `stepCandidate`, `send`, `bcastHeartbeat`, `committedEntryInCurrentTerm`,
+  `responseToReadIndexReq`, `sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`;
+  `RawNode.ReadIndex`, `node.ReadIndex` (new, Lean-first); `Ready` hands out the
+  `ReadState`s (read-only in the raft struct: `rd.ReadStates` aliases `r.readStates`).
+- **Scope.** `ReadOnlySafe` only (`ReadOnlyOption = 0` is a premise of `newRaft`/`NewRawNode`/
+  `RestartNode`; the lease-based option is out); not at a single voter (`IsSingleton`'s
+  immediate answer: a premise `1 < size cfg` of `raft.Step`/`node.ReadIndex`; since 2026-10-14
+  in scope at `raft.Step`, the pin having the fix: "The single-voter read-index fix"). A heartbeat
+  response's context is now any position (the `ctx = []` restriction is gone).
+- **Spec changes.** `raft.Step.spec`: the two types, their premises, a credit; `stepLeader`:
+  the read premises only for the three types that read them, `MsgReadIndexResp` a no-op, the
+  `MsgBeat` heartbeats with `HbCtxOk`, `AppRespAccepted`'s release judged at the raised `Match`
+  map (a false statement fixed: the heartbeat's `Commit` is `min(Match, committed)` after
+  `MaybeUpdate`), the `MsgHeartbeatResp` read path only for a sender with a `Progress`;
+  `RawNode.Step`/`netP`: the read types, `NetMsgOk` for a forwarded request (`Term = 0`);
+  `newRaft`'s post: no read state.
+- **Trust base.** Unchanged: 70 axioms, 10 `sorry`s (`etc/tcb-report.py --check`).
+- **No Go bug found** on this path (the pinned `readOnly` keys requests by position, so
+  etcd-io/raft#392 does not apply).
+- **The register uses it.** `Register.Read()` reads through `node.ReadIndex` (a lower-bound
+  spec: a logically atomic one needs prophecy, the linearization point being in the past when
+  the `ReadState` comes back), and the register's transport now carries read-index traffic;
+  see "The register's linearizable reads by read index (2026-10-13)".
+
+## The register's linearizable reads by read index (2026-10-13)
+
+The register (`examples/register`) has a third operation, `Read()`, a linearizable read by
+raft's read index (`Node.ReadIndex`, `ReadOnlySafe`) rather than through the log; `Get`
+(through the log, logically atomic) is unchanged. Verified, sorry- and axiom-free beyond
+the register's existing trust base (`etc/tcb-report.py --check`: 70 axioms, 10 sorries,
+unchanged; the register collection 1 axiom, 9 sorries, unchanged).
+
+* **Go.** `Read` mints a context `encode(id, seq, opRead, "")` (the replica's sequence
+  numbers, shared with operations), waits in `r.reads[seq]`, calls `ReadIndex` once (an
+  error means the node stopped; a request raft drops for lack of a leader leaves `Read`
+  waiting: partial correctness, like `do`). `run` keeps the `Ready`s' read states pending
+  and counts the applied entries (the applied index: the log starts empty, no snapshots);
+  after applying a `Ready`'s entries, `answer` hands each pending read of index at most the
+  applied index the current value. The transport (`deliverable`) now passes `MsgReadIndex`
+  (unstamped), `MsgReadIndexResp`, and contexts on heartbeats and their responses (only
+  there), and `deliver` passes each message's read credit on to `Step`. `Main`'s client B
+  also reads by read index on replica 3 (unchecked). Tests: `TestRead` (Reads after Puts on
+  every replica, over `deliver`), `TestDeliverable`.
+* **Spec** (`Spec/.../Register__Read.lean`): with lower bounds on the register's history:
+  `regLb γr L` (the client data, `firstOcc`, of some committed log; persistent). For
+  `1 < size reCfg`: `{{ isRegister γr γp r ∗ opCred γp 1 ∗ rdCred γr.raft 1 ∗ regLb γr L0 }}
+  r.Read() {{ x; ∃ L, regLb γr L ∗ ⌜L0 <+: L ∧ x = regFold L⌝ }}`; `regLb_current`: the
+  history now is a lower bound, at the client's value. Not logically atomic (the
+  linearization point is in the past when the read state comes back: it would need
+  prophecy).
+* **Proof.** `regInv` holds raft's read-context registry authority (`reReads`) and
+  `MintOk` says every registered context is minted (`reg_mint_read`, `reg_read_minted`;
+  the pure step `mintOk_step` shared with `reg_mint`). A read registers its context with
+  the committed log of the caller's `regLb` (`readReq`); `answer` identifies a read state's
+  context with the waiter's by the mint, and `readOk_prefix` gives that log as a prefix of
+  the applied one (`entDataIs_list_prefix`, `firstOcc` monotone). The lock's invariant has
+  the waiting reads (`readsOwn`); `deliver` takes `1 < size reCfg` (for a forwarded
+  `MsgReadIndex`); a heartbeat's context is eight bytes by `isMessage`, so not the
+  leader-transfer marker (`hb_ctx_ok`). No raft file changed.
+
+## Reconfiguration, stage 0: the conf-change messages and their encoding (2026-10-13)
+
+Groundwork for joint-consensus reconfiguration, Lean-first, sorry-free; the log path
+(`stepLeader`, `raft.Step`, `ownRaftLog`) untouched.
+
+- **Translation.** `raftpb.toml` now translates `confchange.go`'s helpers: `MarshalConfChange`,
+  `ConfChange.AsV1`/`AsV2`, `ConfChangeV2.AsV1`/`AsV2`/`EnterJoint`/`LeaveJoint`, and the three
+  `ConfChangeTransition*` aliases. `LeaveJoint` calls gogoproto's `proto.Equal`, so
+  `github.com/gogo/protobuf/proto` joins the etcd-raft project names-only
+  (`Code/github_com/gogo/protobuf/proto.toml`: only `Message` translated, so that the conversion
+  to it steps; `etc/goose.py`: the package, its `-lean-root`, `github_com/gogo` owned). Its
+  `IsPkgInit` is `True` (`Base.lean`); the register's `pkgInitTable` (`Adequacy.lean`) has its
+  entry. gogoproto's `Marshal`/`Unmarshal` methods stay names-only. `confChangeToMsg` was
+  already translated (raft's toml translates everything).
+- **The model** (`InvConfChangeMsg.lean`): `CCV1M`/`CCV2M` (a message's content, every slice a
+  list; a `CCV2M`'s changes are the `List raftpb.ConfChangeSingle` of `InvConfchange.lean`'s
+  `applyM`/`enterJointM`), `ownCCV1`/`ownCCV2`, `CCMsg` and `ownCCI` (a `ConfChangeI` holding
+  `nil`, a `ConfChange` or a `ConfChangeV2` *value*), `ccEntryType`, `CCData`, `ccEntry`,
+  `ccPropMsg`, `enterJointOf`; and `ccDecodeV1`/`ccDecodeV2`, **opaque**: what gogoproto's
+  `Unmarshal` makes of bytes (into a zero message), `none` on its errors.
+- **Trust boundary: five axioms**, each a WP triple, justified in its spec's doc comment
+  against `raft.pb.go`/`equal.go`:
+  `raftpb.ConfChange.Marshal`, `raftpb.ConfChangeV2.Marshal` (a fresh slice and a `nil` error,
+  the bytes decode back: `ccDecodeV* bs = some m`), `raftpb.ConfChange.Unmarshal`,
+  `raftpb.ConfChangeV2.Unmarshal` (into a zero message: `nil` and the content when
+  `ccDecodeV* bs = some m`, a non-`nil` error otherwise; never a panic) and `gogoproto.Equal`
+  (for `LeaveJoint`'s one call: `&c` with a `nil` `Context` against `&ConfChangeV2{}` is
+  `Transition = 0 ∧ len(Changes) = 0`). **No pure encoder and no round-trip law axiom**:
+  `Marshal`'s bytes depend on `Context`'s `nil`-ness, which the content records forget, so an
+  axiom "`Marshal` returns `ccEncode m`" would be false; the round trip is `Marshal`'s
+  postcondition instead (weaker, and all a decoder-side proof needs).
+- **Proved** (Spec/Proof `raftpb/`): `ConfChange.AsV2` (the one change `{Type, NodeId}`, the
+  same `Context`, `Auto`), `ConfChange.AsV1`, `ConfChangeV2.AsV1`/`AsV2`, `EnterJoint`
+  (`enterJointOf c.Transition ccs.length`, a panic for an undefined transition with joint
+  consensus), `LeaveJoint` (`Transition = 0 ∧ ccs = []`), `MarshalConfChange` (`ccEntryType o`,
+  bytes with `CCData o`, `nil`), `confChangeToMsg` (`ccPropMsg ents` with
+  `ents ↦* [ccEntry o data]`).
+- **Not specified: `RawNode.ProposeConfChange`, `node.ProposeConfChange`.** They step
+  `confChangeToMsg`'s `MsgProp`, whose entry is `EntryConfChange`/`EntryConfChangeV2`; `raft.Step`'s
+  spec admits no such entry (`stepLeader`'s `appendEntry` needs `EntryNormal`, `ownRaftLog`'s
+  `HnoConfChange`). A spec now would need an unsatisfiable premise; they wait for the log to
+  admit conf-change entries (stage 1). The encoding layer they rest on is done.
+- **Finding** (`issues/raft-unknown-transition-panic.md`, reproduced): a `ConfChangeV2` with an
+  undefined `Transition` and joint consensus is accepted by `stepLeader`, committed, and panics
+  `ApplyConfChange` (`EnterJoint`) on every node, again on every restart.
+- `etc/link-lean-first.txt`: the new functions; `Link.lean` regenerated. Full `lake build`
+  passes; `etc/tcb-report.py --check` gained exactly the five axioms (baseline updated: 75
+  axioms, 10 sorries), as did `tcb-collections/raft.txt` (6 axioms, no sorry); the register's
+  collection is unchanged (its results do not reach the new functions).
+- Build note: once, under a parallel full build, `stepLeader.lean` failed at an `iframe` (line
+  436) that succeeds alone and in the next build; not investigated further.
+
+## `MemoryStorage`: the rest of the storage (2026-10-12)
+
+The five unverified methods of `storage.go` specified and proved (Lean-first, linked in
+`etc/link-lean-first.txt` and the hand-kept `Link.lean`), sorry- and axiom-free
+(`etc/tcb-report.py --roots`):
+
+- **`memStorMeta ms γs hs snap`** (new, `InvMemstorage.lean`): the hard state and the
+  snapshot, which `InitialState` reads *without the lock*, and the `callStats.initialState`
+  counter it increments bare. The lock's invariant now holds half of `hardState` and of
+  `snapshot` (`memstorageFields`; `ptsto_halves`) and the other five counters as separate
+  points-tos (`callStats` was one whole points-to); `memStorMeta` holds the other halves, the
+  `initialState` counter, the mutex and the snapshot's read-only `Voters`. It is separate from
+  `ownMemoryStorage` (raft's, through `isStorage`): the application keeps it.
+  `NewMemoryStorage` returns it at the zero values (its post gained the conjunct; the
+  register's `NewStorage` drops it). The existing proofs changed only in the names of the
+  counters.
+- `InitialState`: on `memStorMeta`, returns `(hs, snap.ConfState, nil)`.
+  `SetHardState(st)`: on `memStorMeta` alone (raft never reads the hard state but there),
+  `memStorMeta ... st snap`.
+- `ApplySnapshot(snap')`, `CreateSnapshot(i, cs, data)`, `Compact(ci)`: change what raft
+  reads, so they take `ownMemoryStorage` with nothing pending (`σ.pend = []`) and move it
+  with `memView_set` (both halves of `done` and `hist` record the new state, under the
+  lock); the first two also take `memStorMeta`. Each is a disjunction: the error
+  (`ErrSnapOutOfDate`/`ErrCompacted`, the error variable's value passed in as `Snapshot`'s
+  spec does), nothing changed; or the new state: `memStorApplied snap'` (boundary at the
+  snapshot, no entries); `{ σ with ss := snapId snap' }`, `snap' = memSnapCreated snap i t
+  ocs data` with `termAt σ.prev σ.ents i = some t`; `memStorCompacted σ ci t`.
+- Premises excluding the panics: `CreateSnapshot`, for a newer `i`, `prev.index ≤ i ≤
+  lastIndex` (above: `Panicf`; below the boundary `ms.ents[i-offset]` wraps, a runtime
+  panic -- neither documented: issues/raft-memorystorage-createsnapshot-bounds.md);
+  `Compact`, for `ci` above the boundary, `ci ≤ lastIndex` (`Panicf`; documented as
+  `ci ≤ applied`) and the entry at `ci` has index `ci` (the new boundary's index is read
+  from it; `StorState` does not record that entries are consecutively indexed);
+  `ApplySnapshot`, the snapshot's index below `2^61` (`ownMemoryStorage`'s bound).
+- Finding: `InitialState` takes no lock although the mutex "protects access to all fields":
+  `go test -race` reports it against `SetHardState`
+  (issues/raft-memorystorage-initialstate-unlocked.md). The spec's `memStorMeta` excludes
+  the concurrent writers.
+
+**Open**: the writers need the owner's `ownMemoryStorage`, which raft holds inside
+`isStorage` while it runs; applying a snapshot or compacting under a running node needs a
+protocol like the pending append's.
+## `confchange`, `quorum`, `tracker`: general specs for reconfiguration (2026-10-12)
+
+Every function of raft's `confchange` package is specified and proved for all inputs (joint
+configurations, learners, staged learners, removal, `AutoLeave`, every error path), against a
+pure model, Lean-first; with six small `quorum`/`tracker` functions. Purpose: the specs
+`raft.applyConfChange` and joint-consensus reconfiguration will be proved from.
+
+- **The model** (`InvConfchange.lean`): `CfgM` (incoming, outgoing, learners, learnersNext,
+  autoLeave as `GSet w64`s), `CCState` (with each tracked id's `IsLearner`), `CfgInv` (exactly
+  what `checkInvariants` accepts), and `simpleM`/`enterJointM`/`leaveJointM`/`applyM`/
+  `makeVoterM`/`makeLearnerM`/`removeM`/`initProgressM`/`checkedM`: each `Changer` method is an
+  `Option CCState`, `none` on its errors (already/not joint, zero voters, unexpected type,
+  removed all voters, more than one voter changed, invariants broken).
+- **Representation**: `ownCfgCC` (incoming map owned; outgoing, `Learners`, `LearnersNext`
+  canonical, `nil` exactly when empty), `ownTrackerCC` (the tracker, read at any fractions),
+  `ownResult` (a method's `(cfg, trk, err)`), `ownPrsW`/`ownNewPr` (each result `Progress` a
+  copy of the tracker's with `IsLearner` changed, or fresh with its `Inflights`),
+  `ownNewPr_transfer` (moves resources held for the originals to the copies).
+- **Specs** (Spec/go_etcd_io/raft/v3/confchange/): new `EnterJoint`, `LeaveJoint`,
+  `makeLearner`, `remove`, `err`, `nilAwareAdd`, `outgoingPtr`; replaced by general ones
+  `Simple`, `apply`, `makeVoter`, `initProgress`, `joint`, `nilAwareDelete`, `symdiff` (exact
+  count mod `2^64`), `checkInvariants` (`nil` iff `CfgInv`), `checkAndReturn`, `checkAndCopy`;
+  `tracker.Config.Clone` and `quorum.JointConfig.IDs` generalized (any `nil`-or-map halves,
+  result the union; `IDs.spec_tracker` re-derived). `incoming`/`outgoing`/`chain`/
+  `toConfChangeSingle` unchanged. **`Restore.spec` unchanged**: its proof derives the old
+  `Simple` statement from the new one (`Simple_votersOnly`, with `simpleM_addNode`,
+  `ownProgress_values`, `ownProgress_of_values` in `Proof/.../confchange/Restore.lean`).
+- **quorum/tracker** (a subagent's, cherry-picked): `mapAckIndexer.AckedIndex`,
+  `Inflights.Count`, `Inflights.Clone`, `ProgressTracker.IsSingleton` (joint form),
+  `LearnerNodes` (sorted permutation of the learners, `nil` when none; needs `≤ 2^62`
+  learners for `slices.Sort`), `QuorumActive` on the existing `ownTracker` (simple config):
+  the answer is a quorum test of *some* subset of the voters, because `RecentActive` is not in
+  the `Progress` record; `JointConfig.VoteResult.spec` is stated only for the tracker's own
+  vote map, so `QuorumActive`'s proof steps through it with `MajorityConfig.VoteResult` as
+  callee. Both are gaps for later (add `RecentActive` to `Progress`; generalize `VoteResult`).
+- **Restriction**: an empty non-`nil` `Learners` map is outside the specs (no `confchange`
+  operation creates one; `Restore` needs `Learners = nil` out of the general spec).
+- **Findings** (`issues/`): `raft-config-clone-autoleave` (`Config.Clone` drops `AutoLeave`,
+  so `Status().Config.AutoLeave` is always false) and `raft-changer-nil-incoming` (a tracker
+  with a `nil` incoming voter map panics on `AddNode`); both reproduced with Go tests.
+- New generic lemmas: `wp_idset_for_range`/`wp_idset_lookup2` (a range/lookup over a
+  `nil`-or-map id set, one rule), `wp_mapDelete_named` (`delete` on a named map type),
+  `ownIdsetQ`/`ownIdsetC` and their conversions (InvTracker.lean).
+- `etc/link-lean-first.txt` lists the new functions and `confchange_Restore`'s callees
+  (`Link.lean` regenerated by `etc/gen-link.py` from the Rocq tree at `857d09190`: the file
+  now reproduces). Full `lake build` passes; `etc/tcb-report.py --check` matches the
+  baseline (70 axioms, 10 sorries); the 60 confchange/quorum/tracker roots reach no `sorry`
+  and no axiom of this repository.
 ## Porcupine: complete on linearizable traces, and a generic driver traced as etcd's robustness tests (2026-10-14, branch `worktree-porcupine`)
 
 The first step towards "randomized porcupine testing of etcd never fails", independent of the
@@ -498,10 +2659,30 @@ over a reader resource (unit A2)".
 
 ## The vertical slice: client to server
 
-The goal: the clients' results (the cache, `client/v3/concurrency`, `client/v3/leasing`, the
-recipes), stated over a model of etcd, become statements about the verified server, through the
-real client library and the gRPC stub. Design: `notes/decisions.md`, "The client's model as a class
-the server instantiates; the wire as the handler's theorem transported".
+**The goal (revised 2026-10-15, by the user):** end-to-end specifications and adequacy for a
+client's `Put` and `Range` (`kv.Put`, `kv.Get` of `client/v3`), not the client-side libraries on
+top of them.
+
+- **The specs**: `kv.Put`/`kv.Get` through the real client library, the gRPC stub and the
+  verified server, as persistent atomic updates over the abstract etcd state, linearized by raft
+  (units T1/T2 of the backend: `notes/decisions.md`, "Put and Get as persistent atomic updates
+  linearized by raft"; the raft side: `notes/raft-readindex-spec.md`). DeleteRange and Txn get the
+  same form (they are on `lean` already, V2b), and every KV operation, leases included, eventually
+  has a transition on the abstract state.
+- **Adequacy**: a closed program — one etcd member and a client doing `Put` then `Get` — proved
+  with Perennial's `goose_adequacy`; what is left is listed in "Adequacy for a minimal client
+  example: what is left".
+- **Out of scope for now**: proving the client-side libraries (the cache, `client/v3/concurrency`,
+  `client/v3/leasing`, the recipes) over these specs, and so the watch slice (the server and client
+  hops of `Watch`, gRPC streams: `notes/grpc-stream-spec.md` is deferred) and the lease contracts
+  (`isEtcdLease`). V1's and V2's results (the clients' model as a class the server instantiates,
+  the recipes and the queue at the server's model) stay as they are; they are not extended.
+
+The original goal (V1, V2): the clients' results (the cache, `client/v3/concurrency`,
+`client/v3/leasing`, the recipes), stated over a model of etcd, become statements about the
+verified server, through the real client library and the gRPC stub. Design: `notes/decisions.md`,
+"The client's model as a class the server instantiates; the wire as the handler's theorem
+transported".
 
 ### V1: the client's model implemented by the server; the wire (2026-10-13)
 
@@ -862,9 +3043,10 @@ notes). Design: decisions.md, "The client contracts derived: certified floors, t
   `isEtcdTxnKVTodo_of_kv`) and, through the floors, item 3 at one member (a revision the caller
   knows is reached becomes the request's certificate). Open: items 1, 2 (one history: the floors
   are certificates of one member's `E.γ.idx`), 3 across members, 7, 8, and the retried put.
-- **What the watch slice should do first**: derive `isEtcdRangeWatcherOpen` for the client's
-  `Watcher` over etcd's `Watch` service, the one premise of `isEtcdRecipesClient_of_kv` not
-  derived (the queue's wait path uses it).
+- **What the watch slice should do first** (deferred 2026-10-15: the slice's goal is now the
+  client's `Put`/`Range` and adequacy, see the section's head): derive `isEtcdRangeWatcherOpen` for
+  the client's `Watcher` over etcd's `Watch` service, the one premise of
+  `isEtcdRecipesClient_of_kv` not derived (the queue's wait path uses it).
 
 ### Merge of `origin/lean` (A2, T1 in part) (2026-10-14)
 
@@ -4302,7 +6484,7 @@ of its `Get` is one such panic, so it never fires.
   - Ghost state: a concrete bundle `registerGF` (`AllG` at slot 0, then invariants, credits,
     heap, prophecies, package state, the disk heap) with its `GooseGpreS` instance.
   - From `ownGoState ∅` to `ownInitializing getIsPkgInit`: `getIsPkgInit` is a lookup table
-    over the 29 packages the register reaches, transitively. Its `GetIsPkgInitWf` is proved
+    over the 30 packages the register reaches, transitively. Its `GetIsPkgInitWf` is proved
     by `repeat' (first | exact True.intro | apply And.intro | rfl)`.
   - Then `register.wp_initialize'` (`Init.lean`), then `register.wp_Main`.
 - **Initialization, proved.**

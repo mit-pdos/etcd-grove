@@ -38,6 +38,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
       · iapply ownSliceCap_nil
       · rw [He]; iapply ownSlice_nil
       · iexact Hsnap
+      · iexact Hpksn
       · iexact Hlogger
       · ipureintro; exact ⟨rfl, rfl⟩
     · exfalso; simp [He] at Hlen; word
@@ -58,7 +59,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
       ipersist Hsl
       wp_auto
       iapply HΦ
-      iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hlogger
+      iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hpksn Hlogger
       ipureintro; exact ⟨rfl, rfl⟩
     · iapply HΦ
       close_unstable

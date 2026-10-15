@@ -7,7 +7,7 @@ own file so that they check in parallel. Proof structure, not specification: no
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 -/
 module
 
@@ -35,9 +35,9 @@ namespace StepProof
 
 /-- `MsgPreVote`: answered with a `MsgPreVoteResp`, whatever the term; the node's own
 state never changes (no step-down, no vote recorded). The protocol step is one
-`Step.sendFree`, consuming nothing. -/
+`StepC.sendFree`, consuming nothing. -/
 theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
     m.Type' = MsgPreVote →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -51,25 +51,25 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- pre-vote on (2026-10-10; `raft.Step.spec`)
     s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hpvon
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgPreVote_gt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0 Hpvon
+  · exact wp_Step_MsgPreVote_gt _P c r id s m Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0 Hpvon
   · wp_start_folded as ⟨Hphys, -⟩
     by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_MsgPreVote_lt _P cfg r id s m Hty Hto Hterm Hfnz Hfid Hlt Hwf Hpvon
+    · iapply wp_Step_MsgPreVote_lt _P c r id s m Hty Hto Hterm Hfnz Hfid Hlt Hwf Hpvon
         $$ [$Hpkg $Hphys] HΦ
     · have Heq : m.Term' = s.term := by word
-      iapply wp_Step_MsgPreVote_eq _P cfg r id s m Hty Hto Hterm Hfnz Hfid Heq Hwf Hpvon
+      iapply wp_Step_MsgPreVote_eq _P c r id s m Hty Hto Hterm Hfnz Hfid Heq Hwf Hpvon
         $$ [$Hpkg $Hphys] HΦ
 
 end StepProof

@@ -14,6 +14,9 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Storage__Sna
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Put
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Get
+public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Read
+public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__TransferLeadership
+public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__RemoveMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.deliver
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.tick
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Debugf
@@ -117,6 +120,111 @@ def clusterIds : List w64 := [W64 1, W64 2, W64 3]
 
 theorem clusterIds_nodup : clusterIds.Nodup := by decide
 
+theorem constMap_lookup_isSome {V : Type} (l : List w64) (v : V) (k : w64) :
+    (constMap l v !! k).isSome ↔ k ∈ l := by
+  induction l with
+  | nil =>
+    simp only [List.not_mem_nil, iff_false]
+    rw [show ((constMap [] v : GMap w64 V) !! k) = none from rfl]
+    simp
+  | cons k' l IH =>
+    show (GMap.insert k' v (constMap l v) !! k).isSome ↔ _
+    by_cases h : k' = k
+    · subst h; rw [GMap.lookup_insert_eq]; simp
+    · rw [GMap.lookup_insert_ne _ _ h, IH]
+      simp [List.mem_cons, Ne.symm h]
+
+/-- The cluster has more than one voter. -/
+theorem clusterIds_size : 1 < GMap.size (GMap.listToSet clusterIds) := by
+  rw [GMap.size_eq_length _ clusterIds clusterIds_nodup]
+  · decide
+  intro k
+  rw [listToSet_constMap, constMap_lookup_isSome]
+
+/-- The cluster has a voter (what `ownRaftGhost_alloc` asks). -/
+theorem clusterIds_ne : GMap.listToSet clusterIds ≠ ∅ := by
+  intro h
+  have := clusterIds_size
+  rw [h, GMap.size_empty] at this
+  omega
+
+/-! ## The cluster's configuration change (2026-10-15, stage N): removing replica 3
+
+Every conf-change entry of the cluster is `RemoveMember(3)`'s (`ccOkR`, raft's `reCCOk`): the
+change `opR` removes voter 3 from `c0R` (the voters 1, 2, 3), giving `c1R` (1, 2), and changes
+nothing at `c1R`. -/
+
+/-- The change `RemoveMember(3)` proposes, as `AsV2` makes it. -/
+abbrev opR : CCOp := ccV2Of (.v1 (rmCC (W64 3)))
+
+/-- The cluster's initial configuration: the voters 1, 2, 3. -/
+abbrev c0R : CCState := cfgState (GMap.listToSet clusterIds) ∅
+
+/-- The configuration after the removal: the voters 1, 2. -/
+abbrev c1R : CCState := cfgState (GMap.delete (W64 3) (GMap.listToSet clusterIds)) ∅
+
+/-- The conf-change bytes the cluster admits: `RemoveMember(3)`'s. -/
+def ccOkR (ty : w32) (bs : List w8) : Prop :=
+  ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = opR
+
+theorem clusterIds_size3 : GMap.size (GMap.listToSet clusterIds) = 3 := by
+  rw [GMap.size_eq_length _ clusterIds clusterIds_nodup]
+  · rfl
+  intro k
+  rw [listToSet_constMap, constMap_lookup_isSome]
+
+theorem three_mem : W64 3 ∈ GMap.listToSet clusterIds := by
+  rw [GMap.elem_of_list_to_set]; decide
+
+theorem three_nmem : W64 3 ∉ (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) := by
+  rw [GMap.elem_of_gset, GMap.lookup_delete]; simp
+
+theorem delete3_ne : (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) ≠ ∅ := by
+  intro h
+  have h1 : W64 1 ∈ (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) := by
+    rw [GMap.elem_of_gset, GMap.lookup_delete_ne _ (by decide), ← GMap.elem_of_gset,
+      GMap.elem_of_list_to_set]
+    decide
+  rw [h] at h1
+  exact GMap.not_elem_of_empty _ h1
+
+theorem delete3_size : GMap.size (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) < 2 ^ 62 := by
+  have : GMap.size (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) ≤
+      GMap.size (GMap.listToSet clusterIds) := by
+    apply GMap.subseteq_size
+    rw [GMap.elem_of_subseteq]
+    intro x hx
+    rw [GMap.elem_of_gset] at hx ⊢
+    by_cases hk : W64 3 = x
+    · subst hk; rw [GMap.lookup_delete] at hx; cases hx
+    · rw [GMap.lookup_delete_ne _ hk] at hx; exact hx
+  rw [clusterIds_size3] at this
+  omega
+
+theorem c0R_ok : CfgOk c0R :=
+  cfgOk_cfgState _ clusterIds_ne (by rw [clusterIds_size3]; decide)
+
+theorem c0R_good : CCGood c0R := ccGood_cfgState _
+
+theorem opR_step0 : ccStepB opR c0R = some c1R :=
+  ccStepB_removeVoter _ (rmCC (W64 3)) rfl (by unfold rmCC; word) three_mem delete3_ne
+    (by rw [clusterIds_size3]; decide)
+
+theorem opR_step1 : ccStepB opR c1R = some c1R :=
+  ccStepB_removeAbsent _ (rmCC (W64 3)) rfl (by unfold rmCC; word) three_nmem delete3_ne
+    delete3_size
+
+/-- A replica's node, in the cluster's dynamic mode, is at the cluster's conf changes. -/
+theorem regCC_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkR)
+    (Hmd : γn.mode = .dyn (ccDecOf opR) c0R c0R_ok c0R_good) : RegCC γn opR c0R c1R :=
+  ⟨⟨c0R_ok, c0R_good, Hmd⟩, fun ty bs h => by rw [Hok] at h; exact h, opR_step0, opR_step1, rfl⟩
+
+/-- `RemoveMember(3)`'s change is one the cluster admits. -/
+theorem rm3_allowed (γ : RaftNames) (Hok : γ.reCCOk = ccOkR) : CCAllowed γ (.v1 (rmCC (W64 3))) := by
+  intro bs Hbs
+  rw [Hok]
+  exact ⟨rfl, rmCC (W64 3), Hbs, rfl⟩
+
 theorem take_drop_ne (l : List w64) (hnd : l.Nodup) (n : Nat) (x y : w64)
     (hx : x ∈ l.take n) (hy : y ∈ l.drop n) : x ≠ y := by
   rw [← List.take_append_drop n l, List.nodup_append] at hnd
@@ -143,7 +251,7 @@ abbrev nodeConfig (id : w64) (st : Loc) : Config :=
     PreVote' := false, ReadOnlyOption' := 0,
     Logger' := interface.mkOk qLoggerTy #qLoggerV,
     DisableProposalForwarding' := false, DisableConfChangeValidation' := false,
-    StepDownOnRemoval' := false, TraceLogger' := GoInterface.nil }
+    StepDownOnRemoval' := true, TraceLogger' := GoInterface.nil }
 
 theorem nodeConfig_valid (id : w64) (st : Loc) (h : id ∈ clusterIds) :
     ConfigValid (nodeConfig id st) := by
@@ -163,7 +271,9 @@ def drvRes (γr : RegNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (s
     ⌜γn.raft = γr.raft ∧ γn.bud = bud ∧ γn.stor = regStorIface st ∧
       nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     nodeDriver γn id n [] ∗ (∃ (ms : Loc) (γs : MemStorNames), regStorRec st ms γs) ∗
-    id ↪[γr.seq] W64 0)
+    id ↪[γr.seq] W64 0 ∗
+    -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
+    ⌜RegCC γn opR c0R c1R⌝ ∗ nodeCfg γn 0 c0R)
 
 theorem opCred_split (γp : RepNames) (a b : Nat) :
     opCred (GF := GF) γp (a + b) ⊣⊢ opCred γp a ∗ opCred γp b := by
@@ -180,6 +290,10 @@ theorem Main.wp_proof
     (wp_New : ∀ [RegStor GF], register.New.spec (GF := GF) (hG := hG))
     (wp_Put : ∀ [RegStor GF], register.Register.Put.spec (GF := GF) (hG := hG))
     (wp_Get : ∀ [RegStor GF], register.Register.Get.spec (GF := GF) (hG := hG))
+    (wp_Read : ∀ [RegStor GF], register.Register.Read.spec (GF := GF) (hG := hG))
+    (wp_TransferLeadership : ∀ [RegStor GF],
+      register.Register.TransferLeadership.spec (GF := GF) (hG := hG))
+    (wp_RemoveMember : ∀ [RegStor GF], register.Register.RemoveMember.spec (GF := GF) (hG := hG))
     (wp_deliver : ∀ [RegStor GF], register.deliver.spec (GF := GF) (hG := hG))
     (wp_tick : ∀ [RegStor GF], register.tick.spec (GF := GF) (hG := hG))
     (wp_Debugf : quietLogger.Debugf.spec (GF := GF) (hG := hG))
@@ -207,15 +321,34 @@ theorem Main.wp_proof
   rw [Hsz, Hl]
   imod ownSlice_persist _ _ _ $$ Hvsl with #Hvsl
   -- raft's ghost state for the cluster, the term budget, the proposed slices
-  imod ownRaftGhost_alloc (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
-    (by rw [GMap.elem_of_list_to_set]; decide)
-    with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, HcL, Hfresh, HreSl⟩
-  imod budget_alloc (GF := GF) (3 * ticksN) (by unfold ticksN; omega) ⊤
+  -- (2026-10-14, stage R) with the register's invariant, the client's half of the value and the
+  -- sequence-number tokens, allocated from the client's share once raft's names exist: the
+  -- register builds the standing update for raft's own entries (`reg_noopAu`)
+  imod raft_dyn_alloc (GF := GF) ⊤ (ccDecOf opR) c0R c0R_ok (GMap.listToSet clusterIds) ccOkR
+    (fun γ => iprop(∃ γr : RegNames, ⌜γr.raft = γ⌝ ∗ regInv γr ∗ regVal γr [] ∗
+      ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s) ∗
+      ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8))))
+    (by rw [GMap.elem_of_list_to_set]; decide) $$ []
+    with ⟨%γ, %Hcfg', #Hcinv, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs, HreSl⟩, Hghosts, #Hc0,
+      HrdC, #HrdI⟩
+  · unfold allocClient
+    iintro %γ0 %_ #_ HcL Hfresh HreSl HrdF
+    imod regInv_alloc (GF := GF) ⊤ γ0 (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdF
+      with ⟨%γr0, %Hγr0, #Hreg0, Hval0, Hseqs0⟩
+    ihave #Hnoop := reg_noopAu γr0 $$ Hreg0
+    subst Hγr0
+    imodintro
+    iframe Hnoop
+    iexists γr0
+    iframe Hreg0 Hval0 Hseqs0 HreSl
+    ipureintro; rfl
+  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2
+  have Hdyn := Hcfg'.1
+  have HccOk := Hcfg'.2.1
+  imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
+  icases (tickCred_split bud (3 * ticksN) timeoutsN).1 $$ Hcred with ⟨Hcred, Htcred⟩
   imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd
-  -- the register's invariant, the client's half of the value, the sequence-number tokens
-  imod regInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ HcL Hfresh
-    with ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩
   -- the clients' invariant
   imod ghostVar_alloc (GF := GF) false with ⟨%γf, Hf⟩
   icases ghostVar_halves γf false $$ Hf with ⟨Hf1, Hf2⟩
@@ -229,11 +362,12 @@ theorem Main.wp_proof
   · unfold clientInv; iexact Hcl
   rw [listToSet_constMap]
   ihave Hghosts := bigSepM_constMap clusterIds () clusterIds_nodup
-    (fun id _ => ownRaftGhost (GF := GF) γ id initPState) $$ Hghosts
+    (fun id _ => ownRaftGhostR (GF := GF) γ (ccDecOf opR) c0R id (rinit c0R)) $$ Hghosts
   ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
   subst Hγr
-  ihave Htodo := (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ownRaftGhost (GF := GF) γr.raft id initPState)
+  ihave Htodo := (BigSepL.bigSepL_sep_eqv
+    (Φ := fun _ id => ownRaftGhostR (GF := GF) γr.raft (ccDecOf opR) c0R id (rinit c0R))
     (Ψ := fun _ id => (id ↪[γr.seq] W64 0 : IProp GF)) (l := clusterIds)).2 $$ [Hghosts Hseqs]
   · iframe Hghosts Hseqs
   -- the nodes
@@ -244,7 +378,7 @@ theorem Main.wp_proof
       "Hdone" ∷ ([∗list] id ∈ clusterIds.take (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
         ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr bud id nd st) ∗
       "Htodo" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k),
-        ownRaftGhost γr.raft id initPState ∗ id ↪[γr.seq] W64 0) ∗
+        ownRaftGhostR γr.raft (ccDecOf opR) c0R id (rinit c0R) ∗ id ↪[γr.seq] W64 0) ∗
       "%Hdom" ∷ ⌜∀ id, id ∈ clusterIds.drop (sint.nat k) → M !! id = none ∧ S !! id = none⌝)
     $$ [i id HmP HmS Htodo]
   · iexists W64 0, _, ∅, ∅
@@ -288,17 +422,25 @@ theorem Main.wp_proof
       $$ Hown
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
-    wp_apply (wp_RestartNode γr.raft bud _ (nodeConfig id0 st) qLogger
+    ihave Hghost : rnInit γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) id0
+        (GMap.listToSet clusterIds) $$ [Hghost]
+    · iunfold rnInit
+      isplitr
+      · ipureintro; exact ⟨Hdyn, rfl⟩
+      iexact Hghost
+    wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) bud _
+      (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (zero_val raftpb.HardState)
       { (zero_val raftpb.ConfState) with Voters' := slice.mk vsl (W64 3) (W64 3) } clusterIds
       DFrac.discard (nodeConfig_valid id0 st Hid0m) rfl rfl
-      (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl
+      (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl rfl rfl rfl rfl (by left; rfl) rfl (by unfold HsEmpty; exact ⟨rfl, rfl, rfl⟩)
-      (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m)
+      (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
+      (fun _ => rfl))
       $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hpd]
-      as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv⟩
-    obtain ⟨Hr, Hb, Hs, rfl⟩ := Hnd
+      as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
+    obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
     have Hnd' : (clusterIds.drop (sint.nat k)).Nodup := clusterIds_nodup.sublist (List.drop_sublist _ _)
     rw [Hdrop] at Hnd'
@@ -349,11 +491,13 @@ theorem Main.wp_proof
         · ipureintro; exact ⟨GMap.lookup_insert _ _ _, GMap.lookup_insert _ _ _⟩
         unfold drvRes
         iexists γn, n
-        iframe Hdrv Hseq
+        iframe Hdrv Hseq Hncfg
         isplitr
         · ipureintro; exact ⟨Hr, Hb, by rw [Hs]; rfl, rfl⟩
-        iexists ms, γs
-        iframe Hrec
+        isplitr
+        · iexists ms, γs
+          iframe Hrec
+        ipureintro; exact regCC_cluster γn (by rw [Hr]; exact HccOk) Hmd
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)
@@ -364,6 +508,21 @@ theorem Main.wp_proof
     simp only [show clusterIds.take 3 = clusterIds from rfl, show clusterIds.drop 3 = [] from rfl]
     imod ownMap_persist mP _ M $$ HmP with #HmP
     ipersist peers
+    -- the transport's transfer budget (2026-10-13): `timeouts` tick credits under its lock
+    icases typedPointsto_split _ _ _ $$ «$r0» with Htrs
+    try simp only [TypedPointsto.typedPointstoDef]
+    icases Htrs with ⟨mu, left, -⟩
+    imod sync.init_Mutex (transfersInv bud «$r0_ptr») ⊤ («$r0_ptr».[RTransfers, go!"mu"])
+      $$ mu [left Htcred] with #Htr
+    · inext
+      unfold transfersInv
+      iexists W64 1048576
+      iframe left
+      rw [show uint.nat (W64 1048576) = timeoutsN from rfl]
+      iexact Htcred
+    ihave #Htr' : isTransfers bud «$r0_ptr» $$ []
+    · unfold isTransfers; iexact Htr
+    ipersist tr
     wp_apply wp_map_make1 (K := w64) (V := Loc) as %mR HmR
     ihave IH2 : iprop(∃ (k : w64) (idv : w64) (R : GMap w64 Loc),
         "i" ∷ i_ptr ↦ k ∗ "id" ∷ id_ptr ↦ idv ∗ "HmR" ∷ mR ↦$ R ∗ "HmS" ∷ mS ↦$ S ∗
@@ -404,25 +563,29 @@ theorem Main.wp_proof
       icases Hdrv with ⟨⟨%nd, %st, %Hlk, Hres⟩, Hdrv⟩
       obtain ⟨HMl, HSl⟩ := Hlk
       unfold drvRes
-      icases Hres with ⟨%γn, %n, %Hgn, Hnode, #Hsrec, Hseq⟩
+      icases Hres with ⟨%γn, %n, %Hgn, Hnode, #Hsrec, Hseq, %Hmd, Hncfg⟩
       obtain ⟨Hr, Hb, Hs, rfl⟩ := Hgn
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       wp_apply wp_map_lookup1 go.uint64 _ mS S id0 (DFrac.own 1) $$ [$HmS] as HmS
       simp only [HMl, HSl, Option.getD_some]
-      wp_apply (wp_New γr γn id0 n st _) $$ [Hnode Hseq]
-      · iframe Hreg Hnode Hsrec Hc0 Hseq
+      wp_apply (wp_New γr γn id0 n st _ opR c0R c1R)
+          $$ [Hnode Hseq Hncfg]
+      · iframe Hreg Hnode Hsrec Hc0 Hseq Hncfg
         isplitr
         · ipureintro; exact Hr
+        isplitr
+        · ipureintro; exact Hmd
         isplitr
         · ipureintro; exact Hs
         unfold sendSpec
         imodintro
         iintro %msl %ms %Φ'
         imodintro
-        iintro ⟨Hmsl, #Hok⟩ HΦ'
+        iintro ⟨Hmsl, #Hok, Hcr⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
-        wp_apply (wp_deliver γr.raft bud mP M msl ms) $$ [$Hmsl]
+        wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms)
+          $$ [$Hmsl $Hcr]
         · iframe #
         iapply HΦ'
         itrivial
@@ -497,10 +660,14 @@ theorem Main.wp_proof
       rw [Hk3']
       simp only [show clusterIds.take 3 = [W64 1, W64 2, W64 3] from rfl]
       ihave ⟨⟨%r1, %γp1, %HR1, #Hreg1, Hop1⟩, Hregs⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
-      ihave ⟨⟨%r2, %γp2, %HR2, #Hreg2, Hop2⟩, -⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
+      ihave ⟨⟨%r2, %γp2, %HR2, #Hreg2, Hop2⟩, Hregs⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
+      ihave ⟨⟨%r3, %γp3, %HR3, #Hreg3, Hop3⟩, -⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
       rw [show (2 : Nat) ^ 64 - 1 = 1 + (2 ^ 64 - 2) by decide]
       icases (opCred_split γp1 1 _).1 $$ Hop1 with ⟨Hop1, -⟩
       icases (opCred_split γp2 1 _).1 $$ Hop2 with ⟨Hop2, -⟩
+      icases (opCred_split γp3 1 _).1 $$ Hop3 with ⟨Hop3, -⟩
+      rw [show (2 : Nat) ^ 64 - 2 = 1 + (2 ^ 64 - 3) by decide]
+      icases (rdCred_split γr.raft 1 _).1 $$ HrdC with ⟨HrdC, -⟩
       imod ownMap_persist mR _ R $$ HmR with #HmR
       ipersist regs
       wp_apply chan.wp_make2 (V := Bool) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
@@ -540,6 +707,38 @@ theorem Main.wp_proof
       · iframe Hop2 Hau Hreg2
       subst Hx
       wp_auto
+      -- B's read by read index on replica 3, from the empty history's lower bound
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 3) DFrac.discard $$ HmR as -
+      simp only [HR3, Option.getD_some]
+      wp_apply (wp_Read γr γp3 r3 []) $$ [Hop3 HrdC]
+        as %y -
+      · iframe Hop3 HrdC Hreg3
+        unfold regLb
+        iexists [], []
+        iframe Hc0
+        isplitl
+        · iapply BigSepL2.bigSepL2_nil.2; itrivial
+        ipureintro; rfl
+      -- (2026-10-15, stage N) B asks replica 1 to remove replica 3 from the cluster
+      try wp_auto
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 1) DFrac.discard $$ HmR as -
+      simp only [HR1, Option.getD_some]
+      wp_apply (wp_RemoveMember γr γp1 r1 (W64 3) (rm3_allowed γr.raft HccOk)) $$ [$Hreg1]
+      -- B asks every replica to hand the leadership over to replica 2 (2026-10-13; to 3 until
+      -- 2026-10-15)
+      try wp_auto
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 1) DFrac.discard $$ HmR as -
+      simp only [HR1, Option.getD_some]
+      wp_apply (wp_TransferLeadership γr γp1 r1 (W64 2)) $$ [$Hreg1]
+      try wp_auto
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 2) DFrac.discard $$ HmR as -
+      simp only [HR2, Option.getD_some]
+      wp_apply (wp_TransferLeadership γr γp2 r2 (W64 2)) $$ [$Hreg2]
+      try wp_auto
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 3) DFrac.discard $$ HmR as -
+      simp only [HR3, Option.getD_some]
+      wp_apply (wp_TransferLeadership γr γp3 r3 (W64 2)) $$ [$Hreg3]
+      try wp_auto
       iapply HΦ
       itrivial
 

@@ -12,7 +12,7 @@ moved out of the top-level directory).
 
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument `P : STEP_POSTULATES`)
-  as its first argument `_P : raft.Step.Postulates`, and Rocq's section variable `cfg`
+  as its first argument `_P : raft.Step.Postulates`, and Rocq's section variable `c`
   as its second.
 -/
 module
@@ -42,7 +42,7 @@ namespace StepProof
 are `wp_Step_MsgVote_gt` and `wp_Step_MsgVote_le`, each in its own module so they
 check in parallel; this lemma only picks one. -/
 theorem wp_Step_MsgVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
     m.Type' = MsgVote →
     m.To' = id →
@@ -51,27 +51,27 @@ theorem wp_Step_MsgVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.From' ≠ W64 0 →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- the message's `Context` is readable and is not the leader-transfer marker:
         -- leader transfer is out of scope
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
+        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- `recv` is whatever this branch consumed -- nothing, or the incoming message
         -- once or twice. Naming its elements rather than the list lets
         -- `raft.Step.wp_proof` discharge the `isMessage` side of `ownRaftGhost_step`
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hwf
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgVote_gt _P cfg r id s m ents Hty Hto Hterm Hfnz Hgt Hwf
-  · exact wp_Step_MsgVote_le _P cfg r id s m ents Hty Hto Hterm Hfnz Hgt Hwf
+  · exact wp_Step_MsgVote_gt _P c r id s m ents Hty Hto Hterm Hfnz Hgt Hwf
+  · exact wp_Step_MsgVote_le _P c r id s m ents Hty Hto Hterm Hfnz Hgt Hwf
 
 end StepProof
 

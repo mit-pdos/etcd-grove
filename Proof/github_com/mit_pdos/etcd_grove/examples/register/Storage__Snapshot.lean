@@ -43,7 +43,7 @@ theorem Storage.Snapshot.wp_proof
       iframe Hown
       icases Hr with (%Herr | ⟨%Herr, Hv⟩)
       · ileft; ipureintro; exact Herr
-      · iright; iframe Hv; ipureintro; exact ⟨rfl, Herr.2, Hif⟩
+      · iright; iframe Hv; ipureintro; exact ⟨rfl, Herr.2.1, Hif, Herr.2.2⟩
   | ok i =>
     wp_auto
     iapply HΦ

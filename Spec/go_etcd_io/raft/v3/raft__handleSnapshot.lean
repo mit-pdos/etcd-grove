@@ -40,7 +40,7 @@ variable [FfiSyntax]
 
 /-- The three exits; see the file header. -/
 def HandleSnapResult (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (s' : NState) : Prop :=
+    (sv : raftpb.Snapshot) (cl : CSLists) (s' : NState) : Prop :=
   let ls := s.logst
   let es := ls.sents ++ ls.uents
   let sid := snapId sv
@@ -55,9 +55,24 @@ def HandleSnapResult (id : w64) (s : NState) (m : raftpb.Message)
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧
-   ∃ prs pvs,
-     s' = sendMsgs { s with progress := prs, prvals := pvs, logst := logRestore ls sid }
+   ∃ prs pvs il,
+     s' = sendMsgs { s with progress := prs, prvals := pvs,
+                            logst := logRestore ls (snapTrip sv cl), isLearner := il }
             [appResp id s dst false sid.index' (W64 0) (W64 0)])
+
+/-- Whether `restore` restored the snapshot (its third exit): newer than the commit index, and
+its last entry not in the log. -/
+def SnapRestores (s : NState) (sv : raftpb.Snapshot) : Prop :=
+  uint.Z s.logst.committed < uint.Z (snapId sv).index' ∧
+  ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv)
+
+/-- The configuration after `handleSnapshot` (2026-10-14, reconfiguration stage A3; any
+`ConfState`'s since B8): the one the snapshot's `ConfState` denotes after a restore, the old one
+`c` otherwise. -/
+def SnapCfgOk (c : CfgM) (s : NState) (sv : raftpb.Snapshot) (cl : CSLists) (c' : CfgM) :
+    Prop :=
+  (SnapRestores s sv ∧ c' = snapCfg sv cl) ∨
+  (¬ SnapRestores s sv ∧ c' = c)
 
 end results
 
@@ -68,23 +83,27 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. At any configuration since 2026-10-14 (reconfiguration stage A3): the
+struct at any `c`; since B8 the snapshot's `ConfState` any well-formed one, joint included, with
+the node one of its ids (`restore`'s spec); afterwards the node is at the configuration `c'`
+(`SnapCfgOk`). (The statement with the node's own voters, `specS`, had no caller and is gone.) -/
 abbrev raft.handleSnapshot.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (cl : CSLists),
   s.role = .follower →
   s.votes = ∅ →
-  id ∈ cfg →
-  SnapScope cfg sv voters →
+  cl.Has id →
+  SnapScope sv cl →
   -- from another node (2026-10-10; `Step`'s premise): the reply goes to `m.From`
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+      "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' cl }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #m))
-  {{ (s' : NState), RET #();
-      ownRaftPhys cfg r id s' ∗ ⌜HandleSnapResult id s m sv s'⌝ }}
+  {{ (s' : NState) (c' : CfgM), RET #();
+      ownRaftPhysCV c' c'.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ ∗
+      ⌜SnapCfgOk c s sv cl c'⌝ }}
 
 end spec
 

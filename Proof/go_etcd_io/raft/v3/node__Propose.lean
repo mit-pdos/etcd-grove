@@ -26,10 +26,10 @@ theorem node.Propose.wp_proof
     node.Propose.spec (GF := GF) (hG := hG) := by
   intro γ id n data_sl data Q fresh
   wp_start as ⟨#Hnode, #Hdata, Harg⟩
-  wp_auto_lc 1
+  wp_auto
   -- the proposal's ghost work (2026-10-10): the slice recorded, the update deposited
   imod node_propose_ghost γ id n data_sl data Q fresh ⊤ CoPset.subseteq_top
-    CoPset.subseteq_top $$ Hnode Hdata Hlc1 Harg with ⟨#Hent, Hres⟩
+    CoPset.subseteq_top $$ Hnode Hdata Harg with ⟨#Hent, Hres⟩
   wp_apply wp_slice_literal (l := [propEntry data_sl])
   isplitr
   · ipureintro; rfl

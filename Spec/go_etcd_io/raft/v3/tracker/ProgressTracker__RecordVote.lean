@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `RecordVote` only inserts into the map `p.Votes` already refers to, so the tracker
 value is unchanged. First write wins, which is `recordVote`. -/
 abbrev tracker.ProgressTracker.RecordVote.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk)
+  ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk)
     (src : w64) (v : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv t }}
+      ownTrackerC c tv t }}
     (App (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"RecordVote"))
       (Val #src)) (Val #v))
   {{ RET #(); trk ↦ tv ∗
-      ownTracker cfg tv { t with votes := recordVote t.votes src v } }}
+      ownTrackerC c tv { t with votes := recordVote t.votes src v } }}
 
 end spec
 

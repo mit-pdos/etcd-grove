@@ -80,14 +80,22 @@ abbrev RawNode.Advance.spec : Prop :=
   rs.unpersisted = [] →
   uint.Z rs.term + 1 < 2 ^ 64 →
   rs.unst = false →
+  -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
+  -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
+  -- configuration index (`issues/raft-advance-before-applyconfchange.md`)
+  (rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied rs.delivered.length) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
-  {{ (t : w64), RET #();
-      ownRawNode γ rn id { rs with steps := [], term := t } ∗
+  {{ (t : w64) (ca : Nat), RET #();
+      ownRawNode γ rn id { rs with steps := [], term := t, capplied := ca } ∗
       ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
       -- with pre-vote off (`ownRawNode`'s scope) the term is kept (2026-10-10)
-      ⌜t = rs.term⌝ }}
+      ⌜t = rs.term⌝ ∗
+      -- (2026-10-14) the configuration index moves up, to at most the committed log handed
+      -- out (`StepR.advance`); not at all in the static mode
+      ⌜rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length ∧
+        (rs.mode = .static → ca = rs.capplied)⌝ }}
 
 end spec
 

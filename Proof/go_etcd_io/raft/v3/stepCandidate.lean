@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 points-to from `isInitialized_access`). `MsgApp`: `becomeFollower(m.Term, m.From)` with
 `m.Term = s.term`, then `handleAppendEntries` at the follower state. `MsgHeartbeat`: the
 same `becomeFollower`, then `handleHeartbeat`. `MsgBeat`, `MsgAppResp`,
-`MsgHeartbeatResp`: no arm.
+`MsgHeartbeatResp`: no arm; nor `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12).
 
 `MsgVoteResp`, unchanged since 2026-09: the type switch is walked to the
 `myVoteRespType` arm (`m.Type = MsgVoteResp`, and `state = StateCandidate` so
@@ -55,9 +55,12 @@ theorem stepCandidate.wp_proof
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_campaign : raft.campaign.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents sv voters Hty Hterm Hrole Hcfg Happ Hhb Hpvnw
+  intro c scfg r id s m ents sv cl Hty Hterm Hrole Happ Hhb Hpvnw
   wp_start as H
   iNamed H
+  -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
+  icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
+  have Hcfg : id ∈ c.voters := Hvoter (by rcases Hrole with h | h <;> rw [h] <;> decide)
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
@@ -65,7 +68,7 @@ theorem stepCandidate.wp_proof
   wp_auto
   -- `myVoteRespType`: `MsgPreVoteResp` for a pre-candidate, `MsgVoteResp` for a
   -- candidate; the two arms are joined
-  wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   have Hpre_iff : stateW64 s.role = W64 3 ↔ s.role = .preCandidate := by
     cases s.role <;> decide
   wp_join iprop(myVoteRespType_ptr ↦
@@ -89,7 +92,7 @@ theorem stepCandidate.wp_proof
   have Hmc : s.role ≠ .preCandidate → mvr = W32 6 := by
     intro Hp; rw [← Hmvr, ite_eq_right Hp]
   clear Hmvr
-  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty
+  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
   · -- `MsgVoteResp`: none of `MsgProp`, `MsgApp`, `MsgHeartbeat`, `MsgSnap`, so it falls
     -- through to `myVoteRespType`
     obtain ⟨Hterm', Hmnz⟩ := Hterm (Or.inl Hty)
@@ -102,45 +105,48 @@ theorem stepCandidate.wp_proof
       -- ignored
       rw [Hmp Hrole]
       wp_auto
-      iapply HΦ $$ %GoInterface.nil %s %false
+      iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro
       refine ⟨?_, trivial⟩
-      simp [CandidateStepResult, Hty, Hrole, MsgVoteResp]
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+      simp [Hty, Hrole, MsgVoteResp]
     rw [Hmc (by rw [Hrole]; decide)]
     wp_auto
-    have Hcfg_ne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hcfg)
-    wp_apply wp_raft_poll _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
+    wp_apply wp_raft_poll _ _ _ _ _ _ _ $$ [$Hphys]
       as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
     -- the `Infof` that follows reads `r.id`, `r.Term` and `r.logger`
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_raft_log
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_raft_logC
     rcases Hres with rfl | rfl | rfl
     · -- `quorum.VoteWon`: become leader and broadcast. `poll` does not touch the role,
       -- so we are still a candidate: not a pre-candidate, so this is `becomeLeader` and
       -- not `campaign`.
       simp only [VoteWon]
       wp_auto
-      wp_apply raft.wp_load_state $$ Hphys as Hphys
+      wp_apply raft.wp_load_stateC $$ Hphys as Hphys
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
-      wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide) Hcfg
+      wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide)
           (by exact Hterm' ▸ Hmnz) $$ [$Hphys]
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
       wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
-      iapply HΦ $$ %GoInterface.nil %_ %false
+      iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro
       refine ⟨?_, trivial⟩
-      simp only [CandidateStepResult, Hty, Hrole, ↓reduceIte]
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+      simp only [Hty, Hrole, ↓reduceIte]
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
       simp only [Hnp, ↓reduceIte]
-      refine ⟨true, false, ms, pvs, fun _ => ⟨Hwon rfl, ?_, ?_⟩, fun h => absurd h (by decide), ?_⟩
+      refine ⟨true, false, ms, pvs, fun _ => ⟨Hwon.1 rfl, ?_, ?_⟩, fun h => absurd h (by decide), ?_⟩
       · exact (replSends_prvals _ _ pvs1 ms).1 Hms
       · rw [Hmm]; exact Hmb
       · cases s; rfl
@@ -148,28 +154,32 @@ theorem stepCandidate.wp_proof
       simp only [VoteLost]
       wp_auto
       -- the `r.Term` the code passes is `s1`'s term
-      wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_apply raft.wp_load_TermC $$ Hphys as Hphys
       wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys] as %pvs Hphys
-      iapply HΦ $$ %GoInterface.nil %_ %false
+      iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro
       refine ⟨?_, trivial⟩
-      simp only [CandidateStepResult, Hty, Hrole, ↓reduceIte]
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+      simp only [Hty, Hrole, ↓reduceIte]
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
       simp only [Hnp, ↓reduceIte]
-      refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost rfl, ?_⟩
+      refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost.1 rfl, ?_⟩
       cases s; rfl
     · -- `quorum.VotePending`: neither switch arm fires; keep waiting
       simp only [VotePending]
       wp_auto
-      iapply HΦ $$ %GoInterface.nil %_ %false
+      iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro
       refine ⟨?_, trivial⟩
-      simp only [CandidateStepResult, Hty, Hrole, ↓reduceIte]
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+      simp only [Hty, Hrole, ↓reduceIte]
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
       simp only [Hnp, ↓reduceIte]
@@ -181,18 +191,20 @@ theorem stepCandidate.wp_proof
     rw [Hty]
     simp only [MsgProp]
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_raft_log
-    iapply HΦ $$ %errPropDropped %s %true
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_raft_logC
+    iapply HΦ $$ %errPropDropped %s %true %c
     iframe Hphys
     simp only [↓reduceIte]
     isplitr
     · ipureintro
-      simp [CandidateStepResult, Hty, MsgVoteResp, MsgProp]
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgProp, MsgSnap], ?_⟩
+      simp [Hty, MsgVoteResp, MsgProp]
     iexact ErrPropDropped
   · -- `MsgApp`: `becomeFollower(m.Term, m.From)`, then `handleAppendEntries`
-    obtain ⟨Hwf, Hnw, Hnorm, Hconf, Hfid⟩ := Happ Hty
+    obtain ⟨Hwf, Hnw, Hconf, Hfid⟩ := Happ Hty
     have Hterm' := (Hterm (Or.inr (Or.inl Hty))).1
     rw [Hty]
     simp only [MsgApp]
@@ -202,15 +214,17 @@ theorem stepCandidate.wp_proof
       as %pvs Hphys
     ihave Hes := Hents $$ %trivial
     icases Hes with ⟨#Hes, Hcap⟩
-    wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ _ Hwf Hnw Hnorm Hconf
+    wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ _ Hwf Hnw Hconf
       Hfid $$ [$Hphys $Hes $Hcap]
       as %s' ⟨Hphys, %Hres⟩
-    iapply HΦ $$ %GoInterface.nil %s' %false
+    iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
-    simp only [CandidateStepResult, Hty, MsgVoteResp, MsgProp, MsgApp]
+    unfold CandidateStepResultC
+    refine ⟨by simp [Hty, MsgApp, MsgSnap], ?_⟩
+    simp only [Hty, MsgVoteResp, MsgProp, MsgApp]
     refine ⟨trivial, pvs, ?_⟩
     rw [← Hterm']
     exact Hres
@@ -223,13 +237,17 @@ theorem stepCandidate.wp_proof
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
-    wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ Hcommit Hfrom $$ [$Hphys] as Hphys
-    iapply HΦ $$ %GoInterface.nil %_ %false
+    ihave #Hcl := Hctx $$ %(by simp [Hty])
+    wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _
+      cl Hcommit Hfrom $$ [$Hphys $Hcl] as Hphys
+    iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
-    simp only [CandidateStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat]
+    unfold CandidateStepResultC
+    refine ⟨by simp [Hty, MsgHeartbeat, MsgSnap], ?_⟩
+    simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat]
     refine ⟨trivial, pvs, ?_⟩
     rw [← Hterm']
   · -- `MsgBeat`, `MsgAppResp`, `MsgHeartbeatResp`: no arm; `myVoteRespType` is one of
@@ -240,42 +258,49 @@ theorem stepCandidate.wp_proof
       by_cases Hp : s.role = .preCandidate
       · rw [Hmp Hp]
         wp_auto
-        iapply HΦ $$ %GoInterface.nil %s %false
+        iapply HΦ $$ %GoInterface.nil %s %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        simp [CandidateStepResult, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap], ?_⟩
+        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp]
       · rw [Hmc Hp]
         wp_auto
-        iapply HΦ $$ %GoInterface.nil %s %false
+        iapply HΦ $$ %GoInterface.nil %s %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        simp [CandidateStepResult, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap], ?_⟩
+        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp]
   · -- `MsgSnap`: `becomeFollower(m.Term, m.From)`, then `handleSnapshot`
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inr Hty)))).1
     rw [Hty]
     ihave Hs := Hsnap $$ %rfl
-    icases Hs with ⟨%Hsc, #Hsv, #Hvs⟩
-    obtain ⟨Hscope, Hfid⟩ := Hsc
+    icases Hs with ⟨%Hsc, #Hsv, #Hcs⟩
+    obtain ⟨Hscope, Hcfg', Hfid⟩ := Hsc
     simp only [MsgSnap]
     wp_auto
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
-    wp_apply wp_raft_handleSnapshot _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-        _ sv voters rfl rfl Hcfg Hscope Hfid $$ [$Hphys $Hsv $Hvs]
-      as %s' ⟨Hphys, %Hres⟩
-    iapply HΦ $$ %GoInterface.nil %s' %false
+    -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
+    wp_apply wp_raft_handleSnapshot c _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
+        _ sv scfg rfl rfl Hcfg' Hscope Hfid $$ [$Hphys $Hsv $Hcs]
+      as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
+    iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
-    simp only [CandidateStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+    unfold CandidateStepResultC
+    refine ⟨by rw [ite_eq_left Hty]; exact Hc', ?_⟩
+    simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgSnap]
     refine ⟨trivial, pvs, ?_⟩
     rw [← Hterm']
@@ -289,31 +314,34 @@ theorem stepCandidate.wp_proof
       -- ignored
       rw [Hmc (by rw [Hrole]; decide)]
       wp_auto
-      iapply HΦ $$ %GoInterface.nil %s %false
+      iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro
       refine ⟨?_, trivial⟩
-      simp [CandidateStepResult, Hty, Hrole, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
+      unfold CandidateStepResultC
+      refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
+      simp [Hty, Hrole, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
         MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
     · -- a pre-candidate: `poll`, then win, lose or wait
       rw [Hmp Hrole]
       wp_auto
-      have Hcfg_ne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hcfg)
-      wp_apply wp_raft_poll _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
+      wp_apply wp_raft_poll _ _ _ _ _ _ _ $$ [$Hphys]
         as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
-      wp_raft_log
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_raft_logC
       have Hres_pv : ∀ (s' : NState) (won lost : Bool) (peers : List w64)
           (pvs : GMap w64 Progress),
-          (won = true → IsQuorum cfg (granted (recordVote s.votes m.From' (!m.Reject'))) ∧
-            peers ≡ₚ elements (cfg \ {[id]})) →
+          (won = true → JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∧
+            peers ≡ₚ elements (c.voters \ {[id]})) →
           (lost = true →
-            ¬ IsQuorum cfg (cfg \ rejected (recordVote s.votes m.From' (!m.Reject')))) →
+            JLost c (recordVote s.votes m.From' (!m.Reject'))) →
           s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs } →
-          CandidateStepResult cfg id s m ents sv false s' := by
+          CandidateStepResultC c scfg id s m ents sv false s' c cl := by
         intro s' won lost peers pvs Hw Hl Hs'
-        simp only [CandidateStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
+        simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
           MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, Hrole]
         simp
         exact ⟨won, lost, peers, pvs, Hw, Hl, Hs'⟩
@@ -321,7 +349,7 @@ theorem stepCandidate.wp_proof
       · -- `quorum.VoteWon`: the real election, `campaign(campaignElection)`
         simp only [VoteWon]
         wp_auto
-        wp_apply raft.wp_load_state $$ Hphys as Hphys
+        wp_apply raft.wp_load_stateC $$ Hphys as Hphys
         rw [decide_eq_true (by simp only [Hrole]; decide)]
         wp_auto
         have Hnl1 : s.role ≠ .leader := by rw [Hrole]; decide
@@ -334,30 +362,33 @@ theorem stepCandidate.wp_proof
               simp [campaignElection, campaignPreElection] at this)
             $$ [$Hphys]
           as %peers %pvs ⟨%Hpeers, Hphys⟩
-        iapply HΦ $$ %GoInterface.nil %_ %false
+        iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon rfl, Hpeers⟩)
+        refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
           (fun h => absurd h (by decide)) ?_
+        have Htc : transferCtx campaignElection = [] := by
+          simp (config := {decide := true}) [transferCtx, campaignElection, campaignTransfer]
+        rw [Htc]
         rfl
       · -- `quorum.VoteLost`: step down at the unchanged term
         simp only [VoteLost]
         wp_auto
-        wp_apply raft.wp_load_Term $$ Hphys as Hphys
+        wp_apply raft.wp_load_TermC $$ Hphys as Hphys
         wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys]
           as %pvs Hphys
-        iapply HΦ $$ %GoInterface.nil %_ %false
+        iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost rfl) rfl
+        exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
       · -- `quorum.VotePending`: keep waiting
         simp only [VotePending]
         wp_auto
-        iapply HΦ $$ %GoInterface.nil %_ %false
+        iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
@@ -366,6 +397,48 @@ theorem stepCandidate.wp_proof
           (fun h => absurd h (by decide)) ?_
         cases s; rfl
 
+  · -- `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12), and (2026-10-13) `MsgForgetLeader`,
+    -- `MsgTransferLeader` and the local reports: no arm; `MsgTimeoutNow`: logged. In each case
+    -- `myVoteRespType` is one of the two vote response types, neither of these
+    rcases Hty with Hty' | Hty' | Hty' | Hty' | Hty' | Hty' | Hty' <;> rw [Hty'] <;>
+      simp only [MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
+        MsgTimeoutNow, MsgUnreachable, MsgSnapStatus] <;> wp_auto
+    all_goals
+      by_cases Hp : s.role = .preCandidate
+      · rw [Hmp Hp]
+        wp_auto
+        try (
+          wp_apply raft.wp_load_idC $$ Hphys as Hphys
+          wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+          wp_apply raft.wp_load_stateC $$ Hphys as Hphys
+          wp_raft_logC)
+        iapply HΦ $$ %GoInterface.nil %s %false %c
+        iframe Hphys
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        ipureintro
+        refine ⟨?_, trivial⟩
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+          MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+      · rw [Hmc Hp]
+        wp_auto
+        try (
+          wp_apply raft.wp_load_idC $$ Hphys as Hphys
+          wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+          wp_apply raft.wp_load_stateC $$ Hphys as Hphys
+          wp_raft_logC)
+        iapply HΦ $$ %GoInterface.nil %s %false %c
+        iframe Hphys
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        ipureintro
+        refine ⟨?_, trivial⟩
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+        simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+          MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
 end proof
 
 end EtcdGrove

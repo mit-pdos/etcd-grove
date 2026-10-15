@@ -84,13 +84,15 @@ clause per shape a caller builds:
     is) -- and then (since 2026-10-10) carries no `Entries` and no `Context`, does not
     reject, and the node's term is nonzero (`AAMsgOk`, as for (a)).
 (e) `MsgProp`, forwarded to the leader: `Term` must be unset and stays `0` (the body's
-    `MsgProp`/`MsgReadIndex` exception); onto `r.msgs`, not self-addressed.
+    `MsgProp`/`MsgReadIndex` exception); onto `r.msgs`, not self-addressed. And
+    (2026-10-12) `MsgReadIndex`, forwarded the same way (the right disjunct).
 
-The read-index types are in no clause: nothing in scope sends them (no read requests).
+`ctx` (2026-10-12) is the list `m.Context` holds (the precondition's `"Hctx"`), which the
+abstract message carries.
 Until 2026-10-01 `MsgAppResp`, `MsgSnap` and `MsgHeartbeatResp` were under (c),
 invisible to the model. -/
 def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry)
-    (out : List Msg) : Prop :=
+    (ctx : List w8) (out : List Msg) : Prop :=
   (∃ ty,
      (m.Type' = MsgVote ∨ m.Type' = MsgVoteResp ∨
       m.Type' = MsgPreVote ∨ m.Type' = MsgPreVoteResp) ∧
@@ -101,7 +103,7 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
         m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧
         uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 1 else 0)) ∧
      (s.prevote = false → uint.Z m.Term' ≤ uint.Z s.term ∧ m.Type' ≠ MsgPreVoteResp) ∧
-     out = [absMsgFrom ty m id m.Term' ents])
+     out = [absMsgFrom ty m id m.Term' ents ctx])
   ∨
   (∃ ty,
      (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
@@ -110,7 +112,7 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
      mtypeOf m.Type' = some ty ∧
      m.Term' = W64 0 ∧
      m.To' ≠ id ∧
-     out = [absMsgFrom ty m id s.term ents])
+     out = [absMsgFrom ty m id s.term ents ctx])
   ∨
   ((m.Type' = MsgSnap ∧
     m.Term' = W64 0 ∧
@@ -126,12 +128,17 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
    (m.To' = id →
       m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧ s.term ≠ W64 0 ∧
       m.Reject' = false) ∧
-   out = [absMsgFrom .appResp m id s.term ents])
+   out = [absMsgFrom .appResp m id s.term ents ctx])
   ∨
-  (m.Type' = MsgProp ∧
-   m.Term' = W64 0 ∧
-   m.To' ≠ id ∧
-   out = [absMsgFrom .propose m id (W64 0) ents])
+  ((m.Type' = MsgProp ∧
+    m.Term' = W64 0 ∧
+    m.To' ≠ id ∧
+    out = [absMsgFrom .propose m id (W64 0) ents ctx])
+   ∨
+   (m.Type' = MsgReadIndex ∧
+    m.Term' = W64 0 ∧
+    m.To' ≠ id ∧
+    out = [absMsgFrom .readIndex m (if m.From' = W64 0 then id else m.From') (W64 0) ents ctx]))
 
 /- A caller discharges `SendOk` by picking the clause and splitting it: for a vote
 message with `ty` the abstract type, in Rocq,
@@ -179,23 +186,59 @@ unchanged after (`NState.prvals`), and holds `ents` (read-only) across it.
 From 2026-09-21 to 2026-09-22 this was stated on a variant predicate, `own_raft_bare`;
 see notes/decisions.md ("Three layers") and notes/false-statements.md, 2026-09-21. -/
 abbrev raft.send.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (out : List Msg),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8) (out : List Msg),
   -- `From` unset, or already the node's own (`RawNode.Propose` stamps `From: r.id`
   -- before `Step`; a follower forwards that proposal as it is). Either way the queued
   -- message has `From = id`.
-  (m.From' = W64 0 ∨ m.From' = id) →
-  SendOk id s m ents out →
+  -- (2026-10-12) or a read-index request forwarded on, which keeps its requester
+  -- (2026-10-13) or a leader-transfer request forwarded to the leader, which keeps its
+  -- transferee
+  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
+  SendOk id s m ents ctx out →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hents" ∷ m.Entries' ↦*□ ents ∗
+      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
+      "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
+                    ∃ (sv : raftpb.Snapshot) (voters : CSLists),
+                      ⌜out = [absSnapFrom m id s.term sv voters]⌝ ∗
+                      m.Snapshot' ↦□ sv ∗
+                      ownCSL sv.Metadata'.ConfState' voters) }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
+  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.send.spec` by `raft.send.spec_simple`. -/
+abbrev raft.send.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8) (out : List Msg),
+  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
+  SendOk id s m ents ctx out →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "#Hents" ∷ m.Entries' ↦*□ ents ∗
+      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-                    ∃ (sv : raftpb.Snapshot) (voters : List w64),
+                    ∃ (sv : raftpb.Snapshot) (voters : CSLists),
                       ⌜out = [absSnapFrom m id s.term sv voters]⌝ ∗
                       m.Snapshot' ↦□ sv ∗
-                      sv.Metadata'.ConfState'.Voters' ↦*□ voters) }}
+                      ownCSL sv.Metadata'.ConfState' voters) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
   {{ RET #(); ownRaftPhys cfg r id (sendMsgs s out) }}
+
+open Iris.ProofMode in
+theorem raft.send.spec_simple
+    (H : raft.send.spec (GF := GF) (hG := hG)) :
+    raft.send.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m ents ctx out Hfrom Hok
+  iintro %Φ ⟨#Hpkg, Hphys, #Hents, #Hctx, #Hsnap⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC _ _ _ _ $$ Hphys
+  iapply H _ r id s m ents ctx out Hfrom Hok $$ [$Hpkg $Hphys $Hents $Hctx $Hsnap]
+  inext
+  iintro Hphys
+  icases ownRaftPhysC_simple_toPhys _ _ _ _ _ $$ Hphys with ⟨Hphys, -⟩
+  iapply HΦ $$ Hphys
 
 end spec
 

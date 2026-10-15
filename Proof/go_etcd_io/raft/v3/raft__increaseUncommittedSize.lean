@@ -23,8 +23,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 set_option hygiene false in
 /-- The fall-through: `uncommittedSize += s`, then `return true`. -/
 local macro "incr" : tactic => `(tactic| (
-  wp_apply raft.wp_load_uncommittedSize $$ Hphys as %u_inc Hphys
-  wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+  wp_apply raft.wp_load_uncommittedSizeC $$ Hphys as %u_inc Hphys
+  wp_apply raft.wp_store_uncommittedSizeC $$ Hphys as Hphys
   iapply HΦ
   iframe
   ipureintro
@@ -33,7 +33,7 @@ local macro "incr" : tactic => `(tactic| (
 theorem raft.increaseUncommittedSize.wp_proof
     (wp_payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)) :
     raft.increaseUncommittedSize.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents dq
+  intro c r id s es ents dq
   wp_start as H
   iNamed H
   wp_auto
@@ -42,11 +42,11 @@ theorem raft.increaseUncommittedSize.wp_proof
   wp_apply wp_payloadsSize $$ [$Hes] as %psz ⟨Hes, %Hpsz⟩
   -- `&&` is a nest of `if`s over fields `ownRaftPhys` does not track; walk it. Every
   -- fall-through reaches the increment and `return true`.
-  wp_apply raft.wp_load_uncommittedSize $$ Hphys as %u Hphys
+  wp_apply raft.wp_load_uncommittedSizeC $$ Hphys as %u Hphys
   wp_if_destruct
   · wp_if_destruct
-    · wp_apply raft.wp_load_uncommittedSize $$ Hphys as %u' Hphys
-      wp_apply raft.wp_load_maxUncommittedSize $$ Hphys as %m Hphys
+    · wp_apply raft.wp_load_uncommittedSizeC $$ Hphys as %u' Hphys
+      wp_apply raft.wp_load_maxUncommittedSizeC $$ Hphys as %m Hphys
       wp_if_destruct
       · -- the reject path: the payload is positive, so the batch is not all-empty
         iapply HΦ

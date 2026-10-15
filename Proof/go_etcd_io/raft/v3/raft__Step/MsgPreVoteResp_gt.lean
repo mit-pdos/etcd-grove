@@ -8,9 +8,9 @@ higher. In its own file so that it checks in parallel with the others;
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 * Rocq's `Local Ltac`s `recv_elem` (membership in a `recv` list built from `++` and
-  singletons), `wp_load_step` (`raft.wp_load_step` on `"Hphys"`) and `ne_ty`
+  singletons), `wp_load_step` (`raft.wp_load_stepC` on `"Hphys"`) and `ne_ty`
   (`bool_decide (m.Type = c) = false` by `w32_ne`) are not ported. The four role
   cases of `r.step(m)` (shared by `MsgPreVoteResp_gt.lean` and `MsgPreVoteResp_eq.lean`)
   are the local macro `prevote_resp_dispatch`.
@@ -45,23 +45,32 @@ it; `stepCandidate` ignores it at a candidate and tallies it at a pre-candidate
 `Hwf`, `Hcfg`, `Hnw`. -/
 local macro "prevote_resp_dispatch" : tactic =>
   `(tactic| (
-    wp_apply Perennial.EtcdGrove.raft.wp_load_step $$ Hphys as Hphys
+    wp_apply Perennial.EtcdGrove.raft.wp_load_stepC $$ Hphys as Hphys
+    icases Perennial.EtcdGrove.ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
     rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
     cases Hrole : s.role
     · -- Follower: no arm
       simp only [stepFuncOf]
-      wp_apply _P.stepFollower cfg r id s m [] (zero_val _) []
-          (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+      wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) []
+          (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+          (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
+        $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          first | (rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-      obtain ⟨rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ Hty Hres
+      obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
@@ -69,27 +78,31 @@ local macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
       simp only [stepFuncOf]
-      wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
-          (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+      wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) []
+          (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-          (.inl Hrole) Hcfg
+          (.inl Hrole)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
-        $$ [Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+        $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-      obtain ⟨rfl, Hwf1, Hst, Hresp, Hft⟩ :=
-        candidateStepResult_prevoteresp cfg _ _ _ _ _ _ _ Hty (.inl Hrole) Hcfg Hnw Hwf Hres
+      obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
+        candidateStepResult_prevoteresp c _ _ _ _ _ _ _ Hty (.inl Hrole)
+          (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
@@ -100,19 +113,24 @@ local macro "prevote_resp_dispatch" : tactic =>
       exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩
     · -- Leader: no arm
       simp only [stepFuncOf]
-      wp_apply _P.stepLeader cfg r id s m [] (.inr (.inr (.inr (.inr (.inr (.inr (.inr Hty)))))))
-          Hrole Hcfg
+      wp_apply _P.stepLeader c r id s m [] [] (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
+          Hrole
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+          (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
       · iframe Hphys
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+        isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-      obtain ⟨rfl, rfl⟩ := leaderStepResult_prevoteresp cfg _ _ _ _ _ _ Hty Hres
+        · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      obtain ⟨rfl, rfl⟩ := leaderStepResult_prevoteresp c _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
@@ -120,26 +138,30 @@ local macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
-      wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
-          (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+      wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) []
+          (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-          (.inr Hrole) Hcfg
+          (.inr Hrole)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
-        $$ [Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+        $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-      obtain ⟨rfl, Hwf1, Hst, Hresp, Hft⟩ :=
-        candidateStepResult_prevoteresp cfg _ _ _ _ _ _ _ Hty (.inr Hrole) Hcfg Hnw Hwf Hres
+      obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
+        candidateStepResult_prevoteresp c _ _ _ _ _ _ _ Hty (.inr Hrole)
+          (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
@@ -152,9 +174,9 @@ local macro "prevote_resp_dispatch" : tactic =>
 /-- `MsgPreVoteResp` with `m.Term > r.Term`. A *granted* one does not step the node down
 (raft.go:1104: it carries the pre-candidate's future term): straight to `r.step(m)`, as
 at the current term. A *rejecting* one does -- `becomeFollower(m.Term, None)`, one
-`Step.higherTerm` (not `fromLeader`) -- and then `stepFollower` has no arm for it. -/
+`StepC.higherTerm` (not `fromLeader`) -- and then `stepFollower` has no arm for it. -/
 theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
     m.Type' = MsgPreVoteResp →
     m.To' = id →
@@ -162,21 +184,20 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
     -- this file: the incoming term is strictly higher
     uint.Z s.term < uint.Z m.Term' →
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hgt Hnw Hcfg Hwf
+  intro Hty Hto Hterm Hgt Hnw Hwf
   have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn5 : decide (m.Type' = W32 5) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
@@ -190,7 +211,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_true Hgt]
   wp_auto
   -- `(Type == MsgVote) || (Type == MsgPreVote)`: both false
@@ -211,38 +232,46 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
     prevote_resp_dispatch
   -- rejected: step down to the higher term, no leader
   wp_auto
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_raft_log
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_raft_logC
   rw [Hn3]
   wp_auto
   rw [Hn8]
   wp_auto
   rw [Hn7]
   wp_auto
-  wp_apply _P.becomeFollower cfg r id s m.Term' (W64 0) (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower c r id s m.Term' (W64 0) (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
   -- the type switch: none of its cases, so `r.step(m)`
   rw [Hty]
   wp_auto
-  wp_apply raft.wp_load_step $$ Hphys as Hphys
-  have Hsd : Step cfg id (toPState s) [absMsg .preVoteResp m ents]
+  wp_apply raft.wp_load_stepC $$ Hphys as Hphys
+  have Hsd : StepCF c id (toPState s) [absMsg .preVoteResp m ents]
       (toPState (becomeFollower s m.Term' (W64 0))) := by
     rw [toPState_becomeFollower]
-    exact Step.higherTerm (absMsg .preVoteResp m ents) (toPState s) Hgt Hto
+    exact StepCF.higherTerm (absMsg .preVoteResp m ents) (toPState s) Hgt Hto
       (by simp [absMsg, absMsgFrom, fromLeader])
   rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
     functions stepFollower [] from rfl]
-  wp_apply _P.stepFollower cfg r id _ m [] (zero_val _) []
-      (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+  wp_apply _P.stepFollower c ∅ r id _ m [] (zero_val _) []
+      (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
+    $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · isplitl []
+    · iintro %Hc; exfalso; rw [Hty] at Hc
+      first | (rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+    isplitl []
+    · iintro %Hc; exfalso; rw [Hty] at Hc
+      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+    isplitl []
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-  obtain ⟨rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ Hty Hres
+  obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
@@ -250,7 +279,8 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h, ?_⟩, rfl,
+  refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h,
+    StepCD.frame ?_ (by rframe)⟩, rfl,
     ⟨fun h => by rcases h with h | h <;> rw [Hty] at h <;> exact absurd h (by w32_ne),
      fun _ => ⟨.inl (Int.le_max_right _ _), fun h => absurd h (by simp [becomeFollower])⟩⟩,
     stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩

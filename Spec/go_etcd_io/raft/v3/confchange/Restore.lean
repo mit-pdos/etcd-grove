@@ -9,6 +9,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvRestore
 
 @[expose] public section
 
@@ -17,7 +18,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -26,13 +27,65 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- `confchange.Restore chg cs` for **any** `ConfState` (2026-10-14, reconfiguration stage B8):
+joint (`VotersOutgoing` non-empty, `LearnersNext`, `AutoLeave`) or not. The answer is the model's,
+`restoreM` (`InvRestore.lean`): one `Simple` per change when not joint; when joint, one
+`Simple(AddNode)` per outgoing voter, then one `EnterJoint(cs.AutoLeave, in...)` -- the same
+`simpleM`/`enterJointM` that `ccApplyM` (`raft.applyConfChange`'s model) is made of. On a
+well-formed `ConfState` the answer is the configuration it denotes (`restoreM_wf`:
+`cfgStateC (csCfgM ...)`).
+
+Premises: the model answers (`restoreM ... = some s'`: no `Changer` error, which raft's callers
+`panic` on); at least one voter (with none and no outgoing voter there is no op, and `chain`
+returns the tracker's own maps, which the premise owns: see `spec` below; with outgoing voters
+but no voter `EnterJoint` errs anyway); the empty tracker `MakeProgressTracker` builds, as in
+`spec`. The three id lists other than the voters may come without a points-to when empty
+(`ownIdList`).
+
+Result: the configuration as `ownCfgCC` at `s'.cfg` (the incoming voter map owned, the other
+three sets canonical, `AutoLeave`), the progress map with domain `s'.prs`'s, each `Progress`
+owned with `IsLearner` as `s'.prs` says. -/
+abbrev confchange.Restore.spec : Prop :=
+  ∀ (chg : confchange.Changer) (cs : raftpb.ConfState)
+    (voters learners outgoing learnersNext : List w64) (dq dql dqo dqn : DFrac) (v0 : Loc)
+    (s' : CCState),
+  voters ≠ [] →
+  restoreM outgoing voters learners learnersNext cs.AutoLeave' = some s' →
+  (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  -- the empty configuration
+  chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
+  chg.Tracker'.Config'.Learners' = map.nil →
+  chg.Tracker'.Config'.LearnersNext' = map.nil →
+  chg.Tracker'.Config'.AutoLeave' = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
+      cs.Voters' ↦*{dq} voters ∗
+      ownIdList cs.Learners' dql learners ∗
+      ownIdList cs.VotersOutgoing' dqo outgoing ∗
+      ownIdList cs.LearnersNext' dqn learnersNext ∗
+      v0 ↦$ (∅ : GMap w64 Unit) ∗
+      chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
+    (App (App (Val #(functions confchange.Restore [])) (Val #chg)) (Val #cs))
+  {{ (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc),
+      RET (PairV (PairV #cfgv #prsm) #interface.nil);
+      cs.Voters' ↦*{dq} voters ∗
+      ownIdList cs.Learners' dql learners ∗
+      ownIdList cs.VotersOutgoing' dqo outgoing ∗
+      ownIdList cs.LearnersNext' dqn learnersNext ∗
+      v0 ↦$ (∅ : GMap w64 Unit) ∗
+      chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
+      ownCfgCC cfgv (DFrac.own 1) s'.cfg ∗
+      prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
+      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜s'.prs !! k = some p.learner⌝) }}
+
 /-- `confchange.Restore chg cs` replays a `ConfState` onto the empty configuration
 `chg.Tracker` and returns the resulting `Config` and `ProgressMap`.
 
-**Not translated** (`new/code/go_etcd_io/raft/v3/confchange.v.toml` translates only
-the `Changer` type), so this triple is an `Axiom` -- and, unlike `slices.Sort`, one
-about **core raft** code. It is stated for the one case this development needs: a
-voters-only `ConfState` applied to the empty tracker `MakeProgressTracker` builds. Read
+The statement of 2026-10-13, kept for raft's callers (`newRaft`, `raft.restore`) and derived
+from the general `spec` (`spec_simple`; until 2026-10-14 this was `spec` and the general one
+`specG`). (Until 2026-10-08 the package was not translated
+and this triple was an axiom.) It is stated for a non-joint `ConfState` (voters and, since
+2026-10-13, learners) applied to the empty tracker `MakeProgressTracker` builds; the
+learners come after the voters (`toConfChangeSingle`), one `AddLearnerNode` each. Read
 against the Go (`confchange/restore.go`, `confchange/confchange.go`) it says:
 
 - `toConfChangeSingle` turns `cs` into no outgoing changes and one `AddNode id` per
@@ -63,21 +116,25 @@ repeated voter.
 
 `MaxInflight`'s bound is what `ownProgress` (via `InflightsOk`) asks of the fresh
 `Inflights`; see `spec_tracker_NewInflights.v`. -/
-abbrev confchange.Restore.spec : Prop :=
+abbrev confchange.Restore.specS : Prop :=
   ∀ (chg : confchange.Changer) (cs : raftpb.ConfState)
-    (voters : List w64) (dq : DFrac) (v0 : Loc),
+    (voters learners : List w64) (dq dql : DFrac) (v0 : Loc),
   voters ≠ [] →
   W64 0 ∉ voters →
+  -- (2026-10-13, stage L) the learners: none of them a voter, nor `0`
+  W64 0 ∉ learners →
+  (∀ k ∈ learners, k ∉ voters) →
   cs.VotersOutgoing'.len = W64 0 →
-  cs.Learners'.len = W64 0 →
   cs.LearnersNext'.len = W64 0 →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   -- the empty configuration
   chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
   chg.Tracker'.Config'.LearnersNext' = map.nil →
+  chg.Tracker'.Config'.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
       cs.Voters' ↦*{dq} voters ∗
+      ownIdList cs.Learners' dql learners ∗
       v0 ↦$ (∅ : GMap w64 Unit) ∗
       chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
     (App (App (Val #(functions confchange.Restore [])) (Val #chg)) (Val #cs))
@@ -85,15 +142,71 @@ abbrev confchange.Restore.spec : Prop :=
       (vref : Loc) (vm : GMap w64 Unit),
       RET (PairV (PairV #cfgv #prsm) #interface.nil);
       cs.Voters' ↦*{dq} voters ∗
+      ownIdList cs.Learners' dql learners ∗
       v0 ↦$ (∅ : GMap w64 Unit) ∗
       chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
       ⌜cfgv.Voters'.arr = [vref, map.nil] ∧
-        cfgv.Learners' = map.nil ∧
         cfgv.LearnersNext' = map.nil ∧
         cfgv.AutoLeave' = false⌝ ∗
+      ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet learners) ∗
       vref ↦$ vm ∗ ⌜domSet vm = GMap.listToSet voters⌝ ∗
-      prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet voters⌝ ∗
-      ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p) }}
+      prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet voters ∪ GMap.listToSet learners⌝ ∗
+      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
+        ⌜p.learner = decide (k ∉ GMap.listToSet voters)⌝) }}
+
+/-- The non-joint statement from the general one: with no outgoing voter and no staged learner
+the model's answer is the voters and the learners (`simpleFold_restoreIn`). -/
+theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (hG := hG)) :
+    confchange.Restore.specS (GF := GF) (hG := hG) := by
+  intro chg cs voters learners dq dql v0 Hvne Hv0n Hl0n Hdis Hcvo Hcln Hmi Harr Hl Hln Hal
+  iintro %Φ ⟨#Hpkg, Hvs, Hls, Hv0, #Hpm⟩ HΦ
+  have Hm : restoreM [] voters learners [] cs.AutoLeave' =
+      some (cfgState (GMap.listToSet voters) (GMap.listToSet learners)) := by
+    unfold restoreM restoreSimpleOps
+    simp only [↓reduceIte]
+    exact simpleFold_restoreIn voters learners Hvne
+      (fun x hx => hx.elim (fun h e => Hv0n (e ▸ h)) (fun h e => Hl0n (e ▸ h)))
+      (fun x hx => Hdis x hx)
+  ihave Hlo : ownIdList (GF := GF) cs.VotersOutgoing' DFrac.discard [] $$ []
+  · unfold ownIdList; ileft; ipureintro; exact ⟨Hcvo, rfl⟩
+  ihave Hln' : ownIdList (GF := GF) cs.LearnersNext' DFrac.discard [] $$ []
+  · unfold ownIdList; ileft; ipureintro; exact ⟨Hcln, rfl⟩
+  iapply H chg cs voters learners [] [] dq dql DFrac.discard DFrac.discard v0 _ Hvne Hm Hmi Harr
+    Hl Hln Hal $$ [$Hpkg $Hvs $Hls $Hlo $Hln' $Hv0 $Hpm]
+  inext
+  iintro %cfgv %prsm %prs ⟨Hvs, Hls, -, -, Hv0, -, Hc, Hprsm, %Hdom, Hprogs⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr1, Hin, Hout, Hl1, Hln1, %Hal1⟩
+  icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.outgoing rfl $$ Hout with %Hvout
+  icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.learnersNext rfl $$ Hln1 with %Hln1'
+  iapply HΦ
+  iframe Hvs Hls Hv0 Hpm Hprsm
+  isplitr
+  · ipureintro; exact ⟨by rw [Harr1, Hvout], Hln1', Hal1⟩
+  ihave Hl1 := (show ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1)
+    (cfgState (GMap.listToSet voters) (GMap.listToSet learners)).cfg.learners ⊢
+    ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet learners) from .rfl) $$ Hl1
+  iframe Hl1 Hin
+  isplitr
+  · ipureintro; exact domSet_gset _
+  isplitr
+  · ipureintro
+    rw [Hdom]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_dom', cfgState, cfgFlags_mem, GMap.elem_of_union]
+  iapply BigSepM.bigSepM_mono ?_ $$ Hprogs
+  intro k pr _
+  iintro ⟨%p, Hp, %Hpl⟩
+  iexists p
+  iframe Hp
+  ipureintro
+  simp only [cfgState] at Hpl
+  rw [cfgFlags_lookup] at Hpl
+  by_cases hv : k ∈ GMap.listToSet voters
+  · rw [ite_eq_left hv] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
+  · rw [ite_eq_right hv] at Hpl
+    by_cases hl : k ∈ GMap.listToSet learners
+    · rw [ite_eq_left hl] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
+    · rw [ite_eq_right hl] at Hpl; cases Hpl
 
 end spec
 

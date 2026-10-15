@@ -94,21 +94,26 @@ class Project:
 PROJECTS = [
     Project(
         name="etcd-raft",
-        # Upstream, unmodified: the last commit before raftpb moved to protobuf-go v2
-        # (2026-04-15; from the next commit on, messages are pointers with getters, see
-        # notes/STATUS.md, "Retargeting raft to upstream").
-        repo="https://github.com/etcd-io/raft",
-        rev="40f8be730b181c22b430ad83845ce477ca76ad15",
+        # Upstream etcd-io/raft 40f8be7 (the last commit before raftpb moved to
+        # protobuf-go v2, 2026-04-15; from the next commit on, messages are pointers with
+        # getters, see notes/STATUS.md, "Retargeting raft to upstream") plus one fix (the
+        # single-voter read-index shortcut, issues/raft-readindex-singleton-stale.md) and
+        # its regression test: branch raft-goose-lean of the etcd fork (a branch holding
+        # etcd-io/raft's history).
+        repo="https://github.com/upamanyus/etcd",
+        rev="0560cb75ad8e21c68f3323228520776820c5090a",
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
-        lean_roots=["go.etcd.io/raft/v3="],
+        lean_roots=["go.etcd.io/raft/v3=", "github.com/gogo/protobuf="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
             "go.etcd.io/raft/v3/quorum",
             "go.etcd.io/raft/v3/raftpb",
             "go.etcd.io/raft/v3/tracker",
+            # names only: what raftpb's `ConfChangeV2.LeaveJoint` calls (`proto.Equal`)
+            "github.com/gogo/protobuf/proto",
         ],
-        owned=[os.path.join("go_etcd_io", "raft")],
+        owned=[os.path.join("go_etcd_io", "raft"), os.path.join("github_com", "gogo")],
         counted_modules=["go.etcd.io/raft/v3"],
     ),
     Project(
@@ -293,8 +298,10 @@ PROJECTS = [
     Project(
         name="register",
         # An example application on raft's Node: a replicated string register. A Go
-        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 at the
-        # revision pinned above (keep the two in step).
+        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 and replaces
+        # it by the revision pinned above (`github.com/upamanyus/etcd/v3`, the fork's
+        # pseudo-version under a /v3 path, since its go.mod declares go.etcd.io/raft/v3;
+        # keep the two in step).
         repo=None,
         rev=None,
         local=os.path.join("examples", "register"),

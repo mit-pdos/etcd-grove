@@ -3,8 +3,16 @@
 For: the raft team (`origin/worktree-raft-rest`, read at `cec7448e9`).
 From: the backend unit T1 (`notes/decisions.md` in the backend worktree, "Put and Get as persistent
 atomic updates linearized by raft (unit T1)").
-Status: proposal. Nothing here is built. Section 7 lists the open questions; everything marked
-**[unsure]** is a point I could not settle from the sources.
+Status: **implemented** (2026-10-14, stage R on `worktree-raft-rest`; `notes/STATUS.md`, "The
+new ReadIndex and proposal specs (stage R)", and `notes/decisions.md`). Where it differs: §4.4 is
+superseded by stage F (the single-voter shortcut fixed in the pinned raft and refined in both
+modes; no `readSingle` static-only argument); the updates bind the entry with `∀∀ e`, not the
+pair `∃∃ (L, e)` (§5: an `∃∃` binder is the client's choice); one later credit per ghost step
+works only with the commit invariant split in two halves, the registry half held open across
+the step's derivation (a derivation may commit several times), and the credit comes from
+`raft.Step.spec`'s precondition (§4.2's fallback); the register keeps the operations'
+first-occurrence slots itself. Section 7's questions are answered there. (Original status:
+proposal; everything marked **[unsure]** is a point I could not settle from the sources.)
 
 All names are the branch's own (`RaftNames`, `isCommitted`, `readReq`, `readOk`, `readStateOk`,
 `rdCred`, `RqRec`, `propAu`, `propSlot`, `propsOwn`, `raftCommitInv`, `raftN`, `commit_extend`,

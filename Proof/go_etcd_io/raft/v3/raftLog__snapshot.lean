@@ -39,7 +39,12 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
   | some sid =>
     -- the pending snapshot, read through `l.unstable.snapshot`
     ihave Hus := (ownSnap_Some _ sid).1 $$ Husnap
-    icases Hus with ⟨%sv, #Hsv, %Hmeta, %voters, #Hvoters⟩
+    icases Hus with ⟨%sv0, #Hsv0, %Hmeta, -⟩
+    ihave #Hp2 := Hpksn
+    iunfold pendKsn at Hp2
+    icases Hp2 $$ %sid %rfl with ⟨%sv, %voters, #Hsv, %Hsid, #Hvoters, %Hk⟩
+    icombine Hsv0 Hsv gives %Hsveq
+    subst Hsveq
     ihave %Hnn := typedPointsto_not_null $$ Hsv
     rw [decide_eq_false Hnn]
     wp_auto
@@ -55,7 +60,9 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
       rw [Hi, Ht]
       refine ⟨rfl, ?_, Happlied.1, plogTermAt_base _ _⟩
       intro Hz; rw [Hz] at Hsid; simp at Hsid
-    · iexists voters; iexact Hvoters
+    · iexists voters
+      iframe Hvoters
+      ipureintro; exact Hk
   | none =>
     -- `l.unstable.snapshot` is `null`: the `Storage`'s
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap
@@ -71,13 +78,21 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
     icases Herr with (%Herr | ⟨%Herr, Hv⟩)
     · ileft; ipureintro; exact Herr
     iright
+    obtain ⟨rfl, Hid, Hnz, Hal⟩ := Herr
+    isplitr
+    · ipureintro
+      rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
+      · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
+      · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
+        exact ⟨rfl, Hnz, Hle, Ht⟩
+    iexists σ.scs
     iframe Hv
     ipureintro
-    obtain ⟨rfl, Hid, Hnz⟩ := Herr
-    rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
-    · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
-    · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
-      exact ⟨rfl, Hnz, Hle, Ht⟩
+    have Hss : σ.ss.index' ≠ W64 0 := by
+      rw [← Hid]; simp only [snapId]; exact Hnz
+    have Hk := Hsksn Hss
+    rw [← Hid, ← Hal] at Hk
+    exact Hk
 
 end proof
 

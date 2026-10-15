@@ -36,14 +36,19 @@ The log's `applied` moves to `max(index, applied)` (`logAppliedTo`,
 callee of this proof. The premise is `raftLog.appliedTo`'s `Panicf` guard on the new
 `applied` (`applied <= committed` already holds). -/
 abbrev raft.appliedTo.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (index size : w64),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (index size : w64),
   uint.Z index ≤ uint.Z s.logst.committed →
+  -- (2026-10-14, stage B7: at any configuration) the auto-leave branch is not taken: no
+  -- `AutoLeave` at a leader. Its `r.Step` would make this function and `raft.Step` mutually
+  -- recursive, which the link (one proof per function, callees' specs as hypotheses) does
+  -- not express; a joint configuration entered with an explicit transition is in scope.
+  (c.autoLeave = true → s.role ≠ .leader) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appliedTo")) (Val #index))
       (Val #size))
   {{ RET #();
-      ownRaftPhys cfg r id { s with logst := logAppliedTo s.logst index size } }}
+      ownRaftPhysCV c c.voters r id { s with logst := logAppliedTo s.logst index size } }}
 
 end spec
 

@@ -68,9 +68,9 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
       rw [Hul.1]; have := word.signed_range lv.unstable'.entries'.len; word
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
-      Hu_logger
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Huents_cap Hl_logger Hu_logger
 
 /-! The batch, as `appendEntry` rewrites it: `stamp` (`Protocol/Model.lean`). -/
 
@@ -147,14 +147,14 @@ theorem raft.appendEntry.wp_proof
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents Hnorm Hsmall Hnz
+  intro c r id s es ents Hsmall Hnz
   wp_start as ⟨Hphys, Hes⟩
   wp_auto
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   ihave %Hlen := ownSlice_len $$ Hes
   -- `li := r.raftLog.lastIndex()`: the log is read at the state `s` records, and put
   -- back unchanged
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_facts _ _ $$ Hlog with ⟨%Hfacts, Hlog⟩
   obtain ⟨Hidx, Hbnd⟩ := Hfacts
   wp_apply wp_raftLog_lastIndex _ _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
@@ -186,7 +186,7 @@ theorem raft.appendEntry.wp_proof
     simp only [Hbnd', and_self]
     wp_apply wp_load_slice_index es (sint.Z n) _ (DFrac.own 1) e Hn.1 $$ [Hes] as Hes
     · iframe; ipureintro; exact Hcur
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     simp only [Hbnd', and_self]
     icases ownSlice_elem_acc (sint.Z n) e es (DFrac.own 1) _ Hn.1 Hcur $$ Hes with ⟨He1, Hesback⟩
     wp_auto
@@ -227,21 +227,19 @@ theorem raft.appendEntry.wp_proof
     rw [Hlast]
     cases ok <;> wp_auto
     · -- dropped: `Warningf`, `return false`, the struct untouched
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
-      wp_raft_log
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_raft_logC
       iapply HΦ
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
     wp_apply wp_traceReplicate
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     -- `append`'s premises
     have Hidx2 : LogIndicesOk s.logst.prev
         ((s.logst.sents ++ s.logst.uents) ++ ents.mapIdx (stamp s.term li)) :=
       stamped_indices _ _ _ _ _ Hidx (by rw [List.length_append]; push_cast; omega)
         (by omega)
-    have Hnorm2 : ∀ e ∈ ents.mapIdx (stamp s.term li), e.Type' = EntryNormal :=
-      stamped_mem _ _ _ _ Hnorm (fun _ _ h => h)
     have Hk2 : ∀ (k2 : Nat) e, (ents.mapIdx (stamp s.term li))[k2]? = some e →
         uint.Z e.Index' = uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
           + (s.logst.uents.length : Int) + 1 + (k2 : Int) := by
@@ -250,7 +248,7 @@ theorem raft.appendEntry.wp_proof
         rw [List.getElem?_append_right (by simp only [List.length_append]; omega)]
         simp only [List.length_append, Nat.add_sub_cancel_left]; exact Hk)
       rw [H]; push_cast; omega
-    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
+    icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     -- `append`'s widened spec: the stamped batch continues the log, so
     -- it is a plain `logAppend` and nothing is adopted
     obtain ⟨Htac, Hado⟩ := logTruncateAppend_cont s.logst (ents.mapIdx (stamp s.term li))
@@ -268,13 +266,13 @@ theorem raft.appendEntry.wp_proof
       push_cast at H0
       refine ⟨⟨by omega, by omega⟩, fun k e Hk => by rw [Hk2 k e Hk, H0]; omega, ?_⟩
       rw [List.length_mapIdx]; omega
-    wp_apply wp_raftLog_append _ _ _ _ _ Hpre Hnorm2 $$ [$Hlog $Hes]
+    wp_apply wp_raftLog_append _ _ _ _ _ Hpre $$ [$Hlog $Hes]
       as %li2 ⟨Hlog, Hes, %Hsplit2, %Hli2⟩
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
     rw [Hado, Htac] at *
     simp only [Bool.false_eq_true, ↓reduceIte]
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.append _ Hgh0)
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stamp s.term li))) = li2 := by
       unfold logLast
       unfold logAppend at Hli2 ⊢
@@ -288,13 +286,15 @@ theorem raft.appendEntry.wp_proof
       { Type' := W32 4, To' := id, From' := 0, Term' := 0, LogTerm' := 0, Index' := li2,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
         Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    wp_apply wp_raft_send cfg r id s' m [] [selfAck id s'] ?_ ?_ $$ [$Hphys]
+    wp_apply wp_raft_send c r id s' m [] [] [selfAck id s'] ?_ ?_ $$ [$Hphys]
     · exact Or.inl rfl
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       iapply send_no_snap
       show W32 4 ≠ MsgSnap

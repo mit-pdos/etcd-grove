@@ -52,9 +52,13 @@ The `Ready` it returns:
   (`appendRight`, 2026-10-10: the storage's hand-out law, `InvStorage.lean`), which an
   implementation's `Append` turns into the receipt `ownRawNode_appended` takes back --
   on the application's goroutine, while the node keeps reading the storage;
-- `Messages`: the application's slice, to send; each message is `isRaftMsg`;
-- `Snapshot` empty and `ReadStates` nil (no snapshot pending, no read-index request in
-  scope).
+- `Messages`: the application's slice, to send; each message is `isRaftMsg`, and
+  (2026-10-13) comes with its read credit (`rdCred`: one for a `MsgReadIndex`, none
+  otherwise), which the transport passes to the receiver's `Step`;
+- `Snapshot` empty (no snapshot pending);
+- `ReadStates`: `sts`, read-only (2026-10-13), each `readStateOk`: its context a slice
+  proposed (`isPropData`), and its index at least the length of the committed log the
+  read was created knowing (`readOk`), so applying up to it reads a linearizable state.
 
 The node's new state: `delivered` grows by `ce`, `unpersisted` is `es`, and the local
 messages for `Advance` are queued (`steps`), which `Advance` takes whatever they are.
@@ -69,7 +73,7 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message)
-      (steps : List Pending), RET #rd;
+      (sts : List ReadState) (steps : List Pending), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false } ∗
@@ -79,10 +83,14 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hmsgs" ∷ rd.Messages' ↦* ms ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
       "#Hmsgs_ok" ∷ ([∗list] m ∈ ms, isRaftMsg γ m) ∗
+      -- each message's read credit (2026-10-13)
+      "Hmsgs_cred" ∷ ([∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0)) ∗
       -- every message is of a term at most the node's at the call (2026-10-10)
       "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
-      "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧
-                   rd.ReadStates' = slice.nil⌝ ∗
+      "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝ ∗
+      -- the read states (2026-10-13)
+      "#Hrs" ∷ rd.ReadStates' ↦*□ sts ∗
+      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
       -- the right to append `es` to the node's storage (2026-10-10)
       "Happ" ∷ appendRight rs.storage es }}
 

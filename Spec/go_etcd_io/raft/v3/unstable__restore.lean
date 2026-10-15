@@ -32,17 +32,18 @@ state's `snap`, the snapshot's id (`snapId`), held as `ownSnap` together with th
 caller's read-only `ConfState.Voters` (since 2026-10-03: `raftLog.snapshot()` hands the
 stored snapshot's voters to `maybeSendSnapshot`). The old entries are dropped (the
 suffix is empty, a `nil` slice); the logger is left alone, which `ownUnstable` keeps
-without saying (until 2026-10-08 the post said so, on the Goose value). -/
+without saying (until 2026-10-08 the post said so, on the Goose value). (2026-10-15, stage S)
+The snapshot, with its lists, joins the ones the node may send (`ksn`, `pendKsn`). -/
 abbrev unstable.restore.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableSt) (sv : raftpb.Snapshot) (voters : List w64),
+  ∀ (u : Loc) (us : UnstableSt) (sv : raftpb.Snapshot) (voters : CSLists),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us ∗
-      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+      "#Hvoters" ∷ ownCSL sv.Metadata'.ConfState' voters }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"restore")) (Val #sv))
   {{ RET #();
       ownUnstable u { ents := [], offset := sv.Metadata'.Index' + W64 1,
                       inprogress := sv.Metadata'.Index' + W64 1,
-                      snap := some (snapId sv) } }}
+                      snap := some (snapId sv), ksn := us.ksn ++ [snapTrip sv voters] } }}
 
 end spec
 

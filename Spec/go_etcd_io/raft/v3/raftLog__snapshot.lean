@@ -48,6 +48,10 @@ by `ownRaftLog`; its voters are `ownSnap`'s. Otherwise `Storage.Snapshot()`:
 `isStorage`'s `HSnapshot` says the snapshot is the storage's own, `ss`, and
 `ownRaftLog`'s `StoredSnapOk` relates `ss` to the log and the commit index.
 
+(2026-10-15, stage S) The snapshot, with its lists, is one the node may send (`ksn`): the
+storage's is (`ownRaftLog`'s `Hsksn`, the lists those `HSnapshot` returns), and so is the pending
+one (`Hpksn`).
+
 The log comes back at the same state, like `raftLog.firstIndex`: the one caller,
 `raft.maybeSendSnapshot`, calls both on the same log. -/
 abbrev raftLog.snapshot.spec : Prop :=
@@ -63,7 +67,9 @@ abbrev raftLog.snapshot.spec : Prop :=
           uint.Z snap.Metadata'.Index' ≤ uint.Z ls.committed ∧
           plogTermAt ls.prev (ls.sents ++ ls.uents) snap.Metadata'.Index'
             = some snap.Metadata'.Term'⌝ ∗
-        ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
+        ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters ∗
+          -- (2026-10-15, stage S) one the node may send
+          ⌜snapTrip snap voters ∈ ls.ksn⌝)) }}
 
 end spec
 

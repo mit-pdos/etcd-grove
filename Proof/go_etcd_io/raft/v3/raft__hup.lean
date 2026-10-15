@@ -38,8 +38,10 @@ Two of the branches are decided rather than taken:
   `stateW64 s.role` together with injectivity of
   `stateW64` -- the `≠ W64 2` fact in the non-leader branch is the
   same computation `becomeCandidate` does for its panic check.
-- `r.hasUnappliedConfChanges()` returns `false` (no reconfiguration is
-  in scope), so its logging arm is dead code.
+- `r.hasUnappliedConfChanges()` (since 2026-10-13, reconfiguration stage D, a real
+  answer: a conf-change entry at `(applied, committed]`) refuses the campaign: log and
+  return, `Step.refl`. (Until then it returned `false`, the log having no conf-change
+  entry, and its logging arm was dead.)
 
 `promotable` is the one branch genuinely taken both ways: its result is
 `decide (r.id ∈ cfg ∧ snap = none)`, which is exactly the
@@ -52,20 +54,20 @@ theorem raft.hup.wp_proof
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
     (wp_raft_hasUnappliedConfChanges : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
     raft.hup.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s t Hnowrap Hpv Hwf
+  intro c r id s t Hnowrap Hpv Hwf
   wp_start as Hphys
   wp_auto
-  wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   by_cases Hrl : s.role = .leader
   · -- already a leader: log and return, having done nothing
     rw [Hrl, decide_eq_true (by rfl)]
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_raft_log
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_raft_logC
     iapply HΦ $$ %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega, rfl, rfl⟩
+    exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
   · -- not a leader
     have Hnl : stateW64 s.role ≠ W64 2 := by
       cases h : s.role <;> simp_all [stateW64] <;> decide
@@ -77,30 +79,45 @@ theorem raft.hup.wp_proof
       -- a voter, so it may campaign
       obtain ⟨Hin, Hsn⟩ := of_decide_eq_true Hb.symm
       wp_auto
-      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as Hphys
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
-      wp_apply raft.wp_load_Term $$ Hphys as Hphys
-      wp_raft_log
+      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as %hc ⟨Hphys, %Hhc⟩
+      cases hc with
+      | true =>
+        -- (2026-10-13) a conf-change entry committed but not applied: log and return,
+        -- having done nothing
+        wp_auto
+        wp_apply raft.wp_load_idC $$ Hphys as Hphys
+        wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+        wp_raft_logC
+        iapply HΦ $$ %s
+        iframe Hphys
+        ipureintro
+        exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
+      | false =>
+      wp_auto
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+      wp_raft_logC
       wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv $$ [$Hphys]
         as %peers %pvs ⟨%Hpeers, Hphys⟩
       iapply HΦ
       iframe Hphys
       ipureintro
-      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _),
-        step_campaignState cfg _ _ _ _ _ Hrl Hin Hnowrap Hpeers, ?_⟩
+      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
+        stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
+        .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩
       unfold campaignState
       refine ⟨by split <;> rfl, ?_⟩
-      split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo] <;>
+      split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo, resetTo0] <;>
         refine ⟨?_, ?_, ?_, ?_⟩ <;> first | exact True.intro | rfl | word
     | false =>
       -- unpromotable: log and return, having done nothing
       wp_auto
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
-      wp_raft_log
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_raft_logC
       iapply HΦ $$ %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega, rfl, rfl⟩
+      exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
 
 end proof
 

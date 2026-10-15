@@ -9,3 +9,5 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )
+
+replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261014191125-0560cb75ad8e

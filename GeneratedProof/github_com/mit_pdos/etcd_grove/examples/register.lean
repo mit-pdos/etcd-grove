@@ -46,6 +46,63 @@ instance quietLogger_into_val_typed :
 end def_
 end quietLogger
 
+namespace transfers
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
+
+instance transfers_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.register.transfers where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"mu" l) v.mu' dq ∗
+    "left" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"left" l) v.left' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance transfers_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.register.transfers github_com.mit_pdos.etcd_grove.examples.register.transfers.underlying := by
+  solve_into_val_typed_struct
+
+instance transfers_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.transfers) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance transfers_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.transfers) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.register.transfers) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance transfers_access_load_left (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.transfers) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"left" l) v.left' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"left" l) v.left' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance transfers_access_store_left (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.transfers) (left' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"left" l) v.left' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.transfers go!"left" l) left' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with left' := left' } : github_com.mit_pdos.etcd_grove.examples.register.transfers) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end transfers
+
 namespace Storage
 section def_
 
@@ -122,6 +179,7 @@ instance Register_typed_pointsto :
     "nextSeq" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"nextSeq" l) v.nextSeq' dq ∗
     "applied" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"applied" l) v.applied' dq ∗
     "waiters" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) v.waiters' dq ∗
+    "reads" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -256,6 +314,22 @@ instance Register_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_g
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) v.waiters' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) waiters' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiters' := waiters' } : github_com.mit_pdos.etcd_grove.examples.register.Register) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Register_access_load_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Register_access_store_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (reads' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) reads' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reads' := reads' } : github_com.mit_pdos.etcd_grove.examples.register.Register) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

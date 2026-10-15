@@ -24,11 +24,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `NewMemoryStorage()`: `&MemoryStorage{ents: make([]pb.Entry, 1)}`, a storage with
 nothing stored (the dummy entry at index `0`), no snapshot and nothing pending
 (`memStorEmpty`), under fresh ghost names. Its snapshot is empty, which
-`isStorage`'s `Snapshot` clause excludes (`MemstorageInstance.lean`). -/
+`isStorage`'s `Snapshot` clause excludes (`MemstorageInstance.lean`). Since 2026-10-12
+also the rest of the storage (`memStorMeta`), at the empty hard state and snapshot, for
+`InitialState`, `SetHardState`, `ApplySnapshot` and `CreateSnapshot`. -/
 abbrev NewMemoryStorage.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions NewMemoryStorage [])) (Val #()))
-  {{ (ms : Loc) (γs : MemStorNames), RET #ms; ownMemoryStorage ms γs memStorEmpty }}
+  {{ (ms : Loc) (γs : MemStorNames), RET #ms; ownMemoryStorage ms γs memStorEmpty ∗
+      memStorMeta ms γs (zero_val raftpb.HardState) (zero_val raftpb.Snapshot) }}
 
 end spec
 

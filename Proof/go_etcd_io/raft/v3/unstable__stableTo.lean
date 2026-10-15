@@ -129,7 +129,7 @@ theorem unstable.stableTo.wp_proof
       { us with ents := us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat,
                 offset := id.index' + W64 1,
                 inprogress := w64Max us.inprogress (id.index' + W64 1) } $$ [Hu Hents_cap] as Hun
-  · iapply ownUnstable_intro $$ Hu Hents_cap Hents2 Hsnap Hlogger
+  · iapply ownUnstable_intro $$ Hu Hents_cap Hents2 Hsnap Hpksn Hlogger
     ipureintro; exact ⟨rfl, rfl⟩
   iapply HΦ
   isplitl [Hun]

@@ -22,14 +22,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- On a `nil` map `nilAwareDelete` returns at once, without writing. Stated for that
-case only: `makeVoter` calls it on `Learners` and `LearnersNext`, both `nil` on this
-path (`ConfigSimple`). -/
+/-- `nilAwareDelete(&m, id)`: `*m` (`nil` or a map) afterwards holds the set without `id`,
+canonically (`ownIdsetC`): `nil` exactly when that set is empty. A `nil` map is left
+alone (generalized 2026-10-12 from the `nil` case `makeVoter` met on `Restore`'s path). -/
 abbrev confchange.nilAwareDelete.spec : Prop :=
-  ∀ (mp : Loc) (id : w64) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ mp ↦{dq} (map.nil : GoMap) }}
+  ∀ (mp m : Loc) (id : w64) (s : GSet w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ mp ↦ (m : GoMap) ∗ ownIdsetQ m (DFrac.own 1) s }}
     (App (App (Val #(functions confchange.nilAwareDelete [])) (Val #mp)) (Val #id))
-  {{ RET #(); mp ↦{dq} (map.nil : GoMap) }}
+  {{ (m' : Loc), RET #(); mp ↦ (m' : GoMap) ∗ ownIdsetC m' (DFrac.own 1) (GMap.delete id s) }}
 
 end spec
 

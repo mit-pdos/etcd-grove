@@ -42,6 +42,13 @@ theorem unstable.restore.wp_proof : unstable.restore.spec (GF := GF) (hG := hG) 
     · ipureintro; exact ⟨rfl, rfl⟩
     iexists voters
     iexact Hvoters
+  · unfold pendKsn
+    imodintro
+    iintro %sid %Hsid
+    iexists sv, voters
+    iframe s Hvoters
+    ipureintro
+    exact ⟨by cases Hsid; rfl, List.mem_append_right _ (List.mem_singleton_self _)⟩
   · iexact Hlogger
   · ipureintro; exact ⟨rfl, rfl⟩
 

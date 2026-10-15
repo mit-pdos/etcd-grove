@@ -11,6 +11,10 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.NewStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__Get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__Put
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__Read
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__RemoveMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__TransferLeadership
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__do
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Register__run
@@ -28,6 +32,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.register.quietLogger
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Infof
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Warningf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.tick
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.transfers__take
 public import Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
@@ -77,9 +82,25 @@ theorem register.Register.wp_Put [RegStor GF] :
     register.Register.Put.spec (GF := GF) (hG := hG) :=
   register.Register.Put.wp_proof register.Register.wp_do
 
+theorem register.Register.wp_Read [RegStor GF] :
+    register.Register.Read.spec (GF := GF) (hG := hG) :=
+  register.Register.Read.wp_proof register.wp_encode node.wp_ReadIndex
+
+theorem register.Register.wp_RemoveMember [RegStor GF] :
+    register.Register.RemoveMember.spec (GF := GF) (hG := hG) :=
+  register.Register.RemoveMember.wp_proof node.wp_ProposeConfChange
+
+theorem register.Register.wp_TransferLeadership [RegStor GF] :
+    register.Register.TransferLeadership.spec (GF := GF) (hG := hG) :=
+  register.Register.TransferLeadership.wp_proof node.wp_TransferLeadership
+
 theorem register.wp_decode [RegStor GF] :
     register.decode.spec (GF := GF) (hG := hG) :=
   register.decode.wp_proof
+
+theorem register.Register.wp_answer [RegStor GF] :
+    register.Register.answer.spec (GF := GF) (hG := hG) :=
+  register.Register.answer.wp_proof register.wp_decode
 
 theorem register.Register.wp_apply [RegStor GF] :
     register.Register.apply.spec (GF := GF) (hG := hG) :=
@@ -91,7 +112,7 @@ theorem register.wp_fits [RegStor GF] :
 
 theorem register.Register.wp_run [RegStor GF] :
     register.Register.run.spec (GF := GF) (hG := hG) :=
-  register.Register.run.wp_proof register.wp_fits register.Register.wp_apply node.wp_Ready node.wp_Advance MemoryStorage.wp_Append
+  register.Register.run.wp_proof register.wp_fits register.Register.wp_apply register.Register.wp_answer node.wp_Ready node.wp_Advance MemoryStorage.wp_Append raftpb.ConfChange.wp_Unmarshal node.wp_ApplyConfChange
 
 theorem register.Storage.wp_InitialState [RegStor GF] :
     register.Storage.InitialState.spec (GF := GF) (hG := hG) :=
@@ -109,9 +130,13 @@ theorem register.wp_deliverable :
     register.deliverable.spec (GF := GF) (hG := hG) :=
   register.deliverable.wp_proof
 
+theorem register.transfers.wp_take [StorageModel GF] :
+    register.transfers.take.spec (GF := GF) (hG := hG) :=
+  register.transfers.take.wp_proof
+
 theorem register.wp_deliver [StorageModel GF] :
     register.deliver.spec (GF := GF) (hG := hG) :=
-  register.deliver.wp_proof register.wp_deliverable node.wp_Step
+  register.deliver.wp_proof register.wp_deliverable register.transfers.wp_take node.wp_Step
 
 theorem register.wp_tick [StorageModel GF] :
     register.tick.spec (GF := GF) (hG := hG) :=
@@ -135,7 +160,7 @@ theorem register.quietLogger.wp_Warningf :
 
 theorem register.wp_Main :
     register.Main.spec (GF := GF) (hG := hG) :=
-  register.Main.wp_proof register.wp_NewStorage register.Storage.wp_InitialState register.Storage.wp_Snapshot register.wp_New register.Register.wp_Put register.Register.wp_Get register.wp_deliver register.wp_tick register.quietLogger.wp_Debugf register.quietLogger.wp_Errorf register.quietLogger.wp_Infof register.quietLogger.wp_Warningf wp_RestartNode
+  register.Main.wp_proof register.wp_NewStorage register.Storage.wp_InitialState register.Storage.wp_Snapshot register.wp_New register.Register.wp_Put register.Register.wp_Get register.Register.wp_Read register.Register.wp_TransferLeadership register.Register.wp_RemoveMember register.wp_deliver register.wp_tick register.quietLogger.wp_Debugf register.quietLogger.wp_Errorf register.quietLogger.wp_Infof register.quietLogger.wp_Warningf wp_RestartNode
 
 end links_hasLC
 

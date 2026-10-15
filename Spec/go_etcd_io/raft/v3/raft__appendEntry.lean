@@ -73,7 +73,8 @@ only when
 (`raft.increaseUncommittedSize.impl`), and `payloadsSize` sums `len(e.Data)`.
 
 From 2026-09-18 to 2026-10-01 that was a *premise* (`Hempty`) and the result was
-`RET #true`. Since 2026-10-01 the triple takes an arbitrary `EntryNormal` batch -- what
+`RET #true`. Since 2026-10-01 the triple takes an arbitrary batch (until 2026-10-13 of
+`EntryNormal` entries) -- what
 `stepLeader`'s `MsgProp` arm passes, and what the model's `Step.propose` describes -- so
 the result is a bool `accepted`, and the fact above is a *conjunct* of the
 postcondition: `(∀ e ∈ ents, Data empty) → accepted = true`. That is as far as
@@ -93,13 +94,11 @@ struct is written, so it comes back at `s`. The accept path writes `r.uncommitte
 
 ### The premises
 
-Both are what the *log* needs:
+What the *log* needs (until 2026-10-13 also `Hnorm`, no configuration change in the
+batch, for `ownRaftLog`'s `HnoConfChange`; since reconfiguration stage D the log takes
+conf-change entries as data. The method does *not* set `Type` -- only `Term` and `Index`
+-- so the caller's value is what lands in the log):
 
-- `Hnorm`: no entry in the batch is a configuration change. `ownRaftLog`'s
-  `HnoConfChange` is about the whole log, so appending an `EntryConfChange` would break
-  it. `becomeLeader` passes `pb.Entry{Data: nil}`, whose `Type` is the zero value
-  `EntryNormal`. (Note the method does *not* set `Type` -- only `Term` and `Index` --
-  so the caller's value is what lands in the log.)
 - `Hsmall`: the batch has fewer than `2^61` entries, so that `lastIndex()+1+k` does not
   wrap while the loop stamps it in.
 
@@ -146,22 +145,45 @@ was appended: the batch, stamped with the current term and consecutive indices a
 the struct at the *same* state, which was only true because `ownRaftPhys` quantified
 the log away. -/
 abbrev raft.appendEntry.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List raftpb.Entry),
-  -- no configuration change, so the log's `HnoConfChange` survives
-  (∀ e ∈ ents, e.Type' = EntryNormal) →
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       es ↦* ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
       -- an all-empty batch is never dropped -- see above
       ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
       -- stamped on both paths: the loop runs before the budget check
+      es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
+      if accepted then
+        ownRaftPhysCV c c.voters r id
+          (sendMsgs
+            { s with logst :=
+                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+            [selfAck id
+              { s with logst :=
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+      else
+        -- dropped: `Warningf` and `return false`, nothing written
+        ownRaftPhysCV c c.voters r id s }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.appendEntry.spec` by `raft.appendEntry.spec_simple`. -/
+abbrev raft.appendEntry.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
+    (ents : List raftpb.Entry),
+  (ents.length : Int) < 2^61 →
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+      es ↦* ents }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
+  {{ (accepted : Bool), RET #accepted;
+      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
       es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
       if accepted then
         ownRaftPhys cfg r id
@@ -172,8 +194,23 @@ abbrev raft.appendEntry.spec : Prop :=
               { s with logst :=
                   logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
       else
-        -- dropped: `Warningf` and `return false`, nothing written
         ownRaftPhys cfg r id s }}
+
+open Iris.ProofMode in
+theorem raft.appendEntry.spec_simple
+    (H : raft.appendEntry.spec (GF := GF) (hG := hG)) :
+    raft.appendEntry.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s es ents Hlen Ht
+  iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s es ents Hlen Ht $$ [$Hpkg $Hphys $Hes]
+  inext
+  iintro %acc ⟨%Hacc, Hes, Hphys⟩
+  iapply HΦ
+  iframe Hes
+  isplitr
+  · ipureintro; exact Hacc
+  cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> iapply ownRaftPhysC_toS $$ Hphys
 
 end spec
 

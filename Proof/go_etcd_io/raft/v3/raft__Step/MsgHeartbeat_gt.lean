@@ -9,10 +9,10 @@ directory may `Require` it.
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 * Rocq's `Local Ltac`s `recv_elem` (closing `∀ m' ∈ recv, m' = …` goals: `elem_of_app`,
   `list_elem_of_singleton`, `elem_of_nil`, `naive_solver`) and `wp_load_step` (the load
-  of `r.step` in `r.step(r, m)`, bound by hand with `raft.wp_load_step`, as `wp_apply`
+  of `r.step` in `r.step(r, m)`, bound by hand with `raft.wp_load_stepC`, as `wp_apply`
   does not find a load in function position) are not ported.
 -/
 module
@@ -38,14 +38,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol fact (`heartbeat_commit_le_last`)
     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
@@ -53,50 +52,58 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     -- `stepFollower`
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents }}
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "#Hents" ∷ m.Entries' ↦*□ ents ∗
+        "#Hctx" ∷ m.Context' ↦*□ ctx }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hgt
-  wp_start as ⟨Hphys, #Hents⟩
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hgt
+  wp_start as ⟨Hphys, #Hents, #Hctx⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_true Hgt]
   wp_auto
   repeat (rw [Hty]; wp_auto)
   -- "received a message with higher term"
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_raft_log
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_raft_logC
   -- MsgApp || MsgHeartbeat || MsgSnap: the second holds
   repeat (rw [Hty]; wp_auto)
   -- becomeFollower(m.Term, m.From): a leader's message
-  wp_apply _P.becomeFollower cfg r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower c r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
   repeat (rw [Hty]; wp_auto)
-  wp_apply raft.wp_load_step $$ Hphys as Hphys
+  wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
-  wp_apply _P.stepFollower cfg r id
-      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m ents (zero_val _) [] (.inr (.inr (.inr (.inl Hty))))
+  wp_apply _P.stepFollower c ∅ r id
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m ents (zero_val _) ctx (.inr (.inr (.inr (.inl Hty))))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hcommit, Hfid⟩)
-    $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+      (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
+    $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · isplitl []
+    · iintro _; iexact Hctx
+    isplitl []
+    · iintro %Hc; exfalso; rw [Hty] at Hc
+      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+    isplitl []
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-  obtain ⟨rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ Hty Hres
+  obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
@@ -104,16 +111,17 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
-  refine ⟨nstateWf_heartbeatResult _ _ _ ?_, ?_, rfl,
+  refine ⟨nstateWf_heartbeatResult _ _ _ _ ?_, ?_, rfl,
     stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
   · exact ⟨rfl, rfl⟩
-  · refine ⟨[absMsg .heartbeat m ents] ++ [absMsg .heartbeat m ents], ?_, ?_⟩
+  · refine ⟨[absMsg .heartbeat m ents ctx] ++ [absMsg .heartbeat m ents ctx], ?_, ?_⟩
     · intro m' Hm'
       simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
       exact Hm'
-    · refine .trans _ _ _ _ _
-        (step_higher_term_leader cfg id (toPState s) .heartbeat m ents rfl Hgt Hto Hfid) ?_
-      exact step_handle_heartbeat cfg id _ _ m ents
+    · refine StepCD.frame ?_ (by rframe)
+      refine .trans _ _ _ _ _
+        (step_higher_term_leader c id (toPState s) .heartbeat m ents ctx rfl Hgt Hto Hfid) ?_
+      exact step_handle_heartbeat c id _ _ m ents ctx
         (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hcommit Hfid
 
 end StepProof

@@ -211,16 +211,24 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
     intro t Ht
     rcases Hterms_ok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte, -⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => Hr (Hcand hc).1⟩
   have Hwins_ok' : WinsOk wins s' := by
     intro t Ht
     rcases Hwins_ok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte, -⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => Hr (Hcand hc).1⟩
+  have Hlacks' : LeadAcksOk s' acks := by
+    refine ⟨fun hc i => ?_, fun hl i hi => ?_⟩
+    · obtain ⟨hc0, hte⟩ := Hcand hc
+      rw [hte]; exact Hlacks.1 hc0 i
+    · obtain ⟨hl0, hte, hb, hlg⟩ := Hlead hl
+      rw [hte] at hi; rw [hb, hlg]; exact Hlacks.2 hl0 i hi
   have Hacks_term' : AcksTerm s' acks := fun k Hk => by have := Hacks_term k Hk; omega
   have Hcamps_ok' : ∀ T, (camps !! T).isSome → uint.Z T ≤ uint.Z s'.term :=
     fun T HT => by have := Hcamps_ok T HT; omega
@@ -498,7 +506,7 @@ theorem ownLogGhost_mono (γ : RaftNames) (id : w64) (s s' : PState) (kl : Optio
     · rw [matchedOk_nl γ s' Hr']; ipureintro; trivial
   · iintro %fp %_ - #Hc
     rw [Hcm]
-    iapply commitIn_agree γ _ _ s.commit s.term s'.term (Int.le_of_eq (congrArg _ Hte.symm)) rfl $$ Hc
+    iapply commitIn_agree γ _ _ s.commit s.term s'.term (Int.le_of_eq (congrArg _ Hte.symm)) rfl rfl $$ Hc
   · iintro %fp %_ - #Hc
     unfold cprefix
     rw [Hcm, Hlog]
@@ -521,7 +529,7 @@ theorem ownLogGhost_mono_up (γ : RaftNames) (id : w64) (s s' : PState) (kl : Op
   · rw [matchedOk_nl γ s' Hnl]; ipureintro; trivial
   · iintro %fp %_ - #Hc
     rw [Hcm]
-    iapply commitIn_agree γ _ _ s.commit s.term s'.term (by omega) rfl $$ Hc
+    iapply commitIn_agree γ _ _ s.commit s.term s'.term (by omega) rfl rfl $$ Hc
   · iintro %fp %_ - #Hc
     unfold cprefix
     rw [Hcm, Hlog]
@@ -590,7 +598,8 @@ theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
 /-- A node acknowledges at its own term, with the justification `acksOk` asks of it and
 the history `histsOk` asks of it. -/
 theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
-    (i : w64) :
+    (i : w64) (Hnc : s.role ≠ .candidate)
+    (Hli : s.role = .leader → uint.Z i ≤ plogLastIndexZ s.base s.log) :
     ⊢ ackOk (GF := GF) γ s (s.term, i) -∗
       (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗
          logRecs γ base0 fp -∗
@@ -608,6 +617,11 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
   imod acks_add γa acks (s.term, i) $$ Hacks Hafrags with ⟨Hacks', #Hafr', #Hnew⟩
   imod ownEvs_ack γ id s.term acks i $$ Hevs with ⟨Hevs', #Hev⟩
   have Hacks_term' := AcksTerm_insert s acks s.term i (Int.le_refl _) Hacks_term
+  have Hlacks' : LeadAcksOk s (<[(s.term, i) := ()]> acks) := by
+    refine ⟨fun hc => absurd hc Hnc, fun hl j hj => ?_⟩
+    by_cases hji : (s.term, j) = (s.term, i)
+    · simp only [Prod.mk.injEq, true_and] at hji; subst hji; exact Hli hl
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hji)] at hj; exact Hlacks.2 hl j hj
   ihave #Hacks_ok' : acksOk (GF := GF) γ s (<[(s.term, i) := ()]> acks) $$ []
   · by_cases Hr : s.role = .leader
     · rw [acksOk_l γ s (<[(s.term, i) := ()]> acks) Hr]; ipureintro; trivial
@@ -714,6 +728,91 @@ theorem ownLogGhost_lead_prefix (γ : RaftNames) (id : w64) (s : PState)
   · iexact Hp
   · iexact H
 
+/-- A leader stepping down at its term (2026-10-14, stage B5: `StepR.stepDown`): its term
+log is dropped (`TermsOk`'s keys allow a non-candidate at its term); its acknowledgements of
+its term, within its log (`LeadAcksOk`), are justified by its own prefix. -/
+theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : Option w64)
+    (Hr : s.role = .leader) (Hr' : s'.role = .follower) (Hte : s'.term = s.term)
+    (Hv : s'.vote = s.vote) (Hb : s'.base = s.base) (Hlg : s'.log = s.log)
+    (Hc : s'.commit = s.commit) :
+    ⊢ isLeader (GF := GF) γ id s.term -∗ ownLogGhost γ id s kl -∗ ownLogGhost γ id s' kl := by
+  iintro #Hl H
+  icases ownLogGhost_lead_full γ id s kl Hr $$ Hl H with ⟨⟨%fpl, #Hp, #Hpf, -⟩, H⟩
+  unfold ownLogGhost
+  icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  iclear Htlog
+  have Hnl : s'.role ≠ .leader := by rw [Hr']; decide
+  have Hnc : s'.role ≠ .candidate := by rw [Hr']; decide
+  have Hterms_ok' : TermsOk terms s' := by
+    intro t Ht; rw [Hte]
+    rcases Hterms_ok t Ht with h | ⟨h, -⟩
+    · left; exact h
+    · right; exact ⟨h, Hnc⟩
+  have Hwins_ok' : WinsOk wins s' := by
+    intro t Ht; rw [Hte]
+    rcases Hwins_ok t Ht with h | ⟨h, -⟩
+    · left; exact h
+    · right; exact ⟨h, Hnc⟩
+  have Hacks_term' : AcksTerm s' acks := fun k Hk => by rw [Hte]; exact Hacks_term k Hk
+  have Hlog_ok' : LogOk s' := by unfold LogOk; rw [Hb, Hlg, Hc]; exact Hlog_ok
+  have Hfull' : FullOk s'.base fp ∧ PlogWf s'.base s'.log ∧ TermsLe s' (fp ++ s'.log) := by
+    obtain ⟨H1, H2, H3⟩ := Hfull
+    refine ⟨by rw [Hb]; exact H1, by rw [Hb, Hlg]; exact H2, fun j x Hx => ?_⟩
+    rw [Hlg] at Hx
+    rw [Hte]
+    exact ⟨(H3 j x Hx).1, fun h => absurd h Hnc⟩
+  have Hcamps_ok' : ∀ T, (camps !! T).isSome → uint.Z T ≤ uint.Z s'.term := by
+    intro T HT; rw [Hte]; exact Hcamps_ok T HT
+  have Hlacks' : LeadAcksOk s' acks := ⟨fun h => absurd h Hnc, fun h => absurd h Hnl⟩
+  ihave Htlog' : leadLogOwn (GF := GF) γ s' terms $$ []
+  · rw [leadLogOwn_nl γ s' terms Hnl]; ipureintro; trivial
+  ihave #Hacks_ok' : acksOk (GF := GF) γ s' acks $$ []
+  · rw [acksOk_nl γ s' acks Hnl]
+    iapply (BigSepM.bigSepM_forall (Φ := fun (k : w64 × w64) (_ : Unit) => ackOk (GF := GF) γ s' k)).2
+    iintro %k %u %Hk
+    unfold ackOk
+    iintro %Hk12
+    obtain ⟨Hk1, Hk2⟩ := Hk12
+    rw [Hte] at Hk1
+    have Hkk : k = (s.term, k.2) := Prod.ext Hk1 rfl
+    have Hi := Hlacks.2 Hr k.2 (by rw [← Hkk, show acks !! k = some u from Hk]; rfl)
+    rw [Hc] at Hk2
+    rw [Hb, Hlg, Hk1]
+    unfold ackAgree
+    isplitr; · ipureintro; exact Hi
+    iexists id, s.base, s.log
+    isplitr; · iexact Hp
+    isplitr
+    · ipureintro
+      refine ⟨plogTermAt_in_range _ _ _ ⟨?_, Hi⟩, rfl⟩
+      have := Hlog_ok.2.1; omega
+    · iexists fpl; iexact Hpf
+  ihave #Hmatched' : matchedOk (GF := GF) γ s' $$ []
+  · rw [matchedOk_nl γ s' Hnl]; ipureintro; trivial
+  ihave #Hrecs' : logRecs (GF := GF) γ s'.base s'.log $$ []
+  · rw [Hb, Hlg]; iexact Hrecs
+  ihave #Hcommit' : commitIn (GF := GF) γ (fp ++ s'.log) s'.commit s'.term $$ []
+  · rw [Hlg, Hc, Hte]; iexact Hcommit
+  ihave #Hbase' : baseOk (GF := GF) γ s'.base $$ []
+  · rw [Hb]; iexact Hbase
+  ihave #Hcown' : campOwn (GF := GF) γ id s' (fp ++ s'.log) $$ []
+  · unfold campOwn; rw [Hr']; ipureintro; trivial
+  ihave #Hvlogs' : vlogsOk (GF := GF) γ s' acks vlogs $$ []
+  · unfold vlogsOk; rw [Hte]; iexact Hvlogs_ok
+  ihave #Hhists' : histsOk (GF := GF) γ s' kl (fp ++ s'.log) acks $$ []
+  · rw [show histsOk (GF := GF) γ s' kl (fp ++ s'.log) acks = histsOk γ s kl (fp ++ s.log) acks by
+      unfold histsOk bnd; rw [Hte, Hlg]]
+    iexact Hhists
+  ihave #Hkl' := klOk_step γ id s s' kl kl
+    (Or.inl ⟨rfl, Hte, fun h => by rw [← Hv]; exact h, fun h => absurd h Hnl⟩) $$ Hkl
+  ihave Hevs' : ownEvs (GF := GF) γ id s'.term acks $$ [Hevs]
+  · rw [Hte]; iexact Hevs
+  ihave #Hcmt' : isCommitted (GF := GF) γ (cprefix fp s') $$ []
+  · unfold cprefix; rw [Hlg, Hc]; iexact Hcmt
+  iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
+  iframe % # ∗
+
 /-- `Step.campaign`, on the log ghost state: record the campaign log (the full log,
 unchanged since) and, for the self-vote, the vote-time log -- with the histories of
 every earlier acknowledgement; the new term has no known leader. -/
@@ -722,10 +821,13 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     uint.Z s.term + 1 < 2 ^ 64 →
     ⊢ ownLogGhost (GF := GF) γ id s kl ==∗
       ∃ k F, ownLogGhost γ id (pbecomeCandidate id s) none ∗
-        isCamp γ id (s.term + W64 1) F ∗
+        isCampK γ id (s.term + W64 1) F s.commit ∗
         isVlog γ id k (s.term + W64 1) false F ∗ logRecs γ base0 F ∗
         ⌜PlogWf base0 F ∧ plogLast base0 F = plogLast s.base s.log⌝ ∗
-        voteEv γ id (s.term + W64 1) false F := by
+        voteEv γ id (s.term + W64 1) false F ∗
+        -- (2026-10-14, stage B5) the campaign log's prefix and commit justification
+        (∃ fp, ⌜FullOk s.base fp ∧ F = fp ++ s.log⌝ ∗ logRecs γ base0 fp ∗
+          commitIn γ F s.commit s.term) := by
   intro Hr Hnw
   iintro H
   unfold ownLogGhost
@@ -741,7 +843,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     cases h : camps !! (s.term + W64 1) with
     | none => rfl
     | some _ => have := Hcamps_ok _ (by rw [h]; rfl); omega
-  imod ghost_map_insert_persist (s.term + W64 1) (fp ++ s.log) Hcfree $$ Hcamps with ⟨Hcamps', #Hcf⟩
+  imod ghost_map_insert_persist (s.term + W64 1) (fp ++ s.log, s.commit) Hcfree $$ Hcamps with ⟨Hcamps', #Hcf⟩
   obtain ⟨k, Hk⟩ := Iris.Std.List.fresh vlogs.domList
   have Hkfree : vlogs !! k = none := by
     cases h : vlogs !! k with
@@ -749,15 +851,19 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     | some _ => exact absurd ((GMap.mem_dom_list vlogs k).mpr (by rw [h]; rfl)) Hk
   imod ghost_map_insert_persist k ((s.term + W64 1, false), fp ++ s.log) Hkfree $$ Hvlogs
     with ⟨Hvl, #Hvf⟩
-  ihave #Hcamp : isCamp (GF := GF) γ id (s.term + W64 1) (fp ++ s.log) $$ []
-  · unfold isCamp
+  ihave #HcK : isCampK (GF := GF) γ id (s.term + W64 1) (fp ++ s.log) s.commit $$ []
+  · unfold isCampK
     iexists γc
     isplitr
     · ipureintro
-      refine ⟨Hcname, HwF, fun j x Hx => ?_⟩
-      have := (Htle j x Hx).1
-      omega
-    iexact Hcf
+      refine ⟨Hcname, ⟨HwF, fun j x Hx => ?_⟩, ?_⟩
+      · have := (Htle j x Hx).1
+        omega
+      · rw [full_last_index _ _ _ Hf]; exact Hlog_ok.2.2
+    iframe Hcf
+    rw [show List.take (uint.Z s.commit).toNat (fp ++ s.log) = cprefix fp s from rfl]
+    iexact Hcmt
+  ihave #Hcamp := isCampK_camp γ id (s.term + W64 1) (fp ++ s.log) s.commit $$ HcK
   ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
   imod ownEvs_vote γ id s.term (s.term + W64 1) acks false (fp ++ s.log) (by omega) $$ Hevs []
     with ⟨Hevs', #Hvev⟩
@@ -771,16 +877,24 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     intro t Ht
     left
     show uint.Z t < uint.Z (s.term + W64 1)
-    rcases Hterms_ok t Ht with h | ⟨-, h⟩
+    rcases Hterms_ok t Ht with h | ⟨ht, -⟩
     · omega
-    · exact absurd h Hr
+    · rw [ht]; omega
   have Hwins_ok' : WinsOk wins (pbecomeCandidate id s) := by
     intro t Ht
     left
     show uint.Z t < uint.Z (s.term + W64 1)
-    rcases Hwins_ok t Ht with h | ⟨-, h⟩
+    rcases Hwins_ok t Ht with h | ⟨ht, -⟩
     · omega
-    · exact absurd h Hr
+    · rw [ht]; omega
+  have Hlacks' : LeadAcksOk (pbecomeCandidate id s) acks := by
+    refine ⟨fun _ i => ?_, fun hl => by cases hl⟩
+    show acks !! (s.term + W64 1, i) = none
+    cases h : acks !! (s.term + W64 1, i) with
+    | none => rfl
+    | some _ =>
+      have := Hacks_term (s.term + W64 1, i) (by rw [h]; rfl)
+      simp only at this; omega
   have Hacks_term' : AcksTerm (pbecomeCandidate id s) acks := fun kk Hkk => by
     have := Hacks_term kk Hkk
     show uint.Z kk.1 ≤ uint.Z (s.term + W64 1)
@@ -793,7 +907,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     show uint.Z x ≤ uint.Z (s.term + W64 1) ∧
       (Role.candidate = Role.candidate → uint.Z x < uint.Z (s.term + W64 1))
     exact ⟨by omega, fun _ => by omega⟩
-  have Hcamps_ok' : ∀ T, ((<[s.term + W64 1 := fp ++ s.log]> camps) !! T).isSome →
+  have Hcamps_ok' : ∀ T, ((<[s.term + W64 1 := (fp ++ s.log, s.commit)]> camps) !! T).isSome →
       uint.Z T ≤ uint.Z (s.term + W64 1) := by
     intro T HT
     by_cases hT : T = s.term + W64 1
@@ -817,7 +931,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   ihave #Hmatched' : matchedOk (GF := GF) γ (pbecomeCandidate id s) $$ []
   · rw [matchedOk_nl γ _ Hnl]; ipureintro; trivial
   ihave #Hcommit' : commitIn (GF := GF) γ (fp ++ s.log) s.commit (s.term + W64 1) $$ []
-  · iapply commitIn_agree γ _ _ s.commit s.term (s.term + W64 1) (by omega) rfl $$ Hcommit
+  · iapply commitIn_agree γ _ _ s.commit s.term (s.term + W64 1) (by omega) rfl rfl $$ Hcommit
   ihave #Hcown' : campOwn (GF := GF) γ id (pbecomeCandidate id s) (fp ++ s.log) $$ []
   · unfold campOwn
     rw [show (pbecomeCandidate id s).role = .candidate from rfl,
@@ -861,14 +975,14 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   imodintro
   iexists k, fp ++ s.log
   isplitl
-  · iexists γm, terms, γa, acks, fp, γc, (<[s.term + W64 1 := fp ++ s.log]> camps), γl,
+  · iexists γm, terms, γa, acks, fp, γc, (<[s.term + W64 1 := (fp ++ s.log, s.commit)]> camps), γl,
       (<[k := ((s.term + W64 1, false), fp ++ s.log)]> vlogs), γw, wins
     rw [show (pbecomeCandidate id s).log = s.log from rfl,
       show (pbecomeCandidate id s).base = s.base from rfl,
       show (pbecomeCandidate id s).commit = s.commit from rfl,
       show (pbecomeCandidate id s).term = s.term + W64 1 from rfl]
     iframe % # ∗
-  · isplitr; · iexact Hcamp
+  · isplitr; · iexact HcK
     isplitr
     · unfold isVlog
       iexists γl
@@ -876,7 +990,10 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
       iexact Hvf
     isplitr; · iexact HrF
     isplitr; · ipureintro; exact ⟨HwF, full_last _ _ _ Hf⟩
-    iexact Hvev
+    isplitr; · iexact Hvev
+    iexists fp
+    iframe Hfrecs Hcommit
+    ipureintro; exact ⟨Hf, rfl⟩
 
 /-- A first vote, on the log ghost state: record the vote-time log, which has the
 histories of all acknowledgements, at the node's bound -- the term, or the term plus one
@@ -1012,6 +1129,8 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (fp : List raftpb.Entry) :
     PlogWfR s.base s.log →
     ReplOk id s m → id ≠ W64 0 →
+    -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp`'s I1 at its `Commit`
+    (γ.reDyn ≠ none → m.ty = .app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) →
     ⊢ isLeader (GF := GF) γ id s.term -∗
       leadPrefix γ id s.term s.base s.log -∗
       lpfull γ id s.term s.base s.log fp -∗
@@ -1020,7 +1139,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
       isMessage γ m := by
-  intro Hr Hok Hid
+  intro Hr Hok Hid Hi1
   iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
   ihave #Hlf2 := Hlf
   iunfold lpfull at Hlf2
@@ -1040,8 +1159,13 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       isplitr; · ipureintro; exact ⟨Hidx, Hpre⟩
       isplitr; · iexact Hlf
       isplitr; · iapply commitIn_le γ _ s.commit m.commit s.term HwF Hcm' $$ HrF Hc
-      iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.commit).toNat) (cprefix fp s)
-        (take_prefix_le _ _ _ (Int.toNat_le_toNat Hcm')) $$ Hcm
+      isplitr
+      · iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.commit).toNat) (cprefix fp s)
+          (take_prefix_le _ _ _ (Int.toNat_le_toNat Hcm')) $$ Hcm
+      unfold dynOn
+      by_cases hD : γ.reDyn = none
+      · ileft; ipureintro; exact hD
+      · iright; ipureintro; exact Hi1 hD Hty
     · ipureintro; exact Hid
   · ihave #Hc' := commitIn_committed γ _ _ _ $$ Hc
     icases snapOk_message γ id s m Hr Hsnap $$ Hc' Hrecs Hb with ⟨-, #Hmeta, %Hidx⟩
@@ -1068,15 +1192,14 @@ theorem hist_of_commit (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64) (B 
     PlogWf base0 F → uint.Z tm < B →
     ⊢ logRecs (GF := GF) γ base0 F -∗ commitIn γ F c tm -∗ hist γ F tm c B := by
   intro HwF HB
-  iintro #HrF Hc
-  unfold commitIn
-  icases Hc with (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
+  iintro #HrF #Hc
+  ihave #Hcj := commitIn_j γ F c tm $$ Hc
+  unfold commitJ
+  icases Hcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
   · unfold hist
     iintro %j %Hj
     exact absurd Hj (by omega)
-  · ihave #Hq2 := Hq
-    iunfold cq at Hq2
-    icases Hq2 with ⟨%Hn, #Hfl, -⟩
+  · icases cq_base γ t n G $$ Hq with ⟨%Hn, #Hfl⟩
     have HsG : (plogTermAt base0 G c).isSome :=
       full_term_at_some G c n (by rw [Hn]; rfl) Hc.1
     iapply hist_of_agree γ F G tm c B HwF HsG Hc.2.2 $$ HrF
@@ -1130,8 +1253,7 @@ theorem vote_excl (γ : RaftNames) (id : w64) (s : PState) (γv : GName)
   iintro Ha Hw
   by_cases H0 : s.vote = W64 0
   · by_cases Hin : id ∈ q
-    · iunfold isWin at Hw
-      icases Hw with ⟨%γw, -, -, #Hq⟩
+    · ihave #Hq := isWin_votes γ ldr s.term q $$ Hw
       ihave #Hf := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v s.term ldr)
         ((GMap.elem_of_gset _ _).mp Hin) $$ Hq
       iunfold isVote at Hf

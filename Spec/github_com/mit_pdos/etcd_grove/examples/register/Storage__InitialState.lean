@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Storage).InitialState()` (register.go:56): the empty hard state and the voters, no error.
+`(*Storage).InitialState()` (register.go:62): the empty hard state and the voters, no error.
 -/
 module
 

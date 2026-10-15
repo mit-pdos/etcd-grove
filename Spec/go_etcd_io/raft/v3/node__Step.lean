@@ -4,7 +4,9 @@
 
 A message from the network, from any goroutine: `step` of it, on `recvc`, which `run` steps
 as `RawNode.Step` does (`netP`: what `RawNode.Step` takes, and a term within the budget).
-A local message not from a local target is ignored; `netP`'s types are not local.
+A local message not from a local target is ignored (since 2026-10-13 `netP` admits two
+local types, `MsgUnreachable` and `MsgSnapStatus`, the reports `node.go` itself puts on
+`recvc`: through `Node.Step` they are ignored unless from a local target).
 Since 2026-10-10 also a proposal forwarded by a peer (`fwdP`, `stepP`): a follower's
 `Ready` holds the proposals it forwards to the leader (each entry's data deposited by the
 proposing node), which `step` hands to `run` on `propc`.
