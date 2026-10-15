@@ -229,7 +229,7 @@ theorem CandidateStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w6
     split at h2
     · rename_i hp; simp only [hp, ↓reduceIte]; exact h2.simple hne
     · rename_i hp; simp only [hp, ↓reduceIte]; exact h2
-  simp only [hV, hP, if_false] at h ⊢
+  simp only [hV, hP, ite_false] at h ⊢
   exact h
 
 end results

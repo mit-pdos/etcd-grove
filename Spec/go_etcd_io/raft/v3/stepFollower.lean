@@ -169,7 +169,7 @@ theorem FollowerStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64
       MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
       MsgUnreachable, MsgSnapStatus, MsgTimeoutNow] at h ⊢
     exact ⟨h.1, h.2.simple⟩
-  · simp only [hT, if_false] at h ⊢
+  · simp only [hT, ite_false] at h ⊢
     exact h
 
 end results

@@ -181,7 +181,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     · ipureintro; exact ⟨Hnew, Hterm, by simp [memSnapCreated], rfl⟩
     isplitl [Hview]
     · unfold ownMemoryStorage
-      simp only [Hif, ↓reduceIte, memSnapCreated, Option.getD_none, ← Hsnap_id_1.2]
+      simp only [← Hsnap_id_1.2]
       iframe # ∗
       ipureintro; exact Hbounded
     unfold memStorMeta
@@ -225,7 +225,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   · ipureintro; exact ⟨Hnew, Hterm, by simp [memSnapCreated, Hif], rfl⟩
   isplitl [Hview]
   · unfold ownMemoryStorage
-    simp only [Hif, ↓reduceIte, memSnapCreated, Option.getD_some]
+    simp only [Hif, ↓reduceIte]
     iframe # ∗
     ipureintro; exact Hbounded
   unfold memStorMeta

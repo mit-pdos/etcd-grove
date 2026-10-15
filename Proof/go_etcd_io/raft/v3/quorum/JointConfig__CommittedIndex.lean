@@ -77,11 +77,11 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
   · iapply HΦ
     iframe Hc Hv0 Hv1 HP
     ipureintro
-    exact ⟨N0, N1, ⟨Hemp0, Hq0⟩, ⟨Hemp1, Hq1⟩, by rw [if_pos (by word)]⟩
+    exact ⟨N0, N1, ⟨Hemp0, Hq0⟩, ⟨Hemp1, Hq1⟩, by rw [ite_eq_left (by word)]⟩
   · iapply HΦ
     iframe Hc Hv0 Hv1 HP
     ipureintro
-    exact ⟨N0, N1, ⟨Hemp0, Hq0⟩, ⟨Hemp1, Hq1⟩, by rw [if_neg (by word)]⟩
+    exact ⟨N0, N1, ⟨Hemp0, Hq0⟩, ⟨Hemp1, Hq1⟩, by rw [ite_eq_right (by word)]⟩
 
 end proof
 

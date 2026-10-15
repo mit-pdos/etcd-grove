@@ -316,8 +316,8 @@ theorem raft.campaign.wp_proof
             -- with pre-vote off, an election's: at the node's term (2026-10-10)
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32, vreqW32,
-                  MsgVoteResp, MsgVote, MsgPreVoteResp]
+              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32, 
+                  MsgVoteResp, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
@@ -365,7 +365,7 @@ theorem raft.campaign.wp_proof
         iframe
       · iexists _
         iframe
-        have Htc : transferCtx t = [] := by unfold transferCtx; exact if_neg (fun h => Hif h)
+        have Htc : transferCtx t = [] := by unfold transferCtx; exact ite_eq_right (fun h => Hif h)
         rw [Htc]
         iapply ownSlice_nil
       imod ownSlice_persist $$ Hcl with #Hcl
@@ -380,8 +380,8 @@ theorem raft.campaign.wp_proof
             fun h => absurd h Hyid,
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32, vreqW32,
-                  MsgVoteResp, MsgVote, MsgPreVoteResp]
+              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vreqW32,
+                  MsgVote, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]

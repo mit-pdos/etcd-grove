@@ -85,7 +85,7 @@ theorem RawNode.ReadIndex.wp_proof
     isplitr
     · iapply ownSlice_nil
     isplitl [Hcred]
-    · rw [if_pos hR]; iexact Hcred
+    · rw [ite_eq_left hR]; iexact Hcred
     imodintro
     iintro %Hc
     exfalso

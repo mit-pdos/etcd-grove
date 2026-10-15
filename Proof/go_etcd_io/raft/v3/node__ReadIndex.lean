@@ -70,10 +70,10 @@ theorem node.ReadIndex.wp_proof
       iframe Hpd Hrq
     isplitr
     · iExactEq Hlb; rfl
-    rw [if_pos hR]
+    rw [ite_eq_left hR]
     isplitl [Hcred]
     · iexact Hcred
-    rw [if_neg (show (W32 15 : w32) ≠ MsgTimeoutNow by simp [MsgTimeoutNow])]
+    rw [ite_eq_right (show (W32 15 : w32) ≠ MsgTimeoutNow by simp [MsgTimeoutNow])]
     iexact Hz
   iintro %err -
   wp_auto

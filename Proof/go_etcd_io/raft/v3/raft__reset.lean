@@ -156,7 +156,7 @@ theorem raft.reset.wp_proof
     · ipureintro; exact rfl
     iframe r term
     iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
-    rw [if_neg (Ne.symm Hif)]
+    rw [ite_eq_right (Ne.symm Hif)]
   -- `lead := None`, `electionElapsed := 0`, `heartbeatElapsed := 0`
   wp_apply raft.wp_store_leadC $$ Hphys as Hphys
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys

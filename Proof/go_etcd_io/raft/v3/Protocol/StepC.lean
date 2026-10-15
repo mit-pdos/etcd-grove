@@ -205,7 +205,7 @@ theorem two_le_confCount {l : List raftpb.Entry} {k1 k2 : Nat} {e1 e2 : raftpb.E
     (c2 : IsConfEnt e2) : 2 ≤ confCount l := by
   rw [← List.take_append_drop k2 l, confCount_append]
   have a : 0 < confCount (l.take k2) :=
-    confCount_pos (k := k1) (by rw [List.getElem?_take, if_pos hlt]; exact h1) c1
+    confCount_pos (k := k1) (by rw [List.getElem?_take, ite_eq_left hlt]; exact h1) c1
   have b : 0 < confCount (l.drop k2) :=
     confCount_pos (k := 0) (by rw [List.getElem?_drop, Nat.add_zero]; exact h2) c2
   omega
@@ -229,24 +229,24 @@ theorem confCount_take_mono (l : List raftpb.Entry) {i j : Nat} (h : i ≤ j) :
 theorem confCount_take_succ (l : List raftpb.Entry) (k : Nat) :
     confCount (l.take (k + 1)) = confCount (l.take k) + (if IsConfPos l k then 1 else 0) := by
   by_cases hk : k < l.length
-  · rw [List.take_succ, confCount_append, List.getElem?_eq_getElem hk]
+  · rw [List.take_add_one, confCount_append, List.getElem?_eq_getElem hk]
     simp only [Option.toList_some]
     by_cases hc : IsConfEnt l[k]
     · have : IsConfPos l k := ⟨l[k], List.getElem?_eq_getElem hk, hc⟩
-      rw [if_pos this]
+      rw [ite_eq_left this]
       unfold confCount; simp [hc]
     · have : ¬ IsConfPos l k := by
         rintro ⟨e, he, hce⟩
         rw [List.getElem?_eq_getElem hk] at he
         cases he; exact hc hce
-      rw [if_neg this]
+      rw [ite_eq_right this]
       unfold confCount; simp [hc]
   · have h1 : l.take (k + 1) = l.take k := by
       rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
     have h2 : ¬ IsConfPos l k := by
       rintro ⟨e, he, -⟩
       rw [List.getElem?_eq_none (by omega)] at he; cases he
-    rw [h1, if_neg h2]; rfl
+    rw [h1, ite_eq_right h2]; rfl
 
 /-- The `j`-th conf entry (0-based) below `a`. -/
 theorem exists_confPos (l : List raftpb.Entry) (a j : Nat) (h : j < confCount (l.take a)) :
@@ -259,9 +259,9 @@ theorem exists_confPos (l : List raftpb.Entry) (a j : Nat) (h : j < confCount (l
     · obtain ⟨k, hk, hc, he⟩ := ih hj
       exact ⟨k, by omega, hc, he⟩
     · by_cases hc : IsConfPos l a
-      · rw [if_pos hc] at h
+      · rw [ite_eq_left hc] at h
         exact ⟨a, by omega, hc, by omega⟩
-      · rw [if_neg hc] at h; omega
+      · rw [ite_eq_right hc] at h; omega
 
 /-- A conf entry whose prefix has at least the conf entries of the prefix of length `a` is at
 or past `a`. -/
@@ -269,7 +269,7 @@ theorem confPos_ge_of_count (l : List raftpb.Entry) {a k : Nat} (hk : IsConfPos 
     (hc : confCount (l.take a) ≤ confCount (l.take k)) : a ≤ k := by
   refine Nat.le_of_not_lt fun hlt => ?_
   have h1 := confCount_take_mono l (show k + 1 ≤ a by omega)
-  rw [confCount_take_succ, if_pos hk] at h1
+  rw [confCount_take_succ, ite_eq_left hk] at h1
   omega
 
 theorem confPos_lt_of_count (l : List raftpb.Entry) {k1 k2 : Nat}

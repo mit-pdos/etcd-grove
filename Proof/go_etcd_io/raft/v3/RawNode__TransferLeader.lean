@@ -68,12 +68,12 @@ theorem RawNode.TransferLeader.wp_proof
     isplitr
     · iapply ownSlice_nil
     isplitl [Hcr]
-    · rw [if_neg (by msg_ne)]; iexact Hcr
+    · rw [ite_eq_right (by msg_ne)]; iexact Hcr
     imodintro
     iintro %Hc
     simp [MsgSnap] at Hc
   have hP : (W32 13 : w32) ≠ MsgProp := by simp [MsgProp]
-  simp only [hP, ↓reduceIte]
+  simp only [hP]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1

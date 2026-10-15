@@ -133,7 +133,7 @@ theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm : Loc)
     simp only [cfgStateC] at h1
     rw [cfgFlags_lookup] at h1
     by_cases hv : k ∈ c.voters
-    · rw [if_pos hv] at h1
+    · rw [ite_eq_left hv] at h1
       have hl : k ∉ c.learners := by
         intro hl
         obtain ⟨ho, hi, -⟩ := Hinv.2.2.1 k hl
@@ -142,10 +142,10 @@ theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm : Loc)
         · exact hi h
         · exact ho h
       rw [← Option.some.inj h1]; simp [hl]
-    · rw [if_neg hv] at h1
+    · rw [ite_eq_right hv] at h1
       by_cases hl : k ∈ c.learners
-      · rw [if_pos hl] at h1; rw [← Option.some.inj h1]; simp [hl]
-      · rw [if_neg hl] at h1; cases h1
+      · rw [ite_eq_left hl] at h1; rw [← Option.some.inj h1]; simp [hl]
+      · rw [ite_eq_right hl] at h1; cases h1
 
 /-- `restore`'s `found` search has not met `id` in the first `k` of its three sets
 (`[Voters, Learners, VotersOutgoing]`). -/
@@ -280,7 +280,7 @@ theorem raft.restore.wp_proof
       Houtg Hlnx] with ⟨%sl, %L, %HsL, #HL⟩
   · unfold ownCSL; iframe Hvoters Hlearners Houtg Hlnx
   obtain ⟨Hsl, HLk⟩ := HsL
-  rw [if_pos]
+  rw [ite_eq_left]
   rotate_left
   · exact ⟨Hk0, by word⟩
   wp_apply wp_load_slice_index (V := GoSlice) (t := go.uint64.SliceType) _ (sint.Z k) _ _
@@ -453,7 +453,7 @@ theorem raft.restore.wp_proof
     · ipureintro; exact Hmi1
     obtain ⟨Hxs2, Hos2, Hls2, Hlns2, Hc2al⟩ := Hcs2
     unfold SwitchOkC at Hsw
-    rw [if_neg (by simp [Hrole1])] at Hsw
+    rw [ite_eq_right (by simp [Hrole1])] at Hsw
     subst Hsw
     -- the snapshot's lists against the configuration's sets
     have Hperm : cl.Perm ⟨xs2, ls2, os2, lns2⟩ := by

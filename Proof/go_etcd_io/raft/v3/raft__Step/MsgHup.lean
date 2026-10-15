@@ -93,7 +93,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         | exact fun _ => Hpv
         | exact fun h => by
             have := congrArg List.length h
-            simp [campaignElection, campaignPreElection] at this
+            simp [campaignPreElection] at this
     have HCD := stepCD_hup (m := m) Hok Hnowrap Hlogf
     obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     iapply HΦ $$ %interface.nil %s'

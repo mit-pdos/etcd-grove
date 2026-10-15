@@ -770,7 +770,7 @@ theorem reg_collect (γr : RegNames) (d : List w8) (γp : GName × GName) (Ψ : 
   have h1 : firstOcc (ods.take (m + 1)) = firstOcc (ods.take m) ++ [d] := by
     rw [Htk, firstOcc_snoc]
     show (if d ∈ firstOcc (ods.take m) then _ else _) = _
-    rw [if_neg Hfirst]
+    rw [ite_eq_right Hfirst]
   ihave %Hocc : ⌜firstOcc (ods.take m) ++ [d] <+: firstOcc ods'⌝ $$ []
   · ihave %Hop' := entDataIs_list_prefix γr.raft l L ods ods' Hpre $$ Hds Hods'
     ipureintro

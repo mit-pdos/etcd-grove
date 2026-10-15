@@ -202,11 +202,11 @@ theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (
   simp only [cfgState] at Hpl
   rw [cfgFlags_lookup] at Hpl
   by_cases hv : k ∈ GMap.listToSet voters
-  · rw [if_pos hv] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
-  · rw [if_neg hv] at Hpl
+  · rw [ite_eq_left hv] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
+  · rw [ite_eq_right hv] at Hpl
     by_cases hl : k ∈ GMap.listToSet learners
-    · rw [if_pos hl] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
-    · rw [if_neg hl] at Hpl; cases Hpl
+    · rw [ite_eq_left hl] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
+    · rw [ite_eq_right hl] at Hpl; cases Hpl
 
 end spec
 

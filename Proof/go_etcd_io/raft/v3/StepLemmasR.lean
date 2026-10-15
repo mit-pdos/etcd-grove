@@ -326,8 +326,8 @@ theorem RState.with_p_pci (r : RState) (p' : PState)
       { r with p := p' } := by
   unfold pciKeep
   by_cases hl : p'.role = .leader
-  · rw [if_pos hl]
-  · rw [if_neg hl, ← hz (fun h => hl (h2 h))]
+  · rw [ite_eq_left hl]
+  · rw [ite_eq_right hl, ← hz (fun h => hl (h2 h))]
 
 /-- `RState.with_p_pci` on a `StepR` derivation's target. -/
 theorem StepR.pci_keep {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {id : w64}
@@ -356,7 +356,7 @@ theorem StepCF.toR {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} 
     intro r hp hc hz
     have H1 := ih1 r hp hc hz
     have H2 := ih2 { r with p := s1, pci := pciKeep s1 r.pci } rfl hc
-      (fun h => by simp only [pciKeep] at h ⊢; rw [if_neg h])
+      (fun h => by simp only [pciKeep] at h ⊢; rw [ite_eq_right h])
     refine .trans _ _ _ _ _ H1 ?_
     have e : ({ { r with p := s1, pci := pciKeep s1 r.pci } with
           p := s2,
@@ -364,8 +364,8 @@ theorem StepCF.toR {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} 
         { r with p := s2, pci := pciKeep s2 r.pci } := by
       unfold pciKeep
       by_cases hl : s2.role = .leader
-      · rw [if_pos hl, if_pos hl, if_pos (h2.leader_back hl)]
-      · rw [if_neg hl, if_neg hl]
+      · rw [ite_eq_left hl, ite_eq_left hl, ite_eq_left (h2.leader_back hl)]
+      · rw [ite_eq_right hl, ite_eq_right hl]
     rw [← e]; exact H2
   | higherTerm m s h1 h2 h3 =>
     intro r hp _ _
@@ -735,7 +735,7 @@ theorem noConfIn_of_unapplied (ls : LogState) (fp : List raftpb.Entry)
   rw [ha, hc1]
   apply List.mem_iff_getElem?.2
   refine ⟨k - uint.nat ls.applied, ?_⟩
-  rw [List.getElem?_take, if_pos (by have := uint_nat_eq ls.applied; omega), List.getElem?_drop]
+  rw [List.getElem?_take, ite_eq_left (by have := uint_nat_eq ls.applied; omega), List.getElem?_drop]
   rw [← he]
   congr 1
   have := uint_nat_eq ls.applied

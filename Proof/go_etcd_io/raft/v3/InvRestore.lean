@@ -149,7 +149,7 @@ theorem simpleFold_addNodes (v : List w64) (V L : GSet w64)
     obtain ⟨V', HV', HdV', Hf⟩ := ih (<[x := ()]> V)
       (fun y hy => H0 y (List.mem_cons_of_mem _ hy)) Hd'
     refine ⟨V', fun k => ?_, HdV', ?_⟩
-    · rw [HV', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm, or_left_comm]
+    · rw [HV', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm]
     · simp only [List.map_cons, simpleFold]
       rw [simpleM_cfgState_addNode V L x hx0 hxL Hd]
       exact Hf
@@ -170,7 +170,7 @@ theorem simpleFold_addLearners (l : List w64) (V L : GSet w64) (hne : V ≠ ∅)
     obtain ⟨L', HL', HdL', Hf⟩ := ih (<[x := ()]> L)
       (fun y hy => H0 y (List.mem_cons_of_mem _ hy)) Hd'
     refine ⟨L', fun k => ?_, HdL', ?_⟩
-    · rw [HL', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm, or_left_comm]
+    · rw [HL', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm]
     · simp only [List.map_cons, simpleFold]
       rw [simpleM_cfgState_addLearner V L x hx0 hxV hne Hd]
       exact Hf
@@ -218,10 +218,10 @@ theorem applyOne_remove (I O : GSet w64) (x : w64) (hx : x ≠ W64 0) (hO : x �
   have hmem : x ∈ (jst I O ∅ ∅).prs := by
     show x ∈ cfgFlags (I ∪ O) ∅
     rw [cfgFlags_mem, GMap.elem_of_union]; exact .inl (.inr hO)
-  simp only [applyOne, if_neg hx', show (removeNodeCC x).Type' = W32 1 from rfl,
+  simp only [applyOne, ite_eq_right hx', 
     show (W32 1 : w32) ≠ W32 0 by decide, show (W32 1 : w32) ≠ W32 3 by decide,
-    ↓reduceIte, removeM, if_pos hmem]
-  rw [if_pos (show x ∈ (jst I O ∅ ∅).cfg.outgoing from hO)]
+    ↓reduceIte, removeM, ite_eq_left hmem]
+  rw [ite_eq_left (show x ∈ (jst I O ∅ ∅).cfg.outgoing from hO)]
   simp only [jst, removeCfg, GMap.delete_empty, Option.some.injEq, CCState.mk.injEq, true_and]
   congr 1
   apply GMap.set_eq; intro k
@@ -238,7 +238,7 @@ theorem applyOne_addNodeJ (I O : GSet w64) (x : w64) (hx : x ≠ W64 0) :
     rw [GMap.elem_of_union, gset_mem_insert, gset_mem_insert, GMap.elem_of_union, or_assoc]
   have hf : <[x := false]> (cfgFlags (I ∪ O) ∅) = cfgFlags (<[x := ()]> I ∪ O) ∅ := by
     rw [eU, cfgFlags_insert_voter _ _ x hxL]
-  simp only [applyOne, if_neg hx', show (addNodeCC x).Type' = W32 0 from rfl, ↓reduceIte,
+  simp only [applyOne, ite_eq_right hx', ↓reduceIte,
     makeVoterM]
   split
   · simp only [jst, GMap.delete_empty, Option.some.injEq, CCState.mk.injEq, true_and]
@@ -252,17 +252,17 @@ theorem applyOne_addLearnerJ (I O L : GSet w64) (x : w64) (hx : x ≠ W64 0) (hI
     applyOne (addLearnerCC x) (jst I O L ∅) = some (jst I O (<[x := ()]> L) ∅) := by
   have hx' : (addLearnerCC x).NodeId' ≠ W64 0 := hx
   have hV : x ∉ (I ∪ O : GSet w64) := by rw [GMap.elem_of_union]; exact fun h => h.elim hI hO
-  simp only [applyOne, if_neg hx', show (addLearnerCC x).Type' = W32 3 from rfl,
+  simp only [applyOne, ite_eq_right hx', 
     show (W32 3 : w32) ≠ W32 0 by decide, ↓reduceIte, makeLearnerM]
   have hlk := cfgFlags_lookup (I ∪ O) L x
-  rw [if_neg hV] at hlk
+  rw [ite_eq_right hV] at hlk
   by_cases hl : x ∈ L
-  · rw [if_pos hl] at hlk
+  · rw [ite_eq_left hl] at hlk
     simp only [jst] at hlk ⊢
     rw [hlk]
     simp only
     rw [GMap.insert_id L x () ((GMap.elem_of_gset _ _).1 hl)]
-  · rw [if_neg hl] at hlk
+  · rw [ite_eq_right hl] at hlk
     simp only [jst] at hlk ⊢
     rw [hlk]
     simp only [initProgressM, ↓reduceIte, Option.some.injEq, CCState.mk.injEq, true_and]
@@ -274,10 +274,10 @@ theorem applyOne_addStaged (I O L N : GSet w64) (x : w64) (hx : x ≠ W64 0) (hO
   have hx' : (addLearnerCC x).NodeId' ≠ W64 0 := hx
   have hlk : (jst I O L N).prs !! x = some false := by
     show cfgFlags (I ∪ O) L !! x = some false
-    rw [cfgFlags_lookup, if_pos (by rw [GMap.elem_of_union]; exact .inr hO)]
-  simp only [applyOne, if_neg hx', show (addLearnerCC x).Type' = W32 3 from rfl,
+    rw [cfgFlags_lookup, ite_eq_left (by rw [GMap.elem_of_union]; exact .inr hO)]
+  simp only [applyOne, ite_eq_right hx', 
     show (W32 3 : w32) ≠ W32 0 by decide, ↓reduceIte, makeLearnerM, hlk]
-  rw [if_pos (show x ∈ (jst I O L N).cfg.outgoing from hO)]
+  rw [ite_eq_left (show x ∈ (jst I O L N).cfg.outgoing from hO)]
   simp only [jst, removeCfg, Option.some.injEq, CCState.mk.injEq, and_true, CfgM.mk.injEq,
     true_and]
   refine ⟨GMap.delete_notin _ _ (gset_lookup_none _ _ hI),
@@ -311,7 +311,7 @@ theorem applyAll_addNodesJ (v : List w64) (I O : GSet w64)
   | cons x xs ih =>
     obtain ⟨I', HI', Hf⟩ := ih (<[x := ()]> I) (fun y hy => H y (List.mem_cons_of_mem _ hy))
     refine ⟨I', fun k => ?_, ?_⟩
-    · rw [HI', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm, or_left_comm]
+    · rw [HI', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm]
     · simp only [List.map_cons, applyAll]
       rw [applyOne_addNodeJ I O x (H x (by simp))]
       exact Hf
@@ -326,7 +326,7 @@ theorem applyAll_addLearnersJ (l : List w64) (I O L : GSet w64)
     obtain ⟨hx0, hxI, hxO⟩ := H x (by simp)
     obtain ⟨L', HL', Hf⟩ := ih (<[x := ()]> L) (fun y hy => H y (List.mem_cons_of_mem _ hy))
     refine ⟨L', fun k => ?_, ?_⟩
-    · rw [HL', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm, or_left_comm]
+    · rw [HL', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm]
     · simp only [List.map_cons, applyAll]
       rw [applyOne_addLearnerJ I O L x hx0 hxI hxO]
       exact Hf
@@ -341,7 +341,7 @@ theorem applyAll_addStaged (ln : List w64) (I O L N : GSet w64)
     obtain ⟨hx0, hxO, hxI, hxL⟩ := H x (by simp)
     obtain ⟨N', HN', Hf⟩ := ih (<[x := ()]> N) (fun y hy => H y (List.mem_cons_of_mem _ hy))
     refine ⟨N', fun k => ?_, ?_⟩
-    · rw [HN', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm, or_left_comm]
+    · rw [HN', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm]
     · simp only [List.map_cons, applyAll]
       rw [applyOne_addStaged I O L N x hx0 hxO hxI hxL]
       exact Hf
@@ -392,7 +392,7 @@ theorem enterJointM_restoreIn (vo v l ln : List w64) (al : Bool) (Hwf : CSWf vo 
   have hI2ne : I2 ≠ ∅ := gset_ne_empty_of_mem ((eI2 y0).2 hy0)
   have HappM : applyM (restoreInCC vo v l ln) (jst O O ∅ ∅) = some (jst I2 O L3 N4) := by
     simp only [applyM, Happ, Option.bind_some]
-    rw [if_neg (show (jst I2 O L3 N4).cfg.incoming ≠ ∅ from hI2ne)]
+    rw [ite_eq_right (show (jst I2 O L3 N4).cfg.incoming ≠ ∅ from hI2ne)]
   have eI : I2 = GMap.listToSet v := GMap.set_eq fun k => by rw [eI2, GMap.elem_of_list_to_set]
   have eL : L3 = GMap.listToSet l := GMap.set_eq fun k => by rw [eL3, GMap.elem_of_list_to_set]
   have eN : N4 = GMap.listToSet ln := GMap.set_eq fun k => by rw [eN4, GMap.elem_of_list_to_set]
@@ -402,10 +402,10 @@ theorem enterJointM_restoreIn (vo v l ln : List w64) (al : Bool) (Hwf : CSWf vo 
       s1 = jst (GMap.listToSet v) O (GMap.listToSet l) (GMap.listToSet ln) →
       CCState.mk { s1.cfg with autoLeave := al } s1.prs = cfgStateC (csCfgM vo v l ln al) := by
     rintro s1 rfl
-    simp only [jst, cfgStateC, csCfgM, if_neg hvo, hO]
+    simp only [jst, cfgStateC, csCfgM, ite_eq_right hvo, hO]
     rfl
   have Hinv : CfgInv (cfgStateC (csCfgM vo v l ln al)) := by
-    simp only [cfgStateC, csCfgM, if_neg hvo, hO]
+    simp only [cfgStateC, csCfgM, ite_eq_right hvo, hO]
     refine ⟨fun k hk => ?_, fun k hk => ?_, fun k hk => ?_, fun h => absurd h hOne⟩
     · show k ∈ cfgFlags _ _
       rw [cfgFlags_mem, CfgM.voters, GMap.elem_of_union]
@@ -418,19 +418,19 @@ theorem enterJointM_restoreIn (vo v l ln : List w64) (al : Bool) (Hwf : CSWf vo 
     · simp only at hk ⊢
       have h := Hn k ((GMap.elem_of_list_to_set _ _).1 hk)
       refine ⟨(mO k).2 h.1, ?_⟩
-      rw [cfgFlags_lookup, if_pos]
+      rw [cfgFlags_lookup, ite_eq_left]
       rw [CfgM.voters, GMap.elem_of_union]; exact .inr ((mO k).2 h.1)
     · simp only at hk ⊢
       have h := Hl k ((GMap.elem_of_list_to_set _ _).1 hk)
       have h1 : k ∉ O := fun h' => h.2 ((mO k).1 h')
       have h2 : k ∉ GMap.listToSet v := fun h' => h.1 ((GMap.elem_of_list_to_set _ _).1 h')
       refine ⟨h1, h2, ?_⟩
-      rw [cfgFlags_lookup, if_neg (fun h' => by
-        rw [CfgM.voters, GMap.elem_of_union] at h'; exact h'.elim h2 h1), if_pos hk]
+      rw [cfgFlags_lookup, ite_eq_right (fun h' => by
+        rw [CfgM.voters, GMap.elem_of_union] at h'; exact h'.elim h2 h1), ite_eq_left hk]
   unfold enterJointM
-  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState O ∅
+  rw [clearAutoLeave_cfgState, ite_eq_right (fun h => h (cfgInv_cfgState O ∅
     (fun k hk => absurd hk (GMap.not_elem_of_empty _)))),
-    if_neg (fun h => h rfl), if_neg (show (cfgState O ∅).cfg.incoming ≠ ∅ from hOne), Hstart _ rfl,
+    ite_eq_right (fun h => h rfl), ite_eq_right (show (cfgState O ∅).cfg.incoming ≠ ∅ from hOne), Hstart _ rfl,
     HappM]
   simp only
   rw [Hres _ rfl]

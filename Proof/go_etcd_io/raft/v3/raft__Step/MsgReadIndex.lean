@@ -126,13 +126,13 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     subst Herrn
     wp_auto
     by_cases Hl0 : s.lead = W64 0
-    · rw [if_pos Hl0] at Hs1
+    · rw [ite_eq_left Hl0] at Hs1
       subst s1
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
       ipureintro
       exact ⟨Hwf, ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
-    · rw [if_neg Hl0] at Hs1
+    · rw [ite_eq_right Hl0] at Hs1
       subst s1
       iapply HΦ $$ %interface.nil %(sendMsgs s [readForward id s.lead m ents ctx])
       iframe Hphys

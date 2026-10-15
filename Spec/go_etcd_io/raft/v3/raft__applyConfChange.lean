@@ -42,7 +42,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
   obtain ⟨prs, pvs, Hmk, Hsw⟩ := H
   unfold SwitchOk at Hsw
   by_cases Hl : s.role = .leader
-  · rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader from Hl)]
+  · rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader from Hl)]
       at Hsw
     obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
     have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
@@ -63,7 +63,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
         rcases Hmk Hl v p' hp with h0 | ⟨p, hp0, hm⟩
         · exact .inl h0
         · right
-          simp [toPState, Hl, prvalsMatch, GMap.lookup_fmap', hp0, hm]
+          simp [toPState, Hl, prvalsMatch, hp0, hm]
     generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState) = s1 at H1 Hc Hms Hmm
     have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
     have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
@@ -95,7 +95,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
     rcases Hc with rfl | ⟨Hlt, -⟩
     · exact Int.le_refl _
     · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
-  · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader
+  · rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader
       from Hl)] at Hsw
     subst Hsw
     have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } = toPState s := by
@@ -131,7 +131,7 @@ theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c
   obtain ⟨prs, pvs, -, Hmk, Hsw⟩ := H
   unfold SwitchOkC at Hsw
   by_cases Hl : s.role = .leader
-  · rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+  · rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState).role = .leader from Hl)] at Hsw
     have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
     -- the new `Progress` values
@@ -151,9 +151,9 @@ theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c
         rcases Hmk v p' hp with h0 | ⟨p, hp0, hm⟩
         · exact .inl h0
         · right
-          simp [toPState, Hl, prvalsMatch, GMap.lookup_fmap', hp0, hm]
+          simp [toPState, Hl, prvalsMatch, hp0, hm]
     by_cases Hv : id ∈ c'.voters
-    · rw [if_pos Hv] at Hsw
+    · rw [ite_eq_left Hv] at Hsw
       left
       obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
       generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
@@ -189,12 +189,12 @@ theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c
       · exact Int.le_refl _
       · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
     · -- removed or demoted: `reMatch`, then the step-down
-      rw [if_neg Hv] at Hsw
+      rw [ite_eq_right Hv] at Hsw
       right
       obtain ⟨pvs', rfl⟩ := Hsw
       refine ⟨Hl, Hv, _, H1, ?_⟩
       rw [toPState_prvals _ _ (fun h => by simp [becomeFollower] at h), toPState_becomeFollower]
-  · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+  · rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState).role = .leader from Hl)] at Hsw
     subst Hsw
     left
@@ -332,10 +332,10 @@ theorem raft.applyConfChange.spec_simple
     split
     · rename_i hl
       have hin : id ∈ cfg := Hv (by rw [hl]; decide)
-      rw [if_pos hl, if_pos (by rw [Hv']; exact hin)] at Hsw
+      rw [ite_eq_left hl, ite_eq_left (by rw [Hv']; exact hin)] at Hsw
       exact Hsw.simple (fun h => by rw [h] at hin; exact GMap.not_elem_of_empty _ hin)
     · rename_i hl
-      rw [if_neg hl] at Hsw
+      rw [ite_eq_right hl] at Hsw
       exact Hsw
 
 end spec

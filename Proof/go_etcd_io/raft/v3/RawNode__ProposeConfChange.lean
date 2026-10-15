@@ -99,7 +99,7 @@ theorem RawNode.ProposeConfChange.wp_proof
     · imodintro
       iintro %Hc
       simp [MsgSnap] at Hc
-  simp only [ccPropMsg, MsgProp, ite_true]
+  simp only [ccPropMsg, MsgProp]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %_, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1

@@ -93,7 +93,7 @@ theorem confchange.Changer.makeLearner.wp_proof
       unfold ownCfgAt
       icases Hcw with ⟨%cfg1, Hcfgp, Hc⟩
       icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
-      simp only [removeM, if_pos Hmem, removeCfg.proj_incoming, removeCfg.proj_outgoing,
+      simp only [removeM, ite_eq_left Hmem, removeCfg.proj_incoming, removeCfg.proj_outgoing,
         removeCfg.proj_learners, removeCfg.proj_learnersNext, removeCfg.proj_autoLeave] at Hal ⊢
       wp_auto
       wp_apply wp_confchange_outgoing _ vin vout Harr

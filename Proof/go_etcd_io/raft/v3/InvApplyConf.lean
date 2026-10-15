@@ -116,7 +116,7 @@ theorem cfgInv_cfgState (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cf
   · exact absurd hk (GMap.not_elem_of_empty _)
   · refine ⟨GMap.not_elem_of_empty _, Hd k hk, ?_⟩
     show cfgFlags cfg lrn !! k = some true
-    rw [cfgFlags_lookup, if_neg (Hd k hk), if_pos (show k ∈ lrn from hk)]
+    rw [cfgFlags_lookup, ite_eq_right (Hd k hk), ite_eq_left (show k ∈ lrn from hk)]
 
 theorem clearAutoLeave_cfgState (cfg lrn : GSet w64) :
     clearAutoLeave (cfgState cfg lrn) = cfgState cfg lrn := rfl
@@ -125,29 +125,29 @@ theorem applyOne_outgoing (c : raftpb.ConfChangeSingle) (s s' : CCState)
     (h : applyOne c s = some s') : s'.cfg.outgoing = s.cfg.outgoing := by
   unfold applyOne at h
   by_cases h0 : c.NodeId' = W64 0
-  · rw [if_pos h0] at h; cases h; rfl
-  rw [if_neg h0] at h
+  · rw [ite_eq_left h0] at h; cases h; rfl
+  rw [ite_eq_right h0] at h
   by_cases h1 : c.Type' = W32 0
-  · rw [if_pos h1] at h; cases h
+  · rw [ite_eq_left h1] at h; cases h
     unfold makeVoterM; split
     · rfl
     · simp [initProgressM]
-  rw [if_neg h1] at h
+  rw [ite_eq_right h1] at h
   by_cases h3 : c.Type' = W32 3
-  · rw [if_pos h3] at h; cases h
+  · rw [ite_eq_left h3] at h; cases h
     unfold makeLearnerM
     split
     · simp [initProgressM]
     · rfl
     · split <;> rfl
-  rw [if_neg h3] at h
+  rw [ite_eq_right h3] at h
   by_cases h4 : c.Type' = W32 1
-  · rw [if_pos h4] at h; cases h
+  · rw [ite_eq_left h4] at h; cases h
     unfold removeM; split <;> rfl
-  rw [if_neg h4] at h
+  rw [ite_eq_right h4] at h
   by_cases h2 : c.Type' = W32 2
-  · rw [if_pos h2] at h; cases h; rfl
-  rw [if_neg h2] at h
+  · rw [ite_eq_left h2] at h; cases h; rfl
+  rw [ite_eq_right h2] at h
   cases h
 
 theorem applyAll_outgoing (ccs : List raftpb.ConfChangeSingle) (s s' : CCState)
@@ -182,12 +182,12 @@ theorem ccApplyM_noop (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
       simpleM ccs (cfgState cfg lrn) = some (cfgState cfg lrn) := by
   unfold ccApplyM at H
   by_cases Hl : t = W32 0 ∧ ccs = []
-  · rw [if_pos Hl] at H
+  · rw [ite_eq_left Hl] at H
     unfold leaveJointM at H
-    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)),
-      if_pos (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
+    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)),
+      ite_eq_left (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
     cases H
-  rw [if_neg Hl] at H
+  rw [ite_eq_right Hl] at H
   refine ⟨Hl, ?_⟩
   rcases He : enterJointOf t ccs.length with _ | ⟨al, ok⟩
   · rw [He] at H; cases H
@@ -197,10 +197,10 @@ theorem ccApplyM_noop (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
   · exfalso
     simp only at H
     unfold enterJointM at H
-    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)), if_neg (fun h => h rfl)] at H
+    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)), ite_eq_right (fun h => h rfl)] at H
     by_cases Hin : (cfgState cfg lrn).cfg.incoming = ∅
-    · rw [if_pos Hin] at H; cases H
-    rw [if_neg Hin] at H
+    · rw [ite_eq_left Hin] at H; cases H
+    rw [ite_eq_right Hin] at H
     revert H
     generalize Happ : applyM ccs _ = r
     cases r with
@@ -224,21 +224,21 @@ theorem ccApplyM_single_noop (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k �
     ccApplyM (W32 0) [c] (cfgState cfg lrn) = some (cfgState cfg lrn) := by
   have Happ : applyM [c] (cfgState cfg lrn) = some (cfgState cfg lrn) := by
     simp only [applyM, applyAll, applyOne, Hc, ↓reduceIte, Option.bind_some]
-    rw [if_neg (by exact Hne)]
+    rw [ite_eq_right (by exact Hne)]
   have Hsd : ¬ SymdiffTooBig cfg cfg := by
     unfold SymdiffTooBig symdiffN
     rw [GMap.map_difference_diag, GMap.map_size_empty]
     decide
   have Hs : simpleM [c] (cfgState cfg lrn) = some (cfgState cfg lrn) := by
     unfold simpleM
-    rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)),
-      if_neg (fun h => h rfl), Happ]
+    rw [clearAutoLeave_cfgState, ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)),
+      ite_eq_right (fun h => h rfl), Happ]
     simp only
-    rw [if_neg (show ¬ SymdiffTooBig (cfgState cfg lrn).cfg.incoming
+    rw [ite_eq_right (show ¬ SymdiffTooBig (cfgState cfg lrn).cfg.incoming
       (cfgState cfg lrn).cfg.incoming from Hsd)]
     simp [checkedM, cfgInv_cfgState cfg lrn Hd]
   unfold ccApplyM
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   have He : enterJointOf (W32 0) [c].length = some (false, false) := by
     simp [enterJointOf]
   rw [He]
@@ -262,13 +262,13 @@ theorem cfgFlags_insert_voter (V L : GSet w64) (id : w64) (h : id ∉ L) :
   rw [cfgFlags_lookup]
   by_cases hk : id = k
   · subst hk
-    rw [GMap.lookup_insert_eq, if_pos ((GMap.elem_of_gset _ _).2 (GMap.lookup_insert_eq _ _ _))]
+    rw [GMap.lookup_insert_eq, ite_eq_left ((GMap.elem_of_gset _ _).2 (GMap.lookup_insert_eq _ _ _))]
   · rw [GMap.lookup_insert_ne _ _ hk, cfgFlags_lookup]
     have e : k ∈ (<[id := ()]> V : GSet w64) ↔ k ∈ V := by
       rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_insert_ne _ _ hk]
     by_cases h1 : k ∈ V
-    · rw [if_pos h1, if_pos (e.2 h1)]
-    · rw [if_neg h1, if_neg (fun h' => h1 (e.1 h'))]
+    · rw [ite_eq_left h1, ite_eq_left (e.2 h1)]
+    · rw [ite_eq_right h1, ite_eq_right (fun h' => h1 (e.1 h'))]
 
 theorem cfgFlags_insert_learner (V L : GSet w64) (id : w64) (h : id ∉ V) :
     <[id := true]> (cfgFlags V L) = cfgFlags V (<[id := ()]> L) := by
@@ -276,17 +276,17 @@ theorem cfgFlags_insert_learner (V L : GSet w64) (id : w64) (h : id ∉ V) :
   rw [cfgFlags_lookup]
   by_cases hk : id = k
   · subst hk
-    rw [GMap.lookup_insert_eq, if_neg h,
-      if_pos ((GMap.elem_of_gset _ _).2 (GMap.lookup_insert_eq _ _ _))]
+    rw [GMap.lookup_insert_eq, ite_eq_right h,
+      ite_eq_left ((GMap.elem_of_gset _ _).2 (GMap.lookup_insert_eq _ _ _))]
   · rw [GMap.lookup_insert_ne _ _ hk, cfgFlags_lookup]
     have e : k ∈ (<[id := ()]> L : GSet w64) ↔ k ∈ L := by
       rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_insert_ne _ _ hk]
     by_cases h1 : k ∈ V
-    · rw [if_pos h1, if_pos h1]
-    · rw [if_neg h1, if_neg h1]
+    · rw [ite_eq_left h1, ite_eq_left h1]
+    · rw [ite_eq_right h1, ite_eq_right h1]
       by_cases h2 : k ∈ L
-      · rw [if_pos h2, if_pos (e.2 h2)]
-      · rw [if_neg h2, if_neg (fun h' => h2 (e.1 h'))]
+      · rw [ite_eq_left h2, ite_eq_left (e.2 h2)]
+      · rw [ite_eq_right h2, ite_eq_right (fun h' => h2 (e.1 h'))]
 
 theorem gset_lookup_none (L : GSet w64) (id : w64) (h : id ∉ L) : L !! id = none := by
   cases hl : L !! id with
@@ -346,16 +346,16 @@ theorem simpleM_cfgState_addNode (V L : GSet w64) (id : w64) (hid : id ≠ W64 0
       rw [cfgFlags_insert_voter V L id hL]
   have Happ : applyM [addNodeCC id] (cfgState V L) = some (cfgState (<[id := ()]> V) L) := by
     have hid' : (addNodeCC id).NodeId' ≠ W64 0 := hid
-    simp only [applyM, applyAll, applyOne, if_neg hid', ↓reduceIte, Option.bind_some]
+    simp only [applyM, applyAll, applyOne, ite_eq_right hid', ↓reduceIte, Option.bind_some]
     rw [Hmv]
     try simp only [Option.bind_some]
-    rw [if_neg (show (cfgState (<[id := ()]> V) L).cfg.incoming ≠ ∅ from
+    rw [ite_eq_right (show (cfgState (<[id := ()]> V) L).cfg.incoming ≠ ∅ from
       gset_insert_ne_empty V id)]
   unfold simpleM
-  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
-    if_neg (fun h => h rfl), Happ]
+  rw [clearAutoLeave_cfgState, ite_eq_right (fun h => h (cfgInv_cfgState V L Hd)),
+    ite_eq_right (fun h => h rfl), Happ]
   simp only
-  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+  rw [ite_eq_right (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
     (cfgState (<[id := ()]> V) L).cfg.incoming from not_symdiffTooBig_insert V id)]
   simp [checkedM, cfgInv_cfgState _ L Hd']
 
@@ -372,33 +372,33 @@ theorem simpleM_cfgState_addLearner (V L : GSet w64) (id : w64) (hid : id ≠ W6
   have Hml : makeLearnerM id (cfgState V L) = cfgState V (<[id := ()]> L) := by
     unfold makeLearnerM
     have hlk := cfgFlags_lookup V L id
-    rw [if_neg hV] at hlk
+    rw [ite_eq_right hV] at hlk
     by_cases hl : id ∈ L
-    · rw [if_pos hl] at hlk
+    · rw [ite_eq_left hl] at hlk
       simp only [cfgState] at hlk ⊢
       rw [hlk]
       simp only
       rw [GMap.insert_id L id () ((GMap.elem_of_gset _ _).1 hl)]
-    · rw [if_neg hl] at hlk
+    · rw [ite_eq_right hl] at hlk
       simp only [cfgState] at hlk ⊢
       rw [hlk]
       simp only [initProgressM, cfgM, ↓reduceIte]
       rw [cfgFlags_insert_learner V L id hV]
   have Happ : applyM [addLearnerCC id] (cfgState V L) = some (cfgState V (<[id := ()]> L)) := by
     have hid' : (addLearnerCC id).NodeId' ≠ W64 0 := hid
-    simp only [applyM, applyAll, applyOne, if_neg hid', ↓reduceIte, Option.bind_some]
-    rw [Hml, if_neg (show (W32 3 : w32) ≠ W32 0 by decide)]
+    simp only [applyM, applyAll, applyOne, ite_eq_right hid', ↓reduceIte]
+    rw [Hml, ite_eq_right (show (W32 3 : w32) ≠ W32 0 by decide)]
     simp only [Option.bind_some]
-    rw [if_neg (show (cfgState V (<[id := ()]> L)).cfg.incoming ≠ ∅ from hne)]
+    rw [ite_eq_right (show (cfgState V (<[id := ()]> L)).cfg.incoming ≠ ∅ from hne)]
   have Hsd : ¬ SymdiffTooBig V V := by
     unfold SymdiffTooBig symdiffN
     rw [GMap.map_difference_diag, GMap.map_size_empty]
     decide
   unfold simpleM
-  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
-    if_neg (fun h => h rfl), Happ]
+  rw [clearAutoLeave_cfgState, ite_eq_right (fun h => h (cfgInv_cfgState V L Hd)),
+    ite_eq_right (fun h => h rfl), Happ]
   simp only
-  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+  rw [ite_eq_right (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
     (cfgState V (<[id := ()]> L)).cfg.incoming from Hsd)]
   simp [checkedM, cfgInv_cfgState _ _ Hd']
 
@@ -429,12 +429,12 @@ theorem ccApplyM_simple (cfg lrn lrn' : GSet w64) (Hd : ∀ k, k ∈ lrn → k �
       simpleM ccs (cfgState cfg lrn) = some (cfgState cfg lrn') := by
   unfold ccApplyM at H
   by_cases Hl : t = W32 0 ∧ ccs = []
-  · rw [if_pos Hl] at H
+  · rw [ite_eq_left Hl] at H
     unfold leaveJointM at H
-    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)),
-      if_pos (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
+    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)),
+      ite_eq_left (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
     cases H
-  rw [if_neg Hl] at H
+  rw [ite_eq_right Hl] at H
   refine ⟨Hl, ?_⟩
   rcases He : enterJointOf t ccs.length with _ | ⟨al, ok⟩
   · rw [He] at H; cases H
@@ -444,10 +444,10 @@ theorem ccApplyM_simple (cfg lrn lrn' : GSet w64) (Hd : ∀ k, k ∈ lrn → k �
   · exfalso
     simp only at H
     unfold enterJointM at H
-    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)), if_neg (fun h => h rfl)] at H
+    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)), ite_eq_right (fun h => h rfl)] at H
     by_cases Hin : (cfgState cfg lrn).cfg.incoming = ∅
-    · rw [if_pos Hin] at H; cases H
-    rw [if_neg Hin] at H
+    · rw [ite_eq_left Hin] at H; cases H
+    rw [ite_eq_right Hin] at H
     revert H
     generalize Happ : applyM ccs _ = r
     cases r with
@@ -469,18 +469,18 @@ theorem cfgFlags_delete_learner (V L : GSet w64) (id : w64) (h : id ∉ V) :
   rw [cfgFlags_lookup]
   by_cases hk : id = k
   · subst hk
-    rw [GMap.lookup_delete, if_neg h,
-      if_neg (show id ∉ (GMap.delete id L : GSet w64) by
+    rw [GMap.lookup_delete, ite_eq_right h,
+      ite_eq_right (show id ∉ (GMap.delete id L : GSet w64) by
         rw [GMap.elem_of_gset, GMap.lookup_delete]; simp)]
   · rw [GMap.lookup_delete_ne _ hk, cfgFlags_lookup]
     have e : k ∈ (GMap.delete id L : GSet w64) ↔ k ∈ L := by
       rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_delete_ne _ hk]
     by_cases h1 : k ∈ V
-    · rw [if_pos h1, if_pos h1]
-    · rw [if_neg h1, if_neg h1]
+    · rw [ite_eq_left h1, ite_eq_left h1]
+    · rw [ite_eq_right h1, ite_eq_right h1]
       by_cases h2 : k ∈ L
-      · rw [if_pos h2, if_pos (e.2 h2)]
-      · rw [if_neg h2, if_neg (fun h' => h2 (e.1 h'))]
+      · rw [ite_eq_left h2, ite_eq_left (e.2 h2)]
+      · rw [ite_eq_right h2, ite_eq_right (fun h' => h2 (e.1 h'))]
 
 /-- `Simple([RemoveNode id])` on `cfgState V L`, `V` non-empty, `id` not a voter: `id` leaves
 the learners (nothing if untracked). -/
@@ -498,7 +498,7 @@ theorem simpleM_cfgState_removeLearner (V L : GSet w64) (c : raftpb.ConfChangeSi
     unfold removeM
     split
     · have hout : c.NodeId' ∉ (cfgState V L).cfg.outgoing := GMap.not_elem_of_empty _
-      rw [if_neg hout]
+      rw [ite_eq_right hout]
       simp only [cfgState, cfgM, removeCfg]
       rw [GMap.delete_notin _ _ (gset_lookup_none V _ hV), GMap.delete_empty,
         cfgFlags_delete_learner V L _ hV]
@@ -506,22 +506,22 @@ theorem simpleM_cfgState_removeLearner (V L : GSet w64) (c : raftpb.ConfChangeSi
       have hL : c.NodeId' ∉ L := fun h => hn ((cfgFlags_mem V L _).2 (.inr h))
       rw [GMap.delete_notin _ _ (gset_lookup_none L _ hL)]
   have Happ : applyM [c] (cfgState V L) = some (cfgState V (GMap.delete c.NodeId' L)) := by
-    simp only [applyM, applyAll, applyOne, if_neg h0, Hty]
-    rw [if_neg (show (W32 1 : w32) ≠ W32 0 by decide),
-      if_neg (show (W32 1 : w32) ≠ W32 3 by decide)]
-    simp only [if_true, Option.bind_some]
+    simp only [applyM, applyAll, applyOne, ite_eq_right h0, Hty]
+    rw [ite_eq_right (show (W32 1 : w32) ≠ W32 0 by decide),
+      ite_eq_right (show (W32 1 : w32) ≠ W32 3 by decide)]
+    simp only [ite_true, Option.bind_some]
     rw [Hrm]
     try simp only [Option.bind_some]
-    rw [if_neg (show (cfgState V (GMap.delete c.NodeId' L)).cfg.incoming ≠ ∅ from hne)]
+    rw [ite_eq_right (show (cfgState V (GMap.delete c.NodeId' L)).cfg.incoming ≠ ∅ from hne)]
   have Hsd : ¬ SymdiffTooBig V V := by
     unfold SymdiffTooBig symdiffN
     rw [GMap.map_difference_diag, GMap.map_size_empty]
     decide
   unfold simpleM
-  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
-    if_neg (fun h => h rfl), Happ]
+  rw [clearAutoLeave_cfgState, ite_eq_right (fun h => h (cfgInv_cfgState V L Hd)),
+    ite_eq_right (fun h => h rfl), Happ]
   simp only
-  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+  rw [ite_eq_right (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
     (cfgState V (GMap.delete c.NodeId' L)).cfg.incoming from Hsd)]
   simp [checkedM, cfgInv_cfgState _ _ Hd']
 
@@ -534,14 +534,14 @@ theorem cfgFlags_delete_voter (V L : GSet w64) (id : w64) (h : id ∉ L) :
   by_cases hk : id = k
   · subst hk
     rw [GMap.lookup_delete,
-      if_neg (show id ∉ (GMap.delete id V : GSet w64) by
-        rw [GMap.elem_of_gset, GMap.lookup_delete]; simp), if_neg h]
+      ite_eq_right (show id ∉ (GMap.delete id V : GSet w64) by
+        rw [GMap.elem_of_gset, GMap.lookup_delete]; simp), ite_eq_right h]
   · rw [GMap.lookup_delete_ne _ hk, cfgFlags_lookup]
     have e : k ∈ (GMap.delete id V : GSet w64) ↔ k ∈ V := by
       rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_delete_ne _ hk]
     by_cases h1 : k ∈ V
-    · rw [if_pos h1, if_pos (e.2 h1)]
-    · rw [if_neg h1, if_neg (fun h' => h1 (e.1 h'))]
+    · rw [ite_eq_left h1, ite_eq_left (e.2 h1)]
+    · rw [ite_eq_right h1, ite_eq_right (fun h' => h1 (e.1 h'))]
 
 /-- One voter fewer changes the voters by at most one. -/
 theorem not_symdiffTooBig_delete (V : GSet w64) (id : w64) :
@@ -583,25 +583,25 @@ theorem simpleM_cfgState_removeVoter (V L : GSet w64) (c : raftpb.ConfChangeSing
     · rw [GMap.lookup_delete_ne _ hkk] at h; exact h
   have Hrm : removeM c.NodeId' (cfgState V L) = cfgState (GMap.delete c.NodeId' V) L := by
     unfold removeM
-    rw [if_pos (show c.NodeId' ∈ (cfgState V L).prs from (cfgFlags_mem V L _).2 (.inl hV))]
+    rw [ite_eq_left (show c.NodeId' ∈ (cfgState V L).prs from (cfgFlags_mem V L _).2 (.inl hV))]
     have hout : c.NodeId' ∉ (cfgState V L).cfg.outgoing := GMap.not_elem_of_empty _
-    rw [if_neg hout]
+    rw [ite_eq_right hout]
     simp only [cfgState, cfgM, removeCfg]
     rw [GMap.delete_notin _ _ (gset_lookup_none L _ hL), GMap.delete_empty,
       cfgFlags_delete_voter V L _ hL]
   have Happ : applyM [c] (cfgState V L) = some (cfgState (GMap.delete c.NodeId' V) L) := by
-    simp only [applyM, applyAll, applyOne, if_neg h0, Hty]
-    rw [if_neg (show (W32 1 : w32) ≠ W32 0 by decide),
-      if_neg (show (W32 1 : w32) ≠ W32 3 by decide)]
-    simp only [if_true, Option.bind_some]
+    simp only [applyM, applyAll, applyOne, ite_eq_right h0, Hty]
+    rw [ite_eq_right (show (W32 1 : w32) ≠ W32 0 by decide),
+      ite_eq_right (show (W32 1 : w32) ≠ W32 3 by decide)]
+    simp only [ite_true, Option.bind_some]
     rw [Hrm]
     try simp only [Option.bind_some]
-    rw [if_neg (show (cfgState (GMap.delete c.NodeId' V) L).cfg.incoming ≠ ∅ from hne)]
+    rw [ite_eq_right (show (cfgState (GMap.delete c.NodeId' V) L).cfg.incoming ≠ ∅ from hne)]
   unfold simpleM
-  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
-    if_neg (fun h => h rfl), Happ]
+  rw [clearAutoLeave_cfgState, ite_eq_right (fun h => h (cfgInv_cfgState V L Hd)),
+    ite_eq_right (fun h => h rfl), Happ]
   simp only
-  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+  rw [ite_eq_right (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
     (cfgState (GMap.delete c.NodeId' V) L).cfg.incoming from not_symdiffTooBig_delete V _)]
   simp [checkedM, cfgInv_cfgState _ _ Hd']
 
@@ -611,7 +611,7 @@ theorem ccApplyM_single (cfg lrn lrn' : GSet w64) (c : raftpb.ConfChangeSingle)
     (H : simpleM [c] (cfgState cfg lrn) = some (cfgState cfg lrn')) :
     ccApplyM (W32 0) [c] (cfgState cfg lrn) = some (cfgState cfg lrn') := by
   unfold ccApplyM
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   have He : enterJointOf (W32 0) [c].length = some (false, false) := by
     simp [enterJointOf]
   rw [He]
@@ -869,11 +869,11 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     have h' := flagsOf_lookup pvs k pv h
     rw [Hflags, cfgFlags_lookup] at h'
     by_cases hc : k ∈ cfg
-    · rw [if_pos hc] at h'; rw [← Option.some.inj h']; simp [hc]
-    · rw [if_neg hc] at h'
+    · rw [ite_eq_left hc] at h'; rw [← Option.some.inj h']; simp [hc]
+    · rw [ite_eq_right hc] at h'
       by_cases hl : k ∈ lrn
-      · rw [if_pos hl] at h'; rw [← Option.some.inj h']; simp [hc]
-      · rw [if_neg hl] at h'; cases h'
+      · rw [ite_eq_left hl] at h'; rw [← Option.some.inj h']; simp [hc]
+      · rw [ite_eq_right hl] at h'; cases h'
   have Hpdom : domSet prs = cfg ∪ lrn := by
     apply GMap.set_eq; intro k
     rw [GMap.elem_of_dom', GMap.mem_iff, Hdom k, ← flagsOf_mem, Hflags, cfgFlags_mem,

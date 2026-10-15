@@ -161,7 +161,7 @@ theorem appKnow_pure (r : RState) (m : Msg) (bL : entryID) (fp l : List raftpb.E
     obtain ⟨e, he⟩ : ∃ e, (fp ++ l)[uint.nat m.index - 1]? = some e :=
       ⟨_, List.getElem?_eq_getElem (by omega)⟩
     refine ⟨e, ?_, ?_⟩
-    · rw [List.getElem?_append_left (by omega), List.getElem?_take, if_pos (by omega)]
+    · rw [List.getElem?_append_left (by omega), List.getElem?_take, ite_eq_left (by omega)]
       exact he
     · have h1 := full_term_at bL fp l m.index Hfl hb
       rw [Hprev] at h1
@@ -343,7 +343,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [pbecomeFollower]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | grantVote m r h1 h2 h3 h4 h5 h6 =>
@@ -404,7 +404,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [pbecomeFollower]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | drain r o' h1 =>
@@ -465,7 +465,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [pbecomeFollower]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | zeroAck r dst =>
@@ -499,7 +499,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | appReject m r hint hintterm h1 h2 h3 h4 h5 h6 h7 =>
@@ -519,7 +519,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | heartbeat m r h1 h2 h3 h4 h5 h6 =>
@@ -539,7 +539,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | appResp m r x h1 h2 h3 h4 h5 h6 =>
@@ -589,7 +589,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | snapStale m r h1 h2 h3 h4 h5 h6 =>
@@ -609,7 +609,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | readState m r e h1 h2 =>
@@ -734,7 +734,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs, pwinState, pappend, pbecomeLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | commit r n h1 h2 h3 h4 h5 =>
@@ -754,7 +754,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | sendApps r ms h1 h2 h3 =>
@@ -790,7 +790,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | readSingle m r h1 h2 h3 h4 =>
@@ -873,7 +873,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     first
-      | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
+      | (simp [psendMsgs, pappend]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
   | propDrop m r cs h1 h2 h3 h4 =>

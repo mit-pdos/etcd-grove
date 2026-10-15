@@ -42,7 +42,7 @@ theorem raftpb.ConfChangeV2.EnterJoint.wp_proof :
         iapply HΦ
         iframe
         have Hj : enterJointOf c.Transition' ccs.length = some (true, true) := by
-          unfold enterJointOf; rw [if_pos (Or.inr (by word)), if_pos (Or.inl Ht)]
+          unfold enterJointOf; rw [ite_eq_left (Or.inr (by word)), ite_eq_left (Or.inl Ht)]
         rw [Hj]
         simp only
         ipureintro; first | rfl | trivial
@@ -51,7 +51,7 @@ theorem raftpb.ConfChangeV2.EnterJoint.wp_proof :
       iapply HΦ
       iframe
       have Hj : enterJointOf c.Transition' ccs.length = some (false, false) := by
-        unfold enterJointOf; rw [if_neg (fun h => h.elim (fun h' => h' Ht) (fun h' => by word))]
+        unfold enterJointOf; rw [ite_eq_right (fun h => h.elim (fun h' => h' Ht) (fun h' => by word))]
       rw [Hj]
       simp only
       ipureintro; first | rfl | trivial
@@ -67,7 +67,7 @@ theorem raftpb.ConfChangeV2.EnterJoint.wp_proof :
       iapply HΦ
       iframe
       have Hj : enterJointOf c.Transition' ccs.length = some (true, true) := by
-        unfold enterJointOf; rw [if_pos (Or.inl Ht), if_pos (Or.inr Ht1)]
+        unfold enterJointOf; rw [ite_eq_left (Or.inl Ht), ite_eq_left (Or.inr Ht1)]
       rw [Hj]
       simp only
       ipureintro; first | rfl | trivial
@@ -81,7 +81,7 @@ theorem raftpb.ConfChangeV2.EnterJoint.wp_proof :
       iframe
       have Hj : enterJointOf c.Transition' ccs.length = some (false, true) := by
         unfold enterJointOf
-        rw [if_pos (Or.inl Ht), if_neg (by simp only [not_or]; exact ⟨Ht, Ht1⟩), if_pos Ht2]
+        rw [ite_eq_left (Or.inl Ht), ite_eq_right (by simp only [not_or]; exact ⟨Ht, Ht1⟩), ite_eq_left Ht2]
       rw [Hj]
       simp only
       ipureintro; first | rfl | trivial
@@ -90,7 +90,7 @@ theorem raftpb.ConfChangeV2.EnterJoint.wp_proof :
       exfalso
       apply Hok
       unfold enterJointOf
-      rw [if_pos (Or.inl Ht), if_neg (by simp only [not_or]; exact ⟨Ht, Ht1⟩), if_neg Ht2]
+      rw [ite_eq_left (Or.inl Ht), ite_eq_right (by simp only [not_or]; exact ⟨Ht, Ht1⟩), ite_eq_right Ht2]
 
 end proof
 

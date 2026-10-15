@@ -293,7 +293,7 @@ theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messa
     obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
     by_cases Hcc : n0 ≠ s.logst.committed
     · -- a commit, which releases the pending read-index requests (2026-10-13)
-      rw [if_neg Hcc] at Hrel
+      rw [ite_eq_right Hcc] at Hrel
       rcases Hc with Hc | ⟨Hlt, Hle, Hterm, Hq⟩
       · exact absurd Hc Hcc
       rcases Hrel with ⟨-, Hhb, rfl⟩ | ⟨Hsg, -, rfl⟩
@@ -401,7 +401,7 @@ theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messa
         rw [He]
         exact .trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 (.trans _ _ _ _ _ H3
           (.trans _ _ _ _ _ H4 H5)))
-    rw [if_pos (Classical.not_not.mp Hcc)] at Hrel
+    rw [ite_eq_left (Classical.not_not.mp Hcc)] at Hrel
     obtain ⟨-, rfl⟩ := Hrel
     refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl⟩
     have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr

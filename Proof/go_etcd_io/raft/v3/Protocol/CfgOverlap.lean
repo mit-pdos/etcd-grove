@@ -274,10 +274,10 @@ theorem mem_confPosFrom (k : Nat) (l : List raftpb.Entry) (i : Nat) :
     constructor
     · rintro (h | ⟨hk, e', he', hc⟩)
       · by_cases hc : IsConfEnt e
-        · rw [if_pos hc, List.mem_singleton] at h
+        · rw [ite_eq_left hc, List.mem_singleton] at h
           subst h
           exact ⟨Nat.le_refl _, e, by simp, hc⟩
-        · rw [if_neg hc] at h; cases h
+        · rw [ite_eq_right hc] at h; cases h
       · refine ⟨by omega, e', ?_, hc⟩
         rw [show i - k = (i - (k + 1)) + 1 by omega, List.getElem?_cons_succ]
         exact he'
@@ -286,7 +286,7 @@ theorem mem_confPosFrom (k : Nat) (l : List raftpb.Entry) (i : Nat) :
       · subst hik
         simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at he'
         subst he'
-        left; rw [if_pos hc]; exact List.mem_singleton_self _
+        left; rw [ite_eq_left hc]; exact List.mem_singleton_self _
       · right
         refine ⟨by omega, e', ?_, hc⟩
         rw [show i - k = (i - (k + 1)) + 1 by omega, List.getElem?_cons_succ] at he'
@@ -338,7 +338,7 @@ theorem cfgFold_snoc (dec : CCDec) (s : CCState) (l : List raftpb.Entry) (e : ra
 /-- An entry that is not a conf change leaves the configuration. -/
 theorem entStep_not_conf (dec : CCDec) (pre : List raftpb.Entry) (s : CCState)
     (e : raftpb.Entry) (h : ¬ IsConfEnt e) : entStep dec pre s e = some s := by
-  unfold entStep; rw [if_neg h]
+  unfold entStep; rw [ite_eq_right h]
 
 /-- One conf-change entry keeps quorums overlapping and `CfgOk`. -/
 theorem entStep_overlap {dec : CCDec} {pre : List raftpb.Entry} {s s' : CCState}
@@ -384,8 +384,8 @@ theorem cfgFoldFrom_zero (dec : CCDec) (pre : List raftpb.Entry) (s : CCState)
   | nil => rfl
   | cons e l ih =>
     rw [confCount_cons] at h
-    have hn : ¬ IsConfEnt e := by intro hc; rw [if_pos hc] at h; omega
-    rw [if_neg hn] at h
+    have hn : ¬ IsConfEnt e := by intro hc; rw [ite_eq_left hc] at h; omega
+    rw [ite_eq_right hn] at h
     simp only [cfgFoldFrom, entStep_not_conf dec pre s e hn, Option.bind_some]
     exact ih _ (by omega)
 
@@ -403,14 +403,14 @@ theorem cfgFoldFrom_le_one_overlap {dec : CCDec} {pre : List raftpb.Entry} {s s'
     rw [confCount_cons] at hc
     simp only [cfgFoldFrom] at h
     by_cases he : IsConfEnt e
-    · rw [if_pos he] at hc
+    · rw [ite_eq_left he] at hc
       cases hs1 : entStep dec pre s e with
       | none => rw [hs1] at h; cases h
       | some s1 =>
         rw [hs1, Option.bind_some, cfgFoldFrom_zero dec _ s1 l (by omega)] at h
         cases h
         exact (entStep_overlap hs1 hs).1
-    · rw [if_neg he] at hc
+    · rw [ite_eq_right he] at hc
       rw [entStep_not_conf dec pre s e he, Option.bind_some] at h
       exact ih (by omega) h hs
 
@@ -471,11 +471,11 @@ theorem decOfData_some (data : GoSlice → List w8) (pre : List raftpb.Entry) (e
   simp only [decOfData, CCDec.ofEnt, ccMsgOfBytes]
   rcases hc with h1 | h2
   · obtain ⟨m, hm⟩ := hd.1 h1
-    rw [if_pos h1, hm]; exact ⟨_, rfl⟩
+    rw [ite_eq_left h1, hm]; exact ⟨_, rfl⟩
   · have h1 : ¬ e.Type' = W32 1 := by
       rw [h2]; word
     obtain ⟨m, hm⟩ := hd.2 h2
-    rw [if_neg h1, if_pos h2, hm]; exact ⟨_, rfl⟩
+    rw [ite_eq_right h1, ite_eq_left h2, hm]; exact ⟨_, rfl⟩
 
 /-! ### Removing a voter, as one step (2026-10-15, stage N: the register's membership change) -/
 
@@ -493,7 +493,7 @@ theorem cfgState_empty_ids (V : GSet w64) : (cfgState V ∅).cfg.ids = V := by
 theorem ccApplyM_single_simple (c : raftpb.ConfChangeSingle) (s : CCState) :
     ccApplyM (W32 0) [c] s = simpleM [c] s := by
   unfold ccApplyM
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   have He : enterJointOf (W32 0) [c].length = some (false, false) := by
     simp [enterJointOf]
   rw [He]
@@ -517,7 +517,7 @@ theorem ccStepB_removeVoter (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
     by_cases hk : m.nodeId = x
     · subst hk; rw [GMap.lookup_delete] at hx; cases hx
     · rw [GMap.lookup_delete_ne _ hk] at hx; exact hx
-  rw [if_pos (by omega)]
+  rw [ite_eq_left (by omega)]
 
 /-- The same change at a configuration it is no voter of: nothing changes. -/
 theorem ccStepB_removeAbsent (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
@@ -528,7 +528,7 @@ theorem ccStepB_removeAbsent (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
   rw [ccApplyM_single_simple, simpleM_cfgState_removeLearner V ∅ _ Hty h0 hV hne
     (fun k hk => absurd hk (GMap.not_elem_of_empty _)), GMap.delete_empty]
   simp only [Option.bind_some]
-  rw [cfgState_empty_ids, if_pos Hsz]
+  rw [cfgState_empty_ids, ite_eq_left Hsz]
 
 /-- A configuration of voters only (`V` non-empty, few) is one a node can be in. -/
 theorem cfgOk_cfgState (V : GSet w64) (hne : V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) :

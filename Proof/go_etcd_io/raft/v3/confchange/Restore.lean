@@ -211,7 +211,7 @@ theorem wp_Simple_empty (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG
   iintro %cfg %trk %err ⟨Hp, Hccs, Htc, Hres⟩
   have Hf0 : flagsOf (∅ : GMap w64 tracker.Progress) = cfgFlags ∅ ∅ := by
     apply GMap.map_eq; intro k
-    rw [cfgFlags_lookup, if_neg (GMap.not_elem_of_empty _), if_neg (GMap.not_elem_of_empty _)]
+    rw [cfgFlags_lookup, ite_eq_right (GMap.not_elem_of_empty _), ite_eq_right (GMap.not_elem_of_empty _)]
     rfl
   rw [show ({ cfg := cfgM ∅ ∅, prs := flagsOf (∅ : GMap w64 tracker.Progress) } : CCState) =
       cfgState ∅ ∅ by rw [Hf0]; rfl]

@@ -184,8 +184,8 @@ theorem CCGood.remove {s : CCState} (h : CCGood s) (id : w64) : CCGood (removeM 
         · simp [e]
       · rw [hf k b hb]
         by_cases e : k = id
-        · subst e; simp [removeCfg_learners, gm_mem_delete, hnl]
-        · simp [removeCfg_learners, gm_mem_delete, e]
+        · subst e; simp [gm_mem_delete, hnl]
+        · simp [gm_mem_delete, e]
       · rw [removeCfg_learners] at hk
         obtain ⟨a1, a2⟩ := hl k hk.2
         rw [removeCfg_incoming, removeCfg_outgoing]
@@ -205,7 +205,7 @@ theorem CCGood.remove {s : CCState} (h : CCGood s) (id : w64) : CCGood (removeM 
         · cases hb
         · rename_i e
           rw [hf k b hb]
-          simp [removeCfg_learners, gm_mem_delete, e]
+          simp [gm_mem_delete, e]
       · rw [removeCfg_learners] at hk
         obtain ⟨a1, a2⟩ := hl k hk.2
         rw [removeCfg_incoming, removeCfg_outgoing]
@@ -240,8 +240,8 @@ theorem CCGood.makeLearner {s : CCState} (h : CCGood s) (id : w64) :
       · simp only
         rw [hf k b hb]
         by_cases e : k = id
-        · subst e; simp [removeCfg_learners, gm_mem_delete, hnl]
-        · simp [removeCfg_learners, gm_mem_delete, e]
+        · subst e; simp [gm_mem_delete, hnl]
+        · simp [gm_mem_delete, e]
       · simp only at hk ⊢
         rw [removeCfg_learners] at hk
         obtain ⟨a1, a2⟩ := hl k hk.2
@@ -383,12 +383,12 @@ theorem CCGood.leaveJoint {s s' : CCState} (h : CCGood s) (H : leaveJointM s = s
       if k ∈ s.cfg.learnersNext ∧ k ∈ s.prs then some true else s.prs !! k := by
     intro k
     by_cases hk : k ∈ s.cfg.learnersNext ∧ k ∈ s.prs
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 ((GMap.mem_iff _ _).1 hk.2)
       apply GMap.lookup_union_Some_l
       rw [GMap.lookup_fmap, GMap.lookup_filter, hb]
       simp [hk.1]
-    · rw [if_neg hk]
+    · rw [ite_eq_right hk]
       apply GMap.lookup_union_r
       rw [GMap.lookup_fmap, GMap.lookup_filter]
       cases hb : s.prs !! k with
@@ -415,7 +415,7 @@ theorem CCGood.leaveJoint {s s' : CCState} (h : CCGood s) (H : leaveJointM s = s
       | some b =>
         rw [hb] at hprs
         simp only [Option.isSome_some, true_iff] at hprs
-        simp only [Option.filter, Option.isSome_some]
+        simp only [Option.filter]
         by_cases hi : k ∈ s.cfg.incoming
         · simp [hi]
         · by_cases hl' : k ∈ s.cfg.learners
@@ -430,12 +430,12 @@ theorem CCGood.leaveJoint {s s' : CCState} (h : CCGood s) (H : leaveJointM s = s
     rw [GMap.lookup_filter, hlk] at hb
     simp only [GMap.elem_of_union]
     by_cases hn : k ∈ s.cfg.learnersNext ∧ k ∈ s.prs
-    · rw [if_pos hn] at hb
+    · rw [ite_eq_left hn] at hb
       simp only [Option.filter] at hb
       split at hb
       · cases hb; simp [hn.1]
       · cases hb
-    · rw [if_neg hn] at hb
+    · rw [ite_eq_right hn] at hb
       cases hb' : s.prs !! k with
       | none => rw [hb'] at hb; cases hb
       | some b' =>
@@ -525,10 +525,10 @@ theorem ccGood_cfgState (V : GSet w64) : CCGood (cfgState V ∅) := by
     rw [cfgFlags_lookup] at hb'
     have hl : k ∉ (cfgM V ∅).learners := GMap.not_elem_of_empty _
     by_cases h1 : k ∈ V
-    · rw [if_pos h1] at hb'; cases hb'
+    · rw [ite_eq_left h1] at hb'; cases hb'
       show false = decide (k ∈ (cfgM V ∅).learners)
       simp [hl]
-    · rw [if_neg h1, if_neg (GMap.not_elem_of_empty _)] at hb'; cases hb'
+    · rw [ite_eq_right h1, ite_eq_right (GMap.not_elem_of_empty _)] at hb'; cases hb'
 
 /-- A reachable state's flags are its configuration's (`cfgStateC`). -/
 theorem CCGood.flags {c : CfgM} {f : GMap w64 Bool} (h : CCGood ⟨c, f⟩) :
@@ -546,15 +546,15 @@ theorem CCGood.flags {c : CfgM} {f : GMap w64 Bool} (h : CCGood ⟨c, f⟩) :
       rcases (GMap.elem_of_union _ _ _).1 hv with h'' | h''
       · exact a1 h''
       · exact a2 h''
-    rw [if_pos hv, hb, hf k b hb]
+    rw [ite_eq_left hv, hb, hf k b hb]
     simp [hnl]
-  · rw [if_neg hv]
+  · rw [ite_eq_right hv]
     by_cases hl' : k ∈ c.learners
     · have hk : k ∈ f := (hd k).2 (GMap.elem_of_union_r _ hl')
       obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 ((GMap.mem_iff _ _).1 hk)
-      rw [if_pos hl', hb, hf k b hb]
+      rw [ite_eq_left hl', hb, hf k b hb]
       simp [hl']
-    · rw [if_neg hl']
+    · rw [ite_eq_right hl']
       have hk : k ∉ f := by
         rw [hd, mem_ids]
         intro h'

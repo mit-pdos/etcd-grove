@@ -522,7 +522,7 @@ theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w6
   intro Hty H
   refine ⟨?_, ?_⟩
   · have h1 := H.1
-    rw [if_pos Hty] at h1
+    rw [ite_eq_left Hty] at h1
     exact h1
   unfold FollowerStepResultC at H
   replace H := H.2
@@ -541,7 +541,7 @@ theorem candidateStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w
   intro Hty H
   refine ⟨?_, ?_⟩
   · have h1 := H.1
-    rw [if_pos Hty] at h1
+    rw [ite_eq_left Hty] at h1
     exact h1
   unfold CandidateStepResultC at H
   replace H := H.2

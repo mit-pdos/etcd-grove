@@ -2705,7 +2705,7 @@ theorem ownRaftGhost_step_read_fwd (γ : RaftNames) (id : w64) (s : PState) (m :
     $$ Hrd [] [] [Hcr]
   · iapply (BigSepL.bigSepL_nil).2; iempintro
   · iapply (BigSepL.bigSepL_nil).2; iempintro
-  · rw [List.length_nil, rdCount_singleton, if_pos Hty]; iexact Hcr
+  · rw [List.length_nil, rdCount_singleton, ite_eq_left Hty]; iexact Hcr
 
 theorem ownRaftGhost_step_read_pend (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (pm : raftpb.Message) :

@@ -312,7 +312,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : ra
     iexists GMode.dyn dec c0 h0 { g with cidx := cidx' }
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
-    simp only [GMode.isDyn, rOf.proj_p, rOf.proj_fp]
+    simp only [rOf.proj_p, rOf.proj_fp]
     iframe Hg
     isplitr
     · ipureintro
@@ -457,7 +457,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     iexists GMode.dyn dec c0 h0 g'
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
-    simp only [GMode.isDyn, rOf.proj_p, rOf.proj_fp]
+    simp only [rOf.proj_p, rOf.proj_fp]
     iframe Hg
     isplitr
     · ipureintro

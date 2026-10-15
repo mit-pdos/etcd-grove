@@ -163,7 +163,7 @@ theorem raft.switchToConfig.wp_proof
             = s1 := by rw [← Hs1, ← Hs0]
         rw [e]
         unfold SwitchOkC
-        rw [if_pos Hl1, if_pos Hin]
+        rw [ite_eq_left Hl1, ite_eq_left Hin]
         exact ⟨s1.logst.committed, [], s1.prvals, s1.lt, .inl rfl, fun m hm => by simp at hm, rfl,
           by cases s1; simp [sendMsgs]⟩
       try wp_auto
@@ -341,7 +341,7 @@ theorem raft.switchToConfig.wp_proof
       subst Hs0 Hs1
       refine ⟨Hcs0, ?_⟩
       unfold SwitchOkC
-      rw [if_pos Hl1, if_pos Hin]
+      rw [ite_eq_left Hl1, ite_eq_left Hin]
       exact Hs'
     · ------------------------------------------------------------------
       -- a leader removed or demoted: it steps down (`stepDownOnRemoval`, by the premise)
@@ -397,7 +397,7 @@ theorem raft.switchToConfig.wp_proof
             = s1 := by rw [← Hs1, ← Hs0, HLL]
         rw [e]
         unfold SwitchOkC
-        rw [if_pos Hl1, if_neg Hin]
+        rw [ite_eq_left Hl1, ite_eq_right Hin]
         exact ⟨pvs', rfl⟩
       | none =>
         simp only [Option.getD_none, Option.isSome_none]
@@ -438,7 +438,7 @@ theorem raft.switchToConfig.wp_proof
             = s1 := by rw [← Hs1, ← Hs0, HLL]
         rw [e]
         unfold SwitchOkC
-        rw [if_pos Hl1, if_neg Hin]
+        rw [ite_eq_left Hl1, ite_eq_right Hin]
         exact ⟨pvs', rfl⟩
   · ------------------------------------------------------------------
     -- a non-leader: done. It fits `c`: a candidate is a voter by the premise.
@@ -455,7 +455,7 @@ theorem raft.switchToConfig.wp_proof
       cases h : s.role <;> simp_all [stateW64, StateFollower, StateCandidate, StatePreCandidate]
     have HSw : SwitchOkC c id { s0 with isLearner := learnerOfC c id }
         { s0 with isLearner := learnerOfC c id } := by
-      unfold SwitchOkC; rw [if_neg (by show s0.role ≠ _; rw [Hrole0]; exact Hl)]
+      unfold SwitchOkC; rw [ite_eq_right (by show s0.role ≠ _; rw [Hrole0]; exact Hl)]
     ihave Hphys := Hback $$ %tv3 Htrkf Htrk
     ihave Hphys := ownRaftPhysCV_widen c c.voters r id _
       (fun _ h => Hfit (by rw [← Hrole0]; exact h)) $$ Hphys

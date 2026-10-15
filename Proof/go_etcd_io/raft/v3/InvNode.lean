@@ -458,7 +458,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (m : raftpb.Message)
   isplitr
   · ipureintro; exact Hok
   iexists [], []
-  rw [He, Hc, Ht, if_neg Hnr, if_neg Hnt]
+  rw [He, Hc, Ht, ite_eq_right Hnr, ite_eq_right Hnt]
   isplitr
   · iapply ownSlice_nil
   isplitr

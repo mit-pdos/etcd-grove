@@ -155,7 +155,7 @@ theorem RawNode.Step.wp_proof
         exfalso
         revert h
         not_net
-      simp only [HnP, ↓reduceIte]
+      simp only [HnP]
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
       have Hc := Href.commit_mono
       have e1 := Href.keep (by not_net) (by not_net); subst e1
@@ -165,8 +165,8 @@ theorem RawNode.Step.wp_proof
       have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
           (if m.Type' = MsgTimeoutNow then 1 else 0) := by
         by_cases h : m.Type' = MsgTimeoutNow
-        · rw [if_pos h]; exact Ht5 h
-        · rw [if_neg h]; have := Ht3 (by not_net) (by not_net) h; omega
+        · rw [ite_eq_left h]; exact Ht5 h
+        · rw [ite_eq_right h]; have := Ht3 (by not_net) (by not_net) h; omega
       -- the queue survives any step, a truncating `MsgApp`'s too: what it needs of the log
       -- is `prev` and `stored`, which no network step changes (`NetFrame`)
       have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok

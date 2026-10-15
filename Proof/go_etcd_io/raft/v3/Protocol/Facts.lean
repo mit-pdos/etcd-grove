@@ -1371,7 +1371,7 @@ theorem ownRaftGhost_step_1 (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
   iintro #Hm Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
   iapply ownRaftGhost_step_1c γ id s m s' Hstep $$ Hm [Hcr] Hlc Hown
-  rw [rdCount_singleton, if_neg Hty]
+  rw [rdCount_singleton, ite_eq_right Hty]
   iexact Hcr
 
 /-- Taking a step that consumes nothing. -/

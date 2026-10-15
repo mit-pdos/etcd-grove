@@ -87,11 +87,11 @@ theorem confCount_le_one {l : List raftpb.Entry}
   | cons e l ih =>
     rw [confCount_cons]
     by_cases hc : IsConfEnt e
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       have : confCount l = 0 := confCount_eq_zero (fun k e' hk hc' =>
         h 0 (k + 1) e e' (by omega) rfl (by simpa using hk) hc hc')
       omega
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       have := ih (fun k1 k2 e1 e2 hlt h1 h2 c1 c2 =>
         h (k1 + 1) (k2 + 1) e1 e2 (by omega) (by simpa using h1) (by simpa using h2) c1 c2)
       omega
@@ -123,8 +123,8 @@ theorem confCount_mapIdx {l : List raftpb.Entry} {f : Nat → raftpb.Entry → r
     rw [List.mapIdx_cons, confCount_cons, confCount_cons, ih (fun k e => hf (k + 1) e)]
     have hi : IsConfEnt (f 0 e) ↔ IsConfEnt e := by unfold IsConfEnt; rw [hf]
     by_cases hc : IsConfEnt e
-    · rw [if_pos (hi.2 hc), if_pos hc]
-    · rw [if_neg (fun h => hc (hi.1 h)), if_neg hc]
+    · rw [ite_eq_left (hi.2 hc), ite_eq_left hc]
+    · rw [ite_eq_right (fun h => hc (hi.1 h)), ite_eq_right hc]
 
 
 /-! ### `NoConfIn` -/
@@ -347,7 +347,7 @@ theorem PCInv.snoc_nonconf {applied li pci : w64} {acc : List raftpb.Entry × w6
     PCInv applied li pci (acc.1 ++ [x], acc.2) := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
   have hc : confCount (acc.1 ++ [x]) = confCount acc.1 := by
-    rw [confCount_append, confCount_cons, if_neg hx]; rfl
+    rw [confCount_append, confCount_cons, ite_eq_right hx]; rfl
   refine ⟨h1, ?_, by simp only; rw [hc]; exact h3, by simp only; rw [hc]; exact h4,
     by simp only; rw [hc]; exact h5⟩
   intro i e he hce
@@ -388,7 +388,7 @@ theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List raftp
         have := uint_Z_nonneg li
         word
       have hc1 : confCount (acc.1 ++ [e]) = 1 := by
-        rw [confCount_append, confCount_cons, if_pos hce, h0]; rfl
+        rw [confCount_append, confCount_cons, ite_eq_left hce, h0]; rfl
       refine ⟨?_, ?_, ?_, ?_, ?_⟩
       · simp only; rw [hnew]; rw [hp] at hle; omega
       · intro i e' he' hc'
@@ -509,7 +509,7 @@ theorem RInv_win {r : RState} (id : w64) (mt : GMap w64 w64) (ms : List Msg)
         simp at he; subst he; exact absurd hce hx
     · have ha : uint.nat r.applied ≤ r.full.length := by have := H.applied_cidx; omega
       have hx0 : confCount [pleaderEntry r.p] = 0 := by
-        rw [confCount_cons, if_neg hx]; rfl
+        rw [confCount_cons, ite_eq_right hx]; rfl
       rw [List.drop_append_of_le_length ha, confCount_append, hx0]
       have := H.i1.confCount_drop hg
       omega
@@ -701,7 +701,7 @@ theorem RInv_applyConf {r : RState} (k : Nat) (e : raftpb.Entry) (op : CCOp) (cs
   show cfgFold dec c0 (r.full.take (k + 1)) = some cs'
   rw [List.take_add_one, he, Option.toList_some, cfgFold_snoc,
     cfgFold_noConf dec c0 hn hk H.cfg, Option.bind_some]
-  unfold entStep; rw [if_pos hc, hd, Option.bind_some]; exact hst
+  unfold entStep; rw [ite_eq_left hc, hd, Option.bind_some]; exact hst
 
 end rules
 
@@ -765,10 +765,10 @@ theorem plogFindConflict_first (b : entryID) (es : List raftpb.Entry) :
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hd
       subst hd
-      simp only [plogFindConflict, if_neg hnm]
+      simp only [plogFindConflict, ite_eq_right hnm]
     | succ d =>
       have ha := hbef 0 a (by omega) rfl
-      simp only [plogFindConflict, if_pos ha]
+      simp only [plogFindConflict, ite_eq_left ha]
       exact ih d e (by simpa using hd) hnm
         (fun j e' hj he' => hbef (j + 1) e' (by omega) (by simpa using he'))
 
@@ -780,7 +780,7 @@ theorem full_entry_of_term (F : List raftpb.Entry) (j t : w64)
   have hjn := rUnat_eq j
   unfold plogTermAt at h
   rw [h0] at h
-  rw [if_neg (by omega), if_neg (by omega)] at h
+  rw [ite_eq_right (by omega), ite_eq_right (by omega)] at h
   simp only [Option.map_eq_map, Option.map_eq_some_iff] at h
   obtain ⟨e, he, het⟩ := h
   refine ⟨e, ?_, het⟩

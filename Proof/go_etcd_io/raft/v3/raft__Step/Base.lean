@@ -112,14 +112,14 @@ theorem FollowerStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NSta
     {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
-  have := H.1; rwa [if_neg h] at this
+  have := H.1; rwa [ite_eq_right h] at this
 
 /-- Off a `MsgSnap`, `stepCandidate` leaves the configuration. -/
 theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
     {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
-  have := H.1; rwa [if_neg h] at this
+  have := H.1; rwa [ite_eq_right h] at this
 
 end cfg_eq
 

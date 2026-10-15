@@ -53,7 +53,7 @@ theorem confchange.Changer.makeVoter.wp_proof
       $$ [$c $Hw] as ⟨c, Hw⟩
     iapply HΦ
     iframe Hp
-    simp only [makeVoterM, if_neg Hid]
+    simp only [makeVoterM, ite_eq_right Hid]
     iexact Hw
   · -- a tracked id: marked a non-learner, out of the learner sets, an incoming voter
     simp only [Option.getD_some]
@@ -85,7 +85,7 @@ theorem confchange.Changer.makeVoter.wp_proof
     · iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
         (DFrac.own 1) (makeVoterM id s).cfg vin vout Harr (by simp [makeVoterM, Hmem, Hal])
         $$ [Hin] [Hout] [Hl] [Hln]
-      all_goals simp only [makeVoterM, if_pos Hmem]
+      all_goals simp only [makeVoterM, ite_eq_left Hmem]
       · iexact Hin
       · iexact Hout
       · iexact Hl
@@ -94,7 +94,7 @@ theorem confchange.Changer.makeVoter.wp_proof
     iframe Hp
     iapply ownWork_intro chg base cfgp trk (makeVoterM id s) _ prs _ ?_
       $$ Hcfgp Hc Htrk Hprs Hnew
-    simp only [makeVoterM, if_pos Hmem, flagsOf_insert, Hflags]
+    simp only [makeVoterM, ite_eq_left Hmem, flagsOf_insert, Hflags]
 
 end proof
 

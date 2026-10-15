@@ -105,18 +105,18 @@ theorem quorum.JointConfig.VoteResult.wp_proof
     iapply HΦ
     iframe Hc Hv0 Hv1 Hvotes
     ipureintro
-    rw [if_pos h12] at Hf
+    rw [ite_eq_left h12] at Hf
     exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
   · rw [decide_eq_false h12]
     wp_auto
-    rw [if_neg h12] at Hf
+    rw [ite_eq_right h12] at Hf
     by_cases h1L : r1 = VoteLost
     · rw [decide_eq_true h1L]
       wp_auto
       iapply HΦ
       iframe Hc Hv0 Hv1 Hvotes
       ipureintro
-      rw [if_pos (Or.inl h1L : r1 = VoteLost ∨ r2 = VoteLost)] at Hf
+      rw [ite_eq_left (Or.inl h1L : r1 = VoteLost ∨ r2 = VoteLost)] at Hf
       exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
     · rw [decide_eq_false h1L]
       wp_auto
@@ -126,7 +126,7 @@ theorem quorum.JointConfig.VoteResult.wp_proof
         iapply HΦ
         iframe Hc Hv0 Hv1 Hvotes
         ipureintro
-        rw [if_pos (Or.inr h2L : r1 = VoteLost ∨ r2 = VoteLost)] at Hf
+        rw [ite_eq_left (Or.inr h2L : r1 = VoteLost ∨ r2 = VoteLost)] at Hf
         exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
       · rw [decide_eq_false h2L]
         wp_auto
@@ -134,7 +134,7 @@ theorem quorum.JointConfig.VoteResult.wp_proof
         iframe Hc Hv0 Hv1 Hvotes
         ipureintro
         have hn : ¬ (r1 = VoteLost ∨ r2 = VoteLost) := fun h => h.elim h1L h2L
-        rw [if_neg hn] at Hf
+        rw [ite_eq_right hn] at Hf
         exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
 
 end proof

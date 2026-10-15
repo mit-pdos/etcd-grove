@@ -67,7 +67,7 @@ theorem raft.applyConfChange.wp_proof
   by_cases Hlj : cc.Transition' = W32 0 ∧ ccs = []
   · -- `changer.LeaveJoint()`
     rw [decide_eq_true Hlj]
-    rw [if_pos Hlj] at Happ
+    rw [ite_eq_left Hlj] at Happ
     wp_auto
     wp_apply wp_Changer_LeaveJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
         (DFrac.own 1) (DFrac.own 1) DFrac.discard (DFrac.own 1)
@@ -104,7 +104,7 @@ theorem raft.applyConfChange.wp_proof
     ipureintro
     exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
   · rw [decide_eq_false Hlj]
-    rw [if_neg Hlj] at Happ
+    rw [ite_eq_right Hlj] at Happ
     wp_auto
     wp_method_call
     wp_call

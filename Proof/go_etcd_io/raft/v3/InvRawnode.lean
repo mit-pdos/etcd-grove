@@ -779,13 +779,13 @@ theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List raftpb.Entr
   unfold RNState.vcfg
   cases hm : rs.mode with
   | static =>
-    simp only [hm, RNMode.toG, ownStepGhost, ghostRest]
+    simp only [RNMode.toG, ownStepGhost, ghostRest]
     icases H with ⟨Hg, %HC⟩
     iframe Hg
     ipureintro
     exact ⟨⟨HC.1, HC.2.1⟩, HC⟩
   | dyn dec c0 h0 _ =>
-    simp only [hm, RNMode.toG, ownStepGhost, ghostRest]
+    simp only [RNMode.toG, ownStepGhost, ghostRest]
     icases H with ⟨Hg, %HC, Hr⟩
     iframe Hg Hr
     ipureintro

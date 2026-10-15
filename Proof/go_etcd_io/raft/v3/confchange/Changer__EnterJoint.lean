@@ -56,7 +56,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
       wp_apply wp_Changer_err $$ [$c] as %cfg0 c
       iapply HΦ
       iframe
-      simp only [enterJointM, if_pos Hninv, ownResult]
+      simp only [enterJointM, ite_eq_left Hninv, ownResult]
       ipureintro; intro h; cases h
   subst Herr
   wp_auto
@@ -72,7 +72,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
     wp_apply wp_Changer_err $$ [$c] as %cfg0 c
     iapply HΦ
     iframe
-    simp only [enterJointM, if_neg Hs0, if_pos Hj, ownResult]
+    simp only [enterJointM, ite_eq_right Hs0, ite_eq_left Hj, ownResult]
     ipureintro; intro h; cases h
   have Hout0 : c.outgoing = ∅ := by
     rcases Nat.eq_zero_or_pos (GMap.size c.outgoing) with h0 | h0
@@ -96,7 +96,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
     wp_apply wp_Changer_err $$ [$c] as %cfg0 c
     iapply HΦ
     iframe
-    simp only [enterJointM, if_neg Hs0, if_neg Hj, Hi0, if_true, ownResult]
+    simp only [enterJointM, ite_eq_right Hs0, ite_eq_right Hj, Hi0, ite_true, ownResult]
     ipureintro; intro h; cases h
   have Hi0 : c.incoming ≠ ∅ := by
     intro h; rw [h, GMap.map_size_empty] at Hif; exact Hif rfl
@@ -200,7 +200,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
       match (applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState)) with
       | none => none
       | some s1 => checkedM { cfg := { s1.cfg with autoLeave := autoLeave }, prs := s1.prs } := by
-    simp only [enterJointM, if_neg Hs0, if_neg Hj, if_neg Hi0] <;> rfl
+    simp only [enterJointM, ite_eq_right Hs0, ite_eq_right Hj, ite_eq_right Hi0] <;> rfl
   rw [Hej]
   rcases Happ : applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState) with _ | s1
   · icases Hres with %Herr2
@@ -231,7 +231,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
   simp only [checkedM]
   rw [Hflags1] at Hres3
   rcases Hres3 with ⟨Hinv3, Herr3, rfl, rfl⟩ | ⟨Hinv3, Herr3⟩
-  · simp only [if_pos Hinv3, ownResult]
+  · simp only [ite_eq_left Hinv3, ownResult]
     iframe
     isplitr
     · ipureintro; exact Herr3
@@ -240,7 +240,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
     simp only [named]
     iframe
     ipureintro; exact Hflags1
-  · simp only [if_neg Hinv3, ownResult]
+  · simp only [ite_eq_right Hinv3, ownResult]
     ipureintro; exact Herr3
 
 end proof

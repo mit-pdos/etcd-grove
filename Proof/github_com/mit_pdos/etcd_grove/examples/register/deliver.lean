@@ -114,7 +114,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
         wp_auto
         ihave Htc : tickCred γn.bud (if mm.Type' = MsgTimeoutNow then 1 else 0) $$ [Hb]
         · have Htn' : mm.Type' = MsgTimeoutNow := Htn
-          rw [if_pos Htn']
+          rw [ite_eq_left Htn']
           simp only [↓reduceIte]
           iexact Hb
         wp_apply wp_slice_append slice.nil ([] : List raftpb.Entry) mm.Entries' ents DFrac.discard
@@ -139,7 +139,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
         imod tickCred_zero (GF := GF) γn.bud with Htc0
         ihave Htc : tickCred γn.bud (if mm.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc0]
         · have Htn' : ¬ mm.Type' = MsgTimeoutNow := Htn
-          rw [if_neg Htn']
+          rw [ite_eq_right Htn']
           iexact Htc0
         wp_apply wp_slice_append slice.nil ([] : List raftpb.Entry) mm.Entries' ents DFrac.discard
           $$ [Hents] as %s' ⟨Hs, Hcap, -⟩

@@ -111,7 +111,7 @@ theorem stepCandidate.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
       simp [Hty, Hrole, MsgVoteResp]
     rw [Hmc (by rw [Hrole]; decide)]
     wp_auto
@@ -141,7 +141,7 @@ theorem stepCandidate.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
       simp only [Hty, Hrole, ↓reduceIte]
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
@@ -162,7 +162,7 @@ theorem stepCandidate.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
       simp only [Hty, Hrole, ↓reduceIte]
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
@@ -178,7 +178,7 @@ theorem stepCandidate.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
       simp only [Hty, Hrole, ↓reduceIte]
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
@@ -200,7 +200,7 @@ theorem stepCandidate.wp_proof
     isplitr
     · ipureintro
       unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+      refine ⟨by simp [Hty, MsgProp, MsgSnap], ?_⟩
       simp [Hty, MsgVoteResp, MsgProp]
     iexact ErrPropDropped
   · -- `MsgApp`: `becomeFollower(m.Term, m.From)`, then `handleAppendEntries`
@@ -223,7 +223,7 @@ theorem stepCandidate.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     unfold CandidateStepResultC
-    refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+    refine ⟨by simp [Hty, MsgApp, MsgSnap], ?_⟩
     simp only [Hty, MsgVoteResp, MsgProp, MsgApp]
     refine ⟨trivial, pvs, ?_⟩
     rw [← Hterm']
@@ -237,7 +237,7 @@ theorem stepCandidate.wp_proof
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
-    ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
+    ihave #Hcl := Hctx $$ %(by simp [Hty])
     wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _
       cl Hcommit Hfrom $$ [$Hphys $Hcl] as Hphys
     iapply HΦ $$ %GoInterface.nil %_ %false %c
@@ -246,7 +246,7 @@ theorem stepCandidate.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     unfold CandidateStepResultC
-    refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+    refine ⟨by simp [Hty, MsgHeartbeat, MsgSnap], ?_⟩
     simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat]
     refine ⟨trivial, pvs, ?_⟩
     rw [← Hterm']
@@ -264,7 +264,7 @@ theorem stepCandidate.wp_proof
         ipureintro
         refine ⟨?_, trivial⟩
         unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+        refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap], ?_⟩
         simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp]
       · rw [Hmc Hp]
@@ -275,7 +275,7 @@ theorem stepCandidate.wp_proof
         ipureintro
         refine ⟨?_, trivial⟩
         unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+        refine ⟨by simp [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap], ?_⟩
         simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp]
   · -- `MsgSnap`: `becomeFollower(m.Term, m.From)`, then `handleSnapshot`
@@ -299,7 +299,7 @@ theorem stepCandidate.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     unfold CandidateStepResultC
-    refine ⟨by rw [if_pos Hty]; exact Hc', ?_⟩
+    refine ⟨by rw [ite_eq_left Hty]; exact Hc', ?_⟩
     simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgSnap]
     refine ⟨trivial, pvs, ?_⟩
@@ -320,7 +320,7 @@ theorem stepCandidate.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+      refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
       simp [Hty, Hrole, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
         MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
     · -- a pre-candidate: `poll`, then win, lose or wait
@@ -340,7 +340,7 @@ theorem stepCandidate.wp_proof
           CandidateStepResultC c scfg id s m ents sv false s' c cl := by
         intro s' won lost peers pvs Hw Hl Hs'
         unfold CandidateStepResultC
-        refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+        refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
         simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
           MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, Hrole]
         simp
@@ -418,7 +418,7 @@ theorem stepCandidate.wp_proof
         ipureintro
         refine ⟨?_, trivial⟩
         unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+        refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
         simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
           MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
@@ -435,7 +435,7 @@ theorem stepCandidate.wp_proof
         ipureintro
         refine ⟨?_, trivial⟩
         unfold CandidateStepResultC
-        refine ⟨by simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
+        refine ⟨by simp [Hty', MsgSnap, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩
         simp [Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
           MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]

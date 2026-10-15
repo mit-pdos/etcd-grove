@@ -88,7 +88,7 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     isplitr
     · ipureintro; rfl
     ihave %Hcdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hcopies
-    have Hpv'none : pvs' !! key = none := by rw [Hpart, if_neg Hnew]
+    have Hpv'none : pvs' !! key = none := by rw [Hpart, ite_eq_right Hnew]
     have Hprs'none : prs' !! key = none := by
       have h := (Hcdom0 key)
       change (prs' !! key).isSome = true ↔ (pvs' !! key).isSome = true at h
@@ -108,7 +108,7 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     rw [Htake]
     by_cases hk : k = key
     · subst hk
-      rw [GMap.lookup_insert_eq, if_pos (List.mem_append_right _ (List.mem_singleton.2 rfl)), Hpv]
+      rw [GMap.lookup_insert_eq, ite_eq_left (List.mem_append_right _ (List.mem_singleton.2 rfl)), Hpv]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk), Hpart]
       simp only [List.mem_append, List.mem_singleton, hk, or_false]
   iintro HP Hpm
@@ -117,8 +117,8 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     apply GMap.map_eq; intro k
     rw [Hpart, Int.toNat_natCast, ← Hklen, List.take_length]
     by_cases hk : k ∈ keys
-    · rw [if_pos hk]
-    · rw [if_neg hk]
+    · rw [ite_eq_left hk]
+    · rw [ite_eq_right hk]
       have h1 : (prs !! k).isSome = false := by
         cases h : (prs !! k).isSome
         · rfl

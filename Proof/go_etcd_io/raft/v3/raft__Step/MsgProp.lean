@@ -98,7 +98,7 @@ private theorem stepCD_propDrop (c : CfgM) (id : w64) (m : raftpb.Message) (s : 
       { rOf s g with pci := (leaderPropConf s ents cs c.joint).2 } := by
     unfold rOf pciR
     rw [show ({ s with pci := (leaderPropConf s ents cs c.joint).2 } : NState).role = s.role
-      from rfl, if_pos Hr]
+      from rfl, ite_eq_left Hr]
     rfl
   rw [Hrr, ← Hpb]
   exact StepR.propDrop (absMsg .propose m ents ctx) (rOf s g) cs rfl Hrl Hct

@@ -222,10 +222,10 @@ theorem raft.switchToConfig.spec_simple
     split
     · rename_i hl
       have hin : id ∈ cfg := (Hlead hl).1
-      rw [if_pos hl, if_pos (by rw [CfgM.voters_simple]; exact hin)] at Hsw
+      rw [ite_eq_left hl, ite_eq_left (by rw [CfgM.voters_simple]; exact hin)] at Hsw
       exact Hsw.simple (fun h => by rw [h] at hin; exact GMap.not_elem_of_empty _ hin)
     · rename_i hl
-      rw [if_neg hl] at Hsw
+      rw [ite_eq_right hl] at Hsw
       exact Hsw
 
 /-- At a follower, from the struct sealed at any configuration `cfg0` and the new
@@ -262,7 +262,7 @@ theorem raft.switchToConfig.spec_follower
   inext
   iintro %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
   unfold SwitchOk at Hsw
-  rw [if_neg (by rw [Hrole]; decide)] at Hsw
+  rw [ite_eq_right (by rw [Hrole]; decide)] at Hsw
   subst Hsw
   have Hl : domSet prs \ cfg = lrn := by
     rw [Hdom]
@@ -310,7 +310,7 @@ theorem raft.switchToConfig.spec_nonleader
   inext
   iintro %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
   unfold SwitchOk at Hsw
-  rw [if_neg (by rw [Hrole]; decide)] at Hsw
+  rw [ite_eq_right (by rw [Hrole]; decide)] at Hsw
   subst Hsw
   have HL : learnerOf cfg prs id = false := by
     unfold learnerOf; rw [Hdom]; simp

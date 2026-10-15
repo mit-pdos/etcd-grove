@@ -55,7 +55,7 @@ theorem confchange.Changer.Simple.wp_proof
       wp_apply wp_Changer_err $$ [$c] as %cfg0 c
       iapply HΦ
       iframe
-      simp only [simpleM, if_pos Hninv, ownResult]
+      simp only [simpleM, ite_eq_left Hninv, ownResult]
       ipureintro; intro h; cases h
   subst Herr
   wp_auto
@@ -71,7 +71,7 @@ theorem confchange.Changer.Simple.wp_proof
     wp_apply wp_Changer_err $$ [$c] as %cfg0 c
     iapply HΦ
     iframe
-    simp only [simpleM, if_neg Hs0, if_pos Hj, ownResult]
+    simp only [simpleM, ite_eq_right Hs0, ite_eq_left Hj, ownResult]
     ipureintro; intro h; cases h
   have Hj : ¬ c.outgoing ≠ ∅ := fun h => Hif (by
     rcases Nat.eq_zero_or_pos (GMap.size c.outgoing) with h0 | h0
@@ -103,7 +103,7 @@ theorem confchange.Changer.Simple.wp_proof
       wp_apply wp_Changer_err $$ [$c] as %cfg0 c
       iapply HΦ
       iframe
-      simp only [simpleM, if_neg Hs0, if_neg Hj, Happ, ownResult]
+      simp only [simpleM, ite_eq_right Hs0, ite_eq_right Hj, Happ, ownResult]
       ipureintro; intro h; cases h
   icases Hres with ⟨%Herr2, Hw⟩
   subst Herr2
@@ -127,7 +127,7 @@ theorem confchange.Changer.Simple.wp_proof
     iframe
     have Hbig : SymdiffTooBig c.incoming s1.cfg.incoming := by
       unfold SymdiffTooBig; simpa using Hif
-    simp only [simpleM, if_neg Hs0, if_neg Hj, Happ, if_pos Hbig, ownResult]
+    simp only [simpleM, ite_eq_right Hs0, ite_eq_right Hj, Happ, ite_eq_left Hbig, ownResult]
     ipureintro; intro h; cases h
   have Hbig : ¬ SymdiffTooBig c.incoming s1.cfg.incoming := by
     unfold SymdiffTooBig; simpa using Hif
@@ -136,10 +136,10 @@ theorem confchange.Changer.Simple.wp_proof
     as %cfg2 %trk2 %err3 ⟨Hc1, Htrk, Hprs1, %Hres3⟩
   iapply HΦ
   iframe
-  simp only [simpleM, if_neg Hs0, if_neg Hj, Happ, if_neg Hbig, checkedM]
+  simp only [simpleM, ite_eq_right Hs0, ite_eq_right Hj, Happ, ite_eq_right Hbig, checkedM]
   rw [Hflags1] at Hres3
   rcases Hres3 with ⟨Hinv3, Herr3, rfl, rfl⟩ | ⟨Hinv3, Herr3⟩
-  · simp only [if_pos Hinv3, ownResult]
+  · simp only [ite_eq_left Hinv3, ownResult]
     iframe
     isplitr
     · ipureintro; exact Herr3
@@ -148,7 +148,7 @@ theorem confchange.Changer.Simple.wp_proof
     simp only [named]
     iframe
     ipureintro; exact Hflags1
-  · simp only [if_neg Hinv3, ownResult]
+  · simp only [ite_eq_right Hinv3, ownResult]
     ipureintro; exact Herr3
 
 end proof

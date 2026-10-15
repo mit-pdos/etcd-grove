@@ -248,7 +248,7 @@ private theorem wp_step_pending
       isplitr
       · iapply ownSlice_nil
       isplitl [Hcr]
-      · rw [if_neg (by not_self)]; iexact Hcr
+      · rw [ite_eq_right (by not_self)]; iexact Hcr
       imodintro
       iintro %Hc
       exfalso

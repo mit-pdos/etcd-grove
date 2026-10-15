@@ -435,7 +435,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     exfalso
     revert h
     not_net
-  simp only [HnP, ↓reduceIte]
+  simp only [HnP]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by not_net) (by not_net); subst e1
@@ -445,8 +445,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
       (if m.Type' = MsgTimeoutNow then 1 else 0) := by
     by_cases h : m.Type' = MsgTimeoutNow
-    · rw [if_pos h]; exact Ht5 h
-    · rw [if_neg h]; have := Ht3 (by not_net) (by not_net) h; omega
+    · rw [ite_eq_left h]; exact Ht5 h
+    · rw [ite_eq_right h]; have := Ht3 (by not_net) (by not_net) h; omega
   have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
   iapply HΦ $$ %err %s'.term
@@ -665,7 +665,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     · simp [MsgProp, MsgReadIndex]; iexact Hcr
     · imodintro
       iintro %Hc
-      simp [Hty', MsgProp, MsgSnap] at Hc
+      simp [MsgProp, MsgSnap] at Hc
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %_, -⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne') (by msg_ne'); subst e1
@@ -711,7 +711,7 @@ theorem applyCCOkC_stepR {Adm : List raftpb.Entry → CCState → Prop} {dec : C
   obtain ⟨prs, pvs, -, Hmk, Hsw⟩ := H
   unfold SwitchOkC at Hsw
   by_cases Hl : s.role = .leader
-  · rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+  · rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState).role = .leader from Hl)] at Hsw
     have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
     -- the new `Progress` values
@@ -731,10 +731,10 @@ theorem applyCCOkC_stepR {Adm : List raftpb.Entry → CCState → Prop} {dec : C
         rcases Hmk v p' hp with h0 | ⟨p, hp0, hm⟩
         · exact .inl h0
         · right
-          simp [toPState, Hl, prvalsMatch, GMap.lookup_fmap', hp0, hm]
+          simp [toPState, Hl, prvalsMatch, hp0, hm]
     have Hz := rOf_pci_zero s g
     by_cases Hv : id ∈ c'.voters
-    · rw [if_pos Hv] at Hsw
+    · rw [ite_eq_left Hv] at Hsw
       obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
       generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState) = s1 at H1 Hc Hms Hmm
@@ -770,7 +770,7 @@ theorem applyCCOkC_stepR {Adm : List raftpb.Entry → CCState → Prop} {dec : C
       rw [rOf_frame _ _ g Hfr]
       exact HR
     · -- removed or demoted: `reMatch`, then the step-down
-      rw [if_neg Hv] at Hsw
+      rw [ite_eq_right Hv] at Hsw
       obtain ⟨pvs', rfl⟩ := Hsw
       generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState) = s1 at H1 ⊢
@@ -794,7 +794,7 @@ theorem applyCCOkC_stepR {Adm : List raftpb.Entry → CCState → Prop} {dec : C
         simp [pciR, becomeFollower, toPState, resetTo0, resetTo]
       rw [e] at HR2
       exact .trans _ _ _ _ _ HR1 HR2
-  · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+  · rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState).role = .leader from Hl)] at Hsw
     subst Hsw
     have e : rOf { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } g =
@@ -814,8 +814,8 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
   · exact ⟨⟨by rw [Hsf, Hr]; exact Hwf.1, by rw [Htk]; exact Hwf.2⟩, Ht, Hpv, Hg, Hl, Hc⟩
   · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
     unfold SwitchOkC at Hsw
-    rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
-        NState).role = .leader from Hl), if_neg Hv] at Hsw
+    rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).role = .leader from Hl), ite_eq_right Hv] at Hsw
     obtain ⟨pvs', rfl⟩ := Hsw
     refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩ <;>
       simp [becomeFollower, resetTo0, resetTo, stepFuncOf]
@@ -937,9 +937,9 @@ theorem wp_applyConf_dyn
     unfold AdmFold
     have H0 := cfgFold_noConf dec c0 Hnoc' Hk1 HI.cfg
     rw [show (rOf s g).full.take (k + 1) = (rOf s g).full.take k ++ [e] by
-      rw [List.take_succ, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
+      rw [List.take_add_one, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
     unfold entStep
-    rw [if_pos Hconf, Htake, Hdec, Option.bind_some]
+    rw [ite_eq_left Hconf, Htake, Hdec, Option.bind_some]
     exact Hstep
   have HR1 : StepR (AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1))) dec id (rOf s g) []
       (rOf s g') :=

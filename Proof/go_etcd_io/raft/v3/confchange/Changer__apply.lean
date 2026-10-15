@@ -55,18 +55,18 @@ theorem wp_remove_work
   unfold ownCfgAt
   icases Hcw with ⟨%cfg', Hcfgp, Hc⟩
   by_cases hc : id ∈ s.prs ∧ id ∉ s.cfg.outgoing
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     icases ownPrs_delete chg base prs pvs id $$ [$Hprs $Hnew] with ⟨Hprs, Hnew⟩
     iapply ownWork_intro chg base cfgp trk (removeM id s) cfg' _ _ ?_ $$ Hcfgp Hc Htrk Hprs Hnew
-    simp only [removeM, if_pos hc.1, if_neg hc.2, flagsOf_delete, Hflags]
-  · rw [if_neg hc]
+    simp only [removeM, ite_eq_left hc.1, ite_eq_right hc.2, flagsOf_delete, Hflags]
+  · rw [ite_eq_right hc]
     iapply ownWork_intro chg base cfgp trk (removeM id s) cfg' prs pvs ?_ $$ Hcfgp Hc Htrk Hprs Hnew
     unfold removeM
     by_cases h1 : id ∈ s.prs
     · have h2 : id ∈ s.cfg.outgoing := by
         exact Classical.byContradiction fun h2 => hc ⟨h1, h2⟩
-      simp only [if_pos h1, if_pos h2, Hflags]
-    · simp only [if_neg h1, Hflags]
+      simp only [ite_eq_left h1, ite_eq_left h2, Hflags]
+    · simp only [ite_eq_right h1, Hflags]
 
 theorem confchange.Changer.apply.wp_proof
     (wp_Changer_makeVoter : confchange.Changer.makeVoter.spec (GF := GF) (hG := hG))
@@ -125,7 +125,7 @@ theorem confchange.Changer.apply.wp_proof
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
-      rw [Hstep]; simp only [applyOne, if_neg H0, if_pos Hif]
+      rw [Hstep]; simp only [applyOne, ite_eq_right H0, ite_eq_left Hif]
     have H1 := Hif
     wp_if_destruct
     · -- `AddLearnerNode`
@@ -137,7 +137,7 @@ theorem confchange.Changer.apply.wp_proof
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
-      rw [Hstep]; simp only [applyOne, if_neg H0, if_neg H1, if_pos Hif]
+      rw [Hstep]; simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_left Hif]
     have H2 := Hif
     wp_if_destruct
     · -- `RemoveNode`
@@ -149,7 +149,7 @@ theorem confchange.Changer.apply.wp_proof
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
-      rw [Hstep]; simp only [applyOne, if_neg H0, if_neg H1, if_neg H2, if_pos Hif]
+      rw [Hstep]; simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_left Hif]
     have H3 := Hif
     wp_if_destruct
     · -- `UpdateNode`: nothing
@@ -159,7 +159,7 @@ theorem confchange.Changer.apply.wp_proof
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
-      rw [Hstep]; simp only [applyOne, if_neg H0, if_neg H1, if_neg H2, if_neg H3, if_pos Hif]
+      rw [Hstep]; simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_right H3, ite_eq_left Hif]
     · -- any other type: "unexpected conf type %d"
       wp_apply wp_slice_literal
       isplitr
@@ -175,7 +175,7 @@ theorem confchange.Changer.apply.wp_proof
       iapply HΦ
       iframe
       have Hnone : applyOne cc s' = none := by
-        simp only [applyOne, if_neg H0, if_neg H1, if_neg H2, if_neg H3, if_neg Hif]
+        simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_right H3, ite_eq_right Hif]
       have Hall : applyAll l s = none := by
         have hl : l = l.take (sint.nat (n + W64 1)) ++ l.drop (sint.nat (n + W64 1)) :=
           (List.take_append_drop _ _).symm
@@ -203,13 +203,13 @@ theorem confchange.Changer.apply.wp_proof
         apply GMap.map_size_empty_inv
         have := congrArg sint.Z Hif
         word
-      simp only [applyM, Hn.2.2, Option.bind_some, Hempty, if_true]
+      simp only [applyM, Hn.2.2, Option.bind_some, Hempty, ite_true]
       ipureintro; intro h; cases h
     · iapply HΦ
       iframe
       have Hne : s'.cfg.incoming ≠ ∅ := by
         intro h; rw [h, GMap.map_size_empty] at Hif; exact Hif rfl
-      simp only [applyM, Hn.2.2, Option.bind_some, Hne, if_false]
+      simp only [applyM, Hn.2.2, Option.bind_some, Hne, ite_false]
       iframe
 
 end proof

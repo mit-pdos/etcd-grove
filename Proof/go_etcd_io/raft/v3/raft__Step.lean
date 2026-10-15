@@ -757,7 +757,7 @@ theorem raft.Step.wp_proof
   by_cases Hty : m.Type' = MsgReadIndex
   · -- MsgReadIndex (2026-10-13): `dispatch_ReadIndex`, with the request's credit.
     ihave #Hm' := Hmsgc $$ %MsgType.readIndex %(by rw [Hty]; rfl)
-    rw [if_pos Hty]
+    rw [ite_eq_left Hty]
     iapply dispatch_ReadIndex P γ c r id s m ents ctx Φ md Hdh Hwf Hty (Hri Hty)
       $$ Hinit Hphys Hghost Hrest Hents Hctxp Hm' Hcred HΦ
   by_cases Hty : m.Type' = MsgReadIndexResp

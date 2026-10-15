@@ -57,8 +57,8 @@ theorem raft.tickHeartbeat.wp_proof
     try wp_auto
     wp_apply raft.wp_load_stateC $$ Hphys as Hphys
     cases Hrole : s.role
-    all_goals simp (config := { decide := true }) only [Hrole, stateW64, StateFollower,
-      StateCandidate, StateLeader, StatePreCandidate, decide_false, _root_.decide_true]
+    all_goals simp (config := { decide := true }) only [
+      decide_false, _root_.decide_true]
     all_goals try wp_auto
     rotate_left 2
     · -- a leader: abort a transfer in progress
@@ -96,8 +96,8 @@ theorem raft.tickHeartbeat.wp_proof
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   cases Hrole : s1.role
   all_goals
-    simp (config := { decide := true }) only [Hrole, stateW64, StateFollower,
-      StateCandidate, StateLeader, StatePreCandidate, decide_false, _root_.decide_true]
+    simp (config := { decide := true }) only [
+      decide_false, _root_.decide_true]
     try wp_auto
   all_goals try (
     iapply HΦ $$ %s1
@@ -142,11 +142,11 @@ theorem raft.tickHeartbeat.wp_proof
       isplitr
       · iapply ownSlice_nil
       isplitl [Hcr]
-      · rw [if_neg (by msg_ne)]; iexact Hcr
+      · rw [ite_eq_right (by msg_ne)]; iexact Hcr
       imodintro
       iintro %Hc
       simp [MsgSnap] at Hc
-    simp only [hP, ↓reduceIte]
+    simp only [hP]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, Herr⟩
     have Hcm := Href.commit_mono
     have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1

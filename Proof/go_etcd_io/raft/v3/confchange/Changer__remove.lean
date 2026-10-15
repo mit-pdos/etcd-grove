@@ -65,9 +65,9 @@ theorem confchange.Changer.remove.wp_proof
       iapply HΦ
       iframe Hp
       have Hout' : id ∈ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
-      rw [if_neg (fun h => h.2 Hout')]
+      rw [ite_eq_right (fun h => h.2 Hout')]
       iframe Htrk
-      simp only [removeM, if_pos Hmem]
+      simp only [removeM, ite_eq_left Hmem]
       iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
       iframe Hcfgp
       iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
@@ -84,9 +84,9 @@ theorem confchange.Changer.remove.wp_proof
       iapply HΦ
       iframe Hp
       have Hout' : id ∉ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
-      rw [if_pos ⟨Hmem, Hout'⟩]
+      rw [ite_eq_left ⟨Hmem, Hout'⟩]
       iframe Htrk
-      simp only [removeM, if_pos Hmem]
+      simp only [removeM, ite_eq_left Hmem]
       iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
       iframe Hcfgp
       iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
@@ -102,9 +102,9 @@ theorem confchange.Changer.remove.wp_proof
       have := (GMap.mem_iff prs id).1 ((mem_of_domSet_eq Hdomeq id).2 h); simpa using this)
     iapply HΦ
     iframe Hp
-    rw [if_neg (fun h => Hmem h.1)]
+    rw [ite_eq_right (fun h => Hmem h.1)]
     iframe Htrk
-    simp only [removeM, if_neg Hmem]
+    simp only [removeM, ite_eq_right Hmem]
     iexists cfg
     iframe Hcfgp
     iapply ownCfgCC_intro cfg (DFrac.own 1) s.cfg vin vout Harr Hal $$ Hin Hout Hl Hln

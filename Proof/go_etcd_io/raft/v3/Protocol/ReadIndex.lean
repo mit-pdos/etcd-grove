@@ -283,7 +283,7 @@ theorem doom_choice (γ : RaftNames) (G : List raftpb.Entry) (T tD : w64) : ∀ 
       isplitr
       · iintro %u %hu
         by_cases hT : uint.Z T < uint.Z tw
-        · rw [if_pos hT] at hu
+        · rw [ite_eq_left hT] at hu
           rcases (GMap.elem_of_union u U0 qw).1 hu with h | h
           · iapply HU0 $$ %u %h
           · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
@@ -292,7 +292,7 @@ theorem doom_choice (γ : RaftNames) (G : List raftpb.Entry) (T tD : w64) : ∀ 
             iexists tw, i'
             iframe Ha
             ipureintro; exact ⟨hT, by have := Hwo.2.1; omega⟩
-        · rw [if_neg hT] at hu
+        · rw [ite_eq_right hT] at hu
           iapply HU0 $$ %u %hu
       · iintro %k %Hk
         by_cases hkm : k = m
@@ -301,7 +301,7 @@ theorem doom_choice (γ : RaftNames) (G : List raftpb.Entry) (T tD : w64) : ∀ 
           iframe Hcqw
           ipureintro
           refine ⟨Hwo, fun hT x hx => ?_⟩
-          rw [if_pos hT]; exact GMap.elem_of_union_r _ hx
+          rw [ite_eq_left hT]; exact GMap.elem_of_union_r _ hx
         · ihave Hw := HW0 $$ %k %(⟨Hk.1, by omega⟩ : IsConfPos G k ∧ k < m)
           icases Hw with ⟨%tw', %nw', %Gw', %aw', %cw', %qw', %Hwo', #Hc'⟩
           iexists tw', nw', Gw', aw', cw', qw'

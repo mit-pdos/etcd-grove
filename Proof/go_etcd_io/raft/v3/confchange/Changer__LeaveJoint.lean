@@ -102,7 +102,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
       wp_apply wp_Changer_err $$ [$c] as %cfg0 c
       iapply HΦ
       iframe
-      simp only [leaveJointM, if_pos Hninv, ownResult]
+      simp only [leaveJointM, ite_eq_left Hninv, ownResult]
       ipureintro; intro h; cases h
   subst Herr
   wp_auto
@@ -121,7 +121,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     wp_apply wp_Changer_err $$ [$c] as %cfg0 c
     iapply HΦ
     iframe
-    simp only [leaveJointM, if_neg Hs0, Hj, if_true, ownResult]
+    simp only [leaveJointM, ite_eq_right Hs0, Hj, ite_true, ownResult]
     ipureintro; intro h; cases h
   have Hjne : c.outgoing ≠ ∅ := by
     intro h; rw [h, GMap.map_size_empty] at Hif; exact absurd Hif (by decide)
@@ -171,7 +171,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
       | some pv => exact ⟨pv, rfl⟩
     obtain ⟨pr, Hpr⟩ : ∃ pr, prs' !! key = some pr :=
       Option.isSome_iff_exists.1 ((Hdom key).2 (by rw [Hpv]; rfl))
-    have HpvI : pvsI !! key = some pv := by rw [HpvsI, if_neg Hnew', Hpv]
+    have HpvI : pvsI !! key = some pv := by rw [HpvsI, ite_eq_right Hnew', Hpv]
     wp_auto
     ihave Hl := ownIdsetC_Q _ _ _ $$ Hl
     wp_apply wp_confchange_nilAwareAdd $$ [$Learners $Hl] as %ml' ⟨Learners, Hl⟩
@@ -217,8 +217,8 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     intro k; rw [HpvsI k]
     have h := Hkset k
     by_cases hk : k ∈ keys
-    · rw [if_pos hk, if_pos (show k ∈ c.learnersNext from h.1 hk)]
-    · rw [if_neg hk, if_neg (show k ∉ c.learnersNext from fun h' => hk (h.2 h'))]
+    · rw [ite_eq_left hk, ite_eq_left (show k ∈ c.learnersNext from h.1 hk)]
+    · rw [ite_eq_right hk, ite_eq_right (show k ∉ c.learnersNext from fun h' => hk (h.2 h'))]
   clear HLI HpvsI Hkset Hklen Hknodup
   icases ownIdsetC_split _ _ _ $$ Hl with ⟨Hl, %Hcl⟩
   -- `cfg.LearnersNext = nil`, then `for id := range outgoing(cfg.Voters) {...}`
@@ -301,7 +301,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     · have hk' : k ∈ c.outgoing := h.1 hk
       simp only [hk, hk', _root_.true_and]
     · have hk' : k ∉ c.outgoing := fun h' => hk (h.2 h')
-      simp only [hk, hk', _root_.false_and, if_false]
+      simp only [hk, hk', _root_.false_and, ite_false]
   have Hflags2 := lj_flags c pvs pvsI2 (c.learners ∪ c.learnersNext)
     (fun k => GMap.elem_of_union _ _ _) Hp2'
   -- `*outgoingPtr(&cfg.Voters) = nil`, `cfg.AutoLeave = false`
@@ -335,10 +335,10 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     as %cfg2 %trk2 %err3 ⟨Hc2, Htrk, Hprs, %Hres3⟩
   iapply HΦ
   iframe
-  simp only [leaveJointM, if_neg Hs0, if_neg Hjne, checkedM]
+  simp only [leaveJointM, ite_eq_right Hs0, ite_eq_right Hjne, checkedM]
   rw [Hflags2] at Hres3
   rcases Hres3 with ⟨Hinv3, Herr3, rfl, rfl⟩ | ⟨Hinv3, Herr3⟩
-  · simp only [if_pos Hinv3, ownResult]
+  · simp only [ite_eq_left Hinv3, ownResult]
     iframe
     isplitr
     · ipureintro; exact Herr3
@@ -347,7 +347,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     simp only [named]
     iframe
     ipureintro; exact Hflags2
-  · simp only [if_neg Hinv3, ownResult]
+  · simp only [ite_eq_right Hinv3, ownResult]
     ipureintro; exact Herr3
 
 end proof

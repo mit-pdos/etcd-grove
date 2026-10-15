@@ -262,7 +262,7 @@ def initKsn (σ : StorState) : List SnapTrip :=
 
 theorem initKsn_mem (σ : StorState) (h : σ.ss.index' ≠ W64 0) :
     SnapTrip.mk σ.ss σ.scs σ.sal ∈ initKsn σ := by
-  unfold initKsn; rw [if_neg h]; exact List.mem_singleton_self _
+  unfold initKsn; rw [ite_eq_right h]; exact List.mem_singleton_self _
 
 theorem initKsn_zero (σ : StorState) (h : uint.Z σ.ss.index' = 0) : initKsn σ = [] := by
   have : σ.ss.index' = W64 0 := by word

@@ -99,7 +99,7 @@ theorem confchange.toConfChangeSingle.wp_proof :
       "Hcap" ∷ ownSliceCap raftpb.ConfChangeSingle s' (DFrac.own 1) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (outgoing.length : Int)⌝) $$ [i Hin id Hnil Hcap]
   · iexists W64 0, slice.nil, zero_val w64
-    simp only [named, show sint.nat (W64 0) = 0 by rfl, List.take_zero, List.map_nil, List.nil_append, List.append_nil]
+    simp only [named, show sint.nat (W64 0) = 0 by rfl, List.take_zero, List.map_nil]
     iframe
     ipureintro; constructor <;> word
   wp_for IH
@@ -120,7 +120,7 @@ theorem confchange.toConfChangeSingle.wp_proof :
       rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Hx]; rfl
     iframe
     iexists n + W64 1, s3, x
-    simp only [named, Htake, List.map_append, List.map_cons, List.map_nil, List.append_assoc]
+    simp only [named, Htake, List.map_append, List.map_cons, List.map_nil]
     iframe
     ipureintro; constructor <;> word
   have Hif' : ¬ sint.Z n < sint.Z cs.VotersOutgoing'.len := by simpa using Hif
