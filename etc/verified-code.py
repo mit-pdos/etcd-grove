@@ -10,8 +10,10 @@ usage: etc/verified-code.py [-o REPORT.txt|REPORT.md]... [--markdown] [--functio
   --markdown   print Markdown instead of plain text on stdout
   --functions  also list every function, with its state, of the files of the "by
                file" tables
-  --package    a summary row for the Go packages at or below PREFIX (an import path),
-               and the "by file" tables and --functions only of those; may be repeated
+  --package    a summary row for the Go packages at or below PREFIX (an import path,
+               `<root>:<path>` for a project translated into a module root of its own,
+               `Raft37:go.etcd.io/raft/v3`), and the "by file" tables and --functions only
+               of those; may be repeated
   --go-src     where the Go sources are: DIR/<project> for each project of
                `etc/goose.py`, a checkout of its Go repository at the revision pinned
                there; default .lake/go-src, cloned or fetched there (shallow) and
@@ -181,10 +183,25 @@ def project_part_packages():
             for p in goose.PROJECTS}
 
 
+def rooted(proj, path):
+    """A Go package or module path of project `proj` as this script keys it: as is, or
+    `<root>:<path>` for a project translated into a module root of its own (whose paths
+    another project's sources also have: raft v3.7's `Raft37`)."""
+    root = PROJECTS[proj].root
+    return f"{root}:{path}" if root else path
+
+
+def unrooted(pkg):
+    """`(root, path)` of a package keyed by `rooted`."""
+    root, sep, path = pkg.rpartition(":")
+    return root, path
+
+
 def project_packages(src):
-    """project -> its translated Go packages (import paths), the first its main one."""
+    """project -> its translated Go packages (import paths, `rooted`), the first its main
+    one."""
     return {
-        n: [go_module(src[n]) + q[1:] if q == "." or q.startswith("./") else q
+        n: [rooted(n, go_module(src[n]) + q[1:] if q == "." or q.startswith("./") else q)
             for q in p.packages]
         for n, p in PROJECTS.items()
     }
@@ -217,7 +234,9 @@ def goose_functions(pkgs):
     bodies, names = set(), set()
     for n in PROJECTS:
         for pkg in pkgs[n]:
-            f = os.path.join(ROOT, "Code", pkg.replace(".", "_").replace("-", "_") + ".lean")
+            root, path = unrooted(pkg)
+            f = os.path.join(ROOT, root, "Code",
+                             path.replace(".", "_").replace("-", "_") + ".lean")
             if not os.path.exists(f):
                 sys.exit(f"verified-code: no translation of {pkg} at {f}")
             text = read(f)
@@ -336,6 +355,10 @@ def main():
 
     src = go_sources(os.path.abspath(args.go_src))
     funcs = go_functions(list(src.values()))
+    src_proj = {d: n for n, d in src.items()}
+    for g in funcs:
+        g["pkg"] = rooted(src_proj[g["src"]], g["pkg"])
+        g["module"] = rooted(src_proj[g["src"]], g["module"])
     by_key = collections.defaultdict(list)  # (pkg, recv, name) -> Go functions
     for g in funcs:
         if g["name"] not in ("init", "_"):
@@ -374,11 +397,11 @@ def main():
         return state.get(k, ("not translated", False, ""))
 
     # classify every Go function
-    src_proj = {d: n for n, d in src.items()}
     seen_mods = collections.defaultdict(set)  # project -> the modules of its checkout
     for g in funcs:
         seen_mods[src_proj[g["src"]]].add(g["module"])
-    counted = {n: set(PROJECTS[n].counted_modules or seen_mods[n]) for n in src}
+    counted = {n: {rooted(n, m) for m in PROJECTS[n].counted_modules or []} or seen_mods[n]
+               for n in src}
     order = {n: i for i, n in enumerate(PROJECTS)}
     rows = []  # (project, module, pkg, g, state, free)
     excluded = collections.Counter()  # reason -> code lines
@@ -668,11 +691,12 @@ def to_text(md, width=88):
 
 
 def fname(g):
-    """`pkg.T.M`, without the package path's host (`example.com/`)."""
-    p = g["pkg"]
+    """`pkg.T.M`, without the package path's host (`example.com/`); `<root>:pkg.T.M` for a
+    project translated into a root of its own."""
+    root, p = unrooted(g["pkg"])
     if "." in p.split("/", 1)[0] and "/" in p:
         p = p.split("/", 1)[1]
-    return f"{p}.{g['recv'] + '.' if g['recv'] else ''}{g['name']}"
+    return f"{root + ':' if root else ''}{p}.{g['recv'] + '.' if g['recv'] else ''}{g['name']}"
 
 
 if __name__ == "__main__":
