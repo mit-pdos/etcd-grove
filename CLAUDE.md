@@ -73,6 +73,13 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   ...), which the server names. Its Go path is that of the raft in `Code/go_etcd_io/raft/`,
   and both define `Perennial.go_etcd_io.raft.v3.*`, so no module imports both: the server's
   proofs never meet the Raft proof's (`etc/tcb-report.py` runs Lean on them separately).
+- `Raft37/{Code,GeneratedProof,Spec,Proof}/<pkg>`: the same, for the parallel tree of the
+  raft v3.7 retarget (`notes/raft-retarget-plan.md`; modules `Raft37.Code.go_etcd_io.raft.v3`,
+  ...): the Raft proof rebuilt file by file for raft v3.7 (protobuf-go v2 messages), linked by
+  `etc/gen-link.py --raft37` (`Raft37/Proof/go_etcd_io/raft/v3/{Link,Results}.lean`). Same Lean
+  namespace as `Code/go_etcd_io/raft/` (`Perennial.go_etcd_io.raft.v3.*`), so no module imports
+  both; at the swap it replaces the old tree. The trust-boundary specs of protobuf-go's `proto`
+  it rests on are in the root's `Spec/google_golang_org/protobuf/proto/`.
 
 ## Modules
 
@@ -194,6 +201,12 @@ generated: never edit the `.lean` files by hand.
   name types- or names-only (zap, bbolt, `net/http`, ...); and etcd's raft dependency
   (v3.7) into `EtcdDeps/` (a `Part` of the etcd project in `etc/goose.py`, configured by
   `EtcdDeps/Code/**.toml`).
+- `{Code,GeneratedProof}` under `Raft37/`: raft v3.7.0 plus the single-voter read-index fix
+  (branch `raft37-goose-lean` of the fork `upamanyus/etcd`, commit `509271dac`), project `raft37`
+  of `etc/goose.py` translated into a module root of its own (`Project.root = "Raft37"`,
+  configured by `Raft37/Code/**.toml`): the same packages as etcd-raft's (`.`, `confchange`,
+  `quorum`, `raftpb`, `tracker`), raftpb all but its protobuf plumbing (`ProtoReflect`,
+  `Descriptor`, the file descriptor, ...).
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the
