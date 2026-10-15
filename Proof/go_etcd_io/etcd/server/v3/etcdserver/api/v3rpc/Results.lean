@@ -549,9 +549,9 @@ theorem watch_streamHandlerOk (p : Loc) (R : WSrv GF) :
       (watchRunSlot R) (watchUp R.γ) (watchSpec R) := by
   iintro ⟨#Hinit, #Hws⟩
   unfold grpcStreamHandlerOk
-  iintro !> %γs %Dn %ci %cd %st %Φ HSpec HS #Hst HRt HSt HΦ
+  iintro !> %γs %Dn %ci %cd %st %Φ HSpec HS #Hst HRt HSt HAux HΦ
   ihave #Hup := upOk_watchUp (GF := GF) R.γ
-  iapply (watch_server p R st γs (watchUp R.γ) Dn ci cd) $$ [HSpec HS HRt HSt]
+  iapply (watch_server p R st γs (watchUp R.γ) Dn ci cd) $$ [HSpec HS HRt HSt HAux]
   · iframe
     iframe #
   inext
@@ -579,7 +579,7 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (ics : List GoFunc) (Rs : Lis
   unfold grpcStreamMethodOk
   isplitr
   · iapply streamSpecOk_watchSpec
-  iintro !> %γs %Dn %ci %cd %st %info HSpec ⟨HS, HRs⟩ #Hraw HRt HSt #Hinfo
+  iintro !> %γs %Dn %ci %cd %st %info HSpec ⟨HS, HRs⟩ #Hraw HRt HSt HAux #Hinfo
   iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequest pbWatchResponse (watchUp R.γ) Dn γs ci cd
     (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
@@ -590,7 +590,7 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (ics : List GoFunc) (Rs : Lis
   · iintro %st' %ci' %cd' #Hraw'
     iapply (watch_handler pbWatchRequest pbWatchResponse (watchUp R.γ) (watchSpec R)
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty, #p⟩
-      (watchRunSlot R) γs Dn ci' cd' st' rfl rfl hset) $$ [HSpec HS HRt HSt]
+      (watchRunSlot R) γs Dn ci' cd' st' rfl rfl hset) $$ [HSpec HS HRt HSt HAux]
     · iframe
       iframe #
       iintro !> %l Hl

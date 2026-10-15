@@ -231,11 +231,13 @@ instance isWatchable_persistent (wa : GoInterface) (P : WatchParams GF) :
     Persistent (isWatchable wa P) := by
   unfold isWatchable; infer_instance
 
-/-- A stream's ghost names: its open token (`tok`) and the ids it assigned (`ids`, a ghost map
-from an auto-assigned id to its watcher, persistent elements). -/
+/-- A stream's ghost names: its open token (`tok`), the ids it assigned (`ids`, a ghost map
+from an auto-assigned id to its watcher, persistent elements) and the same map with exclusive
+elements (`fresh`, the watch slice's unit W-C: one token per assigned id, `idTok`). -/
 structure WsStreamNames where
   tok : GName
   ids : GName
+  fresh : GName
 
 /-- The token of an open stream: `NewWatchStream` returns it, `Close` consumes it. -/
 def watchStreamOpen (γ : WsStreamNames) : IProp GF := token γ.tok
@@ -257,9 +259,25 @@ theorem idAssigned_agree (γ : WsStreamNames) (id : w64) (w w' : Loc) :
   iintro ⟨H1, H2⟩
   iapply ghostMapElem_agree $$ H1 H2
 
-/-- The ids assigned so far (`IDS`), each in `[0, nextID)`, `nextID` at least `0`. -/
+/-- **The stream assigned the id `id`, once** (exclusive; the watch slice's unit W-C): the token
+`Watch` returns with an id it chose (`AutoWatchID`), at most one per id (`idTok_excl`): a
+client holding the tokens of the ids it was given knows a new id is not one of them. -/
+def idTok (γ : WsStreamNames) (id : w64) : IProp GF :=
+  iprop(∃ w : Loc, ghostMapElem γ.fresh id (DFrac.own 1) w)
+
+/-- Two tokens of one id are impossible. -/
+theorem idTok_excl (γ : WsStreamNames) (id : w64) :
+    idTok (GF := GF) γ id ∗ idTok γ id ⊢ False := by
+  unfold idTok
+  iintro ⟨⟨%w1, H1⟩, ⟨%w2, H2⟩⟩
+  ihave %H := ghostMapElem_valid_2 id γ.fresh (DFrac.own 1) (DFrac.own 1) w1 w2 $$ H1 H2
+  exfalso
+  exact absurd (DFrac.valid_op_own H.1) (by simp)
+
+/-- The ids assigned so far (`IDS`), each in `[0, nextID)`, `nextID` at least `0`; the map of
+the ids' tokens (`fresh`) is the same. -/
 def idsInv (γ : WsStreamNames) (nextID : w64) : IProp GF :=
-  iprop(∃ IDS : GMap w64 Loc, ghostMapAuth γ.ids 1 IDS ∗
+  iprop(∃ IDS : GMap w64 Loc, ghostMapAuth γ.ids 1 IDS ∗ ghostMapAuth γ.fresh 1 IDS ∗
     ⌜0 ≤ sint.Z nextID ∧ ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z nextID⌝)
 
 /-- The assigned ids after a registration: an explicit id (`idp ≠ 0`) leaves them as they are;
@@ -270,15 +288,15 @@ theorem idsInv_next (γ : WsStreamNames) (IDS : GMap w64 Loc) (NX idp aid : w64)
           ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z NX) ∨
          (0 ≤ sint.Z aid ∧ sint.Z aid < sint.Z NX ∧
           ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z aid)) :
-    ghostMapAuth (GF := GF) γ.ids 1 IDS ⊢
-      |==> (idsInv γ NX ∗ (⌜idp ≠ W64 0⌝ ∨ idAssigned γ aid w)) := by
-  iintro Ha
+    ghostMapAuth (GF := GF) γ.ids 1 IDS ∗ ghostMapAuth γ.fresh 1 IDS ⊢
+      |==> (idsInv γ NX ∗ (⌜idp ≠ W64 0⌝ ∨ (idAssigned γ aid w ∗ idTok γ aid))) := by
+  iintro ⟨Ha, Hf⟩
   rcases h with ⟨hp, h0, hb⟩ | ⟨h0, h1, hb⟩
   · imodintro
-    isplitl [Ha]
+    isplitl [Ha Hf]
     · iunfold idsInv
       iexists IDS
-      iframe Ha
+      iframe Ha Hf
       ipureintro; exact ⟨h0, hb⟩
     ileft; ipureintro; exact hp
   · have hfresh : IDS.lookup aid = none := by
@@ -287,11 +305,12 @@ theorem idsInv_next (γ : WsStreamNames) (IDS : GMap w64 Loc) (NX idp aid : w64)
       | some _ =>
         have := (hb aid (by show (IDS.lookup aid).isSome; rw [hc]; rfl)).2; omega
     imod ghost_map_insert_persist aid w hfresh $$ Ha with ⟨Ha, #Hel⟩
+    imod ghost_map_insert aid w hfresh $$ Hf with ⟨Hf, Hfe⟩
     imodintro
-    isplitl [Ha]
+    isplitl [Ha Hf]
     · iunfold idsInv
       iexists _
-      iframe Ha
+      iframe Ha Hf
       ipureintro
       refine ⟨by omega, fun i hi => ?_⟩
       by_cases hin : aid = i
@@ -304,7 +323,10 @@ theorem idsInv_next (γ : WsStreamNames) (IDS : GMap w64 Loc) (NX idp aid : w64)
         have := hb i hi'; omega
     iright
     iunfold idAssigned
-    iexact Hel
+    iframe Hel
+    iunfold idTok
+    iexists w
+    iexact Hfe
 
 /-- The state `ws.mu` guards (see the module doc). -/
 def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γ : WsStreamNames) : IProp GF :=

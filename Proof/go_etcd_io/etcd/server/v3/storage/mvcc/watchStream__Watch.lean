@@ -99,7 +99,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
     iunfold mvcc.idsInv at Hids
-    icases Hids with ⟨%IDS, Hida, %Hidb⟩
+    icases Hids with ⟨%IDS, Hida, Hidf, %Hidb⟩
     wp_auto
     wp_if_destruct
     -- `AutoWatchID`: the first free id from `nextID`
@@ -166,7 +166,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     -- in use: `ErrWatcherDuplicateID`
     simp only [Option.isSome_some]
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hida HCR]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hida Hidf HCR]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, false, cm, wm, CM, WM
@@ -177,10 +177,10 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       · ipureintro; exact Hdom
       isplitr
       · ipureintro; exact Hnn
-      isplitl [Hida]
+      isplitl [Hida Hidf]
       · iunfold mvcc.idsInv
         iexists IDS
-        iframe Hida
+        iframe Hida Hidf
         ipureintro; exact Hidb
       iframe HCR
       iframe #
@@ -221,7 +221,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       ipersist span
       wp_apply wp_mapInsert $$ [$Hcm] as Hcm
       wp_apply wp_mapInsert $$ [$Hwm] as Hwm
-      imod mvcc.idsInv_next γ IDS _ _ _ w hstep $$ Hida with ⟨Hids, #Hia⟩
+      imod mvcc.idsInv_next γ IDS _ _ _ w hstep $$ [$Hida $Hidf] with ⟨Hids, Hia⟩
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids HCR]
       · inext
         iunfold mvcc.watchStreamInv

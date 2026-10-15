@@ -30,7 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`ws.Watch(stream)`**: a run on a fresh server end of a stream (`srvStreamIs` with both
 tokens at the empty queues), whose content of the responses sent down is the watch server's
 (`watchStreamSpec`: the handler's `Dn` is `watchDn`), the client's content of its requests
-restricted with a watch token per create request (`upOk`), and the run's resources
+restricted with a watch token per create request (`upOk`), the stream's auxiliary name (set to
+the run's ghost names, `auxOf`; the watch slice's unit W-C) and the run's resources
 (`watchRunSlot`): it returns, with the stream specification. -/
 abbrev v3rpc.watchServer.Watch.spec : Prop :=
   ∀ (p : Loc) (R : v3rpc.WSrv GF) (st : GoInterface) (γs : v3rpc.StreamNames)
@@ -40,7 +41,8 @@ abbrev v3rpc.watchServer.Watch.spec : Prop :=
       v3rpc.srvStreamIs st γs v3rpc.pbWatchRequest v3rpc.pbWatchResponse Up Dn ci cd ∗
       v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn ∗ v3rpc.upOk R.γ Up ∗
       v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) γs [] ∗
-      v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗ v3rpc.watchRunSlot R }}
+      v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗ v3rpc.streamAuxTok γs ∗
+      v3rpc.watchRunSlot R }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
   {{ (err : GoInterface), RET #err; v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn }}
 
