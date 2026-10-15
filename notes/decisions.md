@@ -6892,3 +6892,67 @@ drawn there:
   (`issues/raft-confstate-unknown-fields-panic.md`, reproduced); the later `restore`/`newRaft`
   specs inherit it as a premise. Other messages' predicates keep their unknown fields
   existential (`entPts`, `msgPts`, ...): no axiom there compares them.
+
+---
+
+## The log layer over read-only entries: the storage contract of raft v3.7
+
+**2026-10-15 · accepted (stage R3 of the raft v3.7 retarget, branch `raft-retarget`)**
+
+Raft v3.7's log layer (`log.go`, `log_unstable.go`, `storage.go`, the size helpers) holds
+`[]*pb.Entry` slices whose entries several holders share (the unstable log, `MemoryStorage`, the
+slices `slice`/`Entries` hand out, `MsgApp`s, `Ready`), and `*pb.Snapshot`/`*pb.HardState`/
+`*pb.ConfState` pointers. The decisions D2, D4 and Q6 of `notes/raft-retarget-plan.md`, as built:
+
+- **An entry slice is its pointers plus a persistent fact per entry** (D2): `entsPts s dq es :=
+  ∃ ls : List Loc, s ↦*{dq} ls ∗ [∗list] l;e ∈ ls;es, entRO l e` (`InvPbLog.lean`), `entsRO` at
+  `□`. It replaces the old `s ↦*{dq} es` of gogoproto values one for one, so every predicate kept
+  its shape (`ownUnstable`'s and `ownRaftLog`'s unstable suffix, `memstorageFields`' entries with
+  the dummy, `scanClosure`'s pages, the specs' results) and every pure statement (`List EntryM`)
+  its text; the slice reasoning (capacities, sub-slices, `append`, the adoption of a message's
+  backing array in `truncateAndAppend`) is the old one on `List Loc`, and the big-sep, persistent,
+  goes along with take/drop/append for free. The pointer list is existential: no spec names a
+  location. *Rejected*: the `List Loc` in the records (a physical detail in pure state, against
+  "Predicate indices"); a non-persistent per-entry fraction (raft never writes an appended entry,
+  and `proto.Size` writes only the hidden size cache, `pbMsg`'s).
+- **Snapshots are owned and cloned at every boundary** (D4), and the log's own copy is frozen:
+  `unstable.restore` stores `proto.Clone(s)`, which nothing writes after (`nextSnapshot` and
+  `raftLog.snapshot` clone it again), so `ownSnap`/`pendKsn` hold it as `ownSnapM p □ sv`
+  (persistent, as the old `p ↦□ sv`). Every snapshot a spec returns is a fresh clone at full
+  ownership (`raftLog.snapshot`, `unstable.nextSnapshot`, `MemoryStorage.Snapshot`/
+  `CreateSnapshot`); every snapshot a spec takes is read at a fraction and given back
+  (`raftLog.restore`, `unstable.restore`), except `MemoryStorage.ApplySnapshot`'s, taken at `1`
+  because `EnsureSnapshot` writes its nil fields (Q5) and given back.
+- **The storage contract models `MemoryStorage`** (Q6): `Entries` hands out the storage's own entry
+  pointers, read-only and for good (`entsRO`, `cap = len` as before); `Snapshot` a fresh clone,
+  owned, its id, conf-state lists and `AutoLeave` the storage's state's; `Append` keeps the
+  caller's pointers, so it takes them as `entsPts` (each entry `entRO`). `InitialState` stays out
+  of `isStorage` (as before): `MemoryStorage.InitialState` is specified for its single call at
+  construction, on `ownMemoryStorage` and the application's `memStorMeta` together; it returns the
+  storage's own hard-state pointer (`hsOpt`: `nil` until the first `SetHardState`) and lends its
+  conf state at full ownership with its `AutoLeave` set, with a wand back.
+- **`MemoryStorage`'s snapshot is the owner's, not the lock's.** In v3.7 `Snapshot()` writes the
+  field (`ms.snapshot = EnsureSnapshot(ms.snapshot)`, `storage.go:212`) and `InitialState`, unlocked,
+  reads it and may write its conf state's `AutoLeave` (132); `CreateSnapshot` writes the object's
+  metadata in place (255-261). All four callers hold `ownMemoryStorage` (raft through
+  `isStorage`'s `Snapshot`; the application for `ApplySnapshot`/`CreateSnapshot`, which need the
+  owner's view anyway, and for `InitialState` at construction), so the field and the object went
+  into `ownMemoryStorage` (`memSnapOwn`), and `memStorMeta` keeps half of `hardState` and the
+  unlocked counter only. *Rejected*: halves of the snapshot between the lock and `memStorMeta` (the
+  old design): `Snapshot()`'s store needs the whole field under the lock, without `memStorMeta`.
+- **`EnsureSnapshot` returns its metadata set** (`ownSnapE`; stage R1's post was `ownSnapM`, whose
+  metadata may be `nil`): `CreateSnapshot` writes `ms.snapshot.Metadata.Index` right after it.
+
+**What the old contract promised that the new one does not**: the snapshot `Storage.Snapshot`
+returned came with the storage's `ConfState` slices read-only for good (`ownCSL`), which raft put in
+a `MsgSnap` and the message abstraction read; now the caller owns a fresh clone (strictly more
+for the caller, but a `MsgSnap` holds its own copy, which R4's message predicates take into
+account). `Append` copied the entry values (only the slice was lent); now the storage keeps the
+pointers, so the entries must be frozen (`entRO`) before they are appended -- true of every batch
+raft hands out (a `Ready`'s entries are the log's). `CreateSnapshot` read `cs`'s slices and kept
+them; it now clones `*cs` (read at any fraction, given back) but keeps the caller's `data` slice,
+whose bytes it now owns (`data ↦* bs`, full: the stored snapshot holds them; the old spec tracked
+no data bytes). **The reverse**: `InitialState` now needs the owner's `ownMemoryStorage` besides
+`memStorMeta` (it touches the owner's snapshot), and its spec is for construction only; the
+snapshots and hard states are pointers with nil cases (`hsOpt`, `nil` from `CreateSnapshot`'s
+error path, `nextSnapshot`'s `nil`).
