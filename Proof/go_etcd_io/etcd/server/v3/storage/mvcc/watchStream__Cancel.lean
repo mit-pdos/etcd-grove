@@ -46,7 +46,7 @@ theorem mvcc.watchStream.Cancel.wp_proof :
   | none =>
     simp only [hc, Option.isSome_none, Option.getD_none] at hdomid ⊢
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hcl]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, closed, cm, wm, CM, WM
@@ -66,7 +66,7 @@ theorem mvcc.watchStream.Cancel.wp_proof :
     ihave #Hc := Hcs $$ %id %c %w %hc %hw
     simp only [hw, Option.isSome_some, Option.getD_some]
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hcl]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, closed, cm, wm, CM, WM
@@ -88,7 +88,7 @@ theorem mvcc.watchStream.Cancel.wp_proof :
       iunfold mvcc.watchStreamInv at HR
       icases HR with ⟨%nextID', %closed', %cm', %wm', %CM', %WM', HR⟩
       simp only [named]
-      icases HR with ⟨HnextID, Hclosed, Hcf, Hwf, Hcm, Hwm, %Hdom', %Hnn', #Hws', #Hcs', Hcl⟩
+      icases HR with ⟨HnextID, Hclosed, Hcf, Hwf, Hcm, Hwm, %Hdom', %Hnn', #Hws', #Hcs', Hids, Hcl⟩
       wp_auto
       wp_apply wp_map_lookup1 $$ [$Hwm] as Hwm
       wp_if_destruct
@@ -100,12 +100,12 @@ theorem mvcc.watchStream.Cancel.wp_proof :
         rw [hweq]
         wp_apply wp_mapDelete $$ [$Hcm] as Hcm
         wp_apply wp_mapDelete $$ [$Hwm] as Hwm
-        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hcl]
+        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
         · inext
           iunfold mvcc.watchStreamInv
           iexists nextID', closed', cm', wm', GMap.delete id CM', GMap.delete id WM'
           simp only [named]
-          iframe HnextID Hclosed Hcf Hwf Hcm Hwm
+          iframe HnextID Hclosed Hcf Hwf Hcm Hwm Hids
           isplitr
           · ipureintro
             intro i
@@ -140,29 +140,32 @@ theorem mvcc.watchStream.Cancel.wp_proof :
             iexact Hcl
           | false =>
             simp only [Bool.false_eq_true, ↓reduceIte] at ⊢
-            icases Hcl with ⟨%L, HCR, #HL⟩
+            icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
             iexists L
             iframe HCR
-            imodintro
-            iintro %w0 %hin
-            icases HL $$ %w0 %hin with (⟨%i, %hi⟩ | #Hc0)
-            · by_cases hii : id = i
-              · subst hii
-                rw [hw'] at hi
-                cases hi
-                iright
-                iexact Hwc
-              · ileft
-                iexists i
-                ipureintro
-                simp only [GMap.lookup_delete_iff, hii, ite_false]
-                exact hi
-            · iright
-              iexact Hc0
+            isplitr
+            · imodintro
+              iintro %w0 %hin
+              icases HL $$ %w0 %hin with (⟨%i, %hi⟩ | #Hc0)
+              · by_cases hii : id = i
+                · subst hii
+                  rw [hw'] at hi
+                  cases hi
+                  iright
+                  iexact Hwc
+                · ileft
+                  iexists i
+                  ipureintro
+                  simp only [GMap.lookup_delete_iff, hii, ite_false]
+                  exact hi
+              · iright
+                iexact Hc0
+            ipureintro
+            exact ⟨by have := mvcc.aboveCnt_delete nextID' id WM'; omega, Hcnt.2⟩
         iapply HΦ
         ileft
         ipureintro; rfl
-      · wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hcl]
+      · wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
         · inext
           iunfold mvcc.watchStreamInv
           iexists nextID', closed', cm', wm', CM', WM'

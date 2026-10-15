@@ -133,6 +133,14 @@ events' and a response with events carrying the watcher's id (`watchRecvOk_revs`
 #print axioms Perennial.EtcdGrove.mvcc.watchGuarantee_unfiltered
 #print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_revs
 
+/-! What the watch client reads (unit W-M, `WatchRecv.lean`, `InvWatchStream.lean`): the events
+received for a watcher are at or above its first revision, which is its start revision unless
+that is `0` (`watchRecvOk_startRev`, from `watchEvents_rev_ge`); an id a stream assigned names one
+watcher (`idAssigned_agree`). -/
+#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_startRev
+#print axioms Perennial.EtcdGrove.mvcc.watchEvents_rev_ge
+#print axioms Perennial.EtcdGrove.mvcc.idAssigned_agree
+
 /-! Compaction (unit 5a, 2026-10-13, `Compact.lean`): the pure model's theorems — a compacted
 key index answers as the uncompacted one at or above the compaction revision
 (`kiGet_kiCompact`), one compaction empties has no answer there (`kiGet_of_kiCompact_empty`),

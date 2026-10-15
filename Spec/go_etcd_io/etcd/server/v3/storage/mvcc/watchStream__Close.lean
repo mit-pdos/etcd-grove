@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- **`ws.Close()`** (the stream open: its token, consumed): cancels every watcher, marks the
 stream closed and closes its channel. -/
 abbrev mvcc.watchStream.Close.spec : Prop :=
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : GName),
+  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchStream ws wa P γ ∗ mvcc.watchStreamOpen γ }}
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Close")) (Val #()))

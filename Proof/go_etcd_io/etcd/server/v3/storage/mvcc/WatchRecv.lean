@@ -21,6 +21,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SyncModel
 
 @[expose] public section
 
@@ -82,11 +83,14 @@ models, in order; persistent): `w`'s names (its first revision `γw.lo`), its fi
 `r`, filters `fcs`), and deliveries `D`: the received responses' events are the kept events of
 the sent deliveries, each delivery's kept events are its events filtered by predicates `fcs`
 implements, and the deliveries' events, concatenated, are the range's events of the revisions
-`[γw.lo, d)` of a log `L` the index's history has (`d` past `L` only for an empty range); and
-what each response says (`respOk`). -/
+`[γw.lo, d)` of a log `L` the index's history has (`d` past `L` only for an empty range); the
+first revision `γw.lo` is the start revision `r.startRev` unless that is `0` (`startLo`; for `0`,
+what `watchStream.Watch` returns, `watcherIs`, says: the length of a committed log at the
+registration); and what each response says (`respOk`). -/
 def watchRecvOk (γ : WsNames) (w : Loc) (rs : List RespM) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (L : Log) (D : List Deliv) (d : Nat),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ monoListLbOwn γ.st.idx.hist (histOf L) ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜startLo r γw.lo⌝ ∗
+    monoListLbOwn γ.st.idx.hist (histOf L) ∗
     ⌜rs.map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
       (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
       ∀ x ∈ rs, x.w = w⌝ ∗
@@ -106,7 +110,7 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
       chanWatcher γ γc closed sent w ∗ watchRecvOk γ w rs := by
   iintro ⟨Hc, #Hok⟩
   iunfold chanWatcher at Hc
-  icases Hc with ⟨%γw, %r, %fcs, %evsw, %D, %d, #Hm, %Hwc, #Hf, Ha, %HD, #HDf, #Hwf, Hlc⟩
+  icases Hc with ⟨%γw, %r, %fcs, %evsw, %D, %d, #Hm, %Hwc, %Hslo, #Hf, Ha, %HD, #HDf, #Hwf, Hlc⟩
   icases HDf with ⟨#HDs, #HDc⟩
   obtain ⟨k, hk, hke⟩ := delivs_prefix_cut D (rs.map RespM.evs) (by
     rw [← HD.2]; exact hrs.map _)
@@ -119,10 +123,12 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
   · iunfold chanWatcher
     iexists γw, r, fcs, evsw, D, d
     iframe Hm Hf Ha Hwf Hlc HDs HDc
-    ipureintro; exact ⟨Hwc, HD⟩
+    ipureintro; exact ⟨Hwc, Hslo, HD⟩
   iunfold watchRecvOk
   iexists γw, r, fcs, L, D.take k, d'
   iframe Hm Hf Hlb
+  isplitr
+  · ipureintro; exact Hslo
   isplitr
   · ipureintro
     refine ⟨hke, HL.1, HL.2, fun x hx => ?_⟩
@@ -395,20 +401,23 @@ theorem watchRecvOk_cert (γ : WsNames) (w : Loc) (rs : List RespM) (log' : Log)
         watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
         □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
         ⌜rs.map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
-          (d ≤ log'.length → (D.map Prod.fst).flatten = watchEvents log' r γw.lo d)⌝ := by
+          (d ≤ log'.length → (D.map Prod.fst).flatten = watchEvents log' r γw.lo d)⌝ ∗
+        ⌜startLo r γw.lo⌝ := by
   iintro ⟨Hok, #Hc⟩
   iunfold watchRecvOk at Hok
-  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, #Hm, #Hf, #Hlb, %HL, #HD, -⟩
+  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, #Hm, #Hf, %Hslo, #Hlb, %HL, #HD, -⟩
   iunfold idxCert at Hc
   icases Hc with ⟨#Hlb', -, -, -⟩
   ihave %Hcmp := mono_list_lb_valid _ _ _ $$ Hlb Hlb'
   have hcmp := histOf_cmp_log Hcmp
   iexists γw, r, fcs, D, d
   iframe Hm Hf HD
-  ipureintro
-  refine ⟨HL.1, fun hd => ?_⟩
-  rw [HL.2.1]
-  exact watchEvents_cmp hcmp r HL.2.2.1 (Or.inl hd)
+  isplitr
+  · ipureintro
+    refine ⟨HL.1, fun hd => ?_⟩
+    rw [HL.2.1]
+    exact watchEvents_cmp hcmp r HL.2.2.1 (Or.inl hd)
+  ipureintro; exact Hslo
 
 /-- **The watch guarantee for a watcher with no filters** (`fcs` the empty slice): the events of
 the responses a client received for `w`, concatenated, are exactly the changes of the keys of
@@ -421,7 +430,7 @@ theorem watchGuarantee_unfiltered (γ : WsNames) (w : Loc) (rs : List RespM) (lo
       ∃ (γw : WatcherNames) (d : Nat), watcherMeta γ w γw ∗
         ⌜d ≤ log'.length → (rs.map RespM.evs).flatten = watchEvents log' r γw.lo d⌝ := by
   iintro ⟨#Hok, #Hc, #Hf, #Hfcs⟩
-  ihave ⟨%γw, %r', %fcs', %D, %d, #Hm, #Hf', #HD, %HL⟩ :=
+  ihave ⟨%γw, %r', %fcs', %D, %d, #Hm, #Hf', #HD, %HL, -⟩ :=
     watchRecvOk_cert γ w rs log' $$ [$Hok $Hc]
   ihave %Hag := watcherFixed_agree w r r' fcs fcs' $$ [$Hf $Hf']
   obtain ⟨rfl, rfl⟩ := Hag
@@ -463,7 +472,7 @@ theorem watchRecvOk_revs (γ : WsNames) (w : Loc) (rs : List RespM) :
           (x.evs ≠ [] → x.id = r.id)⌝ := by
   iintro #Hok
   iunfold watchRecvOk at Hok
-  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, -, #Hf, -, %HL, -, #Hrs⟩
+  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, -, #Hf, -, -, %HL, -, #Hrs⟩
   iexists r, fcs
   iframe Hf
   iintro %x %hx
@@ -476,6 +485,41 @@ theorem watchRecvOk_revs (γ : WsNames) (w : Loc) (rs : List RespM) :
   obtain ⟨rfl, rfl⟩ := Hag
   ipureintro
   exact ⟨by first | rfl | exact hxw, Hrev, Hid⟩
+
+/-- **The deliveries start at the start revision.** Every event a client received for the
+watcher `w` (range `r`) is at a revision `j` at or above `w`'s first revision `γw.lo`, which is
+`r.startRev` unless that is `0` (`startLo`). -/
+theorem watchRecvOk_startRev (γ : WsNames) (w : Loc) (rs : List RespM) (r : WatchRange)
+    (fcs : GoSlice) :
+    watchRecvOk (GF := GF) γ w rs ∗ watcherFixed w r fcs ⊢
+      ∃ γw : WatcherNames, watcherMeta γ w γw ∗
+        ⌜startLo r γw.lo ∧ ∀ x ∈ rs, ∀ ev ∈ x.evs, ∃ j, γw.lo ≤ j ∧ ev.kv.modRev = W64 j⌝ := by
+  iintro ⟨#Hok, #Hf⟩
+  iunfold watchRecvOk at Hok
+  icases Hok with ⟨%γw, %r', %fcs', %L, %D, %d, #Hm, #Hf', %Hslo, -, %HL, #HD, -⟩
+  ihave %Hag := watcherFixed_agree w r r' fcs fcs' $$ [$Hf $Hf']
+  obtain ⟨rfl, rfl⟩ := Hag
+  ihave %Hkept : ⌜∀ dl ∈ D, ∀ ev ∈ dl.2, ev ∈ dl.1⌝ $$ []
+  · iintro %dl %hdl
+    icases HD $$ %dl %hdl with ⟨%fs, -, %Hdl⟩
+    ipureintro
+    intro ev hev
+    rw [Hdl] at hev
+    exact (List.mem_filter.1 hev).1
+  iexists γw
+  iframe Hm
+  ipureintro
+  refine ⟨Hslo, fun x hx ev hev => ?_⟩
+  have hxe : x.evs ∈ (D.filter Deliv.sent).map Prod.snd := by
+    rw [← HL.1]; exact List.mem_map_of_mem hx
+  obtain ⟨dl, hdl, hdle⟩ := List.mem_map.1 hxe
+  have hdl' := (List.mem_filter.1 hdl).1
+  have hev1 : ev ∈ dl.1 := Hkept dl hdl' ev (by rw [hdle]; exact hev)
+  have hev2 : ev ∈ watchEvents L r γw.lo d := by
+    rw [← HL.2.1]
+    exact List.mem_flatten.2 ⟨dl.1, List.mem_map_of_mem hdl', hev1⟩
+  obtain ⟨j, h1, -, -, hm⟩ := watchEvents_rev_ge L r γw.lo d ev hev2
+  exact ⟨j, h1, hm⟩
 
 end proof
 

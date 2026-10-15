@@ -326,7 +326,7 @@ theorem upOk_watchUp (γ : mvcc.WsNames) : ⊢ upOk (GF := GF) γ (watchUp γ) :
 /-! ## One run -/
 
 /-- **One run's values**: the watch server's, the gRPC stream (`st`, its names, the contents, the
-run's context), the mvcc watch stream (`wsp`, its open token's name, its channel and names), the
+run's context), the mvcc watch stream (`wsp`, its ghost names, its channel and names), the
 control stream (`ctrl`, its SPSC names), the three maps, `closec` and its names. -/
 structure WRun (GF : BundledGFunctors) where
   srv : WSrv GF
@@ -337,7 +337,7 @@ structure WRun (GF : BundledGFunctors) where
   ci : GoInterfaceOk
   cd : context.ContextDesc (IProp GF)
   wsp : Loc
-  γo : GName
+  γo : mvcc.WsStreamNames
   ch : Loc
   γc : mvcc.WatchChanNames
   ctrl : Loc
@@ -388,7 +388,8 @@ instance swsMu_fractional (pm vm fm : Loc) : Fractional (swsMu (GF := GF) pm vm 
 (`ctrlOk`). -/
 def ctrlP (r : WRun GF) (_k : Int) (l : Loc) : IProp GF :=
   iprop(∃ m : WatchRespM, watchRespMsg l m ∗
-    ⌜m.hdr.clusterId = r.srv.cid ∧ m.hdr.memberId = r.srv.mid ∧ m.src = none⌝ ∗ ctrlOk r.γs m)
+    ⌜m.hdr.clusterId = r.srv.cid ∧ m.hdr.memberId = r.srv.mid ∧ m.src = none⌝ ∗
+      ctrlOk r.γs r.srv.γ m)
 
 instance ctrlP_persistent (r : WRun GF) (k : Int) (l : Loc) : Persistent (ctrlP r k l) := by
   unfold ctrlP; infer_instance

@@ -68,7 +68,7 @@ theorem chanWatcher_closed_live (γ : WsNames) (γc : WatchChanNames) (sent : Li
       chanWatcher γ γc true sent w -∗ False := by
   iintro #Hm Hl Hc
   iunfold chanWatcher at Hc
-  icases Hc with ⟨%γw', %r', %fcs', %evsw', %D, %d', #Hm', %Hwc, #Hf', Ha, %HD, #HDf, #Hwf, Hlc⟩
+  icases Hc with ⟨%γw', %r', %fcs', %evsw', %D, %d', #Hm', %Hwc, %Hslo, #Hf', Ha, %HD, #HDf, #Hwf, Hlc⟩
   ihave %He := watcherMeta_agree γ w γw γw' $$ Hm Hm'
   subst He
   icases Hlc with (⟨%Hf, -⟩ | Hcan)
@@ -121,7 +121,7 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
       chanWatcher γ γc closed (sent ++ (if Deliv.sent (evm, kept) then [rr] else [])) w := by
   iintro #Hm #Hf #Hfi Hevs Hc
   iunfold chanWatcher at Hc
-  icases Hc with ⟨%γw', %r', %fcs', %evsw', %D, %d', #Hm', %Hwc, #Hf', Ha, %HD, #HDf, #Hwf, Hlc⟩
+  icases Hc with ⟨%γw', %r', %fcs', %evsw', %D, %d', #Hm', %Hwc, %Hslo, #Hf', Ha, %HD, #HDf, #Hwf, Hlc⟩
   ihave %He := watcherMeta_agree γ w γw γw' $$ Hm Hm'
   subst He
   ihave %Hag := watcherFixed_agree w r r' fcs fcs' $$ [Hf Hf']
@@ -152,6 +152,8 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
     isplitr
     · ipureintro; exact Hwc
     isplitr
+    · ipureintro; exact Hslo
+    isplitr
     · ipureintro
       refine ⟨by simp [HD1], ?_⟩
       rw [hfilt, hDf]
@@ -176,6 +178,8 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
     iframe Hm Hf Ha Hwf2 Hlc
     isplitr
     · ipureintro; exact Hwc
+    isplitr
+    · ipureintro; exact Hslo
     isplitr
     · ipureintro
       refine ⟨by simp [HD1], ?_⟩

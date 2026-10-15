@@ -404,7 +404,7 @@ theorem mvcc.cancel_ghost (γ : mvcc.WsNames) (wa : Loc) (γw : mvcc.WatcherName
   obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hmem
   icases (BigSepL.bigSepL_lookup_acc hi).1 $$ Hws with ⟨He, Hback⟩
   iunfold mvcc.chanWatcher at He
-  icases He with ⟨%γw', %r', %fcs', %evsw, %D, %d, #Hm', %Hwc, #Hf', Hevs, %HD, #HDf, #Hwf, Hl⟩
+  icases He with ⟨%γw', %r', %fcs', %evsw, %D, %d, #Hm', %Hwc, %Hslo, #Hf', Hevs, %HD, #HDf, #Hwf, Hl⟩
   ihave #Hm0 := Hm
   iunfold mvcc.watcherMeta at Hm0 Hm'
   ihave %Heq := ghostMapElem_agree $$ Hm0 Hm'
@@ -419,6 +419,8 @@ theorem mvcc.cancel_ghost (γ : mvcc.WsNames) (wa : Loc) (γw : mvcc.WatcherName
       · iexact Hm
       isplitr
       · ipureintro; exact Hwc
+      isplitr
+      · ipureintro; exact Hslo
       isplitr
       · iexact Hf'
       isplitl [Hevs]
