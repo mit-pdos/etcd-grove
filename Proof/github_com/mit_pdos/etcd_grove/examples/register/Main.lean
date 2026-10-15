@@ -193,7 +193,9 @@ def drvRes (γr : RegNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (s
     ⌜γn.raft = γr.raft ∧ γn.bud = bud ∧ γn.stor = regStorIface st ∧
       nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     nodeDriver γn id n [] ∗ (∃ (ms : Loc) (γs : MemStorNames), regStorRec st ms γs) ∗
-    id ↪[γr.seq] W64 0)
+    id ↪[γr.seq] W64 0 ∗
+    -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
+    ⌜γn.mode = .static⌝ ∗ nodeCfg γn 0 (cfgState (GMap.listToSet clusterIds) ∅))
 
 theorem opCred_split (γp : RepNames) (a b : Nat) :
     opCred (GF := GF) γp (a + b) ⊣⊢ opCred γp a ∗ opCred γp b := by
@@ -337,17 +339,20 @@ theorem Main.wp_proof
       $$ Hown
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
-    wp_apply (wp_RestartNode γr.raft bud _ (nodeConfig id0 st) qLogger
+    ihave Hghost : rnInit γr.raft .static id0 (GMap.listToSet clusterIds) $$ [Hghost]
+    · iunfold rnInit; iexact Hghost
+    wp_apply (wp_RestartNode γr.raft .static bud _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (zero_val raftpb.HardState)
       { (zero_val raftpb.ConfState) with Voters' := slice.mk vsl (W64 3) (W64 3) } clusterIds
       DFrac.discard (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl rfl rfl rfl rfl (by left; rfl) rfl (by unfold HsEmpty; exact ⟨rfl, rfl, rfl⟩)
-      (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m)
+      (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
+      (fun h => by cases h))
       $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hpd]
-      as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv⟩
-    obtain ⟨Hr, Hb, Hs, rfl⟩ := Hnd
+      as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
+    obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
     have Hnd' : (clusterIds.drop (sint.nat k)).Nodup := clusterIds_nodup.sublist (List.drop_sublist _ _)
     rw [Hdrop] at Hnd'
@@ -398,11 +403,13 @@ theorem Main.wp_proof
         · ipureintro; exact ⟨GMap.lookup_insert _ _ _, GMap.lookup_insert _ _ _⟩
         unfold drvRes
         iexists γn, n
-        iframe Hdrv Hseq
+        iframe Hdrv Hseq Hncfg
         isplitr
         · ipureintro; exact ⟨Hr, Hb, by rw [Hs]; rfl, rfl⟩
-        iexists ms, γs
-        iframe Hrec
+        isplitr
+        · iexists ms, γs
+          iframe Hrec
+        ipureintro; exact Hmd
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)
@@ -468,15 +475,18 @@ theorem Main.wp_proof
       icases Hdrv with ⟨⟨%nd, %st, %Hlk, Hres⟩, Hdrv⟩
       obtain ⟨HMl, HSl⟩ := Hlk
       unfold drvRes
-      icases Hres with ⟨%γn, %n, %Hgn, Hnode, #Hsrec, Hseq⟩
+      icases Hres with ⟨%γn, %n, %Hgn, Hnode, #Hsrec, Hseq, %Hmd, Hncfg⟩
       obtain ⟨Hr, Hb, Hs, rfl⟩ := Hgn
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       wp_apply wp_map_lookup1 go.uint64 _ mS S id0 (DFrac.own 1) $$ [$HmS] as HmS
       simp only [HMl, HSl, Option.getD_some]
-      wp_apply (wp_New γr γn id0 n st _) $$ [Hnode Hseq]
-      · iframe Hreg Hnode Hsrec Hc0 Hseq
+      wp_apply (wp_New γr γn id0 n st _ (cfgState (GMap.listToSet clusterIds) ∅))
+          $$ [Hnode Hseq Hncfg]
+      · iframe Hreg Hnode Hsrec Hc0 Hseq Hncfg
         isplitr
         · ipureintro; exact Hr
+        isplitr
+        · ipureintro; exact Hmd
         isplitr
         · ipureintro; exact Hs
         unfold sendSpec

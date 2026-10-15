@@ -35,7 +35,9 @@ def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     ⌜rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.storage = γ.stor⌝ ∗
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗
-    termLB γ.bud rs.term)
+    termLB γ.bud rs.term ∗
+    -- (2026-10-15, stage N) `run`'s side of the configuration shared with the driver
+    runCfg γ rs)
 
 /-- See the file header. -/
 abbrev node.run.spec : Prop :=

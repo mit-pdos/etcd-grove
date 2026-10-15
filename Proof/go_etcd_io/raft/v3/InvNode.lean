@@ -50,6 +50,9 @@ public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 public import Perennial.Ghost.MonoNat
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
+-- `DynCCPreOp` (2026-10-15, stage N)
+public import Spec.go_etcd_io.raft.v3.RawNode__ApplyConfChange
+public import Perennial.Ghost.MonoList
 
 @[expose] public section
 
@@ -109,6 +112,17 @@ instance ready_countable : Pos.Countable Ready :=
 instance confChangeV2_countable : Pos.Countable raftpb.ConfChangeV2 :=
   countableOfLeftInverse (fun c : raftpb.ConfChangeV2 => (c.Transition', c.Changes', c.Context'))
     (fun p => ⟨p.1, p.2.1, p.2.2⟩) (fun _ => rfl)
+
+/-- (2026-10-15, stage N) a configuration, for the run loop's configuration shared with the
+driver (`NodeNames.cap`). -/
+instance cfgM_countable : Pos.Countable CfgM :=
+  countableOfLeftInverse
+    (fun c : CfgM => (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
+
+instance ccState_countable : Pos.Countable CCState :=
+  countableOfLeftInverse (fun c : CCState => (c.cfg, c.prs)) (fun p => ⟨p.1, p.2⟩)
+    (fun _ => rfl)
 
 end countable
 
@@ -316,6 +330,21 @@ structure NodeNames [FfiSyntax] where
   dlv : GName
   /-- `run`'s record of its last `Ready` `(delivered, committed entries, entries)` -/
   rof : GName
+  /-- (2026-10-15, stage N) the `RawNode`'s mode (`RNState.mode`): static, or dynamic with its
+  decoder and initial configuration -/
+  mode : RNMode
+  /-- (2026-10-15) the committed log handed out so far, as a `mono_list`: `run` holds the
+  authority, the driver lower bounds (`dlvLb`), by which `run` checks a conf change's entry -/
+  dlm : GName
+  /-- (2026-10-15) the configuration index and configuration as of the last applied conf change
+  (`(ca, cfg)`): halves, `run`'s and the driver's (`nodeCfg`) -/
+  cap : GName
+  /-- (2026-10-15) a conf change's expected answer `(k + 1, cs')`, by which the driver
+  recognizes `run`'s answer on `confstatec`: the driver holds it whole between changes -/
+  ccq : GName
+  /-- (2026-10-15) the configuration index of `cap`, as a monotone nat: `run` holds the
+  authority, the driver lower bounds, by which `run` checks A1 at `Advance` -/
+  cam : GName
 
 def tickN : Namespace := nroot.@"raft_tick"
 
@@ -461,32 +490,95 @@ of its record, and the data. -/
 def readyP (γ : NodeNames) (rd : Ready) : IProp GF :=
   iprop(∃ (d ce es : List raftpb.Entry) (ms : List raftpb.Message),
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ readyData γ rd d ce es ms)
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ readyData γ rd d ce es ms ∗
+    -- (2026-10-15, stage N) the committed log handed out, a lower bound
+    monoListLbOwn γ.dlm (d ++ ce))
 
 /-- An `Advance` on `advancec`: a `dlv` half after the last `Ready`, `run`'s record back,
 and the receipt of the append of the `Ready`'s entries. -/
 def advanceP (γ : NodeNames) (_ : Unit) : IProp GF :=
   iprop(∃ (d ce es : List raftpb.Entry),
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d ++ ce) ∗
-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ appendReceipt γ.stor es)
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ appendReceipt γ.stor es ∗
+    -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
+    -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
+    ∃ ca : Nat, monoNatLbOwn γ.cam ca ∗
+      ⌜γ.mode.isDyn = true → NoConfIn (d ++ ce) ca (d ++ ce).length⌝)
 
 /-- The tick channel: one credit per buffered tick. -/
 def tickInv (γ : NodeNames) : IProp GF :=
   iprop(∃ l : List Unit, ownChan γ.tick Unit (.Buffered l) ∗ tickCred γ.bud l.length)
 
-/-- A conf change on `confc` (2026-10-13, `node.ApplyConfChange`): its changes, read-only,
-keep the voters and only drop learners (`CCShrink`, `RawNode.ApplyConfChange`'s scope). -/
+/-- The committed log handed out so far is at least `ds` (2026-10-15, stage N; persistent): what
+the driver knows of `run`'s, for a conf change's entry. -/
+def dlvLb (γ : NodeNames) (ds : List raftpb.Entry) : IProp GF :=
+  monoListLbOwn γ.dlm ds
+
+instance dlvLb_persistent (γ : NodeNames) (ds : List raftpb.Entry) :
+    Persistent (dlvLb (GF := GF) γ ds) := by
+  unfold dlvLb; infer_instance
+
+/-- The driver's view of the configuration (2026-10-15, stage N): the configuration index `ca`
+and the configuration `cfg` as of the last conf change it applied (`node.ApplyConfChange`;
+`cap`'s half, a lower bound of `cam`), and the answer slot `ccq`, whole. `RestartNode` hands it
+out at `0` and the initial configuration; in the static mode it never moves. -/
+def nodeCfg (γ : NodeNames) (ca : Nat) (cfg : CCState) : IProp GF :=
+  iprop(dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) ∗
+    (∃ x : Nat × CCState, dghostVar γ.ccq (DFrac.own (1 : Qp).half) x ∗
+      dghostVar γ.ccq (DFrac.own (1 : Qp).half) x) ∗ monoNatLbOwn γ.cam ca)
+
+/-- `run`'s side of what it shares with the driver about the configuration (2026-10-15, stage
+N): the node's mode is `γ.mode`; the authority of the committed log handed out (`dlm`); the
+configuration as of the last applied conf change, `(ca, rs.cfg)` (`cap`'s half, `cam`'s
+authority at `ca`); `Advance` may have moved the configuration index past `ca`, over no conf
+entry. -/
+def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
+  iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ rs.delivered.length⌝ ∗
+    monoListAuthOwn γ.dlm 1 rs.delivered ∗
+    ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
+      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn rs.delivered ca rs.capplied⌝)
+
+/-- A conf change on `confc` (2026-10-13, `node.ApplyConfChange`), its changes read-only: in the
+static mode, one that keeps the voters and only drops learners (`CCShrink`,
+`RawNode.ApplyConfChange`'s static scope); (2026-10-15, stage N) in the dynamic mode, the driver's
+view of the configuration (`cap`'s half at `(ca, cfg)`), the answer it expects (`ccq`'s half at
+`(k + 1, cs')`), a lower bound `ds` of the committed log handed out, and that the change is that
+of the next conf entry of `ds`, at position `k` (`DynCCPreOp`). -/
 def confcP (γ : NodeNames) (v : raftpb.ConfChangeV2) : IProp GF :=
   iprop(∃ ccs : List raftpb.ConfChangeSingle, v.Changes' ↦*□ ccs ∗
-    ⌜CCShrink γ.raft.reCfg v.Transition' ccs⌝)
+    ((⌜γ.mode = .static ∧ CCShrink γ.raft.reCfg v.Transition' ccs⌝) ∨
+     (∃ (ds : List raftpb.Entry) (ca : Nat) (cfg : CCState) (k : Nat) (e : raftpb.Entry)
+        (cs' : CCState),
+        ⌜γ.mode.isDyn = true ∧ ∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 →
+          DynCCPreOp dec ds ca cfg (v.Transition', ccs) k e cs'⌝ ∗
+        monoListLbOwn γ.dlm ds ∗ dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) ∗
+        dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))
 
-/-- The `ConfState` on `confstatec`: the voters and the learners (none of them a voter;
-since 2026-10-13), read-only, and nothing else. -/
-def confstateP (γ : NodeNames) (cs : raftpb.ConfState) : IProp GF :=
+/-- A `ConfState`'s four lists, read-only, are a configuration's (2026-10-15, stage N). -/
+def confstateOk (cs : raftpb.ConfState) (c : CfgM) : IProp GF :=
+  iprop(∃ xs os ls lns : List w64, cs.Voters' ↦*□ xs ∗ cs.VotersOutgoing' ↦*□ os ∗
+    cs.Learners' ↦*□ ls ∗ cs.LearnersNext' ↦*□ lns ∗
+    ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧
+      ls ≡ₚ elements c.learners ∧ lns ≡ₚ elements c.learnersNext ∧
+      cs.AutoLeave' = c.autoLeave⌝)
+
+/-- The static mode's answer (2026-10-13): the voters and the learners (none of them a voter),
+read-only, and no joint configuration. -/
+def confstateS (γ : NodeNames) (cs : raftpb.ConfState) : IProp GF :=
   iprop(∃ xs ls : List w64, cs.Voters' ↦*□ xs ∗ cs.Learners' ↦*□ ls ∗
     ⌜xs ≡ₚ elements γ.raft.reCfg ∧ (∀ k ∈ ls, k ∉ γ.raft.reCfg) ∧
     cs.VotersOutgoing'.len = W64 0 ∧
     cs.LearnersNext'.len = W64 0 ∧ cs.AutoLeave' = false⌝)
+
+/-- The `ConfState` on `confstatec`: in the static mode, `confstateS`; (2026-10-15, stage N) in
+the dynamic mode, the driver's view of the configuration back (`cap`'s half), the answer slot's
+half at the same value (the driver's other half names the answer it expects) with the index's
+lower bound, and the `ConfState` of the configuration. -/
+def confstateP (γ : NodeNames) (cs : raftpb.ConfState) : IProp GF :=
+  iprop((⌜γ.mode = .static⌝ ∗ confstateS γ cs) ∨
+    (⌜γ.mode.isDyn = true⌝ ∗ ∃ v : Nat × CCState,
+      dghostVar γ.cap (DFrac.own (1 : Qp).half) v ∗ dghostVar γ.ccq (DFrac.own (1 : Qp).half) v ∗
+      monoNatLbOwn γ.cam v.1 ∗ confstateOk cs v.2.cfg))
 
 /-- See the file header. -/
 def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
@@ -510,10 +602,7 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     "#Hbud" ∷ inv budgetN (budgetInv γ.bud) ∗
     -- the cluster's commit invariant and proposed slices (2026-10-10)
     "#Hcinv" ∷ raftCommitInv γ.raft ∗
-    "#Hpdinv" ∷ inv propDataN (propDataInv γ.raft) ∗
-    -- (2026-10-14, reconfiguration stage B7 part 2) `node.go` is verified in the static mode
-    -- (the ghost state's voters fixed): its `ApplyConfChange` arm is a shrinking change's
-    "%Hstatic" ∷ ⌜γ.raft.reDyn = none⌝)
+    "#Hpdinv" ∷ inv propDataN (propDataInv γ.raft))
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
@@ -523,13 +612,13 @@ instance isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) :
 
 /-- The driver's token: the committed log it was handed so far is `ds`. -/
 def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List raftpb.Entry) : IProp GF :=
-  iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) ds)
+  iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) ds ∗ dlvLb γ ds)
 
 /-- The driver with a `Ready` in hand: it was handed the committed log `ds` (the last
 `Ready`'s included) and must append `es` (the last `Ready`'s entries) before `Advance`. -/
 def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List raftpb.Entry) :
     IProp GF :=
-  iprop(isNode γ id n ∗
+  iprop(isNode γ id n ∗ dlvLb γ ds ∗
     ∃ (d ce : List raftpb.Entry), dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
       dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ ⌜ds = d ++ ce⌝)
@@ -553,14 +642,14 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List r
           readyData γ rd ds ce es ms ∗ nodeDriverBusy γ id n (ds ++ ce) es }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriver
-  icases Hdrv with ⟨#Hnode, Hds⟩
+  icases Hdrv with ⟨#Hnode, Hds, -⟩
   unfold isReadyChan
   iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds]
   · iframe Hrc
   iintro %rd
   iintro !> HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, Hd, Hrof, Hdata⟩
+  icases HP with ⟨%d, %ce, %es, %ms, Hd, Hrof, Hdata, #Hlb⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   subst Heq
   iapply HΦ
@@ -568,9 +657,24 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List r
   iframe Hdata
   unfold nodeDriverBusy
   iframe Hnode
+  isplitr
+  · unfold dlvLb; iexact Hlb
   iexists d, ce
   iframe Hd Hds Hrof
   ipureintro; rfl
+
+/-- The committed log the driver was handed is a lower bound of `run`'s (2026-10-15). -/
+theorem nodeDriver_lb (γ : NodeNames) (id : w64) (n : Loc) (ds : List raftpb.Entry) :
+    ⊢ nodeDriver (GF := GF) γ id n ds -∗ dlvLb γ ds := by
+  iintro H
+  unfold nodeDriver
+  icases H with ⟨-, -, $⟩
+
+theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List raftpb.Entry) :
+    ⊢ nodeDriverBusy (GF := GF) γ id n ds es -∗ dlvLb γ ds := by
+  iintro H
+  unfold nodeDriverBusy
+  icases H with ⟨-, $, -⟩
 
 /-- The handshake's send, where the payload is made only when the send happens (a ghost
 update inside the atomic update): `run` hands out the storage's append right with a

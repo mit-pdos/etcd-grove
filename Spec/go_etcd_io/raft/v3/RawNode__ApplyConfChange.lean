@@ -75,6 +75,16 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section dyn
 variable [FfiSyntax]
 
+/-- `DynCCPre` (below) on its components (2026-10-15, stage N): the committed log handed out
+`D`, the configuration index `ca` and configuration `cfg`, and the change as `AsV2` makes it
+(`op`); what `node.go`'s `confc` arm checks against the run loop's `RawNode` from what the
+driver knows. -/
+def DynCCPreOp (dec : CCDec) (D : List raftpb.Entry) (ca : Nat) (cfg : CCState) (op : CCOp)
+    (k : Nat) (e : raftpb.Entry) (cs' : CCState) : Prop :=
+  ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
+  NoConfIn D ca k ∧ dec (D.take k) e = some op ∧
+  ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
+
 /-- The dynamic mode's premises of `ApplyConfChange` (2026-10-14, stage B7 part 2), at the change
 `o` the application passes: it is the decoded change (`dec`, from the entry and the log before
 it) of the next conf-change entry `e` of the committed log handed out, at position `k` (log index
@@ -84,9 +94,7 @@ panics otherwise); and its result is no auto-leave joint configuration (`applied
 proposal is out of `raft.Step`'s scope). -/
 def DynCCPre (dec : CCDec) (rs : RNState) (o : CCMsg) (k : Nat) (e : raftpb.Entry)
     (cs' : CCState) : Prop :=
-  rs.capplied ≤ k ∧ k < rs.delivered.length ∧ rs.delivered[k]? = some e ∧ IsConfEnt e ∧
-  NoConfIn rs.delivered rs.capplied k ∧ dec (rs.delivered.take k) e = some (ccV2Of o) ∧
-  ccStepB (ccV2Of o) rs.cfg = some cs' ∧ cs'.cfg.autoLeave = false
+  DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccV2Of o) k e cs'
 
 end dyn
 

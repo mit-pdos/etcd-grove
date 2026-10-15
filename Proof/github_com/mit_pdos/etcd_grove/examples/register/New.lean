@@ -27,8 +27,8 @@ variable [RegStor GF]
 
 theorem New.wp_proof (wp_run : register.Register.run.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro γr γn id n st send
-  wp_start as ⟨#Hinv, Hdrv, %Hraft, %Hstor, #Hsrec, #Hc0, Hseq, #Hsend⟩
+  intro γr γn id n st send cfg0
+  wp_start as ⟨#Hinv, Hdrv, %Hraft, %Hmd, Hncfg, %Hstor, #Hsrec, #Hc0, Hseq, #Hsend⟩
   wp_auto
   wp_apply wp_map_make1 (K := List w8) (V := Bool) as %mA HA
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mW HW
@@ -67,17 +67,21 @@ theorem New.wp_proof (wp_run : register.Register.run.spec (GF := GF) (hG := hG))
     iapply BigSepM.bigSepM_empty.2
     itrivial
   unfold nodeDriver
-  icases Hdrv with ⟨#HisNode, Hdlv⟩
+  icases Hdrv with ⟨#HisNode, Hdlv, #Hdlb⟩
   ihave #Hrep : isReplica γr ⟨γn, γc⟩ «$r0_ptr» id n st $$ []
   · unfold isReplica
     simp only [named]
     iframe #
     ipureintro; exact ⟨Hraft, Hstor⟩
-  wp_apply wp_fork $$ [Hdlv value applied HA]
-  · wp_apply wp_run γr ⟨γn, γc⟩ «$r0_ptr» id n st send $$ [$Hpkg $Hrep Hdlv value applied HA]
+  wp_apply wp_fork $$ [Hdlv value applied HA Hncfg]
+  · wp_apply wp_run γr ⟨γn, γc⟩ «$r0_ptr» id n st send cfg0
+      $$ [$Hpkg $Hrep Hdlv value applied HA Hncfg]
     · iframe #
+      isplitr
+      · ipureintro; exact Hmd
+      iframe Hncfg
       unfold nodeDriver
-      iframe HisNode Hdlv
+      iframe HisNode Hdlv Hdlb
       unfold runOwn
       iexists [], mA, ∅, []
       simp only [named]

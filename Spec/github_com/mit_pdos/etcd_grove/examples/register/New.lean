@@ -29,8 +29,10 @@ variable [RegStor GF]
 
 /-- See the file header. -/
 abbrev New.spec : Prop :=
-  ∀ (γr : RegNames) (γn : NodeNames) (id : w64) (n st : Loc) (send : GoFunc),
+  ∀ (γr : RegNames) (γn : NodeNames) (id : w64) (n st : Loc) (send : GoFunc) (cfg0 : CCState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ regInv γr ∗ nodeDriver γn id n [] ∗ ⌜γn.raft = γr.raft⌝ ∗
+      -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
+      ⌜γn.mode = .static⌝ ∗ nodeCfg γn 0 cfg0 ∗
       ⌜γn.stor = regStorIface st⌝ ∗ (∃ (ms : Loc) (γs : MemStorNames), regStorRec st ms γs) ∗ isCommitted γr.raft [] ∗ id ↪[γr.seq] (W64 0) ∗
       sendSpec send γn }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.New))

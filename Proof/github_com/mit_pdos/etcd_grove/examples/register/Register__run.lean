@@ -39,8 +39,8 @@ theorem Register.run.wp_proof
     (wp_node_Advance : node.Advance.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_Append : MemoryStorage.Append.spec (GF := GF) (hG := hG)) :
     Register.run.spec (GF := GF) (hG := hG) := by
-  intro γr γp r id n st send
-  wp_start as ⟨#Hrep, Hdrv, Hrun, #Hsend⟩
+  intro γr γp r id n st send cfg0
+  wp_start as ⟨#Hrep, %Hmd, Hncfg, Hdrv, Hrun, #Hsend⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
@@ -54,8 +54,9 @@ theorem Register.run.wp_proof
       "pending" ∷ pending_ptr ↦ pv ∗ "Hpv" ∷ pv ↦* ps ∗
       "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
       "Hps" ∷ ([∗list] s ∈ ps, readStateOk γr.raft s) ∗
-      "applied" ∷ applied_ptr ↦ a ∗ "%Ha" ∷ ⌜uint.Z a ≤ (ds.length : Int)⌝)
-    $$ [rd Hdrv Hrun pending applied]
+      "applied" ∷ applied_ptr ↦ a ∗ "%Ha" ∷ ⌜uint.Z a ≤ (ds.length : Int)⌝ ∗
+      "Hncfg" ∷ nodeCfg γp.node 0 cfg0)
+    $$ [rd Hdrv Hrun pending applied Hncfg]
   · iexists [], _, _, [], _
     iframe
     isplitl []
@@ -170,7 +171,8 @@ theorem Register.run.wp_proof
     -- the reads whose index is applied, answered
     wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ sts) (DFrac.own 1) a' Ha
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap, Hps'⟩
-    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es $$ [$Hraftinit $Hbusy $Hrcpt] as Hdrv
+    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es 0 cfg0
+      (fun h => by rw [Hmd] at h; cases h) $$ [$Hraftinit $Hbusy $Hrcpt $Hncfg] as ⟨Hdrv, Hncfg⟩
     wp_for_post
     iframe
     iexists ds ++ ce, rdv', rest, ps', a'

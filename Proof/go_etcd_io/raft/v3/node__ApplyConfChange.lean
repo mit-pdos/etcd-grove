@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart), 2026-10-13. -/
+/- Lean-first (no Rocq counterpart), 2026-10-13; 2026-10-15 (stage N): the dynamic mode. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
@@ -25,10 +25,14 @@ theorem node.ApplyConfChange.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG)) :
     node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ id n c o Hnoop
-  wp_start as ⟨#Hnode, Hc⟩
+  intro γ id n c o ds ca cfg k e cs' Hshr Hdyn
+  wp_start as ⟨#Hnode, Hc, HR⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
+  have Hmode : γ.mode = .static ∨ ∃ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 := by
+    cases h : γ.mode with
+    | static => exact .inl rfl
+    | dyn dec c0 h0 h1 => exact .inr ⟨dec, c0, h0, h1, rfl⟩
   rcases o with m | m
   · simp only [ownCCI, ownCCV1]
     icases Hc with ⟨%v, %Hcv, %Hvm, -⟩
@@ -37,12 +41,44 @@ theorem node.ApplyConfChange.wp_proof
     wp_auto
     wp_apply +noauto wp_ConfChange_AsV2 as %v2 ⟨%Hv2, Hch⟩
     imod ownSlice_persist $$ Hch with #Hch
-    ihave HP : confcP γ v2 $$ []
-    · unfold confcP
-      iexists _
-      iframe Hch
-      ipureintro
-      rw [Hv2.1, Hty, Hnid]; exact Hnoop
+    generalize Hccs : [({ Type' := v.Type', NodeId' := v.NodeId' } : raftpb.ConfChangeSingle)] = ccs
+
+    have Hvo : (v2.Transition', ccs) = ccV2Of (.v1 m) := by
+      rw [← Hccs, Hv2.1, Hty, Hnid]; rfl
+    -- the payload, by the mode; the driver keeps the answer slot's other half
+    ihave Hpay : iprop(|==> (confcP γ v2 ∗ (⌜γ.mode = .static⌝ ∨ (⌜γ.mode.isDyn = true⌝ ∗
+        dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))) $$ [HR]
+    · rcases Hmode with hm | ⟨dec, c0, h0, h1, hm⟩
+      · imodintro
+        isplitl []
+        · unfold confcP
+          iexists ccs
+          iframe Hch
+          ileft
+          ipureintro
+          exact ⟨hm, by have H := Hshr hm; rw [← Hvo] at H; exact H⟩
+        ileft; ipureintro; exact hm
+      · icases HR with (%Hs | ⟨Hcfg, #Hdlb⟩)
+        · rw [hm] at Hs; cases Hs
+        unfold nodeCfg
+        icases Hcfg with ⟨Hcap, ⟨%x, Hq1, Hq2⟩, #Hcamlb⟩
+        imod dghostVar_update_halves (k + 1, cs') γ.ccq x x $$ Hq1 Hq2 with ⟨Hq1, Hq2⟩
+        imodintro
+        isplitl [Hcap Hq1]
+        · unfold confcP
+          iexists ccs
+          iframe Hch
+          iright
+          iexists ds, ca, cfg, k, e, cs'
+          unfold dlvLb
+          iframe Hdlb Hcap Hq1
+          ipureintro
+          refine ⟨by rw [hm]; rfl, fun dec' c0' h0' h1' hm' => ?_⟩
+          rw [Hvo]; exact Hdyn dec' c0' h0' h1' hm'
+        iright
+        iframe Hq2
+        ipureintro; rw [hm]; rfl
+    imod Hpay with ⟨HP, Hkeep⟩
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking
     iapply BigAndL.bigAndL_cons.2
@@ -76,7 +112,27 @@ theorem node.ApplyConfChange.wp_proof
         iintro %csv Hcs
         wp_auto
         iapply HΦ
-        iframe
+        iunfold confstateP at Hcs
+        icases Hcs with (⟨%Hs, Hcs⟩ | ⟨%Hd, %w, Hcap, Hq, #Hlb, Hok⟩)
+        · icases Hkeep with (%Hs' | ⟨%Hd', -⟩)
+          · iframe
+            ileft
+            iframe Hcs
+            ipureintro; exact Hs
+          · rw [Hs] at Hd'; cases Hd'
+        · icases Hkeep with (%Hs' | ⟨%Hd', Hq'⟩)
+          · rw [Hs'] at Hd; cases Hd
+          ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hq Hq'
+          subst Heq
+          iframe
+          iright
+          isplitr
+          · ipureintro; exact Hd
+          iframe Hok
+          unfold nodeCfg
+          iframe Hcap Hlb
+          iexists (k + 1, cs')
+          iframe Hq Hq'
       iapply BigAndL.bigAndL_cons.2
       isplit
       · simp only [chan.blockingClausePre]
@@ -104,12 +160,43 @@ theorem node.ApplyConfChange.wp_proof
     subst Hcv
     wp_auto
     wp_apply +noauto wp_ConfChangeV2_AsV2
-    ihave HP : confcP γ v $$ []
-    · unfold confcP
-      iexists _
-      iframe Hch
-      ipureintro
-      rw [Htr]; exact Hnoop
+    generalize Hccs : m.changes = ccs
+    have Hvo : (v.Transition', ccs) = ccV2Of (.v2 m) := by
+      rw [← Hccs, Htr]; rfl
+    -- the payload, by the mode; the driver keeps the answer slot's other half
+    ihave Hpay : iprop(|==> (confcP γ v ∗ (⌜γ.mode = .static⌝ ∨ (⌜γ.mode.isDyn = true⌝ ∗
+        dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))) $$ [HR]
+    · rcases Hmode with hm | ⟨dec, c0, h0, h1, hm⟩
+      · imodintro
+        isplitl []
+        · unfold confcP
+          iexists ccs
+          iframe Hch
+          ileft
+          ipureintro
+          exact ⟨hm, by have H := Hshr hm; rw [← Hvo] at H; exact H⟩
+        ileft; ipureintro; exact hm
+      · icases HR with (%Hs | ⟨Hcfg, #Hdlb⟩)
+        · rw [hm] at Hs; cases Hs
+        unfold nodeCfg
+        icases Hcfg with ⟨Hcap, ⟨%x, Hq1, Hq2⟩, #Hcamlb⟩
+        imod dghostVar_update_halves (k + 1, cs') γ.ccq x x $$ Hq1 Hq2 with ⟨Hq1, Hq2⟩
+        imodintro
+        isplitl [Hcap Hq1]
+        · unfold confcP
+          iexists ccs
+          iframe Hch
+          iright
+          iexists ds, ca, cfg, k, e, cs'
+          unfold dlvLb
+          iframe Hdlb Hcap Hq1
+          ipureintro
+          refine ⟨by rw [hm]; rfl, fun dec' c0' h0' h1' hm' => ?_⟩
+          rw [Hvo]; exact Hdyn dec' c0' h0' h1' hm'
+        iright
+        iframe Hq2
+        ipureintro; rw [hm]; rfl
+    imod Hpay with ⟨HP, Hkeep⟩
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking
     iapply BigAndL.bigAndL_cons.2
@@ -143,7 +230,27 @@ theorem node.ApplyConfChange.wp_proof
         iintro %csv Hcs
         wp_auto
         iapply HΦ
-        iframe
+        iunfold confstateP at Hcs
+        icases Hcs with (⟨%Hs, Hcs⟩ | ⟨%Hd, %w, Hcap, Hq, #Hlb, Hok⟩)
+        · icases Hkeep with (%Hs' | ⟨%Hd', -⟩)
+          · iframe
+            ileft
+            iframe Hcs
+            ipureintro; exact Hs
+          · rw [Hs] at Hd'; cases Hd'
+        · icases Hkeep with (%Hs' | ⟨%Hd', Hq'⟩)
+          · rw [Hs'] at Hd; cases Hd
+          ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hq Hq'
+          subst Heq
+          iframe
+          iright
+          isplitr
+          · ipureintro; exact Hd
+          iframe Hok
+          unfold nodeCfg
+          iframe Hcap Hlb
+          iexists (k + 1, cs')
+          iframe Hq Hq'
       iapply BigAndL.bigAndL_cons.2
       isplit
       · simp only [chan.blockingClausePre]
