@@ -222,10 +222,21 @@ structure SnapTrip [FfiSyntax] where
   cl : CSLists
   al : Bool
 
-/-! (Raft v3.7 retarget, stage R0) `absSnapFrom`/`absSnap`, the abstraction of a `MsgSnap`
-from the Goose value of its `Snapshot`, are not ported: in raft v3.7 a snapshot is a
-`*pb.Snapshot` whose `Metadata` is a pointer too, and how its contents are owned and
-abstracted is the redesign's (`notes/raft-retarget-plan.md`, "Design", D3). -/
+/-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
+is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to (since the raft v3.7
+retarget, stage R1, its record `SnapshotM`), and `voters`
+the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
+the abstract message keeps the incoming voters). `index`/`logterm` are the
+snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
+`maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
+`src`/`term` are given separately because `send` stamps them. -/
+def absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM)
+    (voters : CSLists) : Msg :=
+  Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
+    m.Commit' m.RejectHint' [] voters.voters []
+
+def absSnap (m : MessageM) (sv : SnapshotM) (voters : CSLists) : Msg :=
+  absSnapFrom m m.From' m.Term' sv voters
 
 end msgs
 
@@ -607,8 +618,10 @@ def nextUnstable (ls : LogState) : List EntryM :=
 def logAppend (ls : LogState) (ents : List EntryM) : LogState :=
   { ls with uents := ls.uents ++ ents }
 
-/-! (stage R0) `snapId`, a snapshot's id from the Goose value of its `Snapshot`: not ported
-(D3, as `absSnap`). -/
+/-- A snapshot's id, `(Metadata.Term, Metadata.Index)` -- what `raft.restore` builds as
+`id := entryID{term, index}`. -/
+def snapId (sv : SnapshotM) : entryID :=
+  entryID.mk sv.Metadata'.Term' sv.Metadata'.Index'
 
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
 id is the boundary, nothing after it, committed up to it, `applied` untouched, the
@@ -619,7 +632,10 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
    ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k]⟩
 
-/-! (stage R0) `snapTrip`, a `SnapTrip` from the Goose value of a `Snapshot`: not ported (D3). -/
+/-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
+`ConfState` and its `AutoLeave`. -/
+def snapTrip (sv : SnapshotM) (cl : CSLists) : SnapTrip :=
+  ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave'⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/

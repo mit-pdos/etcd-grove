@@ -1,19 +1,35 @@
 /-
-The raftpb values as the protocol model sees them (raft v3.7 retarget, stage R0, provisional:
-`notes/raft-retarget-plan.md`, "Design", D1). Until the retarget the protocol model (`Plog`,
-`CCModel`, `Protocol/*`) used the Goose value of gogoproto's `raftpb.Entry` (a struct of four
-plain fields) as its entry, and stored the pending read-index requests as Goose
-`raftpb.Message` values (reading their `From'`).
-In raft v3.7 (protobuf-go v2) `raftpb.Entry` is a struct of pointers (`Term`, `Index`,
-`Type`) and protobuf runtime state, only ever handled through a `*pb.Entry`, so it is not a
-pure value any more. `EntryM` is the record the old Goose value was, field for field
-(the same names, so the model's text is unchanged but for the type's name): what a
-`*pb.Entry` holds, read through its getters (`GetTerm`, `GetIndex`, `GetType`,
-`GetData`). The bytes of `Data'` are owned apart, as before. `MessageM` is likewise what a
-`*pb.Message`'s scalar getters return, named as gogoproto's fields were (the model reads
-`From'` of a pending read-index request); its references (`Entries`, `Snapshot`,
-`Context`, `Responses`) are not in it. `ConfChangeSingleM` is a `*pb.ConfChangeSingle`'s
-`GetType()` and `GetNodeId()`, the model of one conf change (`CCModel`, `InvConfchange`).
+The raftpb values as the model sees them (raft v3.7 retarget; stage R0 made `EntryM`,
+`MessageM`, `ConfChangeSingleM`, stage R1 made the records final and added the snapshot's and
+the hard state's: `notes/raft-retarget-plan.md`, "Design", D1, and its decisions on the open
+questions). Until the retarget the protocol model (`Plog`, `CCModel`, `Protocol/*`) used the
+Goose value of gogoproto's `raftpb.Entry` (a struct of four plain fields) as its entry, and
+stored the pending read-index requests as Goose `raftpb.Message` values (reading their
+`From'`). In raft v3.7 (protobuf-go v2) every raftpb message is a struct of pointers (each
+scalar field a `*T`, nested messages pointers, repeated messages `[]*T`) and protobuf runtime
+state, handled only through a pointer, so it is not a pure value any more.
+
+Each record here is what the getters of a raftpb message return, field for field, with the
+Go field's name primed (as gogoproto's Goose fields were, so the model's text ports by a type
+rename); a nil field reads as zero, as the getters return it:
+
+* `EntryM`: `GetTerm`, `GetIndex`, `GetType`, `GetData` of a `*pb.Entry`. The bytes of
+  `Data'` are owned apart (a log entry's data is shared read-only), so it is the slice.
+* `MessageM`: the scalar getters of a `*pb.Message`; its references (`Entries`, `Snapshot`,
+  `Context`, `Responses`) are not in it (the ownership predicate holds them,
+  `InvPb.lean`'s `msgOwn`).
+* `ConfChangeSingleM`: `GetType()`, `GetNodeId()` of a `*pb.ConfChangeSingle`, the model of one
+  conf change (`CCModel`, `InvConfchange`).
+* `ConfStateM`, `SnapshotMetadataM`, `SnapshotM` (stage R1): a snapshot as `GetData()`,
+  `GetMetadata()` read it, nested as the Go messages are (`sv.Metadata'.ConfState'.AutoLeave'`,
+  `sv.Metadata'.Index'` read as the old Goose value's fields did); a nil `Metadata` or
+  `ConfState` reads as the zero record, as the chained getters return zeros on nil. A snapshot
+  is owned and cloned whole (`proto.Clone`), so its contents are values: `Data'` and the conf
+  state's lists are the lists, not the slices.
+* `HardStateM` (stage R1): `GetTerm()`, `GetVote()`, `GetCommit()` of a `*pb.HardState`.
+
+The protobuf runtime's hidden fields (`state`, `sizeCache`, `unknownFields`) are in none of
+them: they are the trust boundary's (`pbMsg`, `InvPb.lean`).
 -/
 module
 
@@ -71,6 +87,50 @@ structure ConfChangeSingleM [FfiSyntax] where
 
 instance ConfChangeSingleM.zero_val [FfiSyntax] : ZeroVal ConfChangeSingleM :=
   ⟨ConfChangeSingleM.mk zeroValDef zeroValDef⟩
+
+/-- A conf state as the model sees it: `GetVoters()`, `GetLearners()`, `GetVotersOutgoing()`,
+`GetLearnersNext()` (the lists behind the slices) and `GetAutoLeave()` of a `*pb.ConfState`. -/
+structure ConfStateM where
+  mk ::
+  Voters' : List w64
+  Learners' : List w64
+  VotersOutgoing' : List w64
+  LearnersNext' : List w64
+  AutoLeave' : Bool
+
+instance ConfStateM.zero_val : ZeroVal ConfStateM := ⟨ConfStateM.mk [] [] [] [] false⟩
+
+/-- A snapshot's metadata as the model sees it: `GetConfState()` (a nil one reads as the zero
+record), `GetIndex()`, `GetTerm()` of a `*pb.SnapshotMetadata`. -/
+structure SnapshotMetadataM where
+  mk ::
+  ConfState' : ConfStateM
+  Index' : w64
+  Term' : w64
+
+instance SnapshotMetadataM.zero_val [FfiSyntax] : ZeroVal SnapshotMetadataM :=
+  ⟨SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) zeroValDef zeroValDef⟩
+
+/-- A snapshot as the model sees it: `GetData()` (the bytes) and `GetMetadata()` (a nil one
+reads as the zero record) of a `*pb.Snapshot`. -/
+structure SnapshotM where
+  mk ::
+  Data' : List w8
+  Metadata' : SnapshotMetadataM
+
+instance SnapshotM.zero_val [FfiSyntax] : ZeroVal SnapshotM :=
+  ⟨SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) zeroValDef zeroValDef)⟩
+
+/-- A hard state as the model sees it: `GetTerm()`, `GetVote()`, `GetCommit()` of a
+`*pb.HardState`. -/
+structure HardStateM where
+  mk ::
+  Term' : w64
+  Vote' : w64
+  Commit' : w64
+
+instance HardStateM.zero_val [FfiSyntax] : ZeroVal HardStateM :=
+  ⟨HardStateM.mk zeroValDef zeroValDef zeroValDef⟩
 
 end EtcdGrove
 end Perennial
