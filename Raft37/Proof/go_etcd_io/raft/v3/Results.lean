@@ -3,7 +3,9 @@ The raft v3.7 results ported so far into the parallel tree `Raft37/` (stage R0 o
 retarget, `notes/raft-retarget-plan.md`): `quorum`, `tracker` and `slices.Sort`; since stage R1
 `raftpb` (the getters, `Enum`, `Ensure*`, the conf-change codec, `ConfState.Equivalent`) and the
 nine protobuf-go axioms (`proto.*`, the trust boundary); since stage R2 `confchange` (with
-etcd-grove's `fmt.Errorf` axiom and `raftpb.ConfChangeType.String` at the trust boundary), as
+etcd-grove's `fmt.Errorf` axiom and `raftpb.ConfChangeType.String` at the trust boundary); since
+stage R3 the log layer (`unstable`, `raftLog`, `MemoryStorage`, the size helpers, over read-only
+entries) and `MemoryStorage`'s instance of the `Storage` contract, as
 `Proof/go_etcd_io/raft/v3/Link.lean` links them for the verified raft. `#print axioms` of each
 is its trust base (in the build log); `etc/tcb-report.py --collection
 etc/tcb-collections/raft37.txt` reports on them. The tree replaces the old raft proof's when
@@ -17,6 +19,8 @@ step lemmas (`StepGhostMode`) are imported so the build checks them.
 module
 
 public import Raft37.Proof.go_etcd_io.raft.v3.Link
+-- `MemoryStorage` meets the `Storage` contract (stage R3)
+public import Raft37.Proof.go_etcd_io.raft.v3.MemstorageInstance
 -- the protocol model's results (stage R1: the model ported)
 public import Raft37.Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 public import Raft37.Proof.go_etcd_io.raft.v3.Protocol.Facts
@@ -157,6 +161,74 @@ namespace EtcdGrove
 #print axioms confchange.wp_toConfChangeSingle
 #print axioms confchange.wp_chain
 #print axioms confchange.wp_Restore
+
+-- the log layer (stage R3): the size helpers, unstable, raftLog, MemoryStorage, with the
+-- `proto.Clone`/`proto.Size` axioms where reached; `MemoryStorage` meets the `Storage` contract
+#print axioms wp_pbEntryID
+#print axioms wp_payloadSize
+#print axioms wp_payloadsSize
+#print axioms wp_entsSize
+#print axioms wp_limitSize
+#print axioms wp_extend
+#print axioms unstable.wp_maybeFirstIndex
+#print axioms unstable.wp_maybeLastIndex
+#print axioms unstable.wp_maybeTerm
+#print axioms unstable.wp_nextEntries
+#print axioms unstable.wp_nextSnapshot
+#print axioms unstable.wp_acceptInProgress
+#print axioms unstable.wp_stableTo
+#print axioms unstable.wp_shrinkEntriesArray
+#print axioms unstable.wp_restore
+#print axioms unstable.wp_truncateAndAppend
+#print axioms unstable.wp_slice
+#print axioms unstable.wp_mustCheckOutOfBounds
+#print axioms raftLog.wp_lastIndex
+#print axioms raftLog.wp_firstIndex
+#print axioms raftLog.wp_term
+#print axioms raftLog.wp_lastEntryID
+#print axioms raftLog.wp_matchTerm
+#print axioms raftLog.wp_commitTo
+#print axioms raftLog.wp_maybeCommit
+#print axioms raftLog.wp_mustCheckOutOfBounds
+#print axioms raftLog.wp_slice
+#print axioms raftLog.wp_entries
+#print axioms raftLog.wp_snapshot
+#print axioms raftLog.wp_appliedTo
+#print axioms raftLog.wp_scan
+#print axioms raftLog.wp_zeroTermOnOutOfBounds
+#print axioms raftLog.wp_findConflictByTerm
+#print axioms raftLog.wp_isUpToDate
+#print axioms raftLog.wp_append
+#print axioms raftLog.wp_findConflict
+#print axioms raftLog.wp_maybeAppend
+#print axioms raftLog.wp_restore
+#print axioms raftLog.wp_stableTo
+#print axioms raftLog.wp_hasNextOrInProgressSnapshot
+#print axioms raftLog.wp_hasNextUnstableSnapshot
+#print axioms raftLog.wp_nextUnstableEnts
+#print axioms raftLog.wp_hasNextUnstableEnts
+#print axioms raftLog.wp_maxAppliableIndex
+#print axioms raftLog.wp_hasNextCommittedEnts
+#print axioms raftLog.wp_nextCommittedEnts
+#print axioms raftLog.wp_hasNextOrInProgressUnstableEnts
+#print axioms raftLog.wp_acceptUnstable
+#print axioms raftLog.wp_acceptApplying
+#print axioms wp_newLogWithSize
+#print axioms MemoryStorage.wp_lastIndex
+#print axioms MemoryStorage.wp_firstIndex
+#print axioms MemoryStorage.wp_LastIndex
+#print axioms MemoryStorage.wp_FirstIndex
+#print axioms MemoryStorage.wp_Term
+#print axioms MemoryStorage.wp_Entries
+#print axioms MemoryStorage.wp_SetHardState
+#print axioms MemoryStorage.wp_InitialState
+#print axioms MemoryStorage.wp_Snapshot
+#print axioms wp_NewMemoryStorage
+#print axioms MemoryStorage.wp_ApplySnapshot
+#print axioms MemoryStorage.wp_Compact
+#print axioms MemoryStorage.wp_CreateSnapshot
+#print axioms MemoryStorage.wp_Append
+#print axioms is_Storage_MemoryStorage
 
 -- the protocol model (stage R1)
 #print axioms raft_dyn_alloc
