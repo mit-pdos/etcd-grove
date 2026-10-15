@@ -111,8 +111,10 @@ job loop forever, force-committing every interval, its channel never closed (rep
 2026-10-13, mvcc compaction unit 5a; not filed).
 [etcd-compaction-delete-then-put](etcd-compaction-delete-then-put.md): compacting at a revision
 that deletes a key and puts it again deletes the key's live value from the bucket, and the next
-read of the key calls `lg.Fatal` (reproduced through mvcc's API; etcd's gRPC `checkIntervals`
-rejects such a transaction; found 2026-10-13, mvcc compaction unit 5a; not filed).
+read of the key calls `lg.Fatal` (reproduced through mvcc's API, and on 2026-10-14 through the
+gRPC API with a from-key delete, which `checkIntervals` does not see as overlapping the put
+(`etcd-txn-delete-then-ignore-put`): the member exits on the read and, restarted, has lost the
+acknowledged value; found 2026-10-13, mvcc compaction unit 5a; not filed).
 [etcd-index-compact-overlapping](etcd-index-compact-overlapping.md): two overlapping
 `treeIndex.Compact` passes can compact a key index the other deleted (`lg.Panic`) or delete a key
 put again in between (an unstated precondition of the `index` interface; unreachable through the

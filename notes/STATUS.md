@@ -45,6 +45,23 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## The compaction premise `NoDelPutAt` is not met by the gRPC checks (2026-10-14)
+
+`issues/etcd-compaction-delete-then-put.md` said the bug was unreachable through gRPC, since
+`checkIntervals` rejects a transaction that deletes and puts one key. It does not for a from-key
+delete (`checkIntervals` reads `RangeEnd = "\x00"` as the empty interval:
+`issues/etcd-txn-delete-then-ignore-put.md`, the premise `ReqOp.noFromKeyDelL` of
+`v3rpc.check_gives_nodup`). So `Then(OpDelete(k, WithFromKey()), OpPut(k, v))` is accepted, and a
+compaction at its revision deletes `k`'s live value. Reproduced with `etcdctl` on a 1-member
+cluster built from upstream `main` f061acd09: the next `get` of `k` exits the member
+(`lg.Fatal`, "range failed to find revision pair"), and after a restart `k` is gone. So the
+server meets `store.Compact`'s premise `NoDelPutAt` only under `noFromKeyDelL`. No lemma links the
+two yet (`NoDupKeysPerRev → NoDelPutAt` does not exist), which is how the gap went unnoticed.
+Still saying otherwise: `notes/decisions.md` ("the gRPC checks (`checkIntervals`) exclude them on
+the request path only") and the docstring of `NoDelPutAt` in
+`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Compact.lean` ("The server's transaction checks
+(`checkIntervals`) ensure it").
+
 ## Retargeting raft to v3.7, stage R0: the parallel tree, the inventory, the design (2026-10-15, branch `raft-retarget`)
 
 The verified raft is etcd-io/raft `40f8be7` plus the read-index fix (gogoproto messages passed by
