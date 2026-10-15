@@ -60,7 +60,7 @@ theorem isSafeRetryImmutableRPC.wp_proof
     · wp_auto
       iapply HΦ; itrivial
     · wp_auto
-      wp_apply HCode as %c
+      wp_apply HCode
       iapply HΦ; itrivial
   · wp_auto
     wp_method_call
@@ -72,7 +72,7 @@ theorem isSafeRetryImmutableRPC.wp_proof
       · wp_auto
         iapply HΦ; itrivial
       · wp_auto
-        wp_apply HCode as %c
+        wp_apply HCode
         iapply HΦ; itrivial
     · iapply HΦ; itrivial
 

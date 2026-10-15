@@ -30,7 +30,8 @@ theorem watcher.enqueueResponse.wp_proof
   ihave #Hw0 := Hw
   iNamed Hw
   wp_auto
-  wp_apply wp_IsProgressNotify resp_ptr resp r (DFrac.own 1) $$ [$resp $Hresp] as resp
+  wp_apply wp_IsProgressNotify resp_ptr resp r (DFrac.own 1) $$ [resp] as resp
+  · iframe resp; iapply respAt_isProgressPre $$ Hresp
   ipersist w
   -- the filter statement: it falls through with the response to send, or returns `true`
   wp_join (Q := fun v => iprop(

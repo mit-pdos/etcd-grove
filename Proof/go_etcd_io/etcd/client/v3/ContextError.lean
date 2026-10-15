@@ -73,7 +73,7 @@ theorem ContextError.wp_proof
         iapply HΦ
         iframe #; ipureintro; exact Hfin _ Hne1 Hc1
       · wp_auto
-        wp_apply HCode as %c
+        wp_apply HCode
         wp_if_destruct
         · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 -
           cases e2 with
