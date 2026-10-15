@@ -78,6 +78,36 @@ SPSC channel idiom (`Perennial/Golang/Theory/Chan/Idioms/Spsc.lean`: `spscProduc
   nothing (a prefix may have been delivered); the server's run starts when the client's
   `NewStream` returns (the handler may be entered later, but no message is lost in between).
 
+## 2a. What W-S settled on (2026-10-15)
+
+Unit W-S is done (`notes/STATUS.md`, "The watch slice", "W-S"): `watch.go` is proved against the
+server end below, `v3rpc/InvWatchStream.lean`'s `srvStreamIs st γ Req Rep Up Dn ci cd`. It is §2's
+shape with five changes, each forced by the code; the axiom that instantiates it should have them:
+
+1. **`Up : Nat → Req.M → IProp`**, the client's content of the `i`th request, beside `Dn`: `Recv`
+   returns `Req.recv req m ∗ Up L.length m ∗ srvRecvTok γ (L ++ [m])`. `Watch` needs a watch token
+   (mvcc's watcher budget) with every create request and the requests' restrictions (`upOk`); the
+   client's `Send` consumes `Up L.length m` with the message.
+2. **The decoded request is owned** (`Req.recv`, a `StreamMsg` has `send` and `recv`): `recvLoop`
+   writes `Key`/`RangeEnd` into it.
+3. **The context is a parameter** (`ci cd`, with `isContext ci cd ∗ grpcRunCtx ci` inside
+   `srvStreamIs`; `Context()` returns `ci`), and **the errors are typed**: `Recv`/`Send` fail with
+   `streamErr err` (a typed error in an `errors.Is` tree), `Recv` ends with `eofIs err ∗ upClosed γ
+   L`; `isClientCtxErr` and `errors.Is` read them.
+4. **The stream specification is a premise of the handler**, not its choice: `Watch` takes
+   `watchStreamSpec γs γ cid mid Dn := □ ∀ j m, Dn j m ∗-∗ watchDn γs γ cid mid j m` and returns it.
+   So `grpcStreamMethodOk`'s `∀ γ Dn` should be `∀ γ Dn, Spec γ Dn -∗ {{ … }} mh srv st {{ … }}`
+   with `Spec` fixed per registered method, and `NewStream`'s postcondition gives `Spec γ Dn` as
+   §2 says. Equivalently: the serving layer picks `Dn` at the stream's creation.
+5. **The run slot is not returned by the handler**: `Watch` returns while `recvLoop` may still be
+   blocked in `Recv` (the code's own comment); the slot must be released when the stream's run
+   ends, not when the handler returns. Pick: the slot stays with the run and the transport frees
+   it (W-S's premise), or the handler keeps it (then `Watch`'s spec changes).
+
+Also: `WatchRespM` carries a ghost `src : Option mvcc.RespM` (the mvcc response a response was
+made from), which the client reads nothing of but the stream specification is stated over; and
+the generated `_Watch_Watch_Handler` is not proved yet: it waits for `grpcStreamMethodOk`.
+
 ## 3. Why ghost queues and not a predicate transformer
 
 A unary call has one request and one reply, so `Spec m Φ` says it all. A stream's handler makes

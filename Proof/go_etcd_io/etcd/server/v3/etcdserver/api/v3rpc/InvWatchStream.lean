@@ -134,9 +134,9 @@ instance WatchRespM.countable : Pos.Countable WatchRespM :=
       simp_all)
 
 /-- **The restrictions of the watch server's proof** (`upRestricted`): a create request asks
-neither for previous key-values (`prev_kv`: the send loop writes `PrevKv` into the event, which
-mvcc shares between watchers, `issues/etcd-watch-prevkv-shared-event.md`), nor for fragments,
-nor filters; and no request is `other` (an empty oneof or a `nil` inner request: the translation
+neither for previous key-values (`prev_kv`: the send loop's `PrevKv` write and the store read
+behind it are not modeled; not a bug: `newWatcherBatch` copies each event per watcher), nor for
+fragments, nor filters; and no request is `other` (an empty oneof or a `nil` inner request: the translation
 of `recvLoop`'s `default:` branch reads the type switch's variable `uv`, which Goose leaves
 unbound there, a translator bug, `notes/STATUS.md`; etcd's client never sends one). -/
 def watchReqOk : WatchReqM → Prop
