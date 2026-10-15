@@ -663,7 +663,8 @@ axiom SortByValue [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def EventTypePut [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 0)
 
-axiom closeSendErrTimeout [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def closeSendErrTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 250000000)
 
 @[reducible] noncomputable def AutoWatchID [FfiSyntax] [GoGlobalContext] : val :=
   #(0 : Int)
@@ -671,9 +672,11 @@ axiom closeSendErrTimeout [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def InvalidWatchID [FfiSyntax] [GoGlobalContext] : val :=
   #(-1 : Int)
 
-axiom watcherStreamBufWarningInterval [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def watcherStreamBufWarningInterval [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 5000000000)
 
-axiom watcherStreamBufWarningThreshold [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def watcherStreamBufWarningThreshold [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 100000000)
 
 noncomputable def ErrNoAvailableEndpoints [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrNoAvailableEndpoints"
@@ -746,17 +749,11 @@ axiom defaultOptions.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def valCtxCh [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.valCtxCh"
 
-axiom valCtxCh.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def zeroTime [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.zeroTime"
 
-axiom zeroTime.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def maxBackoff [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.maxBackoff"
-
-axiom maxBackoff.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def NewAuth [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.NewAuth"
@@ -1082,6 +1079,105 @@ noncomputable def NewWatchFromWatchClient [FfiSyntax] [GoGlobalContext] : GoStri
 noncomputable def streamKeyFromCtx [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.streamKeyFromCtx"
 
+/-- go: block_logger.go:34:6 -/
+noncomputable def newBlockLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "interval"
+  (Lam "threshold"
+  (Lam "now"
+  (Lam "logFunc"
+  (App (Val exceptionDo)
+  (Let "logFunc" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty, _root_.Perennial.time.Duration.ty] false []))))) (Var "logFunc"))
+  (Let "now" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Var "now"))
+  (Let "threshold" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "threshold"))
+  (Let "interval" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "interval"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc blockLogger.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "interval"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "threshold"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Var "now"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty, _root_.Perennial.time.Duration.ty] false []))))) (Var "logFunc"))
+  (App (Val (GoInstruction (CompositeLiteral blockLogger.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"interval")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"threshold")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"now")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])) (Var "$v2"))), (KeyedElement (some (KeyField go!"logFunc")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty, _root_.Perennial.time.Duration.ty] false [])) (Var "$v3")))])))))))
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType blockLogger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType blockLogger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"now"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"lastLogTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType blockLogger.ty)))) (Pair (Var "l") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Var "now")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Pair (Var "now") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
+
+/-- go: block_logger.go:48:23 -/
+noncomputable def blockLogger.recordWait.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam "waitTime"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType blockLogger.ty)))) (Var "l"))
+  (Let "waitTime" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "waitTime"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"now"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (Val #()))
+  (Let "now" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"lastLogTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Sub"))) (Var "now")) (Var "$a0")))
+  (Let "window" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "now"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"lastLogTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"timeWaiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"eventCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"timeWaiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"threshold"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty, _root_.Perennial.time.Duration.ty] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty, _root_.Perennial.time.Duration.ty] false []))))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"logFunc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty, _root_.Perennial.time.Duration.ty] false []))))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"eventCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"timeWaiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "window"))
+  (App (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int, _root_.Perennial.time.Duration.ty, _root_.Perennial.time.Duration.ty] false []))))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"logFunc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "window")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"interval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "window") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "now") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"timeWaiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))) (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"timeWaiting"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitTime"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"eventCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"eventCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (Val #(W64 1))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (Val #())))))))))))
+
 /-- GetLogger gets the logger.
     NOTE: This method is for internal use of etcd-client library and should not be used as general-purpose logger.
 
@@ -1106,6 +1202,88 @@ noncomputable def Client.Ctx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))))))
+
+/-- isHaltErr returns true if the given error and context indicate no forward
+    progress can be made, even after reconnecting.
+
+    go: client.go:570:6 -/
+noncomputable def isHaltErr.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Lam "err"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.FromError []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ev" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #())) (Val _root_.Perennial.google_golang_org.grpc.codes.Unavailable)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #())) (Val _root_.Perennial.google_golang_org.grpc.codes.Internal)))) (Val #false)))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "ev") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.context.Context.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.context.Context.ty))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (Val #true))
+  (App (Val doExecute)
+  (Val #())))))))))
+
+/-- isUnavailableErr returns true if the given error is an unavailable error
+
+    go: client.go:588:6 -/
+noncomputable def isUnavailableErr.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Lam "err"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.FromError []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ev" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #false))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #())) (Val _root_.Perennial.google_golang_org.grpc.codes.Unavailable))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "ev") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.context.Context.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.context.Context.ty))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #())))))))))
 
 /-- ContextError converts the error into an EtcdError if the error message matches one of
     the defined messages; otherwise, it tries to retrieve the context error.
@@ -4167,6 +4345,20 @@ noncomputable def txn.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef txn.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType txn.ty)))) (Var "txn")))) (Val #())))))))))
 
+/-- go: watch.go:56:6 -/
+noncomputable def ensureWatchHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "hdr"
+  (App (Val exceptionDo)
+  (Let "hdr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "hdr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue []))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "hdr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "hdr")))
+  (App (Val doExecute)
+  (Val #())))))))
+
 /-- Err is the error value if this WatchResponse holds an error.
 
     go: watch.go:123:26 -/
@@ -4214,6 +4406,2250 @@ noncomputable def WatchResponse.IsProgressNotify.impl [FfiSyntax] [GoGlobalConte
   (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType Event.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) go!"GetRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #())) (Val #(W64 0))))) (Val #false)))))))
 
+/-- go: watch.go:252:6 -/
+noncomputable def NewWatcher.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (Val doReturn)
+  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty) _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient []))) (Val #())) (Var "$a0")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (App (Val (GoInstruction (FuncResolve NewWatchFromWatchClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+
+/-- go: watch.go:256:6 -/
+noncomputable def NewWatchFromWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "wc"
+  (Lam "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "wc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty))) (Var "wc"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc watcher.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty))) (Var "wc"))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral watcher.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"remote")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"streams")) (ElementExpression (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty)) (Var "$v1")))])))))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcher.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType watcher.ty) Watcher.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Client.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Client.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcher.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcher.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcher.ty)))) (Pair (Var "w") (Var "$r0"))))))))))))
+
+/-- go: watch.go:277:19 -/
+noncomputable def valCtx.Deadline.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "vc"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "vc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType valCtx.ty)))) (Var "vc"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GlobalVarAddr zeroTime))) (Val #()))) (Val #false)))))))
+
+/-- go: watch.go:278:19 -/
+noncomputable def valCtx.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "vc"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "vc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType valCtx.ty)))) (Var "vc"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GlobalVarAddr valCtxCh))) (Val #())))))))))
+
+/-- go: watch.go:279:19 -/
+noncomputable def valCtx.Err.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "vc"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "vc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType valCtx.ty)))) (Var "vc"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))
+
+/-- go: watch.go:281:19 -/
+noncomputable def watcher.newWatcherGRPCStream.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "inctx"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (Let "inctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "inctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType valCtx.ty) _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoAlloc valCtx.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "inctx"))
+  (App (Val (GoInstruction (CompositeLiteral valCtx.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.context.Context.ty (Var "$v0")))])))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc watchGRPCStream.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$v4" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "inctx"))
+  (App (App (Val (GoInstruction (FuncResolve streamKeyFromCtx []))) (Val #())) (Var "$a0")))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
+  (Let "$v6" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Val #()))
+  (Let "$v7" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty))]))) (Val #())) (Val #()))
+  (Let "$v8" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)]))) (Val #())) (Val #()))
+  (Let "$v9" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "$v10" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv go.error)]))) (Val #())) (Val #(W64 1)))
+  (Let "$v11" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Val #()))
+  (Let "$v12" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "$v13" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))
+  (App (Val (GoInstruction (CompositeLiteral watchGRPCStream.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"owner")) (ElementExpression (go.GoType.PointerType watcher.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"remote")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"callOpts")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"ctx")) (ElementExpression _root_.Perennial.context.Context.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"ctxKey")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"cancel")) (ElementExpression _root_.Perennial.context.CancelFunc.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"substreams")) (ElementExpression (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty)) (Var "$v6"))), (KeyedElement (some (KeyField go!"respc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)) (Var "$v7"))), (KeyedElement (some (KeyField go!"reqc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty) (Var "$v8"))), (KeyedElement (some (KeyField go!"donec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v9"))), (KeyedElement (some (KeyField go!"errc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv go.error) (Var "$v10"))), (KeyedElement (some (KeyField go!"closingc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType watcherStream.ty)) (Var "$v11"))), (KeyedElement (some (KeyField go!"resumec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v12"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v13")))])))))))))))))))))
+  (Let "wgs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watchGRPCStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"run"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #()))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (Var "wgs") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))
+
+/-- Watch posts a watch request to run() and waits for a new watcher channel
+
+    go: watch.go:304:19 -/
+noncomputable def watcher.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ctx"
+  (Lam "key"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OpOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve OpWatch []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "ow" (App (Val (GoInstruction (GoAlloc Op.ty))) (App (Val (GoInstruction (GoZeroVal Op.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "filters" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc watchRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"createdNotify"))) (Var "ow")))
+  (Let "$v2" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"key"))) (Var "ow"))))
+  (Let "$v3" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"end"))) (Var "ow"))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"rev"))) (Var "ow")))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"progressNotify"))) (Var "ow")))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"fragment"))) (Var "ow")))
+  (Let "$v7" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"watchBufLogEnabled"))) (Var "ow")))
+  (Let "$v8" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (Var "filters"))
+  (Let "$v9" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"prevKV"))) (Var "ow")))
+  (Let "$v10" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))]))) (Val #())) (Val #(W64 1)))
+  (App (Val (GoInstruction (CompositeLiteral watchRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ctx")) (ElementExpression _root_.Perennial.context.Context.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"createdNotify")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"end")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"rev")) (ElementExpression go.int64 (Var "$v4"))), (KeyedElement (some (KeyField go!"progressNotify")) (ElementExpression go.bool (Var "$v5"))), (KeyedElement (some (KeyField go!"fragment")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"watchBufLogEnabled")) (ElementExpression go.bool (Var "$v7"))), (KeyedElement (some (KeyField go!"filters")) (ElementExpression (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty) (Var "$v8"))), (KeyedElement (some (KeyField go!"prevKV")) (ElementExpression go.bool (Var "$v9"))), (KeyedElement (some (KeyField go!"retc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)) (Var "$v10")))]))))))))))))))
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watchRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve streamKeyFromCtx []))) (Val #())) (Var "$a0")))
+  (Let "ctxKey" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "closeCh" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) WatchChan.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "closeCh"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "closeCh"))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Var "$a0")))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.PointerType watchGRPCStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "ctxKey")))
+  (Let "wgs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watchGRPCStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (Let "donec" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"reqc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (Let "reqc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val catchBreak) (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"retc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (Let "$ch2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) WatchChan.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "ret"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (Var "ret") (Var "$r0"))))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch2")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "closeCh"))
+  (Let "$v" (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [])))
+  (Let "$v1" (Val #true)
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (App (Val (GoInstruction (CompositeLiteral WatchResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Canceled")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"closeErr")) (ElementExpression go.error (Var "$v2")))])))))
+  (App (App (Val (chan.send WatchResponse.ty)) (Var "$chan")) (Var "$v"))))))
+  (App (Val doExecute)
+  (Val #()))))))]))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val catchBreak) (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Var "reqc"))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))) (Val #()))
+  (Let "$ch2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase watchStreamRequest.ty (Var "$ch0") (Var "$v0")) (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0")))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (Let "$r0" (Val #false)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch2")) (Lam "$recvVal"
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "closeCh"))
+  (Let "$v" (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [])))
+  (Let "$v1" (Val #true)
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (App (Val (GoInstruction (CompositeLiteral WatchResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Canceled")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"closeErr")) (ElementExpression go.error (Var "$v2")))])))))
+  (App (App (Val (chan.send WatchResponse.ty)) (Var "$chan")) (Var "$v"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))]))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "closeCh")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Val #(W64 1)))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (Var "closeCh") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Pair (Var "reqc") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "donec") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watchGRPCStream.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcher.ty) go!"newWatcherGRPCStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "ctxKey"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (Var "wgs") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (Var "wgs") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Val #()))
+  (Let "ch" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) WatchChan.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "ch"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "ch"))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (Var "ch") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))))
+  (Lam BAnon
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "ctxKey") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchRequest.ty)))) (Pair (Var "wr") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"filterDelete"))) (Var "ow")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (Var "filters"))
+  (Let "$a1" (Let "$sl0" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_NODELETE)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (Pair (Var "filters") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"filterPut"))) (Var "ow")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (Var "filters"))
+  (Let "$a1" (Let "$sl0" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_NOPUT)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (Pair (Var "filters") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Op.ty))) (Pair (Var "ow") (Var "$r0"))))))))))))))))
+
+/-- go: watch.go:395:19 -/
+noncomputable def watcher.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))
+  (Let "streams" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.context.Canceled))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Var "streams"))
+  (Let "wgs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watchGRPCStream.ty)))) (Val #())))
+  (App (App (Val (map.forRange go.string (go.GoType.PointerType watchGRPCStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))) (Val #()))
+  (Let "werr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "werr"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "werr") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (Var "wgs") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Pair (Var "streams") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #())))))))))
+
+/-- RequestProgress requests a progress notify response be sent in all watch channels.
+
+    go: watch.go:413:19 -/
+noncomputable def watcher.RequestProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ctx"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve streamKeyFromCtx []))) (Val #())) (Var "$a0")))
+  (Let "ctxKey" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.PointerType watchGRPCStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "ctxKey")))
+  (Let "wgs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watchGRPCStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (Let "donec" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"reqc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (Let "reqc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc progressRequest.ty))) (App (Val (GoInstruction (CompositeLiteral progressRequest.ty))) (LiteralValue [])))
+  (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType progressRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType progressRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Var "reqc"))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType progressRequest.ty)))) (Var "pr"))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (Let "$ch2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase watchStreamRequest.ty (Var "$ch0") (Var "$v0")) (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch2")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcher.ty) go!"RequestProgress"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")))))
+  (App (Val doExecute)
+  (Val #()))))))]))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType progressRequest.ty)))) (Pair (Var "pr") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Pair (Var "reqc") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "donec") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watchGRPCStream.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcher.ty) go!"newWatcherGRPCStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "ctxKey"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (Var "wgs") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchGRPCStream.ty)))) (Pair (Var "wgs") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"no stream found for context"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "ctxKey") (Var "$r0")))))))))))))
+
+/-- go: watch.go:446:27 -/
+noncomputable def watchGRPCStream.close.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"errc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (RecvCase go.error (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))]))))))
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #())))))))))
+
+/-- go: watch.go:456:19 -/
+noncomputable def watcher.closeStream.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "wgs"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (Let "wgs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctxKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))]))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs")))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "wgs"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))))))))
+
+/-- go: watch.go:466:27 -/
+noncomputable def watchGRPCStream.addSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "resp"
+  (Lam "ws"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "resp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "resp"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.int64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "resp")))) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val InvalidWatchID)))) (Val #true) (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "resp")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"CancelReason"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "resp")))) (Val #(go!""))))) (Val #false)))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"CancelReason"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "resp"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))))))
+
+/-- go: watch.go:478:27 -/
+noncomputable def watchGRPCStream.sendCloseSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ws"
+  (Lam "resp"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (Var "resp"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Var "$a0"))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad WatchResponse.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "resp")))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #()))
+  (Let "$ch2" (Let "$a0" (Val closeSendErrTimeout)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase WatchResponse.ty (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #())))),
+  (CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch2")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #()))))])))))))))))))))
+
+/-- go: watch.go:487:27 -/
+noncomputable def watchGRPCStream.closeSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ws"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val InvalidWatchID))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "closeErr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "closeErr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (Val #false)))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc WatchResponse.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [])))
+  (Let "$v1" (Val #true)
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (Val (GoInstruction (CompositeLiteral WatchResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Canceled")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"closeErr")) (ElementExpression go.error (Var "$v2")))]))))))
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"sendCloseSubstream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))
+  (App (Val doExecute)
+  (Fork
+  (App (App (Var "$go") (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "closeErr") (Var "$r0"))))))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"retc"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (SendCase (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #())))])))))))))))
+
+/-- run is the root of the goroutines for managing a watcher client
+
+    go: watch.go:512:27 -/
+noncomputable def watchGRPCStream.run.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "wc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val #())))
+  (Let "closeErr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "closing" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.int64 (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "cancelSet" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "cur" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Val #())))
+  (Let "$r0" (Val _root_.Perennial.time.Millisecond)
+  (Let "backoff" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"reqc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"respc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$ch2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"errc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$ch3" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Val #()))
+  (Let "$ch4" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closingc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase watchStreamRequest.ty (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "req" (App (Val (GoInstruction (GoAlloc watchStreamRequest.ty))) (App (Val (GoInstruction (GoZeroVal watchStreamRequest.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$y" (App (Val (GoInstruction (GoLoad watchStreamRequest.ty))) (Var "req"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType watchRequest.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "wreq" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchRequest.ty)))) (Var "$x"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Val #(W64 1)))
+  (Let "outc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc watcherStream.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad watchRequest.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wreq")))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val InvalidWatchID))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "outc"))
+  (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral watcherStream.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"initReq")) (ElementExpression watchRequest.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"id")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"outc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"recvc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty)) (Var "$v3")))])))))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resumec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"serveSubstream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType watcherStream.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchRequest.ty) go!"toPB"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) go!"Send"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"error when sending request"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Fork
+  (App (App (Var "$go") (Var "$a0")) (Var "$a1"))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"watchBufLogEnabled"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (Let "$a1" (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #()))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"newWatcherStreamBufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType blockLogger.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (Var "outc") (Var "$r0"))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType progressRequest.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "wreq" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType progressRequest.ty)))) (Var "$x"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType progressRequest.ty) go!"toPB"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType progressRequest.ty)))) (Var "wreq"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) go!"Send"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"error when sending request"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore watchStreamRequest.ty))) (Pair (Var "req") (Var "$r0"))))))))),
+  (CommClause (RecvCase (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) (Var "$ch1")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "pbresp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val catchBreak) (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Pair (Var "cur") (Var "$r0")))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"nextResume"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Val #()))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchRequest.ty) go!"toPB"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) go!"Send"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"error when sending request"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #(W64 0)))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #(W64 0)))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"dispatchEvent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"addSubstream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp")))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp")))) (Val #(W64 0)))) (Val #false))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Pair (Var "cur") (Var "$r0")))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.int64 (go.GoType.PointerType watcherStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert (go.GoType.PointerType watcherStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Var "closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$r0")))))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (Var "cancelSet"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.int64 (go.GoType.StructType []))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Fragment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "cur"))))))
+  (App (Val doContinue) (Val #()))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "cur"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"dispatchEvent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"WatchId")) (ElementExpression go.int64 (Var "$v0")))]))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"CancelRequest")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.ty) (Var "$v0")))]))))
+  (Let "cr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (Var "cr"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RequestUnion")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty) (Var "$v0")))]))))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (Var "req"))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) go!"Send"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to send watch cancel request"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"watch-id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"sending watch cancel request for failed dispatch"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"watch-id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (Pair (Var "cr") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.int64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (Var "cancelSet"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))) (Var "$r0")))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.int64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (Var "cancelSet"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Pair (Var "cur") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "cur")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Pair (Var "cur") (Var "$r0")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "cur")))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp")))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "cur"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Fragment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Fragment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "cur"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "cur"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Pair (Var "pbresp") (Var "$r0"))))))))),
+  (CommClause (RecvCase go.error (Var "$ch2")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"backoffIfUnavailable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.int64 (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (Pair (Var "cancelSet") (Var "$r0")))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"nextResume"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Val #()))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchRequest.ty) go!"toPB"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) go!"Send"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"error when sending request"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$r0"))))))))))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"newWatchClient"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "closeErr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "closeErr") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Pair (Var "wc") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0"))))))))
+  (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve isHaltErr []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #true) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrNoLeader))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "closeErr") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch3")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.PointerType watcherStream.ty) (Var "$ch4")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val InvalidWatchID))))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"WatchId")) (ElementExpression go.int64 (Var "$v0")))]))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"CancelRequest")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.ty) (Var "$v0")))]))))
+  (Let "cr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (Var "cr"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RequestUnion")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty) (Var "$v0")))]))))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (Var "req"))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) go!"Send"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to send watch cancel request"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"watch-id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"sending watch cancel request for closed watcher"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"watch-id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CancelRequest.ty)))) (Pair (Var "cr") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.int64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (Var "cancelSet"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0"))))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Var "closing"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"closeSubstream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$r0")))))))))])))))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int64 (go.GoType.StructType []))))) (Pair (Var "cancelSet") (Var "$r0")))))))))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"newWatchClient"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "closeErr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "closeErr") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Pair (Var "wc") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "closeErr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcher.ty) go!"closeStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"owner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Var "closing"))
+  (App (App (Val (map.forRange (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (Val doExecute)
+  (Let "$a0" (Fst (App (Val (chan.receive (go.GoType.PointerType watcherStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closingc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"closeSubstream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"joinSubstreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Var "closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert (go.GoType.PointerType watcherStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Var "closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value")))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (map.forRange go.int64 (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Var "closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert (go.GoType.PointerType watcherStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Var "closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closeErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType (go.GoType.PointerType watcherStream.ty) (go.GoType.StructType []))))) (Pair (Var "closing") (Var "$r0")))))))))))))))
+
+/-- nextResume chooses the next resuming to register with the grpc stream. Abandoned
+    streams are marked as nil in the queue since the head must wait for its inflight registration.
+
+    go: watch.go:713:27 -/
+noncomputable def watchGRPCStream.nextResume.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil)))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (Pair (Var "$s") (Val #(W64 1))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #(W64 0))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #(W64 0))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Lam BAnon
+  (Val #()))))))))
+
+/-- dispatchEvent sends a WatchResponse to the appropriate watcher stream
+
+    go: watch.go:724:27 -/
+noncomputable def watchGRPCStream.dispatchEvent.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "pbresp"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "pbresp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc WatchResponse.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (App (Val (GoInstruction (FuncResolve ensureWatchHeader []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"CancelReason"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (Val (GoInstruction (CompositeLiteral WatchResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Events")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"CompactRevision")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Created")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"Canceled")) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyField go!"CancelReason")) (ElementExpression go.string (Var "$v5")))])))))))))
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"unicastResponse"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1")))))))
+  (If (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType WatchResponse.ty) go!"IsProgressNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))) (Val #())) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty go!"WatchId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "pbresp")))) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val InvalidWatchID)))) (Val #false))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"broadcastResponse"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType WatchResponse.ty)))) (Pair (Var "wr") (Var "$r0"))))))))))))
+
+/-- broadcastResponse send a watch response to all watch substreams.
+
+    go: watch.go:745:27 -/
+noncomputable def watchGRPCStream.broadcastResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "wr"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #true))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (map.forRange go.int64 (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase (go.GoType.PointerType WatchResponse.ty) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #()))))])))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value"))))))))))))))))
+
+/-- unicastResponse sends a watch response to a specific watch substream.
+
+    go: watch.go:756:27 -/
+noncomputable def watchGRPCStream.unicastResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "wr"
+  (Lam "watchID"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "watchID" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "watchID"))
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (Let "__p" (App (App (Val (map.lookup2 go.int64 (go.GoType.PointerType watcherStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "watchID")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #true))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase (go.GoType.PointerType WatchResponse.ty) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #false))))]))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$r0")))))))))))))))))))
+
+/-- serveWatchClient forwards messages from the grpc stream to run()
+
+    go: watch.go:770:27 -/
+noncomputable def watchGRPCStream.serveWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "wc"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "wc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) go!"Recv"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"respc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Var "resp"))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #()))))])))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"errc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase go.error (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #()))))]))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (Lam BAnon
+  (Val #())))))))))
+
+/-- serveSubstream forwards watch responses from run() to the subscriber
+
+    go: watch.go:789:27 -/
+noncomputable def watchGRPCStream.serveSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ws"
+  (Lam "resumec"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "resumec" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "resumec"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"rev"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (Let "nextRev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (Let "resuming" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc WatchResponse.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [])))
+  (App (Val (GoInstruction (CompositeLiteral WatchResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0")))]))))
+  (Let "emptyWr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "emptyWr"))
+  (Let "curWr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "outc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "outc"))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad WatchResponse.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "curWr")))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"recvc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "$ch2" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Val #()))
+  (Let "$ch3" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #()))
+  (Let "$ch4" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "resumec"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase WatchResponse.ty (Var "$ch0") (Var "$v0")) (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WatchResponse.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType WatchResponse.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType WatchResponse.ty) go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"recordBufWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")))))),
+  (CommClause (RecvCase (go.GoType.PointerType WatchResponse.ty) (Var "$ch1")) (Lam "$recvVal"
+  (Let "__p" (Var "$recvVal")
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WatchResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType WatchResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "nextRev"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType WatchResponse.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"rev"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType Event.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType Event.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))
+  (Let "last" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "last")))))) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "nextRev") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Pair (Var "last") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"retc"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"rev"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "nextRev") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"createdNotify"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "$v" (App (Val (GoInstruction (GoLoad WatchResponse.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))
+  (App (App (Val (chan.send WatchResponse.ty)) (Var "$chan")) (Var "$v")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"retc"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"retc"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (Let "$v" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (chan.send (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))) (Var "$chan")) (Var "$v"))))))
+  (App (Val doExecute)
+  (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))))) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "nextRev") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType WatchResponse.ty)))) (Pair (Var "wr") (Var "$r0")))))))))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch2")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch3")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch4")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "resuming") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherStream.ty) go!"resetBufWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Val #()))))))]))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"startBufWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType WatchResponse.ty)))) (Pair (Var "curWr") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (Var "outc") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (Var "outc") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType WatchResponse.ty)))) (Pair (Var "curWr") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType WatchResponse.ty)))) (Pair (Var "emptyWr") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "resuming")))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"recordBufWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #())))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "resuming")))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closingc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$v" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val (chan.send (go.GoType.PointerType watcherStream.ty))) (Var "$chan")) (Var "$v")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "resuming")))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "resuming") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "nextRev") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"created substream goroutine but substream is closing")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
+
+/-- go: watch.go:895:27 -/
+noncomputable def watchGRPCStream.startBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ws"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"now"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufWaitStartTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType blockLogger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType blockLogger.ty)))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"IsZero"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufWaitStartTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #()))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- go: watch.go:902:27 -/
+noncomputable def watchGRPCStream.recordBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ws"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherStream.ty) go!"resetBufWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufWaitStartTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"Sub"))) (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"now"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #()))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType blockLogger.ty) go!"recordWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))) (Var "$a0")))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType blockLogger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType blockLogger.ty)))) (Val UntypedNil))))) (Val #true) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"IsZero"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufWaitStartTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #())))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- go: watch.go:910:26 -/
+noncomputable def watcherStream.resetBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ws"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.time.Time.ty))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufWaitStartTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))))
+
+/-- go: watch.go:914:27 -/
+noncomputable def watchGRPCStream.newWatcherStreamBufLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "ws"
+  (Lam "now"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "now" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Var "now"))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (Val doReturn)
+  (Let "$a0" (Val watcherStreamBufWarningInterval)
+  (Let "$a1" (Val watcherStreamBufWarningThreshold)
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))))) (Var "now"))
+  (Let "$a3" (Lam "responseCount"
+  (Lam "timeWaiting"
+  (Lam "window"
+  (App (Val exceptionDo)
+  (Let "window" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "window"))
+  (Let "timeWaiting" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeWaiting"))
+  (Let "responseCount" (App (Val (GoInstruction (GoAlloc go.int))) (Var "responseCount"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"watcher substream buffer is backlogged; subscriber may be too slow to consume events"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"range-start"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"key"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"range-end"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"end"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"watch-revision"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"rev"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"buffer-size"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl4" (Let "$a0" (Val #(go!"response-count"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "responseCount"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl5" (Let "$a0" (Val #(go!"time-blocked"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "timeWaiting"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl6" (Let "$a0" (Val #(go!"log-interval"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "window"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl4"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl5"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl6")))])))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))))))))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve newBlockLogger []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))))))
+
+/-- go: watch.go:929:27 -/
+noncomputable def watchGRPCStream.newWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "resuming" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Var "resuming"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "stopc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "stopc")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"waitCancelSubstreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "donec" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"openWatchClient"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "wc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc"))
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"serveWatchClient"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "wc")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Var "$a0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val UntypedNil)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error []))) (Val #())) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resumec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"serveSubstream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))
+  (App (Val doExecute)
+  (Fork
+  (App (App (Var "$go") (Var "$a0")) (Var "$a1")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "donec"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "stopc"))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Pair (Var "wc") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "donec") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "stopc") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Var "resuming"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType watcherStream.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (Var "resuming") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value"))))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (map.forRange go.int64 (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val InvalidWatchID))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType watcherStream.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"joinSubstreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resumec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resumec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
+
+/-- go: watch.go:975:27 -/
+noncomputable def watchGRPCStream.waitCancelSubstreams.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "stopc"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "stopc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "stopc"))
+  (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "donec" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))
+  (Let "$f" (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #()))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Var "$a0"))
+  (App (Var "$oldf") (Val #())))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #()))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$go" (Lam "ws"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #()))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "stopc"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"closingc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$v" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val (chan.send (go.GoType.PointerType watcherStream.ty))) (Var "$chan")) (Var "$v")))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #())))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"wg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #()))))]))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"closing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val UntypedNil))))) (Val #false)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"outc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)]))) (Val #())) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg"))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #())))))))))))))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Var "$a0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "donec") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0")))))))))))
+
+/-- joinSubstreams waits for all substream goroutines to complete.
+
+    go: watch.go:1012:27 -/
+noncomputable def watchGRPCStream.joinSubstreams.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resuming"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType watcherStream.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType watcherStream.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value"))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 (go.GoType.PointerType watcherStream.ty))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"substreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val (map.forRange go.int64 (go.GoType.PointerType watcherStream.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value"))))))))))))))))
+
+/-- go: watch.go:1025:27 -/
+noncomputable def watchGRPCStream.backoffIfUnavailable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "backoff"
+  (Lam "err"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "backoff" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "backoff"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff")))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve isUnavailableErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr maxBackoff))) (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff")) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff")) (Val #(W64 4))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr maxBackoff))) (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr maxBackoff))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
+/-- openWatchClient retries opening a watch client until success or halt.
+    manually retry in case "ws==nil && err==nil"
+    TODO: remove FailFast=false
+
+    go: watch.go:1043:27 -/
+noncomputable def watchGRPCStream.openWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "ws" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val #())))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))
+  (Let "$r0" (Val _root_.Perennial.time.Millisecond)
+  (Let "backoff" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"backoffIfUnavailable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0")))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve isHaltErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val UntypedNil)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error []))) (Val #())) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty go!"Watch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Var "ws")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (Val #false)))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Pair (Var "ws") (Var "$r0")))))))))))))
+  (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Val #()))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Watch_WatchClient.ty))) (Val UntypedNil)) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))]))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0")))))))))))))
+
+/-- toPB converts an internal watch request structure to its protobuf WatchRequest structure.
+
+    go: watch.go:1066:25 -/
+noncomputable def watchRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "wr"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "wr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"rev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr")))))
+  (Let "$v2" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"end"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr")))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"progressNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty)))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"filters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"prevKV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"fragment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"StartRevision")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"RangeEnd")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2"))), (KeyedElement (some (KeyField go!"ProgressNotify")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"Filters")) (ElementExpression (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest_FilterType.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"PrevKv")) (ElementExpression go.bool (Var "$v5"))), (KeyedElement (some (KeyField go!"Fragment")) (ElementExpression go.bool (Var "$v6")))]))))))))))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CreateRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty)))) (Var "req"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CreateRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"CreateRequest")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty) (Var "$v0")))]))))
+  (Let "cr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CreateRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CreateRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CreateRequest.ty)))) (Var "cr"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RequestUnion")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CreateRequest.ty) (Var "$v0")))])))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_CreateRequest.ty)))) (Pair (Var "cr") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))))
+
+/-- toPB converts an internal progress request structure to its protobuf WatchRequest structure.
+
+    go: watch.go:1081:28 -/
+noncomputable def progressRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "pr"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType progressRequest.ty)))) (Var "pr"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty))) (LiteralValue [])))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_ProgressRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (Var "req"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_ProgressRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ProgressRequest")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty) (Var "$v0")))]))))
+  (Let "cr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_ProgressRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_ProgressRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_ProgressRequest.ty)))) (Var "cr"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RequestUnion")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_ProgressRequest.ty) (Var "$v0")))])))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest_ProgressRequest.ty)))) (Pair (Var "cr") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
@@ -4223,6 +6659,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4258,14 +6697,19 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 0))
+  (Let "$a1" (Val #(W64 0))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Unix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val _root_.Perennial.time.Millisecond)))
   (App (Val doExecute)
-  (App (Val maxBackoff.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr maxBackoff))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val zeroTime.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr zeroTime))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val valCtxCh.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr valCtxCh))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val defaultOptions.init) (Val #()))))))
   (App (Val doExecute)
@@ -4331,7 +6775,13 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc noPrefixEnd (go.GoType.SliceType go.byte))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc noPrefixEnd (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc valCtxCh (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc zeroTime _root_.Perennial.time.Time.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc maxBackoff _root_.Perennial.time.Duration.ty)) (Val #()))))))))
 
 abbrev AuthEnableResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse
 
@@ -4642,6 +7092,7 @@ class blockLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_eventCount : ∀ (x : blockLogger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet blockLogger.underlying go!"eventCount") (PairV #x #y) (Val #(({ x with eventCount' := y } : blockLogger)))
   get_timeWaiting : ∀ (x : blockLogger), go.IsGoStepPureDetTagged under (StructFieldGet blockLogger.underlying go!"timeWaiting") #x (Val #(x.timeWaiting'))
   set_timeWaiting : ∀ (x : blockLogger) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet blockLogger.underlying go!"timeWaiting") (PairV #x #y) (Val #(({ x with timeWaiting' := y } : blockLogger)))
+  ptr_recordWait_unfold : MethodUnfold (go.GoType.PointerType blockLogger.ty) go!"recordWait" blockLogger.recordWait.impl
 
 attribute [instance] blockLogger.TypeAssumptions.type_repr
   blockLogger.TypeAssumptions.underlying
@@ -4661,6 +7112,7 @@ attribute [instance] blockLogger.TypeAssumptions.type_repr
   blockLogger.TypeAssumptions.set_eventCount
   blockLogger.TypeAssumptions.get_timeWaiting
   blockLogger.TypeAssumptions.set_timeWaiting
+  blockLogger.TypeAssumptions.ptr_recordWait_unfold
 
 abbrev Cluster [FfiSyntax] : Type := GoInterface
 
@@ -7064,6 +9516,11 @@ class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_streams : ∀ (x : watcher) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"streams") (PairV #x #y) (Val #(({ x with streams' := y } : watcher)))
   get_lg : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : watcher)))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Close" watcher.Close.impl
+  ptr_RequestProgress_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"RequestProgress" watcher.RequestProgress.impl
+  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Watch" watcher.Watch.impl
+  ptr_closeStream_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"closeStream" watcher.closeStream.impl
+  ptr_newWatcherGRPCStream_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"newWatcherGRPCStream" watcher.newWatcherGRPCStream.impl
 
 attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.underlying
@@ -7077,6 +9534,11 @@ attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.set_streams
   watcher.TypeAssumptions.get_lg
   watcher.TypeAssumptions.set_lg
+  watcher.TypeAssumptions.ptr_Close_unfold
+  watcher.TypeAssumptions.ptr_RequestProgress_unfold
+  watcher.TypeAssumptions.ptr_Watch_unfold
+  watcher.TypeAssumptions.ptr_closeStream_unfold
+  watcher.TypeAssumptions.ptr_newWatcherGRPCStream_unfold
 
 structure watchGRPCStream [FfiSyntax] where
   mk ::
@@ -7167,6 +9629,25 @@ class watchGRPCStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_closeErr : ∀ (x : watchGRPCStream) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet watchGRPCStream.underlying go!"closeErr") (PairV #x #y) (Val #(({ x with closeErr' := y } : watchGRPCStream)))
   get_lg : ∀ (x : watchGRPCStream), go.IsGoStepPureDetTagged under (StructFieldGet watchGRPCStream.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : watchGRPCStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchGRPCStream.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : watchGRPCStream)))
+  ptr_addSubstream_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"addSubstream" watchGRPCStream.addSubstream.impl
+  ptr_backoffIfUnavailable_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"backoffIfUnavailable" watchGRPCStream.backoffIfUnavailable.impl
+  ptr_broadcastResponse_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"broadcastResponse" watchGRPCStream.broadcastResponse.impl
+  ptr_close_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"close" watchGRPCStream.close.impl
+  ptr_closeSubstream_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"closeSubstream" watchGRPCStream.closeSubstream.impl
+  ptr_dispatchEvent_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"dispatchEvent" watchGRPCStream.dispatchEvent.impl
+  ptr_joinSubstreams_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"joinSubstreams" watchGRPCStream.joinSubstreams.impl
+  ptr_newWatchClient_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"newWatchClient" watchGRPCStream.newWatchClient.impl
+  ptr_newWatcherStreamBufLogger_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"newWatcherStreamBufLogger" watchGRPCStream.newWatcherStreamBufLogger.impl
+  ptr_nextResume_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"nextResume" watchGRPCStream.nextResume.impl
+  ptr_openWatchClient_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"openWatchClient" watchGRPCStream.openWatchClient.impl
+  ptr_recordBufWait_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"recordBufWait" watchGRPCStream.recordBufWait.impl
+  ptr_run_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"run" watchGRPCStream.run.impl
+  ptr_sendCloseSubstream_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"sendCloseSubstream" watchGRPCStream.sendCloseSubstream.impl
+  ptr_serveSubstream_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"serveSubstream" watchGRPCStream.serveSubstream.impl
+  ptr_serveWatchClient_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"serveWatchClient" watchGRPCStream.serveWatchClient.impl
+  ptr_startBufWait_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"startBufWait" watchGRPCStream.startBufWait.impl
+  ptr_unicastResponse_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"unicastResponse" watchGRPCStream.unicastResponse.impl
+  ptr_waitCancelSubstreams_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"waitCancelSubstreams" watchGRPCStream.waitCancelSubstreams.impl
 
 attribute [instance] watchGRPCStream.TypeAssumptions.type_repr
   watchGRPCStream.TypeAssumptions.underlying
@@ -7204,6 +9685,25 @@ attribute [instance] watchGRPCStream.TypeAssumptions.type_repr
   watchGRPCStream.TypeAssumptions.set_closeErr
   watchGRPCStream.TypeAssumptions.get_lg
   watchGRPCStream.TypeAssumptions.set_lg
+  watchGRPCStream.TypeAssumptions.ptr_addSubstream_unfold
+  watchGRPCStream.TypeAssumptions.ptr_backoffIfUnavailable_unfold
+  watchGRPCStream.TypeAssumptions.ptr_broadcastResponse_unfold
+  watchGRPCStream.TypeAssumptions.ptr_close_unfold
+  watchGRPCStream.TypeAssumptions.ptr_closeSubstream_unfold
+  watchGRPCStream.TypeAssumptions.ptr_dispatchEvent_unfold
+  watchGRPCStream.TypeAssumptions.ptr_joinSubstreams_unfold
+  watchGRPCStream.TypeAssumptions.ptr_newWatchClient_unfold
+  watchGRPCStream.TypeAssumptions.ptr_newWatcherStreamBufLogger_unfold
+  watchGRPCStream.TypeAssumptions.ptr_nextResume_unfold
+  watchGRPCStream.TypeAssumptions.ptr_openWatchClient_unfold
+  watchGRPCStream.TypeAssumptions.ptr_recordBufWait_unfold
+  watchGRPCStream.TypeAssumptions.ptr_run_unfold
+  watchGRPCStream.TypeAssumptions.ptr_sendCloseSubstream_unfold
+  watchGRPCStream.TypeAssumptions.ptr_serveSubstream_unfold
+  watchGRPCStream.TypeAssumptions.ptr_serveWatchClient_unfold
+  watchGRPCStream.TypeAssumptions.ptr_startBufWait_unfold
+  watchGRPCStream.TypeAssumptions.ptr_unicastResponse_unfold
+  watchGRPCStream.TypeAssumptions.ptr_waitCancelSubstreams_unfold
 
 abbrev watchStreamRequest [FfiSyntax] : Type := GoInterface
 
@@ -7280,6 +9780,7 @@ class watchRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_prevKV : ∀ (x : watchRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watchRequest.underlying go!"prevKV") (PairV #x #y) (Val #(({ x with prevKV' := y } : watchRequest)))
   get_retc : ∀ (x : watchRequest), go.IsGoStepPureDetTagged under (StructFieldGet watchRequest.underlying go!"retc") #x (Val #(x.retc'))
   set_retc : ∀ (x : watchRequest) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watchRequest.underlying go!"retc") (PairV #x #y) (Val #(({ x with retc' := y } : watchRequest)))
+  ptr_toPB_unfold : MethodUnfold (go.GoType.PointerType watchRequest.ty) go!"toPB" watchRequest.toPB.impl
 
 attribute [instance] watchRequest.TypeAssumptions.type_repr
   watchRequest.TypeAssumptions.underlying
@@ -7305,6 +9806,7 @@ attribute [instance] watchRequest.TypeAssumptions.type_repr
   watchRequest.TypeAssumptions.set_prevKV
   watchRequest.TypeAssumptions.get_retc
   watchRequest.TypeAssumptions.set_retc
+  watchRequest.TypeAssumptions.ptr_toPB_unfold
 
 structure progressRequest [FfiSyntax] where
   mk ::
@@ -7328,9 +9830,11 @@ instance equals_unfold_progressRequest [FfiSyntax] [GoGlobalContext] :
 class progressRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying progressRequest.underlying progressRequest
   underlying : go.UnderlyingDirectedEq progressRequest.ty progressRequest.underlying
+  ptr_toPB_unfold : MethodUnfold (go.GoType.PointerType progressRequest.ty) go!"toPB" progressRequest.toPB.impl
 
 attribute [instance] progressRequest.TypeAssumptions.type_repr
   progressRequest.TypeAssumptions.underlying
+  progressRequest.TypeAssumptions.ptr_toPB_unfold
 
 structure watcherStream [FfiSyntax] where
   mk ::
@@ -7389,6 +9893,7 @@ class watcherStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_bufLogger : ∀ (x : watcherStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufLogger") (PairV #x #y) (Val #(({ x with bufLogger' := y } : watcherStream)))
   get_bufWaitStartTime : ∀ (x : watcherStream), go.IsGoStepPureDetTagged under (StructFieldGet watcherStream.underlying go!"bufWaitStartTime") #x (Val #(x.bufWaitStartTime'))
   set_bufWaitStartTime : ∀ (x : watcherStream) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufWaitStartTime") (PairV #x #y) (Val #(({ x with bufWaitStartTime' := y } : watcherStream)))
+  ptr_resetBufWait_unfold : MethodUnfold (go.GoType.PointerType watcherStream.ty) go!"resetBufWait" watcherStream.resetBufWait.impl
 
 attribute [instance] watcherStream.TypeAssumptions.type_repr
   watcherStream.TypeAssumptions.underlying
@@ -7410,6 +9915,7 @@ attribute [instance] watcherStream.TypeAssumptions.type_repr
   watcherStream.TypeAssumptions.set_bufLogger
   watcherStream.TypeAssumptions.get_bufWaitStartTime
   watcherStream.TypeAssumptions.set_bufWaitStartTime
+  watcherStream.TypeAssumptions.ptr_resetBufWait_unfold
 
 structure valCtx [FfiSyntax] where
   mk ::
@@ -7436,11 +9942,17 @@ class valCtx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq valCtx.ty valCtx.underlying
   get_Context : ∀ (x : valCtx), go.IsGoStepPureDetTagged under (StructFieldGet valCtx.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : valCtx) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet valCtx.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : valCtx)))
+  ptr_Deadline_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Deadline" valCtx.Deadline.impl
+  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Done" valCtx.Done.impl
+  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Err" valCtx.Err.impl
 
 attribute [instance] valCtx.TypeAssumptions.type_repr
   valCtx.TypeAssumptions.underlying
   valCtx.TypeAssumptions.get_Context
   valCtx.TypeAssumptions.set_Context
+  valCtx.TypeAssumptions.ptr_Deadline_unfold
+  valCtx.TypeAssumptions.ptr_Done_unfold
+  valCtx.TypeAssumptions.ptr_Err_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   AuthEnableResponse_instance : AuthEnableResponse.TypeAssumptions
@@ -7549,6 +10061,9 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   progressRequest_instance : progressRequest.TypeAssumptions
   watcherStream_instance : watcherStream.TypeAssumptions
   valCtx_instance : valCtx.TypeAssumptions
+  newBlockLogger_unfold : FuncUnfold newBlockLogger [] newBlockLogger.impl
+  isHaltErr_unfold : FuncUnfold isHaltErr [] isHaltErr.impl
+  isUnavailableErr_unfold : FuncUnfold isUnavailableErr [] isUnavailableErr.impl
   ContextError_unfold : FuncUnfold ContextError [] ContextError.impl
   Compare_unfold : FuncUnfold Compare [] Compare.impl
   Value_unfold : FuncUnfold Value [] Value.impl
@@ -7603,6 +10118,9 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   withBackoff_unfold : FuncUnfold withBackoff [] withBackoff.impl
   reuseOrNewWithCallOptions_unfold : FuncUnfold reuseOrNewWithCallOptions [] reuseOrNewWithCallOptions.impl
   filterCallOptions_unfold : FuncUnfold filterCallOptions [] filterCallOptions.impl
+  ensureWatchHeader_unfold : FuncUnfold ensureWatchHeader [] ensureWatchHeader.impl
+  NewWatcher_unfold : FuncUnfold NewWatcher [] NewWatcher.impl
+  NewWatchFromWatchClient_unfold : FuncUnfold NewWatchFromWatchClient [] NewWatchFromWatchClient.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
@@ -7728,6 +10246,9 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.progressRequest_instance
   Assumptions.watcherStream_instance
   Assumptions.valCtx_instance
+  Assumptions.newBlockLogger_unfold
+  Assumptions.isHaltErr_unfold
+  Assumptions.isUnavailableErr_unfold
   Assumptions.ContextError_unfold
   Assumptions.Compare_unfold
   Assumptions.Value_unfold
@@ -7782,6 +10303,9 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.withBackoff_unfold
   Assumptions.reuseOrNewWithCallOptions_unfold
   Assumptions.filterCallOptions_unfold
+  Assumptions.ensureWatchHeader_unfold
+  Assumptions.NewWatcher_unfold
+  Assumptions.NewWatchFromWatchClient_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_grpc_Assumption
