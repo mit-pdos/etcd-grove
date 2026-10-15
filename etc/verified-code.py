@@ -256,14 +256,33 @@ def goose_functions(pkgs):
 def local_proofs(objs):
     """This repository's specs: (project, the Lean name of the function (`T.M`)) ->
     (state, sorry-free), from the linked results of `LINKS`."""
+    # Keyed by (module, name): the same name is linked in several module roots (the raft
+    # proof's `Link`, `EtcdDeps`'s, `Raft37`'s all link `quorum.JointConfig.wp_IDs`), and each
+    # is its project's own result. A result's `uses` name results by name alone: one is
+    # resolved in its own module, else in a module of the same root (`Raft37.*`,
+    # `EtcdDeps.*`, or the plain `Proof.*`), never across roots.
     roots, axioms = {}, set()
     for o in objs:
         if o["t"] == "root" and o["module"] in LINKS:
-            roots[o["name"]] = o
+            roots[(o["module"], o["name"])] = o
         elif o["t"] == "axiom":
             axioms.add(o["name"])
+    by_name = {}
+    for (m, n), o in roots.items():
+        by_name.setdefault(n, []).append(o)
+
+    def part(m):
+        top = m.split(".")[0]
+        return "" if top == "Proof" else top
+
+    def used(r, u):
+        if (r["module"], u) in roots:
+            return roots[(r["module"], u)]
+        same = [o for o in by_name.get(u, []) if part(o["module"]) == part(r["module"])]
+        return same[0] if same else None
+
     out = {}
-    for n, r in roots.items():
+    for (_m, n), r in roots.items():
         # `T.wp_M : T.M.spec`
         name = n.removeprefix(NS)
         # A Link with a namespace of its own (`etc/gen-link.py --concurrency`) names its
@@ -277,7 +296,7 @@ def local_proofs(objs):
                 name = ".".join(rest)
         *pre, last = name.split(".")
         fn = ".".join(pre + [last.removeprefix("wp_")])
-        inherited = {s for u in r["uses"] if u in roots for s in roots[u]["sorries"]}
+        inherited = {s for u in r["uses"] if used(r, u) for s in used(r, u)["sorries"]}
         own = set(r["sorries"]) - inherited
         # a spec of another package not among the qualifiers (`leasing.strings.Compare`, an axiom
         # `strings.Compare.wp_proof` outside the Link's namespace)
