@@ -184,7 +184,8 @@ def project_part_packages():
 def project_packages(src):
     """project -> its translated Go packages (import paths), the first its main one."""
     return {
-        n: [go_module(src[n]) if q == "." else q for q in p.packages]
+        n: [go_module(src[n]) + q[1:] if q == "." or q.startswith("./") else q
+            for q in p.packages]
         for n, p in PROJECTS.items()
     }
 

@@ -3043,7 +3043,7 @@ notes). Design: decisions.md, "The client contracts derived: certified floors, t
   `isEtcdTxnKVTodo_of_kv`) and, through the floors, item 3 at one member (a revision the caller
   knows is reached becomes the request's certificate). Open: items 1, 2 (one history: the floors
   are certificates of one member's `E.γ.idx`), 3 across members, 7, 8, and the retried put.
-- **What the watch slice should do first** (deferred 2026-10-15: the slice's goal is now the
+- **What the watch slice should do first** (out of the vertical slice's scope since 2026-10-15, continued as the watch slice's units W-W/W-M/W-C, see "The watch slice"; the vertical slice's goal is now the
   client's `Put`/`Range` and adequacy, see the section's head): derive `isEtcdRangeWatcherOpen` for
   the client's `Watcher` over etcd's `Watch` service, the one premise of
   `isEtcdRecipesClient_of_kv` not derived (the queue's wait path uses it).
@@ -3108,6 +3108,17 @@ The goal: the clients' watch-based results (the cache's `rangeWatchElem` chain, 
 waits) over the verified server, through etcd's gRPC watch service and the stream. The wire is a
 server-end stream interface in the shape of `notes/grpc-stream-spec.md` (two ghost FIFO queues per
 stream; the generic gRPC specification's author instantiates it); the client hop is next.
+
+**Scope (2026-10-15).** The vertical slice's revised goal ("The vertical slice: client to server":
+the client's `Put`/`Range` end to end and adequacy, the backend's session) put the watch slice out
+of its scope; the request path's session continues it, by the user's decision of the same day, as
+its own slice: the wire (unit W-W, both ends of a gRPC stream and the generated stub and handler,
+built by us since the generic specification's author deferred it), the mvcc watch specs the client
+needs (W-M: the watcher returned by `watchStream.Watch`, the start revision in the receive
+guarantee, `Chan`, unique auto-assigned ids), then the client's `client/v3/watch.go` (W-C) up to
+`isEtcdRangeWatcherOpen` at the server's instance, the one underived premise of
+`isEtcdRecipesClient_of_kv`, and the queue's blocking path. A create spends one of the server's
+watch tokens (mvcc's budget): the client-side derivations take the tokens as a premise.
 
 ### W-S: the server's watch service (2026-10-14)
 
