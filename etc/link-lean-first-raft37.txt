@@ -203,3 +203,44 @@ MemoryStorage__ApplySnapshot: raftpb_EnsureSnapshot raftpb_Snapshot__GetMetadata
 MemoryStorage__Compact: raftpb_Entry__GetIndex MemoryStorage__lastIndex raftpb_Entry__GetTerm
 MemoryStorage__CreateSnapshot: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_Entry__GetIndex MemoryStorage__lastIndex raftpb_EnsureSnapshot raftpb_Entry__GetTerm proto_CloneConfState proto_CloneSnapshot
 MemoryStorage__Append: MemoryStorage__firstIndex raftpb_Entry__GetIndex
+big_NewInt:
+big_Int__Int64:
+rand_Int:
+IsLocalMsgTarget:
+Config__validate: IsLocalMsgTarget
+isMsgInArray:
+IsLocalMsg: isMsgInArray
+IsResponseMsg: isMsgInArray
+newReadOnly:
+traceInitState:
+traceConfChangeEvent:
+traceCommit:
+traceSendMessage:
+traceBecomeFollower:
+traceBecomeCandidate:
+traceBecomeLeader:
+traceReplicate:
+traceChangeConfEvent:
+traceReceiveMessage:
+traceReady:
+lockedRand__Intn: big_NewInt rand_Int big_Int__Int64
+raft__resetRandomizedElectionTimeout: lockedRand__Intn
+raft__abortLeaderTransfer:
+raft__softState:
+raft__hasLeader:
+raft__pastElectionTimeout:
+raft__promotable: raftLog__hasNextOrInProgressSnapshot
+raft__committedEntryInCurrentTerm: raftLog__term raftLog__zeroTermOnOutOfBounds
+raft__increaseUncommittedSize: payloadsSize
+raft__reduceUncommittedSize:
+raft__appliedTo: raftLog__appliedTo
+raft__maybeCommit: traceCommit tracker_ProgressTracker__Committed raftLog__maybeCommit
+raft__poll: tracker_ProgressTracker__RecordVote tracker_ProgressTracker__TallyVotes
+readOnly__heartbeatCtx:
+readOnly__recvAck:
+readOnly__AckedIndex:
+readOnly__maybeAdvance: quorum_JointConfig__CommittedIndex readOnly__AckedIndex
+voteRespMsgType:
+SoftState__equal:
+needStorageApplyMsg:
+needStorageApplyRespMsg: needStorageApplyMsg
