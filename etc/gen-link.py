@@ -118,8 +118,10 @@ the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class
 `cache/v3/EtcdModel.lean`, which the server instantiates; the vertical slice's unit V1).
 `--raft37` links the raft v3.7 proofs ported so far into the parallel tree `Raft37/` (the
 retarget of the raft proof, `notes/raft-retarget-plan.md`), from etc/link-lean-first-raft37.txt:
-its specs are looked up in `Raft37/Spec/` only (the old raft's, in `Spec/`, have the same Go
-paths), its results are named as the old raft's Link names them.
+its specs are looked up in `Raft37/Spec/`, and in `Spec/` for the functions outside raft (the
+trust-boundary axioms of protobuf-go's `proto`, stated over the `Raft37` predicates); a raft
+function's spec in `Spec/` (the old raft's, the same Go path) is shadowed by `Raft37/Spec/`'s.
+Its results are named as the old raft's Link names them.
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -222,10 +224,13 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
                    "The register example's proofs (`examples/register`)", [""]),
     # raft v3.7 plus the read-index fix, the parallel tree the raft proof is ported into
-    # (project raft37 of etc/goose.py): its specs are Raft37/Spec's alone
+    # (project raft37 of etc/goose.py): its specs are Raft37/Spec's (a raft function's spec in
+    # the root's Spec/, the old raft's, is shadowed by the later root's), and the trust
+    # boundary's of protobuf-go in the root (Spec/google_golang_org/protobuf/proto/, stage R1)
     "--raft37": ("link-lean-first-raft37.txt", "go_etcd_io.raft.v3",
                  "go_etcd_io.raft.v3.Assumptions",
-                 "The raft v3.7 proofs ported so far (the parallel tree `Raft37/`)", ["Raft37"]),
+                 "The raft v3.7 proofs ported so far (the parallel tree `Raft37/`)",
+                 ["", "Raft37"]),
     # porcupine (third_party/porcupine), the linearizability checker of etcd's robustness tests
     "--porcupine": ("link-lean-first-porcupine.txt", "github_com.anishathalye.porcupine",
                     "github_com.anishathalye.porcupine.Assumptions",
