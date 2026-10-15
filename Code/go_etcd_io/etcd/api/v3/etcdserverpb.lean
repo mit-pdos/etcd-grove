@@ -1092,7 +1092,8 @@ axiom KV_RangeStream_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
 axiom KV_Compact_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
-axiom Watch_Watch_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Watch_Watch_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.Watch/Watch")
 
 axiom Lease_LeaseGrant_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
@@ -1326,8 +1327,6 @@ noncomputable def KV_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def Watch_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Watch_ServiceDesc"
-
-axiom Watch_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def Lease_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Lease_ServiceDesc"
@@ -2589,6 +2588,98 @@ noncomputable def _KV_Txn_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType TxnRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))))))
 
+/-- go: rpc_grpc.pb.go:376:6 -/
+noncomputable def NewWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cc"
+  (App (Val exceptionDo)
+  (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType watchClient.ty) WatchClient.ty))) (App (Val (GoInstruction (GoAlloc watchClient.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val (GoInstruction (CompositeLiteral watchClient.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty (Var "$v0")))])))))))))
+
+/-- go: rpc_grpc.pb.go:380:23 -/
+noncomputable def watchClient.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watchClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty go!"Streams"))) (App (Val (GoInstruction (GlobalVarAddr Watch_ServiceDesc))) (Val #())))) (Val #(W64 0))))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Watch_Watch_FullMethodName))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"NewStream"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef watchClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "stream" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.google_golang_org.grpc.GenericClientStream.ty WatchRequest.ty WatchResponse.ty)))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Var "stream"))
+  (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.google_golang_org.grpc.GenericClientStream.ty WatchRequest.ty WatchResponse.ty)))) (LiteralValue [(KeyedElement (some (KeyField go!"ClientStream")) (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientStream.ty (Var "$v0")))]))))
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (_root_.Perennial.google_golang_org.grpc.GenericClientStream.ty WatchRequest.ty WatchResponse.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (_root_.Perennial.google_golang_org.grpc.GenericClientStream.ty WatchRequest.ty WatchResponse.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType (_root_.Perennial.google_golang_org.grpc.GenericClientStream.ty WatchRequest.ty WatchResponse.ty)) (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty WatchRequest.ty WatchResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (_root_.Perennial.google_golang_org.grpc.GenericClientStream.ty WatchRequest.ty WatchResponse.ty))))) (Var "x"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (_root_.Perennial.google_golang_org.grpc.GenericClientStream.ty WatchRequest.ty WatchResponse.ty))))) (Pair (Var "x") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty WatchRequest.ty WatchResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Pair (Var "stream") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))
+
+/-- go: rpc_grpc.pb.go:426:6 -/
+noncomputable def RegisterWatchServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "srv"
+  (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc WatchServer.ty))) (Var "srv"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GlobalVarAddr Watch_ServiceDesc))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert WatchServer.ty go.any))) (App (Val (GoInstruction (GoLoad WatchServer.ty))) (Var "srv")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty go!"RegisterService"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad WatchServer.ty))) (Var "srv")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))]) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Var "t"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0")))))))))))))))))))
+
 /-- go: rpc_grpc.pb.go:437:6 -/
 noncomputable def _Watch_Watch_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "srv"
@@ -2643,6 +2734,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.KV"))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType KVServer.ty)))) (Val UntypedNil))
   (Let "$v2" (Let "$v0" (Val #(go!"Range"))
@@ -2663,6 +2755,16 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v4" (Val #(go!"rpc.proto"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType KVServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.Watch"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WatchServer.ty)))) (Val UntypedNil))
+  (Let "$v2" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty)))) (LiteralValue []))
+  (Let "$v3" (Let "$v0" (Val #(go!"Watch"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Watch_Watch_Handler []))) (Val #()))
+  (Let "$v2" (Val #true)
+  (Let "$v3" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"StreamName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.google_golang_org.grpc.ServerStream.ty] false [go.error])) (Var "$v1"))), (KeyedElement (some (KeyField go!"ServerStreams")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"ClientStreams")) (ElementExpression go.bool (Var "$v3")))]))]))))))
+  (Let "$v4" (Val #(go!"rpc.proto"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType WatchServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2676,7 +2778,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Lease_ServiceDesc.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val Watch_ServiceDesc.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Watch_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr KV_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2744,7 +2846,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc KV_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc KV_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Watch_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
 
 axiom Metadata : Type
 axiom Metadata.zero_val : ZeroVal Metadata
@@ -7586,11 +7690,13 @@ class watchClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq watchClient.ty watchClient.underlying
   get_cc : ∀ (x : watchClient), go.IsGoStepPureDetTagged under (StructFieldGet watchClient.underlying go!"cc") #x (Val #(x.cc'))
   set_cc : ∀ (x : watchClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet watchClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : watchClient)))
+  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType watchClient.ty) go!"Watch" watchClient.Watch.impl
 
 attribute [instance] watchClient.TypeAssumptions.type_repr
   watchClient.TypeAssumptions.underlying
   watchClient.TypeAssumptions.get_cc
   watchClient.TypeAssumptions.set_cc
+  watchClient.TypeAssumptions.ptr_Watch_unfold
 
 abbrev WatchServer [FfiSyntax] : Type := GoInterface
 
@@ -8159,6 +8265,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   _KV_Put_Handler_unfold : FuncUnfold _KV_Put_Handler [] _KV_Put_Handler.impl
   _KV_DeleteRange_Handler_unfold : FuncUnfold _KV_DeleteRange_Handler [] _KV_DeleteRange_Handler.impl
   _KV_Txn_Handler_unfold : FuncUnfold _KV_Txn_Handler [] _KV_Txn_Handler.impl
+  NewWatchClient_unfold : FuncUnfold NewWatchClient [] NewWatchClient.impl
+  RegisterWatchServer_unfold : FuncUnfold RegisterWatchServer [] RegisterWatchServer.impl
   _Watch_Watch_Handler_unfold : FuncUnfold _Watch_Watch_Handler [] _Watch_Watch_Handler.impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
   import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
@@ -8339,6 +8447,8 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions._KV_Put_Handler_unfold
   Assumptions._KV_DeleteRange_Handler_unfold
   Assumptions._KV_Txn_Handler_unfold
+  Assumptions.NewWatchClient_unfold
+  Assumptions.RegisterWatchServer_unfold
   Assumptions._Watch_Watch_Handler_unfold
   Assumptions.import_protoimpl_Assumption
   Assumptions.import_membershippb_Assumption

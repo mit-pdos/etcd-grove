@@ -1,7 +1,8 @@
 /-
 **The watch stream's server end** (the watch slice's unit W-S, 2026-10-14): the interface of a
 gRPC bidirectional stream as the server's handler sees it, in the shape of `notes/grpc-stream-spec.md`
-(§2), stated locally (the generic gRPC specification's author will instantiate it), the `Watch`
+(§2), now grpc's generic one (`google_golang_org/grpc/InvGrpcStream.lean`, unit W-W, which
+derives it from grpc's raw `ServerStream`, `srvStreamIs_of_raw`), the `Watch`
 service's message models, and its stream specification. Lean-first (no Rocq counterpart); the
 design is in `notes/decisions.md`, "The watch stream's server end: indexed queues, the delivery
 accounted by position".
@@ -49,6 +50,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxnOwn
 public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.google_golang_org.grpc.InvGrpcStream
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Proof.context
@@ -68,6 +70,10 @@ namespace EtcdGrove
 namespace v3rpc
 
 open Iris Iris.BI go_etcd_io.etcd.api.v3
+
+export EtcdGrove (StreamMsg StreamNames srvRecvTok upAt upAt_persistent upClosed upClosed_persistent
+  srvSendTok downLb downLb_persistent srvSendTok_lb streamErr streamErr_persistent eofIs
+  eofIs_persistent srvStreamIs srvStreamIs_persistent)
 
 /-! ## The models (pure) -/
 
@@ -177,132 +183,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-! ## Stream messages -/
+/-! ## The stream (moved to `google_golang_org/grpc/InvGrpcStream.lean`, unit W-W)
 
-/-- **A message type of a stream** (as grpc's `ProtoMsg`, with the decoded copy owned): its Go
-type, the model of its content (countable: the queues are ghost lists of models), the sender's
-message `send l m`, and `recv l m`, a decoded copy the receiver owns. -/
-structure StreamMsg (GF : BundledGFunctors) where
-  ty : go.GoType
-  M : Type
-  cnt : Pos.Countable M
-  send : Loc → M → IProp GF
-  recv : Loc → M → IProp GF
-
-attribute [instance] StreamMsg.cnt
-
-/-! ## The stream's ghost state -/
-
-/-- The ghost names of one stream: the up queue (the requests the client sent, a mono list), the
-server's received prefix of it, the down queue (the responses the server sent, a mono list) and
-the up queue's end. -/
-structure StreamNames where
-  up : GName
-  upRcv : GName
-  down : GName
-  upEnd : GName
-
-/-- **The receiver's token** at `L`: the requests received so far, a prefix of the up queue. -/
-def srvRecvTok {Req : StreamMsg GF} (γ : StreamNames) (L : List Req.M) : IProp GF :=
-  iprop(dghostVar γ.upRcv (DFrac.own (1 : Qp).half) L ∗ monoListLbOwn γ.up L)
-
-/-- The `i`th request the client sent on the stream is `m` (persistent). -/
-def upAt {Req : StreamMsg GF} (γ : StreamNames) (i : Nat) (m : Req.M) : IProp GF :=
-  monoListIdxOwn γ.up i m
-
-instance upAt_persistent {Req : StreamMsg GF} (γ : StreamNames) (i : Nat) (m : Req.M) :
-    Persistent (upAt (GF := GF) γ i m) := by
-  unfold upAt; infer_instance
-
-/-- The client closed the up queue after the requests `L` (persistent). -/
-def upClosed {Req : StreamMsg GF} (γ : StreamNames) (L : List Req.M) : IProp GF :=
-  dghostVar γ.upEnd DFrac.discard L
-
-instance upClosed_persistent {Req : StreamMsg GF} (γ : StreamNames) (L : List Req.M) :
-    Persistent (upClosed (GF := GF) γ L) := by
-  unfold upClosed; infer_instance
-
-/-- **The sender's token** at `L`: the responses sent so far (half the down queue's authority;
-the transport holds the other). -/
-def srvSendTok {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep.M) : IProp GF :=
-  monoListAuthOwn γ.down (1 : Qp).half L
-
-/-- The responses `L` were sent down, in order, first (persistent). -/
-def downLb {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep.M) : IProp GF :=
-  monoListLbOwn γ.down L
-
-instance downLb_persistent {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep.M) :
-    Persistent (downLb (GF := GF) γ L) := by
-  unfold downLb; infer_instance
-
-/-- The sender knows what it sent: its token's lower bound. -/
-theorem srvSendTok_lb {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep.M) :
-    srvSendTok (GF := GF) (Rep := Rep) γ L ⊢ srvSendTok γ L ∗ downLb γ L := by
-  unfold srvSendTok downLb
-  iintro H
-  ihave #Hlb := monoListLbOwn_get γ.down (1 : Qp).half L $$ H
-  isplitl [H]
-  · iexact H
-  · iexact Hlb
-
-/-! ## The stream's errors -/
-
-/-- **An error of the stream** (`Recv`'s, `Send`'s; persistent): a typed error (the gRPC status
-error or a context error grpc returns), in an error tree for every pointer target as `errors.Is`
-needs it (`errors.errorIsTree`; `errors.TreeTyped` of pointer targets). -/
-def streamErr (err : GoInterface) : IProp GF :=
-  iprop(⌜context.isTypedErr err⌝ ∗
-    □ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
-      _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
-      ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target)⌝)
-
-instance streamErr_persistent (err : GoInterface) : Persistent (streamErr (GF := GF) err) := by
-  unfold streamErr; infer_instance
-
-/-- `err` is `io.EOF`'s value. -/
-def eofIs (err : GoInterface) : IProp GF :=
-  iprop(globalAddr _root_.Perennial.io.EOF ↦□ err)
-
-instance eofIs_persistent (err : GoInterface) : Persistent (eofIs (GF := GF) err) := by
-  unfold eofIs; infer_instance
-
-/-! ## The server end -/
-
-/-- **The server end of a stream** (persistent; the note's §2): the interface value `st`, whose
-`Recv()` returns the next request (`Req.recv`, owned) with the client's content `Up i m` and
-the receiver's token grown, or `io.EOF` once the client closed the up queue after the requests
-received (`upClosed`), or another error; whose `Send(l)` of a message `Rep.send l m` with the
-handler's content `Dn j m` for its position `j` grows the sender's token (or fails, the message
-maybe delivered); and whose `Context()` returns the run's context `ci` (`isContext ci cd`,
-grpc's run context `grpcRunCtx`). -/
-def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
-    □ (∀ L : List Req.M,
-      {{ srvRecvTok (Req := Req) γ L }}
-        (App (Val #(methods si.ty go!"Recv" si.v)) (Val #()))
-      {{ (req : Loc) (err : GoInterface), RET (PairV #req #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : Req.M, Req.recv req m ∗ Up L.length m ∗
-            srvRecvTok (Req := Req) γ (L ++ [m])) ∨
-          (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
-            upClosed (Req := Req) γ L) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ srvRecvTok (Req := Req) γ L) }}) ∗
-    □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
-      {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
-        (App (Val #(methods si.ty go!"Send" si.v)) (Val #l))
-      {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ srvSendTok (Rep := Rep) γ (L ++ [m])) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ srvSendTok (Rep := Rep) γ L) }}) ∗
-    □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
-      {{ RET #(GoInterface.ok ci); True }}) ∗
-    context.isContext ci cd ∗ grpcRunCtx ci)
-
-instance srvStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) :
-    Persistent (srvStreamIs st γ Req Rep Up Dn ci cd) := by
-  unfold srvStreamIs; infer_instance
+The generic stream vocabulary is grpc's (`EtcdGrove.StreamMsg`, `StreamNames`, the tokens, the
+position facts, `streamErr`, `eofIs`, `srvStreamIs`); exported here under the names the watch
+service's proofs use (`v3rpc.srvStreamIs`, ...). -/
 
 /-! ## The watch service's messages -/
 
@@ -371,21 +256,61 @@ instance watchRespMsg_persistent (l : Loc) (m : WatchRespM) :
     Persistent (watchRespMsg (GF := GF) l m) := by
   unfold watchRespMsg; infer_instance
 
-/-- **The watch requests on the wire** (a trusted wire model, as the unary ones). -/
+/-- **A create request's fields the client sends** at `cr` (`m`; read-only): the fields the
+server reads (`createReqOwn`'s), their contents. -/
+def createReqSend (cr : Loc) (c : CreateReqM) : IProp GF :=
+  iprop(⌜cr ≠ null⌝ ∗ ∃ ks es fs : GoSlice,
+    structFieldRef etcdserverpb.WatchCreateRequest go!"Key" cr ↦□ ks ∗ ks ↦*□ c.key ∗
+    structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" cr ↦□ es ∗ es ↦*□ c.rangeEnd ∗
+    structFieldRef etcdserverpb.WatchCreateRequest go!"StartRevision" cr ↦□ c.startRev ∗
+    structFieldRef etcdserverpb.WatchCreateRequest go!"ProgressNotify" cr ↦□ c.progressNotify ∗
+    structFieldRef etcdserverpb.WatchCreateRequest go!"Filters" cr ↦□ fs ∗ fs ↦*□ c.filters ∗
+    structFieldRef etcdserverpb.WatchCreateRequest go!"PrevKv" cr ↦□ c.prevKv ∗
+    structFieldRef etcdserverpb.WatchCreateRequest go!"WatchId" cr ↦□ c.watchId ∗
+    structFieldRef etcdserverpb.WatchCreateRequest go!"Fragment" cr ↦□ c.fragment)
+
+instance createReqSend_persistent (cr : Loc) (c : CreateReqM) :
+    Persistent (createReqSend (GF := GF) cr c) := by
+  unfold createReqSend; infer_instance
+
+/-- **A `*pb.WatchRequest` the client sends** at `l` holding `m` (read-only; unit W-W): its oneof
+(`RequestUnion`) and the inner request's fields the server reads (as `watchReqRecv`, all
+read-only). The codec's copy of it is one `watchReqRecv` holds at `m` (the wire model; the
+decoded key's length bound, `createReqOwn`'s, is the codec's: a message is at most grpc's
+receive limit, below `2 ^ 31` bytes). -/
+def watchReqSend (l : Loc) (m : WatchReqM) : IProp GF :=
+  iprop(∃ u : GoInterface, structFieldRef etcdserverpb.WatchRequest go!"RequestUnion" l ↦□ u ∗
+    match m with
+    | .create c => ∃ cr : Loc, oneofCreate u cr ∗ createReqSend cr c
+    | .cancel id => ∃ cr : Loc, ⌜cr ≠ null⌝ ∗
+        oneofCancel u cr ∗
+        structFieldRef etcdserverpb.WatchCancelRequest go!"WatchId" cr ↦□ id
+    | .progress => ∃ cr : Loc, ⌜cr ≠ null⌝ ∗
+        oneofProgress u cr
+    | .other => ⌜u = GoInterface.nil⌝ ∨ oneofCreate u null ∨ oneofCancel u null ∨
+        oneofProgress u null)
+
+/-- **The watch requests on the wire** (a trusted wire model, as the unary ones): the client's
+message `watchReqSend`, the server's decoded copy `watchReqRecv` (owned), a message the receiver
+owns at any content (`own`: a fresh `new(WatchRequest)` is one). -/
 abbrev pbWatchRequest : StreamMsg GF where
   ty := etcdserverpb.WatchRequest.ty
   M := WatchReqM
   cnt := inferInstance
-  send _ _ := iprop(True)
+  send := watchReqSend
   recv := watchReqRecv
+  own l := iprop(∃ v : etcdserverpb.WatchRequest, l ↦ v)
 
-/-- **The watch responses on the wire** (a trusted wire model). -/
+/-- **The watch responses on the wire** (a trusted wire model): the server's message and the
+client's decoded copy `watchRespMsg` (read-only), a message the receiver owns at any content
+(`own`: a fresh `new(WatchResponse)` is one). -/
 abbrev pbWatchResponse : StreamMsg GF where
   ty := etcdserverpb.WatchResponse.ty
   M := WatchRespM
   cnt := inferInstance
   send := watchRespMsg
   recv := watchRespMsg
+  own l := iprop(∃ v : etcdserverpb.WatchResponse, l ↦ v)
 
 /-! ## The stream specification -/
 
@@ -458,6 +383,38 @@ def watchStreamSpec (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64)
 instance watchStreamSpec_persistent (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64)
     (Dn : Nat → WatchRespM → IProp GF) : Persistent (watchStreamSpec γs γ cid mid Dn) := by
   unfold watchStreamSpec; infer_instance
+
+/-! ## The client's end of the watch stream (unit W-W) -/
+
+/-- **The generated stub `wc`** (`*etcdserverpb.watchClient`) on the connection `conn`
+(`NewWatchClient(conn)`'s `cc`: the `*grpc.ClientConn` as a `ClientConnInterface`). -/
+def watchStubAt (wc conn : Loc) : IProp GF :=
+  iprop(structFieldRef etcdserverpb.watchClient go!"cc" wc ↦□
+    (interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #conn :
+      GoInterface))
+
+instance watchStubAt_persistent (wc conn : Loc) : Persistent (watchStubAt (GF := GF) wc conn) := by
+  unfold watchStubAt; infer_instance
+
+/-- **The `Watch` service's descriptor** (persistent; a fact of `etcdserverpb`'s initialization,
+as `watchVars`: `Watch_ServiceDesc` is the generated literal and nothing writes it): its
+`Streams` slice holds at least one `StreamDesc` (the `Watch` stream's), read-only. What the stub
+reads (`&Watch_ServiceDesc.Streams[0]`). -/
+def watchDescOk : IProp GF :=
+  iprop(∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams"
+      (globalAddr etcdserverpb.Watch_ServiceDesc) ↦□ sl ∗ sl ↦*□ sds ∗ ⌜0 < sds.length⌝)
+
+instance watchDescOk_persistent : Persistent (watchDescOk (GF := GF)) := by
+  unfold watchDescOk; infer_instance
+
+/-- **The client end of a watch stream** (persistent; what `watchClient.Watch` returns, the
+`Watch_WatchClient` the client's `watch.go` uses): `cliBidiStreamIs` at the watch messages.
+`Send(req)` of a request `watchReqSend req m` with the client's content `Up i m`;
+`Recv()` returns a fresh response `watchRespMsg resp m` with the server's content `Dn j m`. -/
+abbrev cliWatchStreamIs (cs : GoInterface) (γ : StreamNames) (Up : Nat → WatchReqM → IProp GF)
+    (Dn : Nat → WatchRespM → IProp GF) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Dn cd
 
 end defs
 

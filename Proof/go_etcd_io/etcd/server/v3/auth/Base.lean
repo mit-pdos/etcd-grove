@@ -45,15 +45,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
--- `google.golang.org/grpc/metadata` (types and names only)
-namespace google_golang_org.grpc.metadata
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
-  build_get_is_pkg_init_wf
-
-end google_golang_org.grpc.metadata
+-- `google.golang.org/grpc/metadata` (types and names only): its initialization is in
+-- `cache/v3/Base.lean` (unit W-W: grpc imports it, for its stream interfaces' `Header`/`Trailer`)
 
 namespace go_etcd_io.etcd.server.v3.auth
 

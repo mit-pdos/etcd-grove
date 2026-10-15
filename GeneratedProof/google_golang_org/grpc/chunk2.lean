@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.google_golang_org.grpc.metadata
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
 
@@ -17,6 +18,44 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace google_golang_org.grpc
+
+namespace payloadInfo
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance payloadInfo_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.payloadInfo :=
+  sorry -- axiomatized type
+
+instance payloadInfo_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payloadInfo google_golang_org.grpc.payloadInfo.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end payloadInfo
+
+namespace compressorInfo
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance compressorInfo_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.compressorInfo :=
+  sorry -- axiomatized type
+
+instance compressorInfo_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.compressorInfo google_golang_org.grpc.compressorInfo.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end compressorInfo
 
 namespace rpcInfoContextKey
 section def_
@@ -577,25 +616,6 @@ instance streamKey_into_val_typed :
 end def_
 end streamKey
 
-namespace ServerTransportStream
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance ServerTransportStream_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ServerTransportStream :=
-  sorry -- axiomatized type
-
-instance ServerTransportStream_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServerTransportStream google_golang_org.grpc.ServerTransportStream.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ServerTransportStream
-
 namespace serverKey
 section def_
 
@@ -868,25 +888,6 @@ instance jsonSC_into_val_typed :
 end def_
 end jsonSC
 
-namespace ClientStream
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance ClientStream_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ClientStream :=
-  sorry -- axiomatized type
-
-instance ClientStream_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ClientStream google_golang_org.grpc.ClientStream.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ClientStream
-
 namespace clientStreamWrapper
 section def_
 
@@ -1038,25 +1039,6 @@ instance addrConnStream_into_val_typed :
 
 end def_
 end addrConnStream
-
-namespace ServerStream
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance ServerStream_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ServerStream :=
-  sorry -- axiomatized type
-
-instance ServerStream_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServerStream google_golang_org.grpc.ServerStream.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ServerStream
 
 namespace serverStream
 section def_

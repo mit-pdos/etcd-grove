@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.google_golang_org.grpc.metadata
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
 
@@ -927,12 +928,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
 instance HeaderCallOption_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.HeaderCallOption :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.HeaderCallOption where
+  typedPointstoDef l v dq := iprop(
+    "HeaderAddr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance HeaderCallOption_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.HeaderCallOption google_golang_org.grpc.HeaderCallOption.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.HeaderCallOption google_golang_org.grpc.HeaderCallOption.underlying := by
+  solve_into_val_typed_struct
+
+instance HeaderCallOption_access_load_HeaderAddr (l : Loc) (v : google_golang_org.grpc.HeaderCallOption) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance HeaderCallOption_access_store_HeaderAddr (l : Loc) (v : google_golang_org.grpc.HeaderCallOption) (HeaderAddr' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) HeaderAddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HeaderAddr' := HeaderAddr' } : google_golang_org.grpc.HeaderCallOption) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end HeaderCallOption
@@ -946,12 +968,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
 instance TrailerCallOption_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.TrailerCallOption :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.TrailerCallOption where
+  typedPointstoDef l v dq := iprop(
+    "TrailerAddr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance TrailerCallOption_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.TrailerCallOption google_golang_org.grpc.TrailerCallOption.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.TrailerCallOption google_golang_org.grpc.TrailerCallOption.underlying := by
+  solve_into_val_typed_struct
+
+instance TrailerCallOption_access_load_TrailerAddr (l : Loc) (v : google_golang_org.grpc.TrailerCallOption) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TrailerCallOption_access_store_TrailerAddr (l : Loc) (v : google_golang_org.grpc.TrailerCallOption) (TrailerAddr' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) TrailerAddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrailerAddr' := TrailerAddr' } : google_golang_org.grpc.TrailerCallOption) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end TrailerCallOption
@@ -1452,44 +1495,6 @@ instance parser_into_val_typed :
 
 end def_
 end parser
-
-namespace payloadInfo
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance payloadInfo_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.payloadInfo :=
-  sorry -- axiomatized type
-
-instance payloadInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payloadInfo google_golang_org.grpc.payloadInfo.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end payloadInfo
-
-namespace compressorInfo
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance compressorInfo_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.compressorInfo :=
-  sorry -- axiomatized type
-
-instance compressorInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.compressorInfo google_golang_org.grpc.compressorInfo.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end compressorInfo
 
 end google_golang_org.grpc
 end

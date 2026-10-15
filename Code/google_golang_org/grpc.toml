@@ -4,7 +4,7 @@
 # `cc` field (`etcdserverpb.kVClient`), whose `Invoke` names `context.Context`: hence the import
 # of `context`, without which the interface is axiomatized.
 translate = ["!*"]
-imports = ["!*", "context"]
+imports = ["!*", "context", "google.golang.org/grpc/metadata"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

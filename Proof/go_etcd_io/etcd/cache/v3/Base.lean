@@ -92,6 +92,18 @@ instance authpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   build_get_is_pkg_init_wf
 
+-- `google.golang.org/grpc/metadata` (types and names only), before `grpc`, which imports it
+-- (unit W-W: grpc's `ClientStream`/`ServerStream` name `metadata.MD`; moved here from
+-- `server/v3/auth/Base.lean`)
+namespace google_golang_org.grpc.metadata
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.metadata
+
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
 instance grpc_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc :=

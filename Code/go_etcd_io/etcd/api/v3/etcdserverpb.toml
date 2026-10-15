@@ -74,7 +74,14 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "WatchRequest", "WatchRequest_CreateRequest", "WatchRequest_CancelRequest",
   "WatchRequest_ProgressRequest", "WatchCreateRequest", "WatchCancelRequest",
   "WatchProgressRequest", "WatchCreateRequest_NOPUT", "WatchCreateRequest_NODELETE",
-  "WatchServer", "_Watch_Watch_Handler"]
+  "WatchServer", "_Watch_Watch_Handler",
+  # the watch slice's unit W-W (the gRPC stream wire): the generated client stub of the Watch
+  # service (`NewWatchClient`, `watchClient.Watch`, its method name, the client interface), the
+  # registration `RegisterWatchServer` and its `ServiceDesc` (the stub takes the address of its
+  # first `StreamDesc`)
+  "NewWatchClient", "watchClient.Watch", "Watch_Watch_FullMethodName", "WatchClient",
+  "watchClient", "Watch_WatchClient", "Watch_WatchServer", "RegisterWatchServer",
+  "Watch_ServiceDesc"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

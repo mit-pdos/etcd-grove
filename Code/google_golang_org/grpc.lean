@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.context
+public import Code.google_golang_org.grpc.metadata
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -705,10 +706,6 @@ axiom gzipDecompressor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom callInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom HeaderCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom TrailerCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom PeerCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom PerRPCCredsCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -731,8 +728,6 @@ axiom serverOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom listenSocket.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom ServerTransportStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom atomicSemaphore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom MethodConfig [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -745,8 +740,6 @@ axiom jsonMC.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom jsonSC.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom ClientStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom clientStreamWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom clientInterceptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -756,8 +749,6 @@ axiom clientStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 axiom csAttempt.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom addrConnStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom ServerStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom serverStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -1558,7 +1549,7 @@ noncomputable def newTraceEventLog [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
 instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.context]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.metadata]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -1566,6 +1557,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1681,7 +1673,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val DefaultBackoffConfig.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.context.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))))
 
 axiom BackoffConfig : Type
 axiom BackoffConfig.zero_val : ZeroVal BackoffConfig
@@ -2540,31 +2534,67 @@ attribute [instance] StaticMethodCallOption.TypeAssumptions.type_repr
   StaticMethodCallOption.TypeAssumptions.get_EmptyCallOption
   StaticMethodCallOption.TypeAssumptions.set_EmptyCallOption
 
-axiom HeaderCallOption : Type
-axiom HeaderCallOption.zero_val : ZeroVal HeaderCallOption
-attribute [instance] HeaderCallOption.zero_val
+structure HeaderCallOption [FfiSyntax] where
+  mk ::
+  HeaderAddr' : Loc
+
+instance HeaderCallOption.zero_val [FfiSyntax] : ZeroVal HeaderCallOption :=
+  ⟨HeaderCallOption.mk zeroValDef⟩
+
+@[reducible] def HeaderCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"HeaderAddr" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))]
+
+@[irreducible] def HeaderCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  HeaderCallOption.fieldsUnsealed
+
+instance equals_unfold_HeaderCallOption [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold HeaderCallOption.fields HeaderCallOption.fieldsUnsealed :=
+  ⟨by unfold HeaderCallOption.fields; rfl⟩
+
+@[reducible] def HeaderCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType HeaderCallOption.fields)
 
 class HeaderCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HeaderCallOption.underlying HeaderCallOption
   underlying : go.UnderlyingDirectedEq HeaderCallOption.ty HeaderCallOption.underlying
-  isUnderlying : go.IsUnderlying HeaderCallOption.underlying HeaderCallOption.underlying
+  get_HeaderAddr : ∀ (x : HeaderCallOption), go.IsGoStepPureDetTagged under (StructFieldGet HeaderCallOption.underlying go!"HeaderAddr") #x (Val #(x.HeaderAddr'))
+  set_HeaderAddr : ∀ (x : HeaderCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HeaderCallOption.underlying go!"HeaderAddr") (PairV #x #y) (Val #(({ x with HeaderAddr' := y } : HeaderCallOption)))
 
 attribute [instance] HeaderCallOption.TypeAssumptions.type_repr
   HeaderCallOption.TypeAssumptions.underlying
-  HeaderCallOption.TypeAssumptions.isUnderlying
+  HeaderCallOption.TypeAssumptions.get_HeaderAddr
+  HeaderCallOption.TypeAssumptions.set_HeaderAddr
 
-axiom TrailerCallOption : Type
-axiom TrailerCallOption.zero_val : ZeroVal TrailerCallOption
-attribute [instance] TrailerCallOption.zero_val
+structure TrailerCallOption [FfiSyntax] where
+  mk ::
+  TrailerAddr' : Loc
+
+instance TrailerCallOption.zero_val [FfiSyntax] : ZeroVal TrailerCallOption :=
+  ⟨TrailerCallOption.mk zeroValDef⟩
+
+@[reducible] def TrailerCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"TrailerAddr" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))]
+
+@[irreducible] def TrailerCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  TrailerCallOption.fieldsUnsealed
+
+instance equals_unfold_TrailerCallOption [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold TrailerCallOption.fields TrailerCallOption.fieldsUnsealed :=
+  ⟨by unfold TrailerCallOption.fields; rfl⟩
+
+@[reducible] def TrailerCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType TrailerCallOption.fields)
 
 class TrailerCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TrailerCallOption.underlying TrailerCallOption
   underlying : go.UnderlyingDirectedEq TrailerCallOption.ty TrailerCallOption.underlying
-  isUnderlying : go.IsUnderlying TrailerCallOption.underlying TrailerCallOption.underlying
+  get_TrailerAddr : ∀ (x : TrailerCallOption), go.IsGoStepPureDetTagged under (StructFieldGet TrailerCallOption.underlying go!"TrailerAddr") #x (Val #(x.TrailerAddr'))
+  set_TrailerAddr : ∀ (x : TrailerCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TrailerCallOption.underlying go!"TrailerAddr") (PairV #x #y) (Val #(({ x with TrailerAddr' := y } : TrailerCallOption)))
 
 attribute [instance] TrailerCallOption.TypeAssumptions.type_repr
   TrailerCallOption.TypeAssumptions.underlying
-  TrailerCallOption.TypeAssumptions.isUnderlying
+  TrailerCallOption.TypeAssumptions.get_TrailerAddr
+  TrailerCallOption.TypeAssumptions.set_TrailerAddr
 
 axiom PeerCallOption : Type
 axiom PeerCallOption.zero_val : ZeroVal PeerCallOption
@@ -3518,18 +3548,15 @@ class streamKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 attribute [instance] streamKey.TypeAssumptions.type_repr
   streamKey.TypeAssumptions.underlying
 
-axiom ServerTransportStream : Type
-axiom ServerTransportStream.zero_val : ZeroVal ServerTransportStream
-attribute [instance] ServerTransportStream.zero_val
+abbrev ServerTransportStream [FfiSyntax] : Type := GoInterface
+
+@[reducible] def ServerTransportStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Method" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))])
 
 class ServerTransportStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServerTransportStream.underlying ServerTransportStream
   underlying : go.UnderlyingDirectedEq ServerTransportStream.ty ServerTransportStream.underlying
-  isUnderlying : go.IsUnderlying ServerTransportStream.underlying ServerTransportStream.underlying
 
-attribute [instance] ServerTransportStream.TypeAssumptions.type_repr
-  ServerTransportStream.TypeAssumptions.underlying
-  ServerTransportStream.TypeAssumptions.isUnderlying
+attribute [instance] ServerTransportStream.TypeAssumptions.underlying
 
 structure serverKey [FfiSyntax] where
   mk ::
@@ -3796,18 +3823,15 @@ class Stream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 
 attribute [instance] Stream.TypeAssumptions.underlying
 
-axiom ClientStream : Type
-axiom ClientStream.zero_val : ZeroVal ClientStream
-attribute [instance] ClientStream.zero_val
+abbrev ClientStream [FfiSyntax] : Type := GoInterface
+
+@[reducible] def ClientStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
 class ClientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ClientStream.underlying ClientStream
   underlying : go.UnderlyingDirectedEq ClientStream.ty ClientStream.underlying
-  isUnderlying : go.IsUnderlying ClientStream.underlying ClientStream.underlying
 
-attribute [instance] ClientStream.TypeAssumptions.type_repr
-  ClientStream.TypeAssumptions.underlying
-  ClientStream.TypeAssumptions.isUnderlying
+attribute [instance] ClientStream.TypeAssumptions.underlying
 
 axiom clientStreamWrapper : Type
 axiom clientStreamWrapper.zero_val : ZeroVal clientStreamWrapper
@@ -3911,18 +3935,15 @@ attribute [instance] addrConnStream.TypeAssumptions.type_repr
   addrConnStream.TypeAssumptions.underlying
   addrConnStream.TypeAssumptions.isUnderlying
 
-axiom ServerStream : Type
-axiom ServerStream.zero_val : ZeroVal ServerStream
-attribute [instance] ServerStream.zero_val
+abbrev ServerStream [FfiSyntax] : Type := GoInterface
+
+@[reducible] def ServerStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
 class ServerStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ServerStream.underlying ServerStream
   underlying : go.UnderlyingDirectedEq ServerStream.ty ServerStream.underlying
-  isUnderlying : go.IsUnderlying ServerStream.underlying ServerStream.underlying
 
-attribute [instance] ServerStream.TypeAssumptions.type_repr
-  ServerStream.TypeAssumptions.underlying
-  ServerStream.TypeAssumptions.isUnderlying
+attribute [instance] ServerStream.TypeAssumptions.underlying
 
 axiom serverStream : Type
 axiom serverStream.zero_val : ZeroVal serverStream
@@ -4345,6 +4366,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
 
 attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ConnectParams_instance
@@ -4474,6 +4496,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
   Assumptions.import_context_Assumption
+  Assumptions.import_metadata_Assumption
 
 end google_golang_org.grpc
 
