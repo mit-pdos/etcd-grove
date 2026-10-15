@@ -38,6 +38,7 @@ namespace EtcdGrove
 namespace client
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+open v3rpc (rangeReplyOk etcdRangeSpec)
 
 theorem sext_small (x : w64) (h0 : 0 ≤ sint.Z x) (h1 : sint.Z x ≤ 4) :
     W64 (sint.Z (W32 (sint.Z x))) = x := by

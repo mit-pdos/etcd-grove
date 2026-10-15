@@ -46,6 +46,7 @@ namespace EtcdGrove
 namespace client
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+open v3rpc (rangeReplyOk)
 
 section defs
 variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]

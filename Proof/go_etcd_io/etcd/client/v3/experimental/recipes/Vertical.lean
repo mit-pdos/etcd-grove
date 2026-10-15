@@ -122,11 +122,11 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
         isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w kp ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.v3rpc.etcdPutSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.v3rpc.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
-          (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+          (EtcdGrove.v3rpc.etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.v3rpc.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))

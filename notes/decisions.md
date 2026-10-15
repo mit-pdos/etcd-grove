@@ -5822,6 +5822,18 @@ So `etcdPutSpec`/`etcdDeleteSpec` give `putReplied`/`deleteReplied` (the persist
 `putReplyOk`/`deleteReplyOk` and the token), and `client_put_end_to_end` returns the token of the
 revision its reply reports.
 
+**Where the two sides meet** (2026-10-15, branch `kv-put-link`). etcd's specs of its methods and
+the proof that its server serves them are the server's: `v3rpc/InvKVService.lean` (the specs,
+replies, slots, method table) and `v3rpc/KVServed.lean` (`etcd_kv_served`), namespace `v3rpc`,
+after `v3rpc/Results.lean` (whose `put_end_to_end`, ... they use, so they cannot come before it).
+The client keeps its specs generic in the `GrpcSpec` (one triple per Go function: `kv.Put.spec`),
+and its `Results.lean` instantiates them with etcd's (`client_put_etcd`, any lease-free options)
+and composes them with the server's registration (`etcd_put_served`: the server's premises give
+`|={⊤}=> □` the client's triple, through `grpc.serve` and `ClientConn.Invoke`). *Rejected:* a
+second `Spec` of `kv.Put` at etcd's spec (two triples of one function) and a generated gRPC edge
+in `gen-link.py` (the Go code calls `Invoke`, not the handler: there is no callee to link; the
+registration `isGrpcRpc` is the edge, and a composed result is where it is discharged).
+
 ## The retry interceptor proved: the gRPC boundary below it
 
 **2026-10-14 · adopted** (`notes/STATUS.md`, "Unit P3a")

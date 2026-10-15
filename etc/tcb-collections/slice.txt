@@ -5,13 +5,15 @@
 # (`client/v3/Results.lean`). V2 adds the queue's theorem through a real client and server.
 # V2b (2026-10-14): the client's end-to-end results, the recipes' contracts derived at the
 # server's model and the queue end to end (`recipes/Results.lean`'s slice section).
+# 2026-10-15: `etcd_kv_served` moved to `v3rpc/KVServed.lean` (not a root); `etcd_put_served`
+# (the client's `kv.Put` composed with it) and `client_put_etcd` stand for it.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/slice.txt [--check [--update]]
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots \bv3rpc\.(etcd_model_of_server|etcdReached_of_hdr|etcdState_of_range|etcdState_of_txnRead|revToken_of_put)$
-roots \bclient\.(client_(put|get|delete|txn)_end_to_end|client_get_after_put|etcd_kv_served)$
+roots \bclient\.(client_(put|get|delete|txn)_end_to_end|client_get_after_put|client_put_etcd|etcd_put_served)$
 roots \brecipes\.(recipes_kv_of_server|recipes_client_of_server|queue_end_to_end|queue_end_to_end_once)$
 axiom EtcdServer.Alarm.wp_proof
 axiom NewLoggableTxnRequest.wp_proof

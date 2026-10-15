@@ -37,6 +37,7 @@ namespace client
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
   mvcc txn
+open v3rpc (putReplied etcdPutSpec deleteReplyOk deleteReplied deleteReplied_ok etcdDeleteSpec)
 
 /-! ## The model: a write under a prefix commutes with the restriction to it -/
 

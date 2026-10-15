@@ -42,6 +42,8 @@ namespace EtcdGrove
 namespace client
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+open v3rpc (TxnOp.plain TxnModel.plain txnOpOf_plain opRespRel opRespsRel txnModelIn txnWireOf_plain
+  txnReplied etcdTxnSpec)
 
 /-! ## The wire's transaction -/
 
