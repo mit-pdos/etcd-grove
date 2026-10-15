@@ -67,14 +67,14 @@ m.index m.logterm m.commit m.rejecthint m.entries`). -/
 def propForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
     (cl : List w8 := []) : Msg :=
   Msg.mkV .propose id lead (W64 0) m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint'
-    ents ∅ false cl
+    ents [] cl
 
 /-- A read-index request forwarded to the leader `lead` (2026-10-12): `From` stamped if unset
 (a twice-forwarded request keeps its requester), `Term` left at `0`. -/
 def readForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
     (cl : List w8 := []) : Msg :=
   Msg.mkV .readIndex (if m.From' = W64 0 then id else m.From') lead (W64 0) m.Reject' m.Index'
-    m.LogTerm' m.Commit' m.RejectHint' ents ∅ false cl
+    m.LogTerm' m.Commit' m.RejectHint' ents [] cl
 
 /-- What `stepFollower` does with `m`, by type. `dropped` is whether it returned
 `ErrProposalDropped` (the postcondition then says `err` is that global's value;

@@ -116,5 +116,45 @@ theorem SnapObl.restoreM_eq {dec : CCDec} {c0 : CCState} {applied : List raftpb.
 
 end model
 
+/-! ### The certificate, stated on the ghost records (2026-10-15, stage S)
+
+`raftSnapCert γ k` is what a receiver of a `MsgSnap` needs of the snapshot `k` (id, lists,
+`AutoLeave`; `SnapTrip`, `Defs.lean`): `SnapScope`'s facts (`SnapListsOk`), and what the mode asks
+(`GMode.SnapOk`, `StepGhostMode.lean`): statically the ghost state's voters, not joint;
+dynamically A3 for any recorded full-log prefix ending at the snapshot's id. It is persistent and
+names no node, so whoever holds it may hand it along. The storage records which lists its snapshot
+has (`StorState.scs`, `sal`) and raft which certified snapshots it may send (`LogState.ksn`); what
+is not done yet is carrying the certificate from those records to the receiving `raft.Step`
+(notes/STATUS.md, "Snapshots at the public API (stage S)"). -/
+
+section cert
+variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+
+/-- `SnapScope`'s facts of a snapshot's lists and index. -/
+def SnapListsOk (k : SnapTrip) : Prop :=
+  CSWf k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext ∧
+  k.cl.voters.Nodup ∧ k.cl.learners.Nodup ∧ k.cl.outgoing.Nodup ∧ k.cl.learnersNext.Nodup ∧
+  (k.cl.voters.length + k.cl.learners.length + k.cl.outgoing.length +
+    k.cl.learnersNext.length : Int) ≤ 2 ^ 62 ∧
+  (k.cl.outgoing = [] → k.al = false) ∧
+  uint.Z k.sid.index' < 2 ^ 61
+
+/-- The configuration a snapshot's lists denote. -/
+def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
+  csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
+
+/-- See above. -/
+def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+  iprop(⌜SnapListsOk k⌝ ∗
+    ⌜γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = []⌝ ∗
+    □ (∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List raftpb.Entry), logRecs γ base0 fp -∗
+        ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
+
+instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
+    Persistent (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
+
+end cert
+
 end EtcdGrove
 end Perennial

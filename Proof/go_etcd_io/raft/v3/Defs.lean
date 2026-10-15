@@ -192,7 +192,7 @@ the sender and term given separately: `send` stamps both (`From := r.id` when un
 fields replaced. -/
 def absMsgFrom (ty : MsgType) (m : raftpb.Message) (src term : w64)
     (ents : List raftpb.Entry) (ctx : List w8 := []) : Msg :=
-  Msg.mkV ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents ∅ false ctx
+  Msg.mkV ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents [] ctx
 
 /-- The abstraction of a physical message. Not a function of `m` alone: `m.Entries` is
 a slice, and `ents` is the list it points to -- `ownRaftPhys` holds `m.Entries ↦*□ ents`
@@ -202,20 +202,37 @@ def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry)
     (ctx : List w8 := []) : Msg :=
   absMsgFrom ty m m.From' m.Term' ents ctx
 
-/-! `CSLists`, the four id lists of a `ConfState`, is in `Protocol/Model.lean` since 2026-10-15
-(stage S: the abstract message carries them). -/
+/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
+`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
+`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). -/
+structure CSLists where
+  voters : List w64
+  learners : List w64
+  outgoing : List w64
+  learnersNext : List w64
+
+/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
+instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+
+/-- A snapshot as raft knows it (2026-10-15, stage S): its entry id `(Term, Index)`, its
+`ConfState`'s four lists and its `AutoLeave` -- what the log records of the snapshots it may send
+(`LogState.ksn`) and what the application certifies (`raftSnapCert`, `SnapConf.lean`). -/
+structure SnapTrip [FfiSyntax] where
+  sid : entryID
+  cl : CSLists
+  al : Bool
 
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
 is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to, and `voters`
 the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
-the abstract message keeps them since 2026-10-15, stage S, with `AutoLeave`). `index`/`logterm` are the
+the abstract message keeps the incoming voters). `index`/`logterm` are the
 snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
 `maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
 `src`/`term` are given separately because `send` stamps them. -/
 def absSnapFrom (m : raftpb.Message) (src term : w64) (sv : raftpb.Snapshot)
     (voters : CSLists) : Msg :=
   Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
-    m.Commit' m.RejectHint' [] voters sv.Metadata'.ConfState'.AutoLeave' []
+    m.Commit' m.RejectHint' [] voters.voters []
 
 def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
@@ -318,9 +335,8 @@ structure LogState [FfiSyntax] where
   storage : Storage
   /-- The snapshots the node may send (2026-10-15, stage S): ghost, not a Go field. The
   `Storage`'s snapshot (once it is not the empty one) and every snapshot the log restored are
-  in it (`ownRaftLog`'s `Hsksn`, `Hpksn`), so `raftLog.snapshot` returns one of them; the
-  protocol reads it as `PState.snaps`, whose certificates the ghost state keeps. Only a restore
-  (`logRestore`) adds to it. -/
+  in it (`ownRaftLog`'s `Hsksn`, `Hpksn`), so `raftLog.snapshot` returns one of them. Only a
+  restore (`logRestore`) adds to it. The protocol does not read it (`toPState`). -/
   ksn : List SnapTrip
 
 /-! ## The tracker's records (2026-10-02)
@@ -913,8 +929,6 @@ def toPState (s : NState) : PState where
   matched := if s.role = .leader then prvalsMatch s.prvals else ∅
   -- (2026-10-12) a non-leader's read-only object is the fresh one `reset` installed
   rd := if s.role = .leader then s.rd else rdNL s.rd
-  -- (2026-10-15, stage S) the snapshots the node may send: the log's ghost record
-  snaps := s.logst.ksn
 
 /-- A physical state that can take a protocol step: `r.step` agrees with the role, and
 `r.tick` is set (2026-10-09).
@@ -1062,23 +1076,19 @@ theorem toPState_prvals_nl (s : NState) (pvs : GMap w64 Progress) (Hr : s.role �
 theorem nstateWf_sendMsgs (s : NState) (ms : List Msg) (H : NStateWf s) :
     NStateWf (sendMsgs s ms) := H
 
-/-- `ReplOk` reads only the term, the log, the commit index and (2026-10-15, stage S) the
-snapshots the node may send. -/
+/-- `ReplOk` reads only the term, the log and the commit index. -/
 theorem replOk_proper (id : w64) (ps ps' : PState) (m : Msg)
     (Ht : ps'.term = ps.term) (Hb : ps'.base = ps.base) (Hl : ps'.log = ps.log)
-    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m)
-    (Hs : ps'.snaps = ps.snaps := by first | rfl | (simp_all [toPState]; done)) :
-    ReplOk id ps' m := by
+    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m) : ReplOk id ps' m := by
   unfold ReplOk AppOk SnapOk at *
-  rw [Ht, Hb, Hl, Hc, Hs]; exact H
+  rw [Ht, Hb, Hl, Hc]; exact H
 
 /-- `replOk_proper` for `ReplSends`'s element (with `AppCommitEq`, 2026-10-14). -/
 theorem replAC_proper (id : w64) (ps ps' : PState) (m : Msg)
     (Ht : ps'.term = ps.term) (Hb : ps'.base = ps.base) (Hl : ps'.log = ps.log)
-    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m ∧ AppCommitEq ps m)
-    (Hs : ps'.snaps = ps.snaps := by first | rfl | (simp_all [toPState]; done)) :
+    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m ∧ AppCommitEq ps m) :
     ReplOk id ps' m ∧ AppCommitEq ps' m :=
-  ⟨replOk_proper id ps ps' m Ht Hb Hl Hc H.1 Hs, fun h => by rw [Hc]; exact H.2 h⟩
+  ⟨replOk_proper id ps ps' m Ht Hb Hl Hc H.1, fun h => by rw [Hc]; exact H.2 h⟩
 
 theorem replSends_prvals (id : w64) (s : NState) (pvs : GMap w64 Progress) (ms : List Msg) :
     ReplSends id { s with prvals := pvs } ms ↔ ReplSends id s ms := by

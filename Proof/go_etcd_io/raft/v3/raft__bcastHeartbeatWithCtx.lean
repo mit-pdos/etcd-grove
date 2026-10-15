@@ -32,7 +32,7 @@ private theorem heartbeatOk_intro (id : w64) (s : NState) (to c : w64) (cl : Lis
     (Hc : uint.Z c ≤ uint.Z s.logst.committed)
     (Hm : uint.Z c ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))) :
     HeartbeatOk id (toPState s)
-      (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) c (W64 0) [] ∅ false cl) := by
+      (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) c (W64 0) [] [] cl) := by
   unfold HeartbeatOk matchOf toPState
   simp only [Hl, ↓reduceIte]
   exact ⟨trivial, trivial, trivial, Hto, Hc, Hm⟩
@@ -126,7 +126,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       iapply HΦ
       iexists tv1, _
       iframe Htrkf Htrk
-      iexists ms ++ [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] ∅ false cl]
+      iexists ms ++ [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]
       simp only [named]
       iframe rp cp
       isplitr

@@ -161,7 +161,7 @@ structure StorState [FfiSyntax] where
   its `AutoLeave` (`HSnapshot` hands them out with the snapshot), so that raft knows which
   certified snapshot (`raftSnapCert`, `ownRaftLog`'s `Hsksn`) it sends. `∅`/`false` for the empty
   snapshot a fresh storage holds. -/
-  scs : CSLists := ∅
+  scs : CSLists := ⟨[], [], [], []⟩
   sal : Bool := false
 
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*

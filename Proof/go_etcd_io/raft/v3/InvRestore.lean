@@ -64,8 +64,26 @@ def restoreM (vo v l ln : List w64) (al : Bool) : Option CCState :=
   else (simpleFold (restoreSimpleOps vo v l ln) (cfgState ∅ ∅)).bind
     (enterJointM al (restoreInCC vo v l ln))
 
-/-! `csCfgM` and `CSWf` are in `Protocol/Ghost.lean` since 2026-10-15 (stage S: the snapshot
-certificate `raftSnapCert` is stated with them). -/
+/-- The configuration a `ConfState`'s lists denote; `AutoLeave` only when joint (what
+`Restore` keeps of it). -/
+def csCfgM (vo v l ln : List w64) (al : Bool) : CfgM :=
+  { incoming := GMap.listToSet v, outgoing := GMap.listToSet vo,
+    learners := GMap.listToSet l, learnersNext := GMap.listToSet ln,
+    autoLeave := if vo = [] then false else al }
+
+/-- A well-formed `ConfState`: at least one voter, no `0` id (which `Changer.apply` skips),
+a learner neither an incoming nor an outgoing voter, a staged learner an outgoing voter that
+is neither an incoming voter nor a learner, no staged learner when not joint. These are
+`checkInvariants`' conditions on the configuration it denotes (`csCfgM_cfgInv`), with "a staged
+learner is no incoming voter", which every reachable configuration has (`CCGood`-like:
+`makeLearner` removes the id from the incoming voters before staging it, `makeVoter` unstages
+it). Duplicates are allowed (`Restore` is idempotent on them). -/
+def CSWf (vo v l ln : List w64) : Prop :=
+  v ≠ [] ∧
+  (∀ x, x ∈ vo ∨ x ∈ v ∨ x ∈ l ∨ x ∈ ln → x ≠ W64 0) ∧
+  (∀ x, x ∈ l → x ∉ v ∧ x ∉ vo) ∧
+  (∀ x, x ∈ ln → x ∈ vo ∧ x ∉ v ∧ x ∉ l) ∧
+  (vo = [] → ln = [])
 
 theorem simpleFold_append (l1 l2 : List raftpb.ConfChangeSingle) (s : CCState) :
     simpleFold (l1 ++ l2) s = (simpleFold l1 s).bind (simpleFold l2) := by

@@ -799,7 +799,6 @@ def initPState : PState where
   log := []
   commit := W64 0
   matched := ∅
-  snaps := []
 
 theorem alloc_maps {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
     (ids : GSet w64) :
@@ -1074,8 +1073,7 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id : w64)
     isplitl [Hcr0]
     · rw [show initPState.rd.pend.length + rdCount initPState.outbox = 0 from rfl]; iexact Hcr0
     iexact Hcinv
-  isplitr; · ipureintro; exact Hmode
-  rw [show initPState.snaps = [] from rfl]; iapply (BigSepL.bigSepL_nil).2; iempintro
+  ipureintro; exact Hmode
 
 private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) {md : Bool}
     (Hmode : γ.reDyn.isSome = md) :

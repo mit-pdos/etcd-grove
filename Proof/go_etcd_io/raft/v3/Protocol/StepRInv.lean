@@ -635,8 +635,7 @@ theorem RInv_snapRestore {r : RState} (m : Msg) (fp' : List raftpb.Entry) (cs' :
     RInv dec c0 { r with
       p := (psendMsgs
         { padoptLeader r.p m.src with
-            base := entryID.mk m.logterm m.index, log := [], commit := m.index,
-            snaps := r.p.snaps ++ [m.trip] } ms)
+            base := entryID.mk m.logterm m.index, log := [], commit := m.index } ms)
       snap := true
       cidx := uint.nat m.index
       cfg := cs'

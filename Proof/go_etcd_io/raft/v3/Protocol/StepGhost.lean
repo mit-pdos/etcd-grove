@@ -1089,7 +1089,7 @@ theorem snapOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
       isCommittedIdx γ m.index ∗ isSnapMeta γ m.logterm m.index ∗
       ⌜plogTermAt s.base s.log m.index = some m.logterm⌝ := by
   intro Hwf Hsnap
-  obtain ⟨-, -, -, -, Hnz, Hle, Hidx, -⟩ := Hsnap
+  obtain ⟨-, -, -, -, Hnz, Hle, Hidx⟩ := Hsnap
   iintro #Hc #Hrecs #Hb
   isplitr; · iapply isCommittedIdx_le γ s.commit m.index Hle $$ Hc
   isplitr
@@ -1138,11 +1138,9 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       commitIn γ (fp ++ s.log) s.commit s.term -∗
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
-      -- (2026-10-15, stage S) the certificates of the snapshots the node may send
-      ([∗list] k ∈ s.snaps, raftSnapCert γ k) -∗
       isMessage γ m := by
   intro Hr Hok Hid Hi1
-  iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm #Hsnaps
+  iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
   ihave #Hlf2 := Hlf
   iunfold lpfull at Hlf2
   icases Hlf2 with ⟨%F0, -, #Hfr, %Hfull⟩
@@ -1171,8 +1169,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     · ipureintro; exact Hid
   · ihave #Hc' := commitIn_committed γ _ _ _ $$ Hc
     icases snapOk_message γ id s m Hr Hsnap $$ Hc' Hrecs Hb with ⟨-, #Hmeta, %Hidx⟩
-    obtain ⟨Hty, Hfrom, Hterm, -, -, Hle, -, Hk⟩ := Hsnap
-    ihave #Hcert := (BigSepL.bigSepL_mem (Φ := fun k => raftSnapCert (GF := GF) γ k) Hk) $$ Hsnaps
+    obtain ⟨Hty, Hfrom, Hterm, -, -, Hle, -⟩ := Hsnap
     unfold isMessage
     rw [Hty]
     dsimp only
@@ -1187,8 +1184,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       isplitr; · iapply commitIn_le γ _ s.commit m.index s.term HwF Hle $$ HrF Hc
       iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.index).toNat) (cprefix fp s)
         (take_prefix_le _ _ _ (Int.toNat_le_toNat Hle)) $$ Hcm
-    isplitr; · ipureintro; exact Hid
-    iexact Hcert
+    · ipureintro; exact Hid
 
 /-- A full log at its commit index has the history of an acknowledgement there, at any
 term at least the commit fact's. -/

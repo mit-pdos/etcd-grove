@@ -61,7 +61,7 @@ abbrev raft.sendHeartbeat.spec : Prop :=
   {{ (cm : w64) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id
         { sendMsgs s [Msg.mkV .heartbeat id to s.term false
-                        (W64 0) (W64 0) cm (W64 0) [] ∅ false cl] with prvals := pvs } ∗
+                        (W64 0) (W64 0) cm (W64 0) [] [] cl] with prvals := pvs } ∗
       ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
       ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
@@ -81,7 +81,7 @@ abbrev raft.sendHeartbeat.specS : Prop :=
   {{ (c : w64) (pvs : GMap w64 Progress), RET #();
       ownRaftPhys cfg r id
         { sendMsgs s [Msg.mkV .heartbeat id to s.term false
-                        (W64 0) (W64 0) c (W64 0) [] ∅ false cl] with prvals := pvs } ∗
+                        (W64 0) (W64 0) c (W64 0) [] [] cl] with prvals := pvs } ∗
       ⌜uint.Z c ≤ uint.Z s.logst.committed⌝ ∗
       ⌜uint.Z c ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}

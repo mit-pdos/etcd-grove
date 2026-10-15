@@ -123,7 +123,7 @@ theorem raft.maybeSendSnapshot.wp_proof
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_snapshot _ _ _ $$ [$Hlog $ErrSnapUnavail] as %snap %err ⟨Hlog, Herr⟩
   ihave Hphys := Hlogback $$ Hlog
-  icases Herr with (%Herr | ⟨%Herr, %voters, #Hvoters, %Hk⟩)
+  icases Herr with (%Herr | ⟨%Herr, %voters, #Hvoters, -⟩)
   · -- `ErrSnapshotTemporarilyUnavailable`: log and return `false`. The
     -- `panic(err)` that follows the inner `if` is never reached.
     subst Herr
@@ -203,7 +203,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       subst Hm'
       refine ⟨?_, fun h => absurd h (by simp [absSnapFrom])⟩
       right
-      exact ⟨rfl, rfl, rfl, Hto, Hnz, Hsle, Hsterm, Hk⟩
+      exact ⟨rfl, rfl, rfl, Hto, Hnz, Hsle, Hsterm⟩
     · exact prvalsMatch_insert_same _ _ pp _ Hpl rfl
 
 end proof

@@ -244,9 +244,7 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          commitIn γ (fp ++ l) m.index m.term ∗
          -- the committed prefix the snapshot covers (2026-10-05)
          isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
-      ⌜m.src ≠ W64 0⌝ ∗
-      -- (2026-10-15, stage S) the application's certificate of the snapshot's `ConfState`
-      raftSnapCert γ m.trip)
+      ⌜m.src ≠ W64 0⌝)
   | .propose =>
       -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch short enough
       -- for `appendEntry`, each entry with its data (`entData`: a normal entry's proposed,
@@ -1909,9 +1907,7 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) :
     "Hrd"      ∷ rdOwn γ id s ∗
     -- 2026-10-14 (reconfiguration stage B5): the mode, `md` (`false` by default: the code's
     -- ghost state is static, `γ.reDyn = none`, `ownRaftGhost_static`)
-    "%Hmode"   ∷ ⌜γ.reDyn.isSome = md⌝ ∗
-    -- 2026-10-15 (stage S): the certificates of the snapshots the node may send
-    "#Hsnaps"  ∷ ([∗list] k ∈ s.snaps, raftSnapCert γ k))
+    "%Hmode"   ∷ ⌜γ.reDyn.isSome = md⌝)
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
@@ -1933,11 +1929,10 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
       ⌜RoleOk id s⌝ -∗
       lcmOwn γ id s -∗
       rdOwn γ id s -∗
-      ([∗list] k ∈ s.snaps, raftSnapCert γ k) -∗
       ownRaftGhost γ id s md := by
   intro Hname Hidnz Hmode
   unfold ownRaftGhost
-  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13 #H14
+  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13
   iexists γv, voted, kl
   isplitr; · ipureintro; exact Hname
   isplitr; · ipureintro; exact Hidnz
@@ -1954,8 +1949,7 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
   isplitr; · ipureintro; exact H11
   isplitl [H12]; · iexact H12
   isplitl [H13]; · iexact H13
-  isplitr; · ipureintro; exact Hmode
-  iexact H14
+  ipureintro; exact Hmode
 
 /-- The mode of a node's ghost state. -/
 theorem ownRaftGhost_mode (γ : RaftNames) (id : w64) (s : PState) :

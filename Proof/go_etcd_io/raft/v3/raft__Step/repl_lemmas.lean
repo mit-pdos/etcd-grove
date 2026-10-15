@@ -82,7 +82,7 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
   unfold HandleAppResult at Hres
   simp only [Hb, Hl] at Hres
   rw [Hc] at Hres
-  rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', Hfr, rfl⟩ |
+  rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', -, rfl⟩ |
       ⟨Hle, Hnm, hint, hintterm, rfl⟩
   · -- stale
     refine stepCF_eq c id _ _ _ _
@@ -97,11 +97,9 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
       (StepCF.appAccept (absMsg .app m ents) ps lastnewi es' rfl Hto Hfid Hterm Hnl Hle Happ
         (Hconf Hle Hm)) ?_
     rw [toPState_sendMsgs']
-    have Hks : ls'.ksn = t.logst.ksn := Hfr.2.2.2.2.2.2
     have Hs : toPState { t with logst := ls' } =
         { toPState t with base := ls'.prev, log := ls'.sents ++ ls'.uents,
-                          commit := ls'.committed } := by
-      unfold toPState; rw [Hks]
+                          commit := ls'.committed } := rfl
     rw [Hs, Ht, Hprev', Hes, Hcm']
     simp only [appResp, Htm, absMsg, absMsgFrom, padoptLeader]
     rfl
@@ -192,7 +190,7 @@ theorem frame_handle_app (id : w64) (t : NState) (m : raftpb.Message)
   unfold HandleAppResult at Hres
   rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
-  · obtain ⟨H1, H2, H3, H4, H5, H6, -⟩ := Hfr
+  · obtain ⟨H1, H2, H3, H4, H5, H6⟩ := Hfr
     exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
 
@@ -353,11 +351,10 @@ theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
         { toPState t with
             base := snapId sv
             log := ([] : List raftpb.Entry)
-            commit := (snapId sv).index'
-            snaps := (toPState t).snaps ++ [snapTrip sv voters] } := by
+            commit := (snapId sv).index' } := by
       simp [toPState, Hrl, logRestore, snapTrip]
     rw [Hs, Ht]
-    simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId, snapTrip, Msg.trip]
+    simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
 
 theorem step_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
     (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) :
@@ -454,8 +451,7 @@ theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : raft
         psendMsgs
           { padoptLeader (toPState s) (absSnap m sv voters).src with
               base := entryID.mk (absSnap m sv voters).logterm (absSnap m sv voters).index,
-              log := [], commit := (absSnap m sv voters).index,
-              snaps := (toPState s).snaps ++ [(absSnap m sv voters).trip] }
+              log := [], commit := (absSnap m sv voters).index }
           [Msg.mk .appResp id (absSnap m sv voters).src (toPState s).term false
             (absSnap m sv voters).index (W64 0) (W64 0) (W64 0) []] := by
       rw [toPState_sendMsgs']
@@ -465,11 +461,10 @@ theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : raft
           { toPState t with
               base := snapId sv
               log := ([] : List raftpb.Entry)
-              commit := (snapId sv).index'
-              snaps := (toPState t).snaps ++ [snapTrip sv voters] } := by
+              commit := (snapId sv).index' } := by
         simp [toPState, Hrl, logRestore, snapTrip]
       rw [Hs, Ht]
-      simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId, snapTrip, Msg.trip]
+      simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
     exact stepR_snap_restore s _ g (absSnap m sv voters) fp' cs' rfl Hto Hfid Hterm Hnls Hlt Hnm
       hfp (by rw [hcs]; exact hid) hA Hp
       (by simp [sendMsgs, logRestore, Htl]) (by simp [sendMsgs, logRestore])
