@@ -6755,3 +6755,40 @@ token at either list (soundness of the queues' ghost state). The server's stream
 modelled as a chain of transparent interceptors (they may change the stream's context), their
 contracts premises; the client's stream interceptor is inside `NewStream` (etcd's, at no retry),
 as P3a had the unary one before proving it. Details: `notes/grpc-stream-spec.md` §6.
+
+## The stream interceptor's require-leader premise (unit W-W, the stream interceptor, 2026-10-15 · adopted)
+
+`newStreamInterceptor` is proved against the generic contract (`srvStreamInterceptorOk ic
+True`) for every path but one: when the client's metadata has `hasleader: true`, it wraps the
+stream in a `serverStreamWithCtx` with `newCancellableContext(ss.Context())`, registers it in the
+leader monitor's map and cancels it on return. That branch is excluded by a premise,
+`v3rpc.runsNoRequireLeader`: at every run context, `metadata.FromIncomingContext` returns no
+metadata or metadata whose `hasleader` values do not start with `"true"`. It stands in for the
+generic `FromIncomingContext` triple in the proof, so the branch's condition is false and the
+handler gets the same server end and context (`st' = st`, `ci' = ci`, which the contract allows).
+
+*Why the branch is not proved.* The handler would need the wrapper's context to be a run
+context (`isContext ci' cd' ∗ grpcRunCtx ci'`). Perennial's `WithCancel` over a general parent
+(`wp_WithCancel_any`) gives a child whose `Value` is not related to the parent's, so
+`grpcRunCtx` does not transfer: a Perennial limitation, whose general fix (a `WithCancel` spec
+over any `isContext` parent keeping its `PDone` and delegating `Value`, from `wp_WithCancel_gen`
+and `wp_propagateCancel_any_of`) is a Perennial change of its own, not made here (CLAUDE.md,
+"Changes to Perennial"). And the wrapper is not a context at all: its `Err()` can be non-nil
+while `Done()` is open (`issues/etcd-stream-interceptor-err-before-done.md`), so even that fix
+would leave `isContext` of the wrapper false. Proving the branch would mean specifying a
+non-context as a context.
+
+*Why a premise, not a local axiom.* The fact is about the deployment, not about Go or grpc: no
+client of the slice (the recipes, the cache, through `clientv3`) calls `WithRequireLeader`, the
+only way the pair gets into a stream's outgoing metadata, and grpc carries a stream's metadata
+from the client to `FromIncomingContext` (its transport, part of the trust base already). A
+local axiom would claim it for every client of every server; as a premise of
+`newStreamInterceptor.spec` and of `etcd_watch_served_etcd_chain`, it stays visible in the result
+and in no TCB count, and a closed proof discharges it: the client-side derivation (W-C) shows the
+slice's clients send no `hasleader` key, and the transport's metadata claim (the client's
+outgoing metadata is the server's incoming metadata) carries that to the run context. The
+premise is deliberately weak (a `hasleader` key with another value is allowed) so that the
+API-version and metrics paths are proved for any metadata. *Rejected:* proving the branch with a
+local `isContext` axiom for `cancellableContext` (false: the finding above); dropping the
+branch's metadata path from the spec (the API-version check and the metrics run first and are
+proved).

@@ -148,3 +148,15 @@ serverWatchStream__recvLoop: mvcc_watchStream__Watch mvcc_watchStream__Rev mvcc_
 serverWatchStream__sendLoop: serverWatchStream__newResponseHeader GetProgressReportInterval isClientCtxErr mvcc_watchStream__RequestProgress verify_Assert time_NewTicker time_Ticker__Stop time_Duration__Seconds time_Duration__Seconds_ptr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues mvcc_watchStream__Chan
 serverWatchStream__close: mvcc_watchStream__Close
 watchServer__Watch: mvcc_watchableStore__NewWatchStream serverWatchStream__recvLoop serverWatchStream__sendLoop serverWatchStream__close isClientCtxErr errors_IsCtxErr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues
+#
+# Unit W-W (the stream interceptor, interceptor.go): `monitorLeader` (the leader monitor through
+# `GoAttach`, over Perennial's `time.After`, which its proof uses directly) and
+# `newStreamInterceptor`; the server's `GoAttach` and `StoppingNotify` are linked in the server's
+# Link (`@`). `metadata.FromIncomingContext` is not a callee: the premise
+# `runsNoRequireLeader` (InvStreamInterceptor.lean) states it at the run's context. Not linked:
+# `newCancellableContext`, `cancellableContext.Cancel`/`Err`, `serverStreamWithCtx.Context`
+# (reached only in the require-leader branch the premise excludes).
+EtcdServer__GoAttach: @
+EtcdServer__StoppingNotify: @
+monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader
+newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues

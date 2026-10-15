@@ -55,9 +55,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.google_golang_org.grpc.metadata.MD__Get
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.monitorLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newBackendQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryInterceptor
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInterceptor
 public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
@@ -386,9 +388,17 @@ theorem wp_logUnaryRequestStats :
     EtcdGrove.v3rpc.logUnaryRequestStats.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.logUnaryRequestStats.wp_proof
 
+theorem wp_monitorLeader :
+    EtcdGrove.v3rpc.monitorLeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.monitorLeader.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_StoppingNotify EtcdServer.wp_Leader
+
 theorem wp_newLogUnaryInterceptor :
     EtcdGrove.v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_Logger wp_logUnaryRequestStats
+
+theorem wp_newStreamInterceptor :
+    EtcdGrove.v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newStreamInterceptor.wp_proof wp_monitorLeader api.wp_IsCapabilityEnabled EtcdServer.wp_MemberID EtcdServer.wp_IsMemberExist EtcdServer.wp_IsLearner metadata.MD.wp_Get utf8.wp_ValidString prometheus.CounterVec.wp_WithLabelValues
 
 theorem wp_newUnaryInterceptor :
     EtcdGrove.v3rpc.newUnaryInterceptor.spec (GF := GF) (hG := hG) :=

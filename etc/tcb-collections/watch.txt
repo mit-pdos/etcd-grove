@@ -10,6 +10,12 @@
 # `etcd_watch_served_chain`, v3rpc/Results.lean) and the generated stub (`client.watchClient_Watch`,
 # client/v3/Results.lean); new boundary: `InvGrpcStream.lean`'s `grpcStreamServerAt`,
 # `grpcServesStream`, `grpc.serveStream`, `ClientConn.NewStream`, the generic wrappers' methods.
+# Unit W-W, the stream interceptor (2026-10-15): `new_stream_interceptor` and
+# `etcd_watch_served_etcd_chain` (etcd's `newStreamInterceptor` discharging the served chain's
+# second premise, under the premise `runsNoRequireLeader`); its boundary is `newUnaryInterceptor`'s
+# (the server's names-only `IsMemberExist`/`IsLearner` with `membership.localKept`,
+# `api.IsCapabilityEnabled`, grpc's `MD.Get`, `utf8.ValidString`, prometheus's
+# `CounterVec.WithLabelValues`); the leader monitor (`monitorLeader`) adds none.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/watch.txt [--check [--update]]
 #
@@ -18,6 +24,10 @@
 roots \bv3rpc\.(watch_server|new_watch_server|watchStreamSpec_step|srvStep_of_watch)$
 roots \bv3rpc\.(watch_handler|watch_streamHandlerOk|etcd_watchMethodOk|etcd_watch_served|etcd_watch_served_chain)$
 roots \bclient\.watchClient_Watch$
+roots \bv3rpc\.(new_stream_interceptor|etcd_watch_served_etcd_chain)$
+axiom EtcdServer.IsLearner.wp_proof
+axiom EtcdServer.IsMemberExist.wp_proof
+axiom api.IsCapabilityEnabled.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
@@ -41,6 +51,9 @@ axiom grpcConn_persistent
 axiom grpcServesStream
 axiom grpcServesStream_persistent
 axiom grpcStreamServerAt
+axiom membership.localKept
+axiom membership.localKept_persistent
+axiom metadata.MD.Get.wp_proof
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom rand.Int63n.wp_proof
 axiom time.Duration.Seconds.wp_proof
@@ -50,6 +63,7 @@ axiom time.Ticker.Stop.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
+axiom utf8.ValidString.wp_proof
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof

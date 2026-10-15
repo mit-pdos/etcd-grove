@@ -68,6 +68,7 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) | bug | `lease-checkpoint-one-section` (2a163496c) | apply (unit 1), 2026-10-12 |
 | [etcd-watch-progress-interval-overflow](etcd-watch-progress-interval-overflow.md) | bug (a panic on a huge configured interval) | none (reproduced by an overlay test) | v3rpc watch (unit W-S), 2026-10-14 |
 | [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) | bug (not reproduced: from the proof's model) | none | v3rpc watch (unit W-S), 2026-10-14 |
+| [etcd-stream-interceptor-err-before-done](etcd-stream-interceptor-err-before-done.md) | bug (a `context.Context` contract violation: `Err()` non-nil while `Done()` is open, in `Cancel`'s window; reproduced deterministically by an overlay test) | none | v3rpc stream interceptor (unit W-W), 2026-10-15 |
 
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
 into the caller's nested `OpTxn` slice (a race only for callers who reuse the slice; assessed,

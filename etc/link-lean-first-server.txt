@@ -275,6 +275,8 @@ EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes 
 EtcdServer__ApplyWait:
 EtcdServer__Done:
 EtcdServer__Stopping:
+# the watch slice's unit W-W: the stream interceptor's leader monitor selects on it
+EtcdServer__StoppingNotify:
 EtcdServer__LeaderChanged: Notifier__Receive
 EtcdServer__FirstCommitInTermNotify: Notifier__Receive
 EtcdServer__NextRequestID: idutil_Generator__Next

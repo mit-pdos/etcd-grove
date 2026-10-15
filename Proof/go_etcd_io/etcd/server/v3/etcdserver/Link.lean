@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StoppingNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Watchable
@@ -1230,6 +1231,10 @@ theorem EtcdServer.wp_monitorDowngrade :
 theorem EtcdServer.wp_Start :
     EtcdServer.Start.spec (GF := GF) (hG := hG) :=
   EtcdServer.Start.wp_proof EtcdServer.wp_start EtcdServer.wp_GoAttach EtcdServer.wp_Logger EtcdServer.wp_adjustTicks EtcdServer.wp_publishV3 config.ServerConfig.wp_ReqTimeout EtcdServer.wp_purgeFile wp_monitorFileDescriptor EtcdServer.wp_monitorClusterVersions EtcdServer.wp_monitorStorageVersion read.Read.wp_LinearizableReadLoop EtcdServer.wp_monitorKVHash EtcdServer.wp_monitorCompactHash EtcdServer.wp_monitorDowngrade
+
+theorem EtcdServer.wp_StoppingNotify :
+    EtcdServer.StoppingNotify.spec (GF := GF) (hG := hG) :=
+  EtcdServer.StoppingNotify.wp_proof
 
 theorem EtcdServer.wp_getTerm :
     EtcdServer.getTerm.spec (GF := GF) (hG := hG) :=
