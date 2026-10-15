@@ -29,7 +29,10 @@ The result is `ents` itself or `ents[:limit]`, so it **aliases** the input and i
 the postcondition gives the prefix's points-to and a wand back to the whole slice.
 Which prefix is not specified beyond its length bounds, because the sizes come from
 `Entry.Size` (pointer receiver) (`Spec/Entry__Size.lean`), about whose value nothing is
-known -- and nothing on the election path cares where the slice is cut. -/
+known -- and nothing on the election path cares where the slice is cut.
+
+raft v3.7 (stage R3, 2026-10-15): the sizes are `proto.Size(ents[i])` (`util.go:290,292`,
+`proto.SizeEntry.spec`: some `n ≥ 0`); the statement is unchanged. -/
 abbrev limitSize.spec : Prop :=
   ∀ (s : GoSlice) (es : List EntryM) (dq : DFrac) (maxSize : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPts s dq es }}
