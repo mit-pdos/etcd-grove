@@ -4,7 +4,7 @@ stage R1).
 -/
 module
 
-public import Raft37.Proof.go_etcd_io.raft.v3.InvPb
+public import Raft37.Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 
@@ -23,14 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `EnsureSnapshot(s)` of a snapshot pointer, `nil` (`none`) or owned (fully) holding a snapshot:
-a non-`nil` snapshot holding the same record (the zero record for `nil`), owned; `s` itself when
-`s` was not `nil`. -/
+a non-`nil` snapshot holding the same record (the zero record for `nil`), owned, its `Metadata`
+set (`ownSnapE`; since 2026-10-15, stage R3, for `MemoryStorage.CreateSnapshot`, which writes the
+metadata's fields after `EnsureSnapshot`); `s` itself when `s` was not `nil`. -/
 abbrev raftpb.EnsureSnapshot.spec : Prop :=
   ∀ (s : Loc) (o : Option SnapshotM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ snapOpt s (DFrac.own 1) o }}
     (App (Val #(functions raftpb.EnsureSnapshot [])) (Val #s))
   {{ (r : Loc), RET #r;
-      ownSnapM r (DFrac.own 1) (o.getD (SnapshotM.mk [] (SnapshotMetadataM.mk
+      ownSnapE r (DFrac.own 1) (o.getD (SnapshotM.mk [] (SnapshotMetadataM.mk
         (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))) ∗ ⌜s ≠ null → r = s⌝ }}
 
 end spec

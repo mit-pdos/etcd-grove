@@ -1,9 +1,9 @@
 # Retargeting the raft proof to raft v3.7 (protobuf-go v2)
 
-**Stage R0, 2026-10-15, branch `raft-retarget`; stage R1 done the same day** (`notes/STATUS.md`,
-"Retargeting raft to v3.7, stage R1"). The "Design" section was R0's proposal; the review's answers
+**Stage R0, 2026-10-15, branch `raft-retarget`; stages R1, R2 and R3 done the same day**
+(`notes/STATUS.md`, "Retargeting raft to v3.7, stage R1", "... stages R2 and R3"). The "Design" section was R0's proposal; the review's answers
 to its open questions are under "Open questions for the reviewer", "Decisions", and what R1 found
-is marked *R1* where it corrects or refines a fact. Line numbers are of the new source (`.lake/go-src/raft37`, commit
+is marked *R1* (*R3*) where it corrects or refines a fact. Line numbers are of the new source (`.lake/go-src/raft37`, commit
 `509271dac` = etcd-io/raft v3.7.0 `b867cf13` plus the read-index fix) unless marked OLD
 (`.lake/go-src/etcd-raft`, `0560cb7` = `40f8be7` plus the fix).
 
@@ -245,13 +245,20 @@ of 38 changed: `ProgressTracker.ConfState`).
   `Snapshot` with the merged one, `server/etcdserver/snapshot_merge.go:51`), so it needs write
   access to the struct.
 
+*R3*: `MemoryStorage.hardState` is `nil` until the first `SetHardState` (`NewMemoryStorage` sets
+only `ents` and `snapshot`), so the storage holds a nil-or-read-only hard state (`hsOpt`).
+
 **Snapshots.** Cloned on every path into and out of the log and storage: `unstable.restore` (196),
 `nextSnapshot` (114), `raftLog.snapshot` (295), `MemoryStorage.Snapshot` (213),
 `ApplySnapshot` (234), `CreateSnapshot` (262); `Ready.Snapshot` is a fresh clone per
 `readyWithoutAccept` (156), shared with the `MsgStorageAppend{,Resp}` messages (243, 360). A
 `MsgSnap` carries the pointer `raftLog.snapshot()` returned (689). Written in place: by `Ensure*`
 (nil fields only; a received snapshot 1836, `ApplySnapshot`'s argument 222) and by
-`CreateSnapshot` on `MemoryStorage`'s own (255-261).
+`CreateSnapshot` on `MemoryStorage`'s own (255-261). *R3*: also by `MemoryStorage.Snapshot()` on its
+own (`ms.snapshot = EnsureSnapshot(ms.snapshot)`, 212: the field and the nil fields, under the lock)
+and by the unlocked `InitialState` on its own conf state (`EnsureConfState`, 132); and
+`CreateSnapshot` keeps the caller's `data` slice (261), so the storage's snapshot owns those bytes.
+Hence the storage's snapshot is its owner's (`ownMemoryStorage`), not the lock's.
 
 **Hard states** are fresh per `hardState()` (504-510) and never written after construction;
 shared by `Ready.HardState`, `prevHardSt` (aliased by `acceptReady`), `MemoryStorage.hardState`
@@ -335,8 +342,8 @@ value with slice facts), `Ready`'s fields (nil-or-pointer `HardState`/`Snapshot`
 |---|---|---:|---|
 | R1 **done** | D1 records final; `Protocol/*` rest, `Plog`, `CCModel`, `SnapConf`, `StepLemmas*`, `StepGhostMode` | ~22k | rename (R0 did 7.5k). *Actual*: 19 files / 16,151 lines: 13 / 12,547 by the rename alone, 4 / 2,339 with an import edited, `CCApply(C)` 2 / 1,265 split off `InvApplyConf(C)`; `SpecResults` 151 (moved definitions) |
 | R1 **done** | raftpb: getters, `Enum`, `Ensure*`, codec (`AsV1/AsV2/EnterJoint/LeaveJoint`, `MarshalConfChange`, `Equivalent`), D5 axioms, `pbMsg` | ~2.5k | redo. *Actual*: `InvPb.lean` 807; 55 functions (40 getters, 4 `Enum`, 3 `Ensure*`, 8 of the codec and `Equivalent`) in 110 Spec/Proof files / 5,567 lines; 9 `proto.*` axioms in 18 files / 754 lines |
-| R2 | confchange (`Restore`, `toConfChangeSingle` on `*ConfState`; `Changer` unchanged) | ~3.4k (1k changed) | adapt |
-| R3 | `log_unstable`, `log`, `storage` (`MemoryStorage`), `InvRaftlog`/`InvStorage`/`InvMemstorage`, `entRO` | ~12k | redesign of physical predicates |
+| R2 **done** | confchange (`Restore`, `toConfChangeSingle` on `*ConfState`; `Changer` unchanged) | ~3.4k (1k changed) | adapt. *Actual*: 22 functions, 44 files / 5,177 lines; 17 by imports alone, `apply`/`Simple`/`EnterJoint` over `[]*ConfChangeSingle`, `toConfChangeSingle`/`Restore` over `ownCSM`; not imports only: `apply`'s error path needs `fmt.Errorf` and `raftpb.ConfChangeType.String`, the old proof's axioms restated for v3.7 |
+| R3 **done** | `log_unstable`, `log`, `storage` (`MemoryStorage`), `InvRaftlog`/`InvStorage`/`InvMemstorage`, `entRO` | ~12k | redesign of physical predicates. *Actual*: predicates 3,149 lines (`InvPbLog` new 352: `entsPts`/`entsRO`); 64 functions (`MemoryStorage` 13 + `NewMemoryStorage`, `unstable` 12, `raftLog` 31 + `newLogWithSize`, 6 helpers), specs 3,518 lines, proofs 7,014 (18 / 1,489 as copied after the rename, 46 / 5,525 edited, 1,258 lines new), `MemstorageInstance`; no new axiom |
 | R4 | `raft.go`: `InvRaftPhys` (`msgOwn`, `outboxRel`), `raft__Step/*`, `stepLeader`, per-function | ~35k | redesign + adapt |
 | R5 | `rawnode`/`node`/`bootstrap`, `InvRawnode*`, `InvNode*`, the `Ready` predicates | ~15k | redesign |
 | R6 | the swap (`Raft37/*` becomes `Code/`, `Spec/`, `Proof/`), `isRaftNodeIfc` from the new `node`/`RawNode` specs, `EtcdDeps` retired, the register's `go.mod` | — | integration |

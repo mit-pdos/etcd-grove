@@ -2,7 +2,10 @@
 # proof, notes/raft-retarget-plan.md): every linked result of
 # Raft37/Proof/go_etcd_io/raft/v3/Link.lean and the results of its Results.lean. Stage R0:
 # quorum, tracker, slices.Sort. Stage R1: raftpb (getters, Enum, Ensure*, the conf-change codec,
-# ConfState.Equivalent) and the nine protobuf-go axioms it rests on (proto.*, the trust boundary).
+# ConfState.Equivalent) and the nine protobuf-go axioms it rests on (proto.*, the trust boundary). Stage
+# R2: confchange (with fmt.Errorf and raftpb.ConfChangeType.String, the old proof's two axioms for
+# the same Go calls, restated for v3.7). Stage R3: the log layer (unstable, raftLog, MemoryStorage,
+# the size helpers), on R1's proto axioms only.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/raft37.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/raft37.txt --check    against the lines below
@@ -11,6 +14,7 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Raft37/Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
+axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.CloneSnapshot.wp_proof
@@ -20,3 +24,4 @@ axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.SizeEntry.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
