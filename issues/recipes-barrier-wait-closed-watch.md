@@ -9,7 +9,39 @@
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `waitEvents` (`client/v3/experimental/recipes/watch.go:45-57`) returns `nil` when the watch channel closes before the awaited events, ignoring a canceled response's `Err()` (`ErrCompacted`). `WaitEvents` (`watch.go:25-33`) then returns `(nil, nil)`.
+
+   ```go
+   // client/v3/experimental/recipes/watch.go:25-33 (etcd main f061acd09)
+   func WaitEvents(c *clientv3.Client, key string, rev int64, evs []mvccpb.Event_EventType) (*clientv3.Event, error) {
+   	ctx, cancel := context.WithCancel(context.Background())
+   	defer cancel()
+   	wc := c.Watch(ctx, key, clientv3.WithRev(rev))
+   	if wc == nil {
+   		return nil, ErrNoWatcher
+   	}
+   	return waitEvents(wc, evs), nil // <- nil event, nil error after a closed channel
+   }
+   ```
 2. `Barrier.Wait` (`barrier.go:51-65`), when the key exists, returns the error of `WaitEvents(b.client, b.key, resp.Header.Revision+1, DELETE)`: `nil`. The caller proceeds as if the barrier had been released.
+
+   ```go
+   // client/v3/experimental/recipes/barrier.go:51-65 (etcd main f061acd09)
+   func (b *Barrier) Wait() error {
+   	resp, err := b.client.Get(b.ctx, b.key)
+   	if err != nil {
+   		return err
+   	}
+   	if len(resp.Kvs) == 0 {
+   		// key already removed
+   		return nil
+   	}
+   	_, err = WaitEvents( // <-
+   		b.client,
+   		b.key,
+   		resp.Header.Revision+1,
+   		[]mvccpb.Event_EventType{mvccpb.Event_DELETE})
+   	return err // <- nil: "released"
+   ```
 3. `DoubleBarrier.Enter` (`double_barrier.go:91-96`) returns the error of `WaitEvents(client, b.key+"/ready", ek.Revision(), PUT)`: `nil`, with fewer than `count` entrants. `Leave` (`double_barrier.go:146-170`) recurses into `Leave` after a `nil` from `WaitEvents`, which re-reads the waiters, so a closed watch there only costs a retry (or a `Get` error if the client is closed).
 4. `RWMutex.waitOnLastRev` (`rwmutex.go:68-86`) returns `(false, nil)` after a closed watch, and `RLock`/`Lock` loop and re-read the blocking key: benign as well.
 

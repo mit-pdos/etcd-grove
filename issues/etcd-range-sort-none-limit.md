@@ -9,8 +9,52 @@ A `Range` sorted by a target other than the key (`VERSION`, `CREATE`, `MOD` or `
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `executeRange` (`server/etcdserver/txn/range.go:62`) takes mvcc's read limit from `rangeLimit` (`range.go:86-95`), which keeps the request's limit (plus one, for `More`) unless `!IsDefaultOrdering(r.SortTarget, r.SortOrder)` or a revision filter is set. `IsDefaultOrdering` (`range.go:97-103`) is true whenever `sortOrder == NONE`, whatever the target. So for `VERSION`/`NONE` with limit `n`, mvcc returns only the first `n + 1` keys of the range in key order.
+
+   ```go
+   // server/etcdserver/txn/range.go:86-103 (etcd main f061acd09)
+   func rangeLimit(r *pb.RangeRequest) int64 {
+   	limit := r.Limit
+   	if !IsDefaultOrdering(r.SortTarget, r.SortOrder) || HasRevisionFilters(r) { // <- the raw order
+   		limit = 0
+   	}
+   	if limit > 0 && limit < math.MaxInt64 {
+   		limit = limit + 1
+   	}
+   	return limit
+   }
+
+   func IsDefaultOrdering(sortTarget pb.RangeRequest_SortTarget, sortOrder pb.RangeRequest_SortOrder) bool {
+   	// ...
+   	return sortOrder == pb.RangeRequest_NONE || // <- true for VERSION/NONE too
+   		(sortTarget == pb.RangeRequest_KEY && sortOrder == pb.RangeRequest_ASCEND)
+   }
+   ```
 2. `sortRangeResults` (`range.go:125-154`, called at `range.go:77`) turns `NONE` into `ASCEND` when the target is not the key (`range.go:126-129`) and sorts those `n + 1` key-values by the target.
+
+   ```go
+   // server/etcdserver/txn/range.go:125-131 (etcd main f061acd09)
+   func sortRangeResults(rr *mvcc.RangeResult, r *pb.RangeRequest, lg *zap.Logger) {
+   	sortOrder := r.SortOrder
+   	if r.SortTarget != pb.RangeRequest_KEY && sortOrder == pb.RangeRequest_NONE {
+   		sortOrder = pb.RangeRequest_ASCEND // <- here NONE means sort ascending
+   	}
+
+   	if !IsDefaultOrdering(r.SortTarget, sortOrder) {
+   	// ... sort the (already cut) results by the target ...
+   ```
 3. `asembleRangeResponse` (`range.go:156-159`) keeps the first `n` of them and sets `More`.
+
+   ```go
+   // server/etcdserver/txn/range.go:156-161 (etcd main f061acd09)
+   func asembleRangeResponse(rr *mvcc.RangeResult, r *pb.RangeRequest) *pb.RangeResponse {
+   	resp := &pb.RangeResponse{Header: &pb.ResponseHeader{}}
+   	if r.Limit > 0 && len(rr.KVs) > int(r.Limit) {
+   		rr.KVs = rr.KVs[:r.Limit]
+   		resp.More = true
+   	}
+   ```
+
+For example, with keys `c` (version 1), `b` (version 2) and `a` (version 3), as in the reproduction below, a range over `[a, d)` with `VERSION`/`NONE` and limit 1 reads `limit + 1 = 2` keys in key order, `a` and `b`; sorted by version they are `b` (2), `a` (3); the response is `b`, with `More` true and `Count` 3. The right answer is `c`, which mvcc never read.
 
 The response is thus the `n` smallest (by the target) of the first `n + 1` keys, which can miss the `n` smallest of the range. With an explicit `ASCEND`, `IsDefaultOrdering` is false, mvcc reads the whole range, and the answer is right; `Count` is right in both cases.
 

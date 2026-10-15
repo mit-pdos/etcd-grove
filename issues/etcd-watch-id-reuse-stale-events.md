@@ -22,6 +22,35 @@
 
   The client cannot tell them apart (the response carries only the id).
 
+  `sendLoop` buffers a response whose id is not announced under that id, and flushes the
+  buffer when the id's created response goes out. The cancel case removes the id from `ids` but
+  leaves `pending[id]`:
+
+  ```go
+  // server/etcdserver/api/v3rpc/watch.go:470-476 and 534-552 (etcd main f061acd09)
+  			if wresp.WatchID != clientv3.InvalidWatchID {
+  				if _, okID := ids[wresp.WatchID]; !okID {
+  					// buffer if id not yet announced
+  					wrs := append(pending[wresp.WatchID], wr) // <-
+  					pending[wresp.WatchID] = wrs
+  					continue
+  				}
+  	// ...
+  			if c.Canceled && wid != clientv3.InvalidWatchID {
+  				delete(ids, wid) // <- pending[wid] is kept
+  				continue
+  			}
+  			if c.Created {
+  				// flush buffered events
+  				ids[wid] = struct{}{}
+  				for _, v := range pending[wid] { // <-
+  					mvcc.ReportEventReceived(len(v.Events))
+  					if err := sws.gRPCStream.Send(v); err != nil {
+  	// ...
+  					}
+  				}
+  ```
+
   **Variant** (2026-10-15, unit W-M): the same reuse happens without a second explicit id. mvcc's
   `watchStream.Watch` with `AutoWatchID` skips only the ids live on the stream (`for
   ws.watchers[ws.nextID] != nil { ws.nextID++ }`), so an explicit id `X` at or above `nextID`
@@ -29,6 +58,19 @@
   then flushes the canceled watcher's buffered responses as above. A stream on which every
   create uses `AutoWatchID` (etcd's client: `toPB` sets no `WatchId`) never reuses an id: mvcc's
   `idAssigned_agree` (an assigned id names one watcher for good; `notes/STATUS.md`, "W-M").
+
+  ```go
+  // server/storage/mvcc/watcher.go:128-136 (etcd main f061acd09)
+  	if id == clientv3.AutoWatchID {
+  		for ws.watchers[ws.nextID] != nil { // <- skips only live ids
+  			ws.nextID++
+  		}
+  		id = ws.nextID
+  		ws.nextID++
+  	} else if _, ok := ws.watchers[id]; ok { // <- a canceled id is accepted again
+  		return -1, ErrWatcherDuplicateID
+  	}
+  ```
 - **Expected**: the documentation says nothing of id reuse; a client re-creating a watch with
   the same id expects only the new watch's events after its created response.
 - **How the proof handles it**: nothing is assumed: `sendLoop`'s proof attributes each mvcc

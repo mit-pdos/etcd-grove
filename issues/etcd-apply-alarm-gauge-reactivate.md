@@ -58,6 +58,44 @@
   	require.Equal(t, before+1, testutil.ToFloat64(gauge), "but the gauge still counts one")
   }
   ```
+- **How it happens**: the applier counts `Activate` calls that return a member, not alarms
+  added. A `NOSPACE` alarm for member `m`, gauge at 0:
+
+  1. Two requests fail with `ErrNoSpace` before any alarm is set, and `applyEntryNormal`
+     proposes an `ACTIVATE` for each.
+  2. The first `ACTIVATE` applies. `addToMap` stores the new member, `Activate` writes it and
+     returns it, and the gauge goes to 1.
+  3. The second `ACTIVATE` applies. `addToMap` finds the existing member and returns it, so
+     `Activate` returns it without writing. The applier increments the gauge to 2.
+  4. One `DEACTIVATE` removes the alarm and decrements the gauge to 1. It stays at 1.
+
+  ```go
+  // server/etcdserver/apply/backend.go:115-124 (etcd main f061acd09)
+  	case pb.AlarmRequest_ACTIVATE:
+  		if ar.Alarm == pb.AlarmType_NONE {
+  			break
+  		}
+  		m := a.options.AlarmStore.Activate(types.ID(ar.MemberID), ar.Alarm)
+  		if m == nil {
+  			break
+  		}
+  		resp.Alarms = append(resp.Alarms, m)
+  		alarms.WithLabelValues(types.ID(ar.MemberID).String(), m.Alarm.String()).Inc() // <-
+
+  // server/etcdserver/api/v3alarm/alarms.go:53-64 (etcd main f061acd09)
+  func (a *AlarmStore) Activate(id types.ID, at pb.AlarmType) *pb.AlarmMember {
+  	a.mu.Lock()
+  	defer a.mu.Unlock()
+
+  	newAlarm := &pb.AlarmMember{MemberID: uint64(id), Alarm: at}
+  	if m := a.addToMap(newAlarm); m != newAlarm {
+  		return m // <- already set: returned without writing
+  	}
+
+  	a.be.MustPutAlarm(newAlarm)
+  	return newAlarm
+  }
+  ```
 - **Expected**: the gauge counts the alarms the store holds (its help text: "Alarms for every
   member in cluster"): 1 while the alarm is set, 0 after it is disarmed.
 - **How the proof handles it**: not a premise: the gauge is a metric (`alarms`, a package

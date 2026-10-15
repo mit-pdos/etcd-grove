@@ -10,6 +10,40 @@ Line references are to `client/v3/concurrency/mutex.go` at f061acd09.
 
 Two `Mutex` values on one session share the key `pfx/<lease>`. `tryAcquire` (lines 111-132) creates that key if it is absent; otherwise it takes the `Else` branch and reuses the existing key, recording its create revision in `m.myRev` (lines 127-130). A waiting `Lock` then waits for every key under the prefix created before `m.myRev` (`waitDeletes(ctx, client, m.pfx, m.myRev-1)`, line 89), checks only that `m.myKey` still exists (`Get`, lines 97-105), and returns nil (lines 106-108). It does not check that the key's create revision is still `m.myRev`.
 
+```go
+// client/v3/concurrency/mutex.go:111-132 (etcd main f061acd09), tryAcquire
+	m.myKey = fmt.Sprintf("%s%x", m.pfx, s.Lease())
+	cmp := v3.Compare(v3.CreateRevision(m.myKey), "=", 0)
+	// ...
+	put := v3.OpPut(m.myKey, "", v3.WithLease(s.Lease()))
+	// reuse key in case this session already holds the lock
+	get := v3.OpGet(m.myKey)
+	// ...
+	m.myRev = resp.Header.Revision
+	if !resp.Succeeded {
+		m.myRev = resp.Responses[0].GetResponseRange().Kvs[0].CreateRevision // <- the shared key's revision
+	}
+```
+
+```go
+// client/v3/concurrency/mutex.go:89-108 and 152-154 (etcd main f061acd09), Lock after the wait; IsOwner
+	werr := waitDeletes(ctx, client, m.pfx, m.myRev-1)
+	// ...
+	// make sure the session is not expired, and the owner key still exists.
+	gresp, werr := client.Get(ctx, m.myKey)
+	// ...
+	if len(gresp.Kvs) == 0 { // is the session key lost? // <- existence only
+		return ErrSessionExpired
+	}
+	m.hdr = gresp.Header
+
+	return nil
+// ...
+func (m *Mutex) IsOwner() v3.Cmp {
+	return v3.Compare(v3.CreateRevision(m.myKey), "=", m.myRev) // <- the revision Lock never re-checked
+}
+```
+
 Schedule, with mutexes A and B on session S, C on session T, D on session U, all on the same prefix:
 
 1. C locks.

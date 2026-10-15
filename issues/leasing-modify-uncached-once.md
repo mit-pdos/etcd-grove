@@ -9,8 +9,41 @@ A `Put` or `Delete` through the leasing KV (`client/v3/leasing`) of a key it has
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `leasingKV.put` (`client/v3/leasing/kv.go:236-263`) and `leasingKV.delete` (`kv.go:380-411`) first call `tryModifyOp` (`kv.go:218-234`). It takes `wc, rev := lkv.leases.Lock(key)`, which is `(nil, 0)` when the key is not cached (`cache.go:53-61`), and commits `Txn().If(Compare(CreateRevision(pfx+key), "<", rev+1)).Then(op)`.
+
+   ```go
+   // client/v3/leasing/cache.go:53-61 and kv.go:218-232 (etcd main f061acd09)
+   func (lc *leaseCache) Lock(key string) (chan<- struct{}, int64) {
+   	// ...
+   	if li := lc.entries[key]; li != nil {
+   		li.waitc = make(chan struct{})
+   		return li.waitc, li.rev
+   	}
+   	return nil, 0 // <- uncached: no waiter channel
+   }
+
+   func (lkv *leasingKV) tryModifyOp(ctx context.Context, op v3.Op) (*v3.TxnResponse, chan<- struct{}, error) {
+   	key := string(op.KeyBytes())
+   	wc, rev := lkv.leases.Lock(key)
+   	cmp := v3.Compare(v3.CreateRevision(lkv.pfx+key), "<", rev+1)
+   	resp, err := lkv.kv.Txn(ctx).If(cmp).Then(op).Commit() // <- commit #1
+   	// ... error / !Succeeded cases return nil, nil, err ...
+   	return resp, wc, nil // <- success with wc == nil
+   }
+   ```
 2. When no client holds the key's lease, the leasing key `pfx+key` does not exist, the comparison holds and `op` is applied. `tryModifyOp` returns `(resp, nil, nil)`: a successful response with a nil `wc`.
 3. `put` and `delete` then test `if err != nil || wc == nil` (`kv.go:242`, `kv.go:390`) and call `revoke` (`kv.go:413-421`): a nil `wc` is taken to mean the commit did not happen. `revoke` commits `If(Compare(CreateRevision(pfx+key), "<", Rev(key)+1)).Then(op)` with `Rev(key) == 0` for the uncached key, the same guarded op, which succeeds again.
+
+   ```go
+   // client/v3/leasing/kv.go:241-244, 413-416 (etcd main f061acd09), put and revoke
+   		resp, wc, err := lkv.tryModifyOp(ctx, op)
+   		if err != nil || wc == nil { // <-
+   			resp, err = lkv.revoke(ctx, string(op.KeyBytes()), op)
+   		}
+   // revoke
+   	rev := lkv.leases.Rev(key) // 0 for an uncached key
+   	txn := lkv.kv.Txn(ctx).If(v3.Compare(v3.CreateRevision(lkv.pfx+key), "<", rev+1)).Then(op)
+   	resp, err := txn.Else(v3.OpPut(lkv.pfx+key, "REVOKE", v3.WithIgnoreLease())).Commit() // <- commit #2
+   ```
 4. The response returned to the caller is the second commit's.
 
 So for a fresh key `k`:

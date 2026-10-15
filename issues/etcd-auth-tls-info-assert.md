@@ -20,6 +20,26 @@
   	as.AuthInfoFromTLS(ctx) // panics
   }
   ```
+- **How it happens**: the function returns `nil` for a peer with no auth info, but asserts any
+  other auth info to `credentials.TLSInfo` without the `ok` form.
+
+  1. A gRPC server built with non-TLS transport credentials (here `insecure.NewCredentials()`)
+     puts that credentials' `AuthInfo` in the request's peer.
+  2. The caller passes the request's context to `AuthInfoFromTLS`. The peer's `AuthInfo` is
+     non-nil, so the early return is skipped.
+  3. The assertion to `credentials.TLSInfo` fails and panics.
+
+  ```go
+  // server/auth/store.go:1013-1020 (etcd main f061acd09)
+  func (as *authStore) AuthInfoFromTLS(ctx context.Context) (ai *AuthInfo) {
+  	peer, ok := peer.FromContext(ctx)
+  	if !ok || peer == nil || peer.AuthInfo == nil {
+  		return nil
+  	}
+
+  	tlsInfo := peer.AuthInfo.(credentials.TLSInfo) // <- panics for non-TLS auth info
+  	for _, chains := range tlsInfo.State.VerifiedChains {
+  ```
 - **Expected**: `nil` (no TLS identity), as for a peer without auth info.
 - **How the proof handles it**: `AuthInfoFromTLS` is at the trust boundary (its peer's
   `credentials.TLSInfo` and x509 chains are axiomatized types); its axiom

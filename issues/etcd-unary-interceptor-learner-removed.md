@@ -35,6 +35,42 @@
   ```
 
   (`IsLocalMemberLearner panicked: failed to find local ID in cluster members`.)
+- **How it happens**: every unary gRPC request passes the learner check in
+  `newUnaryInterceptor`. The check first asks whether the local member exists, then whether it
+  is a learner. Each call takes the cluster lock separately, so the member can be removed in
+  between, and `IsLocalMemberLearner` panics if the local member is missing:
+
+  1. Member 1 serves a unary request (a `Put`, say). The interceptor calls
+     `s.IsMemberExist(1)`: true.
+  2. The apply loop applies the conf change that removes member 1: `RemoveMember(1)` deletes
+     it from `c.members`. The server stops only after the apply.
+  3. The interceptor calls `s.IsLearner()`, which calls `IsLocalMemberLearner`. `c.members` has
+     no entry for `c.localID`, so it calls `c.lg.Panic`. Nothing recovers panics in etcd's gRPC
+     handlers, so the process dies.
+
+  Upstream fixed the same check-then-act pattern for another caller in 3374e27f1 (2024,
+  "etcdserver: fix panic when checking IsLearner of removed member"), with the failpoint
+  `afterIsMemberExist` to test it. The interceptor still has the pattern.
+
+  ```go
+  // server/etcdserver/api/v3rpc/interceptor.go:53-55 and api/membership/cluster.go:786-797 (etcd main f061acd09)
+  		if s.IsMemberExist(s.MemberID()) && s.IsLearner() && !isRPCSupportedForLearner(req) { // <-
+  			return nil, rpctypes.ErrGRPCNotSupportedForLearner
+  		}
+  // cluster.go
+  func (c *RaftCluster) IsLocalMemberLearner() bool {
+  	c.Lock()
+  	defer c.Unlock()
+  	localMember, ok := c.members[c.localID]
+  	if !ok {
+  		c.lg.Panic( // <-
+  			"failed to find local ID in cluster members",
+  			zap.String("cluster-id", c.cid.String()),
+  			zap.String("local-member-id", c.localID.String()),
+  		)
+  	}
+  	return localMember.IsLearner
+  ```
 - **Expected**: the learner check of a request is a check, not a crash: a removed member answers
   (an error, as it does when `IsMemberExist` is already false) or stops.
 - **How the proof handles it**: `EtcdServer.IsLearner`'s spec (an axiom: `server.go` and

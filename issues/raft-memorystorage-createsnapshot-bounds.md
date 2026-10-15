@@ -53,6 +53,41 @@ func TestMemoryStorageCreateSnapshotPastLastIndex(t *testing.T) {
 }
 ```
 
+**How it happens**: past the `ErrSnapOutOfDate` check, `CreateSnapshot` reads the term at
+`ms.ents[i-offset]`, where `offset` is the index of the storage's first (dummy) entry. Only the
+upper bound is checked, by a `Panicf`. Nothing checks `i >= offset`, and the range below it is
+reachable because `Compact` moves `offset` but not the snapshot. The first test above runs:
+
+1. A fresh storage holds only the dummy entry at index 0 (`snapshot.Metadata.Index = 0`).
+2. `Append` entries 1 to 5: `ms.ents` is indices 0 to 5.
+3. `Compact(4)`: `ms.ents` is indices 4 (the new dummy) and 5, so `offset = 4`;
+   the snapshot index stays 0.
+4. `CreateSnapshot(2, nil, nil)`: `2 > 0` passes the out-of-date check and `2 <= 5` the
+   bound check; `i - offset = 2 - 4` wraps to `18446744073709551614`, and `ms.ents[...]`
+   panics with "index out of range [18446744073709551614] with length 2".
+
+```go
+// storage.go:230-243 (etcd-io/raft 40f8be7)
+func (ms *MemoryStorage) CreateSnapshot(i uint64, cs *pb.ConfState, data []byte) (pb.Snapshot, error) {
+	ms.Lock()
+	defer ms.Unlock()
+	if i <= ms.snapshot.Metadata.Index {
+		return pb.Snapshot{}, ErrSnapOutOfDate
+	}
+
+	offset := ms.ents[0].Index
+	if i > ms.lastIndex() {
+		getLogger().Panicf("snapshot %d is out of bound lastindex(%d)", i, ms.lastIndex()) // <-
+	}
+
+	ms.snapshot.Metadata.Index = i
+	ms.snapshot.Metadata.Term = ms.ents[i-offset].Term // <- i < offset wraps around
+```
+
+etcd does not reach either panic: it calls `CreateSnapshot` only with its applied index, after
+waiting for the raft goroutine to persist the entries, and it compacts only below its own last
+snapshot, so the index is in range. v3.7.0 has the same code (`storage.go:243-263`).
+
 **Expected**: either documented preconditions (`firstIndex()-1 <= i <= lastIndex()`, as
 `Compact` documents its own upper bound: "It is the application's responsibility to not
 attempt to compact an index greater than raftLog.applied"), or `ErrCompacted` for a

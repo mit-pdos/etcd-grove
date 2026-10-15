@@ -21,6 +21,39 @@ After a successful put, `leasingKV.put` (`client/v3/leasing/kv.go:236-263`, line
 - it increments `Version` unconditionally;
 - if `ModRevision < header.Revision`, it sets `ModRevision` and `Value` to the put's.
 
+```go
+// client/v3/leasing/cache.go:132-152 (etcd main f061acd09)
+func (lc *leaseCache) Update(key, val []byte, respHeader *v3pb.ResponseHeader) {
+	li := lc.entries[string(key)]
+	if li == nil {
+		return
+	}
+	cacheResp := li.response
+	if len(cacheResp.Kvs) == 0 {
+		kv := &mvccpb.KeyValue{
+			Key:            key,
+			CreateRevision: respHeader.Revision,
+		}
+		cacheResp.Kvs = append(cacheResp.Kvs, kv)
+		cacheResp.Count = 1
+	}
+	cacheResp.Kvs[0].Version++ // <- even for an older response
+	if cacheResp.Kvs[0].ModRevision < respHeader.Revision {
+		cacheResp.Header = respHeader
+		cacheResp.Kvs[0].ModRevision = respHeader.Revision
+		cacheResp.Kvs[0].Value = val // <- the op's bytes; no lease
+	}
+}
+```
+
+```go
+// client/v3/leasing/kv.go:248-251 (etcd main f061acd09)
+		if resp.Succeeded {
+			lkv.leases.mu.Lock()
+			lkv.leases.Update(op.KeyBytes(), op.ValueBytes(), resp.Header) // <-
+			lkv.leases.mu.Unlock()
+```
+
 `Update` sees only the put's value bytes, so:
 
 1. **`WithIgnoreValue`**: `op.ValueBytes()` is empty, so the cache stores `""`. etcd keeps the old value.

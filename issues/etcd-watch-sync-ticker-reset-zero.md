@@ -15,6 +15,41 @@
   Ticker.Reset", killing the member. The branch is taken under load: a pass syncs at most
   `maxWatchersPerSync` (512) watchers, so with more unsynced watchers than that (or victims that
   stay unsynced) every pass satisfies the condition.
+- **How it happens**: after each pass over unsynced watchers, `syncWatchersLoop` re-arms its
+  ticker with the time the pass took, to yield to other store work. Go's `Ticker.Reset` panics
+  on a non-positive duration, and `time.Since` is zero when the monotonic clock did not advance
+  during the pass:
+
+  1. The store has 1000 unsynced watchers (more than `maxWatchersPerSync`, 512).
+  2. A pass records `st := time.Now()` and `lastUnsyncedWatchers = 1000`, then syncs 512
+     watchers: `unsyncedWatchers = 488`.
+  3. On a platform with a coarse monotonic clock, the pass finishes within one clock step:
+     `syncDuration := time.Since(st)` is `0`.
+  4. The pass made progress and left watchers unsynced (`488 != 0 && 1000 > 488`), so the loop
+     calls `delayTicker.Reset(0)`, which panics with "non-positive interval for Ticker.Reset".
+
+  ```go
+  // server/storage/mvcc/watchable_store.go:240-247 (etcd main f061acd09)
+  		syncDuration := time.Since(st) // <-
+
+  		delayTicker.Reset(watchResyncPeriod)
+  		// more work pending?
+  		if unsyncedWatchers != 0 && lastUnsyncedWatchers > unsyncedWatchers {
+  			// be fair to other store operations by yielding time taken
+  			delayTicker.Reset(syncDuration) // <-
+  		}
+  ```
+
+  ```go
+  // time/tick.go:63-69 (Go 1.27.1)
+  // Reset stops a ticker and resets its period to the specified duration.
+  // The next tick will arrive after the new period elapses. The duration d
+  // must be greater than zero; if not, Reset will panic.
+  func (t *Ticker) Reset(d Duration) {
+  	if d <= 0 { // <-
+  		panic("non-positive interval for Ticker.Reset")
+  	}
+  ```
 - **Expected**: the loop re-arms the ticker with the sync duration, or the default period when
   the duration is not usable; a zero duration is a valid reading of a clock.
 - **How the proof handles it**: `Spec/time/Ticker__Reset.lean` requires a positive duration (as

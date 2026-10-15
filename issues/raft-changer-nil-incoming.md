@@ -31,6 +31,42 @@ func TestNilIncomingPanics(t *testing.T) {
 `tracker.MakeProgressTracker` builds `Voters[0]` as an empty non-`nil` map, so raft itself
 never reaches this.
 
+**How it happens**: adding a voter writes into the incoming voter map without allocating it,
+unlike the learner sets, which go through `nilAwareAdd`. In the test above:
+
+1. The tracker is a literal with `Voters[0] == nil` (and `Voters[1] == nil`).
+2. `Simple(AddNode 1)` copies the configuration with `checkAndCopy`, whose `Config.Clone`
+   keeps the `nil` map, and `checkInvariants` accepts it.
+3. Node 1 has no progress, so `makeVoter` calls `initProgress`, which runs
+   `incoming(cfg.Voters)[1] = struct{}{}` on the `nil` map: "assignment to entry in nil map".
+
+```go
+// confchange/confchange.go:178-189 and 247-252 (etcd-io/raft 40f8be7)
+func (c Changer) makeVoter(cfg *tracker.Config, trk tracker.ProgressMap, id uint64) {
+	pr := trk[id]
+	if pr == nil {
+		c.initProgress(cfg, trk, id, false /* isLearner */)
+		return
+	}
+
+	pr.IsLearner = false
+	nilAwareDelete(&cfg.Learners, id)
+	nilAwareDelete(&cfg.LearnersNext, id)
+	incoming(cfg.Voters)[id] = struct{}{} // <-
+}
+
+func (c Changer) initProgress(cfg *tracker.Config, trk tracker.ProgressMap, id uint64, isLearner bool) {
+	if !isLearner {
+		incoming(cfg.Voters)[id] = struct{}{} // <-
+	} else {
+		nilAwareAdd(&cfg.Learners, id)
+	}
+	// ...
+```
+
+etcd never uses `confchange` directly, so it does not reach this. The code is the same in raft
+v3.7.0.
+
 **Expected**: either a documented precondition (build the tracker with
 `MakeProgressTracker`), or `makeVoter`/`initProgress` allocating the map as `nilAwareAdd`
 does for the learner sets.

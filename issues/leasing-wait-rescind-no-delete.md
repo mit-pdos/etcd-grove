@@ -10,8 +10,48 @@ References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `revoke` (`client/v3/leasing/kv.go:413-421`) commits `If(CreateRevision(pfx+key) < rev+1).Then(op).Else(OpPut(pfx+key, "REVOKE", WithIgnoreLease()))`. When another client holds the lease, the `Else` branch marks its leasing key, and `revoke` returns `waitRescind(ctx, key, resp.Header.Revision)`.
 2. `waitRescind` (`kv.go:204-216`) watches `pfx+key` from that revision + 1 and returns `ctx.Err()` on the first delete event. If the watch channel closes first, the loop ends and it also returns `ctx.Err()`, which is `nil` while the caller's context is live. A watch whose start revision has been compacted is canceled by etcd and its channel closed. The same happens when the client is closing.
+
+   ```go
+   // client/v3/leasing/kv.go:204-216 (etcd main f061acd09)
+   func (lkv *leasingKV) waitRescind(ctx context.Context, key string, rev int64) error {
+   	cctx, cancel := context.WithCancel(ctx)
+   	defer cancel()
+   	wch := lkv.cl.Watch(cctx, lkv.pfx+key, v3.WithRev(rev+1))
+   	for resp := range wch {
+   		for _, ev := range resp.Events {
+   			if ev.Type == v3.EventTypeDelete {
+   				return ctx.Err()
+   			}
+   		}
+   	}
+   	return ctx.Err() // <- nil: the leasing key may still exist
+   }
+   ```
 3. For a single-key `Put` or `Delete`, the caller retries `tryModifyOp`, whose guard fails again while the leasing key exists. So the retry is the only cost.
 4. For a range delete, `revokeRange` → `revokeLeaseKvs` (`kv.go:423-451`) returns the largest create revision of the leasing keys in the range, still-held ones included. `deleteRangeRPC` (`kv.go:340-361`) then commits the delete guarded by `CreateRevision(pfx+key).WithRange(pfx+end) < maxLeaseRev+1`. That guard holds, since the still-present leasing key was created at or before `maxLeaseRev`. The delete is applied while the other client holds its lease.
+
+   ```go
+   // client/v3/leasing/kv.go:435-449, 342-347 (etcd main f061acd09)
+   func (lkv *leasingKV) revokeLeaseKvs(ctx context.Context, kvs []*mvccpb.KeyValue) (int64, error) {
+   	maxLeaseRev := int64(0)
+   	for _, kv := range kvs {
+   		if rev := kv.CreateRevision; rev > maxLeaseRev {
+   			maxLeaseRev = rev
+   		}
+   		// ... skip own keys ...
+   		key := strings.TrimPrefix(string(kv.Key), lkv.pfx)
+   		if _, err := lkv.revoke(ctx, key, v3.OpGet(key)); err != nil { // <- nil without the delete
+   			return 0, err
+   		}
+   	}
+   // deleteRangeRPC(ctx, maxLeaseRev, key, end):
+   	resp, err := lkv.kv.Txn(ctx).If(
+   		v3.Compare(v3.CreateRevision(lkey).WithRange(lend), "<", maxLeaseRev+1), // <-
+   	).Then(
+   		v3.OpGet(key, v3.WithRange(end), v3.WithKeysOnly()),
+   		v3.OpDelete(key, v3.WithRange(end)),
+   	).Commit()
+   ```
 5. The other client's cache still has the key. Its `monitorLease` (`kv.go:159-188`) rescinds only when it sees the `REVOKE` put, and if it has not yet seen it, its `Get` (`leaseCache.Get`, `cache.go:191-210`) returns the deleted value.
 
 The leasing protocol rests on one invariant: no write to a key commits while another client holds the lease on it. Step 4 breaks it.

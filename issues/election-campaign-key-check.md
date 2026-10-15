@@ -12,7 +12,56 @@ At f061acd09, in `Campaign`:
 - line 93 waits, with `waitDeletes(ctx, client, e.keyPrefix, e.leaderRev-1)`, until every key under the prefix created before `e.leaderRev` is deleted;
 - lines 104-106 set `e.hdr` and return nil.
 
+```go
+// client/v3/concurrency/election.go:69-107 (etcd main f061acd09)
+func (e *Election) Campaign(ctx context.Context, val string) error {
+	s := e.session
+	client := e.session.Client()
+
+	k := fmt.Sprintf("%s%x", e.keyPrefix, s.Lease())
+	txn := client.Txn(ctx).If(v3.Compare(v3.CreateRevision(k), "=", 0))
+	txn = txn.Then(v3.OpPut(k, val, v3.WithLease(s.Lease())))
+	txn = txn.Else(v3.OpGet(k))
+	resp, err := txn.Commit()
+	// ... reuse an existing key of this session, Proclaim the new value ...
+
+	err = waitDeletes(ctx, client, e.keyPrefix, e.leaderRev-1) // <- waits for older keys to go
+	if err != nil {
+		// ... clean up ...
+		return err
+	}
+	e.hdr = resp.Header // <- nothing checks that our own key still exists
+
+	return nil
+}
+```
+
 Nothing checks that the key at `e.leaderRev` is still there when `waitDeletes` returns. If it was deleted during the wait, another campaigner whose key was created later is now the first-created key, and its `Campaign` returns nil too. For the stale campaigner, `Leader()` names the other key and `Proclaim` fails with `ErrElectionNotLeader`; code that acts on `Campaign`'s return alone runs with two leaders.
+
+For example, in the revoked-lease schedule of the test below:
+
+1. C (session T) campaigns on an empty prefix: its key is the oldest, so it leads.
+2. A (session S) campaigns. Its key `prefix/<S's lease>` is created after C's, so A waits in `waitDeletes` for C's key to go.
+3. S's lease is revoked: A's key is deleted. A's context is live, and `waitDeletes` only watches the keys created before A's, so A keeps waiting.
+4. D (session U) campaigns. Its key is created after C's (and after A's, now gone), so D waits for C's key.
+5. C resigns, deleting its key. D's key is now the oldest under the prefix: D's `Campaign` returns nil, and D leads.
+6. A's `waitDeletes` also returns: no key created before A's is left. A's `Campaign` returns nil too. A's `Leader()` names D's key, and A's `Proclaim` fails with `election: not leader`.
+
+`Mutex.Lock` makes the check `Campaign` lacks:
+
+```go
+// client/v3/concurrency/mutex.go:95-104 (etcd main f061acd09)
+	// make sure the session is not expired, and the owner key still exists.
+	gresp, werr := client.Get(ctx, m.myKey)
+	if werr != nil {
+		m.Unlock(client.Ctx())
+		return werr
+	}
+
+	if len(gresp.Kvs) == 0 { // is the session key lost?
+		return ErrSessionExpired
+	}
+```
 
 The key can be deleted during the wait with the caller's context live:
 

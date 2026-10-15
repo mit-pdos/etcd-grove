@@ -32,6 +32,31 @@
   the test then hangs in its cleanup (`backend.(*batchTx).lock` in `CommitAndStop`) until
   `go test`'s timeout: the panic left the write transaction's batch lock held. In the server
   the panic is in the apply loop, so the member crashes.
+- **How it happens**: `newTxnResp` leaves no response slot for an empty op, and `executeTxn`
+  reads the slot before its switch reaches the "empty union" case.
+
+  1. A caller passes `TxnRequest{Success: []*pb.RequestOp{{}}}` to `Txn` directly.
+  2. `IsTxnReadonly` counts the op as a write, so `Txn` opens a write transaction.
+  3. `newTxnResp` hits `default:` for the op and leaves `resps[0]` nil.
+  4. `executeTxn` reads `tresp.Responses[0].Response` and dereferences nil. The panic leaves
+     the batch lock held.
+
+  ```go
+  // server/etcdserver/txn/txn.go:116-130, 142-145, 194-195 (etcd main f061acd09)
+  	for i, req := range reqs {
+  		switch tv := req.Request.(type) {
+  	// ...
+  		default: // <- resps[i] stays nil
+  		}
+  	// ...
+  	for i, req := range reqs {
+  		respi := tresp.Responses[i].Response // <- nil dereference
+  		switch tv := req.Request.(type) {
+  		case *pb.RequestOp_RequestRange:
+  	// ...
+  		default:
+  			// empty union
+  ```
 - **Expected**: either the empty op is skipped, as the `// empty union` comments in
   `newTxnResp`, `executeTxn` and `checkTxn` suggest (its response left empty), or `Txn`'s
   documentation states that requests must have been validated (`checkTxnRequest`).

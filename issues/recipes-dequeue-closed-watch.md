@@ -9,8 +9,50 @@
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `waitEvents` (`client/v3/experimental/recipes/watch.go:45-57`) ranges over the watch channel and returns the awaited event. When the channel closes first, the loop ends and it returns `nil`. `WaitEvents` and `WaitPrefixEvents` (`watch.go:25-43`) then return `(nil, nil)`.
+
+   ```go
+   // client/v3/experimental/recipes/watch.go:35-57 (etcd main f061acd09)
+   func WaitPrefixEvents(c *clientv3.Client, prefix string, rev int64, evs []mvccpb.Event_EventType) (*clientv3.Event, error) {
+   	ctx, cancel := context.WithCancel(context.Background())
+   	defer cancel()
+   	wc := c.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithRev(rev))
+   	if wc == nil {
+   		return nil, ErrNoWatcher
+   	}
+   	return waitEvents(wc, evs), nil // <-
+   }
+
+   func waitEvents(wc clientv3.WatchChan, evs []mvccpb.Event_EventType) *clientv3.Event {
+   	i := 0
+   	for wresp := range wc {
+   		for _, ev := range wresp.Events {
+   			if ev.Type == evs[i] {
+   				i++
+   				if i == len(evs) {
+   					return ev
+   				}
+   			}
+   		}
+   	}
+   	return nil // <- the channel closed first
+   ```
 2. The watch channel closes when the client is closed, when the watch's context is canceled, or when etcd cancels the watch. In the last case the client first delivers a response with `Canceled` set (and `CompactRevision`, for a compacted start revision), whose `Err()` is `ErrCompacted`; `waitEvents` ignores it, since the response has no events.
 3. `Queue.Dequeue` (`queue.go:43-77`), on an empty queue, calls `WaitPrefixEvents(q.client, q.keyPrefix, resp.Header.Revision, PUT)`. With `err == nil` it goes on to `deleteRevKey(q.client, string(ev.Kv.Key), ev.Kv.ModRevision)` (`queue.go:70`) with `ev == nil`, and panics. `PriorityQueue.Dequeue` does the same (`priority_queue.go:64-73`).
+
+   ```go
+   // client/v3/experimental/recipes/queue.go:60-70 (etcd main f061acd09)
+   	// nothing yet; wait on elements
+   	ev, err := WaitPrefixEvents(
+   		q.client,
+   		q.keyPrefix,
+   		resp.Header.Revision,
+   		[]mvccpb.Event_EventType{mvccpb.Event_PUT})
+   	if err != nil {
+   		return "", err
+   	}
+
+   	ok, err := deleteRevKey(q.client, string(ev.Kv.Key), ev.Kv.ModRevision) // <- ev == nil: panic
+   ```
 
 The panic is in the caller's goroutine, so unless the caller recovers, closing a client while another goroutine waits in `Dequeue` crashes the program. The compaction case needs no client shutdown: a compaction past the revision of `Dequeue`'s `Get`, between that `Get` and the watch's registration, is enough.
 

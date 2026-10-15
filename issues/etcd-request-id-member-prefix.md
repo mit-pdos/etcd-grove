@@ -44,6 +44,56 @@ func TestProbeCrossMemberCollision(t *testing.T) {
   prints `member A's request 257 has the id beef8bcfe5680101 of member B's first request`.
   Within one process ids are distinct for `2^48` requests (the plan's suspect 1: the dup-id
   panic of `wait.Register` needs a wrap of the 48-bit suffix).
+- **How it happens**: every member's apply loop triggers its wait registry with the id of every
+  committed entry, whichever member proposed it, and a member's waiting `Put` takes whatever
+  result is triggered under its request id. The generator puts the member id in the top 16 bits
+  to make ids unique across members, but it truncates the 64-bit member id to 16 bits. The
+  reproduction above, step by step:
+
+  1. Member A (id `0x1234_0000_0000_beef`) starts at `t0`; member B (id `0x9876_0000_0000_beef`)
+     starts 1 ms later. Both prefixes are `0xbeef << 48`.
+  2. A's suffix starts at `ms(t0) << 8`, B's at `(ms(t0) + 1) << 8`: 256 apart.
+  3. B's first request gets `prefix | ((ms(t0) + 1) << 8) + 1` = `beef8bcfe5680101`.
+  4. A's 257th request gets `prefix | (ms(t0) << 8) + 257`, the same id.
+  5. If A's entry with that id commits while B's request is still waiting, B's apply loop runs
+     `s.w.Trigger(id, ar)` with A's result: B's `Put` returns A's response, or panics in
+     `resp.(*pb.PutResponse)` if A's request was of another kind.
+
+  ```go
+  // pkg/idutil/id.go:56-71 and server/etcdserver/server.go:331 (etcd main f061acd09)
+  func NewGenerator(memberID uint16, now time.Time) *Generator {
+  	prefix := uint64(memberID) << suffixLen // <-
+  	unixMilli := uint64(now.UnixNano()) / uint64(time.Millisecond/time.Nanosecond)
+  	suffix := lowbit(unixMilli, tsLen) << cntLen
+  	// ...
+  }
+
+  // Next generates a id that is unique.
+  func (g *Generator) Next() uint64 {
+  	suffix := atomic.AddUint64(&g.suffix, 1)
+  	id := g.prefix | lowbit(suffix, suffixLen) // <-
+  	return id
+  }
+  // server.go
+  		reqIDGen:              idutil.NewGenerator(uint16(b.cluster.nodeID), time.Now()), // <-
+  ```
+
+  ```go
+  // server/etcdserver/server.go:1940-1978 and v3_server.go:303-307 (etcd main f061acd09)
+  func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry, shouldApplyV3 membership.ShouldApplyV3) {
+  	// ...
+  	ar, id := apply.Apply(s.lg, e, s.uberApply, s.w, shouldApplyV3)
+  	// ...
+  	if !errorspkg.Is(ar.Err, errors.ErrNoSpace) || len(s.alarmStore.Get(pb.AlarmType_NOSPACE)) > 0 {
+  		s.w.Trigger(id, ar) // <- any member's entry
+  		return
+  // v3_server.go, EtcdServer.Put
+  	resp, err := s.raftRequest(ctx, &pb.InternalRaftRequest{Put: r})
+  	if err != nil {
+  		return nil, err
+  	}
+  	return resp.(*pb.PutResponse), nil // <-
+  ```
 - **Expected**: cluster-wide unique request ids (the design of the prefix).
 - **How the proof handles it**: a premise of the raft contract's apply side
   (`batchCommitted`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRequest.lean`): every
