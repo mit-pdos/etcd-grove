@@ -90,6 +90,16 @@ predeclared basic types):
 - `stepLeader.lean`'s temporary `iframe ∗` override deleted: Perennial `fb1ecb030` (in
   `a54e1999f`) keeps the guard in an option (`notes/flaky-stepleader-build.md`).
 
+**Trust base** (`etc/tcb-report.py --check`, after a clean full build): this branch 75 axioms /
+10 sorries, `lean` 202 / 11, merged **208 / 11**: `lean`'s set, this branch's five gogoproto
+axioms (`gogoproto.Equal`, `raftpb.ConfChange{,V2}.{Marshal,Unmarshal}`), and the one new
+`raftpb.ConfChangeType.String.wp_proof`; the sorries are `lean`'s (Perennial's initializers under
+their new names, mvcc's two `kvHasher` instances; `context.wp_WithDeadlineCause` gone with
+Perennial `f8f01eb44`). Collections: `raft.txt` 6/0 → **8/0** and `register.txt` 6/9 → **8/9**
+(both gain `fmt.Errorf.wp_proof` and the `ConfChangeType.String` axiom); `lean`'s collections
+unchanged, every `--check` passes. `etc/goose.py --check` passes; `go test ./...` in
+`examples/register` passes.
+
 ## Snapshots at the public API (stage S) (2026-10-15, partial)
 
 Goal: A3 (a snapshot's `ConfState` is the configuration of the prefix it covers) carried by a

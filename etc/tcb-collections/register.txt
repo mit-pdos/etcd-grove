@@ -20,9 +20,15 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # trust-boundary axioms: raft's leader decodes a proposal's conf-change entries
 # (`stepLeader`'s loop), which every `Step` reaches. Written by `--check --update` after a
 # full build.
+# Since 2026-10-15 (the merge with `lean`, Perennial `a54e1999f`) also on etcd-grove's
+# `fmt.Errorf` axiom and `raftpb.ConfChangeType.String.wp_proof`: `confchange.Changer.apply`'s
+# error formats a `ConfChangeType`, which Perennial's `fmt.wp_Errorf` no longer admits
+# (notes/STATUS.md, "Merge: `worktree-raft-rest` into `lean`").
+axiom fmt.Errorf.wp_proof
 axiom gogoproto.Equal.wp_proof
 axiom raftpb.ConfChange.Marshal.wp_proof
 axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.ConfChangeV2.Marshal.wp_proof
 axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof
