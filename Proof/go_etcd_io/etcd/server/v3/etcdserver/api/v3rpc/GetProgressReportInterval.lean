@@ -1,0 +1,65 @@
+/-
+Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
+public import Spec.math.rand.Int63n
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
+  go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+theorem v3rpc.GetProgressReportInterval.wp_proof
+    (hRand : rand.Int63n.spec (GF := GF) (hG := hG)) :
+    v3rpc.GetProgressReportInterval.spec (GF := GF) (hG := hG) := by
+  wp_start as ⟨#Hv, Hrd⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
+  wp_auto_lc 1
+  imod (lc_fupd_elim_later (E := ⊤) (P := v3rpc.intervalP sync.rfrac)) $$ Hlc1 HP with HP
+  iunfold v3rpc.intervalP at HP
+  icases HP with ⟨%d, Hd, %Hb⟩
+  (try wp_auto)
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl Hd] as Hrd
+  · iframe #
+    inext
+    iunfold v3rpc.intervalP
+    iexists d
+    iframe
+    ipureintro; exact Hb
+  (try wp_auto)
+  have hdiv : sint.Z (BitVec.sdiv d (W64 10)) = sint.Z d / 10 := by word
+  wp_apply hRand (BitVec.sdiv d (W64 10)) as %x %Hx
+  · ipureintro; rw [hdiv]; omega
+  (try wp_auto)
+  iapply HΦ
+  iframe Hrd
+  ipureintro
+  rw [hdiv] at Hx
+  word
+
+end proof
+
+end EtcdGrove
+end Perennial

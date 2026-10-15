@@ -136,9 +136,12 @@ instance WatchRespM.countable : Pos.Countable WatchRespM :=
 /-- **The restrictions of the watch server's proof** (`upRestricted`): a create request asks
 neither for previous key-values (`prev_kv`: the send loop writes `PrevKv` into the event, which
 mvcc shares between watchers, `issues/etcd-watch-prevkv-shared-event.md`), nor for fragments,
-nor filters. -/
+nor filters; and no request is `other` (an empty oneof or a `nil` inner request: the translation
+of `recvLoop`'s `default:` branch reads the type switch's variable `uv`, which Goose leaves
+unbound there, a translator bug, `notes/STATUS.md`; etcd's client never sends one). -/
 def watchReqOk : WatchReqM → Prop
   | .create c => c.prevKv = false ∧ c.fragment = false ∧ c.filters = []
+  | .other => False
   | _ => True
 
 /-- **What a control response answers** (pure): a create request's `Created` response (no events,
@@ -304,9 +307,10 @@ instance srvStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep :
 /-! ## The watch service's messages -/
 
 /-- **A create request's fields the server owns** at `cr` (`m`): `Key` and `RangeEnd` owned (the
-receive loop rewrites them), their contents and the other fields read-only. -/
+receive loop rewrites them), their contents and the other fields read-only; the key shorter than
+`2 ^ 63 - 1` bytes (a decoded message's field: the permission checks' bound, unit A2). -/
 def createReqOwn (cr : Loc) (c : CreateReqM) : IProp GF :=
-  iprop(⌜cr ≠ null⌝ ∗ ∃ ks es fs : GoSlice,
+  iprop(⌜cr ≠ null ∧ c.key.length < 2 ^ 63 - 1⌝ ∗ ∃ ks es fs : GoSlice,
     structFieldRef etcdserverpb.WatchCreateRequest go!"Key" cr ↦ ks ∗ ks ↦*□ c.key ∗
     structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" cr ↦ es ∗ es ↦*□ c.rangeEnd ∗
     structFieldRef etcdserverpb.WatchCreateRequest go!"StartRevision" cr ↦□ c.startRev ∗
