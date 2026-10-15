@@ -514,6 +514,189 @@ theorem new_watch_server : EtcdGrove.v3rpc.NewWatchServer.spec (GF := GF) (hG :=
 
 end watch
 
+/-! ## The watch service on the wire (unit W-W)
+
+The generated stream handler `_Watch_Watch_Handler` (linked) runs `watchServer.Watch` on the
+wrapped raw server end grpc passes (`srvStreamIs_of_raw`, over `GenericServerStream`'s methods,
+axioms: Goose does not translate methods of generic types); with the server's stream
+interceptors transparent (`srvStreamInterceptorsOk`, a premise: grpc-prometheus's and
+`newStreamInterceptor` are not verified), the handler meets the registration's contract
+(`etcd_watchMethodOk`), and a server with the method registered (`grpcStreamServerAt`) and `n`
+run slots serves it at its address (`etcd_watch_served`): what a client's `NewStream` needs. -/
+
+section watch_wire
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+open Iris.ProofMode go_etcd_io.etcd.api.v3
+
+/-- **The generated stream handler** (`_Watch_Watch_Handler`, linked): see the section header. -/
+theorem watch_handler : EtcdGrove.etcdserverpb._Watch_Watch_Handler.spec (GF := GF) (hG := hG) :=
+  etcdserverpb.wp__Watch_Watch_Handler
+
+/-- **The watch server's `Watch` is a stream method** (`grpcStreamHandlerOk`): on the wrapped
+server end, with the run slot `watchRunSlot R`, the client's content `watchUp` and the stream
+specification `watchSpec R` (`watchStreamSpec` at the server's names), from `watch_server`. -/
+theorem watch_streamHandlerOk (p : Loc) (R : WSrv GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isWatchServer p R ⊢
+    grpcStreamHandlerOk (Req := pbWatchRequest)
+      #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
+        go!"Watch" #p)
+      (watchRunSlot R) (watchUp R.γ) (watchSpec R) := by
+  iintro ⟨#Hinit, #Hws⟩
+  unfold grpcStreamHandlerOk
+  iintro !> %γs %Dn %ci %cd %st %Φ HSpec HS #Hst HRt HSt HΦ
+  ihave #Hup := upOk_watchUp (GF := GF) R.γ
+  iapply (watch_server p R st γs (watchUp R.γ) Dn ci cd) $$ [HSpec HS HRt HSt]
+  · iframe
+    iframe #
+  inext
+  iintro %err -
+  iapply HΦ
+
+/-- **The generated handler meets the registration's contract** (`grpcStreamMethodOk`) for the
+`*watchServer` `p` (its type implements `WatchServer`: a method-set fact), under the server's
+stream interceptors `ics`, transparent with their run resources `Rs`: the run slot is the watch
+run's (`watchRunSlot R`) and the interceptors'. -/
+theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (ics : List GoFunc) (Rs : List (IProp GF))
+    (hset : go.typeSetContains
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
+      etcdserverpb.WatchServer.ty = true) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isWatchServer p R ∗ srvStreamInterceptorsOk ics Rs ⊢
+    grpcStreamMethodOk (Req := pbWatchRequest) (@! etcdserverpb._Watch_Watch_Handler)
+      (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) ics
+      iprop(watchRunSlot R ∗ [∗list] R' ∈ Rs, R') (watchUp R.γ) (watchSpec R) := by
+  iintro ⟨#Hpb, #Hinit, #Hws, #Hics⟩
+  ihave #Hh := watch_streamHandlerOk p R $$ [Hinit Hws]
+  · iframe #
+  unfold grpcStreamMethodOk
+  isplitr
+  · iapply streamSpecOk_watchSpec
+  iintro !> %γs %Dn %ci %cd %st %info HSpec ⟨HS, HRs⟩ #Hraw HRt HSt #Hinfo
+  iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequest pbWatchResponse (watchUp R.γ) Dn γs ci cd
+    (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
+    (@! etcdserverpb._Watch_Watch_Handler) (fun _ => iprop(True)))
+  iframe #
+  iframe HRs
+  isplit
+  · iintro %st' %ci' %cd' #Hraw'
+    iapply (watch_handler pbWatchRequest pbWatchResponse (watchUp R.γ) (watchSpec R)
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty, #p⟩
+      (watchRunSlot R) γs Dn ci' cd' st' rfl rfl hset) $$ [HSpec HS HRt HSt]
+    · iframe
+      iframe #
+      iintro !> %l Hl
+      iexists _
+      iexact Hl
+    inext
+    iintro %err -
+    iintro -
+    itrivial
+  · iintro - %err -
+    itrivial
+
+/-- **The watch service is served** (unit W-W; as `etcd_kv_served` for the KV service): a gRPC
+server at `addr` built with the stream interceptors `ics` (transparent, with the resources `Rs`)
+and the `Watch` stream of `Watch_ServiceDesc` registered with the `*watchServer` `p`
+(`grpcStreamServerAt`, the registration `RegisterWatchServer` makes), handed `n` run slots (each
+the watch run's resources and the interceptors'), serves the method: its stream specification is
+`watchStreamSpec` at the server's names and ids, and each request the client sends carries
+`watchUp` (restricted, a watch token with each create). -/
+theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (ics : List GoFunc)
+    (Rs : List (IProp GF)) (sregs : List (GoString × val × GoInterface)) (n : Nat)
+    (hset : go.typeSetContains
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
+      etcdserverpb.WatchServer.ty = true)
+    (hreg : (go!"/etcdserverpb.Watch/Watch", (@! etcdserverpb._Watch_Watch_Handler : val),
+      interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) ∈ sregs) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isWatchServer p R ∗ srvStreamInterceptorsOk ics Rs ∗ grpcStreamServerAt addr ics sregs ∗
+      ([∗list] _x ∈ List.replicate n (), iprop(watchRunSlot R ∗ [∗list] R' ∈ Rs, R')) ⊢
+    |={⊤}=> isGrpcStream (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
+      go!"/etcdserverpb.Watch/Watch" (watchUp R.γ)
+      (fun γs Dn => watchStreamSpec γs R.γ R.cid R.mid Dn) := by
+  iintro ⟨#Hpb, #Hinit, #Hws, #Hics, Hsrv, Hslots⟩
+  ihave #Hok := etcd_watchMethodOk p R ics Rs hset $$ [Hpb Hinit Hws Hics]
+  · iframe #
+  let m : GrpcStreamMethod GF :=
+    { name := go!"/etcdserverpb.Watch/Watch", Req := pbWatchRequest, Rep := pbWatchResponse,
+      Up := watchUp R.γ, spec := watchSpec R, handler := @! etcdserverpb._Watch_Watch_Handler,
+      srv := interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p }
+  have hnd : ([m].map GrpcStreamMethod.name).Nodup := by simp
+  have hr : ∀ x ∈ [m], (x.name, x.handler, x.srv) ∈ sregs := by
+    intro x hx
+    simp only [List.mem_singleton] at hx
+    subst hx
+    exact hreg
+  imod (grpc_serveStream_rpcs addr ics sregs [m] _ n hnd hr) $$ [Hsrv Hslots] with Hs
+  · iframe
+    imodintro
+    iapply BigSepL.bigSepL_singleton.2
+    iexact Hok
+  ihave Hs := BigSepL.bigSepL_singleton.1 $$ Hs
+  imodintro
+  iexact Hs
+
+/-- **The watch service is served by etcd's server** (`etcd_watch_served` at the stream chain
+`v3rpc.Server` installs, `grpc.go`: `grpc.ChainStreamInterceptor(serverMetrics.StreamServerInterceptor(),
+newStreamInterceptor(s))`, in that order): grpc-prometheus's `im` (assumed transparent, as
+`etcd_kv_served` assumes the unary one) and etcd's `newStreamInterceptor` `is` (its contract a
+premise: proved by the stream-interceptor unit), neither with a run resource. -/
+theorem etcd_watch_served_chain (addr : GoString) (p : Loc) (R : WSrv GF) (im is : GoFunc)
+    (sregs : List (GoString × val × GoInterface)) (n : Nat)
+    (hset : go.typeSetContains
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
+      etcdserverpb.WatchServer.ty = true)
+    (hreg : (go!"/etcdserverpb.Watch/Watch", (@! etcdserverpb._Watch_Watch_Handler : val),
+      interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) ∈ sregs) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isWatchServer p R ∗ srvStreamInterceptorOk im iprop(True) ∗
+      srvStreamInterceptorOk is iprop(True) ∗ grpcStreamServerAt addr [im, is] sregs ∗
+      ([∗list] _x ∈ List.replicate n (), watchRunSlot R) ⊢
+    |={⊤}=> isGrpcStream (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
+      go!"/etcdserverpb.Watch/Watch" (watchUp R.γ)
+      (fun γs Dn => watchStreamSpec γs R.γ R.cid R.mid Dn) := by
+  iintro ⟨#Hpb, #Hinit, #Hws, #Him, #His, Hsrv, Hslots⟩
+  iapply (etcd_watch_served addr p R [im, is] [iprop(True), iprop(True)] sregs n hset hreg)
+  iframe #
+  iframe Hsrv
+  isplitl []
+  · iunfold srvStreamInterceptorsOk
+    iframe #
+    iunfold srvStreamInterceptorsOk
+    iframe #
+    iunfold srvStreamInterceptorsOk
+    itrivial
+  iapply (BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := List.replicate n ())
+    (Φ := fun _ _ => watchRunSlot R)
+    (Ψ := fun _ _ => iprop(watchRunSlot R ∗ [∗list] R' ∈ [iprop(True), iprop(True)], R'))
+    (fun {_ _} => ?_)) $$ Hslots
+  iintro H
+  iframe
+  iapply BigSepL.bigSepL_cons.2
+  isplitl []
+  · itrivial
+  iapply BigSepL.bigSepL_cons.2
+  isplitl []
+  · itrivial
+  iapply BigSepL.bigSepL_nil.2
+  itrivial
+
+end watch_wire
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -547,6 +730,11 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.new_watch_server
 #print axioms Perennial.EtcdGrove.v3rpc.watchStreamSpec_step
 #print axioms Perennial.EtcdGrove.v3rpc.srvStep_of_watch
+#print axioms Perennial.EtcdGrove.v3rpc.watch_handler
+#print axioms Perennial.EtcdGrove.v3rpc.watch_streamHandlerOk
+#print axioms Perennial.EtcdGrove.v3rpc.etcd_watchMethodOk
+#print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served
+#print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served_chain
 
 end EtcdGrove
 end Perennial

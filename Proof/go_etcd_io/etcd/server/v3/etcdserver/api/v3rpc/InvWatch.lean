@@ -307,6 +307,22 @@ instance upOk_persistent (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp G
     Persistent (upOk γ Up) := by
   unfold upOk; infer_instance
 
+/-- **The client's content of the watch method's requests** (unit W-W: what the client's `Send`
+gives with each request, `Up` of the registered method): the request is restricted
+(`watchReqOk`) and a create request comes with a watch token of the store. -/
+def watchUp (γ : mvcc.WsNames) (_i : Nat) (m : WatchReqM) : IProp GF :=
+  iprop(⌜watchReqOk m⌝ ∗
+    (match m with
+     | .create _ => mvcc.watchTok γ
+     | _ => iprop(True)))
+
+/-- The registered content meets the watch server's restrictions and budget (`upOk`). -/
+theorem upOk_watchUp (γ : mvcc.WsNames) : ⊢ upOk (GF := GF) γ (watchUp γ) := by
+  unfold upOk
+  iintro !> %i %m H
+  unfold watchUp
+  iexact H
+
 /-! ## One run -/
 
 /-- **One run's values**: the watch server's, the gRPC stream (`st`, its names, the contents, the
@@ -422,6 +438,23 @@ def sendRes (R : WSrv GF) : IProp GF :=
 /-- **A run's resources** (what grpc's run slot holds for a watch stream): the receive loop's
 and the send loop's. -/
 def watchRunSlot (R : WSrv GF) : IProp GF := iprop(recvRes R ∗ sendRes R)
+
+/-- **The watch method's stream specification** (unit W-W: `Spec` of the registered method):
+`watchStreamSpec` at the server's store names and ids. -/
+abbrev watchSpec (R : WSrv GF) : StreamSpec (GF := GF) pbWatchResponse :=
+  fun γs Dn => watchStreamSpec γs R.γ R.cid R.mid Dn
+
+/-- The watch method's stream specification is satisfiable per stream (`streamSpecOk`): its
+content is `watchDn`. -/
+theorem streamSpecOk_watchSpec (R : WSrv GF) : ⊢ streamSpecOk (watchSpec R) := by
+  unfold streamSpecOk
+  iintro !> %γs
+  iexists (watchDn γs R.γ R.cid R.mid)
+  simp only [watchSpec]; unfold watchStreamSpec
+  iintro !> !> %j %m
+  isplit
+  · iintro H; iexact H
+  · iintro H; iexact H
 
 end defs
 
