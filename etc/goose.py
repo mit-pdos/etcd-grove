@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft, etcd, register, porcupine or lintest;
+  --project    only this project (etcd-raft, raft37, etcd, register, porcupine or lintest;
                repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -24,7 +24,9 @@ every non-standard-library Go path the translation reaches to the empty root
 (modules `Code.<pkg>`, `GeneratedProof.<pkg>`; standard-library packages stay
 `Perennial.*`, Perennial's).  A project's `parts` translate more of its packages into a
 module root of their own (`<root>/Code/`, configured by `<root>/Code/**.toml`): etcd's raft
-dependency, in `EtcdDeps/`, whose Go path is that of the etcd-raft project.
+dependency, in `EtcdDeps/`, whose Go path is that of the etcd-raft project.  A project
+may also translate into a module root of its own (`root`): raft v3.7 (project raft37,
+`Raft37/`), the parallel tree the raft proof is ported into.
 Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
@@ -85,6 +87,11 @@ class Project:
     # The Go source is this directory of this repository (relative to its root) instead
     # of a fork (`repo`, `rev`: None).
     local: str = None
+    # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
+    # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
+    # a project whose Go paths another project also translates (raft v3.7, a parallel
+    # tree beside etcd-raft's while the proof is ported).
+    root: str = ""
 
     @property
     def env(self):
@@ -114,6 +121,32 @@ PROJECTS = [
             "github.com/gogo/protobuf/proto",
         ],
         owned=[os.path.join("go_etcd_io", "raft"), os.path.join("github_com", "gogo")],
+        counted_modules=["go.etcd.io/raft/v3"],
+    ),
+    Project(
+        name="raft37",
+        # The raft etcd links (go.etcd.io/raft/v3 v3.7.0 in etcd's go.mod: etcd-io/raft
+        # b867cf13, protobuf-go v2 raftpb: messages, entries, snapshots are pointers with
+        # getters) plus the single-voter read-index fix rebased onto it
+        # (issues/raft-readindex-singleton-stale.md): branch raft37-goose-lean of the etcd
+        # fork. The retarget of the raft proof is done in a parallel tree, the module root
+        # Raft37 (modules Raft37.Code.go_etcd_io.raft.v3*, ...; notes/raft-retarget-plan.md),
+        # until it reaches etcd-raft's results and replaces it. Until the branch is pushed,
+        # translate (and --check) with --src raft37=<a checkout of it>.
+        repo="https://github.com/upamanyus/etcd",
+        rev="509271dac8a49e670fd434444fa26eacdb1aa7b7",
+        root="Raft37",
+        # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
+        # of the etcd project (as the protobuf runtime types raftpb's messages hold).
+        lean_roots=["go.etcd.io/raft/v3=Raft37", "google.golang.org="],
+        packages=[
+            ".",
+            "go.etcd.io/raft/v3/confchange",
+            "go.etcd.io/raft/v3/quorum",
+            "go.etcd.io/raft/v3/raftpb",
+            "go.etcd.io/raft/v3/tracker",
+        ],
+        owned=[os.path.join("go_etcd_io", "raft")],
         counted_modules=["go.etcd.io/raft/v3"],
     ),
     Project(
@@ -397,7 +430,7 @@ def lean_files(d, owned):
 
 def pieces(proj):
     """The translations of `proj`: (module root, -lean-root arguments, packages, owned)."""
-    return [("", proj.lean_roots, proj.packages, proj.owned)] + [
+    return [(proj.root, proj.lean_roots, proj.packages, proj.owned)] + [
         (p.root, p.lean_roots, p.packages, p.owned) for p in proj.parts]
 
 
