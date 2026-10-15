@@ -598,6 +598,9 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (ics : List GoFunc) (Rs : Lis
       iexact Hl
     inext
     iintro %err -
+    iexists err
+    isplitr
+    · ipureintro; rfl
     iintro -
     itrivial
   · iintro - %err -

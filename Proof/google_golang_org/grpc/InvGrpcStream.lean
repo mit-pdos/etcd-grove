@@ -669,7 +669,8 @@ same stream (the same queues, tokens and contents; possibly another context of t
 `newStreamInterceptor` wraps `ss` in a `serverStreamWithCtx` with a cancellable child context when
 the client requires a leader, grpc-prometheus's in a counting `monitoredServerStream`) and returns
 its result, or returns a non-nil error without calling `h`; `R` comes back either way. The caller
-gives both continuations (`∧`: one is taken). -/
+gives both continuations (`∧`: one is taken). The handler returns an `error` value: a
+deferred-call wrapper needs this, as `srvInterceptorOk` does. -/
 def srvStreamInterceptorOk (ic : GoFunc) (R : IProp GF) : IProp GF :=
   iprop(□ ∀ (Req Rep : StreamMsg GF) (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
       (γ : StreamNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
@@ -677,7 +678,8 @@ def srvStreamInterceptorOk (ic : GoFunc) (R : IProp GF) : IProp GF :=
     R -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗ srvStreamInfoIs info -∗
     ((∀ (st' : GoInterface) (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
         srvRawStreamIs st' γ Req Rep Up Dn ci' cd' -∗
-        WP (streamHandlerCall #h #srv #st') {{ v, R -∗ Ψ v }}) ∧
+        WP (streamHandlerCall #h #srv #st')
+          {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (R -∗ Ψ v) }}) ∧
       (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err)) -∗
     WP (streamInterceptorCall ic #srv #st #info h) {{ Ψ }})
 
@@ -714,7 +716,8 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
       srvStreamInfoIs info ∗
       ((∀ (st' : GoInterface) (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
           srvRawStreamIs st' γ Req Rep Up Dn ci' cd' -∗
-          WP (streamHandlerCall h #srv #st') {{ v, ([∗list] R ∈ Rs, R) -∗ Ψ v }}) ∧
+          WP (streamHandlerCall h #srv #st')
+            {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (([∗list] R ∈ Rs, R) -∗ Ψ v) }}) ∧
         (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err)) ⊢
     srvStreamChainWP #info ics h #srv #st Ψ := by
   induction ics generalizing Rs Ψ st ci cd with
@@ -728,8 +731,9 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
       unfold srvStreamChainWP
       icases H with ⟨H, -⟩
       ihave H := H $$ %st %ci %cd Hst
-      iapply (wp_mono (Φ := fun v => iprop(([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v))) $$ H
-      iintro %v HΨ
+      iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+        (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
+      iintro %v ⟨%err, %Hv, HΨ⟩
       iapply HΨ
       iapply BigSepL.bigSepL_nil.2
       itrivial
@@ -751,21 +755,35 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
       isplit
       · iintro %st' %ci' %cd' #Hst'
         iapply Hh'
-        iapply (ih (Rs := Rs) (Ψ := fun v => iprop(R -∗ Ψ v)) (st := st') (ci := ci') (cd := cd'))
+        iapply (ih (Rs := Rs) (Ψ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ (R -∗ Ψ v)))
+          (st := st') (ci := ci') (cd := cd'))
         iframe #
         iframe
         isplit
         · icases H with ⟨H, -⟩
           iintro %st'' %ci'' %cd'' #Hst''
           ihave H := H $$ %st'' %ci'' %cd'' Hst''
-          iapply (wp_mono (Φ := fun v => iprop(([∗list] R ∈ R :: Rs, R) -∗ Ψ v))) $$ H
-          iintro %v HΨ HRs' HR'
+          iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+            (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
+          iintro %v ⟨%err, %Hv, HΨ⟩
+          iexists err
+          isplitr
+          · ipureintro; exact Hv
+          iintro HRs'
+          iexists err
+          isplitr
+          · ipureintro; exact Hv
+          iintro HR'
           iapply HΨ
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
             (xs := Rs)).2
           iframe
         · icases H with ⟨-, H⟩
-          iintro HRs' %err %Herr HR'
+          iintro HRs' %err %Herr
+          iexists err
+          isplitr
+          · ipureintro; rfl
+          iintro HR'
           iapply H $$ [HR' HRs'] %err %Herr
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
           iframe
