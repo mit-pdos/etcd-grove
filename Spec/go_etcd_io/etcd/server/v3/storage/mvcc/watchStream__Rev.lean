@@ -25,9 +25,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev mvcc.watchStream.Rev.spec : Prop :=
   ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchStream ws wa P γ }}
+      mvcc.isWatchStream ws wa P γ ∗ P.R }}
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Rev")) (Val #()))
-  {{ (r : w64), RET #r; True }}
+  {{ (r : w64), RET #r; P.R }}
 
 end spec
 

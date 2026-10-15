@@ -64,6 +64,8 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md) | bug (a committed entry panics every member, and again on every restart) | `txn-delete-then-ignore-put` (d9ba0e03c) | txn (unit 3), 2026-10-12 |
 | [etcd-range-sort-none-limit](etcd-range-sort-none-limit.md) | bug | `range-sort-none-limit` (7362d4129) | txn (unit 2), 2026-10-11 |
 | [etcd-range-keys-only-lease](etcd-range-keys-only-lease.md) | bug (regression in v3.7, 7624a8a2e) | `range-keys-only-lease` (01e522548) | txn (unit 2), 2026-10-11 |
+| [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) | bug (a panic on a coarse monotonic clock: Windows) | none | mvcc watchable store (unit 3b), 2026-10-12 |
+| [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) | bug | `lease-checkpoint-one-section` (2a163496c) | apply (unit 1), 2026-10-12 |
 
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
 into the caller's nested `OpTxn` slice (a race only for callers who reuse the slice; assessed,
@@ -78,5 +80,70 @@ comparisons are evaluated before the outer transaction's operations run (undocum
 non-key target with `SortOrder: NONE` and returns duplicated and missing keys, since each chunk is
 sorted by the target but the next chunk starts after the chunk's last key (a wrong result, outside
 the verified code; found 2026-10-12 while fixing `etcd-range-sort-none-limit`; not filed).
+[etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md): the apply package's
+alarm gauge counts an alarm activated twice twice (`AlarmStore.Activate` returns the existing
+member) and stays at 1 after it is disarmed (a wrong metric; reproduced; found 2026-10-12, apply
+unit 0; not filed).
+[etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md): `dispatch` does not
+set `op` for `AuthStatus`, whose apply latency is recorded under `op="unknown"` (a wrong metric
+label; found 2026-10-12, apply unit 2; not filed).
+[etcd-backend-duplicate-put-stale-read](etcd-backend-duplicate-put-stale-read.md): two puts of one
+key in one batch session leave both in the backend's read buffer, and `ReadTx` returns the older
+value (an unstated precondition of `UnsafePut`; reproduced; no etcd caller known to break it;
+found 2026-10-12, backend unit 1; not filed).
+[etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md):
+`ConcurrentReadTx`'s buffer cache is keyed by a version a commit does not change, so after a
+commit it can serve a deleted key (a reader in `Unlock`'s window) or an old value of a key the
+pre-commit hook rewrote (deterministic); no wrong mvcc result known (reproduced twice; found
+2026-10-12, backend unit 2; not filed).
+[etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md): a put whose
+encoded `KeyValue` exceeds bbolt's `MaxValueSize` (`2^31 - 2` bytes) makes the backend's
+`unsafePut` call `lg.Fatal` (an unstated precondition of `UnsafePut`/`UnsafeSeqPut` and of mvcc's
+`Put`; unreachable with the default request limit; found 2026-10-13, the backend bridge; not
+filed).
+[etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md): a negative
+`CompactionBatchLimit` (an unvalidated flag; `NewStore` defaults only `0`) makes every compaction
+job loop forever, force-committing every interval, its channel never closed (reproduced; found
+2026-10-13, mvcc compaction unit 5a; not filed).
+[etcd-compaction-delete-then-put](etcd-compaction-delete-then-put.md): compacting at a revision
+that deletes a key and puts it again deletes the key's live value from the bucket, and the next
+read of the key calls `lg.Fatal` (reproduced through mvcc's API; etcd's gRPC `checkIntervals`
+rejects such a transaction; found 2026-10-13, mvcc compaction unit 5a; not filed).
+[etcd-index-compact-overlapping](etcd-index-compact-overlapping.md): two overlapping
+`treeIndex.Compact` passes can compact a key index the other deleted (`lg.Panic`) or delete a key
+put again in between (an unstated precondition of the `index` interface; unreachable through the
+store, whose FIFO scheduler runs the jobs one at a time; reproduced; found 2026-10-13, mvcc
+compaction unit 5b; not filed).
+[etcd-request-id-member-prefix](etcd-request-id-member-prefix.md): request ids are unique per
+member's low 16 bits only (`idutil.NewGenerator(uint16(memberID), …)`), so two members whose ids
+agree there can mint the same request id, and one member's apply thread can hand another's
+request result to its own waiter (reproduced; found 2026-10-12, the request path's unit 0; a
+premise of the raft contract's apply side; not filed).
+[etcd-max-txn-ops-nested](etcd-max-txn-ops-nested.md): `--max-txn-ops` bounds each nesting level
+of a transaction, not the transaction (the flag's text says a transaction; reproduced; found
+2026-10-12, the request path's unit 0; documentation; not filed).
+[etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md): `checkIntervals` checks a
+nested transaction's puts against the level's deletes collected so far, not its siblings', so the
+overlap it rejects depends on the order of the ops (reproduced; found 2026-10-12, the request
+path's unit 0; not filed).
+[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md): the client's retry
+interceptor retries any unary call, a `Put`'s included, after an attempt fails with a gRPC
+`Canceled` or `DeadlineExceeded` while the caller's context is live (a branch for a per-attempt
+context etcd no longer has), bypassing `isSafeRetryMutableRPC`'s write-at-most-once: a write the
+first attempt applied is applied again (reproduced with a mock server; found 2026-10-14, unit C1,
+the client meets the server; not filed).
+
+[etcd-auth-token-md-empty](etcd-auth-token-md-empty.md): the auth store's `AuthInfoFromCtx`
+indexes `ts[0]` of the token key's metadata values unchecked: a panic on an incoming context whose
+metadata has the key with no value (only an in-process caller can build one; reproduced; found
+2026-10-14, unit P2, the auth store's request side; not filed).
+[etcd-auth-tls-info-assert](etcd-auth-tls-info-assert.md): `AuthInfoFromTLS` asserts the peer's
+`AuthInfo` is a `credentials.TLSInfo` (one-result form): a panic for a peer with other
+credentials, an unstated precondition (unreachable in etcd's servers; reproduced; found
+2026-10-14, unit P2; not filed).
+[go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
+on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
+"main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's
+byte-memory review, round 3; unclear what in Go should change; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.

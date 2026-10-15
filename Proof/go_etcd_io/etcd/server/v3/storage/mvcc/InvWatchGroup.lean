@@ -278,6 +278,46 @@ theorem mem_eraseP_fst {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Pro
         · exact Or.inl rfl
         · exact Or.inr ⟨h1, h2⟩
 
+/-- The entry with an interval, in entries with distinct intervals. -/
+theorem find?_fst_unique {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Prod.fst).Nodup)
+    (ivl : adt.IvlS) (z : adt.IvlS × α) (hz : z ∈ L) (hz1 : z.1 = ivl) :
+    L.find? (fun y => decide (y.1 = ivl)) = some z := by
+  induction L with
+  | nil => cases hz
+  | cons y ys ih =>
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    by_cases hy : y.1 = ivl
+    · rw [List.find?_cons_of_pos (by simpa using hy)]
+      rcases List.mem_cons.1 hz with rfl | hz
+      · rfl
+      · exact absurd (hy ▸ hz1 ▸ List.mem_map_of_mem hz) hnd.1
+    · rw [List.find?_cons_of_neg (by simpa using hy)]
+      rcases List.mem_cons.1 hz with rfl | hz
+      · exact absurd hz1 hy
+      · exact ih hnd.2 hz
+
+/-- Erasing the entry at the index of an interval is erasing the entry with it, in entries
+with distinct intervals. -/
+theorem eraseIdx_eq_eraseP_fst {α : Type} (L : List (adt.IvlS × α))
+    (hnd : (L.map Prod.fst).Nodup) (ivl : adt.IvlS) (i : Nat) (z : adt.IvlS × α)
+    (hz : L[i]? = some z) (hz1 : z.1 = ivl) :
+    L.eraseIdx i = L.eraseP (fun y => decide (y.1 = ivl)) := by
+  induction L generalizing i with
+  | nil => cases hz
+  | cons y ys ih =>
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    cases i with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hz
+      subst hz
+      rw [List.eraseIdx_cons_zero, List.eraseP_cons_of_pos (by simpa using hz1)]
+    | succ k =>
+      simp only [List.getElem?_cons_succ] at hz
+      have hy : y.1 ≠ ivl := by
+        intro hy
+        exact hnd.1 (hy ▸ hz1 ▸ List.mem_map_of_mem (List.mem_of_getElem? hz))
+      rw [List.eraseIdx_cons_succ, List.eraseP_cons_of_neg (by simpa using hy), ih hnd.2 k hz]
+
 theorem sorted_nodup {α : Type} (L : List (adt.IvlS × α))
     (hs : L.Pairwise (fun a b => adt.ivlLt a.1 b.1)) : (L.map Prod.fst).Nodup := by
   rw [List.Nodup, List.pairwise_map]
@@ -330,6 +370,13 @@ def RangesOk (W : GMap Loc WatchRange) (L : List adt.Entry) : Prop :=
   L.Pairwise (fun a b => adt.ivlLt a.1 b.1) ∧
   ∀ ivl, ivl ∈ L.map Prod.fst ↔ ∃ w r e, W !! w = some r ∧ r.end? = some e ∧ ivl = (r.key, e)
 
+/-- **One entry per interval**: the group's tree has the entry `z` of an interval as the first
+(the only) one with it. -/
+theorem rangesOk_find_unique (W : GMap Loc WatchRange) (L : List adt.Entry) (hL : RangesOk W L)
+    (z : adt.Entry) (ivl : adt.IvlS) (hz : z ∈ L) (hz1 : z.1 = ivl) :
+    L.find? (fun y => decide (y.1 = ivl)) = some z :=
+  find?_fst_unique L (sorted_nodup L hL.1) ivl z hz hz1
+
 /-- Two entries at different indices of distinct entries have different intervals. -/
 theorem entries_ne {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Prod.fst).Nodup)
     {i k : Nat} {y z : adt.IvlS × α} (hy : L[k]? = some y) (hz : L[i]? = some z) (hki : k ≠ i) :
@@ -338,6 +385,43 @@ theorem entries_ne {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Prod.fs
   have hy' : (L.map Prod.fst)[k]? = some z.1 := by rw [List.getElem?_map, hy]; simp [h]
   have hz' : (L.map Prod.fst)[i]? = some z.1 := by rw [List.getElem?_map, hz]; rfl
   exact hki (list_nodup_getElem?_inj _ hnd k i z.1 hy' hz')
+
+/-- **The tree has at most as many entries as the group has members**: each entry's interval
+is some member's range, and distinct entries have distinct intervals (the group keeps one
+entry per interval: `RangesOk`'s order is strict). -/
+theorem rangesOk_length_le (W : GMap Loc WatchRange) (L : List adt.Entry) (hL : RangesOk W L) :
+    L.length ≤ GMap.size W := by
+  classical
+  have hnd := sorted_nodup L hL.1
+  let f : adt.IvlS → Loc := fun ivl =>
+    if h : ∃ w r e, W !! w = some r ∧ r.end? = some e ∧ ivl = (r.key, e) then h.choose else null
+  have hf : ∀ ivl ∈ L.map Prod.fst,
+      ∃ r e, W !! f ivl = some r ∧ r.end? = some e ∧ ivl = (r.key, e) := by
+    intro ivl hivl
+    have h := (hL.2 ivl).1 hivl
+    simp only [f, h]
+    exact h.choose_spec
+  have hinj : ∀ x ∈ L.map Prod.fst, ∀ y ∈ L.map Prod.fst, f x = f y → x = y := by
+    intro x hx y hy hxy
+    obtain ⟨r, e, hr, he, rfl⟩ := hf x hx
+    obtain ⟨r', e', hr', he', rfl⟩ := hf y hy
+    rw [hxy, hr'] at hr
+    cases hr
+    rw [he'] at he
+    cases he
+    rfl
+  have hsub : (L.map Prod.fst).map f ⊆ W.domList := by
+    intro w hw
+    obtain ⟨ivl, hivl, rfl⟩ := List.mem_map.1 hw
+    obtain ⟨r, e, hr, -⟩ := hf ivl hivl
+    rw [GMap.mem_dom_list, hr]; rfl
+  have hnd' : ((L.map Prod.fst).map f).Nodup := by
+    rw [List.Nodup, List.pairwise_map]
+    exact List.Pairwise.imp_of_mem (fun hx hy hne heq => hne (hinj _ hx _ hy heq)) hnd
+  have hle := (List.subperm_of_subset hnd' hsub).length_le
+  rw [List.length_map, List.length_map] at hle
+  rw [GMap.size_eq_dom_list_length]
+  exact hle
 
 /-- Adding a single-key member leaves the tree's entries as they are. -/
 theorem rangesOk_insert_key (W : GMap Loc WatchRange) (L : List adt.Entry) (wa : Loc)
@@ -618,15 +702,18 @@ structure WatcherSt where
   restore : Bool
   ch : GoChan
 
-/-- The watcher's mutable fields hold `st`. -/
-def watcherOwn (w : Loc) (st : WatcherSt) : IProp GF :=
-  iprop(w.[watcher, go!"minRev"] ↦ st.minRev ∗ w.[watcher, go!"victim"] ↦ st.victim ∗
-    w.[watcher, go!"compacted"] ↦ st.compacted ∗ w.[watcher, go!"restore"] ↦ st.restore ∗
-    w.[watcher, go!"ch"] ↦ st.ch)
+/-- The watcher's mutable fields hold `st` (at the fraction `q`: the watchable store's lock
+invariant at its read side). -/
+def watcherOwn (w : Loc) (st : WatcherSt) (q : Qp := 1) : IProp GF :=
+  iprop(w.[watcher, go!"minRev"] ↦{DFrac.own q} st.minRev ∗
+    w.[watcher, go!"victim"] ↦{DFrac.own q} st.victim ∗
+    w.[watcher, go!"compacted"] ↦{DFrac.own q} st.compacted ∗
+    w.[watcher, go!"restore"] ↦{DFrac.own q} st.restore ∗
+    w.[watcher, go!"ch"] ↦{DFrac.own q} st.ch)
 
-/-- The watcher set `m` (a `map[*watcher]struct{}`) holds exactly `S`. -/
-def ownWatcherSet (m : GoMap) (S : GMap Loc Unit) : IProp GF :=
-  iprop(m ↦$ S)
+/-- The watcher set `m` (a `map[*watcher]struct{}`) holds exactly `S` (at the fraction `q`). -/
+def ownWatcherSet (m : GoMap) (S : GMap Loc Unit) (q : Qp := 1) : IProp GF :=
+  iprop(ownMap m (DFrac.own q) S)
 
 /-- A watcher set or `nil` (an empty set, not owned: Perennial's map points-to is of a non-nil
 map, `ownMap_not_nil`). -/
@@ -635,31 +722,35 @@ def ownWatcherSetOpt (m : GoMap) (S : GMap Loc Unit) : IProp GF :=
 
 /-- The key map `km` (`watcherSetByKey`) of the members `W`: one non-empty set per key of a
 single-key member, holding the single-key members of that key. -/
-def ownKeyMap (km : GoMap) (KM : GMap GoString GoMap) (W : GMap Loc WatchRange) : IProp GF :=
-  iprop(km ↦$ KM ∗
+def ownKeyMap (km : GoMap) (KM : GMap GoString GoMap) (W : GMap Loc WatchRange) (q : Qp := 1) :
+    IProp GF :=
+  iprop(ownMap km (DFrac.own q) KM ∗
     ⌜∀ k, (KM !! k).isSome ↔ ∃ w r, W !! w = some r ∧ r.end? = none ∧ r.key = k⌝ ∗
-    [∗map] k ↦ m ∈ KM, ownWatcherSet m (keyMembers W k))
+    [∗map] k ↦ m ∈ KM, ownWatcherSet m (keyMembers W k) q)
 
 /-- An entry of the tree is a range set: its value is the set (as an interface value of the
 named type `watcherSet`) of the range members of its interval. -/
-def rangeSet (W : GMap Loc WatchRange) (z : adt.Entry) : IProp GF :=
-  iprop(∃ m : GoMap, ⌜z.2 = interface.mkOk watcherSet.ty #m⌝ ∗ ownWatcherSet m (ivlMembers W z.1))
+def rangeSet (W : GMap Loc WatchRange) (z : adt.Entry) (q : Qp := 1) : IProp GF :=
+  iprop(∃ m : GoMap, ⌜z.2 = interface.mkOk watcherSet.ty #m⌝ ∗ ownWatcherSet m (ivlMembers W z.1) q)
 
 /-- The group at `wg` holds the members `W` (pointer ↦ range): the all-watchers set, the key
-map, the interval tree, consistent with `W`, and the members' fixed fields. -/
-def ownWatcherGroup (wg : Loc) (W : GMap Loc WatchRange) : IProp GF :=
+map, the interval tree, consistent with `W`, and the members' fixed fields; at the fraction `q`
+(the watchable store's read lock: `ownWatcherGroup_split`, through the tree's pending
+fractionality; the group's operations at `1`). -/
+def ownWatcherGroup (wg : Loc) (W : GMap Loc WatchRange) (q : Qp := 1) : IProp GF :=
   iprop(∃ (km ws t : Loc) (KM : GMap GoString GoMap) (L : List adt.Entry),
-    "Hwg" ∷ wg ↦ ({ keyWatchers' := km,
-                    ranges' := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
-                    watchers' := ws } : watcherGroup) ∗
-    "Hws" ∷ ownWatcherSet ws (domSet W) ∗
+    "Hwg" ∷ typedPointsto wg
+      ({ keyWatchers' := km,
+         ranges' := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
+         watchers' := ws } : watcherGroup) (DFrac.own q) ∗
+    "Hws" ∷ ownWatcherSet ws (domSet W) q ∗
     "#Hfixed" ∷ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
-    "Hkm" ∷ ownKeyMap km KM W ∗
-    "Hivt" ∷ adt.ownIvt t L ∗
+    "Hkm" ∷ ownKeyMap km KM W q ∗
+    "Hivt" ∷ adt.ownIvt t L q ∗
     "%HL" ∷ ⌜RangesOk W L⌝ ∗
-    "Hranges" ∷ [∗list] z ∈ L, rangeSet W z)
+    "Hranges" ∷ [∗list] z ∈ L, rangeSet W z q)
 
-/-- An `IntervalValue` points-to (what the tree's `Find` and `Stab` return, read-only) as its
+/-- An `IntervalValue` points-to (what the tree's `Find` and `Stab` lend) as its
 fields. -/
 theorem iv_split (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (dq : DFrac) :
     (l ↦{dq} v : IProp GF) ⊢
@@ -741,7 +832,7 @@ theorem ownWatcherGroup_intro (wg : Loc) (W : GMap Loc WatchRange) (km ws t : Lo
               (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
             watchers' := ws } : watcherGroup) ∗
       ownWatcherSet ws (domSet W) ∗ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
-      ownKeyMap km KM W ∗ adt.ownIvt t L ∗ ([∗list] z ∈ L, rangeSet W z) ⊢
+      ownKeyMap km KM W ∗ adt.ownIvt t L 1 ∗ ([∗list] z ∈ L, rangeSet W z) ⊢
     ownWatcherGroup (GF := GF) wg W := by
   iintro ⟨Hwg, Hws, #Hfixed, Hkm, Hivt, Hranges⟩
   unfold ownWatcherGroup
@@ -781,6 +872,91 @@ theorem ownWatcherGroup_member (wg : Loc) (W : GMap Loc WatchRange) (w : Loc) (r
   iintro ⟨Hg, #Hw⟩
   icases ownWatcherGroup_fixed wg W $$ Hg with ⟨Hg, #Hfixed⟩
   iframe Hg
+  cases h : W !! w with
+  | none => ipureintro; exact Or.inl rfl
+  | some r' =>
+    icases (BigSepM.bigSepM_lookup_acc (m := W) h).1 $$ Hfixed with ⟨⟨%fcs', Hw'⟩, -⟩
+    icases watcherFixed_agree w r r' fcs fcs' $$ [Hw Hw'] with %Hag
+    · iframe Hw Hw'
+    ipureintro; exact Or.inr (by rw [Hag.1])
+
+/-- The group with its all-watchers set at the map `ws` (the group's `watchers` field): `add` and
+`delete` keep the map (`syncWatchers` ranges over it while deleting from the group). -/
+def ownWatcherGroupAt (wg : Loc) (W : GMap Loc WatchRange) (ws : GoMap) (q : Qp := 1) :
+    IProp GF :=
+  iprop(∃ (km t : Loc) (KM : GMap GoString GoMap) (L : List adt.Entry),
+    "Hwg" ∷ typedPointsto wg
+      ({ keyWatchers' := km,
+         ranges' := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
+         watchers' := ws } : watcherGroup) (DFrac.own q) ∗
+    "Hws" ∷ ownWatcherSet ws (domSet W) q ∗
+    "#Hfixed" ∷ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
+    "Hkm" ∷ ownKeyMap km KM W q ∗
+    "Hivt" ∷ adt.ownIvt t L q ∗
+    "%HL" ∷ ⌜RangesOk W L⌝ ∗
+    "Hranges" ∷ [∗list] z ∈ L, rangeSet W z q)
+
+/-- The group is the group at its set's map. -/
+theorem ownWatcherGroup_at (wg : Loc) (W : GMap Loc WatchRange) (q : Qp) :
+    ownWatcherGroup (GF := GF) wg W q ⊣⊢ ∃ ws : GoMap, ownWatcherGroupAt wg W ws q := by
+  unfold ownWatcherGroup ownWatcherGroupAt
+  constructor
+  · iintro H
+    icases H with ⟨%km, %ws, %t, %KM, %L, H⟩
+    iexists ws, km, t, KM, L
+    iexact H
+  · iintro H
+    icases H with ⟨%ws, %km, %t, %KM, %L, H⟩
+    iexists km, ws, t, KM, L
+    iexact H
+
+/-- The group at `ws`, its set lent: the rest, and the set. -/
+theorem ownWatcherGroupAt_set (wg : Loc) (W : GMap Loc WatchRange) (ws : GoMap) (q : Qp) :
+    ownWatcherGroupAt (GF := GF) wg W ws q ⊢
+      ownWatcherSet ws (domSet W) q ∗
+        (ownWatcherSet ws (domSet W) q -∗ ownWatcherGroupAt wg W ws q) := by
+  iintro H
+  unfold ownWatcherGroupAt
+  icases H with ⟨%km, %t, %KM, %L, H⟩
+  iNamed H
+  iframe Hws
+  iintro Hws
+  iexists km, t, KM, L
+  simp only [named]
+  iframe Hwg Hws Hfixed Hkm Hivt Hranges
+  ipureintro; exact HL
+
+/-- The group at `ws` from its parts. -/
+theorem ownWatcherGroupAt_intro (wg : Loc) (W : GMap Loc WatchRange) (km ws t : Loc)
+    (KM : GMap GoString GoMap) (L : List adt.Entry) (hL : RangesOk W L) :
+    wg ↦ ({ keyWatchers' := km,
+            ranges' := interface.mkOk
+              (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
+            watchers' := ws } : watcherGroup) ∗
+      ownWatcherSet ws (domSet W) ∗ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
+      ownKeyMap km KM W ∗ adt.ownIvt t L 1 ∗ ([∗list] z ∈ L, rangeSet W z) ⊢
+    ownWatcherGroupAt (GF := GF) wg W ws := by
+  iintro ⟨Hwg, Hws, #Hfixed, Hkm, Hivt, Hranges⟩
+  unfold ownWatcherGroupAt
+  iexists km, t, KM, L
+  simp only [named]
+  iframe Hwg Hws Hfixed Hkm Hivt Hranges
+  ipureintro; exact hL
+
+/-- The members are distinct watchers (`ownWatcherGroup_member`, at the set's map). -/
+theorem ownWatcherGroupAt_member (wg : Loc) (W : GMap Loc WatchRange) (ws : GoMap) (w : Loc)
+    (r : WatchRange) (fcs : GoSlice) :
+    ownWatcherGroupAt (GF := GF) wg W ws ∗ watcherFixed w r fcs ⊢
+      ownWatcherGroupAt wg W ws ∗ ⌜W !! w = none ∨ W !! w = some r⌝ := by
+  iintro ⟨Hg, #Hw⟩
+  unfold ownWatcherGroupAt
+  icases Hg with ⟨%km, %t, %KM, %L, Hg⟩
+  iNamed Hg
+  isplitl [Hwg Hws Hkm Hivt Hranges]
+  · iexists km, t, KM, L
+    simp only [named]
+    iframe Hwg Hws Hfixed Hkm Hivt Hranges
+    ipureintro; exact HL
   cases h : W !! w with
   | none => ipureintro; exact Or.inl rfl
   | some r' =>

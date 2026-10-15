@@ -50,7 +50,7 @@ theorem WithRange.wp_proof : WithRange.spec (GF := GF) (hG := hG) := by
   · ipureintro; simp_all
   isplitl []
   · ipureintro; simp_all
-  · iapply opSortAt_of _ o _ (by simp [withRangeM]) (by simp [withRangeM]) (by simp [withRangeM]) $$ Hs
+  · iapply opSortAt_of _ o _ (by simp) (by simp) (by simp) $$ Hs
 
 end proof
 

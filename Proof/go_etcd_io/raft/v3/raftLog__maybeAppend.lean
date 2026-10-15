@@ -36,19 +36,19 @@ private theorem find_conflict_cases (b : entryID) (es ents : List raftpb.Entry) 
     by_cases Hm : PlogMatches b es (entId e)
     · rcases IH with ⟨H0, Hall⟩ | ⟨k, e', Hk, Hci, Hnm, Hbefore⟩
       · refine .inl ⟨?_, ?_⟩
-        · simp only [plogFindConflict, if_pos Hm]; exact H0
+        · simp only [plogFindConflict, ite_eq_left Hm]; exact H0
         · intro x Hx
           rcases List.mem_cons.1 Hx with rfl | Hx
           · exact Hm
           · exact Hall x Hx
       · refine .inr ⟨k + 1, e', by simpa using Hk, ?_, Hnm, ?_⟩
-        · simp only [plogFindConflict, if_pos Hm]; exact Hci
+        · simp only [plogFindConflict, ite_eq_left Hm]; exact Hci
         · intro j e'' Hj Hj'
           cases j with
           | zero => simp at Hj'; subst Hj'; exact Hm
           | succ j => exact Hbefore j e'' (by omega) (by simpa using Hj')
     · refine .inr ⟨0, e, rfl, ?_, Hm, fun j _ Hj _ => absurd Hj (Nat.not_lt_zero _)⟩
-      simp only [plogFindConflict, if_neg Hm]
+      simp only [plogFindConflict, ite_eq_right Hm]
 
 /-- `logTruncateAppend` moves only the entry lists. -/
 private theorem logTruncateAppend_fields (ls : LogState) (ents : List raftpb.Entry) :
@@ -83,9 +83,9 @@ private theorem wp_min_u64 (a b : w64) :
     {{ RET #(w64Min a b); True }} := by
   wp_start
   wp_if_destruct
-  · rw [show w64Min a b = a from if_pos Hif]
+  · rw [show w64Min a b = a from ite_eq_left Hif]
     iapply HΦ; itrivial
-  · rw [show w64Min a b = b from if_neg Hif]
+  · rw [show w64Min a b = b from ite_eq_right Hif]
     iapply HΦ; itrivial
 
 end proof0
@@ -126,7 +126,7 @@ theorem raftLog.maybeAppend.wp_proof
     ipureintro; exact ⟨rfl, id⟩
   | true =>
     have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' := of_decide_eq_true Hb.symm
-    simp only [plogMaybeAppend, if_pos Hm]
+    simp only [plogMaybeAppend, ite_eq_left Hm]
     have Hci := Hci Hm
     have Hprange := matches_le_last _ _ _ Hm
     simp only [plogLastIndexZ, List.length_append] at Hprange
@@ -173,7 +173,7 @@ theorem raftLog.maybeAppend.wp_proof
       iframe
       isplitr
       · ipureintro
-        simp only [w64Min, and_self, if_true]
+        simp only [w64Min, and_self, ite_true]
       ipureintro; exact ⟨rfl, id⟩
     · -- a conflict at `ci = ents[k].Index = a.prev.index + 1 + k`
       have Hke := Hwf k e Hk
@@ -285,7 +285,7 @@ theorem raftLog.maybeAppend.wp_proof
       · ipureintro
         have Hkd : (uint.Z e.Index' - uint.Z a.prev'.index' - 1).toNat = k := by
           push_cast at Hke; omega
-        simp only [Hkd, if_false, w64Min, true_and]
+        simp only [Hkd, ite_false, w64Min, true_and]
         exact ⟨Hp1, Hsplit, Ha1, by rw [Hc1], Hag1, Hsn1, Hun1, Hst1, Hsg1⟩
       ipureintro; exact ⟨Hsn1, fun _ => Hnu⟩
 

@@ -51,6 +51,8 @@ theorem ringBuffer.PeekLatest.wp_proof : ringBuffer.PeekLatest.spec (GF := GF) (
     have Hh1 : sint.Z rb.head' < cap := by rw [Hok.head]; exact Int.emod_lt_of_pos _ (by omega)
     have Hc2 := Hok.cap_le
     have Hnn : 0 ≤ sint.Z (rb.head' - W64 1 + rb.buffer'.len) := by word
+    rw [if_neg (show ¬ sint.Z rb.buffer'.len = 0 by omega)]
+    wp_auto
     rw [srem_of_nonneg _ _ Hnn (by omega), Hidx]
     have Hslot : ringSlot rb.tail' cap (items.length - 1) < cap := Nat.mod_lt _ Hc
     rw [ite_eq_left (by omega)]

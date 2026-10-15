@@ -57,29 +57,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-/- TEMPORARY, delete once Perennial's `iframe ∗` no longer keeps its reentrancy guard in a
-process-global `IO.Ref` (`inIframe`, `Perennial/Golang/Theory/IrisTactics.lean`). The bodies
-of this file's theorems are elaborated in parallel; one theorem's `iframe ∗` that sees the
-flag set by another skips `iframePrep`, and the goal is left unframed (the flaky "is not
-pure"/"unknown free variable" failures under a parallel build: notes/flaky-stepleader-build.md).
-This rule, tried before Perennial's, runs the prepass itself, then Perennial's rule with its
-prepass off (which ends in iris-lean's `iframe ∗` whatever the flag); its own guard is an
-option, local to the elaboration task. -/
-open Lean Elab Tactic in
-local elab_rules : tactic
-  | `(tactic| iframe $pats:selPat*) => do
-    if (← getOptions).getBool `etcdGrove.iframeInner false then throwUnsupportedSyntax
-    unless pats.size == 1 && (pats[0]!.raw.getArg 0).isToken "∗" do
-      throwUnsupportedSyntax
-    let saved ← saveState
-    let n0 := (← getGoals).length
-    if Perennial.IrisTactics.goose.iframe.prepass.get (← getOptions) then
-      try Perennial.IrisTactics.iframePrep n0 catch _ => saved.restore
-    if (← getGoals).length < n0 then return
-    withOptions (fun o => (o.setBool `etcdGrove.iframeInner true).setBool
-        `goose.iframe.prepass false) <|
-      evalTactic (← getRef)
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

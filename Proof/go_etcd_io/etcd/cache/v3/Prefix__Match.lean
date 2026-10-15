@@ -61,7 +61,7 @@ theorem Prefix.Match.wp_proof : Prefix.Match.spec (GF := GF) (hG := hG) :=
     have he : decide (subslice 0 (sint.nat (W64 (pfx.length : Int))) key = pfx) =
         decide (pfx <+: key) := by
       rw [hn']
-      simp only [subslice, List.drop_zero, Nat.sub_zero]
+      simp only [subslice, List.drop_zero]
       rw [decide_eq_decide]
       constructor
       · intro h; rw [← h]; exact List.take_prefix _ _

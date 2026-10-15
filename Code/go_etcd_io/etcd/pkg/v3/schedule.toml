@@ -1,7 +1,8 @@
-# Types and names only: function and method bodies are axiomatized (the type of
-# mvcc's store.fifoSched).
-translate = ["!*"]
-imports = ["!*"]
+# Types and names only (the type of mvcc's store.fifoSched), but for the jobs: `NewJob` and
+# `job`'s `Name`/`Do` with bodies (mvcc's compaction makes its jobs with `NewJob`); the
+# `fifo` scheduler's methods are names only (`Scheduler.Schedule` is an axiom).
+translate = ["!*", "NewJob", "job.Name", "job.Do"]
+imports = ["!*", "context"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

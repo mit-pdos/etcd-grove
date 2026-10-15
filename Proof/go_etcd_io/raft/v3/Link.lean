@@ -18,6 +18,7 @@ public import Proof.go_etcd_io.raft.v3.confchange.Changer__initProgress
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__makeVoter
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__remove
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
 public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
 public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
@@ -273,6 +274,7 @@ public import Proof.go_etcd_io.raft.v3.unstable__slice
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Proof.fmt.Link
 
 @[expose] public section
 
@@ -358,9 +360,13 @@ theorem confchange.Changer.wp_makeLearner :
     confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) :=
   confchange.Changer.makeLearner.wp_proof confchange.Changer.wp_initProgress confchange.Changer.wp_remove confchange.wp_outgoing confchange.wp_nilAwareAdd
 
+theorem raftpb.ConfChangeType.wp_String :
+    raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeType.String.wp_proof
+
 theorem confchange.Changer.wp_apply :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.wp_incoming
+  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.wp_incoming fmt.wp_Errorf raftpb.ConfChangeType.wp_String
 
 theorem confchange.Changer.wp_EnterJoint :
     confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG) :=
@@ -386,13 +392,9 @@ theorem raftpb.ConfChangeV2.wp_AsV2 :
     raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeV2.AsV2.wp_proof
 
-theorem fmt.wp_Sprintf :
-    fmt.Sprintf.spec (GF := GF) (hG := hG) :=
-  fmt.Sprintf.wp_proof
-
 theorem raftpb.ConfChangeV2.wp_EnterJoint :
     raftpb.ConfChangeV2.EnterJoint.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeV2.EnterJoint.wp_proof fmt.wp_Sprintf
+  raftpb.ConfChangeV2.EnterJoint.wp_proof
 
 theorem gogoproto.wp_Equal :
     gogoproto.Equal.spec (GF := GF) (hG := hG) :=
@@ -833,6 +835,10 @@ theorem raftLog.wp_appliedTo :
 theorem tracker.ProgressTracker.wp_VoterNodes :
     tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.VoterNodes.wp_proof quorum.JointConfig.wp_IDs slices.wp_Sort
+
+theorem fmt.wp_Sprintf :
+    fmt.Sprintf.spec (GF := GF) (hG := hG) :=
+  fmt.Sprintf.wp_proof
 
 theorem strings.wp_Join :
     strings.Join.spec (GF := GF) (hG := hG) :=

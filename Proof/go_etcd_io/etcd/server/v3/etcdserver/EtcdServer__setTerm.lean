@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.setTerm.wp_proof :
     EtcdServer.setTerm.spec (GF := GF) (hG := hG) := by
-  intro s v
+  intro s E γr v
   wp_start as #Hat
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit

@@ -109,7 +109,8 @@ theorem raft.applyConfChange.wp_proof
     wp_method_call
     wp_call
     wp_auto
-    wp_apply wp_ConfChangeV2_EnterJoint cc ccs dq $$ [$Hccs] as %rv ⟨Hccs, Hres⟩
+    wp_apply wp_ConfChangeV2_EnterJoint cc ccs dq
+      (fun Hn => by rw [Hn] at Happ; cases Happ) $$ [$Hccs] as %rv ⟨Hccs, Hres⟩
     cases Hej : enterJointOf cc.Transition' ccs.length with
     | none => rw [Hej] at Happ; cases Happ
     | some p =>

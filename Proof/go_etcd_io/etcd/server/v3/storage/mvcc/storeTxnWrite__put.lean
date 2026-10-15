@@ -32,6 +32,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
+set_option maxHeartbeats 400000 in
 theorem mvcc.storeTxnWrite.put.wp_proof
     (hGet : mvcc.treeIndex.Get.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
@@ -42,8 +43,9 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key value k v leaseID
-  wp_start as ⟨Htw, #Hkey, #Hval, Hlease, %Hb⟩
+  intro trace tw s γ ilog pend key value k v leaseID L te crev Z
+  wp_start as ⟨Htw, #Hkey, #Hval, Hown, %Hlease, %Hb, Htrc⟩
+  have Hb63 : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hb (mvcc.kbPutMax_le _)
   simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -62,7 +64,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -71,11 +73,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   · iPkgInit
   -- the lessor and the batch transaction
   iunfold mvcc.isLessor at HlessorS
-  icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
+  icases HlessorS with ⟨%lp, %Hli, #Hpin, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
+  ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw fw $$ []
   · iexact Hbt
-  iunfold mvcc.batchTxSpec at Hbt
+  iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
   -- the writer's log
   ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
@@ -99,12 +102,15 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   -- `tw.s.kvindex.Get(key, rev)` by the writer
   ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
   · rw [mvcc.idxKnows_writer]; iexact Hw
-  wp_apply (hGet ti γ.idx (.writer ilog pend) key k (W64 (ilog.length : Int)) e0)
-    $$ [$HtiS $Hti $Hkn $Hkey $Herr] as ⟨Hti, Hw, -⟩
+  icases mvcc.muHeld_crev s γ crev $$ Hmu with ⟨Hcu, Hmub⟩
+  wp_apply (hGet ti γ.idx (.writer ilog pend) key k (W64 (ilog.length : Int)) e0 _ crev)
+    $$ [$HtiS $Hti $Hkn $Hkey $Herr $Hcu] as ⟨Hti, Hw, Hcu, -⟩
   · ipureintro; rw [mvcc.IdxKnow.log_writer]
     have h : sint.Z (W64 (ilog.length : Int) : w64) = ilog.length := by
       word
-    simp only [List.length_append, List.length_singleton]; omega
+    simp only [List.length_append, List.length_singleton]
+    refine ⟨⟨Hcrev.1, by have := Hcrev.2; omega⟩, by omega, by omega⟩
+  ihave Hmu := Hmub $$ Hcu
   rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer]
   cases hg : mvcc.kiGet (mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k) (W64 (ilog.length : Int)) with
   | some a =>
@@ -115,9 +121,17 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     -- `oldLease = tw.s.le.GetLease(lease.LeaseItem{Key: string(key)})`
     wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
     (try wp_auto)
-    wp_apply HGetL $$ %({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) as %oldL -
+    iunfold lease.lessorRdOf at Hlrd
+    icases Hlrd with ⟨%lpr, #Hpinr, Hrd⟩
+    ihave %Hlpeq := lease.lessorPin_agree γ.leases lp lpr $$ [$Hpin $Hpinr]
+    subst Hlpeq
+    wp_apply HGetL $$ %({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) [$Hrd]
+      as %oldL Hrd
+    ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hrd]
+    · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
     (try wp_auto)
-    wp_apply (hStep trace _ _)
+    wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+    · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
     have hkvm' : mvcc.changeKv (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
         (pend ++ [.put k v leaseID]) pend.length =
@@ -144,16 +158,21 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     (try wp_auto)
     -- `if err != nil { Fatal }`: not taken (resolved by `wp_auto`)
-    wp_apply (hStep trace _ _)
+    wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+    · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-      [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+    -- the backend keeps the key and the value: read-only for good
+    ipersist Hib
+    ipersist Hd
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %(mvcc.bucketMap ilog) %bK %ib'
+      %d %_ %_ [$HKeyG $Hlocked $Hbv $Hib $Hd] as ⟨Hlocked, Hbv⟩
+    · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw
     · ipureintro
-      refine ⟨rfl, hpos, Hb, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h)⟩
+      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h)⟩
     (try wp_auto)
     -- `tw.changes = append(tw.changes, kv)`
     wp_apply wp_slice_literal (l := [«$r0_ptr»])
@@ -163,7 +182,8 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (try wp_auto)
     wp_apply wp_slice_append $$ [$Hchs $Hcap $Hlit] as %chs' ⟨Hchs, Hcap, -⟩
     (try wp_auto)
-    wp_apply (hStep trace _ _)
+    wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+    · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
     -- the transaction with the put, for every lease outcome (a wand: the lease code still reads
     -- `tw.s` through `tw`'s points-to)
@@ -172,15 +192,15 @@ theorem mvcc.storeTxnWrite.put.wp_proof
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
-        mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hkv]
+        mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
+      iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
       rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
       simp only [mvcc.revOf, mvcc.Change.isDel]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       isplitl []
       · ipureintro; exact Hbudget
@@ -196,13 +216,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         iexists value
         iframe Hval
         iexact Hkv
-      ipureintro; exact Hne
+      ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
     -- `if oldLease == leaseID { trace.Step; return }`
     wp_if_destruct
     · (try wp_auto)
-      wp_apply (hStep trace _ _)
+      wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+      · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
       (try wp_auto)
-      iapply HΦ; iapply Hpack; iexact Htw
+      iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
     (try wp_auto)
     -- `if oldLease != lease.NoLease { Detach }`: the first goal is `oldLease == NoLease`
     wp_if_destruct
@@ -210,11 +231,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       -- `if leaseID != lease.NoLease { Attach }`: the first goal is `leaseID == NoLease`
       wp_if_destruct
       · (try wp_auto)
-        wp_apply (hStep trace _ _)
+        wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+        · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
         (try wp_auto)
-        iapply HΦ; iapply Hpack; iexact Htw
+        iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
       · (try wp_auto)
-        icases Hlease with (%h0 | #Hknown)
+        rcases Hlease with h0 | Hin
         · exfalso; subst h0; first | exact Hif rfl | simp at Hif
         -- `tw.s.le == nil` is false (resolved by `wp_auto`)
         wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
@@ -224,12 +246,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         · ipureintro; rfl
         iintro %items ⟨Hitems, -⟩
         (try wp_auto)
-        wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) [$Hknown $Hitems] as -
+        wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) %L [$Hown $Hitems] as ⟨Hown, -⟩
+        · ipureintro; exact Hin
         (try wp_auto)
         -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
-        wp_apply (hStep trace _ _)
+        wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+        · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
         (try wp_auto)
-        iapply HΦ; iapply Hpack; iexact Htw
+        iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
     · (try wp_auto)
       -- `tw.s.le == nil` is false (resolved by `wp_auto`)
       wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
@@ -248,11 +272,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         -- `if leaseID != lease.NoLease { Attach }`: the first goal is `leaseID == NoLease`
         wp_if_destruct
         · (try wp_auto)
-          wp_apply (hStep trace _ _)
+          wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+          · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
           (try wp_auto)
-          iapply HΦ; iapply Hpack; iexact Htw
+          iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
         · (try wp_auto)
-          icases Hlease with (%h0 | #Hknown)
+          rcases Hlease with h0 | Hin
           · exfalso; subst h0; first | exact Hif rfl | simp at Hif
           -- `tw.s.le == nil` is false (resolved by `wp_auto`)
           wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
@@ -262,12 +287,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           · ipureintro; rfl
           iintro %items ⟨Hitems, -⟩
           (try wp_auto)
-          wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) [$Hknown $Hitems] as -
+          wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) %L [$Hown $Hitems] as ⟨Hown, -⟩
+          · ipureintro; exact Hin
           (try wp_auto)
           -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
-          wp_apply (hStep trace _ _)
+          wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+          · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
           (try wp_auto)
-          iapply HΦ; iapply Hpack; iexact Htw
+          iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
       | ok e =>
         (try wp_auto)
         wp_apply (hZapErr (GoInterface.ok e)) as %f -
@@ -283,11 +310,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         -- `if leaseID != lease.NoLease { Attach }`: the first goal is `leaseID == NoLease`
         wp_if_destruct
         · (try wp_auto)
-          wp_apply (hStep trace _ _)
+          wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+          · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
           (try wp_auto)
-          iapply HΦ; iapply Hpack; iexact Htw
+          iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
         · (try wp_auto)
-          icases Hlease with (%h0 | #Hknown)
+          rcases Hlease with h0 | Hin
           · exfalso; subst h0; first | exact Hif rfl | simp at Hif
           -- `tw.s.le == nil` is false (resolved by `wp_auto`)
           wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
@@ -297,12 +325,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           · ipureintro; rfl
           iintro %items ⟨Hitems, -⟩
           (try wp_auto)
-          wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) [$Hknown $Hitems] as -
+          wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) %L [$Hown $Hitems] as ⟨Hown, -⟩
+          · ipureintro; exact Hin
           (try wp_auto)
           -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
-          wp_apply (hStep trace _ _)
+          wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+          · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
           (try wp_auto)
-          iapply HΦ; iapply Hpack; iexact Htw
+          iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
   | none =>
     simp only [mvcc.kiGetVal, hg]
     (try wp_auto)
@@ -332,16 +362,21 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     (try wp_auto)
     -- `if err != nil { Fatal }`: not taken (resolved by `wp_auto`)
-    wp_apply (hStep trace _ _)
+    wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+    · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-      [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+    -- the backend keeps the key and the value: read-only for good
+    ipersist Hib
+    ipersist Hd
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %(mvcc.bucketMap ilog) %bK %ib'
+      %d %_ %_ [$HKeyG $Hlocked $Hbv $Hib $Hd] as ⟨Hlocked, Hbv⟩
+    · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw
     · ipureintro
-      refine ⟨rfl, hpos, Hb, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h)⟩
+      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h)⟩
     (try wp_auto)
     -- `tw.changes = append(tw.changes, kv)`
     wp_apply wp_slice_literal (l := [«$r0_ptr»])
@@ -351,7 +386,8 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (try wp_auto)
     wp_apply wp_slice_append $$ [$Hchs $Hcap $Hlit] as %chs' ⟨Hchs, Hcap, -⟩
     (try wp_auto)
-    wp_apply (hStep trace _ _)
+    wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+    · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
     -- the transaction with the put, for every lease outcome (a wand: the lease code still reads
     -- `tw.s` through `tw`'s points-to)
@@ -360,15 +396,15 @@ theorem mvcc.storeTxnWrite.put.wp_proof
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
-        mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hkv]
+        mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
+      iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
       rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
       simp only [mvcc.revOf, mvcc.Change.isDel]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       isplitl []
       · ipureintro; exact Hbudget
@@ -384,23 +420,25 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         iexists value
         iframe Hval
         iexact Hkv
-      ipureintro; exact Hne
+      ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
     -- `if oldLease == leaseID { trace.Step; return }`
     wp_if_destruct
     · (try wp_auto)
-      wp_apply (hStep trace _ _)
+      wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+      · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
       (try wp_auto)
-      iapply HΦ; iapply Hpack; iexact Htw
+      iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
     (try wp_auto)
     -- `if oldLease != lease.NoLease { Detach }`: `oldLease` is `NoLease` (resolved by `wp_auto`)
     -- `if leaseID != lease.NoLease { Attach }`: the first goal is `leaseID == NoLease`
     wp_if_destruct
     · (try wp_auto)
-      wp_apply (hStep trace _ _)
+      wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+      · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
       (try wp_auto)
-      iapply HΦ; iapply Hpack; iexact Htw
+      iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
     · (try wp_auto)
-      icases Hlease with (%h0 | #Hknown)
+      rcases Hlease with h0 | Hin
       · exfalso; subst h0; first | exact Hif rfl | simp at Hif
       -- `tw.s.le == nil` is false (resolved by `wp_auto`)
       wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
@@ -410,12 +448,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       · ipureintro; rfl
       iintro %items ⟨Hitems, -⟩
       (try wp_auto)
-      wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) [$Hknown $Hitems] as -
+      wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) %L [$Hown $Hitems] as ⟨Hown, -⟩
+      · ipureintro; exact Hin
       (try wp_auto)
       -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
-      wp_apply (hStep trace _ _)
+      wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
+      · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
       (try wp_auto)
-      iapply HΦ; iapply Hpack; iexact Htw
+      iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
 
 end proof
 

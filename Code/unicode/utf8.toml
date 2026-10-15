@@ -1,0 +1,7 @@
+# Names only: `utf8.ValidString`, which the server's unary interceptor calls on the client's API
+# version (unit P3b; an axiom, `Spec/unicode/utf8/ValidString.lean`).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

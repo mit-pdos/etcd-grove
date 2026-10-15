@@ -23,7 +23,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex go_
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -53,7 +53,7 @@ end proof
 section proof2
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -74,8 +74,8 @@ theorem EtcdServer.applyEntries.wp_proof
     (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG))
     (hStop : EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM b ep ap es ents ms f0 rac st ai at0 a t cs Hms Hai1 Hok
-  wp_start as ⟨#Hsrv, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ⟩
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr Hms Hai1 Hok hEok
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, HW⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -91,8 +91,12 @@ theorem EtcdServer.applyEntries.wp_proof
     iapply HΦ
     iexists st, ai, at0, a, t, cs
     iframe
+    isplitr
+    · isplitr
+      · ipureintro; rfl
+      iexact Hlog
     ipureintro
-    refine ⟨Hok, ?_⟩
+    refine ⟨Hok, ?_, Or.inl rfl⟩
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
     have : (0 : Int) ≤ uint.Z ai := by word
     omega
@@ -162,11 +166,32 @@ theorem EtcdServer.applyEntries.wp_proof
     · iunfold entriesAt; isplitr
       · ipureintro; exact Hlen2
       iexact Hent
-    wp_apply hApply s γ ci TM b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k) (ai + 1)
-      ep cs rac st a t hne' hfrom' hok' $$ [Hst Hbe Happ Hcs]
-      as %appt %appi %stop ⟨%st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, %Hpost⟩
-    · iframe Hsrv Hsub Hentsd Hst Hbe Happ Hcs
-    obtain ⟨hli, -, hok2, -⟩ := Hpost
+    have hun : unapplied ai ms = ms.drop k := by
+      rw [unapplied_eq_drop ai ms (uint.Z f0) (fun n m h => (Hfrom.2.2 n m h).1), hkdef, hoff]
+    rw [hun] at hEok
+    ihave HW : txn.storeWTs E.γ (ms.drop k).length $$ [HW]
+    · rw [← hun]; iexact HW
+    ihave #Hbw' : iprop(batchWaitOk ρ E (ms.drop k)) $$ []
+    · iunfold batchWaitOk at Hbw
+      iunfold batchWaitOk
+      imodintro
+      iintro %m %hm
+      iapply Hbw
+      ipureintro; exact List.mem_of_mem_drop hm
+    ihave #Hbc' : iprop(batchCommittedIdx γr (ms.drop k)) $$ []
+    · iunfold batchCommittedIdx at Hbc
+      iunfold batchCommittedIdx
+      imodintro
+      iintro %m %hm
+      iapply Hbc
+      ipureintro; exact List.mem_of_mem_drop hm
+    wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
+      (ai + 1) ep cs rac st a t x γr hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW]
+      as %appt %appi %stop ⟨%st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao,
+        ⟨%x', HKV, %Hx', #Hlog'⟩, %Hpost⟩
+    · rw [show ai + 1 - 1 = ai by word]
+      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hbc' Hlog
+    obtain ⟨hli, -, hok2, hci2⟩ := Hpost
     -- the postcondition, whether or not the server stops
     have hlast : ms.getLast? = (ms.drop k).getLast? := by
       rw [List.getLast?_drop]; simp only [ite_eq_right (show ¬ ms.length ≤ k by omega)]
@@ -184,11 +209,15 @@ theorem EtcdServer.applyEntries.wp_proof
       iapply HΦ
       iexists st', appi, appt, a', at', csl
       iframe
-      ipureintro; exact ⟨hok2, hfin⟩
+      isplitr
+      · isplitr
+        · ipureintro; rw [hun]; exact Hx'
+        iexact Hlog'
+      ipureintro; exact ⟨hok2, hfin, Or.inr hci2⟩
     · ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
       · iPkgInit
       wp_auto
-      wp_apply fmt.wp_Errorf _ slice.nil ([] : List GoAny) $$ [] as %err -
+      wp_apply fmt.wp_Errorf _ slice.nil ([] : List GoAny) _root_.Perennial.fmt.ArgsWf.nil $$ [] as %err -
       · iapply ownSlice_nil
       (try wp_auto)
       wp_apply wp_fork $$ []
@@ -198,16 +227,29 @@ theorem EtcdServer.applyEntries.wp_proof
       iapply HΦ
       iexists st', appi, appt, a', at', csl
       iframe
-      ipureintro; exact ⟨hok2, hfin⟩
+      isplitr
+      · isplitr
+        · ipureintro; rw [hun]; exact Hx'
+        iexact Hlog'
+      ipureintro; exact ⟨hok2, hfin, Or.inr hci2⟩
   · -- `off ≥ len(entries)`: every entry is already applied
     (try wp_auto)
     obtain ⟨mL, hmL, hmLi⟩ := entriesFrom_last f0 ms Hfrom (by
       intro h; subst h; simp only [List.length_nil] at Hlen2; omega)
+    have hun : unapplied ai ms = [] := by
+      rw [unapplied_eq_drop ai ms (uint.Z f0) (fun n m h => (Hfrom.2.2 n m h).1)]
+      apply List.drop_of_length_le
+      have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif
+      omega
     iapply HΦ
     iexists st, ai, at0, a, t, cs
     iframe
+    isplitr
+    · isplitr
+      · ipureintro; rw [hun]; rfl
+      iexact Hlog
     ipureintro
-    refine ⟨Hok, ?_⟩
+    refine ⟨Hok, ?_, Or.inl rfl⟩
     rw [hmL]
     simp only [Option.map_some, Option.getD_some]
     have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif

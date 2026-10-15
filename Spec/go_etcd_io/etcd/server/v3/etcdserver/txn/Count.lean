@@ -5,6 +5,7 @@ Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -27,14 +28,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- `Count(ctx, lg, kv, key, rangeEnd, revision)`: `Range` of the count-only request
 `countOp k (rangeEndOf rangeEnd e) revision`: the number of keys of the range in the state at the
-revision read (`rangeRev`: the transaction's if `revision ≤ 0`), or `ErrFutureRev` and `0`. -/
+revision read (`rangeRev`: the transaction's if `revision ≤ 0`), or `ErrFutureRev` and `0`.
+2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
+(`EnsureTrace`; `Range`'s trace dropped). 2026-10-14 (unit A2): the key shorter than `2 ^ 63 - 1`
+(the request it builds states it: `txn.rangeRequestIs`). -/
 abbrev txn.Count.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (key rangeEnd : GoSlice) (k e : GoString) (revision : w64)
-    (m : Nat) (log₀ : mvcc.Log),
+    (m : Nat) (log₀ : mvcc.Log) (ot : Option Loc) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
       txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      key ↦*□ k ∗ rangeEnd ↦*□ e ∗ context.isContext ctx cd ∗ ⌜lg ≠ null⌝ }}
+      key ↦*□ k ∗ rangeEnd ↦*□ e ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ ⌜lg ≠ null⌝ ∗
+      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
     (App (App (App (App (App (App (Val (@! txn.Count)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);

@@ -1,6 +1,5 @@
 /-
-`sort.Reverse`: the trust boundary (Perennial translates `sort` without `Reverse` and the
-`reverse` type's methods). Lean-first; see `Spec/sort/Sort.lean`.
+`sort.Reverse`, proved by Perennial's `sort.wp_Reverse`. Lean-first; see `Spec/sort/Sort.lean`.
 
 `sort.Reverse(x)` returns `&reverse{x}` as a `sort.Interface`: its `Len` and `Swap` are `x`'s
 (promoted), its `Less(i, j)` is `x.Less(j, i)`. So it sorts the same list with the order
@@ -24,6 +23,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.sort.Assumptions]
 
 /-- `sort.Reverse(x)` of a sorter over `R` with order `lt`: a sorter over `R` with the order
 flipped. -/

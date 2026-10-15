@@ -5,8 +5,8 @@
 `register.wp_initialize'`: running the package's `initialize'` from `ownInitializing`
 initializes its imports (`context`, `time`, raft, `raftpb`, `encoding/binary`, `sync`) and
 then the package (no package-level variable), and gives its `isPkgInit`. It takes raft's
-premises (`Proof/go_etcd_io/raft/v3/Init.lean`): the method-set fact
-`context.ErrorStringIsError` and the model of `log.New`, `log.NewModel`.
+premises (`Proof/go_etcd_io/raft/v3/Init.lean`): the method-set facts
+`context.ErrorStringIsError`, `context.DeadlineExceededIsError` and the model of `log.New`, `log.NewModel`.
 -/
 module
 
@@ -31,7 +31,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
-variable [context.ErrorStringIsError] [log.NewModel]
+variable [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
 
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.register

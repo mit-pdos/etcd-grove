@@ -1,8 +1,14 @@
 # The flaky build of `stepLeader.lean` (diagnosis, 2026-10-14)
 
-**Status: diagnosed, with high confidence. Stopgap 2 is applied in `stepLeader.lean` only**
-(2026-10-14): a `local elab_rules` for `iframe ∗` after its `open`s, marked TEMPORARY. **Delete
-it once Perennial's fix (below) is in the pinned Perennial.** It runs `iframePrep` itself and
+**Status: fixed in Perennial** (`fb1ecb030`, "Tactics: no global mutable state shared between
+parallel declarations": the guard is the option `goose.iframe.inner`, as proposed below), which
+the pinned Perennial `a54e1999f` contains; the override in `stepLeader.lean` was deleted when
+`worktree-raft-rest` was merged with `lean` (2026-10-15). The rest of this note is the diagnosis
+as it stood.
+
+(Before: diagnosed, with high confidence. Stopgap 2 was applied in `stepLeader.lean` only
+(2026-10-14): a `local elab_rules` for `iframe ∗` after its `open`s, marked TEMPORARY, to be
+deleted once Perennial's fix (below) was in the pinned Perennial.) It runs `iframePrep` itself and
 then Perennial's rule with `goose.iframe.prepass` off, with its own guard an option. Checked by
 forcing `inIframe` on for the whole file (`run_cmd liftTermElabM
 (Perennial.IrisTactics.inIframe.set true)` after the `open`s): without the override the file

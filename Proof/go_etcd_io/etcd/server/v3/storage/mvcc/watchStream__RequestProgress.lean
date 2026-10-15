@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.RequestProgress.wp_proof :
     mvcc.watchStream.RequestProgress.spec (GF := GF) (hG := hG) := by
   intro ws wa P γ id
-  wp_start as Hws
+  wp_start as ⟨Hws, HPR⟩
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -52,14 +52,14 @@ theorem mvcc.watchStream.RequestProgress.wp_proof :
   | none =>
     wp_auto
     iapply HΦ
-    itrivial
+    iframe HPR
   | some w =>
     simp only [Option.isSome_some, Option.getD_some]
     wp_auto
-    wp_apply Hprog $$ [Hws]
+    wp_apply Hprog $$ [Hws $HPR] as HPR
     · iapply Hws $$ %id %w %hk
     iapply HΦ
-    itrivial
+    iframe HPR
 
 end proof
 

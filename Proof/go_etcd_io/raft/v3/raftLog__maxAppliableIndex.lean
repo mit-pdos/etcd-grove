@@ -29,9 +29,9 @@ private theorem wp_min_u64 (a b : w64) :
     {{ RET #(w64Min a b); True }} := by
   wp_start
   wp_if_destruct
-  · rw [show w64Min a b = a from if_pos Hif]
+  · rw [show w64Min a b = a from ite_eq_left Hif]
     iapply HΦ; itrivial
-  · rw [show w64Min a b = b from if_neg Hif]
+  · rw [show w64Min a b = b from ite_eq_right Hif]
     iapply HΦ; itrivial
 
 theorem raftLog.maxAppliableIndex.wp_proof :

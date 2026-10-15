@@ -57,6 +57,36 @@ def genPtr (gs : GoSlice) : Option Nat → Loc
 
 end addrs
 
+section inj
+variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- A `Revision` value determines its fields (its fields' loads are deterministic): the
+`available` map's keys (`map[Revision]struct{}`) are compared by value. -/
+instance revision_intoValInj : go.IntoValInj Revision where
+  intoVal_inj x y h := by
+    have hm : ∀ z : Revision, is_go_step_pure (StructFieldGet Revision.underlying go!"Main")
+        #z = Eq (Val #(z.Main')) := fun z =>
+      (Revision.TypeAssumptions.get_Main z).isGoStep_det_internal.isGoStep_pure_det
+    have hs : ∀ z : Revision, is_go_step_pure (StructFieldGet Revision.underlying go!"Sub")
+        #z = Eq (Val #(z.Sub')) := fun z =>
+      (Revision.TypeAssumptions.get_Sub z).isGoStep_det_internal.isGoStep_pure_det
+    have e1 := hm x
+    rw [h, hm y] at e1
+    have e2 := hs x
+    rw [h, hs y] at e2
+    have f1 : Val #(x.Main') = Val #(y.Main') := by
+      have := congrFun e1 (Val #(x.Main')); simp only [eq_iff_iff, iff_true] at this; exact this.symm
+    have f2 : Val #(x.Sub') = Val #(y.Sub') := by
+      have := congrFun e2 (Val #(x.Sub')); simp only [eq_iff_iff, iff_true] at this; exact this.symm
+    injection f1 with f1
+    injection f2 with f2
+    cases x; cases y
+    simp only [Revision.mk.injEq]
+    exact ⟨GoGlobalContext.intoVal_inj_w64 f1, GoGlobalContext.intoVal_inj_w64 f2⟩
+
+end inj
+
 /-! ## Key indexes (`key_index.go`) -/
 
 section reprs
@@ -273,6 +303,13 @@ def ownKi (p : Loc) (gs : GoSlice) (ki : KeyIndex) (dq : DFrac) : IProp GF :=
   iprop(p.[keyIndex, go!"modified"] ↦{dq} revVal ki.modified ∗
     p.[keyIndex, go!"generations"] ↦{dq} gs ∗ ownGens gs ki.gens dq)
 
+/-- A `Revision` is a safe map key: comparing it with itself (field by field) does not panic. -/
+instance revision_safeMapKey (r : Revision) : SafeMapKey (GF := GF) Revision.ty r where
+  wp_go_eq_safe_map_key s E Φ := by
+    iintro HΦ
+    wp_pures
+    iapply HΦ
+
 /-- The triple of the function `walk` is given (`get`'s closure): on a revision, it returns
 whether the predicate `p` holds of it. -/
 def walkFnSpec (f : GoFunc) (p : Rev → Bool) : IProp GF :=
@@ -281,6 +318,35 @@ def walkFnSpec (f : GoFunc) (p : Rev → Bool) : IProp GF :=
 instance walkFnSpec_persistent (f : GoFunc) (p : Rev → Bool) :
     Persistent (walkFnSpec (GF := GF) f p) := by
   unfold walkFnSpec; infer_instance
+
+/-- The triple of an effectful function given to `walk` (`doCompact`'s closure writes the
+`available` map): on a revision for which the predicate `p` holds it returns true and keeps the
+resource `R`; on one where `p` fails it returns false, turning `R` into `Q` of that revision
+(`walk` stops there). -/
+def walkFnSpecR (f : GoFunc) (p : Rev → Bool) (R : IProp GF) (Q : Rev → IProp GF) : IProp GF :=
+  iprop(□ ∀ r : Revision, {{ R }} (App (Val #f) (Val #r))
+    {{ RET #(p (revOf r)); if p (revOf r) then R else Q (revOf r) }})
+
+instance walkFnSpecR_persistent (f : GoFunc) (p : Rev → Bool) (R : IProp GF) (Q : Rev → IProp GF) :
+    Persistent (walkFnSpecR (GF := GF) f p R Q) := by
+  unfold walkFnSpecR; infer_instance
+
+/-- What `walk` leaves of the closure's resource: `R` if every revision passed `p`, else `Q` of
+the revision where it stopped (the last one failing `p`, at `genWalk`). -/
+def walkPost (revs : List Rev) (p : Rev → Bool) (R : IProp GF) (Q : Rev → IProp GF) : IProp GF :=
+  if genWalk revs p = -1 then R else Q (revs.getD (genWalk revs p).toNat Rev.zero)
+
+/-- A pure closure (`walkFnSpec`) is an effectful one with no resource. -/
+theorem walkFnSpecR_of_pure (f : GoFunc) (p : Rev → Bool) :
+    walkFnSpec (GF := GF) f p ⊢ walkFnSpecR f p iprop(True) (fun _ => iprop(True)) := by
+  unfold walkFnSpec walkFnSpecR
+  iintro #Hf
+  imodintro
+  iintro %r
+  wp_start
+  wp_apply Hf $$ %r
+  iapply HΦ
+  split <;> itrivial
 
 end reprs
 

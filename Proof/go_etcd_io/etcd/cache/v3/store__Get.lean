@@ -38,7 +38,7 @@ theorem store.Get.wp_proof
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
   icases Hci with ⟨⟨%eNR, #HeNR⟩, -, -, -⟩
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩⟩
+  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩, -⟩
   wp_auto
   wp_apply wp_getSnapshot $$ [$HS $Hrd $Hlb] as %p %lrev %err ⟨Hrd, %st, Hseen, #HR, #Herr, Hres⟩
   generalize Hm : snapModel st rev = res

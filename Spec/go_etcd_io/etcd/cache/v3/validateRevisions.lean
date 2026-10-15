@@ -22,12 +22,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `validateRevisions(resp, latestRev)`: `nil` iff `validRevisions r latestRev` (a progress
-notification not behind `latestRev`, or events all above it), else some error. -/
+notification not behind `latestRev`, or events all above it), else some error, whose `Error()`
+returns some string (`errStrOk`: `fmt.Errorf`'s). -/
 abbrev validateRevisions.spec : Prop :=
   ∀ (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (latestRev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ respAt resp r }}
     (App (App (Val (@! validateRevisions)) (Val #resp)) (Val #latestRev))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; errStrOk err ∗
       ⌜if validRevisions r latestRev then err = GoInterface.nil
         else ∃ e, err = GoInterface.ok e⌝ }}
 

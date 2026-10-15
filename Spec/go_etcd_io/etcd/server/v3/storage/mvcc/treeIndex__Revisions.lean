@@ -26,18 +26,20 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 of the index (`idxKnows`: a committed log's certificate, or the writer's handle; its log
 `log := kn.log`), at a revision below its length: the revisions of the keys of `[key, end)`
 (`end == nil`: the one key) that `log` determines at `atRev`, in key order, at most `limit` of
-them if positive, and their count (all of them if `withTotalCount`, else at most `limit`). -/
+them if positive, and their count (all of them if `withTotalCount`, else at most `limit`). The reader holds a part of the compaction revision `c`'s authority (`crevUB`, given back),
+at or below `atRev`: every key's compaction level is at most `c` (`idxLockInv`). -/
 abbrev mvcc.treeIndex.Revisions.spec : Prop :=
   ∀ (ti : Loc) (γ : mvcc.IdxNames) (kn : mvcc.IdxKnow) (key endk : GoSlice) (k e : GoString)
-    (atRev limit : w64) (withTotal : Bool) (e0 : GoInterfaceOk),
+    (atRev limit : w64) (withTotal : Bool) (e0 : GoInterfaceOk) (q : Qp) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isTreeIndex ti γ ∗ mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗
+      mvcc.crevUB γ q c ∗ ⌜-1 ≤ c ∧ c ≤ sint.Z atRev⌝ ∗
       ⌜0 ≤ sint.Z atRev ∧ sint.Z atRev < kn.log.length⌝ ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e0 }}
     (App (App (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Revisions"))
       (Val #key)) (Val #endk)) (Val #atRev)) (Val #limit)) (Val #withTotal))
   {{ (revs : GoSlice) (total : w64), RET (PairV #revs #total);
-      mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗
+      mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q c ∗
       revs ↦* ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map
         fun x => mvcc.revVal x.2.1) ∗
       ownSliceCap Revision revs (DFrac.own 1) ∗

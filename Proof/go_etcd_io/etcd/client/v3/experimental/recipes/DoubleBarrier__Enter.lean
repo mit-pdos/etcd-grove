@@ -26,6 +26,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -180,7 +181,7 @@ theorem DoubleBarrier.Enter.wp_proof
       wp_apply HP $$ [] as %presp %perr Hpres
       · iframe Hnil HR2
         ipureintro
-        exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr⟩
+        exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr, rfl⟩
       iunfold putResult at Hpres
       icases Hpres with (%Hpne | ⟨%Hpnil, -⟩)
       · obtain ⟨e, rfl⟩ : ∃ e, perr = GoInterface.ok e := by

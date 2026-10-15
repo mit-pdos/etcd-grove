@@ -5,6 +5,7 @@ committed entries. Lean-first (no Rocq counterpart); see `InvApplier.lean`, `Inv
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 
 @[expose] public section
 
@@ -18,7 +19,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.se
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -28,21 +29,38 @@ the larger of `ci` and `f0 - 1` (`loopOk`): each entry at or below `ci` is repla
 backend writes (`ApplyV2storeOnly`), each above is applied (`ApplyBoth`), and afterwards
 `ci` and the processed-through index are both the larger of the old `ci` and the last index
 `L`, which it returns with its term. So no entry's writes are applied twice, and none above
-`ci` is skipped. -/
+`ci` is skipped. **The KV** (the apply package's unit 3): the apply thread's applier state goes
+from `x` to `x'` by `entriesStep c ms x x'` (`c` the consistent index the batch starts at: each
+normal entry applied by `apply.Apply`, with `v3` iff above `c`), under `entriesOk c ms x` (each
+normal entry's premise at every state the batch can reach it in). **The wait** (unit 2 of the
+request path): `batchWaitOk` (each normal entry's id claimed for its data; each conf change's id,
+`ccIdOf`, no KV request's registration), so every `Trigger` meets the registry's contract. **The
+applied index** (the request path's unit 4b): the apply thread's half of the ghost applied index
+(`srvAppliedOwn γr`) goes from `f0 - 1` to the last index, each `setAppliedIndex` depositing the KV
+log after its entry, so the last index's log is `x'.log` (`appliedLogAt`); since 2026-10-14 (unit
+C2a) from the log applied through `f0 - 1` the KV's (`appliedLogAt γr (f0 - 1) x.log`), with each
+entry committed (`batchCommittedIdx`: raft's batches, `rnApP`), each entry's log deposited ahead
+of its result (`applyEntryNormal`'s `srvAppliedPre`). **The write budget**
+(2026-10-13, unit 6): one write token of the store per entry (`txn.storeWTs E.γ ms.length`,
+spent; a conf change's is wasted). -/
 abbrev EtcdServer.apply.spec : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (b : GoInterface)
-    (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
-    (rac : GoChan) (st : ApplyState) (a at0 : w64),
-  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs }}
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
+    (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
+    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames),
+  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
+      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ ms.length }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop);
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfStateAddr ep ↦ csl ∗
+        epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
+          appliedLogAt γr appliedi x'.log) ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧

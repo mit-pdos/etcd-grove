@@ -26,6 +26,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -85,12 +86,14 @@ theorem DoubleBarrier.Leave.wp_proof
   wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
   · iframe Hopts' Hlo
     ipureintro
-    exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2⟩
+    exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2, by
+      simp [OpFull.getExact, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
+        OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
   iclear HG HKV
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM] = leaveOp (key ++ go!"/waiters") := rfl
   rw [Hop]
-  iunfold kvGetResult at Hgres
-  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, %HRle, Hgr⟩)
+  iunfold kvGetResultR at Hgres
+  icases Hgres with (%Hgne | ⟨%Hgnil, %R, #HgRev, #HRR, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
       cases gerr with
       | nil => exact absurd rfl Hgne
@@ -249,7 +252,7 @@ theorem DoubleBarrier.Leave.wp_proof
       wp_apply HDel $$ %(key ++ go!"/ready") %slice.nil %([] : List (OpFull → OpFull)) %lo
         [$Hnilo $Hlo] as %dresp %derr #Hdres
       · ipureintro
-        refine ⟨concurrency.deleteOp_not_panics _, ?_⟩
+        refine ⟨concurrency.deleteOp_not_panics _, ?_, by rw [hde]; simp, rfl⟩
         rw [hdk, hde]; exact concurrency.keyRangeUnder_key _ _ hpr
       iunfold deleteResult at Hdres
       icases Hdres with (%Hdne | ⟨%Hdnil, -⟩)

@@ -53,7 +53,7 @@ theorem withTop.wp_proof (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
   imodintro
   iintro %i %f %g %Hf %Hg
   rcases i with _ | _ | _ | i
-  · simp only [withTopM, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at Hf Hg; subst Hf Hg; iexact H0
+  · simp only [withTopM, List.getElem?_cons_zero, Option.some.injEq] at Hf Hg; subst Hf Hg; iexact H0
   · simp only [withTopM, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at Hf Hg; subst Hf Hg; iexact H1
   · simp only [withTopM, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at Hf Hg; subst Hf Hg; iexact H2
   · simp at Hf

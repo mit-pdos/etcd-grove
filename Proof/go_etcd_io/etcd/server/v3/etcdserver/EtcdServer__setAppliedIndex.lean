@@ -26,30 +26,53 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.setAppliedIndex.wp_proof :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) := by
-  intro s v
-  wp_start as #Hat
+  intro s E γr v v' L
+  wp_start as ⟨#Hinv, Hpre, #Hc⟩
+  iunfold srvAppliedPre at Hpre
+  icases Hpre with ⟨Hown, Hpo, #HLv', %hv⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
-  iunfold srvAtomics at Hat
-  icases Hat with ⟨#Hai, #Ht⟩
   wp_auto
-  wp_apply_core sync.atomic.Uint64.wp_Store (srvAppliedIndexAddr s) v $$ [] [HΦ]
+  wp_apply_core sync.atomic.Uint64.wp_Store (srvAppliedIndexAddr s) v' $$ [] [HΦ Hown Hpo]
   · iexact Hatomic
-  iinv Hai with Hi Hclose
+  ihave #Hinv' := Hinv
+  iunfold srvAppliedInv at Hinv'
+  iinv Hinv' with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, Hv⟩
+  icases Hi with ⟨%v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0⟩
   iexists v0
   iframe Hv
   iintro Hv
   imod Hmask with -
-  imod Hclose $$ [Hv] with -
-  · inext; iexists v; iexact Hv
+  ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
+  have hv0 : v0 = v := by
+    have h2 := Hag.2
+    unfold uint.nat at h2
+    exact (BitVec.eq_of_toNat_eq h2).symm
+  subst hv0
+  ihave %Hpg := ghostVar_agree γr.pend _ _ _ _ $$ Hpo Hp
+  subst Hpg
+  imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat v') (by word) $$ Hown Hauth
+    with ⟨Hown, Hauth, #Hlb⟩
+  imod ghostVar_update_halves false γr.pend true true $$ Hpo Hp with ⟨Hpo, Hp⟩
+  imod Hclose $$ [Hv Hauth HM Hp] with -
+  · inext
+    iexists v', L, M, false
+    iframe Hv Hauth HM Hp Hc HLv'
+    ipureintro
+    refine ⟨?_, HMk.2⟩
+    intro k L' hk
+    left
+    rcases HMk.1 k L' hk with h | ⟨-, h⟩ <;> omega
   imodintro
   wp_auto
   iapply HΦ
-  itrivial
+  iunfold srvAppliedOwn
+  iframe Hown Hpo
+  iunfold appliedAtLeast
+  iframe Hlb HLv'
 
 end proof
 

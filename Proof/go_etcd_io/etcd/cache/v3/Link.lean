@@ -106,12 +106,10 @@ public import Proof.go_etcd_io.etcd.cache.v3.newClonedSnapshot
 public import Proof.go_etcd_io.etcd.cache.v3.newConditionalProgressRequestor
 public import Proof.go_etcd_io.etcd.cache.v3.newDemux
 public import Proof.go_etcd_io.etcd.cache.v3.newKVItem
-public import Proof.go_etcd_io.etcd.cache.v3.newNotifier
 public import Proof.go_etcd_io.etcd.cache.v3.newReady
 public import Proof.go_etcd_io.etcd.cache.v3.newRingBuffer
 public import Proof.go_etcd_io.etcd.cache.v3.newStore
 public import Proof.go_etcd_io.etcd.cache.v3.newWatcher
-public import Proof.go_etcd_io.etcd.cache.v3.notifier__notify
 public import Proof.go_etcd_io.etcd.cache.v3.notifier__wait
 public import Proof.go_etcd_io.etcd.cache.v3.probeItemFromKey
 public import Proof.go_etcd_io.etcd.cache.v3.ready__Ready
@@ -138,8 +136,11 @@ public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__findLastIndexLessOrEqua
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__full
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__moduloIndex
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.go_etcd_io.etcd.cache.v3.snapshot__Range
 public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.cache.v3.store__Apply
 public import Proof.go_etcd_io.etcd.cache.v3.store__Get
 public import Proof.go_etcd_io.etcd.cache.v3.store__LatestRev
@@ -147,12 +148,17 @@ public import Proof.go_etcd_io.etcd.cache.v3.store__Restore
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyEventsLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyProgressNotifyLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__getSnapshot
+public import Proof.time.Duration__String
 public import Proof.go_etcd_io.etcd.cache.v3.New
 public import Proof.go_etcd_io.etcd.cache.v3.Range
+public import Proof.go_etcd_io.etcd.cache.v3.newNotifier
+public import Proof.go_etcd_io.etcd.cache.v3.notifier__notify
 public import Proof.go_etcd_io.etcd.cache.v3.validateRevisions
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Compact
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Stop
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__enqueueResponse
+public import Proof.context.Link
+public import Proof.fmt.Link
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
 
 @[expose] public section
@@ -170,6 +176,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [EM : EtcdModel GF]
 
 theorem store.wp_LatestRev :
     store.LatestRev.spec (GF := GF) (hG := hG) :=
@@ -383,9 +390,21 @@ theorem wp_WithCreatedNotify :
     WithCreatedNotify.spec (GF := GF) (hG := hG) :=
   WithCreatedNotify.wp_proof
 
+theorem status.wp_FromError :
+    status.FromError.spec (GF := GF) (hG := hG) :=
+  status.FromError.wp_proof
+
+theorem rpctypes.wp_ErrorDesc :
+    rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) :=
+  rpctypes.ErrorDesc.wp_proof status.wp_FromError
+
+theorem rpctypes.EtcdError.wp_Error :
+    rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  rpctypes.EtcdError.Error.wp_proof
+
 theorem rpctypes.wp_Error :
     rpctypes.Error.spec (GF := GF) (hG := hG) :=
-  rpctypes.Error.wp_proof
+  rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
 
 theorem status.wp_Error :
     status.Error.spec (GF := GF) (hG := hG) :=
@@ -398,6 +417,10 @@ theorem WatchResponse.wp_Err :
 theorem ringBuffer.wp_PeekOldest :
     ringBuffer.PeekOldest.spec (GF := GF) (hG := hG) :=
   ringBuffer.PeekOldest.wp_proof
+
+theorem time.Duration.wp_String :
+    time.Duration.String.spec (GF := GF) (hG := hG) :=
+  time.Duration.String.wp_proof
 
 theorem wp_newRingBuffer :
     newRingBuffer.spec (GF := GF) (hG := hG) :=
@@ -489,6 +512,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [EM : EtcdModel GF]
 
 theorem Cache.wp_Close :
     Cache.Close.spec (GF := GF) (hG := hG) :=
@@ -528,7 +552,7 @@ theorem wp_KeyPredForRange :
 
 theorem Cache.wp_validateGet :
     Cache.validateGet.spec (GF := GF) (hG := hG) :=
-  Cache.validateGet.wp_proof Op.wp_IsCountOnly Op.wp_IsPrevKV Op.wp_IsSortSet Op.wp_Limit Op.wp_MinModRev Op.wp_MaxModRev Op.wp_MinCreateRev Op.wp_MaxCreateRev Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange
+  Cache.validateGet.wp_proof Op.wp_IsCountOnly Op.wp_IsPrevKV Op.wp_IsSortSet Op.wp_Limit Op.wp_MinModRev Op.wp_MaxModRev Op.wp_MinCreateRev Op.wp_MaxCreateRev Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange fmt.wp_Errorf
 
 theorem Cache.wp_serverRevision :
     Cache.serverRevision.spec (GF := GF) (hG := hG) :=
@@ -588,7 +612,7 @@ theorem Cache.wp_WaitForRevision :
 
 theorem Cache.wp_validateWatch :
     Cache.validateWatch.spec (GF := GF) (hG := hG) :=
-  Cache.validateWatch.wp_proof Op.wp_IsPrevKV Op.wp_IsFragment Op.wp_IsCreatedNotify Op.wp_IsFilterPut Op.wp_IsFilterDelete Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange
+  Cache.validateWatch.wp_proof Op.wp_IsPrevKV Op.wp_IsFragment Op.wp_IsCreatedNotify Op.wp_IsFilterPut Op.wp_IsFilterDelete Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange fmt.wp_Errorf
 
 theorem wp_newWatcher :
     newWatcher.spec (GF := GF) (hG := hG) :=
@@ -660,7 +684,7 @@ theorem demux.wp_Broadcast :
 
 theorem Cache.wp_watchEvents :
     Cache.watchEvents.spec (GF := GF) (hG := hG) :=
-  Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast
+  Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast context.wp_Err
 
 theorem Cache.wp_watch :
     Cache.watch.spec (GF := GF) (hG := hG) :=
@@ -676,7 +700,7 @@ theorem wp_defaultConfig :
 
 theorem Cache.wp_getWatchLoop :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) :=
-  Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch
+  Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch fmt.wp_Printf time.Duration.wp_String
 
 theorem wp_newNotifier :
     newNotifier.spec (GF := GF) (hG := hG) :=
@@ -712,7 +736,7 @@ theorem Prefix.wp_Match :
 
 theorem conditionalProgressRequestor.wp_run :
     conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) :=
-  conditionalProgressRequestor.run.wp_proof
+  conditionalProgressRequestor.run.wp_proof fmt.wp_Printf
 
 theorem demux.wp_Compact :
     demux.Compact.spec (GF := GF) (hG := hG) :=

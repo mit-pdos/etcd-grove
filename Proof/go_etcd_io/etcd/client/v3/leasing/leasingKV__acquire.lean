@@ -42,6 +42,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
@@ -85,7 +86,7 @@ theorem leasingKV.acquire.wp_proof
     simp only [intoVal_eq_iff, Bool.false_eq_true, decide_False_any, decide_True_any,
       ite_true, ite_false]
     wp_auto
-    rw [if_neg (by simp)]
+    rw [ite_eq_right (by simp)]
     icases Herr0 with ⟨#HPD, #Hclosed⟩
     ihave #HErrD := HErr $$ %Broadcast.Done
     wp_apply HErrD $$ [$Hclosed] as %err2 %Herr2
@@ -95,8 +96,8 @@ theorem leasingKV.acquire.wp_proof
     ipureintro; exact ⟨Herr2, rfl⟩
   | nil =>
   try wp_auto
-  simp only [intoVal_eq_iff, Bool.false_eq_true, decide_False_any, decide_True_any,
-    ite_true, ite_false]
+  simp only [intoVal_eq_iff, decide_True_any,
+    ite_true]
   wp_auto
   wp_apply hWS lkv γ pfx ctx cs $$ [$Hpkg $Hlkv $Hrd $Hctx] as %err1 ⟨Hrd, Hws⟩
   icases Hws with (%Hne1 | ⟨%Heq1, Hready⟩)
@@ -254,7 +255,7 @@ theorem leasingKV.acquire.wp_proof
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact TxnModel.under_nil _
   iunfold txnCommitResultO at Hres
-  icases Hres with (⟨%Hne, %Hce⟩ | ⟨%Heq, Hok⟩)
+  icases Hres with (⟨%Hne, %Hce, #Hse⟩ | ⟨%Heq, Hok⟩)
   · -- an error: `errors.As`, then `status.FromError`
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
@@ -263,17 +264,18 @@ theorem leasingKV.acquire.wp_proof
     (try wp_auto)
     ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
     · iPkgInit
+    obtain ⟨Htarget, Hce⟩ := Hce
     obtain ⟨Hleaf, Htyped⟩ := Hce e rfl
     ihave #Htree := errors.isErrorTree_leaf (GF := GF) e Hleaf Htyped
     wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
         (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e)
-        (GoInterface.ok e) _ _ $$ [$Herrs $Htree $serverErr] as %b %v' Hse
+        (GoInterface.ok e) _ _ Htarget $$ [$Herrs $Htree $serverErr] as %b %v' Hse
     · ipureintro; rfl
     cases b
     · wp_auto
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
       · iPkgInit
-      wp_apply hFE (GoInterface.ok e) $$ [$Hst] as %sv %okv #HCode
+      wp_apply hFE (GoInterface.ok e) $$ [$Hst $Hse] as %sv %okv ⟨-, #HCode, -⟩
       (try wp_auto)
       cases okv
       · wp_auto
@@ -284,7 +286,7 @@ theorem leasingKV.acquire.wp_proof
         (try wp_auto)
         by_cases hc : c = W32 14
         · subst hc
-          simp only [decide_eq_self_any, Bool.not_true]
+          simp only
           wp_auto
           wp_for_post
           iframe
@@ -428,7 +430,7 @@ theorem leasingKV.acquire.wp_proof
       isplitr
       · ipureintro; exact Hrr
       by_cases hl : c.kv.lease = id2
-      · simp only [hl, decide_eq_self_any, decide_True_any, ↓reduceIte]
+      · simp only [hl, decide_True_any, ↓reduceIte]
         have hk := keyGet_kvs (pfx ++ key) s _ Hwf Hok1
         cases hkv : kvOf s (pfx ++ key) with
         | none => rw [hkv] at hk; simp at hk

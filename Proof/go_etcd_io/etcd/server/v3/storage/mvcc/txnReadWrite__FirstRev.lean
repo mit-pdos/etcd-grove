@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.txnReadWrite.FirstRev.wp_proof
     (hFirstRev : mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG)) :
     mvcc.txnReadWrite.FirstRev.spec (GF := GF) (hG := hG) := by
-  intro trw s γ log rev
+  intro trace trw s γ log rev crev Z
   wp_start as Hro
   iunfold mvcc.isRoTxnWrite at Hro
   icases Hro with ⟨%mw, Hf, Htx⟩
@@ -44,14 +44,14 @@ theorem mvcc.txnReadWrite.FirstRev.wp_proof
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType storeTxnRead.ty) (m := go!"FirstRev")]; wp_call
   (try wp_auto)
-  wp_apply (hFirstRev (mvcc.txCommon tr) (W64 (-1))) $$ [$HfirstRevT]
+  wp_apply (hFirstRev (mvcc.txCommon tr) (W64 crev)) $$ [$HfirstRevT]
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.isRoTxnWrite
   iexists mw
   iframe Hf
   iunfold mvcc.isTxnRead
-  iexists trw, tr, trace, ti, rt, ranges
+  iexists trw, tr, ti, rt, ranges
   iframe
   iframe #
 

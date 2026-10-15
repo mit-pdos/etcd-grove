@@ -8,7 +8,7 @@ public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.cmp
 public import Perennial.Proof.sync
-public import Perennial.Proof.sort_proof.sort_init
+public import Perennial.Proof.sort
 
 @[expose] public section
 

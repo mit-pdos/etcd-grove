@@ -27,10 +27,17 @@ variable [sem : go.Semantics]
 /-- `sp` is a `trace.Span` (persistent): a non-nil interface value whose `End()` returns
 (tracing has no effect here). `End` is variadic (`options ...SpanEndOption`); the call
 `span.End()` with no option is passed `#()` by Goose's deferred call (the form `Watch`'s cancel
-closure has), so the triple is about that call. -/
+closure has), so the triple is about that call. And (2026-10-12, the server's request path)
+`AddEvent(name, opts...)` and `RecordError(err, opts...)` return. -/
 def trace.isSpan (sp : GoInterface) : IProp GF :=
   iprop(∃ si : GoInterfaceOk, ⌜sp = GoInterface.ok si⌝ ∗
-    □ ({{ True }} (App (Val #(methods si.ty go!"End" si.v)) (Val #())) {{ RET #(); True }}))
+    □ ({{ True }} (App (Val #(methods si.ty go!"End" si.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ (∀ (name : GoString) (opts : GoSlice),
+      {{ True }} (App (App (Val #(methods si.ty go!"AddEvent" si.v)) (Val #name)) (Val #opts))
+      {{ RET #(); True }}) ∗
+    □ (∀ (err : GoInterface) (opts : GoSlice),
+      {{ True }} (App (App (Val #(methods si.ty go!"RecordError" si.v)) (Val #err)) (Val #opts))
+      {{ RET #(); True }}))
 
 instance trace.isSpan_persistent (sp : GoInterface) : Persistent (trace.isSpan (GF := GF) sp) := by
   unfold trace.isSpan; infer_instance

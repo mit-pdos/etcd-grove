@@ -142,16 +142,22 @@ def Sorted (s : List EtcdKv) : Prop := s.Pairwise etcdKvLess
 
 /-! ## Events: what the key index sees of a change -/
 
-/-- An event of the key index: the revision of a change, its key, and whether it is a
-tombstone (a delete). -/
+/-- An event of the key index: the revision of a change and the change itself (the key index
+sees its key and whether it is a tombstone, `Ev.key`/`Ev.tomb`; the history records the change
+with its value, so that a lower bound of the history determines the log: `histOf_prefix_iff`). -/
 structure Ev where
   rev : Rev
-  key : GoString
-  tomb : Bool
+  change : Change
+
+/-- The event's key. -/
+abbrev Ev.key (e : Ev) : GoString := e.change.key
+
+/-- The event is a tombstone (a delete). -/
+abbrev Ev.tomb (e : Ev) : Bool := e.change.isDel
 
 /-- The events of revision `r`'s changes `cs`. -/
 def evsOfRev (r : Nat) (cs : List Change) : List Ev :=
-  cs.zipIdx.map fun p => { rev := ⟨W64 r, W64 p.2⟩, key := p.1.key, tomb := p.1.isDel }
+  cs.zipIdx.map fun p => { rev := ⟨W64 r, W64 p.2⟩, change := p.1 }
 
 /-- The events of the whole log, in order. -/
 def evsOf (log : Log) : List Ev :=

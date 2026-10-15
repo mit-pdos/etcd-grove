@@ -38,23 +38,23 @@ theorem Compare.wp_proof (wp_Clone : Cmp.Clone.spec (GF := GF) (hG := hG))
       (result ≠ go!"=" ∧ result ≠ go!"!=" ∧ result = go!">" ∧ op = .gt) ∨
       (result ≠ go!"=" ∧ result ≠ go!"!=" ∧ result ≠ go!">" ∧ result = go!"<" ∧ op = .lt) := by
     by_cases h1 : result = go!"="
-    · rw [if_pos h1] at Hop; cases Hop; exact Or.inl ⟨h1, rfl⟩
-    rw [if_neg h1] at Hop
+    · rw [ite_eq_left h1] at Hop; cases Hop; exact Or.inl ⟨h1, rfl⟩
+    rw [ite_eq_right h1] at Hop
     by_cases h2 : result = go!"!="
-    · rw [if_pos h2] at Hop; cases Hop; exact Or.inr (Or.inl ⟨h1, h2, rfl⟩)
-    rw [if_neg h2] at Hop
+    · rw [ite_eq_left h2] at Hop; cases Hop; exact Or.inr (Or.inl ⟨h1, h2, rfl⟩)
+    rw [ite_eq_right h2] at Hop
     by_cases h3 : result = go!">"
-    · rw [if_pos h3] at Hop; cases Hop; exact Or.inr (Or.inr (Or.inl ⟨h1, h2, h3, rfl⟩))
-    rw [if_neg h3] at Hop
+    · rw [ite_eq_left h3] at Hop; cases Hop; exact Or.inr (Or.inr (Or.inl ⟨h1, h2, h3, rfl⟩))
+    rw [ite_eq_right h3] at Hop
     by_cases h4 : result = go!"<"
-    · rw [if_pos h4] at Hop; cases Hop
+    · rw [ite_eq_left h4] at Hop; cases Hop
       exact Or.inr (Or.inr (Or.inr ⟨h1, h2, h3, h4, rfl⟩))
-    rw [if_neg h4] at Hop; cases Hop
+    rw [ite_eq_right h4] at Hop; cases Hop
   clear Hop
   iapply wp_fupd
   wp_auto
   rcases Hr with ⟨h1, rfl⟩ | ⟨h1, h2, rfl⟩ | ⟨h1, h2, h3, rfl⟩ | ⟨h1, h2, h3, h4, rfl⟩
-  all_goals (simp only [*, decide_true, decide_false, etcdserverpb.Compare_EQUAL,
+  all_goals (simp only [*, decide_true, etcdserverpb.Compare_EQUAL,
     etcdserverpb.Compare_NOT_EQUAL, etcdserverpb.Compare_GREATER, etcdserverpb.Compare_LESS,
     etcdserverpb.Compare_VALUE, etcdserverpb.Compare_VERSION, etcdserverpb.Compare_CREATE,
     etcdserverpb.Compare_MOD, etcdserverpb.Compare_LEASE]; wp_auto)

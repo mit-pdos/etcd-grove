@@ -85,4 +85,4 @@ Not in the fix: making `put` return `ErrKeyNotFound` instead of indexing an empt
 
 The existing tests pass with the fix: `go test ./server/etcdserver/api/v3rpc/ ./server/etcdserver/txn/`, `go test ./integration/clientv3/ -run Txn`, `go test ./integration/ -run 'TestV3Txn|TestV3DeleteRange|TestV3PutOverwrite|TestV3RangeRequest'`.
 
-(How the Lean proof handles it: the premise `IgnOk` of the transaction run; `notes/STATUS.md`, the `txn` unit 3 section.)
+(How the Lean proof handles it: the premise `IgnOk` of the transaction run; `notes/STATUS.md`, the `txn` unit 3 section. At the gRPC layer, `checkIntervals` reads a from-key delete as the empty interval: `v3rpc.check_gives_nodup` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`, the request path's unit 1) takes the premise `ReqOp.noFromKeyDelL`.)

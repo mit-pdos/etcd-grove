@@ -26,9 +26,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 that a non-zero `k` is not below the stored index, which etcd checks under `ETCD_VERIFY`),
 then some term `t`, and writes them: the meta keys become `metaAfterSave m k t`. -/
 abbrev consistentIndex.UnsafeSave.spec : Prop :=
-  ∀ (ci : Loc) (γ : CINames) (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (m : MetaCI),
+  ∀ (ci : Loc) (γ : CINames) (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF)
+    (m : MetaCI),
   ⊢ ∀ Φ : val → IProp GF,
-    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ ∗ metaWriter tx TM ∗ TM m) -∗
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt) -∗
     (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ k ={∅, ⊤ \ ↑ciN}=∗
       ⌜k ≠ W64 0 → uint.Z m.1 ≤ uint.Z k⌝ ∗ ∀ t : w64, TM (metaAfterSave m k t) -∗ Φ #())) -∗
     WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave")) (Val #(GoInterface.ok tx))) {{ Φ }}

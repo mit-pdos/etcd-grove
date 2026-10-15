@@ -33,17 +33,18 @@ theorem txn.put.wp_proof
     (hPutM : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd mw s γ ilog pend puts deletes putSize p o prev
-  wp_start as ⟨#Hctx, Htx, #Hp, Hprev, %Hneed, #Hlok, %Hpl⟩
+  intro trace ctx cd mw s γ ilog pend puts deletes putSize p o prev L
+  wp_start as ⟨#Hctx, #Hct, Htx, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hpl⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
-    #Hpk, #Hiv, #Hil, -, %Ho⟩
+    #Hpk, #Hiv, #Hil, -, %Ho, -⟩
   wp_auto
-  wp_apply (hGet ctx cd) $$ [$Hctx] as %t %Ht
+  wp_apply (hGet ctx (some trace)) $$ [$Hct] as %t ⟨%Ht, %Hteq⟩
+  subst t
   (try wp_auto)
   irename «$r0» => Hresp
   irename «$r0» => Hhdr
@@ -69,9 +70,9 @@ theorem txn.put.wp_proof
       icases Hprev with %Hpn
       wp_auto
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -81,11 +82,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -108,9 +119,9 @@ theorem txn.put.wp_proof
       rw [hl, decide_eq_true (rfl : (W64 0 : w64) = W64 0)]
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -120,11 +131,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -140,9 +161,9 @@ theorem txn.put.wp_proof
       icases Hprev with %Hpn
       wp_auto
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -152,11 +173,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -195,9 +226,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -207,11 +238,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -250,9 +291,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -262,11 +303,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -310,9 +361,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -322,11 +373,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -365,9 +426,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -377,11 +438,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -425,9 +496,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -437,11 +508,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -485,9 +566,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -497,11 +578,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -550,9 +641,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -562,11 +653,21 @@ theorem txn.put.wp_proof
       ipersist RHeader
       ipersist HRevision
       ipersist RPrevKv
-      wp_apply (hAdd t _)
-      · ipureintro; exact Ht
+      icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      wp_apply (hAdd trace te _ _ _) $$ [$Htrc $Hfsl] as ⟨Htrc, -⟩
+      · ipureintro
+        exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
+      ihave Htx := Hback $$ [Htrc]
+      · iexists te; iexact Htrc
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn

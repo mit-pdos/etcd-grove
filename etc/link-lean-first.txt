@@ -19,7 +19,11 @@ Changer__initProgress: confchange_incoming tracker_NewInflights confchange_nilAw
 Changer__remove: confchange_incoming confchange_outgoing confchange_nilAwareDelete
 Changer__makeVoter: Changer__initProgress confchange_incoming confchange_nilAwareDelete
 Changer__makeLearner: Changer__initProgress Changer__remove confchange_outgoing confchange_nilAwareAdd
-Changer__apply: Changer__makeVoter Changer__makeLearner Changer__remove confchange_incoming
+Changer__apply: Changer__makeVoter Changer__makeLearner Changer__remove confchange_incoming fmt_Errorf ConfChangeType__String
+# (2026-10-15, the merge with `lean`) etcd-grove's `fmt.Errorf` axiom, linked in `Proof/fmt/Link.lean`;
+# `ConfChangeType.String` at the trust boundary (Perennial's `fmt.wp_Errorf` admits basic types only)
+fmt_Errorf: @
+ConfChangeType__String:
 Changer__Simple: Changer__checkAndCopy confchange_joint Changer__err Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
 Changer__EnterJoint: Changer__checkAndCopy confchange_joint Changer__err confchange_incoming confchange_outgoingPtr confchange_outgoing Changer__apply confchange_checkAndReturn
 Changer__LeaveJoint: Changer__checkAndCopy confchange_joint Changer__err confchange_nilAwareAdd confchange_outgoing confchange_incoming confchange_outgoingPtr confchange_checkAndReturn
@@ -111,7 +115,7 @@ ConfChange__AsV1:
 ConfChange__AsV2:
 ConfChangeV2__AsV1:
 ConfChangeV2__AsV2:
-ConfChangeV2__EnterJoint: fmt_Sprintf
+ConfChangeV2__EnterJoint:
 ConfChangeV2__LeaveJoint: proto_Equal
 MarshalConfChange: ConfChange__AsV1 ConfChangeV2__AsV1 ConfChangeV2__AsV2 ConfChange__Marshal ConfChangeV2__Marshal
 confChangeToMsg: MarshalConfChange

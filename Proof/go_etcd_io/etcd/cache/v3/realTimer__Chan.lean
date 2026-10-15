@@ -18,6 +18,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -27,7 +28,7 @@ theorem realTimer.Chan.wp_proof : realTimer.Chan.spec (GF := GF) (hG := hG) := b
   unfold isRealTimer
   icases Hr with ⟨%t, %ch, %γ, #Ht, #HT⟩
   unfold time.isTimer
-  icases HT with ⟨#HC, #Hbag⟩
+  icases HT with ⟨#HC, #Hbag, -⟩
   wp_auto
   iapply HΦ
   iexact Hbag

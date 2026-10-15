@@ -30,7 +30,7 @@ theorem Register.Put.wp_proof (wp_do : register.Register.do.spec (GF := GF) (hG 
   intro γr γp r val Ψ Hval
   wp_start as ⟨#Hreg, Hcr, Hau⟩
   wp_auto
-  have h : ∀ x, opNext (W8 1) val x = val := fun x => if_pos rfl
+  have h : ∀ x, opNext (W8 1) val x = val := fun x => ite_eq_left rfl
   wp_apply wp_do γr γp r (W8 1) val (fun _ => Ψ) Hval $$ [$Hreg $Hcr Hau] as %res HΨ
   · simp only [h]
     iexact Hau

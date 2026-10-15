@@ -172,6 +172,7 @@ theorem getResult_acq (o : OpFull) (e : LeaseEntry) (h : e.kv = e.acq) :
 
 section logic
 variable {GF : BundledGFunctors}
+variable [EM : EtcdModel GF]
 
 /-- **A cached read is etcd's record while the lease lasts** (the corollary of theorem 1, from
 `leased_value_stable`): under the protocol premise, an entry `e` with its facts (the lease key at
@@ -179,8 +180,8 @@ variable {GF : BundledGFunctors}
 is present with `lv`'s create revision and in `(e.rev, b]` of which the holder committed nothing,
 `key`'s record `e.acq`. -/
 theorem cached_get_stable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi]
-    [FfiSemantics ext ffi] [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC GF]
-    [sem : go.Semantics]
+    [FfiSemantics ext ffi] [GoGlobalContext] [HeapGS HasLC.hasLC GF]
+    [go.Semantics]
     (pfx key : GoString) (h : LeasingHist) (e : LeaseEntry) (b : w64) (sb : List EtcdKv)
     (hk : LeasingDataKey pfx key) (hrev : sint.Z e.rev ≤ sint.Z b)
     (hw : ∀ z : Int, sint.Z e.rev < z → z ≤ sint.Z b → h.writer z ≠ e.lease) :

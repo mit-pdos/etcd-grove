@@ -23,7 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : google_golang_org.protobuf.proto.Assumptions]
 
 /-- **The trust boundary**: protobuf's `proto.Clone` (names-only: Goose does not translate
-protobuf's reflection) deep-copies a `*pb.Compare` into a fresh message with the same contents. -/
+protobuf's reflection) deep-copies a `*pb.Compare` into a fresh message with the same contents, and clones a nil
+`*raftpb.Snapshot` into a nil one. -/
 axiom proto.Clone.wp_proof : proto.Clone.spec (GF := GF) (hG := hG)
 
 end proof

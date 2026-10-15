@@ -95,7 +95,7 @@ theorem txn.asembleRangeResponse.wp_proof : txn.asembleRangeResponse.spec (GF :=
   intro rr r o rev count vs
   wp_start as ⟨Hrr, #Hr⟩
   iunfold txn.rangeRequestIs at Hr
-  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   iunfold txn.rangeResultIs at Hrr
   icases Hrr with ⟨%sl, %l, %Hl, Hrr, Hown⟩
   iunfold txn.kvsOwnAt at Hown
@@ -280,12 +280,20 @@ theorem txn.asembleRangeResponse.wp_proof : txn.asembleRangeResponse.spec (GF :=
         (txn.srvTrunc o vs).map (txn.respKv o) := by
       rw [← Hl']; simp [List.map_map, Function.comp_def]
     rw [e1, e2]
-    unfold txn.rangeResponseIs
     isplitl []
-    · ipureintro; exact HrespNN
-    iexists «$v0_ptr», ks, l'.map Prod.fst
-    iframe #
-    ipureintro; exact Hv0nn
+    · unfold txn.rangeResponseIs
+      isplitl []
+      · ipureintro; exact HrespNN
+      iexists «$v0_ptr», ks, l'.map Prod.fst
+      iframe #
+      ipureintro; exact Hv0nn
+    unfold txn.respHdrOwn
+    iexists «$v0_ptr»
+    iframe Header
+    isplitl []
+    · ipureintro; exact Hv0nn
+    iexists _, _, _, _
+    iframe
 
 end proof
 

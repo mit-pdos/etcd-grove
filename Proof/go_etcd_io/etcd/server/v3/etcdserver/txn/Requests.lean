@@ -38,6 +38,12 @@ value whatever `Value` is, `IgnoreLease` keeps its lease whatever `Lease` is (`p
 client's `txnOpOf` is partial because the client rejects the other combinations, which the
 server does not see.
 
+**The key's length** (2026-10-14, unit A2): each request's (and comparison's) `Key` slice is
+shorter than `2 ^ 63 - 1` (`⌜sint.Z ksl.len < 2 ^ 63 - 1⌝`, the last conjunct): true of every
+slice in memory, but not of the model's `make`, and the auth store's permission checks need it
+(`adt.NewBytesAffinePoint`'s `make([]byte, len(key)+1)`). The decoding states it (grpc's `recv`,
+`pbutil.MustUnmarshalMessage`); a proof that builds a request shows it.
+
 **Transactions** (`txnRequestIs rt t`): the comparisons (`comparesIs`, each a `compareIs`: the
 client's `compareAt` with the server's range end) and the two branches' `RequestOp`s, each
 (`requestOpIs`) not nil and holding in its `Request` oneof the wrapper of its operation's kind
@@ -142,7 +148,8 @@ def rangeRequestIs (r : Loc) (o : OpFull) : IProp GF :=
     structFieldRef etcdserverpb.RangeRequest go!"MaxModRevision" r ↦□ maxM ∗
     structFieldRef etcdserverpb.RangeRequest go!"MinCreateRevision" r ↦□ minC ∗
     structFieldRef etcdserverpb.RangeRequest go!"MaxCreateRevision" r ↦□ maxC ∗
-    ⌜o = rangeOpOf k (rangeEndOf esl e) rev limit order target ser ko co minM maxM minC maxC⌝)
+    ⌜o = rangeOpOf k (rangeEndOf esl e) rev limit order target ser ko co minM maxM minC maxC⌝ ∗
+    ⌜sint.Z ksl.len < 2 ^ 63 - 1⌝)
 
 instance rangeRequestIs_persistent (r : Loc) (o : OpFull) :
     Persistent (rangeRequestIs (GF := GF) r o) := by
@@ -161,7 +168,7 @@ def putRequestIs (p : Loc) (o : OpFull) : IProp GF :=
     structFieldRef etcdserverpb.PutRequest go!"IgnoreLease" p ↦□ il ∗
     inv (nroot .@ "txn.putSizeCache")
       (∃ sc : w32, structFieldRef etcdserverpb.PutRequest go!"sizeCache" p ↦ sc) ∗
-    ⌜o = putOpOf k v lease pk iv il⌝)
+    ⌜o = putOpOf k v lease pk iv il⌝ ∗ ⌜sint.Z ksl.len < 2 ^ 63 - 1⌝)
 
 instance putRequestIs_persistent (p : Loc) (o : OpFull) :
     Persistent (putRequestIs (GF := GF) p o) := by
@@ -174,7 +181,7 @@ def deleteRangeRequestIs (d : Loc) (o : OpFull) : IProp GF :=
     structFieldRef etcdserverpb.DeleteRangeRequest go!"Key" d ↦□ ksl ∗ ksl ↦*□ k ∗
     structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" d ↦□ esl ∗ esl ↦*□ e ∗
     structFieldRef etcdserverpb.DeleteRangeRequest go!"PrevKv" d ↦□ pk ∗
-    ⌜o = deleteOpOf k (rangeEndOf esl e) pk⌝)
+    ⌜o = deleteOpOf k (rangeEndOf esl e) pk⌝ ∗ ⌜sint.Z ksl.len < 2 ^ 63 - 1⌝)
 
 instance deleteRangeRequestIs_persistent (d : Loc) (o : OpFull) :
     Persistent (deleteRangeRequestIs (GF := GF) d o) := by
@@ -193,7 +200,8 @@ def compareIs (c : Loc) (cm : CmpModel) : IProp GF :=
     structFieldRef etcdserverpb.Compare go!"RangeEnd" c ↦□ esl ∗ esl ↦*□ e ∗
     ⌜cm.rangeEnd = rangeEndOf esl e⌝ ∗
     structFieldRef etcdserverpb.Compare go!"TargetUnion" c ↦□ u ∗ compareUnionAt u cm ∗
-    ⌜∀ (t : go.GoType) (w : Loc), u = interface.mkOk t #w → w ≠ null⌝)
+    ⌜∀ (t : go.GoType) (w : Loc), u = interface.mkOk t #w → w ≠ null⌝ ∗
+    ⌜sint.Z ksl.len < 2 ^ 63 - 1⌝)
 
 instance compareIs_persistent (c : Loc) (cm : CmpModel) :
     Persistent (compareIs (GF := GF) c cm) := by
@@ -320,6 +328,19 @@ def rangeResponseIs (resp : Loc) (rev : w64) (kvs : List EtcdKv) (more : Bool) (
 instance rangeResponseIs_persistent (resp : Loc) (rev : w64) (kvs : List EtcdKv) (more : Bool)
     (count : w64) : Persistent (rangeResponseIs (GF := GF) resp rev kvs more count) := by
   unfold rangeResponseIs; infer_instance
+
+/-- **The response header at the field `hf`, its four id fields owned** (not persistent; beside a
+response's read-only predicate, `putResponseIs`, ...): the header the field points to, not nil,
+its `ClusterId`, `MemberId`, `RaftTerm` and `LeaderId` owned (any values: the txn package's
+`&pb.ResponseHeader{}` leaves them `0`). The gRPC layer's `header.fill` writes them
+(`v3rpc.hdrW`); the txn package, which allocates the header, hands them over through the apply
+thread's result (2026-10-12, the request path's unit 3a). -/
+def respHdrOwn (hf : Loc) : IProp GF :=
+  iprop(∃ h : Loc, hf ↦□ h ∗ ⌜h ≠ null⌝ ∗ ∃ (c m t l : w64),
+    structFieldRef etcdserverpb.ResponseHeader go!"ClusterId" h ↦ c ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"MemberId" h ↦ m ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"RaftTerm" h ↦ t ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"LeaderId" h ↦ l)
 
 /-- **The `*pb.PutResponse` `resp`** (not nil, read-only): header revision `rev`, and the
 previous key-value `prev` (`PrevKv`: nil for `none`). -/

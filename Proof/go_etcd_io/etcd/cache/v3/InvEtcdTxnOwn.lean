@@ -17,7 +17,8 @@ branches a transaction's results chose (`gatherResponseOps`).
 operation's is `txnOpRespAt`'s.
 
 **Owned responses** (`txnCommitResultO`): what the client's `Commit()` returns is an error
-(`clientErr`: a leaf of an error tree, as `errors.As` needs) or a fresh message
+(`clientErr`: a leaf of an error tree, as `errors.As` needs; `statusErrOk`: one grpc's `status`
+accepts, as `status.FromError` needs) or a fresh message
 (protobuf decodes it from the gRPC reply), which the caller owns: the transaction's `Succeeded`,
 and the top-level operations' responses (a range response's header, key-values, `More` and
 `Count`; a put's, delete's or nested transaction's header) are owned; the rest is read-only. The
@@ -35,6 +36,7 @@ module
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
 public import Perennial.Proof.errors
 public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
+public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 
 @[expose] public section
 
@@ -71,19 +73,7 @@ structure CachedKv where
 
 end model
 
-section clientErr
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
-
-/-- **An error etcd's client returns** (a gRPC status error, an `rpctypes.EtcdError`, a context
-error): a leaf of an error tree, without `Unwrap` or `As` methods (`errors.isLeafError`), whose
-value, if its dynamic type is `rpctypes.EtcdError`, is an `EtcdError` (Go's typing, which the model
-lacks: `errors.AsTypeTyped`). What `errors.As(err, &serverErr)` needs (`leasingKV.acquire`,
-`errors.wp_As`). -/
-def clientErr (err : GoInterface) : Prop :=
-  ∀ ii, err = GoInterface.ok ii → errors.isLeafError ii ∧
-    errors.AsTypeTyped v3rpc.rpctypes.EtcdError v3rpc.rpctypes.EtcdError.ty ii
-
-end clientErr
+-- `clientErr` (an error etcd's client returns): `client/v3/ClientErr.lean` (unit C1).
 
 /-! ## Nested operations -/
 
@@ -175,12 +165,12 @@ theorem leavesL_leaves (os : List OpFull) : OpT.leavesL (os.map OpT.leaf) = os :
 mutual
 /-- Every operation is under the empty prefix (every key is). -/
 theorem TxnOp.under_nil : ∀ op : TxnOp, op.Under []
-  | .get o => fun k _ => List.nil_prefix
-  | .put k _ _ => List.nil_prefix
-  | .delete o => fun k _ => List.nil_prefix
-  | .putKeep k _ => List.nil_prefix
-  | .putIgnVal k _ => List.nil_prefix
-  | .txn cs ts es => ⟨fun _ _ k _ => List.nil_prefix, TxnOp.underL_nil ts, TxnOp.underL_nil es⟩
+  | .get _ => fun _ _ => List.nil_prefix
+  | .put _ _ _ => List.nil_prefix
+  | .delete _ => fun _ _ => List.nil_prefix
+  | .putKeep _ _ => List.nil_prefix
+  | .putIgnVal _ _ => List.nil_prefix
+  | .txn _ ts es => ⟨fun _ _ _ _ => List.nil_prefix, TxnOp.underL_nil ts, TxnOp.underL_nil es⟩
 
 theorem TxnOp.underL_nil : ∀ ops : List TxnOp, TxnOp.UnderL [] ops
   | [] => trivial
@@ -189,12 +179,13 @@ end
 
 /-- Every transaction is under the empty prefix: the leasing KV's contracts are at prefix `[]`. -/
 theorem TxnModel.under_nil (t : TxnModel) : t.Under [] :=
-  ⟨fun _ _ k _ => List.nil_prefix, fun op _ => TxnOp.under_nil op, fun op _ => TxnOp.under_nil op⟩
+  ⟨fun _ _ _ _ => List.nil_prefix, fun op _ => TxnOp.under_nil op, fun op _ => TxnOp.under_nil op⟩
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 
 /-! ## Headers and owned key-values -/
@@ -442,10 +433,11 @@ def txnCommitOk (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) : IProp 
       EtcdStateWf pfx s⌝ ∗
     txnStates pfx r s (runTxn r s t).2.1 (txnWrote (runTxn r s t).2.2))
 
-/-- **What `Commit()` returns, owned**: an error (`clientErr`), or `txnCommitOk`. -/
+/-- **What `Commit()` returns, owned**: an error (`clientErr`; one grpc's `status` accepts,
+`statusErrOk`, unit P3a: the leasing KV passes it to `status.FromError`), or `txnCommitOk`. -/
 def txnCommitResultO (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) (err : GoInterface) :
     IProp GF :=
-  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝) ∨
+  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ statusErrOk err) ∨
     (⌜err = GoInterface.nil⌝ ∗ txnCommitOk pfx lo t resp))
 
 /-! ## The builder with nested operations and owned responses -/

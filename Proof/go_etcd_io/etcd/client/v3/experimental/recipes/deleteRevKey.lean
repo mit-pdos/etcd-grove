@@ -25,6 +25,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -71,7 +72,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   (try wp_auto)
   iunfold isEtcdTxnKVTodo at HTxn
   wp_apply HTxn as %t ⟨%B, HB, #HBs, -⟩
-  iunfold txnBuilderSpec at HBs
+  iunfold txnBuilderSpecX at HBs
   icases HBs with ⟨#HIf, #HThen, -, #HCommit, -⟩
   wp_apply_raw HIf $$ %TxnBuild.empty %_ %([compareM (cmpKeyM .mod key) .eq (.num rev)] : List CmpModel) [$HB]
   · isplitl
@@ -109,7 +110,8 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   (try wp_auto)
   ihave HB := B_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact deleteRevTxn_under pfx key rev Hk.1
+  · ipureintro; exact ⟨deleteRevTxn_under pfx key rev Hk.1, TxnModel.exactGets_of_noGets _ (by simp [deleteRevTxn])
+        (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩
   iunfold txnCommitResultTok at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

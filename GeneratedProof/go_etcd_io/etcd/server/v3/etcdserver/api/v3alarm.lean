@@ -2,6 +2,12 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
+public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
@@ -17,44 +23,6 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
-namespace BackendGetter
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions]
-
-instance BackendGetter_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.BackendGetter :=
-  sorry -- axiomatized type
-
-instance BackendGetter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.BackendGetter go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.BackendGetter.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end BackendGetter
-
-namespace alarmSet
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions]
-
-instance alarmSet_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.alarmSet :=
-  sorry -- axiomatized type
-
-instance alarmSet_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.alarmSet go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.alarmSet.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end alarmSet
-
 namespace AlarmStore
 section def_
 
@@ -64,12 +32,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions]
 
 instance AlarmStore_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) v.lg' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) v.mu' dq ∗
+    "types" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) v.types' dq ∗
+    "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) v.be' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance AlarmStore_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.underlying := by
+  solve_into_val_typed_struct
+
+instance AlarmStore_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance AlarmStore_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance AlarmStore_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance AlarmStore_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance AlarmStore_access_load_types (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) v.types' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) v.types' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance AlarmStore_access_store_types (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (types' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) v.types' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) types' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with types' := types' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance AlarmStore_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) v.be' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance AlarmStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (be' : go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) v.be' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) be' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := be' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end AlarmStore

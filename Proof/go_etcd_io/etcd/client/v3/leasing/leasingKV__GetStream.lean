@@ -32,7 +32,7 @@ theorem leasingKV.GetStream.wp_proof
   wp_auto
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
-  wp_apply hErr (W32 12) go!"GetStream is not supported by leasingKV" $$ [$Hspkg] as %err %Herr
+  wp_apply hErr (W32 12) go!"GetStream is not supported by leasingKV" $$ [$Hspkg] as %err ⟨%Herr, -⟩
   · ipureintro
     intro h
     have := go.intoVal_inj h

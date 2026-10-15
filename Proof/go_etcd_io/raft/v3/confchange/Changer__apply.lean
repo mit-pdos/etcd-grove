@@ -8,6 +8,8 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeVoter
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
 public import Spec.go_etcd_io.raft.v3.confchange.incoming
+public import Spec.fmt.Errorf
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 
 @[expose] public section
 
@@ -70,7 +72,9 @@ theorem confchange.Changer.apply.wp_proof
     (wp_Changer_makeVoter : confchange.Changer.makeVoter.spec (GF := GF) (hG := hG))
     (wp_Changer_makeLearner : confchange.Changer.makeLearner.spec (GF := GF) (hG := hG))
     (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG)) :
+    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
+    (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG))
+    (wp_ConfChangeType_String : raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG)) :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) := by
   intro p cfgp trk chg base s ccs l dq dqs Hmi
   wp_start as ⟨Hp, Hccs, Hw⟩
@@ -161,7 +165,12 @@ theorem confchange.Changer.apply.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e #He
+      wp_auto
+      -- a `ConfChangeType` argument: etcd-grove's `fmt.Errorf` (Perennial's admits basic types
+      -- only), with the enum's `String()` at the trust boundary
+      ihave #HS := wp_ConfChangeType_String cc.Type'
+      wp_apply wp_fmt_Errorf $$ [$Hsl'] as %e -
+      · fmt_args_ok
       wp_for_post
       iapply HΦ
       iframe

@@ -99,7 +99,7 @@ theorem WithFirstKey.wp_proof (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG :=
         isplitl []
         · ipureintro; simp_all
         unfold opSortAt
-        simp only [↓reduceIte, and_self, ite_true]
+        simp only [↓reduceIte, and_self]
         iexact «$r0»
       · have hv0 : v = W64 0 := by rcases Hv with h | h <;> simp_all
         subst hv0
@@ -122,12 +122,12 @@ theorem WithFirstKey.wp_proof (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG :=
         isplitl []
         · ipureintro; simp_all
         unfold opSortAt
-        simp only [↓reduceIte, and_self, ite_true]
+        simp only [↓reduceIte, and_self]
         iexact «$r0»
     · simp only [withTopM, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at Hf Hg
       subst Hf Hg
       iapply optSpec_res $$ H2
-    · simp [withTopM] at Hf
+    · simp at Hf
   iexact Hcap
 
 end proof

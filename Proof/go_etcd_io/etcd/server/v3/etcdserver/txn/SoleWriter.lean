@@ -26,6 +26,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -65,13 +66,30 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The sole writer** at the committed log `log`: its certificate and every revision token not
-spent (`soleBudget log`). Not persistent. -/
+spent (`soleBudget log`), and the log at least `NewStore`'s two revisions (`[[], []]`: so a
+response's revision is at least `1`, what the gRPC layer's `header.fill` needs not to overwrite
+it; 2026-10-12, the request path's unit 3a). Not persistent. -/
 def soleWriter (γ : mvcc.StoreNames) (log : Log) : IProp GF :=
-  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log))
+  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log) ∗ ⌜2 ≤ log.length⌝)
 
 /-- The sole writer with a write transaction open: one token fewer (the transaction's). -/
 def soleWriterOpen (γ : mvcc.StoreNames) (log : Log) : IProp GF :=
-  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log - 1))
+  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log - 1) ∗ ⌜2 ≤ log.length⌝)
+
+/-- The sole writer's log has `NewStore`'s two revisions. -/
+theorem soleWriter_len (γ : mvcc.StoreNames) (log : Log) :
+    soleWriter (GF := GF) γ log ⊢ ⌜2 ≤ log.length⌝ := by
+  unfold soleWriter
+  iintro ⟨-, -, %h⟩
+  ipureintro; exact h
+
+/-- The sole writer's certificate (persistent). -/
+theorem soleWriter_cert (γ : mvcc.StoreNames) (log : Log) :
+    soleWriter (GF := GF) γ log ⊢ soleWriter γ log ∗ idxCert γ.idx log := by
+  unfold soleWriter
+  iintro ⟨#Hc, Ht, %Hl⟩
+  iframe Hc Ht
+  ipureintro; exact Hl
 
 instance soleWriter_timeless (γ : mvcc.StoreNames) (log : Log) : Timeless (soleWriter (GF := GF) γ log) := by
   unfold soleWriter idxCert; infer_instance
@@ -79,6 +97,15 @@ instance soleWriter_timeless (γ : mvcc.StoreNames) (log : Log) : Timeless (sole
 instance soleWriterOpen_timeless (γ : mvcc.StoreNames) (log : Log) :
     Timeless (soleWriterOpen (GF := GF) γ log) := by
   unfold soleWriterOpen idxCert; infer_instance
+
+/-- `soleWriter_len`, keeping the sole writer. -/
+theorem soleWriter_len' (γ : mvcc.StoreNames) (log : Log) :
+    soleWriter (GF := GF) γ log ⊢ ⌜2 ≤ log.length⌝ ∗ soleWriter γ log := by
+  unfold soleWriter
+  iintro ⟨Hc, Ht, %h⟩
+  iframe Hc Ht
+  isplitl
+  all_goals (ipureintro; exact h)
 
 /-- **`NewStore` makes the sole writer** of its initial log `[[], []]`: its `2 ^ 63 - 5` tokens
 are the budget, with the certificate of `[[], []]` (both in `NewStore`'s post, in this order). -/
@@ -88,6 +115,7 @@ theorem soleWriter_of_NewStore (γ : mvcc.StoreNames) :
   unfold soleWriter; rw [h]
   iintro ⟨Ht, Hc⟩
   iframe Ht Hc
+  ipureintro; simp
 
 /-- **Opening a write transaction**: one token for `store.Write`, while the log leaves room for
 one more revision (`log.length + 4 ≤ 2 ^ 63`). -/
@@ -96,10 +124,12 @@ theorem soleWriter_split (γ : mvcc.StoreNames) (log : Log) (h : log.length + 4 
   have hb : soleBudget log = (soleBudget log - 1) + 1 := by unfold soleBudget; omega
   unfold soleWriter soleWriterOpen revToken
   rw [hb, Nat.add_sub_cancel]
-  iintro ⟨#Hc, Hn⟩
+  iintro ⟨#Hc, Hn, %hl⟩
   icases (ownToks_add 1 (soleBudget log - 1) γ.revs).1 $$ Hn with ⟨Hn, H1⟩
   iframe H1 Hn
-  iexact Hc
+  isplitl
+  · iexact Hc
+  ipureintro; exact hl
 
 /-- **Closing a write transaction** at the sole writer's log, with what `storeTxnWrite.End`
 returns: with a change, the committed log is one revision longer and the transaction's token is
@@ -115,17 +145,20 @@ theorem soleWriter_close (γ : mvcc.StoreNames) (log : Log) (pend : List Change)
     have hc : commitLog log [] = log := rfl
     have hb : soleBudget log = (soleBudget log - 1) + 1 := by unfold soleBudget; omega
     simp only [hc, ↓reduceIte, revToken]
-    iintro ⟨⟨#Hc, Hn⟩, -, H1⟩
+    iintro ⟨⟨#Hc, Hn, %hl⟩, -, H1⟩
     iframe Hc
     rw [hb, Nat.add_sub_cancel]
-    iapply (ownToks_add 1 (soleBudget log - 1) γ.revs).2
-    iframe Hn H1
+    isplitl
+    · iapply (ownToks_add 1 (soleBudget log - 1) γ.revs).2
+      iframe Hn H1
+    ipureintro; exact hl
   · have hc : commitLog log pend = log ++ [pend] := by unfold commitLog; simp [hp]
     have hb : soleBudget (log ++ [pend]) = soleBudget log - 1 := by
       unfold soleBudget; simp only [List.length_append, List.length_singleton]; omega
     simp only [hp, ↓reduceIte, hc, hb]
-    iintro ⟨⟨-, Hn⟩, #Hc, -⟩
+    iintro ⟨⟨-, Hn, %hl⟩, #Hc, -⟩
     iframe Hc Hn
+    ipureintro; simp only [List.length_append, List.length_singleton]; omega
 
 /-- `soleWriter_close` from what `metricsTxnWrite.End` returns (`txnEndPost`). -/
 theorem soleWriter_close_end (γ : mvcc.StoreNames) (log : Log) (pend : List Change)
@@ -153,11 +186,11 @@ transaction's committed log `ilog` is the sole writer's. The tokens bound `ilog`
 `soleBudget log - 1 + 1 ≤ ntok`, and `ilog.length + ntok + 3 ≤ 2 ^ 63`); the index writer's
 committed-log authority is above `log`'s certificate (`log <+: ilog`, `idxWriter_cert_prefix`). -/
 theorem soleWriter_pins_write (γ : mvcc.StoreNames) (log ilog : Log) (pend : List Change) (tw s : Loc) :
-    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢ ⌜ilog = log⌝ := by
+    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ trace ilog pend ⊢ ⌜ilog = log⌝ := by
   unfold soleWriterOpen
-  iintro ⟨⟨#Hmycert, Hmine⟩, H⟩
+  iintro ⟨⟨#Hmycert, Hmine, -⟩, H⟩
   unfold storeTxnWriteIs
-  icases H with ⟨%trace, %ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
+  icases H with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
   iNamed H
   unfold revToken
   icombine Hmine Htok as Hall
@@ -171,8 +204,8 @@ theorem soleWriter_pins_write (γ : mvcc.StoreNames) (log ilog : Log) (pend : Li
 
 /-- `soleWriter_pins_write`, keeping the resources. -/
 theorem soleWriter_pins_write' (γ : mvcc.StoreNames) (log ilog : Log) (pend : List Change) (tw s : Loc) :
-    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢
-      ⌜ilog = log⌝ ∗ (soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ ilog pend) :=
+    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ trace ilog pend ⊢
+      ⌜ilog = log⌝ ∗ (soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ trace ilog pend) :=
   persistent_entails_right (soleWriter_pins_write γ log ilog pend tw s)
 
 /-- **The sole writer pins its read transaction**, from `store.Read`'s post at the sole
@@ -193,9 +226,8 @@ theorem soleWriter_read_shape (γ : mvcc.StoreNames) (log log' : Log) (tr s : Lo
     ⊢ soleWriter (GF := GF) γ log -∗ storeTxnReadIs tr s rt trace γ log' rev -∗
       ⌜logShape log <+: logShape log' ∨ logShape log' <+: logShape log⌝ := by
   unfold soleWriter
-  iintro ⟨#Hc, -⟩ H
+  iintro ⟨#Hc, -, -⟩ H
   unfold storeTxnReadIs
-  icases H with ⟨%m, H⟩
   iNamed H
   iapply idxCert_logShape $$ Hc Hcert
 
@@ -212,18 +244,20 @@ open go_etcd_io.etcd.server.v3.storage.mvcc in
 /-- **`store.Read` at the sole writer** reads its log: `store.Read`'s spec at the sole writer's
 tokens and certificate, with `soleWriter_pins_read`. -/
 theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log)
-    (hlen : log.length + 3 ≤ 2 ^ 63) :
+    (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log) (te : Bool)
+    (hlen : log.length + 3 ≤ 2 ^ 63) (htr : trace ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log }}
+        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ traceutil.ownTrace trace te }}
       (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-        ∃ rev : w64, mvcc.isTxnRead mw s γ log rev ∗ soleWriter γ log }} := by
-  wp_start_folded as ⟨#Hs, Hrd, Hsw⟩
+        ∃ rev : w64, mvcc.isTxnRead mw s γ trace log rev ∗ soleWriter γ log }} := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
+  wp_start_folded as ⟨#Hs, Hrd, Hsw, Htrc⟩
   iunfold soleWriter at Hsw
-  icases Hsw with ⟨#Hc, Ht⟩
-  iapply (hRead s γ mode trace (soleBudget log) log) $$ [Hrd Ht]
+  icases Hsw with ⟨#Hc, Ht, %Hl2⟩
+  iapply (hRead s γ mode trace (soleBudget log) log te) $$ [Hrd Ht Htrc]
   · iframe # ∗
+    ipureintro; exact htr
   inext
   iintro %mw ⟨%log', %rev, Htx, Ht, %Hp⟩
   have heq := soleWriter_pins_read log log' hlen Hp
@@ -232,6 +266,51 @@ theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
   iexists rev
   iunfold soleWriter
   iframe Htx Ht Hc
+  ipureintro; exact Hl2
+
+
+open go_etcd_io.etcd.server.v3.storage.mvcc in
+/-- **`store.Read` at the sole writer, with a floor** (the vertical slice's unit V2): as
+`soleWriter_Read`, the read opened at the longer of the sole writer's log and a certified floor
+`F` (a log a client saw), so the sole writer's log extends `F`. -/
+theorem soleWriter_Read_floor (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log) (te : Bool) (F : Log)
+    (hlen : log.length + 3 ≤ 2 ^ 63) (htr : trace ≠ null) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ traceutil.ownTrace trace te ∗
+        idxCert γ.idx F }}
+      (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
+    {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+        ∃ rev : w64, mvcc.isTxnRead mw s γ trace log rev ∗ soleWriter γ log ∗ ⌜F <+: log⌝ }} := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
+  wp_start_folded as ⟨#Hs, Hrd, Hsw, Htrc, #HF⟩
+  iunfold soleWriter at Hsw
+  icases Hsw with ⟨#Hc, Ht, %Hl2⟩
+  ihave %Hp := idxCert_prefix γ.idx log F $$ [$Hc $HF]
+  have hj : ∃ L0, log <+: L0 ∧ F <+: L0 ∧ (L0 = log ∨ L0 = F) := by
+    rcases Hp with h | h
+    · exact ⟨F, h, List.prefix_refl _, Or.inr rfl⟩
+    · exact ⟨log, List.prefix_refl _, h, Or.inl rfl⟩
+  obtain ⟨L0, hl, hf, hL0⟩ := hj
+  ihave #Hc0 : idxCert γ.idx L0 $$ []
+  · rcases hL0 with rfl | rfl
+    · iexact Hc
+    · iexact HF
+  iapply (hRead s γ mode trace (soleBudget log) L0 te) $$ [Hrd Ht Htrc]
+  · iframe # ∗
+    ipureintro; exact htr
+  inext
+  iintro %mw ⟨%log', %rev, Htx, Ht, %Hp'⟩
+  have heq := soleWriter_pins_read log log' hlen ⟨hl.trans Hp'.1, Hp'.2⟩
+  subst heq
+  iapply HΦ
+  iexists rev
+  iframe Htx
+  isplitl [Ht]
+  · iunfold soleWriter
+    iframe Ht Hc
+    ipureintro; exact Hl2
+  ipureintro; exact hf.trans Hp'.1
 
 end wp
 

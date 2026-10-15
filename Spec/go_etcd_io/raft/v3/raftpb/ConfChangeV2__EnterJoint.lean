@@ -24,11 +24,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `c.EnterJoint()` with `c.Changes` holding the list `ccs` (the list `InvConfchange.lean`'s
 `enterJointM` and `simpleM` take): `enterJointOf c.Transition ccs.length`, the pair
-`(autoLeave, ok)`, or a panic (`panic(fmt.Sprintf("unknown transition: %+v", c))`) when joint
-consensus is asked for with a transition other than `Auto`, `JointImplicit`, `JointExplicit`:
-the issue `raft-unknown-transition-panic`. -/
+`(autoLeave, ok)`. Its panic (`panic(fmt.Sprintf("unknown transition: %+v", c))`), when joint
+consensus is asked for with a transition other than `Auto`, `JointImplicit`, `JointExplicit` (the
+issue `raft-unknown-transition-panic`), is excluded by the premise: the panic formats `c`, a
+struct, which Perennial's `fmt.wp_Sprintf` does not admit (`fmt.ArgsWf`: arguments of predeclared
+basic types only, since Go calls the enums' `String()` methods and reads `c.Context`), and the one
+caller (`raft.applyConfChange`) excludes it anyway (`ccApplyM ... = some _`). (Until the merge
+with `lean`, 2026-10-15, the spec stated the panic as `none`.) -/
 abbrev raftpb.ConfChangeV2.EnterJoint.spec : Prop :=
   ∀ (c : raftpb.ConfChangeV2) (ccs : List raftpb.ConfChangeSingle) (dq : DFrac),
+  enterJointOf c.Transition' ccs.length ≠ none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ c.Changes' ↦*{dq} ccs }}
     (App (Val (c @!! raftpb.ConfChangeV2.ty @!! go!"EnterJoint")) (Val #()))
   {{ (r : val), RET r; c.Changes' ↦*{dq} ccs ∗

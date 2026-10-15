@@ -21,6 +21,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
@@ -84,7 +85,7 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
       ihave %Hpnn := typedPointsto_not_null $$ «$r0»
       iStructNamed «$r0»
       rw [cachedKvOwn_def]
-      simp only [freshKv, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+      simp only [freshKv]
       iframe
       iframe #
       isplitr
@@ -147,7 +148,7 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
       rw [update_upd1, he1, hc]
       simp only [Hif, ↓reduceIte]
       rw [entryOwn_def, respOwn_def]
-      simp only [hs_li, hs_resp, hs_rev, hs_wc, hs_more, hs_hdr, hs_hm, List.map_cons]
+      simp only [hs_li, hs_resp, hs_rev, hs_wc, hs_more, List.map_cons]
       unfold CachedKv.bump
       simp only [Hif, ↓reduceIte]
       iframe

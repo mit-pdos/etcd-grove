@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.Count.wp_proof
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     txn.Count.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg kv s γ key rangeEnd k e revision m log₀
-  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, %Hlg⟩
+  intro ctx cd lg kv s γ key rangeEnd k e revision m log₀ ot te
+  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen⟩
   wp_auto
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a3»
   iStructNamed «$a3»
@@ -43,18 +43,23 @@ theorem txn.Count.wp_proof
     iexists key, rangeEnd, k, e, revision, (0 : w64), (0 : w32), (0 : w32), false, false, true,
       (0 : w64), (0 : w64), (0 : w64), (0 : w64)
     iframe #
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, Hklen⟩
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
-  wp_apply (hRange ctx cd lg kv s γ «$a3_ptr» _ false m log₀) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx]
-    as %resp %tr %err ⟨Hrd, Htoks, %Htr, %log, %rev, #Hcert, %Hpin, #Hres⟩
-  · ipureintro
-    refine ⟨Hlg, ?_, ?_⟩
-    · unfold txn.validSortTarget; simp [txn.countOp, txn.rangeOpOf]
-    · intro _ _ _ h; rw [heff] at h; rcases h with h | h <;> cases h
+  wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]
+    as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, #Hcert, %Hpin, #Hres, -, -⟩
+  · isplitr
+    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    isplitr
+    · ipureintro; exact Hlg
+    isplitr
+    · ipureintro; unfold txn.validSortTarget; simp [txn.countOp, txn.rangeOpOf]
+    iintro !> %log' - -
+    ipureintro
+    intro h; rw [heff] at h; rcases h with h | h <;> cases h
   have hrevo : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).base.rev = revision := rfl
   iunfold txn.rangeResult at Hres
-  icases Hres with (⟨%Hf, %ef, #Hef, %Herr⟩ | %Hce | ⟨%Hok, %kvs, %more, #Hresp, %Hsrv⟩)
+  icases Hres with (⟨%Hf, %ef, #Hef, %Herr⟩ | ⟨%Hce, -⟩ | ⟨%Hok, %kvs, %more, #Hresp, %Hsrv⟩)
   · subst Herr
     wp_auto
     iapply HΦ
@@ -85,7 +90,7 @@ theorem txn.Count.wp_proof
     ileft
     ipureintro
     refine ⟨rfl, hle, ?_⟩
-    simp [txn.srvCount, txn.countOp, txn.rangeOpOf, hrevo]
+    simp [txn.srvCount, txn.countOp, txn.rangeOpOf]
 
 end proof
 

@@ -95,7 +95,10 @@ allows, but nothing tells it to).
 **How the proof handles it**: `ConfChangeV2.EnterJoint`'s spec
 (`Spec/go_etcd_io/raft/v3/raftpb/ConfChangeV2__EnterJoint.lean`) states the panic: its result is
 `enterJointOf c.Transition (len c.Changes)` (`InvConfChangeMsg.lean`), `none` (a panic) in this
-case. A spec of `applyConfChange` will need a premise excluding it.
+case. A spec of `applyConfChange` will need a premise excluding it. (Since 2026-10-15, the merge
+with `lean` and its Perennial: the spec excludes the case by a premise, `enterJointOf ... ≠ none`,
+since the panic's `fmt.Sprintf("%+v", c)` formats a struct, which Perennial's `fmt.wp_Sprintf` no
+longer admits; `raft.applyConfChange`'s premise `ccApplyM ... = some _` already excluded it.)
 
 **Possible fixes**: in `stepLeader`, refuse a `ConfChangeV2` whose `Transition` is undefined (as
 for the other refused conf changes); or have `EnterJoint` return an error instead of panicking.

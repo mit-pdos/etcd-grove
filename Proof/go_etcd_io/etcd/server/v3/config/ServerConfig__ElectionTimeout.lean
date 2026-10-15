@@ -1,5 +1,5 @@
 /-
-The trust boundary: `config.ServerConfig.ElectionTimeout` (`server/v3/config` is names-only: `ElectionTimeout` computes a duration from two fields).
+Proof of `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__ElectionTimeout.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -7,12 +7,14 @@ public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeou
 
 @[expose] public section
 
+set_option linter.unusedSectionVars false
+
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 go_etcd_io.etcd.pkg.v3 go_uber_org
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -21,7 +23,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-axiom config.ServerConfig.ElectionTimeout.wp_proof : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG)
+theorem config.ServerConfig.ElectionTimeout.wp_proof :
+    config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG) := by
+  intro c et tm
+  wp_start as ⟨#Het, #Htm⟩
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

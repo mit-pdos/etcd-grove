@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.setTerm(v)` stores `v` into the atomic `s.term`. -/
 abbrev EtcdServer.setTerm.spec : Prop :=
-  ∀ (s : Loc) (v : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvAtomics s }}
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAtomics s E γr }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setTerm")) (Val #v))
   {{ RET #(); True }}
 

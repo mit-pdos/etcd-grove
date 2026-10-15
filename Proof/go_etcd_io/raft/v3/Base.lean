@@ -22,7 +22,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.context
 public import Perennial.Proof.sync
 public import Perennial.Proof.fmt
-public import Perennial.Proof.slices_proof.slices_init
+public import Perennial.Proof.slices
 public import Perennial.Proof.cmp
 public import Perennial.Proof.encoding.binary
 public import Perennial.Proof.strings
@@ -33,7 +33,6 @@ public import Perennial.Proof.bytes
 public import Perennial.Proof.log
 public import Perennial.Proof.io
 public import Perennial.Proof.errors
-public import Perennial.Proof.sync_proof.mutex
 
 @[expose] public section
 

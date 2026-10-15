@@ -26,8 +26,18 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
+       etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
        etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
+       etc/gen-link.py --apply > Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean
+       etc/gen-link.py --v3rpc > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Link.lean
+       etc/gen-link.py --fmt > Proof/fmt/Link.lean
+       etc/gen-link.py --context > Proof/context/Link.lean
+       etc/gen-link.py --read > Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Link.lean
+       etc/gen-link.py --client > Proof/go_etcd_io/etcd/client/v3/Link.lean
+       etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
+       etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
+       etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -56,6 +66,10 @@ A callee list `?` (`fn: ?`) marks a function specified but not proved yet (a lat
 spec is a hypothesis (`h_<fn>`, `section links_pending`) of every result that reaches it.
 `--mvcc` links the proofs of the KV core of etcd's `server/v3/storage/mvcc`
 (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`), from etc/link-lean-first-mvcc.txt.
+`--backend` links the proofs of etcd's backend (`server/v3/storage/backend`: the buffers, the
+read and batch transactions), from etc/link-lean-first-backend.txt; bbolt's key-value contract
+(`Spec/go_etcd_io/bbolt/*_kv*.lean`, axioms) is its trust boundary. As `--recipes`, its results are
+in a namespace of their own (`backend`).
 `--adt` links the proofs of etcd's interval tree (`pkg/v3/adt`, `Proof/go_etcd_io/etcd/pkg/v3/adt/`),
 from etc/link-lean-first-adt.txt: the tree's contract pending (`?`), the comparisons proved.
 `--txn` links the proofs of etcd's server `txn` package (`server/v3/etcdserver/txn`: `Range`,
@@ -63,9 +77,44 @@ from etc/link-lean-first-adt.txt: the tree's contract pending (`?`), the compari
 from etc/link-lean-first-txn.txt, under the txn package's assumptions; as `--recipes`, its
 results are in a namespace of their own (`txn`: `txn.traceutil.wp_EnsureTrace`), and mvcc's
 functions are `@` callees, linked in mvcc's `Link.lean`.
+`--apply` links the proofs of etcd's server `apply` package (`server/v3/etcdserver/apply`: the
+applier chain between the apply thread and the txn package) and of the trust-boundary functions
+they call, from etc/link-lean-first-apply.txt, under the apply package's assumptions; as `--txn`,
+its results are in a namespace of their own (`apply`), and the txn package's and mvcc's functions
+are `@` callees, linked in their `Link.lean`s.
+`--v3rpc` links the proofs of etcd's gRPC KV service (`server/v3/etcdserver/api/v3rpc`: the
+handlers, the request checks, the response header, `togRPCError`) and of the trust-boundary
+functions they call, from etc/link-lean-first-v3rpc.txt, under the package's assumptions (which
+include the server's: its Link reaches `EtcdDeps`); as `--apply`, its results are in a namespace
+of their own (`v3rpc`), and the server's, the txn package's and the interval tree's functions are
+`@` callees, linked in their `Link.lean`s.
+`--read` links the proofs of etcd's linearizable read loop (`server/v3/etcdserver/read`:
+`NewRead`, `LinearizableReadNotify`, `LinearizableReadLoop`, over the contracts of its `server` and
+`raftInterface`) and of the trust-boundary functions they call, from etc/link-lean-first-read.txt,
+under the read package's assumptions; as `--txn`, its results are in a namespace of their own
+(`read`).
+`--client` links the proofs of the client's KV path over gRPC (unit C1: `NewKV`, `kv.Put`,
+`kv.Get`, `kv.Do`, `ContextError`, the retry client, the generated stub `etcdserverpb.kVClient`)
+and the trust boundary they rest on (grpc's `ClientConn.Invoke`, an axiom), from
+etc/link-lean-first-client.txt, under clientv3's assumptions; as `--leasing`, its results are in
+a namespace of their own (`client`), a clientv3 function's with the prefix `v3.`.
+`--fmt` and `--context` link etcd-grove's trust boundary of the standard library's `fmt`
+(`Errorf`, `Printf`) and `context` (the `Error()` of `Err()`'s error), from
+etc/link-lean-first-fmt.txt and etc/link-lean-first-context.txt, under those packages' own
+assumptions, so that Links of unrelated packages (the cache's, mvcc's) take them as `@` callees
+instead of each defining the same result.
+**Reuse** (2026-10-12): a callee whose result a Link this one imports already defines, under the
+same name, is imported, not redefined: two Links defining one theorem cannot be imported
+together (the trust report runs Lean on the roots a group of parts reaches together: the
+server's Link, which reaches `EtcdDeps`, with the apply package's, which imports mvcc's). The
+Links searched are those of the `@` callees' packages and those a mode declares it imports
+(`REUSES`: the server's imports mvcc's, which defines encoding/binary's and zap's `Error` too).
 `--skip-unproved` (after the mode) leaves out the listed functions with no proof file yet (no
 spec, or no `Proof/` file: a later unit's) and every function that reaches one, and names them
 in the header: a package proved in units links what is done, from the full list.
+The clients' modes (`--cache`, `--concurrency`, `--leasing`, `--recipes`) state their links over
+the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class of
+`cache/v3/EtcdModel.lean`, which the server instantiates; the vertical slice's unit V1).
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -104,6 +153,11 @@ LEAN_FIRST = {
     "--mvcc": ("link-lean-first-mvcc.txt", "go_etcd_io.etcd.server.v3.storage.mvcc",
                "go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions",
                "The mvcc KV core's proofs (etcd's `server/v3/storage/mvcc`)", [""]),
+    # etcd's backend (server/v3/storage/backend) over bbolt's key-value contract
+    "--backend": ("link-lean-first-backend.txt", "go_etcd_io.etcd.server.v3.storage.backend",
+                  "go_etcd_io.etcd.server.v3.storage.backend.Assumptions",
+                  "The backend's proofs (etcd's `server/v3/storage/backend`) and the trust "
+                  "boundary they rest on (bbolt's key-value contract)", [""]),
     # the interval tree (etcd's pkg/v3/adt), the watchable store's
     "--adt": ("link-lean-first-adt.txt", "go_etcd_io.etcd.pkg.v3.adt",
               "go_etcd_io.etcd.pkg.v3.adt.Assumptions",
@@ -115,22 +169,83 @@ LEAN_FIRST = {
               "go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions",
               "The server's `txn` package's proofs (etcd's `server/v3/etcdserver/txn`) and the "
               "functions they call", [""]),
+    # the server's apply package (etcd's server/v3/etcdserver/apply), over the txn package
+    "--apply": ("link-lean-first-apply.txt",
+                "go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.server.v3.etcdserver.txn "
+                "go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3 "
+                "go_uber_org",
+                "go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions",
+                "The server's `apply` package's proofs (etcd's `server/v3/etcdserver/apply`) and the "
+                "functions they call", [""]),
+    # the gRPC KV service (etcd's server/v3/etcdserver/api/v3rpc), over the server's request
+    # path; its assumptions include the server's (whose Link reaches EtcdDeps)
+    "--v3rpc": ("link-lean-first-v3rpc.txt",
+                "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc go_etcd_io.etcd.server.v3.etcdserver "
+                "go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3",
+                "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions",
+                "The gRPC KV service's proofs (etcd's `server/v3/etcdserver/api/v3rpc`) and the "
+                "functions they call", ["", "EtcdDeps"]),
+    # the client's KV path over gRPC (unit C1, the client meets the server)
+    "--client": ("link-lean-first-client.txt", "go_etcd_io.etcd.client.v3 go_etcd_io.etcd.api.v3",
+                 "go_etcd_io.etcd.client.v3.Assumptions",
+                 "The client's KV path over gRPC (`client/v3`'s `NewKV`, `kv.Put`, `kv.Get`, `kv.Do`, the "
+                 "retry client, the generated stub) and the trust boundary it rests on (grpc's "
+                 "`ClientConn.Invoke`)", [""]),
     "--recipes": ("link-lean-first-recipes.txt",
                   "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
                   "The `client/v3/experimental/recipes` package's proofs and the functions they "
                   "call", [""]),
+    # etcd's linearizable read loop (etcd's server/v3/etcdserver/read), over its contracts
+    "--read": ("link-lean-first-read.txt", "go_etcd_io.etcd.server.v3.etcdserver.read",
+               "go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions",
+               "The linearizable read loop's proofs (etcd's `server/v3/etcdserver/read`) and the "
+               "functions they call", [""]),
+    # etcd-grove's trust boundary of `fmt` and `context`, shared by unrelated Links (`@`)
+    "--fmt": ("link-lean-first-fmt.txt", "", "_root_.Perennial.fmt.Assumptions",
+              "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
+    "--context": ("link-lean-first-context.txt", "", "_root_.Perennial.context.Assumptions",
+                  "etcd-grove's trust boundary of `context` (axioms)", [""]),
     # the register example (examples/register): its proofs, over raft's (linked in raft's
     # `Link.lean`, the `@` callees) and the storage model `RegStor` gives
     "--register": ("link-lean-first-register.txt",
                    "github_com.mit_pdos.etcd_grove.examples.register go_etcd_io.raft.v3",
                    "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
                    "The register example's proofs (`examples/register`)", [""]),
+    # porcupine (third_party/porcupine), the linearizability checker of etcd's robustness tests
+    "--porcupine": ("link-lean-first-porcupine.txt", "github_com.anishathalye.porcupine",
+                    "github_com.anishathalye.porcupine.Assumptions",
+                    "Porcupine's proofs (`third_party/porcupine`: the checker, its entry points)",
+                    [""]),
+    # the generic driver over porcupine (examples/lintest), over porcupine's (`@`)
+    "--lintest": ("link-lean-first-lintest.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
+                  "github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions",
+                  "The porcupine driver's proofs (`examples/lintest`)", [""]),
+    # its instance, a counter under a mutex (examples/lintest/counter), over the driver's (`@`)
+    "--lintest-counter": ("link-lean-first-lintest-counter.txt",
+                          "github_com.mit_pdos.etcd_grove.examples.lintest.counter "
+                          "github_com.mit_pdos.etcd_grove.examples.lintest "
+                          "github_com.anishathalye.porcupine",
+                          "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
+                          "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
+                          [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
-              "--txn": "txn"}
+NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
+              "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
+              "--lintest-counter": "lintest", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+# The Links a mode imports for the callees' results they already define (see "Reuse" above), by
+# their module below `Proof/`, beside those of its `@` callees.
+REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
+# The modules a mode imports beside its proofs (its package's translation, through its `Base`,
+# while no proof of the package is linked yet: the v3rpc package's unit 0).
+EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"]}
+# The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
+# `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
+EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}
 mode = LEAN_FIRST.get(sys.argv[1])
+em = "variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else ""
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
@@ -148,6 +263,12 @@ for mroot in (mode[4] if cache else [""]):
                 rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
                 *pkg, stem = rel.split(os.sep)
                 qual = pkg[-1] + "_" + stem
+                if qual in where and where[qual] == ".".join(pkg + [stem]) and prefix[qual] == "":
+                    # the same Go function in a later root (the server's `EtcdDeps`: etcd's
+                    # raft v3.7, whose Go path is the verified raft's; no module imports both):
+                    # the later root's spec is the one this mode links
+                    prefix[qual] = prefix[stem] = mroot + "."
+                    continue
                 assert qual not in where, f"two specs for {qual}"
                 where[qual] = ".".join(pkg + [stem])
                 prefix[qual] = mroot + "." if mroot else ""
@@ -263,6 +384,38 @@ def external_link(fn):
         parts = parts[:-1]
     return "Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
 
+# **Reuse**: the callees whose result a Link this one imports already defines (same full name):
+# imported from there (`reused`: fn -> the Link's module), not emitted.
+reused = {}
+if cache:
+    def link_file(mod):
+        return os.path.join(root, *mod.split(".")) + ".lean"
+
+    def link_namespace(src):
+        nss = re.findall(r"^namespace (\S+)", src, re.M)
+        inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
+        return ".".join(["EtcdGrove"] + inner)
+
+    todo = sorted({external_link(fn) for fn in external}
+                  | set(REUSES.get(sys.argv[1], [])))
+    links, seen_links = [], set()
+    while todo:
+        mod = todo.pop(0)
+        if mod in seen_links or not os.path.exists(link_file(mod)):
+            continue
+        seen_links.add(mod)
+        src = open(link_file(mod)).read()
+        links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
+        todo.extend(re.findall(r"^public import (Proof\.\S+\.Link)$", src, re.M))
+    here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
+    for fn in fns:
+        if fn in external or fn in pending:
+            continue
+        full = f"{here_ns}.{result(fn)}"
+        for mod, ns, thms in links:
+            if any(f"{ns}.{t}" == full for t in thms):
+                reused[fn] = mod
+                break
 
 order, seen = [], set()
 
@@ -293,9 +446,11 @@ hand.
         break_on_hyphens=False) if skipped else "") + """
 -/""", "module", ""]
     out.extend(f"public import {proof_module(fn)}" for fn in fns
-               if fn not in external and fn not in pending)
+               if fn not in external and fn not in pending and fn not in reused)
+    out.extend(f"public import {m}" for m in EXTRA_IMPORTS.get(sys.argv[1], []))
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
-    out.extend(sorted({"public import " + external_link(fn) for fn in external}))
+    out.extend(sorted({"public import " + external_link(fn) for fn in external}
+                       | {f"public import {mod}" for mod in reused.values()}))
     out.append(f"""
 @[expose] public section
 
@@ -304,7 +459,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 """ + (f"namespace {nsd}\n" if nsd else "") + f"""
-open Iris Iris.BI {opens}
+open Iris Iris.BI{(' ' + opens) if opens else ''}
 """)
     out.append(f"""section links
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -312,7 +467,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""")
+{em}""")
     def hyp(fn):
         return "h_" + fn
 
@@ -349,15 +504,27 @@ variable [package_sem : {assumptions}]
 
     cache_assumptions = set()
     for fn in order:
+        if fn in reused:
+            # a callee whose result an imported Link defines: as an `@` callee, the cache's
+            # assumptions if that result takes them
+            if re.search(r"^theorem " + re.escape(result(fn)) +
+                         r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]",
+                         open(link_file(reused[fn])).read(), re.M):
+                cache_assumptions.add(fn)
+            continue
         if fn in external:
             # an `@` callee whose result (in its own package's `Link.lean`) takes the cache's
             # assumptions (mvcc's range read and write path, through the index's btree): so does
             # every result linking it
             link = os.path.join(root, prefix[fn].rstrip("."), "Proof",
                                 *where[fn].split(".")[:-1], "Link.lean")
-            if os.path.exists(link) and re.search(
-                    r"^theorem " + re.escape(result(fn)) +
-                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M):
+            # the result as that Link names it: in its own namespace (the txn package's
+            # `wp_Txn`, which a namespaced mode calls `txn.wp_Txn`)
+            names = {result(fn), result(fn).split(".", 1)[-1]}
+            if os.path.exists(link) and any(re.search(
+                    r"^theorem " + re.escape(n) +
+                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M)
+                    for n in names):
                 cache_assumptions.add(fn)
             continue
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
@@ -370,8 +537,10 @@ variable [package_sem : {assumptions}]
     for fn in order:
         if any(c in blocked for c in callees[fn]):
             blocked.add(fn)
-    generic = [fn for fn in order if fn not in haslc and fn not in external and fn not in blocked]
-    special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked]
+    generic = [fn for fn in order if fn not in haslc and fn not in external and fn not in blocked
+               and fn not in reused]
+    special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked
+               and fn not in reused]
     assert all(c not in haslc for fn in generic for c in callees[fn])
     out.extend(emit_cache(fn) for fn in generic)
     out.append("end links\n")
@@ -384,7 +553,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""")
+{em}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
     later = [fn for fn in order if fn in blocked and fn not in pending]
@@ -400,7 +569,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-{hyps}
+{em}{hyps}
 include {names}
 """)
         out.extend(emit_cache(fn) for fn in later)
@@ -421,7 +590,10 @@ Generated by `etc/gen-link.py` -- do not edit by hand.
 out.append("module")
 out.append("")
 for fn in fns:
-    out.append(f"public import {proof_module(fn)}")
+    if fn not in external:
+        out.append(f"public import {proof_module(fn)}")
+# `@` callees (etcd-grove's `fmt.Errorf` axiom): linked in their own package's `Link.lean`
+out.extend(sorted({"public import " + external_link(fn) for fn in external}))
 out.append("""
 @[expose] public section
 
@@ -448,8 +620,8 @@ def emit(fn):
             f"  {body}\n")
 
 
-generic = [fn for fn in order if fn not in haslc]
-special = [fn for fn in order if fn in haslc]
+generic = [fn for fn in order if fn not in haslc and fn not in external]
+special = [fn for fn in order if fn in haslc and fn not in external]
 assert all(c not in haslc for fn in generic for c in callees[fn])
 out.append("section links\n" + VARS.format(
     heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]"))

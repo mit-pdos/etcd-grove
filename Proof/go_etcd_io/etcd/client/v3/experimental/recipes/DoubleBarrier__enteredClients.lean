@@ -23,6 +23,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -73,12 +74,14 @@ theorem DoubleBarrier.enteredClients.wp_proof
   wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
   · iframe Hopts' Hlo
     ipureintro
-    exact ⟨waitersOp_not_panics.1, (waitersOp_t _).1⟩
+    exact ⟨waitersOp_not_panics.1, (waitersOp_t _).1, by
+      simp [OpFull.getExact, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
+        OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM, withSortM (W64 2) (W64 1)] =
       waitersOp (key ++ go!"/waiters") := rfl
   rw [Hop]
-  iunfold kvGetResult at Hgres
-  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, %HRle, Hgr⟩)
+  iunfold kvGetResultR at Hgres
+  icases Hgres with (%Hgne | ⟨%Hgnil, %R, #HgRev, #HRR, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
       cases gerr with
       | nil => exact absurd rfl Hgne

@@ -2,6 +2,17 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.encoding.binary
+public import Perennial.GeneratedProof.errors
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
+public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3
+public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.read
 
@@ -26,53 +37,104 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 instance Read_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.Read :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.Read where
+  typedPointstoDef l v dq := iprop(
+    "server" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) v.server' dq ∗
+    "raft" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) v.raft' dq ∗
+    "mux" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) v.mux' dq ∗
+    "waitC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) v.waitC' dq ∗
+    "notifier" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) v.notifier' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Read_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.Read go_etcd_io.etcd.server.v3.etcdserver.read.Read.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.Read go_etcd_io.etcd.server.v3.etcdserver.read.Read.underlying := by
+  solve_into_val_typed_struct
+
+instance Read_access_load_server (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) v.server' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) v.server' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_store_server (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (server' : go_etcd_io.etcd.server.v3.etcdserver.read.server) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) v.server' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) server' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with server' := server' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_load_raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) v.raft' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) v.raft' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_store_raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (raft' : go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) v.raft' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) raft' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raft' := raft' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_load_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) v.mux' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) v.mux' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_store_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (mux' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) v.mux' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) mux' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mux' := mux' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_load_waitC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) v.waitC' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) v.waitC' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_store_waitC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (waitC' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) v.waitC' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) waitC' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitC' := waitC' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_load_notifier (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) v.notifier' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) v.notifier' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Read_access_store_notifier (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (notifier' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) v.notifier' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) notifier' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with notifier' := notifier' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Read
-
-namespace server
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
-
-instance server_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.server :=
-  sorry -- axiomatized type
-
-instance server_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.server go_etcd_io.etcd.server.v3.etcdserver.read.server.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end server
-
-namespace raftInterface
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
-
-instance raftInterface_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface :=
-  sorry -- axiomatized type
-
-instance raftInterface_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end raftInterface
 
 namespace notifier
 section def_

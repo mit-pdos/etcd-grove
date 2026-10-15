@@ -28,9 +28,9 @@ private theorem wp_min_u64 (a b : w64) :
     {{ RET #(w64Min a b); True }} := by
   wp_start
   wp_if_destruct
-  · rw [show w64Min a b = a from if_pos Hif]
+  · rw [show w64Min a b = a from ite_eq_left Hif]
     iapply HΦ; itrivial
-  · rw [show w64Min a b = b from if_neg Hif]
+  · rw [show w64Min a b = b from ite_eq_right Hif]
     iapply HΦ; itrivial
 
 /-- The builtin `max` on `uint64` (Rocq `wp_max2_uint64`). -/
@@ -40,9 +40,9 @@ private theorem wp_max_u64 (a b : w64) :
     {{ RET #(w64Max a b); True }} := by
   wp_start
   wp_if_destruct
-  · rw [show w64Max a b = a from if_pos Hif]
+  · rw [show w64Max a b = a from ite_eq_left Hif]
     iapply HΦ; itrivial
-  · rw [show w64Max a b = b from if_neg Hif]
+  · rw [show w64Max a b = b from ite_eq_right Hif]
     iapply HΦ; itrivial
 
 theorem tracker.Progress.MaybeDecrTo.wp_proof :
@@ -60,7 +60,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
     · -- exit 1
       have Hp : progressMaybeDecrTo p rejected matchHint = (false, p) := by
         simp only [progressMaybeDecrTo, Hs, ite_true]
-        rw [if_pos (by rw [← h3]; word)]
+        rw [ite_eq_left (by rw [← h3]; word)]
       rw [Hp]
       iapply HΦ
       iapply ownProgress_intro $$ Hpv Hinfl
@@ -70,7 +70,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
           (true, { p with next := p.matched + W64 1,
                           sentCommit := w64Min p.sentCommit (p.matched + W64 1 - W64 1) }) := by
         simp only [progressMaybeDecrTo, Hs, ite_true]
-        rw [if_neg (by rw [← h3]; exact Hif)]
+        rw [ite_eq_right (by rw [← h3]; exact Hif)]
       rw [Hp]
       wp_apply wp_min_u64
       iapply HΦ
@@ -94,7 +94,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
                             (w64Max (w64Min (pv.Next' - W64 1) (matchHint + W64 1)) (p.matched + W64 1) - W64 1),
                           paused := false }) := by
         simp only [progressMaybeDecrTo, Hs, ite_false]
-        rw [if_pos (by rw [h4])]
+        rw [ite_eq_left (by rw [h4])]
       rw [Hp]
       iapply HΦ
       iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]
@@ -108,7 +108,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
     · -- exit 3: stale
       have Hp : progressMaybeDecrTo p rejected matchHint = (false, p) := by
         simp only [progressMaybeDecrTo, Hs, ite_false]
-        rw [if_neg (by rw [← h4]; exact Hif)]
+        rw [ite_eq_right (by rw [← h4]; exact Hif)]
       rw [Hp]
       iapply HΦ
       iapply ownProgress_intro $$ Hpv Hinfl

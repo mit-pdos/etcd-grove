@@ -26,18 +26,24 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.metricsTxnWrite.Put.wp_proof (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG) := by
-  intro mw s γ ilog pend puts deletes putSize key value k v leaseID
-  wp_start as ⟨Htx, #Hkey, #Hval, Hlease, %Hb⟩
+  intro trace mw s γ ilog pend puts deletes putSize key value k v leaseID L crev Z
+  wp_start as ⟨Htx, #Hkey, #Hval, Hown, %Hlease, %Hb⟩
+  have hpm := mvcc.putMax_le γ
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
+  icases Htrc with ⟨%te, Htrc⟩
   (try wp_auto)
-  wp_apply (hPut tw s γ ilog pend key value k v leaseID) $$ [$Htw $Hkey $Hval $Hlease] as Htw
-  · ipureintro; exact Hb
+  wp_apply (hPut trace tw s γ ilog pend key value k v leaseID L te crev Z)
+    $$ [$Htw $Hkey $Hval $Hown $Htrc] as ⟨Htw, Hown, Htrc⟩
+  · ipureintro; exact ⟨Hlease, Hb⟩
   (try wp_auto)
   iapply HΦ
+  iframe Hown
+  ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
+  · iexists te; iexact Htrc
   iunfold mvcc.isTxnWrite
   iexists tw, ranges
-  iframe Htw
+  iframe Htw Htrc
   iexact Hmw
 
 end proof

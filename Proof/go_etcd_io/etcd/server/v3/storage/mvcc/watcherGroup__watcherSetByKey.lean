@@ -40,7 +40,9 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
   wp_auto
   wp_apply wp_map_lookup1 $$ Hkm as Hkm
   wp_apply hPoint key
-  wp_apply hStab $$ [$Hivt] as %ivs %ps ⟨Hivt, Hps, Hcap, %Hlen, #Hpts⟩
+  wp_apply hStab $$ [$Hivt] as %ivs %ps ⟨Hps, Hcap, %Hlen, Hpts, Hback⟩
+  · ipureintro; exact adt.point_ok key
+  icases BigSepL.bigSepL_sep_eqv.1 $$ Hpts with ⟨-, Hpts⟩
   ihave %Hsl := ownSlice_len $$ Hps
   have Hcov := mvcc.coverUpTo_stab W L HL key
   -- the key's own set: lent, or none
@@ -48,6 +50,7 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
     rw [mvcc.keyMembers_empty_iff]; intro h; have := (Hdom key).2 h; rw [hk] at this; cases this
   by_cases h0 : adt.stab (key, key ++ go!"\x00") L = []
   · -- no range holds the key: the key's set, or `nil`
+    ihave Hivt := Hback $$ Hpts
     have Hlen0 : ivs.len = W64 0 := by
       rw [h0] at Hlen; rw [Hlen] at Hsl
       have h1 := Hsl.1; have h2 := Hsl.2
@@ -162,8 +165,7 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
     rw [hSt] at Hcov
     rw [hSt]
     simp only [List.zip_cons_cons, List.zip_nil_left]
-    icases BigSepL.bigSepL_singleton.1 $$ Hpts with ⟨%Hp0n, #Hp0v⟩
-    icases mvcc.iv_split p0 _ _ $$ Hp0v with ⟨-, #Hval⟩
+    icases BigSepL.bigSepL_singleton.1 $$ Hpts with Hp0v
     have hzL : z ∈ L := by
       have : z ∈ adt.stab (key, key ++ go!"\x00") L := by rw [hSt]; simp
       exact (List.mem_filter.1 this).1
@@ -171,7 +173,9 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
     icases (BigSepL.bigSepL_lookup_acc hi).1 $$ Hranges with ⟨Hz, Hranges⟩
     iunfold mvcc.rangeSet at Hz
     icases Hz with ⟨%m, %Hz2, Hm⟩
-    simp only
+    wp_auto
+    ihave Hivt := Hback $$ [Hp0v]
+    · iapply BigSepL.bigSepL_singleton.2; iexact Hp0v
     rw [Hz2]
     wp_auto
     have HS : mvcc.membersBy W (·.covers key) = mvcc.ivlMembers W z.1 := by
@@ -250,10 +254,14 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
   have HpsLen : ps.length = St.length := Hlen
   ihave HI : iprop(∃ (j : w64) (itv : Loc),
       "i" ∷ i_ptr ↦ j ∗ "item" ∷ item_ptr ↦ itv ∗ "ret" ∷ ret_ptr ↦ mret ∗
-      "Hps" ∷ ivs ↦* ps ∗ "HSt" ∷ ([∗list] z ∈ St, mvcc.rangeSet W z) ∗
+      "Hps" ∷ ivs ↦* ps ∗
+      "Hpts" ∷ ([∗list] x ∈ ps.zip St, x.1 ↦{DFrac.own 1}
+        ({ Ivl' := adt.affIvl x.2.1.1 x.2.1.2, Val' := x.2.2 } :
+          go_etcd_io.etcd.pkg.v3.adt.IntervalValue)) ∗
+      "HSt" ∷ ([∗list] z ∈ St, mvcc.rangeSet W z) ∗
       "Hret" ∷ mvcc.ownWatcherSet mret
         (mvcc.coverUpTo W key ((St.take (sint.nat j)).map Prod.fst)) ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ St.length⌝) $$ [i item ret Hps HSt Hret]
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ St.length⌝) $$ [i item ret Hps Hpts HSt Hret]
   · have h0' : (List.take (sint.nat (W64 0)) St).map Prod.fst = [] := by simp
     iexists W64 0, _
     simp only [named]
@@ -274,12 +282,15 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
     · iframe Hps; ipureintro; exact hpj
     have hzip : (ps.zip St)[sint.nat j]? = some (pj, zj) := by
       rw [List.getElem?_zip_eq_some]; exact ⟨hpj, hzj⟩
-    icases (BigSepL.bigSepL_lookup_acc hzip).1 $$ Hpts with ⟨⟨%Hpn, #Hpv⟩, -⟩
-    icases mvcc.iv_split pj _ _ $$ Hpv with ⟨-, #Hval⟩
+    icases (BigSepL.bigSepL_lookup_acc hzip).1 $$ Hpts with ⟨Hpv, Hpts⟩
     icases (BigSepL.bigSepL_lookup_acc hzj).1 $$ HSt with ⟨Hz, HSt⟩
     iunfold mvcc.rangeSet at Hz
     icases Hz with ⟨%m, %Hz2, Hm⟩
     wp_auto
+    ihave Hpts := Hpts $$ Hpv
+    have hsetz : (ps.zip St).set (sint.nat j) (pj, zj) = ps.zip St := by
+      obtain ⟨h, h'⟩ := List.getElem?_eq_some_iff.1 hzip; rw [← h']; exact List.set_getElem_self h
+    rw [hsetz]
     rw [Hz2]
     wp_auto
     wp_method_call
@@ -323,6 +334,7 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
   · have hjl : sint.nat j = St.length := by
       have := Hsl.1; rw [HpsLen] at this; word
     rw [hjl, List.take_length, Hcov]
+    ihave Hivt := Hback $$ Hpts
     iapply HΦ
     isplitl [Hret]
     · iunfold mvcc.ownWatcherSetOpt; iright; iexact Hret

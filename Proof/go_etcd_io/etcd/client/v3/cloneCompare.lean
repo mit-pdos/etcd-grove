@@ -30,7 +30,7 @@ theorem cloneCompare.wp_proof (wp_Clone : proto.Clone.spec (GF := GF) (hG := hG)
   wp_auto
   simp only [Hnn, decide_false]
   wp_auto
-  wp_apply wp_Clone $$ [$Hp] as %p' ⟨%Hnn', Hown⟩
+  wp_apply wp_Clone.1 $$ [$Hp] as %p' ⟨%Hnn', Hown⟩
   · iframe %
   iapply HΦ
   iframe

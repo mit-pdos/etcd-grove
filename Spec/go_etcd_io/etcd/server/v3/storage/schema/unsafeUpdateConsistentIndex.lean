@@ -25,11 +25,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- `unsafeUpdateConsistentIndex(tx, index, term, allowDecreasing)` writes `index` (if not 0)
 and `term` (if not 0) to the meta keys of the batch transaction `tx`. Unless
 `allowDecreasing`, it first checks, under `ETCD_VERIFY`, that `index` is not below the stored
-index (`verify.Verify`, which panics otherwise): the precondition says the check passes. -/
+index (`verify.Verify`, which panics otherwise): the precondition says the check passes. Each
+put spends its token (`PTi`, `PTt`; 2026-10-13). -/
 abbrev schema.unsafeUpdateConsistentIndex.spec : Prop :=
-  ∀ (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (m : MetaCI) (index term : w64)
+  ∀ (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF) (m : MetaCI) (index term : w64)
     (allowDecreasing : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ metaWriter tx TM ∗ TM m ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt ∗
       ⌜allowDecreasing = false → index ≠ W64 0 → uint.Z m.1 ≤ uint.Z index⌝ }}
     (App (App (App (App (Val (@! schema.unsafeUpdateConsistentIndex)) (Val #(GoInterface.ok tx)))
       (Val #index)) (Val #term)) (Val #allowDecreasing))

@@ -34,6 +34,7 @@ abbrev txn.newTxnResp.spec : Prop :=
     (App (App (Val (@! txn.newTxnResp)) (Val #rt)) (Val #pl))
   {{ (resp : Loc) (n : w64), RET (PairV #resp #n);
       txn.txnSkel s0 resp (txn.txnOk s0 t) (t.branch (txn.txnOk s0 t)) ∗
+      txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
       ⌜n = W64 (txn.nestedCount s0 t : Int)⌝ }}
 
 end spec

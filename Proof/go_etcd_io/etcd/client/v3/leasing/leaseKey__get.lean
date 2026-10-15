@@ -29,6 +29,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
@@ -226,7 +227,7 @@ theorem leaseKey.get.wp_proof
                   first | (intro hh; exact absurd hz hh) | (intro hh; exact absurd hz2 hh) |
                     (intro hh; omega)
               rw [show getResult o e = some (if o.keysOnly then { c.kv with value := [] } else c.kv) by
-                unfold getResult; rw [hk, if_neg hge]; rfl]
+                unfold getResult; rw [hk, ite_eq_right hge]; rfl]
               simp only [List.map_cons, List.map_nil, Hc'.2, Option.toList_some]
             · rw [decide_eq_false hz2]
               wp_auto
@@ -310,7 +311,7 @@ theorem leaseKey.get.wp_proof
                     first | (intro hh; exact absurd hz hh) | (intro hh; exact absurd hz2 hh) |
                       (intro hh; omega)
                 rw [show getResult o e = some (if o.keysOnly then { c.kv with value := [] } else c.kv) by
-                  unfold getResult; rw [hk, if_neg hge]; rfl]
+                  unfold getResult; rw [hk, ite_eq_right hge]; rfl]
                 simp only [List.map_cons, List.map_nil, Hc'.2, Option.toList_some]
         · rw [decide_eq_false hz]
           wp_auto
@@ -438,7 +439,7 @@ theorem leaseKey.get.wp_proof
                     first | (intro hh; exact absurd hz hh) | (intro hh; exact absurd hz2 hh) |
                       (intro hh; omega)
                 rw [show getResult o e = some (if o.keysOnly then { c.kv with value := [] } else c.kv) by
-                  unfold getResult; rw [hk, if_neg hge]; rfl]
+                  unfold getResult; rw [hk, ite_eq_right hge]; rfl]
                 simp only [List.map_cons, List.map_nil, Hc'.2, Option.toList_some]
               · rw [decide_eq_false hz2]
                 wp_auto
@@ -522,7 +523,7 @@ theorem leaseKey.get.wp_proof
                       first | (intro hh; exact absurd hz hh) | (intro hh; exact absurd hz2 hh) |
                         (intro hh; omega)
                   rw [show getResult o e = some (if o.keysOnly then { c.kv with value := [] } else c.kv) by
-                    unfold getResult; rw [hk, if_neg hge]; rfl]
+                    unfold getResult; rw [hk, ite_eq_right hge]; rfl]
                   simp only [List.map_cons, List.map_nil, Hc'.2, Option.toList_some]
     · wp_auto
       ihave Hkvs : ([∗list] c ∈ c :: cs, cachedKvOwn c dq2) $$ [HcK HcC HcM HcV HcVal HcL Hcs]

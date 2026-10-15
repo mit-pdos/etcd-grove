@@ -1,0 +1,61 @@
+/-
+Proof of the spec of the same name (unit P3b). Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
+  go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+theorem v3rpc.quotaKVServer.Put.wp_proof
+    (wp_check : v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG)) :
+    v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG) := by
+  intro Req Rep Spec q s kv E ρ S m Φ' ci cd r
+  wp_start_folded as ⟨#Hq, #Hh, #Hsrv, #HNR, HS, Hlt, Hard, #Hctx, #Hrc, #Hr, HSpec⟩
+  rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaKVServer.ty) (m := go!"Put")]
+  wp_call
+  iunfold v3rpc.quotaKVServerAt at Hq
+  icases Hq with ⟨%Hqn, #Hkv, #Hqa⟩
+  wp_auto
+  wp_apply wp_check _ s E ρ ci cd r (go.GoType.PointerType etcdserverpb.PutRequest.ty) (Or.inl rfl)
+    $$ [Hlt Hard] as %err ⟨Hlt, Hard⟩
+  · iframe; iframe #
+  cases err with
+  | ok ei =>
+    wp_auto
+    iapply HΦ
+    iframe
+    iintro %Hc
+    cases Hc
+  | nil =>
+    wp_auto
+    iunfold grpcHandlerOk at Hh
+    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS HSpec] as %resp %err' ⟨HS, Hres⟩
+    · iframe; iframe #
+    iapply HΦ
+    iframe
+
+end proof
+
+end EtcdGrove
+end Perennial

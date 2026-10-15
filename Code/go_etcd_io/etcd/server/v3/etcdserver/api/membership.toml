@@ -1,6 +1,12 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly"]
-imports = ["!*"]
+# Types (with the packages of `RaftCluster`'s and `Member`'s field types imported), the
+# server's helpers `ShouldApplyV3`, `ApplyBoth`, `ApplyV2storeOnly`, and the request path's
+# `RaftCluster.ID`, `RaftCluster.Members` with what it calls (unit P1b, 2026-10-14) with bodies;
+# the rest names only.
+translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluster.ID",
+  "RaftCluster.Members", "Member.Clone", "MembersByID.Len", "MembersByID.Less", "MembersByID.Swap",
+  # the mutex's methods, promoted through the embedded `sync.Mutex` (`MethodUnfold` wrappers)
+  "RaftCluster.Lock", "RaftCluster.Unlock"]
+imports = ["!*", "sort", "sync", "go.uber.org/zap", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

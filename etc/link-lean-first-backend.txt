@@ -1,0 +1,118 @@
+# etcd's backend (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --backend`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The trust boundary: bbolt's key-value contract (Spec/go_etcd_io/bbolt/*_kv*.lean, axioms over
+# InvBbolt's axiomatized predicates); `sort.Stable` (Perennial translates it, proves only
+# `sort.Sort`); `verify.Assert`/`Verify` and verify.go's lock checks `ValidateCalled*` (names-only:
+# they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
+# constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
+# `New`/`NewDefaultBackend`/`newBackend` are not listed: bbolt's `Options` is an axiomatized type
+# (Perennial's `os.FileMode`), so the constructor is unproved.
+ValidateCalledInsideApply:
+ValidateCalledInsideUnittest:
+ValidateCalledOutSideApply:
+bbolt_Bucket__Cursor_kvr:
+bbolt_Bucket__Cursor_kvw:
+bbolt_Bucket__Delete_kv:
+bbolt_Bucket__Put_kv:
+bbolt_Cursor__Next_kv:
+bbolt_Cursor__Seek_kv:
+bbolt_DB__Begin_kv:
+bbolt_DB__Close_kv:
+bbolt_DB__Info_kv:
+bbolt_DB__Stats_kv:
+bbolt_Tx__Bucket_kvr:
+bbolt_Tx__Bucket_kvw:
+bbolt_Tx__Commit_kv:
+bbolt_Tx__CreateBucketIfNotExists_kv:
+bbolt_Tx__DB_kv:
+bbolt_Tx__DeleteBucket_kv:
+bbolt_Tx__Rollback_kv:
+bbolt_Tx__Size_kv:
+bbolt_Tx__Stats_kv:
+sort_Sort:
+sort_Stable:
+time_Duration__Seconds:
+verify_Assert:
+verify_Verify:
+zap_Error:
+zap_Logger__Fatal:
+zap_Stack:
+zap_Stringer:
+NewHooks: hooks__OnPreCommitUnsafe
+backend__BatchTx: 
+backend__Close: bbolt_DB__Close_kv
+backend__Commits: 
+backend__ConcurrentReadTx: txReadBuffer__unsafeCopy
+backend__ForceCommit: batchTxBuffered__Commit
+backend__LockForSafeRangeDelete: 
+backend__OpenReadTxN: 
+backend__ReadTx: 
+backend__SetTxPostLockInsideApplyHook: batchTx__lock batchTxBuffered__Unlock
+backend__Size: 
+backend__SizeInUse: 
+backend__UnlockForSafeRangeDelete: 
+backend__begin: backend__unsafeBegin bbolt_Tx__Size_kv bbolt_Tx__DB_kv bbolt_DB__Stats_kv bbolt_DB__Info_kv
+backend__run: batchTx__safePending batchTx__lock batchTxBuffered__commit batchTx__Unlock batchTxBuffered__CommitAndStop
+backend__unsafeBegin: bbolt_DB__Begin_kv zap_Error zap_Logger__Fatal
+baseReadTx__UnsafeRange: txReadBuffer__Range bbolt_Tx__Bucket_kvr bbolt_Bucket__Cursor_kvr unsafeRange
+batchTxBuffered__Commit: batchTx__lock batchTxBuffered__commit batchTx__Unlock
+batchTxBuffered__CommitAndStop: batchTx__lock batchTxBuffered__commit batchTx__Unlock
+batchTxBuffered__Lock: batchTx__Lock
+batchTxBuffered__LockInsideApply: batchTx__LockInsideApply
+batchTxBuffered__LockOutsideApply: batchTx__LockOutsideApply
+batchTxBuffered__Unlock: readTx__Lock txWriteBuffer__writeback readTx__Unlock batchTxBuffered__commit batchTx__Unlock
+batchTxBuffered__UnsafeCreateBucket: batchTx__UnsafeCreateBucket
+batchTxBuffered__UnsafeDelete: batchTx__UnsafeDelete
+batchTxBuffered__UnsafeDeleteBucket: batchTx__UnsafeDeleteBucket
+batchTxBuffered__UnsafePut: batchTx__UnsafePut txWriteBuffer__put
+batchTxBuffered__UnsafeRange: batchTx__UnsafeRange
+batchTxBuffered__UnsafeSeqPut: batchTx__UnsafeSeqPut txWriteBuffer__putSeq
+batchTxBuffered__commit: readTx__Lock batchTxBuffered__unsafeCommit readTx__Unlock
+batchTxBuffered__unsafeCommit: bbolt_Tx__Rollback_kv readTx__reset batchTx__commit backend__begin
+batchTx__Lock: ValidateCalledInsideUnittest batchTx__lock
+batchTx__LockInsideApply: batchTx__lock ValidateCalledInsideApply
+batchTx__LockOutsideApply: ValidateCalledOutSideApply batchTx__lock
+batchTx__Unlock: 
+batchTx__UnsafeCreateBucket: bbolt_Tx__CreateBucketIfNotExists_kv zap_Stringer zap_Error zap_Logger__Fatal
+batchTx__UnsafeDelete: bbolt_Tx__Bucket_kvw zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Delete_kv zap_Error
+batchTx__UnsafeDeleteBucket: bbolt_Tx__DeleteBucket_kv zap_Stringer zap_Error zap_Logger__Fatal
+batchTx__UnsafePut: batchTx__unsafePut
+batchTx__UnsafeRange: bbolt_Tx__Bucket_kvw zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Cursor_kvw unsafeRange
+batchTx__UnsafeSeqPut: batchTx__unsafePut
+batchTx__commit: bbolt_Tx__Commit_kv bbolt_Tx__Stats_kv time_Duration__Seconds zap_Error zap_Logger__Fatal backend__begin
+batchTx__lock: 
+batchTx__safePending: 
+batchTx__unsafePut: bbolt_Tx__Bucket_kvw zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Put_kv zap_Error
+bucketBuffer__CopyUsed: verify_Assert
+bucketBuffer__ForEach: 
+bucketBuffer__Len: 
+bucketBuffer__Less: 
+bucketBuffer__Range: 
+bucketBuffer__Swap: 
+bucketBuffer__add: 
+bucketBuffer__dedupe: sort_Stable bucketBuffer__Len bucketBuffer__Less bucketBuffer__Swap
+bucketBuffer__merge: bucketBuffer__add bucketBuffer__dedupe
+concurrentReadTx__Lock: 
+concurrentReadTx__RLock: 
+concurrentReadTx__RUnlock: 
+concurrentReadTx__Unlock: 
+concurrentReadTx__UnsafeRange: baseReadTx__UnsafeRange
+hooks__OnPreCommitUnsafe: 
+newBucketBuffer: 
+readTx__Lock: 
+readTx__RLock: 
+readTx__RUnlock: 
+readTx__Unlock: 
+readTx__UnsafeRange: baseReadTx__UnsafeRange
+readTx__reset: txReadBuffer__reset
+txBuffer__reset: 
+txReadBuffer__ForEach: bucketBuffer__ForEach
+txReadBuffer__Range: bucketBuffer__Range
+txReadBuffer__reset: txBuffer__reset
+txReadBuffer__unsafeCopy: bucketBuffer__CopyUsed
+txWriteBuffer__put: txWriteBuffer__putInternal
+txWriteBuffer__putInternal: newBucketBuffer bucketBuffer__add
+txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
+txWriteBuffer__reset: txBuffer__reset
+txWriteBuffer__writeback: bucketBuffer__dedupe sort_Sort bucketBuffer__Len bucketBuffer__Less bucketBuffer__Swap bucketBuffer__merge txWriteBuffer__reset
+unsafeRange: bbolt_Cursor__Seek_kv bbolt_Cursor__Next_kv

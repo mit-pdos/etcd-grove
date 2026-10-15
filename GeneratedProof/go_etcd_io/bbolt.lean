@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.bbolt.internal.common
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.bbolt
 
@@ -26,12 +28,135 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.bbolt.Assumptions]
 
 instance Bucket_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.Bucket :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.bbolt.Bucket where
+  typedPointstoDef l v dq := iprop(
+    "InBucket" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" l) v.InBucket' dq ∗
+    "tx" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" l) v.tx' dq ∗
+    "buckets" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" l) v.buckets' dq ∗
+    "page" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" l) v.page' dq ∗
+    "rootNode" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" l) v.rootNode' dq ∗
+    "nodes" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes" l) v.nodes' dq ∗
+    "FillPercent" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" l) v.FillPercent' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Bucket_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.Bucket go_etcd_io.bbolt.Bucket.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.Bucket go_etcd_io.bbolt.Bucket.underlying := by
+  solve_into_val_typed_struct
+
+instance Bucket_access_load_InBucket (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" l) v.InBucket' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" l) v.InBucket' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_store_InBucket (l : Loc) (v : go_etcd_io.bbolt.Bucket) (InBucket' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" l) v.InBucket' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" l) InBucket' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InBucket' := InBucket' } : go_etcd_io.bbolt.Bucket) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_load_tx (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" l) v.tx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" l) v.tx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_store_tx (l : Loc) (v : go_etcd_io.bbolt.Bucket) (tx' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" l) v.tx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" l) tx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tx' := tx' } : go_etcd_io.bbolt.Bucket) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_load_buckets (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" l) v.buckets' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" l) v.buckets' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_store_buckets (l : Loc) (v : go_etcd_io.bbolt.Bucket) (buckets' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" l) v.buckets' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" l) buckets' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buckets' := buckets' } : go_etcd_io.bbolt.Bucket) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_load_page (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" l) v.page' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" l) v.page' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_store_page (l : Loc) (v : go_etcd_io.bbolt.Bucket) (page' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" l) v.page' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" l) page' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with page' := page' } : go_etcd_io.bbolt.Bucket) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_load_rootNode (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" l) v.rootNode' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" l) v.rootNode' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_store_rootNode (l : Loc) (v : go_etcd_io.bbolt.Bucket) (rootNode' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" l) v.rootNode' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" l) rootNode' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rootNode' := rootNode' } : go_etcd_io.bbolt.Bucket) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_load_nodes (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes" l) v.nodes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes" l) v.nodes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_store_nodes (l : Loc) (v : go_etcd_io.bbolt.Bucket) (nodes' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes" l) v.nodes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes" l) nodes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nodes' := nodes' } : go_etcd_io.bbolt.Bucket) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_load_FillPercent (l : Loc) (v : go_etcd_io.bbolt.Bucket) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" l) v.FillPercent' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" l) v.FillPercent' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Bucket_access_store_FillPercent (l : Loc) (v : go_etcd_io.bbolt.Bucket) (FillPercent' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" l) v.FillPercent' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" l) FillPercent' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FillPercent' := FillPercent' } : go_etcd_io.bbolt.Bucket) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Bucket
@@ -420,12 +545,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.bbolt.Assumptions]
 
 instance elemRef_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.elemRef :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.bbolt.elemRef where
+  typedPointstoDef l v dq := iprop(
+    "page" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"page" l) v.page' dq ∗
+    "node" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"node" l) v.node' dq ∗
+    "index" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"index" l) v.index' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance elemRef_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.elemRef go_etcd_io.bbolt.elemRef.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.elemRef go_etcd_io.bbolt.elemRef.underlying := by
+  solve_into_val_typed_struct
+
+instance elemRef_access_load_page (l : Loc) (v : go_etcd_io.bbolt.elemRef) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"page" l) v.page' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"page" l) v.page' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance elemRef_access_store_page (l : Loc) (v : go_etcd_io.bbolt.elemRef) (page' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"page" l) v.page' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"page" l) page' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with page' := page' } : go_etcd_io.bbolt.elemRef) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance elemRef_access_load_node (l : Loc) (v : go_etcd_io.bbolt.elemRef) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"node" l) v.node' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"node" l) v.node' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance elemRef_access_store_node (l : Loc) (v : go_etcd_io.bbolt.elemRef) (node' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"node" l) v.node' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"node" l) node' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := node' } : go_etcd_io.bbolt.elemRef) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance elemRef_access_load_index (l : Loc) (v : go_etcd_io.bbolt.elemRef) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"index" l) v.index' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance elemRef_access_store_index (l : Loc) (v : go_etcd_io.bbolt.elemRef) (index' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"index" l) v.index' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.elemRef go!"index" l) index' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := index' } : go_etcd_io.bbolt.elemRef) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end elemRef
@@ -593,12 +773,220 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.bbolt.Assumptions]
 
 instance TxStats_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.TxStats :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.bbolt.TxStats where
+  typedPointstoDef l v dq := iprop(
+    "PageCount" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageCount" l) v.PageCount' dq ∗
+    "PageAlloc" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageAlloc" l) v.PageAlloc' dq ∗
+    "CursorCount" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"CursorCount" l) v.CursorCount' dq ∗
+    "NodeCount" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeCount" l) v.NodeCount' dq ∗
+    "NodeDeref" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeDeref" l) v.NodeDeref' dq ∗
+    "Rebalance" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Rebalance" l) v.Rebalance' dq ∗
+    "RebalanceTime" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) v.RebalanceTime' dq ∗
+    "Split" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Split" l) v.Split' dq ∗
+    "Spill" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Spill" l) v.Spill' dq ∗
+    "SpillTime" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) v.SpillTime' dq ∗
+    "Write" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Write" l) v.Write' dq ∗
+    "WriteTime" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) v.WriteTime' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance TxStats_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.TxStats go_etcd_io.bbolt.TxStats.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.TxStats go_etcd_io.bbolt.TxStats.underlying := by
+  solve_into_val_typed_struct
+
+instance TxStats_access_load_PageCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageCount" l) v.PageCount' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageCount" l) v.PageCount' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_PageCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (PageCount' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageCount" l) v.PageCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageCount" l) PageCount' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageCount' := PageCount' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_PageAlloc (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageAlloc" l) v.PageAlloc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageAlloc" l) v.PageAlloc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_PageAlloc (l : Loc) (v : go_etcd_io.bbolt.TxStats) (PageAlloc' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageAlloc" l) v.PageAlloc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"PageAlloc" l) PageAlloc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageAlloc' := PageAlloc' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_CursorCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"CursorCount" l) v.CursorCount' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"CursorCount" l) v.CursorCount' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_CursorCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (CursorCount' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"CursorCount" l) v.CursorCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"CursorCount" l) CursorCount' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CursorCount' := CursorCount' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_NodeCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeCount" l) v.NodeCount' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeCount" l) v.NodeCount' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_NodeCount (l : Loc) (v : go_etcd_io.bbolt.TxStats) (NodeCount' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeCount" l) v.NodeCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeCount" l) NodeCount' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeCount' := NodeCount' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_NodeDeref (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeDeref" l) v.NodeDeref' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeDeref" l) v.NodeDeref' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_NodeDeref (l : Loc) (v : go_etcd_io.bbolt.TxStats) (NodeDeref' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeDeref" l) v.NodeDeref' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"NodeDeref" l) NodeDeref' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeDeref' := NodeDeref' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_Rebalance (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Rebalance" l) v.Rebalance' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Rebalance" l) v.Rebalance' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_Rebalance (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Rebalance' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Rebalance" l) v.Rebalance' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Rebalance" l) Rebalance' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rebalance' := Rebalance' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_RebalanceTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) v.RebalanceTime' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) v.RebalanceTime' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_RebalanceTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (RebalanceTime' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) v.RebalanceTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) RebalanceTime' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RebalanceTime' := RebalanceTime' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_Split (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Split" l) v.Split' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Split" l) v.Split' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_Split (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Split' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Split" l) v.Split' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Split" l) Split' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Split' := Split' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_Spill (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Spill" l) v.Spill' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Spill" l) v.Spill' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_Spill (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Spill' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Spill" l) v.Spill' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Spill" l) Spill' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spill' := Spill' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_SpillTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) v.SpillTime' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) v.SpillTime' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_SpillTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (SpillTime' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) v.SpillTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) SpillTime' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SpillTime' := SpillTime' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_Write (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Write" l) v.Write' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Write" l) v.Write' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_Write (l : Loc) (v : go_etcd_io.bbolt.TxStats) (Write' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Write" l) v.Write' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"Write" l) Write' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Write' := Write' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_load_WriteTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) v.WriteTime' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) v.WriteTime' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxStats_access_store_WriteTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (WriteTime' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) v.WriteTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) WriteTime' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WriteTime' := WriteTime' } : go_etcd_io.bbolt.TxStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end TxStats
@@ -830,12 +1218,169 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.bbolt.Assumptions]
 
 instance node_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.node :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.bbolt.node where
+  typedPointstoDef l v dq := iprop(
+    "bucket" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"bucket" l) v.bucket' dq ∗
+    "isLeaf" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"isLeaf" l) v.isLeaf' dq ∗
+    "unbalanced" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"unbalanced" l) v.unbalanced' dq ∗
+    "spilled" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"spilled" l) v.spilled' dq ∗
+    "key" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"key" l) v.key' dq ∗
+    "pgid" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"pgid" l) v.pgid' dq ∗
+    "parent" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"parent" l) v.parent' dq ∗
+    "children" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"children" l) v.children' dq ∗
+    "inodes" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"inodes" l) v.inodes' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance node_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.node go_etcd_io.bbolt.node.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.node go_etcd_io.bbolt.node.underlying := by
+  solve_into_val_typed_struct
+
+instance node_access_load_bucket (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"bucket" l) v.bucket' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"bucket" l) v.bucket' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_bucket (l : Loc) (v : go_etcd_io.bbolt.node) (bucket' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"bucket" l) v.bucket' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"bucket" l) bucket' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bucket' := bucket' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_isLeaf (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"isLeaf" l) v.isLeaf' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"isLeaf" l) v.isLeaf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_isLeaf (l : Loc) (v : go_etcd_io.bbolt.node) (isLeaf' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"isLeaf" l) v.isLeaf' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"isLeaf" l) isLeaf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isLeaf' := isLeaf' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_unbalanced (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"unbalanced" l) v.unbalanced' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"unbalanced" l) v.unbalanced' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_unbalanced (l : Loc) (v : go_etcd_io.bbolt.node) (unbalanced' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"unbalanced" l) v.unbalanced' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"unbalanced" l) unbalanced' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unbalanced' := unbalanced' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_spilled (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"spilled" l) v.spilled' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"spilled" l) v.spilled' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_spilled (l : Loc) (v : go_etcd_io.bbolt.node) (spilled' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"spilled" l) v.spilled' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"spilled" l) spilled' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with spilled' := spilled' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_key (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"key" l) v.key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_key (l : Loc) (v : go_etcd_io.bbolt.node) (key' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"key" l) v.key' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"key" l) key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_pgid (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"pgid" l) v.pgid' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"pgid" l) v.pgid' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.node) (pgid' : go_etcd_io.bbolt.internal.common.Pgid) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"pgid" l) v.pgid' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"pgid" l) pgid' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pgid' := pgid' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_parent (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"parent" l) v.parent' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"parent" l) v.parent' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_parent (l : Loc) (v : go_etcd_io.bbolt.node) (parent' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"parent" l) v.parent' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"parent" l) parent' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := parent' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_children (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"children" l) v.children' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"children" l) v.children' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_children (l : Loc) (v : go_etcd_io.bbolt.node) (children' : go_etcd_io.bbolt.nodes) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"children" l) v.children' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"children" l) children' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with children' := children' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_load_inodes (l : Loc) (v : go_etcd_io.bbolt.node) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"inodes" l) v.inodes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"inodes" l) v.inodes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance node_access_store_inodes (l : Loc) (v : go_etcd_io.bbolt.node) (inodes' : go_etcd_io.bbolt.internal.common.Inodes) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"inodes" l) v.inodes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"inodes" l) inodes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with inodes' := inodes' } : go_etcd_io.bbolt.node) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end node
@@ -849,12 +1394,169 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.bbolt.Assumptions]
 
 instance Tx_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.Tx :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.bbolt.Tx where
+  typedPointstoDef l v dq := iprop(
+    "writable" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"writable" l) v.writable' dq ∗
+    "managed" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"managed" l) v.managed' dq ∗
+    "db" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" l) v.db' dq ∗
+    "meta'" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" l) v.meta' dq ∗
+    "root" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"root" l) v.root' dq ∗
+    "pages" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"pages" l) v.pages' dq ∗
+    "stats" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"stats" l) v.stats' dq ∗
+    "commitHandlers" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"commitHandlers" l) v.commitHandlers' dq ∗
+    "WriteFlag" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"WriteFlag" l) v.WriteFlag' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Tx_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.Tx go_etcd_io.bbolt.Tx.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.Tx go_etcd_io.bbolt.Tx.underlying := by
+  solve_into_val_typed_struct
+
+instance Tx_access_load_writable (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"writable" l) v.writable' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"writable" l) v.writable' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_writable (l : Loc) (v : go_etcd_io.bbolt.Tx) (writable' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"writable" l) v.writable' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"writable" l) writable' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writable' := writable' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_managed (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"managed" l) v.managed' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"managed" l) v.managed' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_managed (l : Loc) (v : go_etcd_io.bbolt.Tx) (managed' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"managed" l) v.managed' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"managed" l) managed' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with managed' := managed' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_db (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" l) v.db' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" l) v.db' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_db (l : Loc) (v : go_etcd_io.bbolt.Tx) (db' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" l) v.db' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" l) db' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with db' := db' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_meta (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" l) v.meta' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" l) v.meta' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_meta (l : Loc) (v : go_etcd_io.bbolt.Tx) (meta' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" l) v.meta' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" l) meta' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with meta' := meta' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_root (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"root" l) v.root' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"root" l) v.root' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_root (l : Loc) (v : go_etcd_io.bbolt.Tx) (root' : go_etcd_io.bbolt.Bucket) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"root" l) v.root' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"root" l) root' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := root' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_pages (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"pages" l) v.pages' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"pages" l) v.pages' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_pages (l : Loc) (v : go_etcd_io.bbolt.Tx) (pages' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"pages" l) v.pages' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"pages" l) pages' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pages' := pages' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_stats (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"stats" l) v.stats' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"stats" l) v.stats' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_stats (l : Loc) (v : go_etcd_io.bbolt.Tx) (stats' : go_etcd_io.bbolt.TxStats) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"stats" l) v.stats' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"stats" l) stats' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stats' := stats' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_commitHandlers (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"commitHandlers" l) v.commitHandlers' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"commitHandlers" l) v.commitHandlers' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_commitHandlers (l : Loc) (v : go_etcd_io.bbolt.Tx) (commitHandlers' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"commitHandlers" l) v.commitHandlers' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"commitHandlers" l) commitHandlers' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with commitHandlers' := commitHandlers' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_load_WriteFlag (l : Loc) (v : go_etcd_io.bbolt.Tx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"WriteFlag" l) v.WriteFlag' dq)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"WriteFlag" l) v.WriteFlag' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Tx_access_store_WriteFlag (l : Loc) (v : go_etcd_io.bbolt.Tx) (WriteFlag' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"WriteFlag" l) v.WriteFlag' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"WriteFlag" l) WriteFlag' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WriteFlag' := WriteFlag' } : go_etcd_io.bbolt.Tx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Tx

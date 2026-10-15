@@ -1,0 +1,9 @@
+# Types and names only (unit P3a): the type `Peer` of the variable the client's retry
+# interceptor passes to grpc's `Peer` call option and formats in its warning (`Peer.String`, names
+# only: an axiom, `Spec/google_golang_org/grpc/peer/Peer__String.lean`); its fields' types are
+# `net.Addr` (hence the import of `net`, names only) and `credentials.AuthInfo`.
+translate = ["!*"]
+imports = ["!*", "net", "google.golang.org/grpc/credentials"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

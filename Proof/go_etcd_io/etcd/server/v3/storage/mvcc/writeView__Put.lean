@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -33,33 +34,44 @@ theorem mvcc.writeView.Put.wp_proof
     (hPut : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
-  intro wv s γ key value k v leaseID
-  wp_start as ⟨#Hwv, Hrd, Htok, #Hkey, #Hval, Hlease⟩
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
+  intro wv s γ P Pre Q Post f key value k v leaseID L
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hkey, #Hval, Hown, %Hlease⟩
+  have hpm := mvcc.putMax_ge γ
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
-  -- `wv.kv.Write(trace)`
-  wp_apply (hWrite s γ t) $$ [$Hs $Hrd $Htok] as %mw ⟨%ilog, Htx⟩
+  -- `wv.kv.Write(t)`
+  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc]
+    as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   -- `tw.Put(key, value, lease)`
-  wp_apply (hPut mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID)
-    $$ [$Htx $Hkey $Hval $Hlease] as Htx
-  · ipureintro; simp
+  wp_apply (hPut t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID L)
+    $$ [$Htx $Hkey $Hval $Hown] as ⟨Htx, Hown⟩
+  · ipureintro; refine ⟨Hlease, ?_⟩; simp; omega
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]
-  ihave Htx' : mvcc.isTxn mw s γ (.write ilog [.put k v leaseID] (W64 0 + W64 1) (W64 0)
+  ihave Htx' : mvcc.isTxn mw s γ t (.write ilog [.put k v leaseID] (W64 0 + W64 1) (W64 0)
       (W64 0 + (key.len + value.len))) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  wp_apply (hEnd mw s γ _) $$ [$Htx'] as ⟨Hrd, Hcert⟩
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
+  -- the caller's update: the lock's invariant back for `Unlock`
+  imod Hupd $$ HQ with ⟨HP, HPost⟩
+  wp_apply (hEnd t mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert, -⟩
   (try wp_auto)
+  · iapply mvcc.txnEndPre_write; iframe Hhook HP
   iapply HΦ
-  iframe Hrd
+  iframe Hrd HPost Hown
   iexists ilog
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
   icases Hcert with ⟨Hcert, -⟩

@@ -25,13 +25,16 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `ti.KeyIndex(keyi)` by a reader with the knowledge `kn` of the index (`idxKnows`): the
 pointer to the key index of `keyi`'s key `k` in the tree (with its key, for good), or `nil`.
 If `kn.log` gives `k` an index, it is there; with the writer's knowledge, it is there exactly
-when the writer's log gives `k` one. (`restore` uses it on its private index, out of scope.) -/
+when the writer's log gives `k` one. The reader holds a part of the compaction revision's
+authority at `-1` (no compaction: the key indexes are not compacted, `crevUB`, given back).
+(`restore` uses it on its private index, out of scope.) -/
 abbrev mvcc.treeIndex.KeyIndex.spec : Prop :=
-  ∀ (ti : Loc) (γ : mvcc.IdxNames) (kn : mvcc.IdxKnow) (keyi : Loc) (k : GoString),
+  ∀ (ti : Loc) (γ : mvcc.IdxNames) (kn : mvcc.IdxKnow) (keyi : Loc) (k : GoString) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTreeIndex ti γ ∗ mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.kiKey keyi k }}
+      mvcc.isTreeIndex ti γ ∗ mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q (-1) ∗
+      mvcc.kiKey keyi k }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"KeyIndex")) (Val #keyi))
-  {{ (p : Loc), RET #p; mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗
+  {{ (p : Loc), RET #p; mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q (-1) ∗
       (⌜p = null⌝ ∨ ⌜p ≠ null⌝ ∗ mvcc.kiKey p k) ∗
       ⌜mvcc.kiOfKey (mvcc.evsOf kn.log) k ≠ mvcc.kiEmpty → p ≠ null⌝ ∗
       ⌜∀ ilog pend, kn = .writer ilog pend → p ≠ null →

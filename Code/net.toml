@@ -1,0 +1,5 @@
+# Names only, with the interface `Addr` (unit P3a): the type of grpc's `peer.Peer`'s fields (the
+# client's retry interceptor allocates a `peer.Peer`). Function and method bodies, and the other
+# types, are axiomatized (not `translate_types`: some of net's types are cgo's).
+translate = ["!*", "Addr"]
+imports = ["!*"]

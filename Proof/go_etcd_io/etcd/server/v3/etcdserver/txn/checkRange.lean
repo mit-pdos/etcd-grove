@@ -30,7 +30,7 @@ theorem txn.checkRange.wp_proof
     (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
     (hFirst : mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG)) :
     txn.checkRange.spec (GF := GF) (hG := hG) := by
-  intro mw s γ log rev req o
+  intro trace mw s γ log rev req o
   wp_start as ⟨Htx, #Hr⟩
   ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -38,7 +38,7 @@ theorem txn.checkRange.wp_proof
   · iapply isPkgInit_access $$ Hmp
   icases Hinit with ⟨-, ⟨%ec, #Hcomp⟩, ⟨%ef, #Hfut⟩, -⟩
   iunfold txn.rangeRequestIs at Hr
-  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   have hrv : o.base.rev = rv := by subst Ho; rfl
   wp_auto
   wp_if_destruct
@@ -49,11 +49,11 @@ theorem txn.checkRange.wp_proof
     exact ⟨rfl, Or.inl (by simp_all)⟩
   · skip
     have hne : ¬ rv = W64 0 := by simpa using Hif
-    ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+    ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
-    wp_apply +noauto (hRev mw s γ (.read log rev)) $$ [$Htx] as Htx
+    wp_apply +noauto (hRev trace mw s γ (.read log rev)) $$ [$Htx] as Htx
     rw [show (mvcc.TxnKind.read log rev).beginRev = rev from rfl]
-    ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Htx]
+    ihave Htx : mvcc.isTxnRead mw s γ trace log rev $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     wp_auto
     wp_if_destruct
@@ -69,7 +69,7 @@ theorem txn.checkRange.wp_proof
     · skip
       have hle : ¬ sint.Z rev < sint.Z rv := by simpa using Hif
       have hm1 : sint.Z (W64 (-1)) = -1 := by decide
-      wp_apply (hFirst mw s γ log rev) $$ [$Htx] as Htx
+      wp_apply (hFirst trace mw s γ log rev) $$ [$Htx] as Htx
       wp_if_destruct
       · skip
         have hc : sint.Z rv < sint.Z (W64 (-1)) := by simpa using Hif

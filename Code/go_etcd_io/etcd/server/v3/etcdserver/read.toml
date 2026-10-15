@@ -1,6 +1,4 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
-
-# translate the definitions of all type declarations goose supports
-translate_types = true
+# go.etcd.io/etcd/server/v3/etcdserver/read: the linearizable read loop (read.go, util.go,
+# metrics.go), translated in full (every declaration, with bodies; the request path's unit 4a).
+translate = ["*"]
+imports = ["*"]

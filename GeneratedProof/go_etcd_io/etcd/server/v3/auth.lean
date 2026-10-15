@@ -2,6 +2,17 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.errors
+public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.adt
+public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.google_golang_org.grpc.metadata
+public import Perennial.GeneratedProof.strings
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.auth
 
@@ -87,12 +98,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 instance unifiedRangePermissions_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions where
+  typedPointstoDef l v dq := iprop(
+    "readPerms" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' dq ∗
+    "writePerms" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) v.writePerms' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance unifiedRangePermissions_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions.underlying := by
+  solve_into_val_typed_struct
+
+instance unifiedRangePermissions_access_load_readPerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance unifiedRangePermissions_access_store_readPerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (readPerms' : go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) v.readPerms' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"readPerms" l) readPerms' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readPerms' := readPerms' } : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance unifiedRangePermissions_access_load_writePerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) v.writePerms' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) v.writePerms' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance unifiedRangePermissions_access_store_writePerms (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (writePerms' : go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) v.writePerms' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions go!"writePerms" l) writePerms' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writePerms' := writePerms' } : go_etcd_io.etcd.server.v3.auth.unifiedRangePermissions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end unifiedRangePermissions
@@ -238,101 +287,6 @@ instance AuthenticateParamSimpleTokenPrefix_into_val_typed :
 end def_
 end AuthenticateParamSimpleTokenPrefix
 
-namespace AuthStore
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance AuthStore_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthStore :=
-  sorry -- axiomatized type
-
-instance AuthStore_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthStore go_etcd_io.etcd.server.v3.auth.AuthStore.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthStore
-
-namespace TokenProvider
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance TokenProvider_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.TokenProvider :=
-  sorry -- axiomatized type
-
-instance TokenProvider_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.TokenProvider go_etcd_io.etcd.server.v3.auth.TokenProvider.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end TokenProvider
-
-namespace AuthBackend
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance AuthBackend_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthBackend :=
-  sorry -- axiomatized type
-
-instance AuthBackend_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthBackend go_etcd_io.etcd.server.v3.auth.AuthBackend.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthBackend
-
-namespace UnsafeAuthReader
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance UnsafeAuthReader_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthReader :=
-  sorry -- axiomatized type
-
-instance UnsafeAuthReader_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthReader go_etcd_io.etcd.server.v3.auth.UnsafeAuthReader.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnsafeAuthReader
-
-namespace UnsafeAuthWriter
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance UnsafeAuthWriter_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthWriter :=
-  sorry -- axiomatized type
-
-instance UnsafeAuthWriter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthWriter go_etcd_io.etcd.server.v3.auth.UnsafeAuthWriter.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnsafeAuthWriter
-
 namespace authStore
 section def_
 
@@ -342,34 +296,172 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 instance authStore_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.authStore :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.authStore where
+  typedPointstoDef l v dq := iprop(
+    "revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) v.lg' dq ∗
+    "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' dq ∗
+    "enabled" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' dq ∗
+    "enabledMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' dq ∗
+    "rangePermCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' dq ∗
+    "rangePermCacheMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' dq ∗
+    "tokenProvider" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' dq ∗
+    "bcryptCost" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) v.bcryptCost' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance authStore_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.authStore go_etcd_io.etcd.server.v3.auth.authStore.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.authStore go_etcd_io.etcd.server.v3.auth.authStore.underlying := by
+  solve_into_val_typed_struct
+
+instance authStore_access_load_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (revision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) v.revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"revision" l) revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with revision' := revision' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (be' : go_etcd_io.etcd.server.v3.auth.AuthBackend) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) be' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := be' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (enabled' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) enabled' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabled' := enabled' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_enabledMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_enabledMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (enabledMu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) enabledMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabledMu' := enabledMu' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_rangePermCache (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_rangePermCache (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (rangePermCache' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) rangePermCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rangePermCache' := rangePermCache' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_rangePermCacheMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_rangePermCacheMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (rangePermCacheMu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) rangePermCacheMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rangePermCacheMu' := rangePermCacheMu' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_tokenProvider (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_tokenProvider (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (tokenProvider' : go_etcd_io.etcd.server.v3.auth.TokenProvider) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) tokenProvider' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tokenProvider' := tokenProvider' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_bcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) v.bcryptCost' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) v.bcryptCost' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_bcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (bcryptCost' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) v.bcryptCost' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" l) bcryptCost' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bcryptCost' := bcryptCost' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end authStore
-
-namespace permSlice
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance permSlice_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.permSlice :=
-  sorry -- axiomatized type
-
-instance permSlice_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.permSlice go_etcd_io.etcd.server.v3.auth.permSlice.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end permSlice
 
 end go_etcd_io.etcd.server.v3.auth
 end

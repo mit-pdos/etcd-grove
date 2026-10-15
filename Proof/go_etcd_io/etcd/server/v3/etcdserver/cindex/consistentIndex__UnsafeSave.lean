@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 theorem consistentIndex.UnsafeSave.wp_proof
     (hu : schema.UnsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG)) :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) := by
-  intro ci γ tx TM m
-  wp_start as ⟨#Hci, #Hw, HTM⟩
+  intro ci γ tx TM PTi PTt m
+  wp_start as ⟨#Hci, #Hw, HTM, HPi, HPt⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
@@ -38,7 +38,7 @@ theorem consistentIndex.UnsafeSave.wp_proof
   icases Hci with ⟨#Hinv, -⟩
   wp_auto
   -- the index: the linearization point
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM ci tx]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM HPi HPt ci tx]
   · iPkgInit
   iinv Hinv with Hi Hclose
   imod HΦ with ⟨%k, Hk, HΦ⟩
@@ -58,7 +58,7 @@ theorem consistentIndex.UnsafeSave.wp_proof
   imodintro
   wp_auto
   -- the term
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM tx index]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM HPi HPt tx index]
   · iPkgInit
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -75,8 +75,8 @@ theorem consistentIndex.UnsafeSave.wp_proof
   wp_auto
   wp_bind (App (App (App (Val (@! schema.UnsafeUpdateConsistentIndex)) (Val #(GoInterface.ok tx)))
       (Val #k)) (Val #t1))
-  iapply (hu tx TM m k t1) $$ [HTM]
-  · iframe Hsch Hw HTM
+  iapply (hu tx TM PTi PTt m k t1) $$ [HTM HPi HPt]
+  · iframe Hsch Hw HTM HPi HPt
     ipureintro; exact Hmono
   inext
   iintro HTM

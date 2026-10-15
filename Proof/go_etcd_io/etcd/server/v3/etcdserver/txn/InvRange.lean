@@ -54,8 +54,9 @@ def rangeResultIs (rr : Loc) (rev count : w64) (vs : List EtcdKv) : IProp GF :=
 /-- **What `executeRange` (and `Range`) return** for the request `o` on the read transaction of
 the committed log `log` at revision `rev`, with `withTotal`:
 * a future revision (`o.base.rev > rev`): no response, mvcc's `ErrFutureRev`;
-* the context done (mvcc's `rangeOutcome`: a full read checks `ctx.Done()`): no response and an
-  error;
+* the context done (mvcc's `rangeOutcome`: a full read checks `ctx.Done()`): no response and
+  `fmt.Errorf`'s error (`mvcc.errorfIs`: an `*errors.errorString` in Perennial's model; 2026-10-12,
+  the request path's unit 3b);
 * else a response at header revision `rev`, its key-values and `More` the server's selection
   of the state at the revision read (`rangeRev rev o.base.rev`: `srvRangeOk`), its count
   `srvCount`. -/
@@ -65,11 +66,19 @@ def rangeResult (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o
     (⌜sint.Z rev < sint.Z o.base.rev ∧ resp = null⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ o.base.countOnly = false ∧ fastKeysOnly o = false ∧
-      resp = null ∧ err ≠ GoInterface.nil⌝) ∨
+      resp = null⌝ ∗ mvcc.errorfIs err) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ err = GoInterface.nil⌝ ∗ ∃ (kvs : List EtcdKv) (more : Bool),
       rangeResponseIs resp rev kvs more
         (srvCount o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) withTotal) ∗
       ⌜srvRangeOk o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) kvs more⌝))
+
+/-- **A successful range's response header, its four id fields owned** (not persistent; beside
+the persistent `rangeResult`): if the read succeeded, `respHdrOwn` of the response's `Header`
+(`asembleRangeResponse` allocates it; the gRPC layer's `header.fill` writes the fields;
+2026-10-12, the request path's unit 3b). -/
+def rangeHdr (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ -∗
+    respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp))
 
 /-- **What `checkRange` returns** for the request `o` on a read transaction at revision `rev`
 (whose first revision is `-1`): `nil` for revision `0` or in `[-1, rev]`; mvcc's `ErrFutureRev`

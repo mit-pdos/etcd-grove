@@ -356,7 +356,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
   · have hst : (updResp cap c r).stream = c.stream := by simp [updResp, hpn]
     have hmx : (updResp cap c r).maxRev = r.hdrRev := by simp [updResp, hpn]
     rw [hst, hmx]
-    unfold respCert; rw [if_pos hpn]
+    unfold respCert; rw [ite_eq_left hpn]
     iintro ⟨#Hc, -, %Hle, #Hp⟩
     isplitr
     · ipureintro
@@ -368,7 +368,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
     · have hst : (updResp cap c r).stream = c.stream := by simp [updResp, hpn', he]
       have hmx : (updResp cap c r).maxRev = c.maxRev := by simp [updResp, hpn', he]
       rw [hst, hmx]
-      unfold respCert; rw [if_neg hpn, if_pos he]
+      unfold respCert; rw [ite_eq_right hpn, ite_eq_left he]
       iintro ⟨#Hc, #Hp, -⟩
       isplitr
       · ipureintro
@@ -384,7 +384,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
       have hmx : (updResp cap c r).maxRev = e.rev := by simp [updResp, hpn', he, updCore, he']
       obtain ⟨b, hb, hbr⟩ := splitBatches_last_rev r.events e he'
       rw [hst, hmx]
-      unfold respCert; rw [if_neg hpn, if_neg he]
+      unfold respCert; rw [ite_eq_right hpn, ite_eq_right he]
       iintro ⟨#Hc, -, #Hr⟩
       ihave %Habove := demuxBC_certChain_above C c.lastRev _ $$ Hr
       ihave #Hps := certChain_prog (C := C) c.lastRev _ $$ Hr
@@ -436,7 +436,7 @@ theorem demux.Broadcast.wp_proof
   wp_auto
   wp_if_destruct
   · -- not initialized
-    wp_apply (lc := 1) errors.wp_New as %e -
+    wp_apply (lc := 1) errors.wp_New as %e ⟨-, #HeN⟩
     imod demux_lock_release d γd cap c0 regs views $$ [Hcore HminRev HmaxRev HactF HlagF Hact
       Hlag Hhist Hres Hregs Hviews Hlc1] with HP
     · isplitr
@@ -449,11 +449,13 @@ theorem demux.Broadcast.wp_proof
     · inext; iexact HP
     have Hbc : broadcastCore cap c0 r = none := by simp [broadcastCore, Hif]
     iapply HΦ
+    isplitl []
+    · iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN
     rw [Hbc]
     dsimp only
     iframe
     ipureintro; exact ⟨Hinv, e, rfl⟩
-  · wp_apply wp_validateRevisions resp r c0.maxRev $$ [] as %verr %Hval
+  · wp_apply wp_validateRevisions resp r c0.maxRev $$ [] as %verr ⟨#HverrS, %Hval⟩
     · iexact Hresp
     cases hv : validRevisions r c0.maxRev
     · simp only [hv, Bool.false_eq_true, ↓reduceIte] at Hval
@@ -471,6 +473,8 @@ theorem demux.Broadcast.wp_proof
       · inext; iexact HP
       have Hbc : broadcastCore cap c0 r = none := by simp [broadcastCore, hv]
       iapply HΦ
+      isplitl []
+      · iexact HverrS
       rw [Hbc]
       dsimp only
       iframe
@@ -511,6 +515,8 @@ theorem demux.Broadcast.wp_proof
         · contradiction
         · simp [hv]
       iapply HΦ
+      isplitl []
+      · iapply errStrOk_nil
       rw [Hbc]
       dsimp only
       iframe

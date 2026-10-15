@@ -2,6 +2,7 @@
 module
 
 public import EtcdDeps.Code.go_etcd_io.raft.v3.raftpb
+public import Perennial.Code.context
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -199,8 +200,6 @@ attribute [irreducible] entryPayloadSize.ty
 
 axiom DefaultLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom Node.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom lockedRand.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom raft.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -215,7 +214,8 @@ axiom SnapshotFinish [FfiSyntax] [GoGlobalContext] : val
 
 axiom SnapshotFailure [FfiSyntax] [GoGlobalContext] : val
 
-axiom None' [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def None' [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 0)
 
 axiom LocalAppendThread [FfiSyntax] [GoGlobalContext] : val
 
@@ -225,7 +225,8 @@ axiom StateFollower [FfiSyntax] [GoGlobalContext] : val
 
 axiom StateCandidate [FfiSyntax] [GoGlobalContext] : val
 
-axiom StateLeader [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StateLeader [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 2)
 
 axiom StatePreCandidate [FfiSyntax] [GoGlobalContext] : val
 
@@ -269,8 +270,6 @@ axiom raftLogger.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def emptyState [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.emptyState"
-
-axiom emptyState.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def ErrStopped [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.ErrStopped"
@@ -547,8 +546,40 @@ noncomputable def assertConfStatesEquivalent [FfiSyntax] [GoGlobalContext] : GoS
 noncomputable def extend [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.extend"
 
+/-- go: node.go:117:6 -/
+noncomputable def isHardStateEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam "b"
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "b"))
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "a"))
+  (App (Val doReturn)
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "a"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "b"))) (Val #())))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "a"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "b"))) (Val #())))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "a"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "b"))) (Val #())))) (Val #false))))))))
+
+/-- IsEmptyHardState returns true if the given HardState is empty.
+
+    go: node.go:122:6 -/
+noncomputable def IsEmptyHardState.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st"))
+  (App (Val doReturn)
+  (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Val UntypedNil)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (GlobalVarAddr emptyState))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve isHardStateEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+
+/-- IsEmptySnap returns true if the given Snapshot is empty.
+
+    go: node.go:127:6 -/
+noncomputable def IsEmptySnap.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "sp"
+  (App (Val exceptionDo)
+  (Let "sp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sp"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sp"))) (Val #()))) (Val #())) (Val #(W64 0))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3 where
-  pkgImportedPkgs := [pkg_id.go_etcd_io.raft.v3.raftpb]
+  pkgImportedPkgs := [pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.context]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -560,6 +591,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (LiteralValue [])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -600,7 +634,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrStopped.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val emptyState.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr emptyState))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val raftLogger.init) (Val #()))))))
   (App (Val doExecute)
@@ -608,7 +642,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultLogger.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc emptyState (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (Val #()))))))))
 
 abbrev Storage [FfiSyntax] : Type := GoInterface
 
@@ -923,18 +961,15 @@ attribute [instance] Ready.TypeAssumptions.type_repr
   Ready.TypeAssumptions.get_MustSync
   Ready.TypeAssumptions.set_MustSync
 
-axiom Node : Type
-axiom Node.zero_val : ZeroVal Node
-attribute [instance] Node.zero_val
+abbrev Node [FfiSyntax] : Type := GoInterface
+
+@[reducible] def Node.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Advance" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ApplyConfChange" (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)])), (go.InterfaceElem.MethodElem go!"Campaign" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"ForgetLeader" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Propose" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"ProposeConfChange" (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"ReadIndex" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"Ready" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Ready.ty)])), (go.InterfaceElem.MethodElem go!"ReportSnapshot" (go.signature.Signature [go.uint64, SnapshotStatus.ty] false [])), (go.InterfaceElem.MethodElem go!"ReportUnreachable" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [] false [Status.ty])), (go.InterfaceElem.MethodElem go!"Step" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Tick" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"TransferLeadership" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false []))])
 
 class Node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Node.underlying Node
   underlying : go.UnderlyingDirectedEq Node.ty Node.underlying
-  isUnderlying : go.IsUnderlying Node.underlying Node.underlying
 
-attribute [instance] Node.TypeAssumptions.type_repr
-  Node.TypeAssumptions.underlying
-  Node.TypeAssumptions.isUnderlying
+attribute [instance] Node.TypeAssumptions.underlying
 
 structure Peer [FfiSyntax] where
   mk ::
@@ -1798,7 +1833,11 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   EntryFormatter_instance : EntryFormatter.TypeAssumptions
   entryEncodingSize_instance : entryEncodingSize.TypeAssumptions
   entryPayloadSize_instance : entryPayloadSize.TypeAssumptions
+  isHardStateEqual_unfold : FuncUnfold isHardStateEqual [] isHardStateEqual.impl
+  IsEmptyHardState_unfold : FuncUnfold IsEmptyHardState [] IsEmptyHardState.impl
+  IsEmptySnap_unfold : FuncUnfold IsEmptySnap [] IsEmptySnap.impl
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import_context_Assumption : _root_.Perennial.context.Assumptions
 
 attribute [instance] Assumptions.raftLog_instance
   Assumptions.unstable_instance
@@ -1835,7 +1874,11 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.EntryFormatter_instance
   Assumptions.entryEncodingSize_instance
   Assumptions.entryPayloadSize_instance
+  Assumptions.isHardStateEqual_unfold
+  Assumptions.IsEmptyHardState_unfold
+  Assumptions.IsEmptySnap_unfold
   Assumptions.import_raftpb_Assumption
+  Assumptions.import_context_Assumption
 
 end go_etcd_io.raft.v3
 

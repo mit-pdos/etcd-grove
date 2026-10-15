@@ -1,34 +1,165 @@
 # etcd's server (the consistent index, the apply thread): every linked result of
-# Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean.
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean and the results Results.lean prints
+# (the apply loop's end-to-end result, over the apply package's `apply.Apply`; since the request
+# path's unit 2, 2026-10-12: the proposal path, pkg/wait and pkg/idutil, whose new axioms are
+# the context's Value at StartTimeKey and errors.Is at the context errors, and which reach
+# trace.SpanFromContext (mvcc's) and context.WithValue (the apply package's): 40 -> 44;
+# merged with the raft wrapper's proto.Clone, zap.Duration and zap.Logger.Fatal: 47;
+# 2026-10-13, unit 6: `server_kv_backend`, the apply thread's KV made by `NewStore` over the real
+# backend, adds the backend's and bbolt's key-value contract and mvcc's store axioms: 114).
+# The request path's unit 4b (2026-10-13): the apply loop's applyAll reaches backend's
+# VerifyBackendConsistency and the names-only snapshot, compactRaftLog, createMergedSnapshotMessage
+# and sendMergedSnap contracts: 61 -> 66.
+# Merged with the backend's unit 5 (mvcc's StoreNames names bbolt's four opaque predicates): 70.
+# Merged with the backend's unit 6 (2026-10-13): the union.
+# The request path's unit 4c (2026-10-13): run, start, Start (the FIFO scheduler's contract, the
+# names-only monitors, raftRequestAlarm): 93 axioms and mvcc's schedule.NewJob sorry before the
+# merge; merged with the backend's unit 6: the union, 141 axioms and that sorry.
+# The request path's unit 4d (2026-10-13): schedule.NewJob proved (its sorry gone: 141 axioms,
+# 0 sorries); request_delivered adds no axiom.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/Link\.lean$
-axiom EtcdServer.GoAttach.wp_proof
-axiom EtcdServer.Logger.wp_proof
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
+axiom EtcdServer.Cleanup.wp_proof
+axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
-axiom EtcdServer.isLeader.wp_proof
+axiom EtcdServer.compactRaftLog.wp_proof
+axiom EtcdServer.createMergedSnapshotMessage.wp_proof
+axiom EtcdServer.monitorClusterVersions.wp_proof
+axiom EtcdServer.monitorCompactHash.wp_proof
+axiom EtcdServer.monitorDowngrade.wp_proof
+axiom EtcdServer.monitorKVHash.wp_proof
+axiom EtcdServer.monitorStorageVersion.wp_proof
+axiom EtcdServer.publishV3.wp_proof
+axiom EtcdServer.purgeFile.wp_proof
+axiom EtcdServer.raftRequestAlarm.wp_proof
+axiom EtcdServer.revokeExpiredLeases.wp_proof
+axiom EtcdServer.sendMergedSnap.wp_proof
+axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
-axiom applierFor
-axiom applierFor_persistent
-axiom apply.Apply.wp_proof
-axiom binary.bigEndian.PutUint64.wp_proof
-axiom binary.bigEndian.Uint64.wp_proof
-axiom config.ServerConfig.ElectionTimeout.wp_proof
-axiom errors.Is.wp_proof
+axiom NewLoggableTxnRequest.wp_proof
+axiom RangeRequest.String.wp_proof
+axiom attribute.Bool.wp_proof
+axiom attribute.Int.wp_proof
+axiom attribute.Int64.wp_proof
+axiom attribute.String.wp_proof
+axiom auth.authStore.AuthInfoFromTLS.wp_proof
+axiom auth.hasRootRole.wp_proof
+axiom auth.redactToken.wp_proof
+axiom backend.ValidateCalledInsideApply.wp_proof
+axiom backend.ValidateCalledOutSideApply.wp_proof
+axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.isDB
+axiom backend.isDB_persistent
+axiom backend.ownCur
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.ownWTx_fill
+axiom backend.ownWTx_live
+axiom backend.rBkt
+axiom backend.rBkt_persistent
+axiom backend.rBkt_timeless
+axiom backend.rtxSnap
+axiom backend.rtxSnap_persistent
+axiom backend.rtxStats
+axiom backend.rtxStats_excl
+axiom backend.rtxStats_timeless
+axiom backend.txBytes
+axiom backend.txBytes_acc
+axiom backend.txBytes_persistent
+axiom backend.txDB
+axiom backend.txDB_persistent
+axiom backend.txDone
+axiom backend.txDone_persistent
+axiom backend.txLive
+axiom backend.txLive_fractional
+axiom backend.txLive_nonnull
+axiom backend.txLive_timeless
+axiom backend.wBkt
+axiom backend.wBkt_persistent
+axiom backend.wrTok
+axiom bbolt.Bucket.Cursor_kvr.wp_proof
+axiom bbolt.Bucket.Cursor_kvw.wp_proof
+axiom bbolt.Bucket.Put_kv.wp_proof
+axiom bbolt.Cursor.Next_kv.wp_proof
+axiom bbolt.Cursor.Seek_kv.wp_proof
+axiom bbolt.DB.Begin_kv.wp_proof
+axiom bbolt.DB.Info_kv.wp_proof
+axiom bbolt.DB.Stats_kv.wp_proof
+axiom bbolt.Tx.Bucket_kvr.wp_proof
+axiom bbolt.Tx.Bucket_kvw.wp_proof
+axiom bbolt.Tx.Commit_kv.wp_proof
+axiom bbolt.Tx.CreateBucketIfNotExists_kv.wp_proof
+axiom bbolt.Tx.DB_kv.wp_proof
+axiom bbolt.Tx.Rollback_kv.wp_proof
+axiom bbolt.Tx.Size_kv.wp_proof
+axiom bbolt.Tx.Stats_kv.wp_proof
+axiom context.ErrDone.wp_proof
+axiom context.ValueStartTime.wp_proof
+axiom context.WithTimeoutBackground.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
-axiom membership.RaftCluster.Members.wp_proof
-axiom notify.Notifier.Notify.wp_proof
+axiom heap.Fix.wp_proof
+axiom heap.Push.wp_proof
+axiom lease.lessor.Demote.wp_proof
+axiom lease.lessor.Promote.wp_proof
+axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom metadata.FromIncomingContext.wp_proof
+axiom monitorFileDescriptor.wp_proof
+axiom mvcc.store.restore.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
-axiom v3alarm.AlarmStore.Get.wp_proof
+axiom prometheus.GaugeVec.With.wp_proof
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.Clone.wp_proof
+axiom proto.Marshal.wp_proof
+axiom proto.MarshalIRR.wp_proof
+axiom proto.Size.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom reflect.ValueOf.wp_proof
+axiom schedule.NewFIFOScheduler.wp_proof
+axiom schedule.Scheduler.Schedule.wp_proof
+axiom schedule.Scheduler.Stop.wp_proof
+axiom schema.MustUnsafePutLease.wp_proof
+axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom semver.Version.String.wp_proof
+axiom sort.Stable.wp_proof
+axiom storage.BackendQuota.Cost.wp_proof
+axiom strconv.FormatBool.wp_proof
+axiom strconv.FormatUint.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Time.After.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.Trace.LogWithStepThreshold.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
+axiom txn.ApplySecObserve.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom txn.WarnOfExpensiveRequest.wp_proof
+axiom txn.WarnOfFailedRequest.wp_proof
+axiom types.ID.String.wp_proof
+axiom v2stats.ServerStats.BecomeLeader.wp_proof
+axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
+axiom version.Cluster.wp_proof
+axiom version.LessThan.wp_proof
+axiom zap.ByteString.wp_proof
+axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Fatal.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
+axiom zap.NewNop.wp_proof
+axiom zap.Stack.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof

@@ -21,13 +21,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `wg.size()`: the number of members. -/
+/-- `wg.size()`: the number of members (at any fraction of the group: `syncWatchersLoop` reads it
+under the store's read lock). -/
 abbrev mvcc.watcherGroup.size.spec : Prop :=
-  ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange),
+  ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownWatcherGroup wg W }}
+      mvcc.ownWatcherGroup wg W q }}
     (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"size")) (Val #()))
-  {{ RET #(W64 (GMap.size W)); mvcc.ownWatcherGroup wg W ∗ ⌜GMap.size W < 2 ^ 63⌝ }}
+  {{ RET #(W64 (GMap.size W)); mvcc.ownWatcherGroup wg W q ∗ ⌜GMap.size W < 2 ^ 63⌝ }}
 
 end spec
 

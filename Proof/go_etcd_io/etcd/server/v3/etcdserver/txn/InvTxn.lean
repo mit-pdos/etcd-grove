@@ -3,7 +3,7 @@ The server's transactions in the heap (txn unit 3): the transaction `Txn` writes
 responses of a transaction, the skeleton `newTxnResp` allocates, the leases a run may attach.
 Lean-first; see `TxnRun.lean` (the pure run) and `notes/decisions.md`, "The server's txn", unit 3.
 
-**The transaction** (`txnViewIs tw s γ kind ro`): the `mvcc.TxnWrite`/`ReadView` interface value
+**The transaction** (`txnViewIs tw s γ trace kind ro`): the `mvcc.TxnWrite`/`ReadView` interface value
 `tw` is a transaction of the store behind a `*metricsTxnWrite` (`ro = false`: `store.Read`'s or
 `store.Write`'s, `isTxn` of either kind), or (`ro = true`) the read-only wrapper
 `NewReadOnlyTxnWrite` makes of a read transaction (`isRoTxnWrite`, of kind `.read log rev`).
@@ -26,7 +26,7 @@ response field `nil` and owned (`executeTxn` stores the response there); a neste
 `TxnResponse` complete but for its operations' responses, its `Succeeded` the verdict at the read
 state `s0` (the path).
 
-**Leases** (`leasesOk γl ls`, `leasesKnown γl s`): every lease of `ls` (of the key-values of `s`)
+**Leases** (`leasesOk L ls`, `leasesKnown L s`): every lease of `ls` (of the key-values of `s`)
 is none or one the lessor granted (`leaseOk`); `checkTxn` establishes it for the leases the path's
 puts name (`opsLeases`), and `executeTxn` keeps it for the state (an `IgnoreLease` put writes the
 previous key-value's lease).
@@ -62,15 +62,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- **The transaction `tw`** (an `mvcc.TxnWrite` or `mvcc.ReadView`): a transaction of `kind`
 behind a `*metricsTxnWrite`, or (`ro`) the read-only wrapper of a read transaction of `kind`. -/
-def txnViewIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (ro : Bool) :
+def txnViewIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (kind : mvcc.TxnKind)
+    (ro : Bool) :
     IProp GF :=
   if ro then
     iprop(∃ (trw : Loc) (log : mvcc.Log) (rev : w64),
       ⌜tw = interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw ∧ kind = .read log rev⌝ ∗
-      mvcc.isRoTxnWrite trw s γ log rev)
+      mvcc.isRoTxnWrite trw s γ trace log rev)
   else
     iprop(∃ mw : Loc, ⌜tw = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw⌝ ∗
-      mvcc.isTxn mw s γ kind)
+      mvcc.isTxn mw s γ trace kind)
 
 /-- The kind of `executeTxn`'s transaction: a write transaction of `ilog` with `pend` pending,
 or (`ro`) a read transaction of `ilog` (nothing pending). -/
@@ -80,9 +81,10 @@ def KindIs (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (kind : mvcc.
 
 /-- **`executeTxn`'s transaction**: a write transaction of the committed log `ilog` with the
 pending changes `pend`, or (`ro`) the read-only wrapper of a read transaction of `ilog`. -/
-def txnWriteIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool) (ilog : mvcc.Log)
+def txnWriteIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (ro : Bool)
+    (ilog : mvcc.Log)
     (pend : List mvcc.Change) : IProp GF :=
-  iprop(∃ kind : mvcc.TxnKind, txnViewIs tw s γ kind ro ∗ ⌜KindIs ro ilog pend kind⌝)
+  iprop(∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind ro ∗ ⌜KindIs ro ilog pend kind⌝)
 
 /-! ## The responses -/
 
@@ -252,18 +254,18 @@ def txnSkel (s0 : List EtcdKv) (resp : Loc) (ok : Bool) (ops : List TxnOp) : IPr
 /-! ## Leases -/
 
 /-- Every lease of `ls` is none or one the lessor granted. -/
-def leasesOk (γl : GName) (ls : List w64) : IProp GF :=
-  iprop(□ ∀ l : w64, ⌜l ∈ ls⌝ -∗ leaseOk γl l)
+def leasesOk (L : List w64) (ls : List w64) : IProp GF :=
+  iprop(□ ∀ l : w64, ⌜l ∈ ls⌝ -∗ leaseOk L l)
 
-instance leasesOk_persistent (γl : GName) (ls : List w64) :
-    Persistent (leasesOk (GF := GF) γl ls) := by
+instance leasesOk_persistent (L : List w64) (ls : List w64) :
+    Persistent (leasesOk (GF := GF) L ls) := by
   unfold leasesOk; infer_instance
 
 /-- **Every lease of the state `s` is known** (none, or granted). -/
-def leasesKnown (γl : GName) (s : List EtcdKv) : IProp GF := leasesOk γl (s.map EtcdKv.lease)
+def leasesKnown (L : List w64) (s : List EtcdKv) : IProp GF := leasesOk L (s.map EtcdKv.lease)
 
-instance leasesKnown_persistent (γl : GName) (s : List EtcdKv) :
-    Persistent (leasesKnown (GF := GF) γl s) := by
+instance leasesKnown_persistent (L : List w64) (s : List EtcdKv) :
+    Persistent (leasesKnown (GF := GF) L s) := by
   unfold leasesKnown; infer_instance
 
 /-! ## `checkTxn`'s errors -/
@@ -298,8 +300,8 @@ theorem sortSmall_of_sortOk (o : OpFull) (log : mvcc.Log) (hok : LogOk log) (r :
 
 /-- A transaction behind a `*metricsTxnWrite`. -/
 theorem txnViewIs_mw (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) :
-    txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) s γ kind
-      false ⊣⊢ mvcc.isTxn mw s γ kind := by
+    txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) s γ trace kind
+      false ⊣⊢ mvcc.isTxn mw s γ trace kind := by
   unfold txnViewIs
   simp only [Bool.false_eq_true, ↓reduceIte]
   constructor
@@ -314,8 +316,8 @@ theorem txnViewIs_mw (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) :
 
 /-- The read-only wrapper of a read transaction. -/
 theorem txnViewIs_ro (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ
-      (.read log rev) true ⊣⊢ mvcc.isRoTxnWrite trw s γ log rev := by
+    txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ trace
+      (.read log rev) true ⊣⊢ mvcc.isRoTxnWrite trw s γ trace log rev := by
   unfold txnViewIs
   simp only [↓reduceIte]
   constructor
@@ -332,8 +334,8 @@ theorem txnViewIs_ro (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev 
 
 /-- The read-only wrapper's read transaction: a well-formed log, read at its last revision. -/
 theorem isRoTxnWrite_pure (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isRoTxnWrite (GF := GF) trw s γ log rev ⊢
-      mvcc.isRoTxnWrite trw s γ log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
+    mvcc.isRoTxnWrite (GF := GF) trw s γ trace log rev ⊢
+      mvcc.isRoTxnWrite trw s γ trace log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
   iintro H
   iunfold mvcc.isRoTxnWrite at H
   icases H with ⟨%mw, Hf, Htx⟩
@@ -352,8 +354,8 @@ theorem kindOk_read (log : mvcc.Log) (rev : w64)
   have hz := lastRev_sint log.length hpos (by have := hok.len; omega)
   refine ⟨hok, ?_, ?_⟩ <;> simp only [mvcc.TxnKind.readRev, mvcc.TxnKind.readLog] <;> rw [hrev, hz] <;> omega
 
-theorem leasesOk_append (γl : GName) (a b : List w64) :
-    leasesOk (GF := GF) γl (a ++ b) ⊣⊢ leasesOk γl a ∗ leasesOk γl b := by
+theorem leasesOk_append (L : List w64) (a b : List w64) :
+    leasesOk (GF := GF) L (a ++ b) ⊣⊢ leasesOk L a ∗ leasesOk L b := by
   unfold leasesOk
   constructor
   · iintro #H
@@ -367,13 +369,13 @@ theorem leasesOk_append (γl : GName) (a b : List w64) :
     · iapply Ha $$ %l; ipureintro; exact h
     · iapply Hb $$ %l; ipureintro; exact h
 
-theorem leasesOk_nil (γl : GName) : ⊢ leasesOk (GF := GF) γl [] := by
+theorem leasesOk_nil (L : List w64) : ⊢ leasesOk (GF := GF) L [] := by
   unfold leasesOk
   imodintro
   iintro %l %hl
   simp at hl
 
-theorem leasesOk_one (γl : GName) (l : w64) : leaseOk (GF := GF) γl l ⊢ leasesOk γl [l] := by
+theorem leasesOk_one (L : List w64) (l : w64) : leaseOk (GF := GF) L l ⊢ leasesOk L [l] := by
   unfold leasesOk
   iintro #H
   imodintro
@@ -383,16 +385,16 @@ theorem leasesOk_one (γl : GName) (l : w64) : leaseOk (GF := GF) γl l ⊢ leas
   iexact H
 
 /-- A lease of the list. -/
-theorem leasesOk_mem (γl : GName) (ls : List w64) (l : w64) (h : l ∈ ls) :
-    leasesOk (GF := GF) γl ls ⊢ leaseOk γl l := by
+theorem leasesOk_mem (L : List w64) (ls : List w64) (l : w64) (h : l ∈ ls) :
+    leasesOk (GF := GF) L ls ⊢ leaseOk L l := by
   unfold leasesOk
   iintro #H
   iapply H $$ %l
   ipureintro; exact h
 
 /-- Fewer leases. -/
-theorem leasesOk_sub (γl : GName) (ls ls' : List w64) (h : ∀ l ∈ ls', l ∈ ls) :
-    leasesOk (GF := GF) γl ls ⊢ leasesOk γl ls' := by
+theorem leasesOk_sub (L : List w64) (ls ls' : List w64) (h : ∀ l ∈ ls', l ∈ ls) :
+    leasesOk (GF := GF) L ls ⊢ leasesOk L ls' := by
   unfold leasesOk
   iintro #H
   imodintro
@@ -402,26 +404,26 @@ theorem leasesOk_sub (γl : GName) (ls ls' : List w64) (h : ∀ l ∈ ls', l ∈
 
 /-- **The lease a put writes is known**: one its request names (checked), or the previous
 key-value's (known with the state). -/
-theorem leaseOk_put (γl : GName) (s0 s : List EtcdKv) (o : OpFull) :
-    leasesOk (GF := GF) γl (opLeases s0 (putTxnOp o)) ∗ leasesKnown γl s ⊢
-      leaseOk γl (putLeaseOf o (mvcc.findKey o.key s)) := by
+theorem leaseOk_put (L : List w64) (s0 s : List EtcdKv) (o : OpFull) :
+    leasesOk (GF := GF) L (opLeases s0 (putTxnOp o)) ∗ leasesKnown L s ⊢
+      leaseOk L (putLeaseOf o (mvcc.findKey o.key s)) := by
   iintro ⟨#Hl, #Hk⟩
   rcases putLeaseOf_mem s0 o s with h | ⟨-, h⟩
-  · iapply leasesOk_mem γl _ _ h $$ Hl
+  · iapply leasesOk_mem L _ _ h $$ Hl
   · rw [h]
     cases hf : mvcc.findKey o.key s with
     | none =>
       simp only [Option.map_none, Option.getD_none]
-      unfold leaseOk; ileft; ipureintro; rfl
+      unfold leaseOk; ipureintro; left; rfl
     | some v =>
       simp only [Option.map_some, Option.getD_some]
       iunfold leasesKnown at Hk
-      iapply leasesOk_mem γl _ _ ?_ $$ Hk
+      iapply leasesOk_mem L _ _ ?_ $$ Hk
       exact List.mem_map_of_mem (List.mem_of_find?_eq_some hf)
 
 /-- A put keeps the state's leases known. -/
-theorem leasesKnown_put (γl : GName) (r : w64) (s : List EtcdKv) (k v : GoString) (l : w64) :
-    leasesKnown (GF := GF) γl s ∗ leaseOk γl l ⊢ leasesKnown γl (putKv r k v l s) := by
+theorem leasesKnown_put (L : List w64) (r : w64) (s : List EtcdKv) (k v : GoString) (l : w64) :
+    leasesKnown (GF := GF) L s ∗ leaseOk L l ⊢ leasesKnown L (putKv r k v l s) := by
   unfold leasesKnown leasesOk
   iintro ⟨#Hk, #Hl⟩
   imodintro
@@ -433,8 +435,8 @@ theorem leasesKnown_put (γl : GName) (r : w64) (s : List EtcdKv) (k v : GoStrin
   · simp only [newKv]; iexact Hl
 
 /-- Fewer key-values keep the leases known. -/
-theorem leasesKnown_sub (γl : GName) (s s' : List EtcdKv) (h : ∀ v ∈ s', v ∈ s) :
-    leasesKnown (GF := GF) γl s ⊢ leasesKnown γl s' := by
+theorem leasesKnown_sub (L : List w64) (s s' : List EtcdKv) (h : ∀ v ∈ s', v ∈ s) :
+    leasesKnown (GF := GF) L s ⊢ leasesKnown L s' := by
   unfold leasesKnown
   apply leasesOk_sub
   intro l hl
@@ -451,6 +453,52 @@ theorem opsSkel_length (s0 : List EtcdKv) :
     ipureintro; simp [h]
   | [], _ :: _ => by unfold opsSkel; iintro H; iexfalso; iexact H
   | _ :: _, [] => by unfold opsSkel; iintro H; iexfalso; iexact H
+
+open Iris.ProofMode in
+/-- **The transaction's trace, borrowed** (`mvcc.isTxn_trace_acc`, `isRoTxnWrite_trace_acc`): its
+owner steps it while the transaction is live. -/
+theorem txnViewIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc)
+    (kind : mvcc.TxnKind) (ro : Bool) :
+    txnViewIs (GF := GF) tw s γ trace kind ro ⊢
+      (∃ te, traceutil.ownTrace trace te) ∗
+        ((∃ te, traceutil.ownTrace trace te) -∗ txnViewIs tw s γ trace kind ro) := by
+  unfold txnViewIs
+  cases ro
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨%mw, %h, H⟩
+    icases mvcc.isTxn_trace_acc mw s γ trace kind $$ H with ⟨Ht, Hb⟩
+    iframe Ht
+    iintro Ht
+    iexists mw
+    isplitr
+    · ipureintro; exact h
+    iapply Hb $$ Ht
+  · simp only [↓reduceIte]
+    iintro ⟨%trw, %log, %rev, %h, H⟩
+    icases mvcc.isRoTxnWrite_trace_acc trw s γ trace log rev $$ H with ⟨Ht, Hb⟩
+    iframe Ht
+    iintro Ht
+    iexists trw, log, rev
+    isplitr
+    · ipureintro; exact h
+    iapply Hb $$ Ht
+
+open Iris.ProofMode in
+/-- The transaction's trace, borrowed, at `txnWriteIs`. -/
+theorem txnWriteIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc)
+    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) :
+    txnWriteIs (GF := GF) tw s γ trace ro ilog pend ⊢
+      (∃ te, traceutil.ownTrace trace te) ∗
+        ((∃ te, traceutil.ownTrace trace te) -∗ txnWriteIs tw s γ trace ro ilog pend) := by
+  unfold txnWriteIs
+  iintro ⟨%kind, H, %Hk⟩
+  icases txnViewIs_trace_acc tw s γ trace kind ro $$ H with ⟨Ht, Hb⟩
+  iframe Ht
+  iintro Ht
+  iexists kind
+  isplitl
+  · iapply Hb $$ Ht
+  ipureintro; exact Hk
 
 end lemmas
 

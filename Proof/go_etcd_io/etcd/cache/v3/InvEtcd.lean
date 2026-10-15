@@ -3,11 +3,16 @@ The etcd model: what etcd's cache knows of etcd itself, its trust boundary (Lean
 Rocq counterpart; the Rocq development's `is_etcd_kvs` is the precedent). See `decisions.md`,
 "the etcd model".
 
-**etcd's state.** `etcdState rev pfx s` (an axiom, with `etcdState_agree`) says that etcd's
-key-value state at revision `rev`, restricted to the keys with prefix `pfx`, is `s`: the
+**The model is a class** (since the vertical slice's unit V1, 2026-10-13; fourteen axioms before):
+`EtcdModel GF` (`EtcdModel.lean`), whose fields are the predicates below and their laws; every
+definition here that uses them takes it (`[EM : EtcdModel GF]`), and the server instantiates it
+(`v3rpc.etcdModelOfServer`, each field defined from its certified log, each law a theorem).
+
+**etcd's state.** `etcdState rev pfx s` (a field of the class, with `etcdState_agree`) says that
+etcd's key-value state at revision `rev`, restricted to the keys with prefix `pfx`, is `s`: the
 key-values as etcd stores them (`EtcdKv`: key, value, create and mod revisions, version,
-lease), by key. It is a fact about the server, which Goose does not model, hence an opaque
-predicate. Its one property is **agreement**: etcd has one state per revision. That is all
+lease), by key. Its one property the cache uses is **agreement**: etcd has one state per
+revision. That is all
 the cache's proofs need of etcd; everything else is said by the client's statements, which
 produce `etcdState` facts.
 
@@ -32,13 +37,14 @@ for `r ≤ 0`) says that some response from etcd has shown revision `r` to exist
 obtained causally, so a holder learned it before any call it makes next: a linearizable `Get`
 started then returns at least `r` (`isEtcdKV`'s triple takes `etcdReached lo` and returns a
 header revision `≥ lo`, with `etcdReached` of it). The watch stream's responses give it of every
-revision they report (`watchRespOk`, `etcdStepCertBody`). It is defined over one axiomatized
-predicate, `etcdReachedAt` (with its timelessness): `etcdReached r` is `etcdReachedAt r'` for
+revision they report (`watchRespOk`, `etcdStepCertBody`). It is defined over one field of the
+class, `etcdReachedAt` (with its timelessness): `etcdReached r` is `etcdReachedAt r'` for
 some `r' ≥ r`, or `r ≤ 0`, so persistence, downward closure and `etcdReached 0` are lemmas.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
+public import Proof.go_etcd_io.etcd.cache.v3.EtcdModel
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Ghost.MonoList
@@ -56,59 +62,30 @@ open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 /-! ## etcd's state -/
 
-/-- A key-value as etcd stores it (`mvccpb.KeyValue`'s fields). -/
-structure EtcdKv where
-  key : GoString
-  createRev : w64
-  modRev : w64
-  version : w64
-  value : GoString
-  lease : w64
-
-/-- etcd's key-value state at revision `rev`, restricted to the keys with prefix `pfx`, is `s`
-(sorted by key). A fact about the etcd server, which is not modelled: an axiom. -/
-axiom etcdState {GF : BundledGFunctors} (rev : w64) (pfx : GoString) (s : List EtcdKv) :
-  IProp GF
-
-/-- etcd has one state per revision. -/
-axiom etcdState_agree {GF : BundledGFunctors} (rev : w64) (pfx : GoString)
-    (s s' : List EtcdKv) :
-  etcdState (GF := GF) rev pfx s ∗ etcdState rev pfx s' ⊢ ⌜s = s'⌝
-
 /-- The keys of `s` are strictly increasing and have the prefix `pfx`. -/
 def EtcdStateWf (pfx : GoString) (s : List EtcdKv) : Prop :=
   (s.map EtcdKv.key).Pairwise go.GoStringLt ∧ ∀ v ∈ s, pfx <+: v.key
 
 /-! ## Time: the revisions etcd has reached -/
 
-/-- **etcd has reached revision `r`** (an axiom: a fact about the server, as known to a holder):
-some response from etcd showed revision `r` to exist. An `IProp`, not a `Prop`, because it is
-knowledge obtained at a point in time: holding it means it was learned (from a response) before
-whatever the holder does next, which is what makes linearizability statable (`isEtcdKV`). -/
-axiom etcdReachedAt {GF : BundledGFunctors} (r : w64) : IProp GF
-
-/-- `etcdReachedAt` is timeless (it carries no resources), so it can sit in invariants opened
-without later credits (the demux's certificates, a watcher's publication). -/
-axiom etcdReachedAt_timeless {GF : BundledGFunctors} (r : w64) :
-  Timeless (etcdReachedAt (GF := GF) r)
-
-attribute [instance] etcdReachedAt_timeless
+section reached
+variable {GF : BundledGFunctors} [EM : EtcdModel GF]
 
 /-- **etcd has reached revision `r`**, downward closed: etcd reached some `r' ≥ r`, or `r ≤ 0`
 (every revision etcd reports is positive, so `0` is free). Persistent and timeless. -/
-def etcdReached {GF : BundledGFunctors} (r : w64) : IProp GF :=
+def etcdReached (r : w64) : IProp GF :=
   iprop(⌜sint.Z r ≤ 0⌝ ∨ ∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ □ etcdReachedAt r')
 
-instance etcdReached_persistent {GF : BundledGFunctors} (r : w64) :
+instance etcdReached_persistent (r : w64) :
     Persistent (etcdReached (GF := GF) r) := by
   unfold etcdReached; infer_instance
 
-instance etcdReached_timeless {GF : BundledGFunctors} (r : w64) :
+instance etcdReached_timeless (r : w64) :
     Timeless (etcdReached (GF := GF) r) := by
   unfold etcdReached; infer_instance
 
 /-- Downward closure: etcd has reached every revision below one it has reached. -/
-theorem etcdReached_mono {GF : BundledGFunctors} (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+theorem etcdReached_mono (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
     etcdReached (GF := GF) r ⊢ etcdReached r' := by
   unfold etcdReached
   iintro (%h0 | ⟨%r1, %h1, #H⟩)
@@ -116,73 +93,17 @@ theorem etcdReached_mono {GF : BundledGFunctors} (r r' : w64) (h : sint.Z r' ≤
   · iright; iexists r1; iframe H; ipureintro; omega
 
 /-- `etcdReached 0`, for free. -/
-theorem etcdReached_zero {GF : BundledGFunctors} : ⊢ etcdReached (GF := GF) (W64 0) := by
+theorem etcdReached_zero : ⊢ etcdReached (GF := GF) (W64 0) := by
   unfold etcdReached
   iintro
   ileft; ipureintro; simp
 
-/-! ## etcd's history: steps (the stream model) -/
+/-- A step's revision by an equal one. -/
+theorem EtcdStep_congr {r0 r1 r1' : w64} {pfx : GoString} {evs : List EtcdEv} (h : r1 = r1') :
+    EtcdStep (GF := GF) r0 r1 pfx evs ⊢ EtcdStep r0 r1' pfx evs := by
+  subst h; exact .rfl
 
-/-- An event as etcd stores it (`mvccpb.Event`): its type (`0` put, `1` delete) and its
-key-value (for a delete, the key and the revision of the delete). -/
-structure EtcdEv where
-  typ : w32
-  kv : EtcdKv
-
-/-- etcd's order on keys, on key-values. -/
-def etcdKvLess (a b : EtcdKv) : Prop := go.GoStringLt a.key b.key
-
-instance etcdKvLess_dec : DecidableRel etcdKvLess := fun a b => go.goStringLt_dec a.key b.key
-
-/-- One event applied to a state (as the store's `applyEv` applies it to a map): a put replaces
-or inserts the key-value, a delete removes the key, any other type changes nothing. -/
-def applyEvState (s : List EtcdKv) (e : EtcdEv) : List EtcdKv :=
-  if e.typ = W32 1 then btDelete etcdKvLess e.kv s
-  else if e.typ = W32 0 then btInsert etcdKvLess e.kv s
-  else s
-
-/-- Events applied in order. -/
-def applyEvsState (s : List EtcdKv) (evs : List EtcdEv) : List EtcdKv :=
-  evs.foldl applyEvState s
-
-/-- **A step of etcd's history** (an axiom: a fact about the server). `EtcdStep r0 r1 pfx evs`
-says: `r0 ≤ r1`; no event under the prefix `pfx` has a revision strictly between `r0` and
-`r1`; and the events under `pfx` at revision `r1` are exactly `evs`, in order (so `r0 < r1` if
-`evs ≠ []`; for `evs = []`, nothing under `pfx` changed in `(r0, r1]`). It is what a watch
-response tells a watcher whose previous position is `r0`: the events of one revision `r1`
-(a batch), or a progress notification at `r1` (`evs = []`). A proposition (etcd's history
-is immutable, so the fact is persistent, and it carries no resources, so it is timeless:
-it can sit in invariants opened without later credits). Its two properties are
-`etcdStep_transfer` and `etcdStep_compose`. -/
-axiom EtcdStep (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv) : Prop
-
-/-- **Transfer.** etcd's state at `r1` is its state at any `a` with `r0 ≤ a < r1` (the same as
-at `r0`: nothing changed in between) with the events of the step applied. -/
-axiom etcdStep_transfer {GF : BundledGFunctors} (r0 a r1 : w64) (pfx : GoString)
-    (s : List EtcdKv) (evs : List EtcdEv) (h : sint.Z r0 ≤ sint.Z a ∧ sint.Z a < sint.Z r1)
-    (hstep : EtcdStep r0 r1 pfx evs) :
-  etcdState (GF := GF) a pfx s ⊢ etcdState r1 pfx (applyEvsState s evs)
-
-/-- **Composition.** A step with no events (a progress notification) followed by a step: no
-event in `(a, b]`, and none in `(b, c)` but `evs` at `c`, is no event in `(a, c)` but `evs` at
-`c`. -/
-axiom etcdStep_compose (a b c : w64) (pfx : GoString) (evs : List EtcdEv)
-    (h1 : EtcdStep a b pfx []) (h2 : EtcdStep b c pfx evs) : EtcdStep a c pfx evs
-
-/-- **A delete removes a present key** (an axiom: a fact about the server). In a step
-`r0 → r1` with events `cs`, each delete event removes a key that is there when it is applied: in
-etcd's state at any `a` with `r0 ≤ a < r1` (its state before `r1`), with the step's earlier events
-applied. etcd emits a delete event only for a key a `DeleteRange` (or a lease's expiry) actually
-removes, and a transaction cannot put and delete the same key. The store's `Apply` fails on a
-delete of a missing key (`applyEv`): with this, a batch etcd certifies applies, without failing,
-to a map that is etcd's state before it (`isEtcdKvs_applyBatch_ok`), which is what lets several
-goroutines apply the watch stream to the same store (`Cache.watch`, shared writers). -/
-axiom etcdStep_delete_present {GF : BundledGFunctors} (r0 a r1 : w64) (pfx : GoString)
-    (s : List EtcdKv) (cs : List EtcdEv) (h : sint.Z r0 ≤ sint.Z a ∧ sint.Z a < sint.Z r1)
-    (hstep : EtcdStep r0 r1 pfx cs) :
-  etcdState (GF := GF) a pfx s ⊢
-    ⌜∀ (i : Nat) (c : EtcdEv), cs[i]? = some c → c.typ = W32 1 →
-      ∃ v ∈ applyEvsState s (cs.take i), v.key = c.kv.key⌝
+end reached
 
 /-! ### `btInsert`/`btDelete` through a projection -/
 
@@ -273,8 +194,8 @@ theorem pairs_applyEv (Z : List (KvEntry × EtcdKv)) (e : EvModel) (c : EtcdEv) 
   unfold applyEv at hm
   unfold applyEvState
   by_cases h1 : e.typ = W32 1
-  · rw [if_pos h1] at hm
-    rw [if_pos (htyp ▸ h1)]
+  · rw [ite_eq_left h1] at hm
+    rw [ite_eq_left (htyp ▸ h1)]
     split at hm
     · cases hm
       refine ⟨btDelete pairLess ((e.key, null), c.kv) Z, ?_, ?_, ?_, ?_⟩
@@ -285,11 +206,11 @@ theorem pairs_applyEv (Z : List (KvEntry × EtcdKv)) (e : EvModel) (c : EtcdEv) 
       · exact fun z hz => hZ z (btDelete_mem hz)
       · exact fun z hz => Or.inl (btDelete_mem hz)
     · cases hm
-  · rw [if_neg h1] at hm
-    rw [if_neg (by rw [← htyp]; exact h1)]
+  · rw [ite_eq_right h1] at hm
+    rw [ite_eq_right (by rw [← htyp]; exact h1)]
     by_cases h0 : e.typ = W32 0
-    · rw [if_pos h0] at hm
-      rw [if_pos (htyp ▸ h0)]
+    · rw [ite_eq_left h0] at hm
+      rw [ite_eq_left (htyp ▸ h0)]
       cases hm
       refine ⟨btInsert pairLess ((e.key, e.kv), c.kv) Z, ?_, ?_, ?_, ?_⟩
       · exact (btInsert_map (lessA := pairLess) (lessB := kvLess) Prod.fst
@@ -304,8 +225,8 @@ theorem pairs_applyEv (Z : List (KvEntry × EtcdKv)) (e : EvModel) (c : EtcdEv) 
         rcases btInsert_mem hz with rfl | hz
         · exact Or.inr ⟨rfl, htyp ▸ h0⟩
         · exact Or.inl hz
-    · rw [if_neg h0] at hm
-      rw [if_neg (by rw [← htyp]; exact h0)]
+    · rw [ite_eq_right h0] at hm
+      rw [ite_eq_right (by rw [← htyp]; exact h0)]
       cases hm
       exact ⟨Z, rfl, rfl, hZ, fun z hz => Or.inl hz⟩
 
@@ -387,7 +308,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [EM : EtcdModel GF]
 
+omit EM in
 /-- `l` is a `*mvccpb.KeyValue` whose fields hold `v`, read-only (on the fields, as `kvAt`). -/
 def kvValAt (l : Loc) (v : EtcdKv) : IProp GF :=
   iprop(∃ keySl valSl : GoSlice,
@@ -398,14 +321,17 @@ def kvValAt (l : Loc) (v : EtcdKv) : IProp GF :=
     structFieldRef mvccpb.KeyValue go!"Value" l ↦□ valSl ∗ valSl ↦*□ v.value ∗
     structFieldRef mvccpb.KeyValue go!"Lease" l ↦□ v.lease)
 
+omit EM in
 instance kvValAt_persistent (l : Loc) (v : EtcdKv) : Persistent (kvValAt (GF := GF) l v) := by
   unfold kvValAt; infer_instance
 
+omit EM in
 /-- The `*KeyValue`s of `m` hold, in order, the key-values `s`. -/
 def kvValsAt (m : KvMap) (s : List EtcdKv) : IProp GF :=
   iprop(□ ∀ (i : Nat) (e : KvEntry) (v : EtcdKv), ⌜m[i]? = some e⌝ -∗ ⌜s[i]? = some v⌝ -∗
     kvValAt e.2 v)
 
+omit EM in
 instance kvValsAt_persistent (m : KvMap) (s : List EtcdKv) :
     Persistent (kvValsAt (GF := GF) m s) := by
   unfold kvValsAt; infer_instance
@@ -434,6 +360,7 @@ theorem isEtcdKvs_agree (rev : w64) (pfx : GoString) (m m' : KvMap) :
   · iexact Hv
   · iexact Hv'
 
+omit EM in
 /-- The events `evs` (as the store reads them) are etcd's events `cs`, pointwise: the same type,
 key and revision, and each event's `*KeyValue` holds etcd's key-value (`kvValAt`). -/
 def evsMatch (evs : List EvModel) (cs : List EtcdEv) : IProp GF :=
@@ -442,6 +369,7 @@ def evsMatch (evs : List EvModel) (cs : List EtcdEv) : IProp GF :=
     □ ∀ (i : Nat) (e : EvModel) (c : EtcdEv), ⌜evs[i]? = some e⌝ -∗ ⌜cs[i]? = some c⌝ -∗
       kvValAt e.kv c.kv)
 
+omit EM in
 instance evsMatch_persistent (evs : List EvModel) (cs : List EtcdEv) :
     Persistent (evsMatch (GF := GF) evs cs) := by
   unfold evsMatch; infer_instance
@@ -452,11 +380,11 @@ etcd's state at `r` (puts under the prefix keep the map's keys under it). This c
 snapshot the store's `Apply` appends for the batch. -/
 theorem isEtcdKvs_step (Y p r : w64) (pfx : GoString) (m m' : KvMap) (evs : List EvModel)
     (cs : List EtcdEv) (hY : sint.Z p ≤ sint.Z Y ∧ sint.Z Y < sint.Z r)
-    (hstep : EtcdStep p r pfx cs) (hpfx : ∀ c ∈ cs, c.typ = W32 0 → pfx <+: c.kv.key)
+    (hpfx : ∀ c ∈ cs, c.typ = W32 0 → pfx <+: c.kv.key)
     (happ : applyBatch m evs = (m', true)) :
-    isEtcdKvs (GF := GF) Y pfx m ∗ evsMatch evs cs ⊢ isEtcdKvs r pfx m' := by
+    EtcdStep (GF := GF) p r pfx cs ∗ isEtcdKvs Y pfx m ∗ evsMatch evs cs ⊢ isEtcdKvs r pfx m' := by
   unfold isEtcdKvs evsMatch
-  iintro ⟨⟨%s, #Hs, %Hk, %Hwf, #Hv⟩, ⟨%Hm, #Hkv⟩⟩
+  iintro ⟨#Hstep, ⟨%s, #Hs, %Hk, %Hwf, #Hv⟩, ⟨%Hm, #Hkv⟩⟩
   have hlen : m.length = s.length := by
     have := congrArg List.length Hk; simpa using this
   have hm : (m.zip s).map Prod.fst = m := List.map_fst_zip (by omega)
@@ -468,7 +396,7 @@ theorem isEtcdKvs_step (Y p r : w64) (pfx : GoString) (m m' : KvMap) (evs : List
   iexists applyEvsState s cs
   isplitl []
   · imodintro
-    iapply etcdStep_transfer p Y r pfx s cs hY hstep $$ Hs
+    iapply etcdStep_transfer p Y r pfx s cs hY $$ [$Hstep $Hs]
   isplitr
   · ipureintro
     rw [← hZf, ← hZs, List.map_map, List.map_map]
@@ -503,6 +431,7 @@ theorem isEtcdKvs_step (Y p r : w64) (pfx : GoString) (m m' : KvMap) (evs : List
       iapply Hv $$ %j %z.1 %z.2 %hj.1 %hj.2
     · iapply Hkv $$ %k %e' %c %he' %hc
 
+omit EM in
 /-- A sorted map with an entry of key `k` finds it. -/
 theorem btFind_isSome_of_key (k : GoString) : ∀ (m : KvMap), m.Pairwise kvLess →
     (∃ x ∈ m, x.1 = k) → (btFind kvLess (k, null) m).isSome
@@ -511,11 +440,11 @@ theorem btFind_isSome_of_key (k : GoString) : ∀ (m : KvMap), m.Pairwise kvLess
     rw [List.pairwise_cons] at hs
     simp only [btFind]
     by_cases h1 : kvLess w (k, null)
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       rcases List.mem_cons.1 hx with rfl | hx
       · exfalso; unfold kvLess at h1; rw [hxk] at h1; exact goStringLt_irrefl _ h1
       · exact btFind_isSome_of_key k ws hs.2 ⟨x, hx, hxk⟩
-    · rw [if_neg h1]
+    · rw [ite_eq_right h1]
       by_cases h2 : kvLess (k, null) w
       · exfalso
         rcases List.mem_cons.1 hx with rfl | hx
@@ -524,8 +453,9 @@ theorem btFind_isSome_of_key (k : GoString) : ∀ (m : KvMap), m.Pairwise kvLess
           unfold kvLess at h2 h3
           rw [hxk] at h3
           exact goStringLt_irrefl _ (goStringLt_trans h2 h3)
-      · rw [if_neg h2]; rfl
+      · rw [ite_eq_right h2]; rfl
 
+omit EM in
 /-- A batch whose deletes are of keys present (on etcd's side) applies, on the store's side,
 without failing. -/
 theorem pairs_applyBatch_ok : ∀ (Z : List (KvEntry × EtcdKv)) (evs : List EvModel)
@@ -541,16 +471,16 @@ theorem pairs_applyBatch_ok : ∀ (Z : List (KvEntry × EtcdKv)) (evs : List EvM
     have hsome : ∃ m1, applyEv (Z.map Prod.fst) e = some m1 := by
       unfold applyEv
       by_cases h1 : e.typ = W32 1
-      · rw [if_pos h1]
+      · rw [ite_eq_left h1]
         obtain ⟨v, hv, hvk⟩ := hdel 0 c rfl (htyp ▸ h1)
         simp only [List.take_zero, applyEvsState, List.foldl_nil] at hv
         obtain ⟨z, hz, rfl⟩ := List.mem_map.1 hv
         have hfind : (btFind kvLess (e.key, null) (Z.map Prod.fst)).isSome :=
           btFind_isSome_of_key e.key _ hsorted
             ⟨z.1, List.mem_map_of_mem hz, by rw [hZ z hz, hvk, hkey]⟩
-        rw [if_pos hfind]
+        rw [ite_eq_left hfind]
         exact ⟨_, rfl⟩
-      · rw [if_neg h1]
+      · rw [ite_eq_right h1]
         split
         · exact ⟨_, rfl⟩
         · exact ⟨_, rfl⟩
@@ -580,12 +510,12 @@ theorem pairs_applyBatch_ok : ∀ (Z : List (KvEntry × EtcdKv)) (evs : List EvM
 /-- **A certified batch applies**: on a map that is etcd's state at `Y`, a batch matching etcd's
 events of a step `p → r` with `p ≤ Y < r` does not fail (`etcdStep_delete_present`). -/
 theorem isEtcdKvs_applyBatch_ok (Y p r : w64) (pfx : GoString) (m : KvMap) (evs : List EvModel)
-    (cs : List EtcdEv) (hY : sint.Z p ≤ sint.Z Y ∧ sint.Z Y < sint.Z r)
-    (hstep : EtcdStep p r pfx cs) :
-    isEtcdKvs (GF := GF) Y pfx m ∗ evsMatch evs cs ⊢ ⌜(applyBatch m evs).2 = true⌝ := by
+    (cs : List EtcdEv) (hY : sint.Z p ≤ sint.Z Y ∧ sint.Z Y < sint.Z r) :
+    EtcdStep (GF := GF) p r pfx cs ∗ isEtcdKvs Y pfx m ∗ evsMatch evs cs ⊢
+      ⌜(applyBatch m evs).2 = true⌝ := by
   unfold isEtcdKvs evsMatch
-  iintro ⟨⟨%s, #Hs, %Hk, %Hwf, -⟩, ⟨%Hm, -⟩⟩
-  ihave %Hdel := etcdStep_delete_present p Y r pfx s cs hY hstep $$ Hs
+  iintro ⟨#Hstep, ⟨%s, #Hs, %Hk, %Hwf, -⟩, ⟨%Hm, -⟩⟩
+  ihave %Hdel := etcdStep_delete_present p Y r pfx s cs hY $$ [$Hstep $Hs]
   ipureintro
   have hlen : m.length = s.length := by
     have := congrArg List.length Hk; simpa using this
@@ -600,6 +530,7 @@ theorem isEtcdKvs_applyBatch_ok (Y p r : w64) (pfx : GoString) (m : KvMap) (evs 
     Hm.1 (fun i e c he hc => ⟨(Hm.2 i e c he hc).1, (Hm.2 i e c he hc).2.1⟩)
     (by rw [hs]; exact Hdel)
 
+omit EM in
 instance evsMatch_timeless (evs : List EvModel) (cs : List EtcdEv) :
     Timeless (evsMatch (GF := GF) evs cs) := by
   unfold evsMatch kvValAt; infer_instance
@@ -610,8 +541,8 @@ revision `p` in etcd's history under the prefix `pfx`: its events are etcd's eve
 the puts under the prefix; and etcd has reached the batch's revision (`etcdReached`). What the client's watch stream gives the cache's writer (`isEtcdWatchChan`)
 and the demux hands, through `demuxPub`, to each watcher's consumer. -/
 def etcdStepCertBody (pfx : GoString) (p : w64) (b : Batch) : IProp GF :=
-  iprop(∃ cs : List EtcdEv, evsMatch b cs ∗
-    ⌜EtcdStep p (batchRev b) pfx cs ∧ ∀ c ∈ cs, c.typ = W32 0 → pfx <+: c.kv.key⌝ ∗
+  iprop(∃ cs : List EtcdEv, evsMatch b cs ∗ EtcdStep p (batchRev b) pfx cs ∗
+    ⌜∀ c ∈ cs, c.typ = W32 0 → pfx <+: c.kv.key⌝ ∗
     etcdReached (batchRev b))
 
 instance etcdStepCertBody_timeless (pfx : GoString) (p : w64) (b : Batch) :
@@ -633,7 +564,7 @@ def etcdStepCert (pfx : GoString) : DemuxCert GF where
   prog_zero := etcdReached_zero
   cert_prog := fun p b => by
     unfold etcdStepCertBody
-    iintro ⟨%cs, -, -, H⟩
+    iintro ⟨%cs, -, -, -, H⟩
     iexact H
 
 theorem etcdStepCert_prog (pfx : GoString) :
@@ -645,20 +576,24 @@ def etcdCert (pfx : GoString) : w64 → KvMap → IProp GF := fun r m => isEtcdK
 
 /-! ## The client's `KV.Get` -/
 
+omit EM in
 /-- The `*clientv3.GetResponse` `resp` has a header (non-nil) with revision `r`, read-only. -/
 def getRespRev (resp : Loc) (r : w64) : IProp GF :=
   iprop(∃ hdr : Loc, structFieldRef go_etcd_io.etcd.client.v3.GetResponse go!"Header" resp ↦□ hdr ∗
     ⌜hdr ≠ null⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" hdr ↦□ r)
 
+omit EM in
 instance getRespRev_persistent (resp : Loc) (r : w64) :
     Persistent (getRespRev (GF := GF) resp r) := by
   unfold getRespRev; infer_instance
 
+omit EM in
 /-- The `*clientv3.GetResponse` `resp` lists the `*KeyValue`s of `m`, read-only. -/
 def getRespKvs (resp : Loc) (m : KvMap) : IProp GF :=
   iprop(∃ sl : GoSlice, structFieldRef go_etcd_io.etcd.client.v3.GetResponse go!"Kvs" resp ↦□ sl ∗
     sl ↦*□ (m.map Prod.snd))
 
+omit EM in
 instance getRespKvs_persistent (resp : Loc) (m : KvMap) :
     Persistent (getRespKvs (GF := GF) resp m) := by
   unfold getRespKvs; infer_instance
@@ -741,12 +676,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [EM : EtcdModel GF]
 
+omit EM in
 /-- The `*mvccpb.KeyValue`s `ps` hold, in order, the key-values `kvs` (read-only). -/
 def kvPtrsAt (ps : List Loc) (kvs : List EtcdKv) : IProp GF :=
   iprop(⌜ps.length = kvs.length⌝ ∗
     □ ∀ (i : Nat) (p : Loc) (v : EtcdKv), ⌜ps[i]? = some p⌝ -∗ ⌜kvs[i]? = some v⌝ -∗ kvValAt p v)
 
+omit EM in
 instance kvPtrsAt_persistent (ps : List Loc) (kvs : List EtcdKv) :
     Persistent (kvPtrsAt (GF := GF) ps kvs) := by
   unfold kvPtrsAt; infer_instance
@@ -807,6 +745,24 @@ instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKV (GF := GF) kv pfx) := by
   unfold isEtcdKV; infer_instance
 
+/-- **The cache's client `KV`**: `isEtcdKV`, and the `Error()` of a non-nil error its `Get`
+returns returns some string (`errStrOk`: the cache's watch loop prints it with `fmt.Printf`'s
+`%v`; etcd's client returns a context error, a gRPC status error or an `rpctypes` error, each an
+error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
+def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        kvGetResult pfx lo (opGetModel key gs) resp err ∗ errStrOk err }})
+
+instance isEtcdKVE_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdKVE (GF := GF) kv pfx) := by
+  unfold isEtcdKVE; infer_instance
+
 end client
 
 /-! ## The client's `Watcher.Watch` -/
@@ -835,7 +791,9 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [EM : EtcdModel GF]
 
+omit EM in
 /-- `resp.Err() != nil` (`WatchResponse.Err`): a close error, a compaction, or a cancel. -/
 def watchErr (v : go_etcd_io.etcd.client.v3.WatchResponse) : Prop :=
   v.closeErr' ≠ interface.nil ∨ v.CompactRevision' ≠ W64 0 ∨ v.Canceled' = true
@@ -857,6 +815,10 @@ instance watchChain_persistent (pfx : GoString) (prev : w64) (bs : List Batch) :
 at revision `c`, after which it is at `c'`. Its header revision is below `2^63 - 1` (etcd's
 revisions are), and it is one of:
 * an error (`resp.Err() != nil`: a close error, a compaction, a cancel); the position is kept;
+  the close error is one grpc's `status` accepts (`statusErrOk`, unit P3a; it was `errStrOk`:
+  its `Error()` returns some string; `WatchResponse.Err` passes it to `rpctypes.Error`, which
+  calls its `Error()` and `GRPCStatus()`): a gRPC status error or a context error from the
+  client's stream;
 * the created notification (no events); the position is kept; etcd has reached its header
   revision (`etcdReached`, free if `0`);
 * a progress notification at `p ≥ c`: nothing under the prefix changed in `(c, p]`; the
@@ -867,10 +829,10 @@ revisions are), and it is one of:
 def watchRespOk (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
-    (⌜watchErr v ∧ c' = c⌝ ∨
+    ((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
      (⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∗ etcdReached r.hdrRev) ∨
-     (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev ∧
-       EtcdStep c r.hdrRev pfx []⌝ ∗ etcdReached r.hdrRev) ∨
+     (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev⌝ ∗
+       EtcdStep c r.hdrRev pfx [] ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.events ≠ [] ∧ EvRevSorted r.events ∧
         (∀ e ∈ r.events, sint.Z c < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
         r.events.getLast?.map EvModel.rev = some c'⌝ ∗
@@ -897,6 +859,7 @@ instance isEtcdWatchChan_persistent (ch : Loc) (γ : EtcdWatchNames) (pfx : GoSt
     Persistent (isEtcdWatchChan (GF := GF) ch γ pfx) := by
   unfold isEtcdWatchChan; infer_instance
 
+omit EM in
 /-- The consumer of a client watch channel: it has received `n` responses, and the watch is at
 revision `cursor`. -/
 def etcdWatchConsumer (γ : EtcdWatchNames) (n : Nat) (cursor : w64) : IProp GF :=
@@ -922,16 +885,22 @@ instance isEtcdWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdWatcher (GF := GF) w pfx) := by
   unfold isEtcdWatcher; infer_instance
 
+omit EM in
 /-- **The client's `RequestProgress`** (`clientv3.Watcher`'s, through the cache's
-`progressNotifier` interface): `w.RequestProgress(ctx)` returns some error, with no logical effect.
-etcd's progress notification shows up on the watch streams, where it is already modelled (a
-progress response of `watchRespOk`). A definition, like `isEtcdWatcher`. -/
+`progressNotifier` interface): `w.RequestProgress(ctx)` returns some error, with no logical effect,
+whose `Error()`, if it is not `nil`, returns some string (`errorStringSpec`: the run loop prints
+it with `fmt.Printf`'s `%v`; etcd's client returns a context error, a gRPC status error or an
+`rpctypes` error, each an error whose `Error` builds a string). etcd's progress notification shows
+up on the watch streams, where it is already modelled (a progress response of `watchRespOk`). A
+definition, like `isEtcdWatcher`. -/
 def isEtcdProgressNotifier (w : GoInterfaceOk) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
     {{ context.isContext ctx cs }}
       (App (Val #(methods w.ty go!"RequestProgress" w.v)) (Val #(GoInterface.ok ctx)))
-    {{ (err : GoInterface), RET #err; True }})
+    {{ (err : GoInterface), RET #err;
+        □ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorStringSpec e }})
 
+omit EM in
 instance isEtcdProgressNotifier_persistent (w : GoInterfaceOk) :
     Persistent (isEtcdProgressNotifier (GF := GF) w) := by
   unfold isEtcdProgressNotifier; infer_instance

@@ -1,7 +1,10 @@
 # The server's Range, Put, DeleteRange and Txn over the mvcc core, with bodies: txn.go,
-# put.go, range.go (with kvSort and its five sorters) and delete.go. util.go (the WarnOf*
-# loggers; isNil through reflect) and metrics.go (prometheus; a float division) are names
-# only.
+# put.go, range.go (with kvSort and its five sorters), delete.go and util.go's read-only loggers
+# (unit P4: `WarnOfExpensiveReadOnly{Range,Txn}Request`, `warnOfExpensiveGenericRequest`, `isNil`
+# through reflect's names-only `ValueOf`/`IsNil`). Names only: util.go's `WarnOfExpensiveRequest`
+# and `WarnOfFailedRequest` (the apply thread's `dispatch` passes them a response whose fields no
+# predicate holds for most requests, so their specs cannot have the premise `proto.Size` needs:
+# notes/STATUS.md, "Units P1/P1b/P4"), and metrics.go (prometheus; a float division).
 translate = ["!*",
   # txn.go
   "Txn", "txn", "newTxnResp", "executeTxn", "checkTxn", "compareInt64", "compareToPath",
@@ -20,8 +23,11 @@ translate = ["!*",
   "kvSortByCreate.Swap", "kvSortByCreate.Len", "kvSortByMod.Swap", "kvSortByMod.Len",
   "kvSortByValue.Swap", "kvSortByValue.Len",
   # delete.go
-  "DeleteRange", "deleteRange", "mkGteRange"]
-imports = ["!*", "bytes", "context", "fmt", "math", "sort", "time",
+  "DeleteRange", "deleteRange", "mkGteRange",
+  # util.go
+  "WarnOfExpensiveReadOnlyTxnRequest", "WarnOfExpensiveReadOnlyRangeRequest",
+  "warnOfExpensiveGenericRequest", "isNil"]
+imports = ["!*", "bytes", "context", "fmt", "math", "reflect", "sort", "strings", "time",
   "go.uber.org/zap", "google.golang.org/protobuf/proto",
   "github.com/prometheus/client_golang/prometheus",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb",

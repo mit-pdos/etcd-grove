@@ -22,6 +22,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -36,10 +37,10 @@ theorem Cache.getWatch.wp_proof
   iNamed Hc'
   icases HisICtx with ⟨%ics, #Hctxi, -⟩
   unfold cacheWriter
-  icases Hw with ⟨Hdw, %Hwo, %B, Hbd⟩
+  icases Hw with ⟨Hdw, #Hwo, %B, Hbd⟩
   wp_auto
   wp_apply wp_get c cf γr γd cap cf.ictx ics B $$ [$Hpkg $Hc $Hctxi $Hbd] as %resp %err Hres
-  icases Hres with (⟨%Herr, Hbd⟩ | ⟨%Herr, %R, #Hrev, Hbd, #Hlb, #Hslb, %HRb⟩)
+  icases Hres with (⟨%Herr, Hbd, #HeS⟩ | ⟨%Herr, %R, #Hrev, Hbd, #Hlb, #Hslb, %HRb⟩)
   · -- the get failed: return its error
     obtain ⟨-, Hne⟩ := Herr
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
@@ -50,11 +51,12 @@ theorem Cache.getWatch.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; intro h; cases h
+    iframe HeS
     iframe Hrun
     iexists c0
     iframe Hdw
     isplitr
-    · ipureintro; exact Hwo
+    · iexact Hwo
     iexists B; iexact Hbd
   subst Herr
   iunfold getRespRev at Hrev
@@ -65,12 +67,12 @@ theorem Cache.getWatch.wp_proof
   have hR1 : sint.Z (R + W64 1) = sint.Z R + 1 := by
     have := HRb.2; word
   wp_apply wp_watch c cf γr γd cap (R + W64 1) R c0 $$ [$Hpkg $Hc Hdw Ha Hrun $Hslb]
-    as %err ⟨%Hne, Hrun, %c1, Hw⟩
+    as %err ⟨%Hne, #HeS, Hrun, %c1, Hw⟩
   · unfold cacheWriter
     iframe Hdw Hrun
     isplitl
     · isplitr
-      · ipureintro; exact Hwo
+      · iexact Hwo
       iexists R
       unfold cacheBound
       iframe Ha HeR
@@ -79,6 +81,7 @@ theorem Cache.getWatch.wp_proof
   iapply HΦ
   isplitr
   · ipureintro; exact Hne
+  iframe HeS
   iframe Hrun
   iexists c1
   iunfold cacheWriter at Hw

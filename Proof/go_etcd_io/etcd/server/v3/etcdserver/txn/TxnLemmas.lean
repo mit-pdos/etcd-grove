@@ -293,8 +293,8 @@ theorem responseOpsIs_nil (skip : Bool) : ⊢ responseOpsIs (GF := GF) skip [] [
   unfold responseOpsIs; itrivial
 
 /-- A delete keeps the state's leases known. -/
-theorem leasesKnown_delete (γl : GName) (r : w64) (s : List EtcdKv) (o : OpFull) :
-    leasesKnown (GF := GF) γl s ⊢ leasesKnown γl (mvcc.applyChanges r s (delChanges s o)) := by
+theorem leasesKnown_delete (L : List w64) (r : w64) (s : List EtcdKv) (o : OpFull) :
+    leasesKnown (GF := GF) L s ⊢ leasesKnown L (mvcc.applyChanges r s (delChanges s o)) := by
   rw [applyChanges_delChanges]
   apply leasesKnown_sub
   intro v hv
@@ -304,7 +304,7 @@ theorem leasesKnown_delete (γl : GName) (r : w64) (s : List EtcdKv) (o : OpFull
 (for the read-only wrapper, the committed one). -/
 theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
     (ilog : mvcc.Log) (pend : List mvcc.Change) :
-    txnWriteIs (GF := GF) tw s γ ro ilog pend ⊢ ∃ kind : mvcc.TxnKind, txnViewIs tw s γ kind ro ∗
+    txnWriteIs (GF := GF) tw s γ trace ro ilog pend ⊢ ∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind ro ∗
       ⌜KindIs ro ilog pend kind ∧ KindOk kind ∧ kindState kind = pendState ilog pend ∧
         ilog ≠ [] ∧ ilog.length < 2 ^ 63⌝ := by
   unfold txnWriteIs
@@ -348,7 +348,7 @@ theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro 
 /-- A transaction of a kind and the kind's facts make `executeTxn`'s. -/
 theorem txnWriteIs_of_view (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
     (ilog : mvcc.Log) (pend : List mvcc.Change) (kind : mvcc.TxnKind) (h : KindIs ro ilog pend kind) :
-    txnViewIs (GF := GF) tw s γ kind ro ⊢ txnWriteIs tw s γ ro ilog pend := by
+    txnViewIs (GF := GF) tw s γ trace kind ro ⊢ txnWriteIs tw s γ trace ro ilog pend := by
   unfold txnWriteIs
   iintro Hv
   iexists kind
@@ -376,9 +376,10 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
     · exact h
     · rw [hrev0, h00] at h; omega
   unfold rangeResult
-  iintro (⟨%H, -⟩ | %H | ⟨%H, %kvs, %more, #Hresp, %Hok⟩)
+  iintro (⟨%H, -⟩ | ⟨%H, #He⟩ | ⟨%H, %kvs, %more, #Hresp, %Hok⟩)
   · rw [hrev0, h00] at H; omega
-  · exact absurd herr' H.2.2.2.2
+  · ihave %Hne := mvcc.errorfIs_ne_nil err $$ He
+    exact absurd herr' Hne
   · rw [hRR] at Hok
     rw [hRR]
     obtain ⟨kvs', h1, h2, -⟩ := srvRangeOk_rangeKvsOk o _ kvs more hset Hok hcut
@@ -405,7 +406,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 /-- `executeTxn`'s transaction is an interface value with a dynamic type. -/
 theorem txnWriteIs_ok (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
     (ilog : mvcc.Log) (pend : List mvcc.Change) :
-    txnWriteIs (GF := GF) tw s γ ro ilog pend ⊢ ⌜∃ twi : GoInterfaceOk, tw = GoInterface.ok twi⌝ := by
+    txnWriteIs (GF := GF) tw s γ trace ro ilog pend ⊢ ⌜∃ twi : GoInterfaceOk, tw = GoInterface.ok twi⌝ := by
   unfold txnWriteIs txnViewIs
   iintro ⟨%kind, H, -⟩
   cases ro
@@ -422,9 +423,9 @@ theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := 
     (twi : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool) (ilog : mvcc.Log)
     (pend : List mvcc.Change) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        txnWriteIs (GoInterface.ok twi) s γ ro ilog pend }}
+        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }}
       (App (Val #(methods twi.ty go!"Rev" twi.v)) (Val #()))
-    {{ RET #(W64 ((ilog.length : Int) - 1)); txnWriteIs (GoInterface.ok twi) s γ ro ilog pend }} := by
+    {{ RET #(W64 ((ilog.length : Int) - 1)); txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }} := by
   wp_start_folded as ⟨Htw⟩
   iunfold txnWriteIs at Htw
   icases Htw with ⟨%kind, Hv, %Hk⟩
@@ -439,7 +440,7 @@ theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := 
     | mk ty v =>
     simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    iapply (hRev mw s γ (.write ilog pend puts deletes putSize)) $$ [Htx]
+    iapply (hRev trace mw s γ (.write ilog pend puts deletes putSize)) $$ [Htx]
     · iframe Htx Hpkg
     inext
     iintro Htx
@@ -462,7 +463,7 @@ theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := 
     | mk ty v =>
     simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    iapply (hRoRev trw s γ ilog rev') $$ [Hro]
+    iapply (hRoRev trace trw s γ ilog rev') $$ [Hro]
     · iframe Hro Hpkg
     inext
     iintro ⟨Hro, %Hr⟩
@@ -480,10 +481,10 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     (twi : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool) (ilog : mvcc.Log)
     (pend : List mvcc.Change) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        txnWriteIs (GoInterface.ok twi) s γ ro ilog pend }}
+        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }}
       (App (Val #(methods twi.ty go!"Changes" twi.v)) (Val #()))
     {{ (chs : GoSlice), RET #chs; ⌜sint.nat chs.len = pend.length ∧ 0 ≤ sint.Z chs.len⌝ ∗
-        txnWriteIs (GoInterface.ok twi) s γ ro ilog pend }} := by
+        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }} := by
   wp_start_folded as ⟨Htw⟩
   iunfold txnWriteIs at Htw
   icases Htw with ⟨%kind, Hv, %Hk⟩
@@ -498,13 +499,15 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     | mk ty v =>
     simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    iapply (hCh mw s γ ilog pend puts deletes putSize) $$ [Htx]
+    iapply (hCh trace mw s γ ilog pend puts deletes putSize) $$ [Htx]
     · simp only [mvcc.isTxn] at *; iframe Htx Hpkg
     inext
-    iintro %chs ⟨%Hl, Htx⟩
+    iintro %chs %ps ⟨Hchs, Hkvs, %Hps, Htx⟩
+    ihave %Hl := ownSlice_len _ _ _ $$ Hchs
+    ihave Htx := mvcc.isTxnWrite_join mw s γ ilog pend puts deletes putSize chs ps $$ [$Htx $Hchs $Hkvs]
     iapply HΦ
     isplitl []
-    · ipureintro; exact Hl
+    · ipureintro; rw [← Hps]; exact ⟨Hl.1.symm, Hl.2⟩
     iunfold txnWriteIs
     iexists _
     isplitl

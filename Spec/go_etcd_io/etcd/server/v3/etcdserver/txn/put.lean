@@ -30,24 +30,28 @@ request's value and lease, or the previous ones) pending, and the response at th
 revision with the previous key-value if requested (`PrevKv`: the answer's own `*KeyValue`, made
 read-only). -/
 abbrev txn.put.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (mw s : Loc)
+  ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (p : Loc) (o : OpFull) (prev : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ context.isContext ctx cd ∗
-      mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize ∗ txn.putRequestIs p o ∗
+    (p : Loc) (o : OpFull) (prev : Loc) (L : List w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx (some trace) ∗
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ txn.putRequestIs p o ∗
       (if txn.readsPrev o then txn.prevKvIs prev (txn.pendState ilog pend) o.key
         else ⌜prev = null⌝) ∗
       ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.pendState ilog pend)).isSome⌝ ∗
-      txn.leaseOk γ.leases (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState ilog pend))) ∗
-      ⌜pend.length + 1 < 2 ^ 63⌝ }}
+      txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState ilog pend))) ∗
+      lease.leaseOwn γ.leases L ∗
+      ⌜pend.length + 1 < mvcc.putMax γ⌝ }}
     (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #p))
       (Val #prev))
   {{ (resp : Loc), RET #resp;
-      (∃ puts' putSize' : w64, mvcc.isTxnWrite mw s γ ilog
+      (∃ puts' putSize' : w64, mvcc.isTxnWrite mw s γ trace ilog
         (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState ilog pend))]) puts' deletes
         putSize') ∗
       txn.putResponseIs resp (W64 (ilog.length : Int))
-        (if o.base.prevKV then mvcc.findKey o.key (txn.pendState ilog pend) else none) }}
+        (if o.base.prevKV then mvcc.findKey o.key (txn.pendState ilog pend) else none) ∗
+      txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
+      lease.leaseOwn γ.leases L }}
 
 end spec
 

@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeSecObserve
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -37,29 +38,41 @@ theorem txn.Range.wp_proof
     (hExec : txn.executeRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Range.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg kv s γ r o withTotal m log₀
-  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, %Hlg, %Hpre⟩
+  have hRead := mvcc.store.Read.spec_frozen hRead
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
+  intro ctx cd nd lg kv s γ r o withTotal m log₀ ot te
+  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, #Hsort⟩
   iunfold txn.isKV at Hkv
   icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   wp_apply wp_with_defer as %defer defer
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx'⟩
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
+    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+  · iapply traceutil.ownFields_nil
   wp_apply time.wp_Now as %now -
-  wp_apply (hRead s γ _ t m log₀) $$ [$Hs $Hrd $Htoks $Hc0] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  wp_apply (hRead s γ _ trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  · ipureintro; exact Ht
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩
-  ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  have hpin' : log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 := ⟨Hpin.1, Hpin.2⟩
+  ihave %Hsok := Hsort $$ %log %hpin' Hcert
+  ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htv := (txn.txnViewIs_mw mw s γ (.read log rev)).2 $$ Htx
-  wp_apply (hExec ctx' _ false lg s γ _ (.read log rev) false r o withTotal)
-    $$ [$Htv $Hctx' $Hr] as %resp %err ⟨Htv, #Hres, -⟩
-  · isplitr
-    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  wp_apply (hExec trace ctx' _ nd lg s γ _ (.read log rev) false r o withTotal)
+    $$ [$Htv $Hctx' $Hct' $Hr] as %resp %err ⟨Htv, #Hres, Hhdr, %Hnd'⟩
+  · isplitl [Hnd]
+    · cases nd
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
     ipureintro
-    exact ⟨Hpre.1, txn.sortSmall_of_sortOk o log Hlog.1 _ (Hpre.2 log Hpin.1 Hpin.2)⟩
+    exact ⟨Hvst, txn.sortSmall_of_sortOk o log Hlog.1 _ Hsok⟩
   ihave Htx' := (txn.txnViewIs_mw mw s γ (.read log rev)).1 $$ Htv
   simp only [mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx'] as ⟨Hrd, -⟩
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
+  ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPre]; itrivial
+  wp_apply (hEnd trace mw s γ (.read log rev)) $$ [$Htx' $Hep] as ⟨Hrd, -, %te', Htrc⟩
   cases err <;> wp_auto
   all_goals
     wp_apply time.wp_Since as %d -
@@ -68,10 +81,14 @@ theorem txn.Range.wp_proof
     iframe Hrd Htoks
     isplitr
     · ipureintro; exact Ht
+    isplitl [Htrc]
+    · iexists te'; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     iexists log, rev
-    iframe Hcert Hres
+    iframe Hcert Hres Hhdr
     ipureintro
-    exact ⟨Hpin.1, Hpin.2, Hlog.2.1, Hlog.2.2⟩
+    exact ⟨⟨Hpin.1, Hpin.2, Hlog.2.1, Hlog.2.2⟩, Hnd'⟩
 
 end proof
 

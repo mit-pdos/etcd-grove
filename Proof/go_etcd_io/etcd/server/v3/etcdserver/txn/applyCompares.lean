@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.applyCompares.wp_proof
     (hCmp : txn.applyCompare.spec (GF := GF) (hG := hG)) :
     txn.applyCompares.spec (GF := GF) (hG := hG) := by
-  intro mw s γ log rev sl cps cms
+  intro trace mw s γ log rev sl cps cms
   wp_start as ⟨Htx, #Hsl, #Hcs⟩
   iunfold txn.comparesIs at Hcs
   icases Hcs with ⟨%Hlen, #Hcs⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   wp_auto
   ihave IH : (∃ (n : w64) (cv : Loc), "i" ∷ i_ptr ↦ n ∗ "c" ∷ c_ptr ↦ cv ∗
-      "Htx" ∷ mvcc.isTxnRead mw s γ log rev ∗
+      "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len ∧
         ∀ j < sint.nat n, ∀ cm, cms[j]? = some cm → cmpHolds (mvcc.stateAfter log) cm = true⌝ :
       IProp GF) $$ [i c Htx]
@@ -52,7 +52,7 @@ theorem txn.applyCompares.wp_proof
     wp_apply wp_load_slice_index sl (sint.Z n) cps DFrac.discard p hn0 $$ [Hsl] as -
     · iframe Hsl; ipureintro; exact Hp_lookup
     ihave #Hp := Hcs $$ %(sint.nat n) %p %cm %Hp_lookup %Hcm_lookup
-    wp_apply (hCmp mw s γ log rev p cm) $$ [$Htx $Hp] as Htx
+    wp_apply (hCmp trace mw s γ log rev p cm) $$ [$Htx $Hp] as Htx
     cases hb : cmpHolds (mvcc.stateAfter log) cm
     · wp_auto
       wp_for_post

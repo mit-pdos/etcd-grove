@@ -2,9 +2,33 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.errors
+public import GeneratedProof.github_com.Masterminds.semver.v3
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.pbutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
+public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
+public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
+public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 
@@ -29,12 +53,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 instance authApplierV3_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 where
+  typedPointstoDef l v dq := iprop(
+    "applierV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' dq ∗
+    "as'" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) v.as' dq ∗
+    "lessor" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) v.lessor' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) v.mu' dq ∗
+    "authInfo" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) v.authInfo' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance authApplierV3_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.underlying := by
+  solve_into_val_typed_struct
+
+instance authApplierV3_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (applierV3' : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) v.applierV3' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"applierV3" l) applierV3' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applierV3' := applierV3' } : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_load_as (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) v.as' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) v.as' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_store_as (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (as' : go_etcd_io.etcd.server.v3.auth.AuthStore) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) v.as' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"as" l) as' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with as' := as' } : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_load_lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) v.lessor' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) v.lessor' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_store_lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (lessor' : go_etcd_io.etcd.server.v3.lease.Lessor) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) v.lessor' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"lessor" l) lessor' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lessor' := lessor' } : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_load_authInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) v.authInfo' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) v.authInfo' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authApplierV3_access_store_authInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (authInfo' : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) v.authInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3 go!"authInfo" l) authInfo' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authInfo' := authInfo' } : go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end authApplierV3
@@ -48,12 +161,237 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 instance ApplierOptions_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions where
+  typedPointstoDef l v dq := iprop(
+    "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' dq ∗
+    "KV" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) v.KV' dq ∗
+    "AlarmStore" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) v.AlarmStore' dq ∗
+    "AuthStore" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) v.AuthStore' dq ∗
+    "Lessor" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) v.Lessor' dq ∗
+    "Cluster" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) v.Cluster' dq ∗
+    "RaftStatus" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) v.RaftStatus' dq ∗
+    "SnapshotServer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) v.SnapshotServer' dq ∗
+    "ConsistentIndex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) v.ConsistentIndex' dq ∗
+    "TxnModeWriteWithSharedBuffer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq ∗
+    "Backend" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) v.Backend' dq ∗
+    "QuotaBackendBytesCfg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) v.QuotaBackendBytesCfg' dq ∗
+    "WarningApplyDuration" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) v.WarningApplyDuration' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance ApplierOptions_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions.underlying := by
+  solve_into_val_typed_struct
+
+instance ApplierOptions_access_load_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (Logger' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) v.Logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Logger" l) Logger' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) v.KV' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (KV' : go_etcd_io.etcd.server.v3.storage.mvcc.KV) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) v.KV' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"KV" l) KV' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := KV' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_AlarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) v.AlarmStore' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) v.AlarmStore' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_AlarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (AlarmStore' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) v.AlarmStore' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AlarmStore" l) AlarmStore' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AlarmStore' := AlarmStore' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_AuthStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) v.AuthStore' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) v.AuthStore' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_AuthStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (AuthStore' : go_etcd_io.etcd.server.v3.auth.AuthStore) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) v.AuthStore' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"AuthStore" l) AuthStore' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AuthStore' := AuthStore' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) v.Lessor' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) v.Lessor' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (Lessor' : go_etcd_io.etcd.server.v3.lease.Lessor) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) v.Lessor' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Lessor" l) Lessor' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lessor' := Lessor' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_Cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) v.Cluster' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) v.Cluster' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_Cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (Cluster' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) v.Cluster' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Cluster" l) Cluster' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cluster' := Cluster' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_RaftStatus (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) v.RaftStatus' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) v.RaftStatus' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_RaftStatus (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (RaftStatus' : go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) v.RaftStatus' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"RaftStatus" l) RaftStatus' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RaftStatus' := RaftStatus' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_SnapshotServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) v.SnapshotServer' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) v.SnapshotServer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_SnapshotServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (SnapshotServer' : go_etcd_io.etcd.server.v3.etcdserver.apply.SnapshotServer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) v.SnapshotServer' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"SnapshotServer" l) SnapshotServer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotServer' := SnapshotServer' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_ConsistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) v.ConsistentIndex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) v.ConsistentIndex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_ConsistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (ConsistentIndex' : go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) v.ConsistentIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"ConsistentIndex" l) ConsistentIndex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsistentIndex' := ConsistentIndex' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (TxnModeWriteWithSharedBuffer' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"TxnModeWriteWithSharedBuffer" l) TxnModeWriteWithSharedBuffer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TxnModeWriteWithSharedBuffer' := TxnModeWriteWithSharedBuffer' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_Backend (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) v.Backend' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) v.Backend' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_Backend (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (Backend' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) v.Backend' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"Backend" l) Backend' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Backend' := Backend' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_QuotaBackendBytesCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) v.QuotaBackendBytesCfg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) v.QuotaBackendBytesCfg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_QuotaBackendBytesCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (QuotaBackendBytesCfg' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) v.QuotaBackendBytesCfg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"QuotaBackendBytesCfg" l) QuotaBackendBytesCfg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with QuotaBackendBytesCfg' := QuotaBackendBytesCfg' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_load_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) v.WarningApplyDuration' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) v.WarningApplyDuration' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ApplierOptions_access_store_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (WarningApplyDuration' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) v.WarningApplyDuration' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions go!"WarningApplyDuration" l) WarningApplyDuration' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarningApplyDuration' := WarningApplyDuration' } : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end ApplierOptions
@@ -107,34 +445,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 instance applierV3Capped_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped where
+  typedPointstoDef l v dq := iprop(
+    "applierV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' dq ∗
+    "q" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) v.q' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance applierV3Capped_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped.underlying := by
+  solve_into_val_typed_struct
+
+instance applierV3Capped_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance applierV3Capped_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (applierV3' : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) v.applierV3' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"applierV3" l) applierV3' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applierV3' := applierV3' } : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance applierV3Capped_access_load_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) v.q' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) v.q' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance applierV3Capped_access_store_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (q' : go_etcd_io.etcd.server.v3.storage.BackendQuota) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) v.q' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped go!"q" l) q' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with q' := q' } : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end applierV3Capped
-
-namespace applierV3
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-
-instance applierV3_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3 :=
-  sorry -- axiomatized type
-
-instance applierV3_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3 go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end applierV3
 
 namespace applierV3Corrupt
 section def_
@@ -185,34 +542,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 instance InternalRaftRequestWrapper_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper where
+  typedPointstoDef l v dq := iprop(
+    "InternalRaftRequest" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' dq ∗
+    "SkipRangeExecution" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) v.SkipRangeExecution' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance InternalRaftRequestWrapper_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper.underlying := by
+  solve_into_val_typed_struct
+
+instance InternalRaftRequestWrapper_access_load_InternalRaftRequest (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance InternalRaftRequestWrapper_access_store_InternalRaftRequest (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (InternalRaftRequest' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) v.InternalRaftRequest' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"InternalRaftRequest" l) InternalRaftRequest' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InternalRaftRequest' := InternalRaftRequest' } : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance InternalRaftRequestWrapper_access_load_SkipRangeExecution (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) v.SkipRangeExecution' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) v.SkipRangeExecution' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance InternalRaftRequestWrapper_access_store_SkipRangeExecution (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (SkipRangeExecution' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) v.SkipRangeExecution' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper go!"SkipRangeExecution" l) SkipRangeExecution' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SkipRangeExecution' := SkipRangeExecution' } : go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end InternalRaftRequestWrapper
-
-namespace RaftStatusGetter
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-
-instance RaftStatusGetter_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter :=
-  sorry -- axiomatized type
-
-instance RaftStatusGetter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end RaftStatusGetter
 
 namespace Result
 section def_
@@ -314,12 +690,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 instance quotaApplierV3_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 where
+  typedPointstoDef l v dq := iprop(
+    "applierV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' dq ∗
+    "q" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) v.q' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance quotaApplierV3_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3.underlying := by
+  solve_into_val_typed_struct
+
+instance quotaApplierV3_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance quotaApplierV3_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (applierV3' : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) v.applierV3' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" l) applierV3' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applierV3' := applierV3' } : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance quotaApplierV3_access_load_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) v.q' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) v.q' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance quotaApplierV3_access_store_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (q' : go_etcd_io.etcd.server.v3.storage.Quota) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) v.q' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"q" l) q' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with q' := q' } : go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end quotaApplierV3
@@ -333,12 +747,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 instance uberApplier_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' dq ∗
+    "alarmStore" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) v.alarmStore' dq ∗
+    "warningApplyDuration" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) v.warningApplyDuration' dq ∗
+    "applyV3" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) v.applyV3' dq ∗
+    "applyV3base" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) v.applyV3base' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance uberApplier_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.underlying := by
+  solve_into_val_typed_struct
+
+instance uberApplier_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_load_alarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) v.alarmStore' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) v.alarmStore' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_store_alarmStore (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (alarmStore' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) v.alarmStore' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"alarmStore" l) alarmStore' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alarmStore' := alarmStore' } : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_load_warningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) v.warningApplyDuration' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) v.warningApplyDuration' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_store_warningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (warningApplyDuration' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) v.warningApplyDuration' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"warningApplyDuration" l) warningApplyDuration' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with warningApplyDuration' := warningApplyDuration' } : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_load_applyV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) v.applyV3' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) v.applyV3' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_store_applyV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (applyV3' : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) v.applyV3' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3" l) applyV3' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyV3' := applyV3' } : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_load_applyV3base (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) v.applyV3base' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) v.applyV3base' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance uberApplier_access_store_applyV3base (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (applyV3base' : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) v.applyV3base' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier go!"applyV3base" l) applyV3base' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyV3base' := applyV3base' } : go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end uberApplier

@@ -1,7 +1,10 @@
 # Types and names only: function and method bodies are axiomatized (what mvcc's
-# watchStream.Watch calls: trace.SpanFromContext, Span.End).
+# watchStream.Watch calls: trace.SpanFromContext, Span.End); `context` imported so that the
+# `Tracer` interface translates (2026-10-12, the request path's unit 2: the server's `Put` calls
+# `traceutil.Tracer.Start`).
 translate = ["!*"]
-imports = ["!*", "go.opentelemetry.io/otel/trace/embedded", "go.opentelemetry.io/otel/codes", "go.opentelemetry.io/otel/attribute"]
+imports = ["!*", "go.opentelemetry.io/otel/trace/embedded", "go.opentelemetry.io/otel/codes", "go.opentelemetry.io/otel/attribute",
+  "context"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

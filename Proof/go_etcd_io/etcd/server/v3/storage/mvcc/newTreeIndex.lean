@@ -73,12 +73,18 @@ theorem mvcc.newTreeIndex.wp_proof
   ipersist lg
   imod mono_list_own_alloc (GF := GF) ([] : List mvcc.HistItem) with ⟨%γh, Hhauth, #Hhlb⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γn, Hnauth, #Hnlb⟩
-  imod mono_list_own_alloc (GF := GF) ([] : mvcc.Log) with ⟨%γl, Hlauth, -⟩
+  imod mono_list_own_alloc (GF := GF) ([] : mvcc.Log) with ⟨%γl, Hlauth, #Hllb⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hcauth, #Hclb⟩
+  imod ghostVar_alloc (GF := GF) ((-1 : Int), ([] : List Loc)) with ⟨%γm, Hcmp⟩
+  have hcmph := (ghostVar_fractional (GF := GF) γm ((-1 : Int), ([] : List Loc))).fractional
+    (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hcmph
+  icases hcmph.1 $$ Hcmp with ⟨Hcmp, Hcmpr⟩
   have hhalves := (monoListAuthOwn_fractional (GF := GF) γl ([] : mvcc.Log)).fractional
     (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hhalves
   icases hhalves.1 $$ Hlauth with ⟨Hlauth, Hlother⟩
-  let γ : mvcc.IdxNames := ⟨γh, γn, γl⟩
+  let γ : mvcc.IdxNames := ⟨γh, γn, γl, γc, γm⟩
   have hshape : mvcc.histShape [] [] = [] := rfl
   have hevs : (mvcc.evsOf ([] ++ [[]])).length = 0 := rfl
   have hwf : mvcc.IdxWf [] [] := by
@@ -87,11 +93,11 @@ theorem mvcc.newTreeIndex.wp_proof
     split at hr
     · simp only [Option.some.injEq] at hr; subst hr; simp at hi
     · simp at hr
-  imod sync.init_RWMutex (mvcc.idxLockInv (hG := hG) t γ) (mvcc.idxMuAddr ti) $$ [Hnauth Ht] RWMutex
+  imod sync.init_RWMutex (mvcc.idxLockInv (hG := hG) t γ) (mvcc.idxMuAddr ti) $$ [Hnauth Ht Hcmp] RWMutex
     with Htoks
   · inext
     unfold mvcc.idxLockInv
-    iexists [], [], []
+    iexists [], [], [], -1
     simp only [named, γ]
     rw [hshape, hevs]
     iframe Hnauth
@@ -104,8 +110,18 @@ theorem mvcc.newTreeIndex.wp_proof
       isplitl []
       · ipureintro; exact List.Pairwise.nil
       iapply BigSepL.bigSepL_nil_intro; iempintro
-    ipureintro
-    exact ⟨rfl, hwf⟩
+    isplitl []
+    · iunfold mvcc.crevLb; rw [mvcc.crevN_neg]; iexact Hclb
+    isplitl []
+    · iexists []; iframe Hllb; ipureintro; simp
+    isplitl []
+    · ipureintro; exact ⟨mvcc.IdxCRep.nil (Int.le_refl _), Int.le_refl _⟩
+    isplitl []
+    · ipureintro; exact hwf
+    iunfold mvcc.idxCmpOwn
+    iexists -1, []
+    iframe Hcmp
+    ipureintro; simp
   wp_auto
   -- one token's guard
   have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
@@ -133,6 +149,10 @@ theorem mvcc.newTreeIndex.wp_proof
     ipureintro; exact hwf
   isplitl [Hlother]
   · iexact Hlother
+  isplitl [Hcauth]
+  · iunfold mvcc.crevUB; rw [mvcc.crevN_neg]; iexact Hcauth
+  isplitl [Hcmpr]
+  · iunfold mvcc.idxCompactor; iexact Hcmpr
   rw [← List.replicate_succ]
   iapply idxReaders_of_toks ti t γ (m + 1)
   isplitl []

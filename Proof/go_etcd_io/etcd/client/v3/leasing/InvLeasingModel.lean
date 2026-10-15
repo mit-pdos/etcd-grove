@@ -85,6 +85,7 @@ def LeasingStepOk (pfx : GoString) (h : LeasingHist) (z : Int) : Prop :=
 
 section premise
 variable {GF : BundledGFunctors}
+variable [EM : EtcdModel GF]
 
 /-- **The leasing protocol premise**: `h` is etcd's history (its state at every revision
 `r ≥ 0` is `h.st r`, with unique keys) and every revision `0 < z < 2^63` obeys the protocol
@@ -198,6 +199,7 @@ theorem leasing_pure_forall_intro {PROP : Type _} [BI PROP] {P : PROP} {α : Sor
 
 section lemmas
 variable {GF : BundledGFunctors}
+variable [EM : EtcdModel GF]
 
 /-- The premise gives etcd's state at every revision `r ≥ 0`: `h.st r`. -/
 theorem leasingProtocol_state (pfx : GoString) (h : LeasingHist) (r : w64) (hr : 0 ≤ sint.Z r) :

@@ -1,0 +1,88 @@
+# The gRPC KV service (etcd's server/v3/etcdserver/api/v3rpc; all Lean-first), read by
+# `etc/gen-link.py --v3rpc`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# Plan: notes/decisions.md, "The request path" (unit 0, 2026-10-12; unit 1, the proofs).
+#
+# The trust boundary (axioms): grpc's status errors (`togRPCError`'s fallback, the stream
+# check's `Unimplemented`) and `errors.Is` at the target `context.DeadlineExceeded` (an empty
+# struct, which Perennial's `errors.wp_Is` does not take). `errors.Is` is otherwise Perennial's
+# (proved, the server's spec file). The error map, the checks' rpctypes errors, the sort-name maps
+# and `context.Canceled`'s pointer error are the package's facts (Base.lean), not axioms.
+status_Error:
+status_Errorf:
+errors_Is:
+errors_IsDeadlineExceeded:
+# The functions of other packages the checks call (`@`: linked in their Link.lean): the txn
+# package's stream-check predicates, the interval tree's intervals.
+txn_IsDefaultOrdering: @
+txn_HasRevisionFilters: @
+adt_NewStringAffineInterval: @
+adt_NewStringAffinePoint: @
+# The interval tree's functions `checkIntervals` calls, all proved in the adt Link (the mvcc
+# session's watchable store, unit 4; `Union` in 4d). `Insert` takes any interval, present or
+# not (unit 1: the same range deleted twice; it was `InsertAny`).
+adt_NewIntervalTree: @
+adt_intervalTree__Insert: @
+adt_intervalTree__Intersects: @
+adt_intervalTree__Union: @
+#
+# The package's functions (unit 1). The server's methods the handlers and the header call
+# (`Range`, `Put`, `DeleteRange`, `Txn`, `KV().Rev()`, `Cluster().ID()`, `MemberID`, `Term`,
+# `Leader`) are not callees: their triples are the contract `raftKV s A` (InvKV.lean), a
+# precondition, which units 2 and 3 prove of `*EtcdServer`.
+checkRangeRequest:
+checkPutRequest:
+checkDeleteRequest:
+checkRangeStreamRequest: checkRangeRequest txn_IsDefaultOrdering txn_HasRevisionFilters status_Errorf
+checkTxnRequest: checkRangeRequest checkPutRequest checkDeleteRequest
+checkRequestOp: checkRangeRequest checkPutRequest checkDeleteRequest checkTxnRequest
+checkIntervals: adt_NewIntervalTree adt_NewStringAffineInterval adt_NewStringAffinePoint adt_intervalTree__Insert adt_intervalTree__Intersects adt_intervalTree__Union
+togRPCError: errors_Is errors_IsDeadlineExceeded status_Error
+newHeader:
+header__fillWithoutRevision:
+header__fill: header__fillWithoutRevision
+NewKVServer: newHeader
+kvServer__Range: checkRangeRequest togRPCError header__fill
+kvServer__Put: checkPutRequest togRPCError header__fill
+kvServer__DeleteRange: checkDeleteRequest togRPCError header__fill
+kvServer__Txn: checkTxnRequest checkIntervals togRPCError header__fill
+headerFillingRangeStream__Send: header__fillWithoutRevision
+# Not verified: `kvServer.RangeStream` (the server's `RangeStream`, the streaming read, is out of
+# the request path's model: no contract for it) and `kvServer.Compact` (`AuthAdmin.isPermitted`
+# and the server's `Compact`: compaction is out of the model, as in the apply package).
+#
+# Unit P3b: the server end of the gRPC boundary (notes/decisions.md, "The server end of the gRPC
+# boundary"). The generated server-side handlers of the KV service (api/etcdserverpb/
+# rpc_grpc.pb.go: decode with grpc's `dec`, then the interceptor chain or the service method:
+# their contracts are premises, `InvGrpc.lean`); the quota wrapper (quota.go); the unary
+# interceptors (interceptor.go, util.go's `isRPCSupportedForLearner`). The server's getters are
+# linked in the server's Link (`@`). Trust boundary (axioms): the apply package's
+# `storage.NewBackendQuota`; the names-only `EtcdServer.Alarm` (`raftRequest` of an alarm),
+# `IsMemberExist`, `IsLearner` (the cluster's), `api.IsCapabilityEnabled`, grpc's
+# `metadata.FromIncomingContext`/`MD.Get`, `utf8.ValidString`, prometheus's
+# `CounterVec.WithLabelValues`, and `logUnaryRequestStats` (zap, peer, proto.Size).
+_KV_Put_Handler:
+_KV_Range_Handler:
+_KV_DeleteRange_Handler:
+_KV_Txn_Handler:
+EtcdServer__Logger: @
+EtcdServer__Backend: @
+EtcdServer__MemberID: @
+EtcdServer__Leader: @
+metadata_FromIncomingContext:
+storage_NewBackendQuota:
+EtcdServer__Alarm:
+EtcdServer__IsMemberExist:
+EtcdServer__IsLearner:
+api_IsCapabilityEnabled:
+metadata_MD__Get:
+utf8_ValidString:
+prometheus_CounterVec__WithLabelValues:
+logUnaryRequestStats:
+isRPCSupportedForLearner:
+newBackendQuota: EtcdServer__Logger EtcdServer__Backend storage_NewBackendQuota
+NewQuotaKVServer: NewKVServer newBackendQuota EtcdServer__MemberID
+quotaAlarmer__check: EtcdServer__Alarm
+quotaKVServer__Put: quotaAlarmer__check
+quotaKVServer__Txn: quotaAlarmer__check
+newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats
+newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner isRPCSupportedForLearner metadata_FromIncomingContext metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues EtcdServer__Leader

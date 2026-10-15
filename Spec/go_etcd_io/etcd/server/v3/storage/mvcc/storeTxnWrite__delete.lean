@@ -24,14 +24,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `tw.delete(key)`: the pending revision gets a delete of `key`, present after the pending
 changes (the index's `Tombstone` then returns `nil`); the key's lease, if any, is detached. -/
 abbrev mvcc.storeTxnWrite.delete.spec : Prop :=
-  ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (key : GoSlice) (k : GoString),
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (key : GoSlice) (k : GoString) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ key ↦*□ k ∗
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗
       ⌜(mvcc.findKey k (mvcc.applyChanges (W64 ilog.length) (mvcc.stateAfter ilog) pend)).isSome ∧
-        pend.length + 1 < 2 ^ 63⌝ }}
+        pend.length + 1 < mvcc.putMax γ⌝ }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"delete")) (Val #key))
-  {{ RET #(); mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) }}
+  {{ RET #(); mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z }}
 
 end spec
 

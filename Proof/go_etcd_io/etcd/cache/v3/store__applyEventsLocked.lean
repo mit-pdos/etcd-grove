@@ -354,6 +354,8 @@ theorem store.applyEventsLocked.wp_proof
   have wp_ReplaceOrInsert : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) := btree.BTree.ReplaceOrInsert.modelSpec_of wp_ReplaceOrInsert
   intro s γ cap E st evSl evs
   wp_start as ⟨#Hs, Hphys, %Hinv, #Hevs, % ⟨Hsorted, Habove⟩, #Hcerts⟩
+  ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · iPkgInit
   iNamed Hs
   wp_auto
   iunfold eventsAt at Hevs
@@ -471,7 +473,14 @@ theorem store.applyEventsLocked.wp_proof
             · ipureintro; rfl
             iintro %asl ⟨Hasl, -⟩
             wp_auto
-            wp_apply fmt.wp_Errorf $$ [$Hasl] as %err _
+            wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hfmt $Hasl] as %err #HeS
+            case wf =>
+              try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+              repeat' first
+                | exact _root_.Perennial.fmt.ArgsWf.nil
+                | refine _root_.Perennial.fmt.ArgsWf.cons_string _ _ ?_
+                | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
+                | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
             wp_for_post
             wp_for_post
             have Happ : applyEvents cap st evs = ({ stc with latest := m }, false) := by
@@ -488,6 +497,8 @@ theorem store.applyEventsLocked.wp_proof
               · simp [applyEv, Hif, Hf]
             rw [applyEventsLocked_btDelete_of_find_none Hf]
             iapply HΦ
+            isplitl []
+            · iapply errStrOk_ok; unfold errorStringSpec; iexact HeS
             rw [Happ]
             iunfold storeLockedPhys
             iunfold storeLatestTree
@@ -552,7 +563,7 @@ theorem store.applyEventsLocked.wp_proof
             exact ⟨⟨by omega, by omega, by word⟩,
               applyEventsLocked_inner_inv Hk.1 He1_lookup Hrev1 Hm Hev1 Hm.2.2⟩
       · -- event `k` starts the next batch: the batch is done
-        simp only [hr, decide_false, decide_true, ↓reduceIte, Bool.false_eq_true]
+        simp only [hr, decide_false, _root_.decide_true, ↓reduceIte, Bool.false_eq_true]
         have Hjk : sint.nat j < sint.nat k := by
           rcases Nat.lt_or_ge (sint.nat j) (sint.nat k) with h | h
           · exact h
@@ -633,6 +644,8 @@ theorem store.applyEventsLocked.wp_proof
     obtain ⟨Hinvc, Happ, -, Hmono⟩ := Hstc
     rw [Hje, List.drop_length, applyEvents.eq_1] at Happ
     iapply HΦ
+    isplitl []
+    · iapply errStrOk_nil
     rw [Happ]
     iunfold storeLockedPhys
     iunfold storeLatestTree

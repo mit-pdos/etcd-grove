@@ -60,7 +60,7 @@ theorem txn.compareToPath_opsIs_length :
 theorem txn.compareToPath.wp_proof
     (hCmps : txn.applyCompares.spec (GF := GF) (hG := hG)) :
     txn.compareToPath.spec (GF := GF) (hG := hG) := by
-  intro mw s γ log rev rt t
+  intro trace mw s γ log rev rt t
   iloeb as IH generalizing %rt %t
   wp_start as ⟨Htx, #Ht⟩
   iunfold txn.txnRequestIs at Ht
@@ -70,7 +70,7 @@ theorem txn.compareToPath.wp_proof
   wp_auto
   wp_apply (wp_slice_make2 (V := Bool) (W64 1)) as %sl ⟨Hsl, Hcap⟩
   · ipureintro; decide
-  wp_apply (hCmps mw s γ log rev csl cps t.cmps) $$ [$Htx $Hcs $Hcm] as Htx
+  wp_apply (hCmps trace mw s γ log rev csl cps t.cmps) $$ [$Htx $Hcs $Hcm] as Htx
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   simp only [List.length_replicate] at Hsll
   rw [ite_eq_left (by constructor <;> word)]
@@ -104,7 +104,7 @@ theorem txn.compareToPath.wp_proof
   ihave IHl : (∃ (n : w64) (pv : Loc) (cur : GoSlice), "i" ∷ i_ptr ↦ n ∗ "op" ∷ op_ptr ↦ pv ∗
       "txnPath" ∷ txnPath_ptr ↦ cur ∗
       "Hsl" ∷ cur ↦* (ok :: txn.opsPath (mvcc.stateAfter log) ((t.branch ok).take (sint.nat n))) ∗
-      "Hcap" ∷ ownSliceCap Bool cur (DFrac.own 1) ∗ "Htx" ∷ mvcc.isTxnRead mw s γ log rev ∗
+      "Hcap" ∷ ownSliceCap Bool cur (DFrac.own 1) ∗ "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z osl.len⌝ : IProp GF) $$ [i op txnPath Hsl Hcap Htx]
   · iexists W64 0, _, sl
     iframe

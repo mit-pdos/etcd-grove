@@ -31,8 +31,10 @@ theorem mvcc.watcherGroup.choose.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG))
     (hAll : mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG)) :
     mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) := by
+  have hAdd := mvcc.watcherGroup.add.spec_group hAdd
   intro wg W ST maxWatchers curRev compactRev
-  wp_start as ⟨Hg, HST, %Hdom, %Hst⟩
+  wp_start as ⟨Hg, HST, %HdomSt, %HWsz⟩
+  obtain ⟨Hdom, Hst⟩ := HdomSt
   icases mvcc.ownWatcherGroup_fixed wg W $$ Hg with ⟨Hg, #Hfixed⟩
   icases mvcc.ownWatcherGroup_watchers wg W $$ Hg with ⟨%v, Hwg, Hws, Hback⟩
   iunfold mvcc.ownWatcherSet at Hws
@@ -111,7 +113,8 @@ theorem mvcc.watcherGroup.choose.wp_proof
       icases (BigSepM.bigSepM_lookup_acc hr).1 $$ Hfixed with ⟨⟨%fcs, #Hfx⟩, -⟩
       obtain ⟨hT, hN⟩ := mvcc.takeMembers_succ W keys i.toNat key r Hkey Hknodup hr
       wp_apply (hAdd ret_ptr _ key r fcs) $$ [$Hret $Hfx] as Hret
-      · ipureintro; exact hN
+      · ipureintro
+        exact ⟨hN, by have := GMap.map_subseteq_size (mvcc.takeMembers_subseteq W keys i.toNat); omega⟩
       unfold forMapPostcondition
       iright; ileft
       isplitr

@@ -30,7 +30,7 @@ theorem watcher.Compact.wp_proof : watcher.Compact.spec (GF := GF) (hG := hG) :=
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, ⟨%eCP, #HeCP, #HeCPs⟩⟩
+  icases Hri with ⟨-, ⟨%eCP, #HeCP, #HeCPs⟩, -⟩
   unfold isWatcher
   iNamed Hw
   wp_auto

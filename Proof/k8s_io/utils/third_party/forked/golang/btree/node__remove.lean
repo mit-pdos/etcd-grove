@@ -331,6 +331,8 @@ theorem remove_grow (wp_find : items.find.spec (GF := GF) (hG := hG))
             $$ [Hisl] as Hisl
           · iframe; ipureintro
             rw [show (sint.Z iv).toNat = sint.nat iv from rfl, List.getElem?_map, he]; rfl
+          simp only [hb2, _root_.and_self, ↓reduceIte]
+          wp_auto
           wp_apply IHr $$ %c' %ci %(zero_val V) %Target.max %minItems %(W64 2) %d %h [] [Hc']
             as %out' %fnd2 ⟨%ci', Hc', %Hpost⟩
           · ipureintro
@@ -339,7 +341,6 @@ theorem remove_grow (wp_find : items.find.spec (GF := GF) (hG := hG))
           · iframe # ∗
             simp only [targetItem]
             itrivial
-          simp only [hb2, _root_.and_self, ↓reduceIte]
           wp_apply wp_store_slice_index isl2 (sint.Z iv) (is.map Prod.fst) out' $$ [Hisl] as Hisl
           · iframe; ipureintro; exact ⟨Hiv0, by simp; word⟩
           obtain ⟨e', he', hpost⟩ := rem_pred o.order d h k is cs _ e ci ci' out' fnd2 _ Hshape

@@ -33,7 +33,7 @@ private theorem wp_max2_uint64 (x y : w64) :
   wp_if_destruct
   · rw [show w64Max x y = x by unfold w64Max; simp_all]
     iapply HΦ; itrivial
-  · rw [show w64Max x y = y by unfold w64Max; rw [if_neg (by omega)]]
+  · rw [show w64Max x y = y by unfold w64Max; rw [ite_eq_right (by omega)]]
     iapply HΦ; itrivial
 
 /-- Both arms call `ResetState(StateProbe)` (exact spec), then write `Next`; the shared

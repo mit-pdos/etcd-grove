@@ -5,16 +5,23 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.github_com.dustin.go_humanize
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.version
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.contention
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.featuregate
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.idutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.pbutil
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.schedule
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
@@ -25,15 +32,20 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.read
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
+public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3
 public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
+public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.net.http
+public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
@@ -1421,25 +1433,6 @@ instance Response_into_val_typed :
 end def_
 end Response
 
-namespace Server
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-instance Server_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.Server :=
-  sorry -- axiomatized type
-
-instance Server_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.Server go_etcd_io.etcd.server.v3.etcdserver.Server.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Server
-
 namespace EtcdServer
 section def_
 
@@ -2271,12 +2264,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 instance downgradeEnabledHandler_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"lg" l) v.lg' dq ∗
+    "cluster" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"cluster" l) v.cluster' dq ∗
+    "server" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"server" l) v.server' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance downgradeEnabledHandler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler.underlying := by
+  solve_into_val_typed_struct
+
+instance downgradeEnabledHandler_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance downgradeEnabledHandler_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance downgradeEnabledHandler_access_load_cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"cluster" l) v.cluster' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"cluster" l) v.cluster' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance downgradeEnabledHandler_access_store_cluster (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (cluster' : go_etcd_io.etcd.server.v3.etcdserver.api.Cluster) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"cluster" l) v.cluster' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"cluster" l) cluster' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cluster' := cluster' } : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance downgradeEnabledHandler_access_load_server (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"server" l) v.server' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"server" l) v.server' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance downgradeEnabledHandler_access_store_server (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (server' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"server" l) v.server' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler go!"server" l) server' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with server' := server' } : go_etcd_io.etcd.server.v3.etcdserver.downgradeEnabledHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end downgradeEnabledHandler
@@ -2644,25 +2692,6 @@ instance AccessController_access_store_HostWhitelist (l : Loc) (v : go_etcd_io.e
 
 end def_
 end AccessController
-
-namespace RaftKV
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-instance RaftKV_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.RaftKV :=
-  sorry -- axiomatized type
-
-instance RaftKV_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.RaftKV go_etcd_io.etcd.server.v3.etcdserver.RaftKV.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end RaftKV
 
 namespace zapRaftLogger
 section def_

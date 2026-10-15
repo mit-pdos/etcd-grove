@@ -23,12 +23,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-/-- `NewIntervalTree()`: an empty tree, as an `IntervalTree` (the `*intervalTree`). -/
+/-- `NewIntervalTree()`: an empty tree, as an `IntervalTree` (the `*intervalTree`). The whole tree (fraction `1`). -/
 abbrev adt.NewIntervalTree.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree)) (Val #()))
   {{ (t : Loc), RET #(interface.mkOk (go.GoType.PointerType intervalTree.ty) #t);
-      adt.ownIvt t [] }}
+      adt.ownIvt t [] 1 }}
 
 end spec
 

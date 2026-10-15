@@ -34,8 +34,9 @@ theorem schema.ReadConsistentIndex.wp_proof
   icases Hrt with ⟨#HRLock, #HRUnlock, #Hrd⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply HRLock
-  wp_apply_core (hR rt E View) $$ [] [HΦ defer]
+  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ defer]
   · iframe Hpkg Hrd
+  iapply readCIAU_A
   iapply readCIAU_wand $$ HΦ
   iintro %m Hm
   wp_auto

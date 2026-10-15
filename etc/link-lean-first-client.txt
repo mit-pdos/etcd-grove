@@ -1,0 +1,97 @@
+# The functions linked in `Proof/go_etcd_io/etcd/client/v3/Link.lean` (all Lean-first: no Rocq
+# counterpart), read by `etc/gen-link.py --client`: the client's KV path over gRPC (unit C1, the
+# client meets the server: `notes/decisions.md`, "The client meets the server (unit C1)"):
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `client` (`client.v3.wp_NewKV`), so that they do not clash with the cache's Link, which links
+# some of the same clientv3 functions under the cache's assumptions.
+#
+# What builds the `Op` of a `Put` and of a `Get` (client/v3/op.go), see InvOp.lean.
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+OpPut: Op__applyOpts
+OpDelete: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+# clientv3's comparisons as a transaction clones them (`Cmp.Clone`, `Cmp.GetCompare`); protobuf's
+# `proto.Clone` is an axiom (as in the concurrency package's Link); the vertical slice's unit V2
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__ensureCompare:
+Cmp__Clone: cloneCompare
+Cmp__GetCompare: Cmp__ensureCompare
+# The trust boundary: grpc's `ClientConn.Invoke` of any registered unary method (the generic
+# transport contract, the retry interceptor included; `google_golang_org/grpc/InvGrpc.lean`) and
+# `grpc.StaticMethod()` (axioms).
+grpc_ClientConn__Invoke:
+grpc_StaticMethod:
+# The generated KV stub (api/etcdserverpb/rpc_grpc.pb.go).
+NewKVClient:
+kVClient__Put: grpc_StaticMethod grpc_ClientConn__Invoke
+kVClient__Range: grpc_StaticMethod grpc_ClientConn__Invoke
+# the vertical slice's unit V2: the stub's `DeleteRange` and `Txn`, over the same generic `Invoke`
+kVClient__DeleteRange: grpc_StaticMethod grpc_ClientConn__Invoke
+kVClient__Txn: grpc_StaticMethod grpc_ClientConn__Invoke
+# The retry client (client/v3/retry.go, retry_interceptor.go's `withRepeatablePolicy`).
+RetryKVClient: NewKVClient
+retryKVClient__Put: kVClient__Put
+withRepeatablePolicy:
+retryKVClient__Range: withRepeatablePolicy kVClient__Range
+retryKVClient__DeleteRange: kVClient__DeleteRange
+retryKVClient__Txn: kVClient__Txn
+# The KV (client/v3/kv.go, client.go's `ContextError`); grpc's `status.FromError` is an axiom
+# (not translated); `rpctypes.Error`, `ErrorDesc`, `EtcdError.Error` are proved (unit P3a).
+v3_NewKV: RetryKVClient
+status_FromError:
+rpctypes_ErrorDesc: status_FromError
+rpctypes_EtcdError__Error:
+rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
+ContextError: rpctypes_Error status_FromError
+Op__IsSortOptionValid:
+Op__toRangeRequest:
+kv__Do: Op__IsSortOptionValid Op__toRangeRequest retryKVClient__Range retryKVClient__Put retryKVClient__DeleteRange ContextError
+kv__Put: OpPut kv__Do ContextError
+kv__Get: NewOp kv__Do ContextError
+kv__Delete: OpDelete kv__Do ContextError
+# the transaction builder (client/v3/txn.go; the operations' requests, op.go), unit V2
+kv__Txn:
+Op__isWrite:
+Op__toRequestOp: Op__toRangeRequest
+txn__If: Cmp__Clone Cmp__GetCompare
+txn__Then: Op__isWrite Op__toRequestOp
+txn__Else: Op__isWrite Op__toRequestOp
+txn__Commit: retryKVClient__Txn ContextError
+# Unit P3a: the client's retry interceptor (client/v3/retry_interceptor.go, retry.go's
+# `isSafeRetry*` and `retryPolicy.String`), below grpc's boundary. Trust boundary: grpc's `Peer`,
+# `peer.Peer.String`, `ClientConn.Target`, `status.Code`, `errors.Is` of a status error
+# (`errors_IsStatusErr`), zap's `Uint`, `String`, `Error`, `Logger.Debug`/`Warn`; the client's
+# names-only `waitRetryBackoff` (timers), `withVersion` (grpc's metadata), `getToken` (the auth
+# client), `Endpoints` (an `RWMutex` read).
+grpc_Peer:
+peer_Peer__String:
+grpc_ClientConn__Target:
+status_Code:
+zap_Uint:
+zap_String:
+zap_Error:
+zap_Logger__Debug:
+zap_Logger__Warn:
+errors_IsStatusErr:
+waitRetryBackoff:
+withVersion:
+Client__getToken:
+Client__Endpoints:
+Client__GetLogger:
+isContextError: status_Code
+retryPolicy__String:
+rpctypes_EtcdError__Code:
+isSafeRetryImmutableRPC: rpctypes_Error rpctypes_EtcdError__Code status_FromError
+isSafeRetryMutableRPC: status_FromError rpctypes_ErrorDesc
+isSafeRetry: isContextError errors_IsStatusErr Client__Endpoints isSafeRetryImmutableRPC isSafeRetryMutableRPC Client__GetLogger retryPolicy__String zap_String zap_Logger__Warn
+Client__shouldRefreshToken: rpctypes_Error errors_IsStatusErr
+Client__refreshToken: Client__getToken
+filterCallOptions:
+reuseOrNewWithCallOptions:
+withMax:
+withBackoff:
+Client__unaryClientInterceptor: reuseOrNewWithCallOptions withVersion filterCallOptions grpc_Peer waitRetryBackoff Client__GetLogger grpc_ClientConn__Target zap_String zap_Uint zap_Logger__Debug peer_Peer__String zap_Error zap_Logger__Warn isContextError Client__shouldRefreshToken Client__refreshToken isSafeRetry

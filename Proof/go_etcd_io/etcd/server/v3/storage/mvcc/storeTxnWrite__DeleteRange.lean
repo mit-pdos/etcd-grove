@@ -27,10 +27,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     (hdel : mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key endk k e
+  intro trace tw s γ ilog pend key endk k e crev Z
   wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
+  have hpm := mvcc.putMax_le γ
   (try wp_auto)
-  wp_apply (hdel tw s γ ilog pend key endk k e) $$ [$Htw $Hkey $Hend] as Htw
+  wp_apply (hdel trace tw s γ ilog pend key endk k e crev Z) $$ [$Htw $Hkey $Hend] as Htw
   · ipureintro; exact Hb
   (try wp_auto)
   iunfold mvcc.storeTxnWriteIs at Htw
@@ -85,16 +86,16 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         simp at hc
       (try wp_auto)
       iapply HΦ
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       ipureintro
       refine ⟨rfl, ?_⟩
-      rw [hrev]; unfold mvcc.writeRev; rw [if_neg hpne]
+      rw [hrev]; unfold mvcc.writeRev; rw [ite_eq_right hpne]
     · -- no change: the committed log's last revision
       have hp : pend = [] := by
         have hc : ¬ sint.Z (W64 0 : w64) < sint.Z chs.len := by
@@ -104,16 +105,16 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         omega
       (try wp_auto)
       iapply HΦ
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       ipureintro
       refine ⟨rfl, ?_⟩
-      unfold mvcc.writeRev; rw [if_pos hp]; congr 1
+      unfold mvcc.writeRev; rw [ite_eq_left hp]; congr 1
       have := List.length_pos_iff.2 Hne
       omega
   · -- `n != 0`: the pending revision
@@ -121,17 +122,17 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       intro h; subst h; exact Hif rfl
     (try wp_auto)
     iapply HΦ
-    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
+    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
     iunfold mvcc.storeTxnWriteIs
-    iexists trace, ti, bt, Locked, chs, ps, ntok
+    iexists ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     ipureintro
     refine ⟨rfl, ?_⟩
     rw [hrev]; unfold mvcc.writeRev
-    rw [if_neg (by simp [hks])]
+    rw [ite_eq_right (by simp [hks])]
 
 end proof
 

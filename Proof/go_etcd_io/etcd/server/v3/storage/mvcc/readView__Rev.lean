@@ -41,12 +41,17 @@ theorem mvcc.readView.Rev.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
-  -- `rv.kv.Read(mode, trace)`: the store's
+  -- `rv.kv.Read(mode, t)`: the store's
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
-  wp_apply (hRead s γ _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
+  imod mvcc.crevLb_neg γ.idx with #Hlbn
+  wp_apply (hRead s γ _ t 0 [] true (-1) iprop(True)) $$ [$Hs $Hrd $Hnone $Hc0 $Hlbn $Htrc]
+    as %mw ⟨%log, %rev, %crev, Htx, -, -, -⟩
+  · isplitr
+    · iintro !>; itrivial
+    ipureintro; exact Ht
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx
@@ -63,14 +68,17 @@ theorem mvcc.readView.Rev.wp_proof
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
   -- the deferred `tr.End()`: `metricsTxnWrite.End`
-  ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Hmw Htrw Hmu HrevMu Hti]
+  ihave Htx : mvcc.isTxnRead mw s γ t log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti Htrc]
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     iframe
     iframe #
-  ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  ihave Htx' : mvcc.isTxn mw s γ t (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx'] as ⟨Hrd, -⟩
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
+  ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPre]; itrivial
+  wp_apply (hEnd t mw s γ (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd

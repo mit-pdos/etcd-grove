@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.notify
 
@@ -26,12 +27,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.notify.Assumptions]
 
 instance Notifier_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.notify.Notifier :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.notify.Notifier where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' dq ∗
+    "channel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Notifier_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.notify.Notifier go_etcd_io.etcd.pkg.v3.notify.Notifier.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.notify.Notifier go_etcd_io.etcd.pkg.v3.notify.Notifier.underlying := by
+  solve_into_val_typed_struct
+
+instance Notifier_access_load_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (mu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.pkg.v3.notify.Notifier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Notifier_access_load_channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Notifier_access_store_channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (channel' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) channel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with channel' := channel' } : go_etcd_io.etcd.pkg.v3.notify.Notifier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Notifier

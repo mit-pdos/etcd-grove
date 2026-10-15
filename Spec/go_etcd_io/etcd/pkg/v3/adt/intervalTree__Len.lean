@@ -23,12 +23,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-/-- `t.Len()`: the number of entries. -/
+/-- `t.Len()`: the number of entries. At any fraction of the tree. -/
 abbrev adt.intervalTree.Len.spec : Prop :=
-  ∀ (t : Loc) (L : List adt.Entry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L }}
+  ∀ (t : Loc) (L : List adt.Entry) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L q }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Len")) (Val #()))
-  {{ RET #(W64 L.length); adt.ownIvt t L }}
+  {{ RET #(W64 L.length); adt.ownIvt t L q }}
 
 end spec
 

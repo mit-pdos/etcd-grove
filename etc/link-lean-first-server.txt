@@ -20,24 +20,82 @@ consistentIndex__UnsafeSave: schema_UnsafeUpdateConsistentIndex
 consistentIndex__SetBackend: consistentIndex__SetConsistentIndex
 consistentIndex__ConsistentIndex: consistentIndex__SetConsistentIndex schema_ReadConsistentIndex
 consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex schema_UnsafeReadConsistentIndex
+# The server's backend hooks (server/storage/hooks.go; the backend's unit 8, 2026-10-13), see
+# storage/InvHooks.lean: the confState save is the trust boundary (it encodes with
+# encoding/json); the backend's put is linked in the backend's Link.lean (`@`), schema's bucket
+# methods in mvcc's.
+schema_MustUnsafeSaveConfStateToBackend:
+storage_NewBackendHooks:
+storage_BackendHooks__OnPreCommitUnsafe: schema_MustUnsafeSaveConfStateToBackend batchTxBuffered__UnsafePut schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+batchTxBuffered__UnsafePut: @
+# The lessor's KV-facing methods (server/lease/lessor.go; the backend's unit 8, 2026-10-13), see
+# lease/InvLessor.lean: mvcc's and the txn package's lessor contracts are derived from them
+# (lease/LessorContract.lean).
+lease_lessor__GetLease:
+lease_lessor__Lookup:
+lease_lessor__Attach:
+lease_lessor__Detach:
+lease_lessor__SetRangeDeleter:
+# The lessor's apply-side methods (the backend's unit 9, 2026-10-13), see lease/InvLessor.lean and
+# lease/LessorBackend.lean: `Grant`, `Checkpoint` and their callees, `ExpiredLeasesC`; the apply
+# package's and the server's lessor contracts are derived from them (apply/LessorDerive.lean,
+# LessorOk.lean). The trust boundary: container/heap's Push and Fix (names only), api/v3/version's
+# LessThan, schema's MustUnsafePutLease (protobuf's Marshal), and the lessor's
+# scheduleCheckpointIfNeeded and Promote (float-to-integer conversions) and Demote (the close of
+# demotec).
+heap_Push:
+heap_Fix:
+version_LessThan:
+schema_MustUnsafePutLease:
+lease_LeaseQueue__Len:
+lease_LeaseQueue__Less:
+lease_LeaseQueue__Swap:
+lease_LeaseQueue__Push:
+lease_LeaseExpiredNotifier__RegisterOrUpdate: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Fix heap_Push
+lease_NewLease:
+lease_Lease__getRemainingTTL:
+lease_Lease__TTL:
+lease_Lease__refresh: lease_Lease__getRemainingTTL
+lease_Lease__forever:
+lease_Lease__persistTo: schema_MustUnsafePutLease
+lease_lessor__isPrimary:
+lease_greaterOrEqual: version_LessThan
+lease_lessor__shouldPersistCheckpoints: lease_greaterOrEqual
+lease_lessor__scheduleCheckpointIfNeeded:
+lease_lessor__Grant: lease_NewLease lease_lessor__isPrimary lease_Lease__refresh lease_Lease__forever lease_Lease__persistTo lease_LeaseExpiredNotifier__RegisterOrUpdate lease_lessor__scheduleCheckpointIfNeeded
+lease_lessor__Checkpoint: lease_lessor__shouldPersistCheckpoints lease_Lease__persistTo lease_lessor__isPrimary lease_lessor__scheduleCheckpointIfNeeded
+lease_lessor__ExpiredLeasesC:
+lease_lessor__Promote:
+lease_lessor__Demote:
+schema_bucket__ID:
+schema_bucket__Name:
+schema_bucket__IsSafeRangeBucket:
 # raft v3.7's raftpb getters (etcd's own raft dependency), see InvRaftpb.lean.
 Entry__GetIndex:
 Entry__GetTerm:
 Entry__GetType:
 ConfChange__GetId:
-# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the applier
-# and the membership change's contracts, and names-only callees (zap, the alarm store, ...).
-apply_Apply:
+# The applier (`apply.Apply`): proved in the apply package (`--apply`), linked in its
+# `Link.lean` (`@`; since the apply package's unit 3, 2026-10-12).
+apply_Apply: @
+# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the
+# membership change's contract, and names-only callees (zap, the alarm store, ...).
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
-EtcdServer__isLeader:
-EtcdServer__Logger:
-EtcdServer__GoAttach:
 EtcdServer__stopWithDelay:
+# The apply thread's small callees, with bodies (proved): the server's leader test and
+# logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
+# alarm store's Get (api/v3alarm).
+EtcdServer__MemberID:
+EtcdServer__getLead:
+EtcdServer__Lead: EtcdServer__getLead
+EtcdServer__isLeader: EtcdServer__MemberID EtcdServer__Lead
+EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
-RaftCluster__Members:
+# (the trust boundary, continued)
+RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
 errors_Is:
 go_humanize_Bytes:
 zap_Logger__Debug:
@@ -53,5 +111,269 @@ EtcdServer__getTxPostLockInsideApplyHook: consistentIndex__ConsistentApplyingInd
 EtcdServer__setAppliedIndex:
 EtcdServer__setTerm:
 EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
-EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
+# GoAttach (server.go; the request path's unit 4c: with its body, over Perennial's WaitGroup and
+# RWMutex, InvGoAttach.lean; the apply thread's alarm goroutine's proposal is the contract
+# EtcdServer.raftRequestAlarm, AlarmContract.lean)
+EtcdServer__GoAttach: EtcdServer__Logger zap_Logger__Warn
+EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach EtcdServer__MemberID
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members
+# The raft wrapper (server/etcdserver/raft.go), see InvRaftNode.lean: raft v3.7's helpers and
+# getters it calls, its trust boundary (zap's Duration and Fatal, proto.Clone: names-only), and
+# raftNode's methods (raft.Node, the WAL, the transport, ... are contracts in isRaftNode).
+HardState__GetTerm:
+HardState__GetVote:
+HardState__GetCommit:
+Message__GetTo:
+Message__GetType:
+Snapshot__GetMetadata:
+SnapshotMetadata__GetIndex:
+isHardStateEqual: HardState__GetTerm HardState__GetVote HardState__GetCommit
+IsEmptyHardState: isHardStateEqual
+IsEmptySnap: Snapshot__GetMetadata SnapshotMetadata__GetIndex
+zap_Duration:
+zap_Logger__Fatal:
+proto_Clone:
+updateCommittedIndex: Entry__GetIndex
+raftNode__tick:
+raftNode__advanceTicks: raftNode__tick
+raftNode__getLatestTickTs:
+raftNode__ReadState:
+raftNode__apply:
+raftNode__onStop:
+raftNode__stop:
+raftNode__processMessages: Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit Entry__GetType proto_Clone zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn
+# raft.Node's ReadIndex, promoted (the request path's unit 4b): the read loop's raftInterface.
+raftNode__ReadIndex:
+#
+# The request path (v3_server.go; plan: notes/decisions.md, "The request path"; unit 0,
+# 2026-10-12). The trust boundary (axioms): otel's tracer, spans and attributes, the metrics'
+# histogram, strconv and time's names-only helpers, traceutil's trace bookkeeping, the txn
+# package's read-only loggers, the transport queries of parseProposeCtxErr, the configuration's
+# request timeout, the cluster's id, and proto.Marshal of an InternalRaftRequest. The components
+# the path calls through fields (the raft node, the wait, the id generator, the read loop, the
+# auth store, the feature gate) are contracts (InvRequest.lean), not axioms.
+traceutil_Tracer__Start:
+trace_WithAttributes:
+attribute_String:
+attribute_Int64:
+attribute_Bool:
+attribute_Int:
+strconv_FormatBool:
+time_Duration__Seconds:
+time_Time__After:
+prometheus_HistogramVec__WithLabelValues:
+traceutil_Trace__LogIfLong: traceutil_Trace__LogWithStepThreshold
+traceutil_Trace__GetStartTime:
+traceutil_Trace__SetStartTime:
+traceutil_Trace__InsertStep:
+txn_WarnOfExpensiveReadOnlyRangeRequest: @
+txn_WarnOfExpensiveReadOnlyTxnRequest: @
+etcdserverpb_RangeRequest__String:
+proto_Size:
+etcdserver_isConnectedSince: time_Time__IsZero
+etcdserver_isConnectedToQuorumSince: numConnectedSince quorum
+config_ServerConfig__ReqTimeout:
+membership_RaftCluster__ID:
+proto_MarshalIRR:
+# Two more trust-boundary axioms of the request path (unit 2, 2026-10-12): a context's
+# `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
+# `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
+# `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
+# `Context.Err`; Perennial's `isContext` says only "a typed error").
+context_ValueStartTime:
+errors_IsCtxErr:
+context_ErrDone:
+# (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
+trace_SpanFromContext:
+context_WithValue:
+# etcdserverpb's getters the request path calls, with bodies (proved).
+PutRequest__GetKey:
+DeleteRangeRequest__GetKey:
+DeleteRangeRequest__GetRangeEnd:
+# pkg/idutil and pkg/wait, with bodies (unit 2): the request ids and the wait registry.
+idutil_lowbit:
+idutil_NewGenerator: idutil_lowbit
+idutil_Generator__Next: idutil_lowbit
+wait_list__Register:
+wait_list__Trigger:
+wait_list__IsRegistered:
+wait_New: wait_list__Register wait_list__Trigger wait_list__IsRegistered
+wait_NewWithResponse:
+wait_waitWithResponse__Register:
+wait_waitWithResponse__Trigger:
+# pkg/wait's wait_time.go and pkg/notify's NewNotifier/Receive, with bodies (the request path's
+# unit 4b): the applied index's waiters, the read loop's channels.
+wait_NewTimeList:
+wait_timeList__Wait:
+wait_timeList__Trigger:
+NewNotifier:
+Notifier__Receive:
+# The request path's write side (v3_server.go, util.go, server.go; unit 2): the proposal, its
+# wait and the handoff, Put and DeleteRange. See InvRequest.lean, InvProposer.lean.
+isPriorityRequest:
+exceedsRequestLimit: isPriorityRequest
+getRequestType:
+EtcdServer__getAppliedIndex:
+EtcdServer__getCommittedIndex:
+EtcdServer__FeatureEnabled:
+EtcdServer__AuthStore:
+EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
+EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
+EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
+EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
+EtcdServer__Put: EtcdServer__raftRequest PutRequest__GetKey traceutil_Tracer__Start trace_WithAttributes attribute_String context_WithValue
+EtcdServer__DeleteRange: EtcdServer__raftRequest DeleteRangeRequest__GetKey DeleteRangeRequest__GetRangeEnd traceutil_Tracer__Start trace_WithAttributes attribute_String
+# The request path's read side and Txn (unit 3b, 2026-10-12; see InvRead.lean): the txn
+# package's, the apply package's and mvcc's functions it calls (`@`: linked in their Link.lean;
+# the traceutil functions are the txn package's, reused).
+txn_Range: @
+txn_Txn: @
+txn_IsTxnReadonly: @
+txn_IsTxnSerializable: @
+apply_CheckTxnAuth: @
+mvcc_store__Rev: @
+traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
+traceutil_Get: traceutil_TODO
+traceutil_Trace__Step:
+traceutil_Trace__AddField: traceutil_Trace__updateFieldIfExist
+# etcdserverpb's getters the read side's trace attributes call, with bodies (proved).
+Compare__GetKey:
+RangeRequest__GetKey:
+RangeRequest__GetRangeEnd:
+RangeRequest__GetRevision:
+RangeRequest__GetLimit:
+RangeRequest__GetCountOnly:
+RangeRequest__GetKeysOnly:
+TxnRequest__GetCompare:
+TxnRequest__GetSuccess:
+TxnRequest__GetFailure:
+RequestOp__GetRequest:
+PutRequest__GetLease:
+# The server's getters (the response header's), the read loop's delegation, the span
+# attributes' loops (tracing.go), newHeader.
+EtcdServer__KV:
+EtcdServer__Cluster:
+EtcdServer__getTerm:
+EtcdServer__Term: EtcdServer__getTerm
+EtcdServer__Leader: EtcdServer__getLead
+EtcdServer__LinearizableReadNotify:
+EtcdServer__newHeader: membership_RaftCluster__ID EtcdServer__MemberID EtcdServer__KV mvcc_store__Rev EtcdServer__Term EtcdServer__Leader
+firstCompareKey: Compare__GetKey
+firstOpKey: RequestOp__GetRequest PutRequest__GetKey RangeRequest__GetKey DeleteRangeRequest__GetKey
+firstOpType: RequestOp__GetRequest
+firstOpLease: RequestOp__GetRequest PutRequest__GetLease
+# doSerialize, Range and Txn (both branches), unit 3b.
+EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
+EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool RangeRequest__GetKey RangeRequest__GetRangeEnd RangeRequest__GetRevision RangeRequest__GetLimit RangeRequest__GetCountOnly RangeRequest__GetKeysOnly EtcdServer__Logger traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues traceutil_Trace__Step EtcdServer__KV txn_Range EtcdServer__doSerialize etcdserverpb_RangeRequest__String proto_Size
+EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes TxnRequest__GetCompare firstCompareKey attribute_String TxnRequest__GetSuccess firstOpKey firstOpType firstOpLease attribute_Int64 attribute_Int TxnRequest__GetFailure attribute_Bool EtcdServer__Logger traceutil_EnsureTrace txn_IsTxnSerializable traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__KV txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest proto_Size
+# The read loop's `server` interface on *EtcdServer (interface.go, server.go; the request path's
+# unit 4b): see ReadServer.lean (`isReadServer_of_server`).
+EtcdServer__ApplyWait:
+EtcdServer__Done:
+EtcdServer__Stopping:
+EtcdServer__LeaderChanged: Notifier__Receive
+EtcdServer__FirstCommitInTermNotify: Notifier__Receive
+EtcdServer__NextRequestID: idutil_Generator__Next
+EtcdServer__RequestTimeout: config_ServerConfig__ReqTimeout
+EtcdServer__AppliedIndex: EtcdServer__getAppliedIndex
+EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
+# The apply loop's step `applyAll` (server.go; the request path's unit 4b): `applySnapshot` under
+# raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
+# trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
+# and the names-only snapshot, compaction and merged-snapshot methods. See InvApplyAll.lean.
+backend_VerifyBackendConsistency:
+EtcdServer__snapshot:
+EtcdServer__compactRaftLog:
+EtcdServer__createMergedSnapshotMessage:
+EtcdServer__sendMergedSnap:
+EtcdServer__applySnapshot: IsEmptySnap
+EtcdServer__Backend:
+EtcdServer__shouldSnapshotToDisk:
+EtcdServer__shouldSnapshotToMemory:
+EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
+EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap
+# The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
+# committed index's and the leader's setters (with bodies), the raft storage snapshot's
+# metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
+# trust boundary (`axiom … .wp_proof`): `revokeExpiredLeases`, `Cleanup` (names-only server
+# methods) and v2stats' `BecomeLeader`.
+SnapshotMetadata__GetTerm:
+EtcdServer__setCommittedIndex:
+EtcdServer__setLead:
+EtcdServer__revokeExpiredLeases:
+EtcdServer__Cleanup:
+v2stats_ServerStats__BecomeLeader:
+schedule_NewFIFOScheduler:
+schedule_job__Do:
+schedule_NewJob: schedule_job__Do
+schedule_Scheduler__Schedule:
+schedule_Scheduler__Stop:
+EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule EtcdServer__revokeExpiredLeases zap_Error zap_Logger__Warn schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup
+# The server's `start` and `Start` (server.go; the request path's unit 4c, see InvStart.lean):
+# `start` with its body (the registries, the channels, the context, the read loop's `*Read`, the
+# leader-change notifier, `GoAttach`'s protocol, `go s.run()`); `Start` with its body (`start`,
+# then ten goroutines through `GoAttach`: the read loop, verified, and nine names-only monitors);
+# the trust boundary (`axiom … .wp_proof`): the monitors, `version.Cluster`, prometheus'
+# `GaugeVec.With`; `ClusterVersion()` is a contract of the construction premise
+# (`clusterVersionOk`). The read package's `NewRead` and `LinearizableReadLoop` are its Link's.
+zap_Logger__Info:
+types_ID__String:
+Version__String:
+version_Cluster:
+prometheus_GaugeVec__With:
+EtcdServer__adjustTicks:
+EtcdServer__publishV3:
+EtcdServer__purgeFile:
+monitorFileDescriptor:
+EtcdServer__monitorClusterVersions:
+EtcdServer__monitorStorageVersion:
+EtcdServer__monitorKVHash:
+EtcdServer__monitorCompactHash:
+EtcdServer__monitorDowngrade:
+read_NewRead: @
+read_Read__LinearizableReadLoop: @
+EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wait_New wait_NewTimeList wait_timeList__Wait wait_timeList__Trigger read_NewRead NewNotifier EtcdServer__MemberID EtcdServer__Cluster membership_RaftCluster__ID types_ID__String Version__String version_Cluster prometheus_GaugeVec__With EtcdServer__run EtcdServer__ApplyWait EtcdServer__Done EtcdServer__Stopping EtcdServer__LeaderChanged EtcdServer__FirstCommitInTermNotify EtcdServer__NextRequestID EtcdServer__RequestTimeout EtcdServer__AppliedIndex raftNode__ReadState raftNode__ReadIndex
+EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger EtcdServer__adjustTicks EtcdServer__publishV3 config_ServerConfig__ReqTimeout EtcdServer__purgeFile monitorFileDescriptor EtcdServer__monitorClusterVersions EtcdServer__monitorStorageVersion read_Read__LinearizableReadLoop EtcdServer__monitorKVHash EtcdServer__monitorCompactHash EtcdServer__monitorDowngrade
+#
+# Unit P1b (2026-10-14): the request path's leaf functions proved (traceutil, the cluster's
+# members, the transport queries; `time.Time.IsZero` and `LogWithStepThreshold` are axioms).
+Member__Clone:
+MembersByID__Len:
+MembersByID__Less:
+MembersByID__Swap:
+sort_Sort:
+time_Time__IsZero:
+numConnectedSince: etcdserver_isConnectedSince
+quorum:
+traceutil_TODO:
+traceutil_Trace__IsEmpty:
+traceutil_newTrace:
+traceutil_Trace__updateFieldIfExist:
+traceutil_Trace__LogWithStepThreshold:
+#
+# Unit P2 (2026-10-14): the auth store's request side (server/v3/auth, proved over `auth.authInv`,
+# InvAuth.lean); adt's bytes-affine intervals are linked in adt's Link.lean (`@`). The trust
+# boundary: metadata.FromIncomingContext, AuthInfoFromTLS, hasRootRole, redactToken, zap.ByteString.
+zap_ByteString:
+zap_Logger__Error:
+metadata_FromIncomingContext:
+auth_hasRootRole:
+auth_redactToken:
+auth_authStore__AuthInfoFromTLS:
+NewBytesAffinePoint: @
+NewBytesAffineInterval: @
+auth_authStore__Revision:
+auth_authStore__IsAuthEnabled:
+auth_isOpenEnded:
+auth_checkKeyPoint: NewBytesAffinePoint
+auth_checkKeyInterval: auth_isOpenEnded NewBytesAffineInterval
+auth_authStore__isRangeOpPermitted: zap_String zap_Logger__Error auth_checkKeyInterval auth_checkKeyPoint
+auth_authStore__isOpPermitted: auth_authStore__IsAuthEnabled auth_authStore__Revision zap_Uint64 zap_ByteString zap_Error zap_Logger__Warn zap_String zap_Logger__Error auth_hasRootRole auth_authStore__isRangeOpPermitted
+auth_authStore__IsPutPermitted: auth_authStore__isOpPermitted
+auth_authStore__IsRangePermitted: auth_authStore__isOpPermitted
+auth_authStore__IsDeleteRangePermitted: auth_authStore__isOpPermitted
+auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_hasRootRole
+auth_authStore__authInfoFromToken: auth_authStore__Revision
+auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn

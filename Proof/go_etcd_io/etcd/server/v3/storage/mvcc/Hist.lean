@@ -114,7 +114,7 @@ theorem histShape_commit (ilog : Log) (pend : List Change) :
 
 /-- The event of a change appended to the pending revision. -/
 def evOfChange (m i : Nat) (c : Change) : Ev :=
-  { rev := ⟨W64 m, W64 i⟩, key := c.key, tomb := c.isDel }
+  { rev := ⟨W64 m, W64 i⟩, change := c }
 
 theorem evsOfRev_append_singleton (m : Nat) (cs : List Change) (c : Change) :
     evsOfRev m (cs ++ [c]) = evsOfRev m cs ++ [evOfChange m cs.length c] := by
@@ -305,6 +305,84 @@ theorem histOf_prefix_shape (log ilog : Log) (pend : List Change)
   unfold histShape histOf
   rw [show ilog.length = 0 + ilog.length by omega, hrest, evsOf_eq_evsOfFrom]
 
+/-! ### The history determines the log -/
+
+/-- The changes of a revision's events are the revision's changes. -/
+theorem evsOfRev_change (m : Nat) (cs : List Change) : (evsOfRev m cs).map Ev.change = cs := by
+  unfold evsOfRev
+  rw [List.map_map]
+  show List.map (fun p => p.1) cs.zipIdx = cs
+  induction cs with
+  | nil => rfl
+  | cons c cs ih =>
+    rw [List.zipIdx_cons, List.map_cons]
+    congr 1
+    rw [List.zipIdx_succ, List.map_map]
+    exact ih
+
+/-- **The history of a committed log determines it**: a prefix of histories is a prefix of
+logs (the commits delimit the revisions, and the events carry the changes). -/
+theorem histOfFrom_prefix_log (i : Nat) : ∀ (L1 L2 : Log),
+    histOfFrom i L1 <+: histOfFrom i L2 → L1 <+: L2
+  | [], _, _ => List.nil_prefix
+  | c :: L1, [], h => by
+    exfalso
+    rw [histOfFrom, histOfFrom] at h
+    have := h.length_le
+    simp at this
+  | c :: L1, c' :: L2, h => by
+    rw [histOfFrom, histOfFrom] at h
+    simp only [List.append_assoc] at h
+    obtain ⟨hcc, h'⟩ := prefix_commit_split _ _ _ _ (map_ev_ne_commit _) (map_ev_ne_commit _)
+      (by simpa only [List.append_assoc] using h)
+    have hc := congrArg (List.map Ev.change) (map_ev_injective _ _ hcc)
+    rw [evsOfRev_change, evsOfRev_change] at hc
+    subst hc
+    exact List.cons_prefix_cons.2 ⟨rfl, histOfFrom_prefix_log (i + 1) L1 L2 h'⟩
+
+theorem histOf_prefix_log {L1 L2 : Log} (h : histOf L1 <+: histOf L2) : L1 <+: L2 :=
+  histOfFrom_prefix_log 0 L1 L2 h
+
+/-- Two lower bounds of one history (comparable): their logs are comparable. -/
+theorem histOf_cmp_log {L1 L2 : Log} (h : histOf L1 <+: histOf L2 ∨ histOf L2 <+: histOf L1) :
+    L1 <+: L2 ∨ L2 <+: L1 :=
+  h.imp histOf_prefix_log histOf_prefix_log
+
+theorem histOf_inj {L1 L2 : Log} (h : histOf L1 = histOf L2) : L1 = L2 := by
+  have h1 : L1 <+: L2 := histOf_prefix_log (by rw [h]; exact List.prefix_refl _)
+  have h2 : L2 <+: L1 := histOf_prefix_log (by rw [h]; exact List.prefix_refl _)
+  exact h1.eq_of_length (Nat.le_antisymm h1.length_le h2.length_le)
+
+/-- A committed log's history below the writer's (`histShape ilog pend`, no commit after
+`pend`): the log is a prefix of the committed part `ilog`. -/
+theorem histOfFrom_prefix_shape_log (i : Nat) : ∀ (L ilog : Log) (E : List HistItem),
+    (∀ x ∈ E, x ≠ HistItem.commit) → histOfFrom i L <+: histOfFrom i ilog ++ E → L <+: ilog
+  | [], _, _, _, _ => List.nil_prefix
+  | c :: L, [], E, hE, h => by
+    exfalso
+    rw [histOfFrom, histOfFrom, List.nil_append] at h
+    obtain ⟨R, hR⟩ := h
+    have : HistItem.commit ∈ E := by rw [← hR]; simp
+    exact hE _ this rfl
+  | c :: L, c' :: ilog, E, hE, h => by
+    rw [histOfFrom, histOfFrom] at h
+    obtain ⟨hcc, h'⟩ := prefix_commit_split _ _ _ _ (map_ev_ne_commit _) (map_ev_ne_commit _)
+      (by simpa only [List.append_assoc] using h)
+    have hc := congrArg (List.map Ev.change) (map_ev_injective _ _ hcc)
+    rw [evsOfRev_change, evsOfRev_change] at hc
+    subst hc
+    exact List.cons_prefix_cons.2 ⟨rfl, histOfFrom_prefix_shape_log (i + 1) L ilog E hE h'⟩
+
+theorem histOf_prefix_shape_log {L ilog : Log} {pend : List Change}
+    (h : histOf L <+: histShape ilog pend) : L <+: ilog :=
+  histOfFrom_prefix_shape_log 0 L ilog _ (map_ev_ne_commit _) h
+
+/-- The writer's history after the commit marker of its pending revision is the history of the
+log with that revision committed. -/
+theorem histShape_seal (ilog : Log) (pend : List Change) :
+    histShape ilog pend ++ [.commit] = histOf (ilog ++ [pend]) := by
+  rw [histShape_commit]; simp [histShape, evsOfRev]
+
 /-- The events of a history that is a prefix of a certified log's, with as many events: the
 log's events. -/
 theorem evsOfHist_prefix_of_count (h : List HistItem) (log : Log) (hpre : h <+: histOf log)
@@ -336,10 +414,10 @@ theorem indexOf_append_ev (evs : List Ev) (ev : Ev) :
   unfold indexOf; rw [List.foldl_append]; rfl
 
 theorem evOfChange_put (m i : Nat) (k v : GoString) (l : w64) :
-    evOfChange m i (.put k v l) = { rev := ⟨W64 m, W64 i⟩, key := k, tomb := false } := rfl
+    evOfChange m i (.put k v l) = { rev := ⟨W64 m, W64 i⟩, change := .put k v l } := rfl
 
 theorem evOfChange_del (m i : Nat) (k : GoString) :
-    evOfChange m i (.del k) = { rev := ⟨W64 m, W64 i⟩, key := k, tomb := true } := rfl
+    evOfChange m i (.del k) = { rev := ⟨W64 m, W64 i⟩, change := .del k } := rfl
 
 /-! ### A reader's answer is stable under later events -/
 
@@ -395,7 +473,7 @@ theorem kiGet_fold_below (k : GoString) : ∀ (es : List Ev) (ki : KeyIndex) (b 
     have hes' : EvsFrom e.rev.main.toNat es :=
       ⟨fun x hx => hsorted.1 x hx, fun x hx => hes.lt x (List.mem_cons_of_mem _ hx), hsorted.2⟩
     by_cases hk : e.key = k
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       have hrevs' : ∀ x ∈ kiRevs (kiApply ki e), x.main.toNat ≤ e.rev.main.toNat := by
         intro x hx
         rcases kiApply_revs hwf e x hx with hx | hx
@@ -404,7 +482,7 @@ theorem kiGet_fold_below (k : GoString) : ∀ (es : List Ev) (ki : KeyIndex) (b 
       rw [kiGet_fold_below k es (kiApply ki e) e.rev.main.toNat (kiApply_wf hwf e) hrevs' hlt hes' r
         (by omega)]
       exact kiGet_kiApply_below hwf hb hrevs e hge hlt hr
-    · rw [if_neg hk]
+    · rw [ite_eq_right hk]
       exact kiGet_fold_below k es ki e.rev.main.toNat hwf
         (fun x hx => Nat.le_trans (hrevs x hx) hge) hlt hes' r (by omega)
 
@@ -578,7 +656,7 @@ theorem kiLastEmpty_false_of_del (ilog : Log) (pend : List Change) (k : GoString
   rw [kiGet_top hlink.wf habove] at htop
   unfold kiLastEmpty
   by_cases he : ((kiOfKey (evsOf (ilog ++ [pend])) k).gens.getLastD Gen.empty).revs = []
-  · rw [if_pos he] at htop
+  · rw [ite_eq_left he] at htop
     rw [KvMatch_none_left htop] at hpresent
     simp at hpresent
   · simp only [he, decide_false]
@@ -596,12 +674,12 @@ theorem btFind_sorted_eq_find? {V : Type} (keyf : V → GoString) (less : V → 
     unfold btFind
     rw [List.find?_cons]
     by_cases h1 : less w x
-    · rw [if_pos h1, btFind_sorted_eq_find? keyf less hless ws hs.2 x]
+    · rw [ite_eq_left h1, btFind_sorted_eq_find? keyf less hless ws hs.2 x]
       have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h1)
       simp [this]
-    · rw [if_neg h1]
+    · rw [ite_eq_right h1]
       by_cases h2 : less x w
-      · rw [if_pos h2]
+      · rw [ite_eq_left h2]
         have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h2)
         simp only [this, decide_false]
         rw [List.find?_eq_none.2]
@@ -611,7 +689,7 @@ theorem btFind_sorted_eq_find? {V : Type} (keyf : V → GoString) (less : V → 
         have := hs.1 (keyf y) (List.mem_map_of_mem hy)
         rw [e] at this
         exact goStringLt_irrefl _ (goStringLt_trans ((hless _ _).1 h2) this)
-      · rw [if_neg h2]
+      · rw [ite_eq_right h2]
         have : keyf w = keyf x :=
           goStringLt_eq_of_not_lt (fun h => h1 ((hless _ _).2 h)) (fun h => h2 ((hless _ _).2 h))
         simp [this]
@@ -751,7 +829,7 @@ theorem btInsert_set_entry : ∀ (L : List IdxEntry), L.Pairwise entryLess → �
     unfold btInsert
     have h1 : ¬ entryLess w z' := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
     have h2 : ¬ entryLess z' w := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
-    rw [if_neg h1, if_neg h2]
+    rw [ite_eq_right h1, ite_eq_right h2]
     rfl
   | w :: ws, hs, i + 1, z, z', h, hk => by
     simp only [List.getElem?_cons_succ] at h
@@ -760,7 +838,7 @@ theorem btInsert_set_entry : ∀ (L : List IdxEntry), L.Pairwise entryLess → �
     have hw : entryLess w z := hs.1 z hz
     unfold btInsert
     have h1 : entryLess w z' := by unfold entryLess at *; rw [hk]; exact hw
-    rw [if_pos h1, btInsert_set_entry ws hs.2 i z z' h hk]
+    rw [ite_eq_left h1, btInsert_set_entry ws hs.2 i z z' h hk]
     rfl
 
 theorem itemsOfEntries_set (L : List IdxEntry) (i : Nat) (z z' : IdxEntry) (h : L[i]? = some z)
@@ -1221,7 +1299,7 @@ theorem entryAnswers_take_succ (G : List IdxEntry) (atRev : w64) (i : Nat) (z : 
     entryAnswers (G.take (i + 1)) atRev =
       entryAnswers (G.take i) atRev ++ ((kiGet z.2.2 atRev).map fun r => (z.2.1, r)).toList := by
   unfold entryAnswers
-  rw [List.take_succ, hz, List.filterMap_append]
+  rw [List.take_add_one, hz, List.filterMap_append]
   cases hg : kiGet z.2.2 atRev <;> simp [hg]
 
 theorem entryAnswers_prefix (G : List IdxEntry) (atRev : w64) (i : Nat) :

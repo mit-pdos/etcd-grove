@@ -446,12 +446,13 @@ theorem putLeaseOf_mem (s0 : List EtcdKv) (o : OpFull) (s : List EtcdKv) :
 
 /-- **`Txn`'s premises** at the sole writer's log `log`: room for one more revision, the run's
 premises (weak: an `IgnoreValue`/`IgnoreLease` put whose key is missing at `log` fails
-`checkTxn`), room for the run's changes. -/
+`checkTxn`), room for the run's changes (fewer than `2 ^ 56`: the real backend's bound on a
+session's puts, `mvcc.putMax`; 2026-10-13, unit 6: it was `2 ^ 63`). -/
 def TxnPre (log : Log) (t : TxnModel) : Prop :=
   log.length + 4 ≤ 2 ^ 63 ∧
   OpsOk true (stateAfter log) (W64 (log.length : Int)) (stateAfter log)
     (t.branch (txnOk (stateAfter log) t)) ∧
-  (srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.1.length < 2 ^ 63
+  (srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.1.length < 2 ^ 56
 
 /-! ## Read-only and serializable requests -/
 
@@ -471,6 +472,16 @@ def txnReadonly (t : TxnModel) : Bool := (t.thenOps ++ t.elseOps).all opIsGet
 
 /-- **`IsTxnSerializable`**: every operation of both branches is a serializable get. -/
 def txnSerializable (t : TxnModel) : Bool := (t.thenOps ++ t.elseOps).all opIsSerGet
+
+/-- **The gets of a transaction are within the model** (pure; the premise of `Txn` at a reader,
+the server's read-only transaction: 2026-10-12, the request path's unit 3b): every get of either
+branch reads the transaction's revision (`0`: the model's gets in a transaction are the client's
+`txnOpOf`), its sort is not cut early by a limit (`cutEarly`,
+`issues/etcd-range-sort-none-limit.md`), and its sort target is valid (what the gRPC layer's
+`checkRangeRequest` checks). The apply thread's `Txn` has the same premises through `TxnPre`. -/
+def txnGetsOk (t : TxnModel) : Prop :=
+  ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps →
+    o.base.rev = W64 0 ∧ ¬ cutEarly o ∧ validSortTarget o
 
 theorem opIsSerGet_linearizable (op : TxnOp) : opIsSerGet op = !op.linearizable := by
   cases op <;> simp [opIsSerGet, TxnOp.linearizable]

@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (etcdserverpb's
+# `AuthRoleGetResponse` names `authpb.Permission`), with the permission types (the auth store's
+# permission checks pass and switch on `Permission_READ`/`Permission_WRITE`; an axiomatized
+# constant is an opaque `val`, which a comparison cannot decide; and their type, an `int32`;
+# unit P2).
+translate = ["!*", "Permission_Type", "Permission_READ", "Permission_WRITE", "Permission_READWRITE"]
+imports = ["!*"]

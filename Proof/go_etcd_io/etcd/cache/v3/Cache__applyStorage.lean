@@ -315,6 +315,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -367,10 +368,10 @@ theorem applyEvents_certs (pfx : GoString) (cap : Nat) :
             fun _ _ => rfl
           simp only [hcert]
           iunfold etcdStepCertBody at Hc
-          icases Hc with ⟨%cs, #Hm, %Hst, -⟩
-          rw [hbr] at Hst
+          icases Hc with ⟨%cs, #Hm, #Hstep0, %Hst, -⟩
+          ihave #Hstep := EtcdStep_congr hbr $$ Hstep0
           ihave #HY' : isEtcdKvs e.rev pfx m' $$ []
-          · iapply isEtcdKvs_step Y p e.rev pfx st.latest m' _ cs Hp Hst.1 Hst.2 hb
+          · iapply isEtcdKvs_step Y p e.rev pfx st.latest m' _ cs Hp Hst hb
             iframe #
           have hlen : ((e :: es).dropWhile (fun x => decide (x.rev = e.rev))).length < n := by
             rw [← h]; exact dropWhile_length_lt e es
@@ -572,9 +573,9 @@ theorem applyEvents_ok (pfx : GoString) (cap : Nat) :
         fun _ _ => rfl
       simp only [hcert]
       iunfold etcdStepCertBody at Hc
-      icases Hc with ⟨%cs, #Hm, %Hst, -⟩
-      rw [hbr] at Hst
-      ihave %Hok := isEtcdKvs_applyBatch_ok Y p e.rev pfx st.latest _ cs Hp Hst.1 $$ [$HY $Hm]
+      icases Hc with ⟨%cs, #Hm, #Hstep0, %Hst, -⟩
+      ihave #Hstep := EtcdStep_congr hbr $$ Hstep0
+      ihave %Hok := isEtcdKvs_applyBatch_ok Y p e.rev pfx st.latest _ cs Hp $$ [$Hstep $HY $Hm]
       rw [applyEvents]
       cases hb : applyBatch st.latest ((e :: es).takeWhile (fun x => decide (x.rev = e.rev))) with
       | mk m' ok =>
@@ -583,7 +584,7 @@ theorem applyEvents_ok (pfx : GoString) (cap : Nat) :
         subst Hok
         simp only
         ihave #HY' : isEtcdKvs e.rev pfx m' $$ []
-        · iapply isEtcdKvs_step Y p e.rev pfx st.latest m' _ cs Hp Hst.1 Hst.2 hb
+        · iapply isEtcdKvs_step Y p e.rev pfx st.latest m' _ cs Hp Hst hb
           iframe #
         have hlen : ((e :: es).dropWhile (fun x => decide (x.rev = e.rev))).length < n := by
           rw [← h]; exact dropWhile_length_lt e es
@@ -689,7 +690,7 @@ theorem Cache.applyStorage.wp_proof
     wp_auto
     wp_for_post
     iapply HΦ
-    itrivial
+    first | iapply errStrOk_nil | iexact HeAp
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `resp, ok := <-storeW.respCh`
@@ -709,7 +710,7 @@ theorem Cache.applyStorage.wp_proof
       wp_auto
       wp_for_post
       iapply HΦ
-      itrivial
+      first | iapply errStrOk_nil | iexact HeAp
     | true =>
       simp only [↓reduceIte]
       icases Hres with ⟨%r, #Hsent, Hcons, #Hpub⟩
@@ -767,14 +768,14 @@ theorem Cache.applyStorage.wp_proof
           unfold snapCerts; imodintro; iintro %x %hx; simp at hx
       wp_auto
       wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) Y resp r
-        $$ [$HisStore $HisStoreW $Hresp $HYc $Hcert] as %err Hres
+        $$ [$HisStore $HisStoreW $Hresp $HYc $Hcert] as %err ⟨#HeAp, Hres⟩
       · ipureintro; exact ⟨hsorted, hY0⟩
       icases Hres with (%Hcanc | ⟨%st, %Hst, #Hlb, #Hslb, %Herr⟩)
       · obtain ⟨-, e, rfl⟩ := Hcanc
         wp_auto
         wp_for_post
         iapply HΦ
-        itrivial
+        first | iapply errStrOk_nil | iexact HeAp
       cases hok : (applyResp cf.scap st r).2 with
       | false =>
         rw [hok] at Herr
@@ -782,7 +783,7 @@ theorem Cache.applyStorage.wp_proof
         wp_auto
         wp_for_post
         iapply HΦ
-        itrivial
+        first | iapply errStrOk_nil | iexact HeAp
       | true =>
         rw [hok] at Herr
         subst Herr

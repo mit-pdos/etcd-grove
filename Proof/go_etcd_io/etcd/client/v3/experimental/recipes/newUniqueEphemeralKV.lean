@@ -22,6 +22,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -82,7 +83,7 @@ theorem newUniqueEphemeralKV.wp_proof (hNEKV : newEphemeralKV.spec (GF := GF) (h
     subst Heq
     wp_auto
     wp_apply errors.wp_Is_leaf eK (GoInterface.ok eK) HeKl.2.1 HeKl.2.2
-      (fun tii h => by cases h; exact HeKl.1) $$ [$Herr]
+      (fun tii h => by cases h; exact HeKl.1) (errors.treeTyped_pointer eK _ HeKl.1) $$ [$Herr]
     (try wp_auto)
     wp_for_post
     simp only [named]
@@ -95,7 +96,8 @@ theorem newUniqueEphemeralKV.wp_proof (hNEKV : newEphemeralKV.spec (GF := GF) (h
     iunfold clientErrIs at Hce
     ihave ⟨%S, %M, #Htree, %HS⟩ := Hce $$ %(GoInterface.ok eK)
     wp_auto
-    wp_apply errors.wp_Is S M (GoInterface.ok e) (GoInterface.ok eK) $$ [$Herr $Htree] as %b -
+    wp_apply errors.wp_Is S M (GoInterface.ok e) (GoInterface.ok eK)
+      (fun tii h => by cases h; exact HeKl.1) HS.2.2 $$ [$Herr $Htree] as %b -
     · ipureintro; exact HS.1
     cases b
     · (try wp_auto)

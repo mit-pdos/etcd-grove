@@ -39,7 +39,7 @@ theorem encode.wp_proof : encode.spec (GF := GF) (hG := hG) := by
   have hr := u64Le_length replica
   simp only [List.length_append, List.length_replicate, hr] at Hlen
   have Hbl : sint.Z b.len = 17 := by obtain ⟨h1, h2⟩ := Hlen; word
-  rw [if_pos (by rw [Hbc]; word)]
+  rw [ite_eq_left (by rw [Hbc]; word)]
   icases (ownSlice_split_all (W64 8) b _ _ ⟨by decide, by rw [Hbl]; decide⟩).1 $$ Hb with ⟨Hb1, Hb2⟩
   rw [show (u64Le replica ++ List.replicate 9 (W8 0)).drop (sint.nat (W64 8)) =
       List.replicate 8 (W8 0) ++ [W8 0] by
@@ -52,7 +52,7 @@ theorem encode.wp_proof : encode.spec (GF := GF) (hG := hG) := by
   ihave Hb := ownSlice_combine (W64 8) b (DFrac.own 1) (u64Le replica) (u64Le seq ++ [W8 0])
     (W64 0) b.len ⟨by rw [hr]; rfl, by decide, by decide, by rw [Hbl]; decide⟩ $$ Hb1 Hb2
   ihave Hb := (ownSlice_trivial_slice b (DFrac.own 1) _).2 $$ Hb
-  rw [if_pos (by rw [Hbl]; decide)]
+  rw [ite_eq_left (by rw [Hbl]; decide)]
   wp_apply wp_store_slice_index b (sint.Z (W64 16)) _ kind $$ [$Hb] as Hb
   · ipureintro
     simp [hr, u64Le_length]

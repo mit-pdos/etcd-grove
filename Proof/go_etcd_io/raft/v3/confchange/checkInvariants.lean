@@ -18,6 +18,14 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+/-- `fmt.ArgsWf` of an `Errorf` argument list of `uint64`s (Perennial's `fmt.wp_Errorf` admits
+arguments of predeclared basic types only). -/
+local macro "raft_args_wf" : tactic => `(tactic| (
+  try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+  repeat' first
+    | exact _root_.Perennial.fmt.ArgsWf.nil
+    | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) ?_))
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -233,7 +241,9 @@ theorem confchange.checkInvariants.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %sl' ⟨Hsl', -⟩
-        wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e #He
+        wp_auto
+        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+        case wf => raft_args_wf
         unfold forMapPostcondition
         iright; iright; iright
         iexists _
@@ -330,7 +340,9 @@ theorem confchange.checkInvariants.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %sl' ⟨Hsl', -⟩
-        wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e #He
+        wp_auto
+        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+        case wf => raft_args_wf
         unfold forMapPostcondition
         iright; iright; iright
         iexists _
@@ -370,7 +382,9 @@ theorem confchange.checkInvariants.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e #He
+      wp_auto
+      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -433,7 +447,9 @@ theorem confchange.checkInvariants.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e #He
+      wp_auto
+      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -458,7 +474,9 @@ theorem confchange.checkInvariants.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e #He
+      wp_auto
+      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -515,7 +533,9 @@ theorem confchange.checkInvariants.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %sl' ⟨Hsl', -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e #He
+      wp_auto
+      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
+      case wf => raft_args_wf
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -582,7 +602,8 @@ theorem confchange.checkInvariants.wp_proof
         wp_auto
         ihave Hnil : (slice.nil ↦* ([] : List GoAny)) $$ []
         · iapply ownSlice_nil
-        wp_apply fmt.wp_Errorf $$ [$Hnil] as %e #He
+        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hnil] as %e #He
+        case wf => raft_args_wf
         iapply HΦ
         iframe Htrk Hprs
         isplitl [Hin Hout Hl Hln]
@@ -594,7 +615,8 @@ theorem confchange.checkInvariants.wp_proof
     · -- "cfg.LearnersNext must be nil when not joint"
       ihave Hnil : (slice.nil ↦* ([] : List GoAny)) $$ []
       · iapply ownSlice_nil
-      wp_apply fmt.wp_Errorf $$ [$Hnil] as %e #He
+      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hnil] as %e #He
+      case wf => raft_args_wf
       iapply HΦ
       iframe Htrk Hprs
       isplitl [Hin Hout Hl Hln]

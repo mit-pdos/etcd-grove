@@ -28,11 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 `cmpHolds` of the comparison at the state after `log` (the range read at `context.TODO()`, which
 does not fail). -/
 abbrev txn.applyCompare.spec : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (c : Loc) (cm : CmpModel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.isTxnRead mw s γ log rev ∗ txn.compareIs c cm }}
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (c : Loc) (cm : CmpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.isTxnRead mw s γ trace log rev ∗ txn.compareIs c cm }}
     (App (App (Val (@! txn.applyCompare))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #c))
-  {{ RET #(cmpHolds (mvcc.stateAfter log) cm); mvcc.isTxnRead mw s γ log rev }}
+  {{ RET #(cmpHolds (mvcc.stateAfter log) cm); mvcc.isTxnRead mw s γ trace log rev }}
 
 end spec
 

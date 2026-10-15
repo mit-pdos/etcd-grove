@@ -46,7 +46,7 @@ theorem WithLimit.wp_proof : WithLimit.spec (GF := GF) (hG := hG) := by
   · ipureintro; simp_all
   isplitl []
   · ipureintro; simp_all
-  · iapply opSortAt_of _ o _ (by simp [withLimitM]) (by simp [withLimitM]) (by simp [withLimitM]) $$ Hs
+  · iapply opSortAt_of _ o _ (by simp) (by simp) (by simp) $$ Hs
 
 end proof
 

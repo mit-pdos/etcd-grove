@@ -27,8 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.Range.wp_proof
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend ctx cd todo key endk k e ro
-  wp_start as ⟨Htw, #Hctx, #Hkey, #Hend⟩
+  intro trace tw s γ ilog pend ctx cd todo key endk k e ro te crev Z
+  wp_start as ⟨Htw, #Hctx, #Hkey, #Hend, Hown⟩
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   -- the writer's log and the number of changes
@@ -70,7 +70,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
          first | (simp at Hif) | exact absurd Hif (by decide)
        (try wp_auto)
        have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) = W64 (ilog.length : Int) := by
-         unfold mvcc.writeRev; rw [if_neg hpend]
+         unfold mvcc.writeRev; rw [ite_eq_right hpend]
        rw [hrev, ← hwr])
     | (have hpend : pend = [] := by
          apply List.length_eq_zero_iff.1
@@ -78,7 +78,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
          first | (rw [hcl, hpZ, h0Z] at h; omega) | (simp only [hcl, hpZ, h0Z] at h; omega)
        have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) =
            W64 ((ilog.length : Int) - 1) := by
-         unfold mvcc.writeRev; rw [if_pos hpend]; congr 1; omega
+         unfold mvcc.writeRev; rw [ite_eq_left hpend]; congr 1; omega
        (try wp_auto)
        rw [← hwr])
   -- `tw.rangeKeys(ctx, key, end, rev, ro)`: the promoted method, `storeTxnCommon`'s
@@ -87,24 +87,28 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     wp_call
     (try wp_auto)
     -- the bucket through the batch transaction (its own puts), the index by the writer
-    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked
+    -- (but for keys compaction deleted: none the read names, `rangeKeys`)
+    ihave #Hrdr := mvcc.batchTx_readerD bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw fw
       (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
         mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
     · iframe Hlocked Hbv
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
+    icases mvcc.muHeld_cmp s γ crev $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
     wp_apply (hKeys (mvcc.txCommonW tw) s trace ti bt (DFrac.own 1)
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
-        ctx cd todo key endk k e ro)
-      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend]
-      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hout⟩
+        ctx cd todo key endk k e ro _ _ crev ilog te (by assumption))
+      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hcert $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
+      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hcmp, Hcu, Hown, Hout⟩
     · ipureintro
-      refine ⟨?_, rfl, by simp, ?_⟩
+      refine ⟨?_, ⟨List.prefix_append _ _, Hcrev.2⟩, rfl, by simp, ?_, Hcb⟩
       · rw [mvcc.bucketMap_append ilog pend Hne]; exact fun _ _ h => h
       · rw [hwrZ]; have := mvcc.writeRev_lt ilog pend Hne; omega
+    ihave Hmu := Hmub $$ Hcmp Hcu
     rw [mvcc.idxKnows_writer]
     (try wp_auto)
     -- the transaction back: the `storeTxnCommon`, then the `storeTxnWrite`
@@ -122,13 +126,13 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iapply HΦ
     isplitl []
     · ipureintro; exact Htodo
-    iframe Hout
+    iframe Hout Hown
     iunfold mvcc.storeTxnWriteIs
-    iexists trace, ti, bt, Locked, chs, ps, ntok
+    iexists ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
 end proof
 

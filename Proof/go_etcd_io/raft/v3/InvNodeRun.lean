@@ -651,7 +651,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       isplitr
       · ipureintro
         intro Hc
-        simp [Hty', MsgProp, MsgStorageApplyResp] at Hc
+        simp [MsgProp, MsgStorageApplyResp] at Hc
       · imodintro
         iintro %ty %Hty2 _
         try rw [Hty'] at Hty2

@@ -26,37 +26,72 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
-  intro s γ trace
-  wp_start as ⟨#Hs, Hrd, Htok⟩
+  intro s γ trace P Pre Q f te clb Z
+  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, #HhookC, Hpre, #Htriple, Htrc⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
+  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %f0, %Dep, Hs⟩
   iNamed Hs
-  iunfold mvcc.storeReader at Hrd
+  iunfold mvcc.storeReaderC at Hrd
   icases Hrd with ⟨%ti2, Hrd⟩
   iNamedSuffix Hrd "R"
-  (try wp_auto)
-  -- `s.mu.RLock()`
-  wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, -⟩
-  (try wp_auto)
+  wp_auto_lc 1
+  -- the caller's hook is the store's
+  imod mvcc.hookIs_agree_lc ⊤ γ P P0 f f0 $$ [$Hlc1 $HhookC $Hhook] with ⟨%Hfeq, #HPP0, #HP0P⟩
+  subst Hfeq
+  ihave #Htr0 : □ ({{ P0 ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) $$ []
+  · iintro !> %Φ !> ⟨HP0, Hpre⟩ HΦ
+    iapply Htriple $$ %Φ [HP0 Hpre] HΦ
+    iframe Hpre
+    iapply HP0P
+    iexact HP0
+  -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or
+  -- above the caller's lower bound
+  wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
+  wp_auto_lc 1
+  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
+  iunfold mvcc.muInv at HmuP
+  icases HmuP with ⟨%cm, HmuP⟩
+  iunfold mvcc.muInvAt at HmuP
+  iNamed HmuP
+  icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
+  icases mvcc.crevUB_get_lb γ.idx _ cm $$ HcrevM with ⟨HcrevM, #Hlbc⟩
+  ihave #HclM0 := HclM
+  ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM]
+  · iunfold mvcc.muHeld
+    iframe Hmul
+    iunfold mvcc.muInvAt
+    iframe HcmpM HcrevM
+    iframe #
+    ipureintro; exact HcM
   -- `tx := s.b.BatchTx()`
-  iunfold mvcc.isKeyBackend at Hbk
+  iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
   subst Hbi
   (try wp_auto)
   wp_apply HB as %bt #Hbt
   (try wp_auto)
-  iunfold mvcc.isBatchTx at Hbt
-  icases Hbt with ⟨%Locked, #Hbt⟩
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
+  iunfold mvcc.isBatchTxG at Hbt
+  icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
+  ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked P0 f $$ []
   · iexact Hbt
-  iunfold mvcc.batchTxSpec at Hbt
+  iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
-  -- `tx.LockInsideApply()`: the writer's resources
-  wp_apply HLock as ⟨Hlocked, HW⟩
+  -- `tx.LockInsideApply()`: the writer's resources, the hook run on the caller's `Pre`
+  ihave #HLock' := HLock $$ %Pre %Q
+  wp_apply HLock' $$ [$Hpre $Htr0 $HrtR $Hwt] as ⟨Hlocked, HW, HQ, HrtR⟩
   (try wp_auto)
+  ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
   iunfold mvcc.writerRes at HW
   iNamed HW
+  -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
+  -- the writer's)
+  iunfold mvcc.crevSafe at HclM0
+  icases HclM0 with ⟨%log₀, #Hc0, %Hl0⟩
+  ihave %Hpre0 := mvcc.idxWriter_cert_prefix γ.idx ilog [] log₀ $$ [Hw Hc0]
+  · iframe Hw; iexact Hc0
   (try wp_auto)
   -- `make([]*mvccpb.KeyValue, 0, 4)`
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) (W64 4) (by decide)) as %chs ⟨Hchs, Hcap, -⟩
@@ -64,15 +99,23 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   wp_apply (hNew _) as %mw Hmw
   (try wp_auto)
   iapply HΦ
-  iexists ilog
+  iframe HQ
+  iexists ilog, cm
+  iframe Hlbc
+  isplitl
+  rotate_left
+  · ipureintro; exact Hclbc
   iunfold mvcc.isTxnWrite
   iexists «$r0_ptr», W64 0
   iframe Hmw
+  isplitr [Htrc]
+  rotate_left
+  · iexists te; iexact Htrc
   iunfold mvcc.storeTxnWriteIs
-  iexists trace, ti2, bt, Locked, chs, [], ntok
+  iexists ti2, bt, Locked, chs, [], ntok, P0, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmul HrevMuR HtiR
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmuh HrevMuR HtiR HrtR Hcres Hlrd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget
@@ -82,7 +125,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   · iunfold mvcc.changesAre
     iapply BigSepL.bigSepL_nil_intro
     iempintro
-  ipureintro; exact Hne
+  ipureintro; exact ⟨Hne, Htrnn, HcM, by have := Hpre0.length_le; omega⟩
 
 end proof
 

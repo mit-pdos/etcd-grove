@@ -97,6 +97,7 @@ section anchor
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
@@ -264,6 +265,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
@@ -453,8 +455,9 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       iright; ipureintro; rfl
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hwcons⟩
+    ihave ⟨#Hse, HP⟩ := rangeWatchElem_closeErr $$ HP
     (try wp_auto)
-    wp_apply wp_Err wr_ptr wv (DFrac.own 1) $$ [$wr] as %werr ⟨wr, %Herr⟩
+    wp_apply wp_Err wr_ptr wv (DFrac.own 1) $$ [$wr $Hse] as %werr ⟨wr, %Herr, -⟩
     obtain ⟨e', rfl⟩ | rfl : (∃ e', werr = GoInterface.ok e') ∨ werr = GoInterface.nil := by
       cases werr with
       | ok e' => exact Or.inl ⟨e', rfl⟩
@@ -467,7 +470,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       iright; ipureintro; rfl
     (try wp_auto)
     iunfold rangeWatchElem at HP
-    icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok⟩
+    icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok, -⟩
     simp only [Int.toNat_natCast] at *
     ihave %Hceq := mono_list_idx_agree γw.cur rcv.length c0 c $$ Hc0 Hcur
     subst Hceq
@@ -509,7 +512,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
         icases Hp with ⟨%v', #Hv'kv, %Hv'k, %s', #Hs', %Hv's⟩
         have Hne : r.events ≠ [] := by intro h; rw [h] at He; simp at He
         iunfold watchHdrOwn at Hhdr
-        rw [if_neg Hne]
+        rw [ite_eq_right Hne]
         icases Hhdr with ⟨%Hhn, Hf⟩
         ihave #Hv'kv' := Hv'kv
         iunfold kvValAt at Hv'kv'
@@ -723,7 +726,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       simp only [↓reduceIte]
       icases Hrecv with ⟨HP, Hwcons⟩
       iunfold rangeWatchElem at HP
-      icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok⟩
+      icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok, -⟩
       simp only [Int.toNat_natCast] at *
       ihave %Hceq := mono_list_idx_agree γw.cur rcv.length c0 c $$ Hc0 Hcur
       subst Hceq
@@ -904,7 +907,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       ipureintro
       exact ⟨HL, ⟨Hord.1, Int.le_trans Hc.2 Hcc'⟩, HRl0⟩
     · simp
-      rw [if_neg (fun h => Bool.false_ne_true (go.IntoValInj.intoVal_inj h))]
+      rw [ite_eq_right (fun h => Bool.false_ne_true (go.IntoValInj.intoVal_inj h))]
       (try wp_auto)
       wp_apply Hcancel'
       · imodintro; itrivial

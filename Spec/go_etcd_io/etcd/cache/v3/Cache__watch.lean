@@ -19,6 +19,7 @@ section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -37,7 +38,8 @@ is shared by its writers (`isStoreWriter`), and the goroutine needs only the sto
 snapshot at least `rev - 1`, which stays true. Each goroutine keeps its own watcher's consumer; an
 `applyErr` nobody reads is fine (buffered, capacity one).
 
-It returns a non-nil error, the wait-group token, and the demux's writer, in some state. -/
+It returns a non-nil error (whose `Error()` returns some string, `errStrOk`), the wait-group
+token, and the demux's writer, in some state. -/
 abbrev Cache.watch.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (rev R : w64) (c0 : DemuxCore),
@@ -45,8 +47,8 @@ abbrev Cache.watch.spec : Prop :=
       isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgLoopRunning cf ∗
       storeSnapLb cf.γs R ∗ ⌜0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z R + 1⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watch")) (Val #rev))
-  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ cacheWgLoopRunning cf ∗
-      ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
+  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∗
+      cacheWgLoopRunning cf ∗ ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
 
 end spec
 

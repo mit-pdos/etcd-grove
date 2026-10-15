@@ -27,7 +27,6 @@ public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.LeaseValue
 public import Proof.go_etcd_io.etcd.client.v3.ModRevision
-public import Proof.go_etcd_io.etcd.client.v3.leasing.NewKV
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewSession
 public import Proof.go_etcd_io.etcd.client.v3.OpDelete
@@ -75,7 +74,6 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.go_etcd_io.etcd.client.v3.leasing.closeAll
-public import Proof.go_etcd_io.etcd.client.v3.leasing.compareInt64
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyGetResponseMetadataOnly
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyHeader
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyKeyValue
@@ -128,6 +126,8 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__revokeRange
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__tryModifyOp
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__waitRescind
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__waitSession
+public import Proof.go_etcd_io.etcd.client.v3.leasing.NewKV
+public import Proof.go_etcd_io.etcd.client.v3.leasing.compareInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
@@ -165,6 +165,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
+variable [EM : EtcdModel GF]
 
 theorem v3.Client.wp_Ctx :
     EtcdGrove.Client.Ctx.spec (GF := GF) (hG := hG) :=
@@ -456,6 +457,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
+variable [EM : EtcdModel GF]
 
 theorem v3.Client.wp_GetLogger :
     EtcdGrove.Client.GetLogger.spec (GF := GF) (hG := hG) :=
@@ -469,26 +471,6 @@ theorem concurrency.Session.wp_Done :
     EtcdGrove.concurrency.Session.Done.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Done.wp_proof
 
-theorem leasingKV.wp_monitorSession :
-    EtcdGrove.leasing.leasingKV.monitorSession.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leasingKV.monitorSession.wp_proof concurrency.wp_NewSession concurrency.Session.wp_Done
-
-theorem leaseCache.wp_clearOldRevokes :
-    EtcdGrove.leasing.leaseCache.clearOldRevokes.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leaseCache.clearOldRevokes.wp_proof
-
-theorem leasingKV.wp_Close :
-    EtcdGrove.leasing.leasingKV.Close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leasingKV.Close.wp_proof
-
-theorem leasingKV.wp_waitSession :
-    EtcdGrove.leasing.leasingKV.waitSession.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leasingKV.waitSession.wp_proof
-
-theorem wp_NewKV :
-    EtcdGrove.leasing.NewKV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.NewKV.wp_proof v3.Client.wp_Ctx leasingKV.wp_monitorSession leaseCache.wp_clearOldRevokes leasingKV.wp_Close leasingKV.wp_waitSession
-
 theorem concurrency.Session.wp_Lease :
     EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Lease.wp_proof
@@ -496,10 +478,6 @@ theorem concurrency.Session.wp_Lease :
 theorem wp_closeAll :
     EtcdGrove.leasing.closeAll.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.closeAll.wp_proof
-
-theorem wp_compareInt64 :
-    EtcdGrove.leasing.compareInt64.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.compareInt64.wp_proof
 
 theorem wp_copyHeader :
     EtcdGrove.leasing.copyHeader.spec (GF := GF) (hG := hG) :=
@@ -512,6 +490,10 @@ theorem wp_copyGetResponseMetadataOnly :
 theorem wp_copyKeyValue :
     EtcdGrove.leasing.copyKeyValue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.copyKeyValue.wp_proof
+
+theorem wp_compareInt64 :
+    EtcdGrove.leasing.compareInt64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.compareInt64.wp_proof
 
 theorem wp_evalCmp :
     EtcdGrove.leasing.evalCmp.spec (GF := GF) (hG := hG) :=
@@ -593,6 +575,10 @@ theorem leaseCache.wp_Update :
     EtcdGrove.leasing.leaseCache.Update.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Update.wp_proof
 
+theorem leaseCache.wp_clearOldRevokes :
+    EtcdGrove.leasing.leaseCache.clearOldRevokes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.leaseCache.clearOldRevokes.wp_proof
+
 theorem leaseCache.wp_evalCmp :
     EtcdGrove.leasing.leaseCache.evalCmp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.evalCmp.wp_proof v3.Cmp.wp_GetCompare Compare.wp_GetRangeEnd v3.Cmp.wp_KeyBytes EtcdGrove.leasing.wp_evalCmp
@@ -601,9 +587,17 @@ theorem leaseCache.wp_evalOps :
     EtcdGrove.leasing.leaseCache.evalOps.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.evalOps.wp_proof leaseKey.wp_get wp_isBadOp v3.Op.wp_IsGet v3.Op.wp_KeyBytes
 
+theorem leasingKV.wp_Close :
+    EtcdGrove.leasing.leasingKV.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.leasingKV.Close.wp_proof
+
 theorem leasingKV.wp_Compact :
     EtcdGrove.leasing.leasingKV.Compact.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Compact.wp_proof
+
+theorem leasingKV.wp_waitSession :
+    EtcdGrove.leasing.leasingKV.waitSession.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.leasingKV.waitSession.wp_proof
 
 theorem leasingKV.wp_leaseID :
     EtcdGrove.leasing.leasingKV.leaseID.spec (GF := GF) (hG := hG) :=
@@ -736,6 +730,14 @@ theorem leasingKV.wp_GetStream :
 theorem leasingKV.wp_Put :
     EtcdGrove.leasing.leasingKV.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Put.wp_proof v3.wp_OpPut leasingKV.wp_put
+
+theorem leasingKV.wp_monitorSession :
+    EtcdGrove.leasing.leasingKV.monitorSession.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.leasingKV.monitorSession.wp_proof concurrency.wp_NewSession concurrency.Session.wp_Done
+
+theorem wp_NewKV :
+    EtcdGrove.leasing.NewKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.NewKV.wp_proof v3.Client.wp_Ctx leasingKV.wp_monitorSession leaseCache.wp_clearOldRevokes leasingKV.wp_Close leasingKV.wp_waitSession
 
 end links_hasLC
 

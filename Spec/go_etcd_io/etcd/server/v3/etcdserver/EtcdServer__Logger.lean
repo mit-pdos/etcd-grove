@@ -1,5 +1,5 @@
 /-
-`EtcdServer.Logger`: the trust boundary (names-only: it reads `s.lg` under `s.lgMu`). Lean-first (no Rocq counterpart).
+`EtcdServer.Logger` (`server.go`: it reads `s.lg` under `s.lgMu`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -21,12 +21,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.Logger()` returns the server's (non-nil) logger. -/
+/-- `s.Logger()` returns the server's (non-nil) logger, read under `s.lgMu`'s read lock (the
+caller's reader slot, `srvLgReader`, given back). -/
 abbrev EtcdServer.Logger.spec : Prop :=
-  ∀ (s : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}
+  ∀ (s l : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗ srvLgReader s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Logger")) (Val #()))
-  {{ (l : Loc), RET #l; ⌜l ≠ null⌝ }}
+  {{ RET #l; ⌜l ≠ null⌝ ∗ srvLgReader s }}
 
 end spec
 

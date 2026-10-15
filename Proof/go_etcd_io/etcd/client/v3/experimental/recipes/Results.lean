@@ -12,8 +12,14 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Link
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesQueue
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesSeq
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Vertical
 
 @[expose] public section
+
+-- `#print axioms` prints the axioms by their full names: shortening each name to the
+-- shortest unambiguous one in this environment took most of this module's build (25s of
+-- 31s for the server's `txn/Results.lean`).
+set_option pp.fullNames true
 
 set_option linter.unusedSectionVars false
 
@@ -60,6 +66,7 @@ section unit2
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -258,6 +265,7 @@ section unit3
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -484,6 +492,7 @@ theorem uint16_toNat_lt (pr : w16) : (uint.Z pr).toNat < 10 ^ 5 := by
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -557,6 +566,117 @@ theorem pqueue_order (key : GoString) (it : EtcdKv) (r : w64) :
     iexact Hwait
 
 end pqorder
+
+/-! ## The vertical slice (unit V2b): the recipes' client at etcd's server, the queue end to end
+
+* **The client contracts at the server's model** (`recipes_kv_of_server`,
+  `recipes_client_of_server`; `KVOfServer.lean`): a real `*kv` over a connection to a gRPC server
+  where etcd's `KV` service is registered (`client.etcd_kv_served`) meets `isRecipesKV` in
+  `v3rpc.etcdModelOfServer E`, and a client over it `isEtcdRecipesClient` (the watcher contract a
+  premise).
+* **The queue end to end** (`queue_end_to_end`; `Vertical.lean`): `NewQueue` on such a client;
+  `Enqueue`'s spec; `Dequeue`'s `(v, nil)` an item taken by this call in the server's terms
+  (`queueTaken`: certified logs, `stateAt`, the server's revision token), in order.
+  `queue_end_to_end_once`: two claims of one revision are impossible.
+-/
+
+section slice
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [recipes_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+open go_etcd_io.etcd.server.v3.etcdserver in
+/-- A real `*kv` meets the recipes' `KV` contracts at the server's model (`isRecipesKV_of_kv`). -/
+theorem recipes_kv_of_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+    (γw γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+        kvObjAt api addr ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ⊢
+      isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx :=
+  isRecipesKV_of_kv api addr s E γw γr cid mid pfx hpfx hAs
+
+open go_etcd_io.etcd.server.v3.etcdserver in
+/-- A client over a real `*kv` meets the recipes' client contract at the server's model
+(`isEtcdRecipesClient_of_kv`). -/
+theorem recipes_client_of_server (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoString)
+    (s : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
+    (hpfx : pfx ≠ [])
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+        kvObjAt api addr ∗
+        clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
+        clientWatcherAddr cl ↦□ GoInterface.ok w ∗
+        isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w pfx ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ⊢
+      isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx :=
+  isEtcdRecipesClient_of_kv cl w api addr s E γw γr cid mid pfx hpfx hAs
+
+open go_etcd_io.etcd.server.v3.etcdserver in
+/-- **The queue end to end** (`queue_vertical`). -/
+theorem queue_end_to_end (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoString) (s : Loc)
+    (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) (kp : GoString) (hkp : kp ≠ [])
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+        kvObjAt api addr ∗
+        clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
+        clientWatcherAddr cl ↦□ GoInterface.ok w ∗
+        isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w kp ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
+          (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+        sortNamesOk ∗ EtcdGrove.client.clientErrsIs }}
+      (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
+        (Val #kp))
+    {{ (q : Loc), RET #q;
+        (□ ∀ (val : GoString) (lo : w64),
+          {{ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
+            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
+          {{ (err : GoInterface), RET #err;
+              (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
+                etcdReached (EM := v3rpc.etcdModelOfServer E) r ∗
+                keyCreatedAt (EM := v3rpc.etcdModelOfServer E) kp key val (W64 0) r ∗
+                ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r⌝) ∨
+              ⌜err ≠ GoInterface.nil⌝ }}) ∗
+        (□ ∀ (lo : w64),
+          {{ context.isClosedchanInit ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗
+              ⌜0 ≤ sint.Z lo⌝ }}
+            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
+          {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
+              (⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64), queueTaken E kp it r ∗
+                dequeueOrder (EM := v3rpc.etcdModelOfServer E) kp kp modRevLe it r ∗
+                ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
+              ⌜err ≠ GoInterface.nil⌝ }}) }} :=
+  queue_vertical cl w api addr s E γw γr cid mid kp hkp hAs
+
+/-- **Dequeued at most once, in the server's terms** (`queue_vertical_once`). -/
+theorem queue_end_to_end_once (E : apply.AEnv GF) (kp : GoString) (it1 it2 : EtcdKv) (r : w64) :
+    queueTaken E kp it1 r ∗ queueTaken E kp it2 r ⊢ (False : IProp GF) :=
+  queue_vertical_once E kp it1 it2 r
+
+end slice
+
+#print axioms Perennial.EtcdGrove.recipes.recipes_kv_of_server
+#print axioms Perennial.EtcdGrove.recipes.recipes_client_of_server
+#print axioms Perennial.EtcdGrove.recipes.queue_end_to_end
+#print axioms Perennial.EtcdGrove.recipes.queue_end_to_end_once
 
 end recipes
 end EtcdGrove

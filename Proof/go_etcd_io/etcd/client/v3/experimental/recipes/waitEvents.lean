@@ -20,6 +20,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -56,7 +57,7 @@ theorem waitEvents.wp_proof : waitEvents.spec (GF := GF) (hG := hG) := by
   simp only [↓reduceIte]
   icases H with ⟨HP, Hcons⟩
   iunfold rangeWatchElem at HP
-  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok⟩
+  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, -⟩
   iunfold rangeWatchRespOk at Hok
   icases Hok with ⟨-, #Hok⟩
   iunfold eventsAt at Hevs

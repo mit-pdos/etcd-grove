@@ -7,7 +7,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft, etcd or register; repeatable; default: all).
+  --project    only this project (etcd-raft, etcd, register, porcupine or lintest;
+               repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -129,7 +130,9 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
-                    "go.etcd.io/raft/v3=EtcdDeps"],
+                    "net=",
+                    "encoding/hex=", "container/heap=", "unicode/utf8=",
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -150,9 +153,19 @@ PROJECTS = [
             # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
             # the mvcc core
             "go.etcd.io/etcd/server/v3/etcdserver/txn",
+            # with bodies (etcdserver/apply.toml): the applier chain, between the apply thread
+            # and the txn package (metrics.go names only)
+            "go.etcd.io/etcd/server/v3/etcdserver/apply",
+            # with bodies (etcdserver/api/v3rpc.toml): the gRPC KV service's handlers, the
+            # request checks, the response header, togRPCError (the request path)
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc",
+            # names only, with the two features the request path reads
+            "go.etcd.io/etcd/server/v3/features",
+            # with bodies (storage/backend.toml): the backend over bbolt, its buffers and
+            # transactions
+            "go.etcd.io/etcd/server/v3/storage/backend",
             # types and names only: what the server's types and the apply thread name
             "go.etcd.io/etcd/server/v3/storage",
-            "go.etcd.io/etcd/server/v3/storage/backend",
             "go.etcd.io/etcd/server/v3/storage/mvcc",
             "go.etcd.io/etcd/server/v3/config",
             "go.etcd.io/etcd/server/v3/etcdserver/api/membership",
@@ -161,10 +174,21 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor",
-            "go.etcd.io/etcd/server/v3/etcdserver/apply",
+            # names only: what the apply package names (api.UpdateCapability,
+            # version.DowngradeInfo, the membership requests, semver)
+            "go.etcd.io/etcd/server/v3/etcdserver/api",
+            "go.etcd.io/etcd/server/v3/etcdserver/version",
+            "go.etcd.io/etcd/api/v3/membershippb",
+            # names only: the version strings the server's `start` logs (the request path's
+            # unit 4c)
+            "go.etcd.io/etcd/api/v3/version",
+            "go.etcd.io/etcd/api/v3/authpb",
+            "github.com/Masterminds/semver/v3",
             "go.etcd.io/etcd/server/v3/etcdserver/errors",
             "go.etcd.io/etcd/server/v3/etcdserver/read",
             "go.etcd.io/etcd/server/v3/lease",
+            # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
+            "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
@@ -173,6 +197,8 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/traceutil",
             # names only: the type of mvcc's store.fifoSched
             "go.etcd.io/etcd/pkg/v3/schedule",
+            # with bodies (pkg/v3/wait.toml, pkg/v3/idutil.toml): the wait registry and the
+            # request id generator of the request path
             "go.etcd.io/etcd/pkg/v3/wait",
             "go.etcd.io/etcd/client/pkg/v3/types",
             "go.etcd.io/etcd/client/pkg/v3/verify",
@@ -180,6 +206,8 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
             "go.etcd.io/bbolt",
+            # names only: bbolt's errors (the backend's UnsafeDeleteBucket compares with one)
+            "go.etcd.io/bbolt/errors",
             # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
             "go.etcd.io/bbolt/internal/common",
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
@@ -197,8 +225,17 @@ PROJECTS = [
             "github.com/dustin/go-humanize",
             # names only: the metrics mvcc's transactions and key index update
             "github.com/prometheus/client_golang/prometheus",
-            # a standard-library package Perennial does not translate: its names are here
+            # standard-library packages Perennial does not translate: their names are here
+            # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",
+            # (net: the interface net.Addr, the type of grpc's peer.Peer's fields; unit P3a)
+            "net",
+            "encoding/hex",
+            # (container/heap: the lessor's expiry notifier pushes and fixes its queue)
+            "container/heap",
+            # (unicode/utf8: the server's unary interceptor checks the client's API version,
+            # unit P3b)
+            "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
@@ -217,14 +254,23 @@ PROJECTS = [
             # names only: the types of clientv3.Client's fields
             "google.golang.org/grpc",
             "google.golang.org/grpc/credentials",
+            # types and names only: the peer the client's retry interceptor asks grpc for
+            # (unit P3a)
+            "google.golang.org/grpc/peer",
+            # types and names only: the incoming metadata the auth store's AuthInfoFromCtx
+            # reads (unit P2)
+            "google.golang.org/grpc/metadata",
             "go.etcd.io/etcd/client/v3/credentials",
             "go.etcd.io/etcd/client/v3/internal/resolver",
             # (and go.uber.org/zap, above)
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                os.path.join("github_com", "prometheus"),
+               os.path.join("github_com", "Masterminds"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               os.path.join("net", "http"), os.path.join("github_com", "dustin")],
+               "net", os.path.join("encoding", "hex"),
+               os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
+               os.path.join("github_com", "dustin")],
         parts=[
             # etcd's own raft dependency (go.etcd.io/raft/v3 in etcd's go.mod), whose
             # raftpb is protobuf-go v2: not the gogoproto etcd-raft above, but the same
@@ -261,7 +307,31 @@ PROJECTS = [
         local=os.path.join("examples", "register"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3="],
         packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove")],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "register")],
+    ),
+    Project(
+        name="porcupine",
+        # The linearizability checker of etcd's robustness tests (github.com/anishathalye/
+        # porcupine v1.3.1, the version in etcd's tests/go.mod), vendored with the one change
+        # that makes it translatable (third_party/porcupine/UPSTREAM.md).
+        repo=None,
+        rev=None,
+        local=os.path.join("third_party", "porcupine"),
+        lean_roots=["github.com/anishathalye/porcupine="],
+        packages=["."],
+        owned=[os.path.join("github_com", "anishathalye")],
+    ),
+    Project(
+        name="lintest",
+        # A generic driver over porcupine: clients that run a linearizable library's
+        # operations, traced as etcd's robustness tests trace them, then checked.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lintest"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine="],
+        # the driver, and an instance of it (a counter under a mutex, its model)
+        packages=[".", "./counter"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lintest")],
     ),
 ]
 

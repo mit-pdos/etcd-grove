@@ -20,6 +20,7 @@ section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -38,7 +39,9 @@ three cases.
 with a close that follows none) of which the caller is the consumer and has taken nothing. The
 writer's state afterwards is again a `cacheWriter` whose stream continues the watch at
 `rev - 1`; and the consumer has still taken nothing, or has taken what `applyErr` handed over: the
-value it returns and `P` of it with `Ws`, or (the close) `nil` with `Wc`. -/
+value it returns and `P` of it with `Ws`, or (the close) `nil` with `Wc`. In the first case
+the error's `Error()` returns some string (`errStrOk`: the internal context's error, the
+response's, or `Broadcast`'s). -/
 abbrev Cache.watchEvents.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (rev : w64) (aec : Loc) (γa : HandoffNames) (P : GoError → IProp GF) (Ws Wc : IProp GF)
@@ -47,12 +50,12 @@ abbrev Cache.watchEvents.spec : Prop :=
       isCacheFields c cf γr γd cap ∗
       isHandoff γa aec P Ws Wc ∗ handoffConsumer γa false ∗
       sync.isOnce ro iprop(True) iprop(True) ∗
-      cacheWriter cf γd cap c0 ∗ ⌜0 < sint.Z rev ∧ CursorOk cf.pfx c0 (rev - W64 1)⌝ }}
+      cacheWriter cf γd cap c0 ∗ ⌜0 < sint.Z rev⌝ ∗ CursorOk cf.pfx c0 (rev - W64 1) }}
     (App (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watchEvents")) (Val #rev))
       (Val #aec)) (Val #ro))
   {{ (err : GoInterface), RET #err; ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 ∗
-      ⌜CursorOk cf.pfx c1 (rev - W64 1)⌝ ∗
-      (handoffConsumer γa false ∨
+      CursorOk cf.pfx c1 (rev - W64 1) ∗
+      ((handoffConsumer γa false ∗ errStrOk err) ∨
         (handoffConsumer γa true ∗ ((P err ∗ Ws) ∨ (⌜err = GoInterface.nil⌝ ∗ Wc)))) }}
 
 end spec

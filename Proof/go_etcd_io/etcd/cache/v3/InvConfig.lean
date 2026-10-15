@@ -57,10 +57,12 @@ instance CfgValid.decidable [FfiSyntax] (c : Config) : Decidable (CfgValid c) :=
 /-- What the proofs need of a configuration `newCache` accepts and the code does not check: the
 history capacity at most `2^61` (`newRingBuffer`: `at` computes up to `3·cap`), the btree degree
 at most `2^62` (the btree's `maxItems()` overflows above), and a non-negative
-`PerWatcherBufferSize` (finding 5: `make(chan, -1)` panics in `Watch` and in the watch loop). -/
+`PerWatcherBufferSize` (finding 5: `make(chan, -1)` panics in `Watch` and in the watch loop)
+below `2^32` (the bound below which Perennial's `make(chan T, n)` is defined: a large enough
+size makes `makechan` panic). -/
 def CfgBounded [FfiSyntax] (c : Config) : Prop :=
   sint.Z c.HistoryWindowSize' ≤ 2 ^ 61 ∧ sint.Z c.BTreeDegree' ≤ 2 ^ 62 ∧
-    0 ≤ sint.Z c.PerWatcherBufferSize'
+    0 ≤ sint.Z c.PerWatcherBufferSize' ∧ sint.Z c.PerWatcherBufferSize' < 2 ^ 32
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

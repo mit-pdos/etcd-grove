@@ -25,22 +25,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.Changes.wp_proof :
     mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend
+  intro trace tw s γ ilog pend crev Z
   wp_start as Htw
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   (try wp_auto)
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
   iapply HΦ
   iframe Hchs Hkvs
   isplitl []
   · ipureintro; exact Hps
-  iintro Hchs Hkvs
-  iunfold mvcc.storeTxnWriteIs
-  iexists trace, ti, bt, Locked, chs, ps, ntok
-  simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iunfold mvcc.storeTxnWriteCore
+  iexists ti, bt, Locked, ntok
+  simp only [named, mvcc.idxWriterB_false]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
-  ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen⟩, Hne, Htrnn, Hcrev⟩
 
 end proof
 

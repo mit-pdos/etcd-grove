@@ -1,5 +1,6 @@
 /-
-The trust boundary: `proto.Size` (names-only), of a `*pb.PutRequest`.
+The trust boundary: `proto.Size` (names-only), of a `*pb.PutRequest`, a `*pb.RangeResponse`
+and a read-only transaction's `*pb.TxnResponse` (the last two: unit P4, 2026-10-14).
 -/
 module
 

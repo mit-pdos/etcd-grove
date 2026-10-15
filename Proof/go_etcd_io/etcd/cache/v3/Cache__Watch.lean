@@ -40,6 +40,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -95,7 +96,7 @@ theorem validateErrorString_holds : validateErrorString (GF := GF) (hG := hG) :=
   iintro ⟨#Hpkg, #Hval⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, -, -, -, #HKR⟩
+  icases Hci with ⟨-, -, -, -, #HKR, -⟩
   unfold validateResult
   split
   · icases Hval with ⟨-, %e', %He', #HS⟩

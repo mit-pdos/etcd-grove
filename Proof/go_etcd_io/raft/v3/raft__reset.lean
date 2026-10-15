@@ -278,7 +278,7 @@ theorem raft.reset.wp_proof
       · ipureintro
         simp only [GMap.insert_insert]
         refine resetInv_step _ _ _ _ _ _ _ _ Hinv0 Hpvi ?_
-        simp only [progressOf, if_pos Hii]
+        simp only [progressOf, ite_eq_left Hii]
         exact logLast_unsigned _ _ Hli1
       iintro %tvx %pvsx Hf Ht
       ihave Hphys := HI $$ %tvx %pvsx Hf [Ht]
@@ -298,7 +298,7 @@ theorem raft.reset.wp_proof
       · ipureintro
         simp only [GMap.insert_insert]
         refine resetInv_step _ _ _ _ _ _ _ _ Hinv0 Hpvi ?_
-        simp only [progressOf, if_neg Hii]
+        simp only [progressOf, ite_eq_right Hii]
       iintro %tvx %pvsx Hf Ht
       ihave Hphys := HI $$ %tvx %pvsx Hf [Ht]
       · iapply ownTracker_cast _ _ _ _ ?_ $$ Ht

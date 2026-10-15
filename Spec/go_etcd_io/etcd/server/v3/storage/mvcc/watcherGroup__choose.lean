@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `wg.choose(maxWatchers, curRev, compactRev)`, under `chooseAll`'s premise: the group itself
 if it has fewer than `maxWatchers` members, else a fresh group of `max 0 maxWatchers` of them
-(which ones: the map's iteration order), with the least `minRev` of the group returned. -/
+(which ones: the map's iteration order), with the least `minRev` of the group returned. The
+group below `2 ^ 63 - 1` members (the fresh group's `add`: its tree's bound). -/
 abbrev mvcc.watcherGroup.choose.spec : Prop :=
   ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (ST : GMap Loc mvcc.WatcherSt)
     (maxWatchers curRev compactRev : w64),
@@ -31,7 +32,8 @@ abbrev mvcc.watcherGroup.choose.spec : Prop :=
       mvcc.ownWatcherGroup wg W ∗ mvcc.ownStates ST ∗
       ⌜(∀ w, (W !! w).isSome → (ST !! w).isSome) ∧
         ∀ w st, ST !! w = some st → sint.Z compactRev ≤ sint.Z st.minRev ∧
-          sint.Z st.minRev ≤ sint.Z curRev ∧ st.restore = false⌝ }}
+          sint.Z st.minRev ≤ sint.Z curRev ∧ st.restore = false⌝ ∗
+      ⌜GMap.size W + 1 < 2 ^ 63⌝ }}
     (App (App (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"choose"))
       (Val #maxWatchers)) (Val #curRev)) (Val #compactRev))
   {{ (g : Loc) (minRev : w64), RET (PairV #g #minRev); mvcc.ownStates ST ∗

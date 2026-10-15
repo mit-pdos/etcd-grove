@@ -28,7 +28,7 @@ theorem mvcc.eventBatch.add.wp_proof : mvcc.eventBatch.add.spec (GF := GF) (hG :
   wp_start as ⟨HB, #He⟩
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmax⟩
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmax, -⟩
   iunfold mvcc.ownEventBatch at HB
   icases HB with ⟨%s, %ps, Heb, Hs, Hcap, %Hlen, Hevs⟩
   ihave %Hsl := ownSlice_len $$ Hs

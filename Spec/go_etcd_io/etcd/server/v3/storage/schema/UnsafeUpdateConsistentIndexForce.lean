@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- `UnsafeUpdateConsistentIndexForce(tx, index, term)`: `unsafeUpdateConsistentIndex`
 without the monotonicity check (the index may decrease). -/
 abbrev schema.UnsafeUpdateConsistentIndexForce.spec : Prop :=
-  ∀ (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (m : MetaCI) (index term : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ metaWriter tx TM ∗ TM m }}
+  ∀ (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF) (m : MetaCI) (index term : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt }}
     (App (App (App (Val (@! schema.UnsafeUpdateConsistentIndexForce)) (Val #(GoInterface.ok tx)))
       (Val #index)) (Val #term))
   {{ RET #(); TM (metaAfterSave m index term) }}

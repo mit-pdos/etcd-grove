@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.go_opentelemetry_io.otel.codes
 public import GeneratedProof.go_opentelemetry_io.otel.trace.embedded
@@ -915,25 +916,6 @@ instance SpanContextConfig_access_store_Remote (l : Loc) (v : go_opentelemetry_i
 
 end def_
 end SpanContextConfig
-
-namespace Tracer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
-
-instance Tracer_typed_pointsto :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.Tracer :=
-  sorry -- axiomatized type
-
-instance Tracer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.Tracer go_opentelemetry_io.otel.trace.Tracer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Tracer
 
 namespace member
 section def_

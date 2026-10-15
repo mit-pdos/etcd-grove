@@ -29,7 +29,7 @@ theorem mvcc.metricsTxnWrite.Rev.wp_proof
     (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG))
     (hRevW : mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG) := by
-  intro mw s γ kind
+  intro trace mw s γ kind crev Z
   wp_start as Htx
   cases kind with
   | read log rev =>
@@ -48,20 +48,22 @@ theorem mvcc.metricsTxnWrite.Rev.wp_proof
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     iframe
     iframe #
   | write ilog pend puts deletes putSize =>
     simp only [mvcc.isTxn, mvcc.TxnKind.beginRev]
     iunfold mvcc.isTxnWrite at Htx
     iNamed Htx
+    icases mvcc.storeTxnWriteIs_split tw s γ ilog pend crev Z $$ Htw with ⟨%chs, %ps, Htw, Hchs, Hkvs⟩
     (try wp_auto)
-    wp_apply (hRevW tw s γ ilog pend) $$ [$Htw] as Htw
+    wp_apply (hRevW trace tw s γ ilog pend chs ps false crev Z) $$ [$Htw] as Htw
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.isTxnWrite
     iexists tw, ranges
-    iframe
+    iframe Hmw Htrc
+    iapply mvcc.storeTxnWriteIs_join tw s γ ilog pend chs ps crev Z $$ [$Htw $Hchs $Hkvs]
 
 end proof
 

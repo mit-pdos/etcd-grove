@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -34,15 +35,19 @@ theorem txn.DeleteRange.wp_proof
     (hdel : txn.deleteRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg kv s γ dr o m log₀
-  wp_start as ⟨#Hkv, Hrd, Htok, Htoks, #Hc0, #Hdr, #Hctx, %Hbig⟩
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
+  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hct, Hto, #Hnd, %Hbig, Hcs, #Hhook⟩
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   ihave #Hdr0 := Hdr
   iunfold txn.deleteRangeRequestIs at Hdr0
-  icases Hdr0 with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho⟩
+  icases Hdr0 with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [$Hks] as -
@@ -52,41 +57,55 @@ theorem txn.DeleteRange.wp_proof
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %fsl ⟨Hfsl, -⟩
+  iintro %fsl ⟨Hfsl, Hfslc⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx'⟩
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto Hfsl Hfslc]
+    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+  · iunfold traceutil.ownFields
+    iexists _
+    iframe Hfsl Hfslc
+    ipureintro
+    exact traceutil.fieldsWf_cons_string _ _ _
+      (traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil)
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv
   icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   (try wp_auto)
-  wp_apply (hWrite s γ t) $$ [$Hs $Hrd $Htok] as %mw ⟨%ilog, Htx⟩
+  wp_apply (hWrite s γ trace P Pre Q f false) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  · ipureintro; exact Ht
+  -- the caller's update (the writes are the model's): the lock's invariant back for `End`
+  imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
   -- the pin of the transaction's committed log
   ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m
     $$ [$Htoks $Hc0 $Htx]
   ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog [] (W64 0) (W64 0) (W64 0) $$ Htx
   -- `deleteRange(ctx, txnWrite, dr)`
-  have hb : ([] : List mvcc.Change).length + (rangeIn (txn.pendState ilog []) o).length < 2 ^ 63 := by
-    rw [txn.pendState_nil, rangeIn]
-    have := List.length_filter_le (fun v => inRange o.key o.base.rangeEnd v.key) (mvcc.stateAfter ilog)
+  have hb : ([] : List mvcc.Change).length + (rangeIn (txn.pendState ilog []) o).length <
+      mvcc.putMax γ := by
+    rw [txn.pendState_nil]
     have := Hbig ilog Hpin
     simp only [List.length_nil]; omega
-  wp_apply (hdel ctx' { cd with Values := vs } false mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
+  wp_apply (hdel trace ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
     $$ [$Hctx' $Htx $Hdr] as %resp %err Hout
-  · isplitr
-    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  · isplitl [Hnd]
+    · cases nd
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
     ipureintro; exact hb
   rw [txn.pendState_nil]
   simp only [List.nil_append]
-  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp⟩ | ⟨%Hne, Htx⟩)
+  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr⟩ | ⟨%Hne, Htx⟩)
   · -- deleted: the deferred `End` commits (if something was deleted)
-    ihave Htx : mvcc.isTxn mw s γ (.write ilog (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0)
+    ihave Htx : mvcc.isTxn mw s γ trace (.write ilog (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0)
         deletes' (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
-    wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
+    wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
@@ -94,17 +113,24 @@ theorem txn.DeleteRange.wp_proof
     iframe Hrd Htoks
     isplitl []
     · ipureintro; exact Ht
+    iframe HPost
+    isplitl [Htrc]
+    · iexists te'; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     iexists ilog
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
     ileft
-    iframe Hresp Hc Htok
+    iframe Hresp Hhdr Hc Htok
     ipureintro; exact Herr
   · -- the range read's context error: nothing written, the token back
-    ihave Htx : mvcc.isTxn mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
+    ihave Htx : mvcc.isTxn mw s γ trace (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
-    wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
+    wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
@@ -112,6 +138,11 @@ theorem txn.DeleteRange.wp_proof
     iframe Hrd Htoks
     isplitl []
     · ipureintro; exact Ht
+    iframe HPost
+    isplitl [Htrc]
+    · iexists te'; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     iexists ilog
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩

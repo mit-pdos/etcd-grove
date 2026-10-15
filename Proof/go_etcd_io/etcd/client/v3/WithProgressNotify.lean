@@ -41,7 +41,7 @@ theorem WithProgressNotify.wp_proof : WithProgressNotify.spec (GF := GF) (hG := 
   · ipureintro; simp_all
   isplitl []
   · ipureintro; simp_all
-  · iapply opSortAt_of _ o _ (by simp [withProgressNotifyM]) (by simp [withProgressNotifyM]) (by simp [withProgressNotifyM]) $$ Hs
+  · iapply opSortAt_of _ o _ (by simp) (by simp) (by simp) $$ Hs
 
 end proof
 

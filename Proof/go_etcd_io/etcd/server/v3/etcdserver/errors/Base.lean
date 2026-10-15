@@ -1,7 +1,7 @@
 /-
 Package initialization for `server/v3/etcdserver/errors` (names-only): `ErrNoSpace` holds a
-fixed non-nil error (`errors.New` at init), which the entry applier compares the applier's
-error with. An assumption about package initialization, not proved from `initialize'`, as the
+fixed non-nil error (`errors.New` at init: a pointer error, `errors.IsPointerError`), which the
+entry applier compares the applier's error with (`errors.Is`). An assumption about package initialization, not proved from `initialize'`, as the
 others. Moved unchanged from `etcdserver/BaseApply.lean` (2026-10-11), so that the server's
 txn package has it without the apply thread's translation (which reaches etcd's raft
 dependency, `EtcdDeps`).
@@ -10,6 +10,7 @@ module
 
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
+public import Perennial.Proof.errors
 
 @[expose] public section
 
@@ -30,9 +31,11 @@ variable [sem : go.Semantics]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.errors
 
-/-- `etcdserver/errors`' package facts: `ErrNoSpace` is a fixed non-nil error. -/
+/-- `etcdserver/errors`' package facts: `ErrNoSpace` is a fixed non-nil error, an
+`errors.New` error (a pointer error). -/
 abbrev errorsInit : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr ErrNoSpace ↦□ GoInterface.ok e)
+  iprop(∃ e : GoInterfaceOk, globalAddr ErrNoSpace ↦□ GoInterface.ok e ∗
+    ⌜_root_.Perennial.errors.IsPointerError e⌝)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors :=
   define_is_pkg_init errorsInit

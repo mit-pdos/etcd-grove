@@ -29,25 +29,26 @@ client's filter), the response with their number, the transaction's revision aft
 and (`PrevKv`) the deleted key-values, read-only; or, with `PrevKv`, the range read's context error
 (`ctx` done; not at a context never canceled, `nd`), nothing deleted. -/
 abbrev txn.deleteRange.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
+  ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
     (dr : Loc) (o : OpFull),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ context.isContext ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize ∗ txn.deleteRangeRequestIs dr o ∗
-      ⌜pend.length + (rangeIn (txn.pendState ilog pend) o).length < 2 ^ 63⌝ }}
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ txn.deleteRangeRequestIs dr o ∗
+      ⌜pend.length + (rangeIn (txn.pendState ilog pend) o).length < mvcc.putMax γ⌝ }}
     (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #dr))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗
-        (∃ deletes' : w64, mvcc.isTxnWrite mw s γ ilog
+        (∃ deletes' : w64, mvcc.isTxnWrite mw s γ trace ilog
           (pend ++ txn.delChanges (txn.pendState ilog pend) o) puts deletes' putSize) ∗
         txn.deleteRangeResponseIs resp
           (W64 ((mvcc.writeRev ilog (pend ++ txn.delChanges (txn.pendState ilog pend) o) : Nat) :
             Int))
           (rangeIn (txn.pendState ilog pend) o).length
-          (if o.base.prevKV then rangeIn (txn.pendState ilog pend) o else [])) ∨
+          (if o.base.prevKV then rangeIn (txn.pendState ilog pend) o else []) ∗
+        txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp)) ∨
       (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-        mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize) }}
+        mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize) }}
 
 end spec
 

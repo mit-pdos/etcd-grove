@@ -24,8 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG := hG) := by
-  intro g gv gm dq f p
-  wp_start as ⟨Hgv, Hgm, #Hf⟩
+  intro g gv gm dq f p R Q
+  wp_start as ⟨Hgv, Hgm, #Hf, HR⟩
   iunfold mvcc.ownGen at Hgm
   icases Hgm with ⟨%Hfields, Hrevs, Hcap⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hrevs
@@ -38,11 +38,12 @@ theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG
   ihave IH : iprop(∃ (n k : w64),
       "i" ∷ i_ptr ↦ n ∗
       "Higo" ∷ igo ↦ k ∗
+      "HR" ∷ R ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ gm.revs.length ∧
         ∀ (j : Nat) (hj : j < gm.revs.length), gm.revs.length - sint.nat n ≤ j →
-          p (gm.revs[j]'hj) = true⌝) $$ [i Higo]
+          p (gm.revs[j]'hj) = true⌝) $$ [i Higo HR]
   · iexists W64 0, _
-    iframe i Higo
+    iframe i Higo HR
     ipureintro
     refine ⟨by word, by word, ?_⟩
     intro j hj h
@@ -74,11 +75,13 @@ theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG
     wp_apply wp_load_slice_index gv.revs' (sint.Z (gv.revs'.len - n - W64 1)) _ dq
       (mvcc.revVal e1) Hbnd2.1 $$ [Hrevs] as Hrevs
     · iframe; ipureintro; exact He1'
-    iunfold mvcc.walkFnSpec at Hf
-    wp_apply Hf $$ %(mvcc.revVal e1)
-    simp only [mvcc.revOf_revVal]
-    cases hp : p e1
+    iunfold mvcc.walkFnSpecR at Hf
+    ihave #Hfr := Hf $$ %(mvcc.revVal e1)
+    wp_apply Hfr $$ [$HR] as HR
+    rcases Bool.eq_false_or_eq_true (p e1) with hp | hp
+    rotate_left
     · -- `f` returned false: this is the position
+      simp only [mvcc.revOf_revVal, hp, Bool.false_eq_true, ↓reduceIte]
       wp_auto
       have Hw : mvcc.genWalk gm.revs p = ((gm.revs.length - sint.nat n - 1 : Nat) : Int) := by
         apply mvcc.genWalk_eq_some _ Hjlt
@@ -86,14 +89,22 @@ theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG
         · intro k hk hgt
           exact Hn.2.2 k hk (by omega)
       wp_for_post
-      rw [show W64 (mvcc.genWalk gm.revs p) = gv.revs'.len - n - W64 1 by rw [Hw]; word]
+      have Hpost : mvcc.walkPost (GF := GF) gm.revs p R Q = Q e1 := by
+        unfold mvcc.walkPost
+        rw [Hw]; simp only [show ((gm.revs.length - sint.nat n - 1 : Nat) : Int) ≠ -1 by omega, ↓reduceIte]
+        congr 1
+        rw [show ((gm.revs.length - sint.nat n - 1 : Nat) : Int).toNat =
+          gm.revs.length - sint.nat n - 1 by omega, List.getD_eq_getElem?_getD, He1]; rfl
+      rw [show W64 (mvcc.genWalk gm.revs p) = gv.revs'.len - n - W64 1 by rw [Hw]; word, Hpost]
       iapply HΦ
       isplitl [Hver Hcreated Hrevsf]
       · iapply mvcc.gen_combine _ _ _ Hg; iframe Hver Hcreated Hrevsf
+      iframe HR
       iunfold mvcc.ownGen
       iframe Hrevs Hcap
       ipureintro; exact Hfields
     · -- `f` returned true: on to the next
+      simp only [mvcc.revOf_revVal, hp, ↓reduceIte]
       wp_auto
       wp_for_post
       iframe
@@ -112,10 +123,14 @@ theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG
       intro r hr
       obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.1 hr
       exact Hn.2.2 j hj (by word)
-    rw [mvcc.genWalk_eq_none Hall]
+    have Hpost : mvcc.walkPost (GF := GF) gm.revs p R Q = R := by
+      unfold mvcc.walkPost; rw [mvcc.genWalk_eq_none Hall]; rfl
+    rw [mvcc.genWalk_eq_none Hall, ← mvcc.genWalk_eq_none (p := p) Hall, Hpost,
+      mvcc.genWalk_eq_none Hall]
     iapply HΦ
     isplitl [Hver Hcreated Hrevsf]
     · iapply mvcc.gen_combine _ _ _ Hg; iframe Hver Hcreated Hrevsf
+    iframe HR
     iunfold mvcc.ownGen
     iframe Hrevs Hcap
     ipureintro; exact Hfields

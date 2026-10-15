@@ -148,8 +148,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- A read transaction's log is well formed (its certificate), not empty, and its revision is
 the log's last. -/
 theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isTxnRead (GF := GF) mw s γ log rev ⊢
-      mvcc.isTxnRead mw s γ log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
+    mvcc.isTxnRead (GF := GF) mw s γ trace log rev ⊢
+      mvcc.isTxnRead mw s γ trace log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
   iintro H
   iunfold mvcc.isTxnRead at H
   iNamed H
@@ -161,7 +161,7 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   icases HcT with ⟨-, -, %Hp, -⟩
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     iframe
     iframe #
   · ipureintro
@@ -169,7 +169,7 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
 
 /-- A read transaction's certificate. -/
 theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isTxnRead (GF := GF) mw s γ log rev ⊢ mvcc.isTxnRead mw s γ log rev ∗ mvcc.idxCert γ.idx log := by
+    mvcc.isTxnRead (GF := GF) mw s γ trace log rev ⊢ mvcc.isTxnRead mw s γ trace log rev ∗ mvcc.idxCert γ.idx log := by
   iintro H
   iunfold mvcc.isTxnRead at H
   iNamed H
@@ -178,7 +178,7 @@ theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   iNamedSuffix HtrT "T"
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     iframe
     iframe #
   · iexact HcertT
@@ -206,7 +206,7 @@ def rangeResultClient (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w
     (⌜sint.Z rev < sint.Z o.base.rev ∧ resp = null⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ o.base.countOnly = false ∧ fastKeysOnly o = false ∧
-      resp = null ∧ err ≠ GoInterface.nil⌝) ∨
+      resp = null⌝ ∗ mvcc.errorfIs err) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ err = GoInterface.nil⌝ ∗
       ∃ (kvs : List EtcdKv) (more : Bool) (kvs' : List EtcdKv),
       rangeResponseIs resp rev kvs more
@@ -224,7 +224,7 @@ theorem rangeRequestIs_sortSet (r : Loc) (o : OpFull) :
   iintro Hr
   iunfold rangeRequestIs at Hr
   icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rev0, %limit, %order, %target, %ser, %ko, %co, %minM,
-    %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Ho⟩
+    %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Ho, -⟩
   ipureintro
   subst Ho
   simp only [rangeOpOf, ne_eq, sext32_eq order 0 (by omega) (by omega),

@@ -1,6 +1,6 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# `MustUnmarshalMessage` with its body (the apply thread calls it); the rest names only.
+translate = ["!*", "MustUnmarshalMessage"]
+imports = ["!*", "fmt", "google.golang.org/protobuf/proto"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
