@@ -57,19 +57,19 @@ theorem apply.newApplierV3Capped.wp_proof
   isplitr
   · -- Put: the capped applier's
     imodintro
-    iintro %r %rq %o %log %Pre %Q %Post
+    iintro %r %rq %o %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hPut E c (.ok bi) p r rq o log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iunfold apply.cappedIs
     iframe #
   isplitr
   · -- DeleteRange: the inner applier's (promoted)
     imodintro
-    iintro %r %rq %o %log %Pre %Q %Post
+    iintro %r %rq %o %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"DeleteRange")]
     wp_call
     wp_auto
@@ -78,7 +78,7 @@ theorem apply.newApplierV3Capped.wp_proof
     iunfold apply.mPre at Hm
     icases Hm with ⟨Hkv, Hres, Hcs⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ applierV3 Hres
-    iapply HDel $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs]
+    iapply HDel $$ %r %rq %o %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs]
     · iunfold apply.deletePre
       iunfold apply.mPre
       iframe
@@ -90,8 +90,8 @@ theorem apply.newApplierV3Capped.wp_proof
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iunfold apply.kvPost at Hpost
-    iunfold apply.kvPost
+    iunfold apply.kvPostF at Hpost
+    iunfold apply.kvPostF
     icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
     iexists oc
     iframe HR Hkv HPP
@@ -136,10 +136,10 @@ theorem apply.newApplierV3Capped.wp_proof
   isplitr
   · -- Txn: the capped applier's
     imodintro
-    iintro %r %skip %rq %t %log %Pre %Q %Post
+    iintro %r %skip %rq %t %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hTxn E c (.ok bi) p r skip rq t log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iunfold apply.cappedIs
     iframe #

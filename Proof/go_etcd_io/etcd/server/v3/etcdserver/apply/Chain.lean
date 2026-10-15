@@ -265,6 +265,15 @@ theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
   iintro Hrd
   iframe
 
+/-- The KV's certificate of its log (persistent; the vertical slice's unit V2: the trivial
+floor). -/
+theorem kvOwn_cert (E : AEnv GF) (log : mvcc.Log) :
+    kvOwn E log ⊢ kvOwn E log ∗ mvcc.idxCert E.γ.idx log := by
+  unfold kvOwn
+  iintro ⟨Hrd, Hsw, Hll⟩
+  ihave ⟨Hsw, #Hc⟩ := txn.soleWriter_cert E.γ log $$ Hsw
+  iframe Hrd Hsw Hll Hc
+
 /-- **The thread-owned resources of the chain `c`'s methods** at its value `a`: the auth layers'
 `authInfo` (owned while the layer's `Apply` holds its mutex), and the inner chain's. -/
 def chainRes : Chain → GoInterface → IProp GF
@@ -436,6 +445,19 @@ def kvPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (log : mv
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ ∗ R oc ∗
     kvOwn E (oc.logAfter log) ∗ chainRes c a ∗ (Post ∨ Pre))
 
+/-- **A floor met** (the vertical slice's unit V2): an outcome where the backend ran (`applied`)
+ran at a log extending the floor `F` (a certified log the request's client saw: the backend
+opens its transaction at the longer of `F` and the sole writer's log, `txn.pinned_floor`). -/
+def floorOkO (F log : mvcc.Log) (oc : Outcome) : Prop :=
+  ∀ (l : mvcc.Log) (b : Bool), oc = .applied l b → F <+: log
+
+/-- The postcondition of a KV method on `rq` with a floor `F` (unit V2): `kvPost`'s, the outcome
+meeting the floor. -/
+def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (log F : mvcc.Log)
+    (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
+  iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
+    kvOwn E (oc.logAfter log) ∗ chainRes c a ∗ (Post ∨ Pre))
+
 /-- `Put(r)`'s precondition: `r` is `rq`'s put `o`. -/
 def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel) (o : OpFull)
     (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
@@ -520,27 +542,27 @@ theorem traceRes_null : ⊢ traceRes (GF := GF) null := by
 def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
   iprop(
     -- the KV methods
-    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ putPre E c (.ok ai) r rq o log Pre Q Post }}
+    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF),
+      {{ putPre E c (.ok ai) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPost E c (.ok ai) rq log (putAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
-    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ deletePre E c (.ok ai) r rq o log Pre Q Post }}
+          kvPostF E c (.ok ai) rq log F (putAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
+    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF),
+      {{ deletePre E c (.ok ai) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
         (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPost E c (.ok ai) rq log (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
+          kvPostF E c (.ok ai) rq log F (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log),
       {{ rangePre E c (.ok ai) r rq o log }}
         (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           rangePost E c (.ok ai) rq o log resp err ∗ traceRes trace }}) ∗
-    □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log)
+    □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log F : mvcc.Log)
         (Pre Q Post : IProp GF),
-      {{ txnPre E c (.ok ai) r rq t log Pre Q Post }}
+      {{ txnPre E c (.ok ai) r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPost E c (.ok ai) rq log (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace }}) ∗
+          kvPostF E c (.ok ai) rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF),
       {{ revokePre E c (.ok ai) r rq id log Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))

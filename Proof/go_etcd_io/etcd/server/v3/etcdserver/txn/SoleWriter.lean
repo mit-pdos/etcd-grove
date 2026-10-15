@@ -83,6 +83,14 @@ theorem soleWriter_len (γ : mvcc.StoreNames) (log : Log) :
   iintro ⟨-, -, %h⟩
   ipureintro; exact h
 
+/-- The sole writer's certificate (persistent). -/
+theorem soleWriter_cert (γ : mvcc.StoreNames) (log : Log) :
+    soleWriter (GF := GF) γ log ⊢ soleWriter γ log ∗ idxCert γ.idx log := by
+  unfold soleWriter
+  iintro ⟨#Hc, Ht, %Hl⟩
+  iframe Hc Ht
+  ipureintro; exact Hl
+
 instance soleWriter_timeless (γ : mvcc.StoreNames) (log : Log) : Timeless (soleWriter (GF := GF) γ log) := by
   unfold soleWriter idxCert; infer_instance
 
@@ -259,6 +267,50 @@ theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
   iunfold soleWriter
   iframe Htx Ht Hc
   ipureintro; exact Hl2
+
+
+open go_etcd_io.etcd.server.v3.storage.mvcc in
+/-- **`store.Read` at the sole writer, with a floor** (the vertical slice's unit V2): as
+`soleWriter_Read`, the read opened at the longer of the sole writer's log and a certified floor
+`F` (a log a client saw), so the sole writer's log extends `F`. -/
+theorem soleWriter_Read_floor (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log) (te : Bool) (F : Log)
+    (hlen : log.length + 3 ≤ 2 ^ 63) (htr : trace ≠ null) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ traceutil.ownTrace trace te ∗
+        idxCert γ.idx F }}
+      (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
+    {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+        ∃ rev : w64, mvcc.isTxnRead mw s γ trace log rev ∗ soleWriter γ log ∗ ⌜F <+: log⌝ }} := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
+  wp_start_folded as ⟨#Hs, Hrd, Hsw, Htrc, #HF⟩
+  iunfold soleWriter at Hsw
+  icases Hsw with ⟨#Hc, Ht, %Hl2⟩
+  ihave %Hp := idxCert_prefix γ.idx log F $$ [$Hc $HF]
+  have hj : ∃ L0, log <+: L0 ∧ F <+: L0 ∧ (L0 = log ∨ L0 = F) := by
+    rcases Hp with h | h
+    · exact ⟨F, h, List.prefix_refl _, Or.inr rfl⟩
+    · exact ⟨log, List.prefix_refl _, h, Or.inl rfl⟩
+  obtain ⟨L0, hl, hf, hL0⟩ := hj
+  ihave #Hc0 : idxCert γ.idx L0 $$ []
+  · rcases hL0 with rfl | rfl
+    · iexact Hc
+    · iexact HF
+  iapply (hRead s γ mode trace (soleBudget log) L0 te) $$ [Hrd Ht Htrc]
+  · iframe # ∗
+    ipureintro; exact htr
+  inext
+  iintro %mw ⟨%log', %rev, Htx, Ht, %Hp'⟩
+  have heq := soleWriter_pins_read log log' hlen ⟨hl.trans Hp'.1, Hp'.2⟩
+  subst heq
+  iapply HΦ
+  iexists rev
+  iframe Htx
+  isplitl [Ht]
+  · iunfold soleWriter
+    iframe Ht Hc
+    ipureintro; exact Hl2
+  ipureintro; exact hf.trans Hp'.1
 
 end wp
 

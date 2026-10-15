@@ -301,7 +301,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       isplitr
       · ipureintro
         have := Hlog.1.length_le
-        exact ⟨by omega, by omega⟩
+        exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
       isplitr
       · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
       simp only [txn.srvRunTxn]
@@ -387,15 +387,18 @@ theorem EtcdServer.Txn.wp_proof
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r t ot te
-  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets⟩
+  intro s E ρ γr c ctx cd r t ot te F
+  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, #HF⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀, #Hc0, %Hl0⟩, #Hainv, -⟩
+    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, -⟩
+  -- the floor (the vertical slice's unit V2), as `Range`'s
+  ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
+  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave #Hsrv' := Hsrv
@@ -572,17 +575,19 @@ theorem EtcdServer.Txn.wp_proof
       repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
       iexists _; iframe #; try (ipureintro; simp)
     (try wp_auto)
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) rfl $$ [Hlt Hard Hcred Header] as %resp %err ⟨Hlt, Hard, Hres⟩
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) F rfl $$ [Hlt Hard Hcred Header] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep, Hans, #Hcert, HMint, -⟩
+      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
+      obtain ⟨Hstep, Hfl⟩ := Hstep0
       have Hk : apply.dispatchKind rq' = .txn := by
         rw [Hwire.2.2.1]
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
+      have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
       iunfold apply.dispatchAnswer at Hans
       rw [Hk] at *
       icases Hans with ⟨%t', %pr, %Htp, Hpo⟩
@@ -612,9 +617,9 @@ theorem EtcdServer.Txn.wp_proof
       iunfold txnAppliedOk
       iexists hm, rq', t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      iframe Hhdr Hcert Hpo HMint
+      iframe Hhdr Hcert Hpo HMint Hwit
       ipureintro
-      refine ⟨Hwire, Ht', fun hz => ?_, Hstep⟩
+      refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl⟩
       have := Hwire.2.2.2 hz
       subst this
       simp [apply.withHeader, irrTxn] at Ht'
@@ -677,12 +682,14 @@ theorem EtcdServer.Txn.wp_proof
         ihave #Hri' := Hri $$ %rfl
         imod readIndexOk_logR s E γr c log₀ $$ Hainv Hri' Hc0 with ⟨%logR, #HcR, %HpR, #HrlR⟩
         have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
+        have HFR : F <+: logR := HL0.2.trans HpR
         ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
         · rw [hs]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
         wp_auto
         txn_tail
     · (try wp_auto)
-      generalize log₀ = logR at Hl0 ⊢
+      have HFR : F <+: log₀ := HL0.2
+      generalize log₀ = logR at Hl0 HFR ⊢
       ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
       · rw [hs]; simp only [↓reduceIte]; itrivial
       txn_tail

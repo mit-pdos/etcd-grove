@@ -2187,6 +2187,92 @@ noncomputable def kVClient.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
 
+/-- go: rpc_grpc.pb.go:109:20 -/
+noncomputable def kVClient.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType kVClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DeleteRangeRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc DeleteRangeResponse.ty))) (App (Val (GoInstruction (GoZeroVal DeleteRangeResponse.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DeleteRangeResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType DeleteRangeResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val KV_DeleteRange_FullMethodName))
+  (Let "$a2" (App (Val (GoInstruction (Convert (go.GoType.PointerType DeleteRangeRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeleteRangeRequest.ty)))) (Var "in")))
+  (Let "$a3" (App (Val (GoInstruction (Convert (go.GoType.PointerType DeleteRangeResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeleteRangeResponse.ty)))) (Var "out")))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"Invoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef kVClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kVClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeleteRangeResponse.ty)))) (Var "out")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType DeleteRangeResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType DeleteRangeResponse.ty)))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:119:20 -/
+noncomputable def kVClient.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType kVClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TxnRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc TxnResponse.ty))) (App (Val (GoInstruction (GoZeroVal TxnResponse.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType TxnResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val KV_Txn_FullMethodName))
+  (Let "$a2" (App (Val (GoInstruction (Convert (go.GoType.PointerType TxnRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnRequest.ty)))) (Var "in")))
+  (Let "$a3" (App (Val (GoInstruction (Convert (go.GoType.PointerType TxnResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnResponse.ty)))) (Var "out")))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"Invoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef kVClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kVClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnResponse.ty)))) (Var "out")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType TxnResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TxnResponse.ty)))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
+
 /-- go: rpc_grpc.pb.go:206:6 -/
 noncomputable def RegisterKVServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -7219,15 +7305,19 @@ class kVClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq kVClient.ty kVClient.underlying
   get_cc : ∀ (x : kVClient), go.IsGoStepPureDetTagged under (StructFieldGet kVClient.underlying go!"cc") #x (Val #(x.cc'))
   set_cc : ∀ (x : kVClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet kVClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : kVClient)))
+  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"DeleteRange" kVClient.DeleteRange.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"Put" kVClient.Put.impl
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"Range" kVClient.Range.impl
+  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType kVClient.ty) go!"Txn" kVClient.Txn.impl
 
 attribute [instance] kVClient.TypeAssumptions.type_repr
   kVClient.TypeAssumptions.underlying
   kVClient.TypeAssumptions.get_cc
   kVClient.TypeAssumptions.set_cc
+  kVClient.TypeAssumptions.ptr_DeleteRange_unfold
   kVClient.TypeAssumptions.ptr_Put_unfold
   kVClient.TypeAssumptions.ptr_Range_unfold
+  kVClient.TypeAssumptions.ptr_Txn_unfold
 
 abbrev KVServer [FfiSyntax] : Type := GoInterface
 

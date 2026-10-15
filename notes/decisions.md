@@ -5392,6 +5392,49 @@ success, `v3rpc.putApplied E γw` (`putAppliedOk = srvLeadTimeReader ∗ putAppl
 persistent `putReplyOk`. `DeleteRange`/`Txn` carry the token only (their witness is dropped at
 `EtcdServer.DeleteRange`/`Txn`, as in C2a).
 
+## The client contracts derived: certified floors, the restrictions (unit V2b, 2026-10-14)
+
+**Decision:** the recipes' client contracts (`isRecipesKV`, `isEtcdRecipesClient`) are derived for
+a real `*kv` at the server's instance `v3rpc.etcdModelOfServer E`, whose `etcdReachedAt` stays
+V1's (`srvReachedAt E r`: a certified log longer than `r`). Linearizability (`lo ≤ r` of the
+contracts) comes from **certified floors**: the caller turns `etcdReached lo` into a certificate
+`idxCert F` with `lo < |F|` (`client.floor_of_reached`) and hands it to the request (the specs'
+`∃ F, idxCert F ∗ …`); every reply carries `F <+: log`.
+
+**Why not the witness** (the brief's plan: `etcdReachedAt r := ∃ L, appliedWit γr L ∗ ⌜r ≤ |L| −
+1⌝`, with committed ≥ applied and `lin_of_reached`). Two clauses fail. (1) A get's reply must give
+`etcdReached r` for its own revision `r`, mvcc's log at the read; that log may be ahead of every
+log the apply thread has deposited (the read runs against the backend while the apply thread is
+mid-entry), so no witness of it exists. (2) A write's `lo ≤ r` needs the caller's `lo` at the apply
+thread, which only sees the entry; the witness relates a write to later reads, not to earlier
+knowledge. The floors answer both: (1) the read's log is certified (`idxCert`), (2) the floor
+rides in the id claim (`idClaim γi id d γf ∗ floorAt γf F`) to the apply thread, which hands it to
+the txn lemmas (`pinned_floor`: the log the entry meets extends every certified log, `cert_join`).
+
+**Relation to C2a.** C2a rejected "a caller-supplied log lower bound for `Range`" because it
+bypasses the read index and does not lift to a cluster (plan item 3 of C2). The floors are that,
+for every request, and the same caveat holds: they are one member's certificates. C2a's witness is
+kept (now also on `DeleteRange` and `Txn` replies): the cluster-level step must replace the floors
+by the cluster log (plan items 1–3), at which point the witness and the read index carry
+linearizability.
+
+**The restrictions** (accepted from slice-v2, in the contracts' statements, `InvEtcdTxn.lean`):
+`getExact`, `exactGets`, `txnBuilderSpecX`, `kvGetResultR`, deletes `rangeEnd ≠ [0] ∧ t = 3`, puts
+`t = 2`; each where the server does not answer as the clients' model says (the issues
+`etcd-range-keys-only-lease.md`, `etcd-range-sort-none-limit.md`), or where the server's proof
+models less than the code (`irrWireOf` up to range ends `[0]`; a writing transaction's gets may be
+answered header-only, `SkipRangeExecution`). STATUS lists them with the premises.
+
+**`context.TODO()` as a quiet context** (`ctxQuiet`, `ctxOk`): the recipes call the client at
+`TODO()`, which is not a `context.isContext` of the model (no cancellation). The trust-boundary
+contracts that took `isContext` (`grpcInvokerOk`, `withVersion`, `waitRetryBackoff`, `getToken`,
+`refreshToken`) take `ctxOk` (either), a statement change, no new axiom.
+
+**Rejected:** strengthening `getExact` with `¬(key = [0] ∧ rangeEnd = [0])` to cover `pfx = []`
+(the recipes' `newSequentialKV` with `kp = []` breaks); the get contract is derived for `pfx ≠ []`
+only, which the queue needs (`NewQueue`'s `kp ≠ []`); the priority queue (contracts at `""`) is not
+covered.
+
 ## Put and Get as persistent atomic updates linearized by raft (unit T1, 2026-10-14 · adopted in part)
 
 **Status.** The user confirmed the direction and decided the open points (2026-10-14). Done in Lean

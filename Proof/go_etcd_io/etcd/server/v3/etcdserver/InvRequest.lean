@@ -73,6 +73,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.Token
@@ -373,6 +374,18 @@ theorem idxCert_len (γ : mvcc.IdxNames) (log : mvcc.Log) :
   iintro ⟨-, -, %H, -⟩
   ipureintro; exact H.2.1
 
+/-- Two certified logs have a certified common extension, one of them (the vertical slice's unit
+V2: a read or a write opened at the longer of a log the server knows and a caller's floor). -/
+theorem idxCert_join [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (γ : mvcc.IdxNames)
+    (log F : mvcc.Log) :
+    mvcc.idxCert (GF := GF) γ log ∗ mvcc.idxCert γ F ⊢
+      ∃ L0 : mvcc.Log, mvcc.idxCert γ L0 ∗ ⌜log <+: L0 ∧ F <+: L0⌝ := by
+  iintro ⟨#H1, #H2⟩
+  ihave %Hp := mvcc.idxCert_prefix γ log F $$ [$H1 $H2]
+  rcases Hp with h | h
+  · iexists F; iframe H2; ipureintro; exact ⟨h, List.prefix_refl _⟩
+  · iexists log; iframe H1; ipureintro; exact ⟨List.prefix_refl _, h⟩
+
 /-- **Minting**: a step of the log that appends at most one revision moves the authority along
 and mints the new revision's token. -/
 theorem revAuth_step (E : apply.AEnv GF) (log log' : mvcc.Log)
@@ -488,29 +501,60 @@ theorem applyStep_grow {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV}
       · exact chainStep_grow _ hd
       · left; exact hd
 
+/-! ### Floors (the vertical slice's unit V2) -/
+
+/-- **The floor recorded at `γf`** (persistent, agreeing): the log `F` a request's proposer
+recorded when it claimed the request's id (`idClaim`'s ghost name): a certified log the
+request's client had seen. The apply thread runs a KV write at a log extending it
+(`apply.kvFloorOk`): linearizability, `notes/decisions.md`, "Linearizability as a theorem". -/
+def floorAt (γf : GName) (F : mvcc.Log) : IProp GF := dghostVar γf DFrac.discard F
+
+instance floorAt_persistent (γf : GName) (F : mvcc.Log) : Persistent (floorAt (GF := GF) γf F) := by
+  unfold floorAt; infer_instance
+
+theorem floorAt_agree (γf : GName) (F F' : mvcc.Log) :
+    ⊢ floorAt (GF := GF) γf F -∗ floorAt γf F' -∗ ⌜F = F'⌝ := by
+  unfold floorAt
+  iintro H1 H2
+  iapply dghostVar_agree $$ H1 H2
+
+/-- **The server's claimers' fact** (the id generator's `Φ`, `idGen ρ.ids g (srvFloorFact E)`):
+a claim's ghost name records a certified floor. -/
+def srvFloorFact (E : apply.AEnv GF) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
+  iprop(∃ F : mvcc.Log, floorAt γf F ∗ mvcc.idxCert E.γ.idx F)
+
+instance srvFloorFact_timeless (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) :
+    Timeless (srvFloorFact (GF := GF) E id d γf) := by
+  unfold srvFloorFact floorAt mvcc.idxCert; infer_instance
+
 /-- **The result `ar` of applying `rq`**: a non-nil `*apply.Result` of applying `rq` (with `v3`)
 at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with mvcc's
 certificate of the log after, and what the step minted (`revMinted`: the token of the revision
-it appended, if it appended one; the vertical slice's unit V1). -/
-def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (ar : Loc) : IProp GF :=
+it appended, if it appended one; the vertical slice's unit V1); and (unit V2) a KV write met the
+floor `F` (`apply.applyFloorOk`: it ran at a log `y.log` extending `F`). -/
+def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (F : mvcc.Log) (ar : Loc) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
-      ⌜apply.applyStep rq true y y' out⌝ ∗ apply.applyResultIs rq true y.log ar out ∗
+      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out⌝ ∗
+      apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log)
 
 /-- **The result `ar` of applying `rq`, with its witness** (2026-10-14, unit C2a): `resultIs`
-(with its minted token, `revMinted`, unit V1), and the log after is applied through an index of
-the committed log (`appliedWit γr y'.log`: the apply thread deposits it before it hands the
-result over, `srvAppliedPre`). -/
-def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (ar : Loc) : IProp GF :=
+(with its minted token, `revMinted`, unit V1, and its floor, the vertical slice's unit V2), and
+the log after is applied through an index of the committed log (`appliedWit γr y'.log`: the apply
+thread deposits it before it hands the result over, `srvAppliedPre`). -/
+def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
+    (ar : Loc) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
-      ⌜apply.applyStep rq true y y' out⌝ ∗ apply.applyResultIs rq true y.log ar out ∗
+      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out⌝ ∗
+      apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log)
 
 /-- The witness dropped. -/
-theorem resultIsW_resultIs (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (ar : Loc) :
-    resultIsW (GF := GF) E γr rq ar ⊢ resultIs E rq ar := by
+theorem resultIsW_resultIs (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel)
+    (F : mvcc.Log) (ar : Loc) :
+    resultIsW (GF := GF) E γr rq F ar ⊢ resultIs E rq F ar := by
   iintro H
   iunfold resultIsW at H
   icases H with ⟨%Hnn, %y, %y', %out, %Hst, Hres, Hc, Hm, -⟩
@@ -521,21 +565,22 @@ theorem resultIsW_resultIs (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRR
   iframe Hres Hc Hm
   ipureintro; exact Hst
 
-/-- **The result the proposer of `rq` expects**: the `*apply.Result` `ar` (as an interface
-value) with `resultIsW E γr rq ar` (`resultIs` until 2026-10-14, unit C2a), and its trace
-(`apply.resTrace`, unit P1b). -/
-def resultΨ (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (x : GoInterface) :
-    IProp GF :=
+/-- **The result the proposer of `rq` (with the floor `F`, the vertical slice's unit V2)
+expects**: the `*apply.Result` `ar` (as an interface value) with `resultIsW E γr rq F ar`
+(`resultIs` until 2026-10-14, unit C2a), and its trace (`apply.resTrace`, unit P1b). -/
+def resultΨ (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
+    (x : GoInterface) : IProp GF :=
   iprop(∃ ar : Loc,
     ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
-    apply.resTrace ar ∗ resultIsW E γr rq ar)
+    apply.resTrace ar ∗ resultIsW E γr rq F ar)
 
 /-- **The server's registration condition**: the expectation of a registered id is
-`resultΨ E γr rq` for the request `rq` its data decode to, the id claimed for those data. -/
+`resultΨ E γr rq F` for the request `rq` its data decode to, the id claimed for those data with a
+ghost name recording the floor `F` (the vertical slice's unit V2). -/
 def reqWaitR (γi : IdNames) (E : apply.AEnv GF) (γr : ReadNames) (id : w64)
     (Ψ : GoInterface → IProp GF) : IProp GF :=
-  iprop(∃ (d : List w8) (rq : apply.IRRModel), idClaim γi id d ∗
-    ⌜apply.irrDecode d = some rq ∧ Ψ = resultΨ E γr rq⌝)
+  iprop(∃ (d : List w8) (rq : apply.IRRModel) (γf : GName) (F : mvcc.Log), idClaim γi id d γf ∗
+    floorAt γf F ∗ ⌜apply.irrDecode d = some rq ∧ Ψ = resultΨ E γr rq F⌝)
 
 instance reqWaitR_persistent (γi : IdNames) (E : apply.AEnv GF) (γr : ReadNames) (id : w64)
     (Ψ : GoInterface → IProp GF) : Persistent (reqWaitR γi E γr id Ψ) := by
@@ -561,7 +606,7 @@ def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF 
   if m.typ = W32 0 then
     iprop(∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-        idClaim ρ.ids id m.data)
+        ∃ γf : GName, idClaim ρ.ids id m.data γf)
   else iprop(□ ∀ Ψ, reqWaitR ρ.ids E ρ.rd (ccIdOf m.data) Ψ -∗ False)
 
 instance entryWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) :
@@ -605,7 +650,8 @@ def batchCommitted (γ : ServerRaftNames) (γi : IdNames) (cs : List (List w8))
     (ms : List EntryModel) : IProp GF :=
   iprop(srvCommittedLb γ (cs ++ batchData ms) ∗
     [∗list] d ∈ batchData ms, srvDeposited γ d ∗
-      ∀ rq id, ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ -∗ idClaim γi id d)
+      ∀ rq id, ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ -∗
+        ∃ γf : GName, idClaim γi id d γf)
 
 end wait
 

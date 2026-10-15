@@ -31,7 +31,7 @@ abbrev retryKVClient.Range.spec : Prop :=
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" Spec ∗
-      □ ▷ Spec (rangeReqOp req k e) Q ∗ context.isContext ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      □ ▷ Spec (rangeReqOp req k e) Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
         go!"Range")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

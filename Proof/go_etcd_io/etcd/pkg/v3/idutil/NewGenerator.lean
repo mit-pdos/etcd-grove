@@ -56,7 +56,7 @@ theorem idutil_suffix_lt (x : BitVec 64) : (x &&& 0xffffffffff#64) <<< 8#64 < 0x
 
 theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := hG)) :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) := by
-  intro memberID now
+  intro memberID now Φc
   wp_start as -
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
@@ -79,25 +79,32 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
     (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γc, HC⟩
   icases (own_op γc _ _).1 $$ HC with ⟨HCa, HCf⟩
   subst hN
-  imod (ghost_map_alloc_empty (K := w64) (V := Option (List w8))) with ⟨%γI, HI⟩
+  imod (ghost_map_alloc_empty (K := w64) (V := Option (List w8 × GName))) with ⟨%γI, HI⟩
   imod (ghost_map_alloc_empty (K := w64) (V := Unit)) with ⟨%γS, HS⟩
-  imod inv_alloc idN ⊤ iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8))) (S : GMap w64 Unit),
+  imod inv_alloc idN ⊤ iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8 × GName))) (S : GMap w64 Unit),
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" gp ↦
         (s0 + W64 (k : Int)) ∗
       own (⟨γc, γI, γS⟩ : IdNames).cred (● (2 ^ 48 - 1 - k) : Auth Nat) ∗ ⌜k ≤ 2 ^ 48 - 1⌝ ∗
       ghostMapAuth (⟨γc, γI, γS⟩ : IdNames).issued 1 I ∗
       ghostMapAuth (⟨γc, γI, γS⟩ : IdNames).slot 1 S ∗
       ⌜∀ id, ((I !! id).isSome ↔ idIssued (W64 (uint.Z memberID) <<< W64 48) s0 k id) ∧
-        ((S !! id).isSome ↔ idIssued (W64 (uint.Z memberID) <<< W64 48) s0 k id)⌝)
+        ((S !! id).isSome ↔ idIssued (W64 (uint.Z memberID) <<< W64 48) s0 k id)⌝ ∗
+      idClaimsFacts Φc I)
     $$ [suffix HCa HI HS] with #Hinv
   · inext
     iexists 0, ∅, ∅
     rw [show s0 + W64 ((0 : Nat) : Int) = s0 by word]
     iframe suffix HI HS HCa
-    ipureintro
-    refine ⟨by omega, fun id => ⟨?_, ?_⟩⟩ <;>
-      (simp only [GMap.lookup_empty, Option.isSome_none, Bool.false_eq_true, false_iff];
-       rintro ⟨j, h1, h2, -⟩; omega)
+    isplitr
+    · ipureintro; omega
+    isplitr
+    · ipureintro
+      refine fun id => ⟨?_, ?_⟩ <;>
+        (simp only [GMap.lookup_empty, Option.isSome_none, Bool.false_eq_true, false_iff];
+         rintro ⟨j, h1, h2, -⟩; omega)
+    iunfold idClaimsFacts
+    iapply BigSepM.bigSepM_empty.2
+    itrivial
   wp_auto
   iapply HΦ
   iexists ⟨γc, γI, γS⟩

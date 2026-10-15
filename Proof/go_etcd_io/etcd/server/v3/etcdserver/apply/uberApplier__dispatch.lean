@@ -81,7 +81,7 @@ local macro "fin_same" : tactic => `(tactic| (
   isplitl [HPP]
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
-  · ipureintro; simp [apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+  · ipureintro; simp [apply.kvFloorOk, apply.isFloorKind, apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
   first | isplitl [Htrc] | isplitl []
   · iapply apply.resTrace_of $$ H0
     first | iexact Htrc | iapply apply.traceRes_null
@@ -103,10 +103,11 @@ local macro "fin_kv" : tactic => `(tactic| (
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
   · ipureintro
-    refine ⟨?_, Or.inl rfl⟩
-    simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
-      Bool.false_eq_true, _root_.or_self, ↓reduceIte]
-    exact Hst
+    refine ⟨?_, Or.inl rfl, ?_⟩
+    · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
+        Bool.false_eq_true, _root_.or_self, ↓reduceIte]
+      first | exact Hst.1 | exact Hst
+    · first | exact fun _ _ => Hst.2 | simp [apply.kvFloorOk, apply.isFloorKind, hk]
   first | isplitl [Htrc] | isplitl []
   · iapply apply.resTrace_of $$ H0
     first | iexact Htrc | iapply apply.traceRes_null
@@ -139,8 +140,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG))
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
-  intro E p opts c a r rq skip v3 log Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, Hwt, Hc, %Hok⟩
+  intro E p opts c a r rq skip v3 log F Pre Q Post
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, Hwt, Hc, %Hok, #HF⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
@@ -303,7 +304,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitl [Hc]
     · simp only [apply.cPost, apply.cPre, Bool.false_eq_true, ↓reduceIte]; iexact Hc
     isplitr
-    · ipureintro; simp [apply.dispatchStep, apply.chainAfter, hpre]
+    · ipureintro; simp [apply.kvFloorOk, apply.dispatchStep, apply.chainAfter, hpre]
     isplitl []
     · iapply apply.resTrace_null
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, or_self, ↓reduceIte]
@@ -322,7 +323,8 @@ theorem apply.uberApplier.dispatch.wp_proof
         ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
-          ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c'⌝ ∗
+          ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
+            apply.kvFloorOk rq true F log o⌝ ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
     with [a r ar op «$r0» Hc Hres Ha Hkv Hwt]
   · -- Range
@@ -355,14 +357,15 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .put := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HPut $$ %lPu %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iunfold apply.putPre
+    wp_apply HPut $$ %lPu %rq %x %log %F %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
+    · iframe HF
+      iunfold apply.putPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok⟩
       iframe HR
       iunfold apply.mPre
       iframe
-    iunfold apply.kvPost at Hpost
+    iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
@@ -377,14 +380,15 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .deleteRange := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HDel $$ %lDe %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iunfold apply.deletePre
+    wp_apply HDel $$ %lDe %rq %x %log %F %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
+    · iframe HF
+      iunfold apply.deletePre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
       iframe HR
       iunfold apply.mPre
       iframe
-    iunfold apply.kvPost at Hpost
+    iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
@@ -399,14 +403,15 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .txn := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HTxn $$ %lTx %skip %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iunfold apply.txnPre
+    wp_apply HTxn $$ %lTx %skip %rq %x %log %F %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
+    · iframe HF
+      iunfold apply.txnPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
       iframe HR
       iunfold apply.mPre
       iframe
-    iunfold apply.kvPost at Hpost
+    iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
@@ -501,7 +506,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp only [apply.cPost, ↓reduceIte]; iexact HPP
     isplitr
     · ipureintro
-      refine ⟨by simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter], ?_⟩
+      refine ⟨by simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter], ?_,
+        by simp [apply.kvFloorOk, apply.isFloorKind, hk]⟩
       rcases hc' with ⟨h1, -⟩ | h2
       · exact Or.inl h1
       · exact Or.inr ⟨rfl, hk, h2⟩

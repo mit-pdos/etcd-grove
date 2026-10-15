@@ -499,23 +499,24 @@ open go_etcd_io.etcd.api.v3
 /-- **`range_linearizable`** (see the section header). -/
 theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (c : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
-    (ot : Option Loc) (te : Bool)
+    (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hlin : o.base.serializable = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
-        traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ }}
+        traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
+        mvcc.idxCert E.γ.idx F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
-            ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗ readIndexOk γr c ∗
+            ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗ readIndexOk γr c ∗
             (∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
               ⌜L₀ <+: log⌝) ∗
             txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ Hpre HΦ
-  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te) $$ [Hpre]
+  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te F) $$ [Hpre]
   · iexact Hpre
   inext
   iintro %resp %err ⟨Hrc, H⟩
@@ -540,11 +541,12 @@ request whose sort is not cut early (a serializable one's whole answer: it takes
 a linearizable one's adds `range_linearizable`'s `readIndexOk`). -/
 theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (c : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
-    (ot : Option Loc) (te : Bool)
+    (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hcut : ¬ txn.cutEarly o) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
-        traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ }}
+        traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
+        mvcc.idxCert E.γ.idx F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
@@ -553,9 +555,9 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
             txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   ihave %Hset := txn.rangeRequestIs_sortSet r o $$ Hr
-  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te) $$ [Hrc Hct Hot]
+  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te F) $$ [Hrc Hct Hot]
   · iframe #; iframe Hrc Hct Hot; ipureintro; exact Hv
   inext
   iintro %resp %err ⟨Hrc, H⟩
@@ -570,28 +572,28 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iexists log
     iframe Hcert Hown
     isplitr
-    · ipureintro; exact Hlen
+    · ipureintro; exact ⟨Hlen.1, Hlen.2.1⟩
     iapply txn.rangeResult_client _ _ _ _ o true Hset hcut $$ Hres
   · iright; iexact H
 
 /-- **`txn_readonly`** (see the section header). -/
 theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
-    (ot : Option Loc) (te : Bool)
+    (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hro : txn.txnReadonly t = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
         traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
-        ⌜txn.txnGetsOk t⌝ }}
+        ⌜txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c t resp) ∨
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t resp) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, %Hg⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te F
   simp only [hro, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot]
   · iframe #; iframe Hlt Hcr Hrc Hct Hot; ipureintro; exact fun _ => Hg
@@ -603,20 +605,20 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
 /-- **`txn_applied`** (see the section header). -/
 theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
-    (ot : Option Loc) (te : Bool)
+    (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hw : txn.txnReadonly t = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
-        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t }}
+        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E t resp) ∨
-         (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ t err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp) ∨
+         (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, #HF⟩ HΦ
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te F
   simp only [hw, Bool.false_eq_true, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot]
   · iframe #; iframe Hlt Hcr Hrc Hct Hot; ipureintro; exact fun h => h.elim

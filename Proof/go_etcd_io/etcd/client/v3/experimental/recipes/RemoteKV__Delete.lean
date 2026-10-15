@@ -50,7 +50,7 @@ theorem RemoteKV.Delete.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF)
     obtain ⟨hkk, hke⟩ := concurrency.deleteOp_fields key
     wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hnil $Hlo] as %resp %err #Hres
     · ipureintro
-      refine ⟨concurrency.deleteOp_not_panics key, ?_⟩
+      refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl⟩
       rw [hkk, hke]; exact concurrency.keyRangeUnder_key pfx key Hk
     (try wp_auto)
     iapply HΦ

@@ -26,13 +26,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `withVersion(ctx)` returns a context derived from `ctx` by a value (grpc's
 `NewOutgoingContext` is `context.WithValue`): the same `Done` and `Err` (`isContext` with `ctx`'s
-descriptor, its values changed). -/
+descriptor, its values changed; since the vertical slice's unit V2 for any `ctxOk` context: a quiet
+one, `context.TODO()`, gives a quiet one, `valueCtx` delegating `Err` to its parent). -/
 abbrev withVersion.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ context.isContext ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxOk ctx cd }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withVersion)) (Val #(GoInterface.ok ctx)))
   {{ (c' : GoInterface), RET #c'; ∃ (ci : GoInterfaceOk) (vs : GMap GoInterface GoInterface),
-      ⌜c' = GoInterface.ok ci⌝ ∗ context.isContext ci { cd with Values := vs } }}
+      ⌜c' = GoInterface.ok ci⌝ ∗ ctxOk ci { cd with Values := vs } }}
 
 end spec
 

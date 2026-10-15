@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `getToken`'s answer: `nil` or a client error grpc's `status` accepts (`clientErrOk`). -/
 abbrev Client.refreshToken.spec : Prop :=
   ∀ (c : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ context.isContext ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ ctxOk ctx cd }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"refreshToken")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; clientErrOk err }}

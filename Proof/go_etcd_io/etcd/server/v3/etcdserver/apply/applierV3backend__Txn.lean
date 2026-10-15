@@ -32,8 +32,8 @@ theorem apply.applierV3backend.Txn.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hTxn : txn.Txn.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Txn.spec (GF := GF) (hG := hG) := by
-  intro E p r skip rq t log Pre Q Post
-  wp_start as ⟨#Hb, Hpre⟩
+  intro E p r skip rq t log F Pre Q Post
+  wp_start as ⟨#Hb, Hpre, #HF⟩
   iunfold apply.txnPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
@@ -54,7 +54,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   icases Hle with ⟨#Hle, -⟩
   obtain ⟨ht, hk, hpre⟩ := Hrq
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
+      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu]
     as %resp %trace %err ⟨Hrd, Hu, Hout⟩
   · iframe #
     isplitr
@@ -72,13 +72,13 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitl
     rotate_left
     · rw [Herr.2.1]; iapply apply.traceRes_null
-    iunfold apply.kvPost
+    iunfold apply.kvPostF
     iexists (.rejected .backend)
     isplitr
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨t, ht, Or.inl rfl⟩
+      exact ⟨⟨t, ht, Or.inl rfl⟩, fun _ _ h => by cases h⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres He
     isplitl []
@@ -90,14 +90,14 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitr [Htrc]
     rotate_left
     · iunfold apply.traceRes; iright; iexact Htrc
-    iunfold apply.kvPost
+    iunfold apply.kvPostF
     iexists (.applied (mvcc.commitLog log
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false)
     isplitr
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨t, ht, Or.inr ⟨rfl, Hok.2.2⟩⟩
+      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2⟩⟩, fun _ _ _ => Hok.2.2.1⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
       Bool.false_eq_true, ↓reduceIte, txn.srvRunTxn, apply.appliedHdr]
     iframe Hres Hresp Hhdr

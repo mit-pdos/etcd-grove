@@ -8,6 +8,7 @@ range and delete requests (`learnerReqOk`). Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Txn
 
 @[expose] public section
 
@@ -46,6 +47,31 @@ theorem v3rpc.quotaKV_putHandlerOk_of
   unfold grpcHandlerOk
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hlt, Hard⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
   iapply (wp_Put Req Rep Spec q s kv E ρ S m Φ ci cd r) $$ [HS Hlt Hard HSpec]
+  · iframe; iframe #
+    unfold grpcHandlerOk
+    iexact Hh
+  inext
+  iintro %resp %err ⟨HS, Hlt, Hard, Hres⟩
+  iapply HΨ
+  iframe
+
+/-- **`quotaKVServer.Txn` meets (the vertical slice's unit V2; as `Put`'s) the embedded service's
+spec**, with the reader slot of `leadTimeMu` and the auth store's reader resource `E.RD` the alarm
+needs (from its spec). -/
+theorem v3rpc.quotaKV_txnHandlerOk_of
+    (wp_Txn : v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG))
+    {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
+    (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) S Spec ∗
+        isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+      grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn")
+        iprop(S ∗ srvLeadTimeReader s ∗ E.RD) Spec := by
+  iintro ⟨#Hp1, #Hp2, #Hq, #Hh, #Hsrv, #HNR⟩
+  unfold grpcHandlerOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hlt, Hard⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply (wp_Txn Req Rep Spec q s kv E ρ S m Φ ci cd r) $$ [HS Hlt Hard HSpec]
   · iframe; iframe #
     unfold grpcHandlerOk
     iexact Hh

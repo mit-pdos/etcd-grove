@@ -24,9 +24,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.NextRequestID()`: `s.reqIDGen.Next()`, for one id credit (`idCred`, the id budget). -/
 abbrev EtcdServer.NextRequestID.spec : Prop :=
-  ∀ (s g : Loc) (γi : IdNames),
+  ∀ (s g : Loc) (γi : IdNames) (Φ : w64 → List w8 → GName → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvReqIDGenAddr s ↦□ g ∗ idGen γi g ∗ idCred γi 1 }}
+      srvReqIDGenAddr s ↦□ g ∗ idGen γi g Φ ∗ idCred γi 1 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"NextRequestID")) (Val #()))
   {{ (id : w64), RET #id; idFresh γi id }}
 

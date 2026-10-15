@@ -30,12 +30,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.NextRequestID.wp_proof
     (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG)) :
     EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) := by
-  intro s g γi
+  intro s g γi Φc
   wp_start as ⟨#Hf, #Hg, Hc⟩
   ihave #Pi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
   · iPkgInit
   wp_auto
-  wp_apply hNext γi g $$ [Hc] as %id ⟨Hfr, -⟩
+  wp_apply hNext γi g Φc $$ [Hc] as %id ⟨Hfr, -⟩
   · iframe #; iframe Hc
   iapply HΦ
   iexact Hfr

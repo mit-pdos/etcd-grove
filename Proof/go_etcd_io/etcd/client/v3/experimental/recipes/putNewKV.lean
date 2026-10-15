@@ -91,7 +91,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   (try wp_auto)
   iunfold isEtcdTxnKVTodo at HTxn
   wp_apply HTxn as %t ⟨%B, HB, #HBs, #HCommit⟩
-  iunfold txnBuilderSpec at HBs
+  iunfold txnBuilderSpecX at HBs
   icases HBs with ⟨#HIf, #HThen, -, -, -⟩
   iunfold txnCommitErrTodo at HCommit
   wp_apply_raw HIf $$ %TxnBuild.empty %_ %([compareM (cmpKeyM .version key) .eq (.num (W64 0))] : List CmpModel) [$HB]
@@ -130,7 +130,8 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   (try wp_auto)
   ihave HB := B_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err ⟨Hres, #Hce⟩
-  · ipureintro; exact newKeyTxn_under pfx key val lease Hk
+  · ipureintro; exact ⟨newKeyTxn_under pfx key val lease Hk, TxnModel.exactGets_of_noGets _ (by simp [newKeyTxn])
+        (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩
   iunfold txnCommitResultTok at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

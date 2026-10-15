@@ -88,7 +88,7 @@ instance srvFieldsBuilt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : 
 /-- **`isServerReq`'s fields but `w` and `done`** (persistent; `srvReqFieldsAt` without them and
 without the indices' invariants, which `isServerBuilt` states once). -/
 def srvReqBuilt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
-  iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen ∗
+  iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
     srvRaftNode s ρ.raft ∗
     srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ v.maxReq ∗
     srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ v.fg ∗ isFeatureGate v.fg ∗

@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.Put(p)`**: the quota's `Available(p)`, then the inner applier's `Put`; `ErrNoSpace` in place of its `nil` if the quota said no (the put committed: `chainStep`'s `applied log' true`). -/
 abbrev apply.quotaApplierV3.Put.spec : Prop :=
-  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
+  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log)
     (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.quotaIs p inner ∗ apply.applierSpec E c inner ∗
-      apply.putPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) r rq o log Pre Q Post }}
+      apply.putPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
     (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) rq log (apply.putAnswerIs log o resp err) Pre Post ∗
+      apply.kvPostF E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) rq log F (apply.putAnswerIs log o resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

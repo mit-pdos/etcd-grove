@@ -27,7 +27,7 @@ reads as `rangeWireOf o`. -/
 abbrev Op.toRangeRequest.spec : Prop :=
   ∀ (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opFullAt opv o ∗
-      ⌜o.t = W64 1 ∧ o.base.sortSet = false⌝ }}
+      ⌜o.t = W64 1⌝ }}
     (App (Val (opv @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"toRangeRequest")) (Val #()))
   {{ (r : Loc), RET #r; ∃ req : etcdserverpb.RangeRequest, r ↦ req ∗
       req.Key' ↦*□ o.key ∗ req.RangeEnd' ↦*□ o.base.rangeEnd ∗

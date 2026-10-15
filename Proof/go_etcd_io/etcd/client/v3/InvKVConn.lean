@@ -62,6 +62,8 @@ public import Proof.google_golang_org.grpc.InvGrpc
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
@@ -94,6 +96,21 @@ structure DelRespM where
   deleted : w64
   prevs : List EtcdKv
 
+/-- **A `*pb.ResponseOp` as the wire carries it** (a transaction's operation's response, nested
+transactions included; unit V2): its oneof's kind and the inner response's fields, the inner
+header by its revision only (the server sets nothing else there: `txn.responseOpIs`). -/
+inductive OpRespM where
+  | range (rev : w64) (kvs : List EtcdKv) (more : Bool) (count : w64)
+  | put (rev : w64) (prev : Option EtcdKv)
+  | delete (rev : w64) (deleted : w64) (prevKvs : List EtcdKv)
+  | txn (rev : w64) (succeeded : Bool) (resps : List OpRespM)
+
+/-- A `*pb.TxnResponse` as the wire carries it: its header, `Succeeded`, its `Responses`. -/
+structure TxnRespM where
+  hdr : HdrM
+  succeeded : Bool
+  resps : List OpRespM
+
 /-- **The server's model of the delete request `req`** (whose `Key` holds `k`, `RangeEnd` `e`):
 the copy the gRPC server decodes (`txn.deleteRangeRequestIs`) denotes it, its range end the
 contents `e` (as `rangeReqOp`'s). -/
@@ -105,12 +122,48 @@ the request's fields). -/
 def putWireOf (o : OpFull) : OpFull :=
   txn.putOpOf o.key o.val o.leaseID o.base.prevKV o.ignoreValue o.ignoreLease
 
-/-- **The server's model of the range request `kv.Do` sends for the `Op` `o`** without a sort
-option (`txn.rangeOpOf` of the request's fields, the sort's order and target `0`). -/
+/-- The `int32` enumeration value of the sort order a range request carries for the `Op` `o`
+(`pb.RangeRequest_SortOrder(op.sort.Order)`, the low 32 bits; `0` without a sort option). -/
+def sortOrderWire (o : OpFull) : w32 := if o.base.sortSet then W32 (sint.Z o.sortOrder) else W32 0
+
+/-- The sort target's (as `sortOrderWire`). -/
+def sortTargetWire (o : OpFull) : w32 := if o.base.sortSet then W32 (sint.Z o.sortTarget) else W32 0
+
+/-- **The server's model of the range request `kv.Do` sends for the `Op` `o`** (`txn.rangeOpOf`
+of the request's fields; the sort's order and target `0` without a sort option, their `int32`
+values with one: the vertical slice's unit V2). -/
 def rangeWireOf (o : OpFull) : OpFull :=
-  txn.rangeOpOf o.key o.base.rangeEnd o.base.rev o.base.limit (W32 0) (W32 0) o.base.serializable
-    o.keysOnly o.base.countOnly o.base.minModRev o.base.maxModRev o.base.minCreateRev
-    o.base.maxCreateRev
+  txn.rangeOpOf o.key o.base.rangeEnd o.base.rev o.base.limit (sortOrderWire o) (sortTargetWire o)
+    o.base.serializable o.keysOnly o.base.countOnly o.base.minModRev o.base.maxModRev
+    o.base.minCreateRev o.base.maxCreateRev
+
+/-- **The server's model of the delete request `kv.Do` sends for the `Op` `o`**
+(`txn.deleteOpOf` of the request's fields: the key, the range end's contents, `PrevKv`; unit
+V2). -/
+def deleteWireOf (o : OpFull) : OpFull := txn.deleteOpOf o.key o.base.rangeEnd o.base.prevKV
+
+/-- **`IsSortOptionValid`**: no sort option, or the order's and target's `int32` values are
+among `RangeRequest_SortOrder_name`'s (`0` to `2`) and `RangeRequest_SortTarget_name`'s (`0` to
+`4`) keys. -/
+def sortValid (o : OpFull) : Bool :=
+  or (not o.base.sortSet)
+    (and (decide (0 ≤ sint.Z (sortOrderWire o) ∧ sint.Z (sortOrderWire o) ≤ 2))
+      (decide (0 ≤ sint.Z (sortTargetWire o) ∧ sint.Z (sortTargetWire o) ≤ 4)))
+
+/-- **The server's model of a transaction operation the client sends** (unit V2): a get's and a
+delete's request as the wire carries them (`rangeWireOf`, `deleteWireOf`), a put as it is
+(`txnOpOf`'s puts are the server's `putTxnOp`), a nested transaction's operations likewise. -/
+def opWire : TxnOp → TxnOp
+  | .get o => .get (rangeWireOf o)
+  | .delete o => .delete (deleteWireOf o)
+  | .txn cs ts es => .txn cs (ts.attach.map fun ⟨t, _⟩ => opWire t) (es.attach.map fun ⟨t, _⟩ => opWire t)
+  | op => op
+
+/-- **The server's model of a transaction the client sends** (unit V2): its comparisons (their
+range ends' contents, as the wire carries them: the server reads an absent one as `[]`), its
+operations' wire models (`opWire`). -/
+def txnWireOf (t : TxnModel) : TxnModel :=
+  { cmps := t.cmps, thenOps := t.thenOps.map opWire, elseOps := t.elseOps.map opWire }
 
 /-- **The server's model of the put request `req`** (whose `Key` holds `k`, `Value` `v`): the copy
 the gRPC server decodes (`txn.putRequestIs`) denotes it. -/
@@ -125,6 +178,48 @@ def rangeReqOp (req : etcdserverpb.RangeRequest) (k e : GoString) : OpFull :=
   txn.rangeOpOf k e req.Revision' req.Limit' req.SortOrder' req.SortTarget' req.Serializable'
     req.KeysOnly' req.CountOnly' req.MinModRevision' req.MaxModRevision' req.MinCreateRevision'
     req.MaxCreateRevision'
+
+/-- **The wire model of a plain operation `o`** (`Op.toRequestOp`'s request, as the server reads
+it; unit V2): a get's (`rangeWireOf`), a put's (`putTxnOp` of `putWireOf`), a delete's
+(`deleteWireOf`). -/
+def leafWire (o : OpFull) : TxnOp :=
+  if o.t = W64 1 then .get (rangeWireOf o)
+  else if o.t = W64 2 then txn.putTxnOp (putWireOf o)
+  else .delete (deleteWireOf o)
+
+/-- A plain operation's wire model is the wire model (`opWire`) of its transaction operation
+(`txnOpOf`). -/
+theorem leafWire_txnOpOf (o : OpFull) (op : TxnOp) (h : txnOpOf o = some op) :
+    leafWire o = opWire op := by
+  unfold txnOpOf at h
+  unfold leafWire
+  by_cases h1 : o.t = W64 1
+  · rw [if_pos h1] at h ⊢
+    by_cases hr : o.base.rev = W64 0
+    · rw [if_pos hr, Option.some.injEq] at h; subst h; simp [opWire]
+    · rw [if_neg hr] at h; cases h
+  · rw [if_neg h1] at h ⊢
+    by_cases h2 : o.t = W64 2
+    · rw [if_pos h2] at h ⊢
+      simp only [txn.putTxnOp, putWireOf, txn.putOpOf, OpFull.newOp]
+      by_cases hv : o.ignoreValue = true <;> by_cases hl : o.ignoreLease = true <;>
+        (try simp only [Bool.not_eq_true] at hv) <;> (try simp only [Bool.not_eq_true] at hl) <;>
+        simp only [hv, hl, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte, true_and, false_and,
+          and_false, and_true, Option.some.injEq] at h ⊢
+      · by_cases hz : o.val = [] ∧ o.leaseID = W64 0
+        · simp [hz] at h; subst h; simp [opWire]
+        · simp only [hz, ↓reduceIte] at h; cases h
+      · by_cases hz : o.val = []
+        · simp [hz] at h; subst h; simp [opWire]
+        · simp only [hz, ↓reduceIte] at h; cases h
+      · by_cases hz : o.leaseID = W64 0
+        · simp [hz] at h; subst h; simp [opWire]
+        · simp only [hz, ↓reduceIte] at h; cases h
+      · subst h; simp [opWire]
+    · rw [if_neg h2] at h ⊢
+      by_cases h3 : o.t = W64 3
+      · rw [if_pos h3, Option.some.injEq] at h; subst h; simp [opWire]
+      · rw [if_neg h3] at h; cases h
 
 end model
 
@@ -184,6 +279,294 @@ instance delRespMsg_persistent (l : Loc) (m : DelRespM) :
     Persistent (delRespMsg (GF := GF) l m) := by
   unfold delRespMsg; infer_instance
 
+mutual
+/-- **The `*pb.ResponseOp` `p` holds the message `m`** (read-only; unit V2): its `Response`
+oneof's wrapper of `m`'s kind, the inner response not nil, with its header's revision and its
+fields (`txn.rangeResponseIs`, `txn.putResponseIs`, ...; a nested transaction's responses
+recursively). -/
+def opRespMsg (p : Loc) : OpRespM → IProp GF
+  | .range rev kvs more count => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseRange.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" w ↦□ r ∗
+      txn.rangeResponseIs r rev kvs more count)
+  | .put rev prev => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ r ∗
+      txn.putResponseIs r rev prev)
+  | .delete rev n prevs => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseDeleteRange.ty)
+          #w : GoInterface) ∗
+      structFieldRef etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" w ↦□ r ∗
+      ⌜r ≠ null⌝ ∗ ∃ (h : Loc) (sl : GoSlice) (ps : List Loc),
+      structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" r ↦□ h ∗ ⌜h ≠ null⌝ ∗
+      structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rev ∗
+      structFieldRef etcdserverpb.DeleteRangeResponse go!"Deleted" r ↦□ n ∗
+      structFieldRef etcdserverpb.DeleteRangeResponse go!"PrevKvs" r ↦□ sl ∗ sl ↦*□ ps ∗
+      txn.kvsIs ps prevs)
+  | .txn rev ok resps => iprop(⌜p ≠ null⌝ ∗ ∃ (w r h : Loc) (sl : GoSlice) (ps : List Loc),
+      structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" w ↦□ r ∗ ⌜r ≠ null⌝ ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Header" r ↦□ h ∗ ⌜h ≠ null⌝ ∗
+      structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rev ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Succeeded" r ↦□ ok ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Responses" r ↦□ sl ∗ sl ↦*□ ps ∗
+      opRespsMsg ps resps)
+
+/-- The `*pb.ResponseOp`s `ps` hold, in order, the messages `ms`. -/
+def opRespsMsg : List Loc → List OpRespM → IProp GF
+  | [], [] => iprop(True)
+  | p :: ps, m :: ms => iprop(opRespMsg p m ∗ opRespsMsg ps ms)
+  | _, _ => iprop(False)
+end
+
+mutual
+theorem opRespMsg_persistent' (p : Loc) : ∀ m : OpRespM, Persistent (opRespMsg (GF := GF) p m)
+  | .range .. => by unfold opRespMsg; infer_instance
+  | .put .. => by unfold opRespMsg; infer_instance
+  | .delete .. => by unfold opRespMsg; infer_instance
+  | .txn _ _ resps => by
+    haveI : ∀ ps, Persistent (opRespsMsg (GF := GF) ps resps) := fun ps => opRespsMsg_persistent' ps resps
+    unfold opRespMsg; infer_instance
+
+theorem opRespsMsg_persistent' : ∀ (ps : List Loc) (ms : List OpRespM),
+    Persistent (opRespsMsg (GF := GF) ps ms)
+  | [], [] => by unfold opRespsMsg; infer_instance
+  | p :: ps, m :: ms => by
+    haveI := opRespMsg_persistent' p m
+    haveI := opRespsMsg_persistent' ps ms
+    unfold opRespsMsg; infer_instance
+  | [], _ :: _ => by unfold opRespsMsg; infer_instance
+  | _ :: _, [] => by unfold opRespsMsg; infer_instance
+end
+
+instance opRespMsg_persistent (p : Loc) (m : OpRespM) : Persistent (opRespMsg (GF := GF) p m) :=
+  opRespMsg_persistent' p m
+
+instance opRespsMsg_persistent (ps : List Loc) (ms : List OpRespM) :
+    Persistent (opRespsMsg (GF := GF) ps ms) := opRespsMsg_persistent' ps ms
+
+/-- **The `*pb.TxnResponse` `l` holds the message `m`** (read-only; unit V2). -/
+def txnRespMsg (l : Loc) (m : TxnRespM) : IProp GF :=
+  iprop(⌜l ≠ null⌝ ∗ ∃ (h : Loc) (sl : GoSlice) (ps : List Loc),
+    structFieldRef etcdserverpb.TxnResponse go!"Header" l ↦□ h ∗ hdrFull h m.hdr ∗
+    structFieldRef etcdserverpb.TxnResponse go!"Succeeded" l ↦□ m.succeeded ∗
+    structFieldRef etcdserverpb.TxnResponse go!"Responses" l ↦□ sl ∗ sl ↦*□ ps ∗
+    opRespsMsg ps m.resps)
+
+instance txnRespMsg_persistent (l : Loc) (m : TxnRespM) :
+    Persistent (txnRespMsg (GF := GF) l m) := by
+  unfold txnRespMsg; infer_instance
+
+/-! ## A transaction request in the client's memory (unit V2) -/
+
+/-- **The `*pb.RangeRequest` `r` of the client's memory holds the get whose wire model is `o`**
+(read-only fields; the range end by its contents, as the wire carries it: `txn.rangeOpOf` of
+the contents, not of `txn.rangeEndOf`, which reads an empty non-`nil` slice as `[0]`). -/
+def rangeReqAt (r : Loc) (o : OpFull) : IProp GF :=
+  iprop(⌜r ≠ null⌝ ∗ ∃ (ksl esl : GoSlice) (k e : GoString) (rev limit : w64)
+      (order target : w32) (ser ko co : Bool) (minM maxM minC maxC : w64),
+    structFieldRef etcdserverpb.RangeRequest go!"Key" r ↦□ ksl ∗ ksl ↦*□ k ∗
+    structFieldRef etcdserverpb.RangeRequest go!"RangeEnd" r ↦□ esl ∗ esl ↦*□ e ∗
+    structFieldRef etcdserverpb.RangeRequest go!"Limit" r ↦□ limit ∗
+    structFieldRef etcdserverpb.RangeRequest go!"Revision" r ↦□ rev ∗
+    structFieldRef etcdserverpb.RangeRequest go!"SortOrder" r ↦□ order ∗
+    structFieldRef etcdserverpb.RangeRequest go!"SortTarget" r ↦□ target ∗
+    structFieldRef etcdserverpb.RangeRequest go!"Serializable" r ↦□ ser ∗
+    structFieldRef etcdserverpb.RangeRequest go!"KeysOnly" r ↦□ ko ∗
+    structFieldRef etcdserverpb.RangeRequest go!"CountOnly" r ↦□ co ∗
+    structFieldRef etcdserverpb.RangeRequest go!"MinModRevision" r ↦□ minM ∗
+    structFieldRef etcdserverpb.RangeRequest go!"MaxModRevision" r ↦□ maxM ∗
+    structFieldRef etcdserverpb.RangeRequest go!"MinCreateRevision" r ↦□ minC ∗
+    structFieldRef etcdserverpb.RangeRequest go!"MaxCreateRevision" r ↦□ maxC ∗
+    ⌜o = txn.rangeOpOf k e rev limit order target ser ko co minM maxM minC maxC⌝)
+
+/-- **The `*pb.PutRequest` `p` of the client's memory holds the put `o`** (read-only fields). -/
+def putReqAt (p : Loc) (o : OpFull) : IProp GF :=
+  iprop(⌜p ≠ null⌝ ∗ ∃ (ksl vsl : GoSlice) (k v : GoString) (lease : w64) (pk iv il : Bool),
+    structFieldRef etcdserverpb.PutRequest go!"Key" p ↦□ ksl ∗ ksl ↦*□ k ∗
+    structFieldRef etcdserverpb.PutRequest go!"Value" p ↦□ vsl ∗ vsl ↦*□ v ∗
+    structFieldRef etcdserverpb.PutRequest go!"Lease" p ↦□ lease ∗
+    structFieldRef etcdserverpb.PutRequest go!"PrevKv" p ↦□ pk ∗
+    structFieldRef etcdserverpb.PutRequest go!"IgnoreValue" p ↦□ iv ∗
+    structFieldRef etcdserverpb.PutRequest go!"IgnoreLease" p ↦□ il ∗
+    ⌜o = txn.putOpOf k v lease pk iv il⌝)
+
+/-- **The `*pb.DeleteRangeRequest` `d` of the client's memory holds the delete whose wire model
+is `o`** (read-only fields; the range end by its contents). -/
+def deleteReqAt (d : Loc) (o : OpFull) : IProp GF :=
+  iprop(⌜d ≠ null⌝ ∗ ∃ (ksl esl : GoSlice) (k e : GoString) (pk : Bool),
+    structFieldRef etcdserverpb.DeleteRangeRequest go!"Key" d ↦□ ksl ∗ ksl ↦*□ k ∗
+    structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" d ↦□ esl ∗ esl ↦*□ e ∗
+    structFieldRef etcdserverpb.DeleteRangeRequest go!"PrevKv" d ↦□ pk ∗
+    ⌜o = txn.deleteOpOf k e pk⌝)
+
+/-- **The `*pb.RequestOp` `p` of the client's memory holds the operation `op`** (its wire
+model; read-only): a get, a put or a delete (`Op.toRequestOp`'s); a nested transaction is not
+covered (`False`: the builder's operations are plain). -/
+def reqOpAt (p : Loc) (op : TxnOp) : IProp GF :=
+  match op with
+  | .get o => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestRange go!"RequestRange" w ↦□ r ∗
+      rangeReqAt r o)
+  | .delete o => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r ∗
+      deleteReqAt r o)
+  | .txn _ _ _ => iprop(False)
+  | _ => iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc) (o : OpFull),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
+      putReqAt r o ∗ ⌜op = txn.putTxnOp o⌝)
+
+/-- The `*pb.RequestOp`s `ps` hold, in order, the operations `ops`. -/
+def reqOpsAt (ps : List Loc) (ops : List TxnOp) : IProp GF :=
+  iprop(⌜ps.length = ops.length⌝ ∗
+    □ ∀ (i : Nat) (p : Loc) (op : TxnOp), ⌜ps[i]? = some p⌝ -∗ ⌜ops[i]? = some op⌝ -∗
+      reqOpAt p op)
+
+/-- The `*pb.Compare`s `ps` hold, in order, the comparisons `ms` (not nil, read-only). -/
+def comparesAt (ps : List Loc) (ms : List CmpModel) : IProp GF :=
+  iprop(⌜ps.length = ms.length⌝ ∗
+    □ ∀ (i : Nat) (p : Loc) (m : CmpModel), ⌜ps[i]? = some p⌝ -∗ ⌜ms[i]? = some m⌝ -∗
+      ⌜p ≠ null⌝ ∗ compareAt p m)
+
+/-- **The `pb.TxnRequest` value `req` of the client's memory holds the transaction `t`** (its
+wire model, `txnWireOf` of the builder's; its slices read-only). -/
+def txnReqAt (req : etcdserverpb.TxnRequest) (t : TxnModel) : IProp GF :=
+  iprop(∃ cps sps fps : List Loc,
+    req.Compare' ↦*□ cps ∗ comparesAt cps t.cmps ∗
+    req.Success' ↦*□ sps ∗ reqOpsAt sps t.thenOps ∗
+    req.Failure' ↦*□ fps ∗ reqOpsAt fps t.elseOps)
+
+instance rangeReqAt_persistent (r : Loc) (o : OpFull) : Persistent (rangeReqAt (GF := GF) r o) := by
+  unfold rangeReqAt; infer_instance
+instance putReqAt_persistent (r : Loc) (o : OpFull) : Persistent (putReqAt (GF := GF) r o) := by
+  unfold putReqAt; infer_instance
+instance deleteReqAt_persistent (r : Loc) (o : OpFull) :
+    Persistent (deleteReqAt (GF := GF) r o) := by
+  unfold deleteReqAt; infer_instance
+instance reqOpAt_persistent (p : Loc) (op : TxnOp) : Persistent (reqOpAt (GF := GF) p op) := by
+  unfold reqOpAt; split <;> infer_instance
+instance reqOpsAt_persistent (ps : List Loc) (ops : List TxnOp) :
+    Persistent (reqOpsAt (GF := GF) ps ops) := by
+  unfold reqOpsAt; infer_instance
+instance comparesAt_persistent (ps : List Loc) (ms : List CmpModel) :
+    Persistent (comparesAt (GF := GF) ps ms) := by
+  unfold comparesAt; infer_instance
+instance txnReqAt_persistent (req : etcdserverpb.TxnRequest) (t : TxnModel) :
+    Persistent (txnReqAt (GF := GF) req t) := by
+  unfold txnReqAt; infer_instance
+
+/-- A put's `*pb.RequestOp` (`reqOpAt` of the server's put `txn.putTxnOp o`). -/
+theorem reqOpAt_put (p w r : Loc) (o : OpFull) :
+    ⌜p ≠ null⌝ ∗
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗ putReqAt r o ⊢
+    reqOpAt (GF := GF) p (txn.putTxnOp o) := by
+  iintro ⟨%Hp, #Hq, #Hw, #Hr⟩
+  have key : ∀ op : TxnOp, (∀ a, op ≠ .get a) → (∀ a, op ≠ .delete a) →
+      (∀ a b c, op ≠ .txn a b c) → op = txn.putTxnOp o →
+      reqOpAt (GF := GF) p op = iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc) (o' : OpFull),
+        structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+          (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
+            GoInterface) ∗
+        structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
+        putReqAt r o' ∗ ⌜op = txn.putTxnOp o'⌝) := by
+    intro op h1 h2 h3 _
+    unfold reqOpAt
+    cases op with
+    | get a => exact absurd rfl (h1 a)
+    | delete a => exact absurd rfl (h2 a)
+    | txn a b c => exact absurd rfl (h3 a b c)
+    | _ => rfl
+  rw [key (txn.putTxnOp o) (by intro a; unfold txn.putTxnOp; split <;> (try split) <;> simp)
+    (by intro a; unfold txn.putTxnOp; split <;> (try split) <;> simp)
+    (by intro a b c; unfold txn.putTxnOp; split <;> (try split) <;> simp) rfl]
+  isplitl []
+  · ipureintro; exact Hp
+  iexists w, r, o
+  iframe #
+  ipureintro; rfl
+
+/-- The deletes of a transaction's operations, at every depth (`v3rpc.delCount`'s, over the
+transaction model). -/
+def delCountT : List TxnOp → Nat
+  | [] => 0
+  | .delete _ :: us => delCountT us + 1
+  | .txn _ ts es :: us => delCountT ts + delCountT es + delCountT us
+  | _ :: us => delCountT us
+
+/-- **What the decoding gives of a transaction request's deletes** (`r`, the server's copy;
+persistent): each top-level delete's `RangeEnd` is `nil` or not empty (protobuf decodes an empty
+`bytes` field as `nil`), and the deletes are fewer than `2 ^ 63` in each branch (each is at least
+a byte of the message): `v3rpc.txnReqWire`, over the transaction model; nested transactions are
+not covered (the builder's operations are plain). -/
+def txnWireOk (r : Loc) (t : TxnModel) : IProp GF :=
+  iprop(⌜delCountT t.thenOps < 2 ^ 63 ∧ delCountT t.elseOps < 2 ^ 63⌝ ∗
+    □ ∀ (sl : GoSlice) (ps : List Loc) (i : Nat) (p w d : Loc) (esl : GoSlice),
+      (structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ sl ∨
+        structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ sl) -∗ sl ↦*□ ps -∗
+      ⌜ps[i]? = some p⌝ -∗
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
+          GoInterface) -∗
+      structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ d -∗
+      structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" d ↦□ esl -∗
+      ⌜esl = slice.nil ∨ esl.len ≠ W64 0⌝)
+
+instance txnWireOk_persistent (r : Loc) (t : TxnModel) : Persistent (txnWireOk (GF := GF) r t) := by
+  unfold txnWireOk; infer_instance
+
+/-! ## `etcdserverpb`'s sort enumerations (unit V2) -/
+
+/-- **The protobuf enumerations' name maps** `Op.IsSortOptionValid` looks the sort order and
+target up in (`etcdserverpb.RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`:
+generated `map[int32]string` literals): fixed maps whose keys are the enumerations' values, `0` to
+`2` and `0` to `4`; and the error `kv.Do` returns for another sort option,
+`rpctypes.ErrInvalidSortOption` (`Error(ErrGRPCInvalidSortOption)`, an `EtcdError`), a client
+error that grpc's `status` accepts (`statusErrOk`). Facts of `etcdserverpb`'s and `rpctypes`' initialization, stated here as a premise of the
+client's gets (the maps as the server's `v3rpc.sortNameMaps`); to be folded into the packages'
+facts (`cache/v3/Base.lean`). -/
+def sortNamesOk : IProp GF :=
+  iprop((∃ e : GoInterface,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrInvalidSortOption ↦□ e ∗
+      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e) ∗
+    (∃ (mp : Loc) (M : GMap w32 GoString),
+      globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name ↦□ mp ∗
+      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝) ∗
+    (∃ (mp : Loc) (M : GMap w32 GoString),
+      globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget_name ↦□ mp ∗
+      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝))
+
+instance sortNamesOk_persistent : Persistent (sortNamesOk (GF := GF)) := by
+  unfold sortNamesOk; infer_instance
+
+/-- `sortNamesOk` if the get has a sort option (`b`, its `sortSet`): a get without one never reads
+the enumerations (`Op.IsSortOptionValid` returns at once). -/
+def sortNamesIf (b : Bool) : IProp GF := if b then sortNamesOk else iprop(True)
+
+instance sortNamesIf_persistent (b : Bool) : Persistent (sortNamesIf (GF := GF) b) := by
+  unfold sortNamesIf; split <;> infer_instance
+
+theorem sortNamesIf_false : ⊢ sortNamesIf (GF := GF) false := by
+  unfold sortNamesIf; iintro; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+
 /-- **What a unary `Put` call returns** to the client (every layer's postcondition: the stub's,
 the retry client's, `kv.Do`'s at its `put` field): `nil` and a response holding a message `m`
 (`putRespMsg`) with the run's knowledge `Q m`; or a client error that grpc's `status` accepts
@@ -195,6 +578,16 @@ def putCallOut (Q : PutRespM → IProp GF) (resp : Loc) (err : GoInterface) : IP
 /-- **What a unary `Range` call returns** to the client (as `putCallOut`). -/
 def rangeCallOut (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ Q m) ∨
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+
+/-- **What a unary `DeleteRange` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
+def deleteCallOut (Q : DelRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗ Q m) ∨
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+
+/-- **What a unary `Txn` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
+def txnCallOut (Q : TxnRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗ Q m) ∨
     (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
 
 /-! ## The KV service's messages -/
@@ -269,6 +662,36 @@ def pbDeleteRangeResponse : ProtoMsg GF where
   own l := iprop(∃ v : etcdserverpb.DeleteRangeResponse, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
 
+/-- **A `*pb.TxnRequest`** on the wire (the vertical slice's unit V2; a trusted wire model, as
+`pbPutRequest`'s): a request's model is the transaction model `t` the server reads; the sender's
+message is the owned struct whose slices hold, read-only, the comparisons and the operations' wire
+requests of `t` (`txnReqAt`: what the client's `txn.Commit` builds); the decoded copy denotes the
+same transaction (`txn.txnRequestIs`: the txn package's model of the server's request) and is as
+protobuf decodes it (`txnWireOk`: each top-level delete's `RangeEnd` `nil` or not empty, an empty
+`bytes` field being decoded as `nil`; fewer than `2 ^ 63` deletes per branch, each at least a byte
+of the message). -/
+def pbTxnRequest : ProtoMsg GF where
+  ty := etcdserverpb.TxnRequest.ty
+  M := TxnModel
+  send inp t := iprop(∃ req : etcdserverpb.TxnRequest, inp ↦ req ∗ txnReqAt req t)
+  recv r t := iprop(txn.txnRequestIs r t ∗ txnWireOk r t)
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.TxnRequest))
+  own l := iprop(∃ v : etcdserverpb.TxnRequest, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **A `*pb.TxnResponse`** on the wire (the vertical slice's unit V2; as `pbPutResponse`):
+`txnRespMsg`, every field the wire carries (the header, `Succeeded`, the responses, nested). -/
+def pbTxnResponse : ProtoMsg GF where
+  ty := etcdserverpb.TxnResponse.ty
+  M := TxnRespM
+  send := txnRespMsg
+  recv := txnRespMsg
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.TxnResponse))
+  own l := iprop(∃ v : etcdserverpb.TxnResponse, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
 /-! ## Call options -/
 
 /-- **A `retryOption`'s closure** `f` writes only the interceptor's `options`' `retryPolicy`
@@ -341,7 +764,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpc addr method Spec ∗
-        □ ▷ Spec m Φ ∗ context.isContext ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
+        □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)

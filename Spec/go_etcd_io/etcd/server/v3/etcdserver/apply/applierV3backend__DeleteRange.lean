@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.DeleteRange(dr)`**: `txn.DeleteRange(context.TODO(), lg, kv, dr)` at the sole writer: the client's delete on `log`'s state committed (`delChanges`), or, with `PrevKv`, the range read's error. -/
 abbrev apply.applierV3backend.DeleteRange.spec : Prop :=
-  ∀ (E : AEnv GF) (p r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
+  ∀ (E : AEnv GF) (p r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log)
     (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      apply.deletePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) r rq o log Pre Q Post }}
+      apply.deletePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq log (apply.deleteAnswerIs log o resp err) Pre Post ∗
+      apply.kvPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq log F (apply.deleteAnswerIs log o resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

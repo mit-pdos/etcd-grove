@@ -170,11 +170,12 @@ log `log` of at least `NewStore`'s two revisions (so the header's revision, `log
 `0`), read after the read index if the request is linearizable (`readLogOk γr c log`: the applied
 index reached the committed index `c` the caller knew of, and `log` extends the log applied through
 an index at least `c`; 2026-10-13, unit 4b: `readIndexOk` until then), the response header's id
-fields owned. -/
-def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (o : OpFull) (resp : Loc) :
-    IProp GF :=
+fields owned; and (the vertical slice's unit V2) `log` extends the floor `F`, a certified log
+the caller saw (the read's transaction is opened at a log extending it: linearizability). -/
+def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
+    (resp : Loc) : IProp GF :=
   iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗
+    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
     txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp))
@@ -182,11 +183,12 @@ def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (o : OpFull) (re
 /-- **A successful read-only `Txn` of `t`** (as `rangeReadOk`): the server's run of `t` on the
 state after a certified log `log` (`srvRunTxn`: its verdict and results, no change), the
 response's header revision `log`'s last, read after the read index unless every get is
-serializable (`txnSerializable`; `readLogOk`, as `rangeReadOk`'s), the header's id fields owned. -/
-def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (t : TxnModel) (resp : Loc) :
-    IProp GF :=
+serializable (`txnSerializable`; `readLogOk`, as `rangeReadOk`'s), the header's id fields owned,
+`log` extending the floor `F` (unit V2, as `rangeReadOk`'s). -/
+def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
+    (resp : Loc) : IProp GF :=
   iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗
+    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
     txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
@@ -200,22 +202,24 @@ proposed data decode to (`rq'`, whose transaction `t'` is `t` unless a range end
 loops call `IsRegistered` knowing nothing of the id's registration, so the model admits it; at a
 known registration `request_delivered` excludes it unless the registration is gone), the response the
 transaction's (`txnOutcomeIs` at `x.log`), the header's id fields owned (`appliedHdr`), mvcc's
-certificate of the log after. -/
-def txnAppliedOk (E : apply.AEnv GF) (t : TxnModel) (resp : Loc) : IProp GF :=
+certificate of the log after; and (unit V2) `x.log` extends the floor `F`. -/
+def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel) (resp : Loc) :
+    IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
       (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
     ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq' ∧ rq'.txn = some t' ∧
       (irrNoZeroEnd (irrTxn t) → t' = t) ∧
-      apply.applyStep rq' true x x' (.dispatched (.applied l false) skip)⌝ ∗
+      apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧ F <+: x.log⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log)
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
 the proposal's (made or not; if made, deposited: it may still be applied). -/
-def txnErrOk (E : apply.AEnv GF) (ρ : ReqNames) (t : TxnModel) (err : GoInterface) : IProp GF :=
+def txnErrOk (E : apply.AEnv GF) (ρ : ReqNames) (F : mvcc.Log) (t : TxnModel) (err : GoInterface) :
+    IProp GF :=
   iprop((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-      ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq'⌝ ∗ appliedErr E rq' err) ∨
+      ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
     srvMaybeDeposited ρ (irrTxn t))
 
 end defs

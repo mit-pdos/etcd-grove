@@ -63,14 +63,14 @@ theorem EtcdServer.raftRequest.wp_proof
     (hIS : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
     (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
     EtcdServer.raftRequest.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Hid0
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hhdr⟩
+  intro s E ρ ctx cd p rq F Hid0
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hhdr, #HF⟩
   ihave #Ptrace : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace $$ []
   · iPkgInit
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   wp_auto
-  wp_apply hP s E ρ ctx cd p rq Hid0 $$ [Hrd Hard Hcred Hhdr] as %res %err ⟨Hrd, Hard, Hres⟩
+  wp_apply hP s E ρ ctx cd p rq F Hid0 $$ [Hrd Hard Hcred Hhdr] as %res %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hhdr
   (try wp_auto)
   icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, Hri⟩ | ⟨%Hres, #HaE, Hdep⟩)

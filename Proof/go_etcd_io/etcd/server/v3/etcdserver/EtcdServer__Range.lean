@@ -300,7 +300,7 @@ local macro "range_tail" : tactic => `(tactic| (
       isplitr
       · ipureintro
         have := Hlog.1.length_le
-        exact ⟨by omega, by omega⟩
+        exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
       isplitr
       · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
       iunfold txn.rangeHdr at Hhdr
@@ -369,15 +369,19 @@ theorem EtcdServer.Range.wp_proof
     (hRStr : RangeRequest.String.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r o ot te
-  wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst⟩
+  intro s E ρ γr c ctx cd r o ot te F
+  wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst, #HF⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀, #Hc0, %Hl0⟩, #Hainv, -⟩
+    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, -⟩
+  -- the floor (the vertical slice's unit V2): the read opens at a log extending both the
+  -- server's initial log and the caller's floor `F`
+  ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
+  have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -538,12 +542,14 @@ theorem EtcdServer.Range.wp_proof
       ihave #Hri' := Hri $$ %rfl
       imod readIndexOk_logR s E γr c log₀ $$ Hainv Hri' Hc0 with ⟨%logR, #HcR, %HpR, #HrlR⟩
       have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
+      have HFR : F <+: logR := HL0.2.trans HpR
       ihave #HriO : (if o.base.serializable then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
       · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
       wp_auto
       range_tail
   · (try wp_auto)
-    generalize log₀ = logR at Hl0 ⊢
+    have HFR : F <+: log₀ := HL0.2
+    generalize log₀ = logR at Hl0 HFR ⊢
     ihave #HriO : (if o.base.serializable then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
     · rw [Hser]; simp only [↓reduceIte]; itrivial
     range_tail
