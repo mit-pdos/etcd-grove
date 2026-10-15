@@ -391,10 +391,10 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
     exact persist_handed ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
   imodintro
   isplitr [Happ]
-  · iapply ownRaftLog_intro l lv lv.storage' { σ with pend := nextUnstable ls } ls.snap ls.uents
+  · iapply ownRaftLog_intro (K := ls.ksn) l lv lv.storage' { σ with pend := nextUnstable ls } ls.snap ls.uents
       (logHanded ls) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied Hpapplied
-      Hcommitted Hssnap' Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN rfl rfl
-      $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
+      Hcommitted Hssnap' Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN Hsksn
+      rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
   rw [← Hstor]; iexact Happ
 
 end handout

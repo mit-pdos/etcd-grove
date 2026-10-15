@@ -58,7 +58,7 @@ variable [FfiSyntax]
 boundary and the snapshot are the same, and the entries are `σ`'s or, with a batch
 pending, `σ`'s with the batch appended; with nothing pending, exactly `σ`. -/
 def MemView (σ σp : StorState) : Prop :=
-  σp.prev = σ.prev ∧ σp.ss = σ.ss ∧
+  σp.prev = σ.prev ∧ (σp.ss = σ.ss ∧ σp.scs = σ.scs ∧ σp.sal = σ.sal) ∧
   (σp.ents = σ.ents ∨ (σ.pend ≠ [] ∧ σp.ents = storApp σ σ.pend)) ∧
   (σ.pend = [] → σp = σ)
 
@@ -68,9 +68,11 @@ def memStorEmpty : StorState :=
     pend := [] }
 
 /-- The storage once `ApplySnapshot(snap)` succeeded (2026-10-12): the boundary is the
-snapshot's id, nothing stored after it, the snapshot is `snap`, nothing pending. -/
-def memStorApplied (snap : raftpb.Snapshot) : StorState :=
-  { prev := snapId snap, ents := [], ss := snapId snap, pend := [] }
+snapshot's id, nothing stored after it, the snapshot is `snap` (2026-10-15, stage S: with the
+lists `cl` behind its `ConfState`), nothing pending. -/
+def memStorApplied (snap : raftpb.Snapshot) (cl : CSLists) : StorState :=
+  { prev := snapId snap, ents := [], ss := snapId snap, pend := [], scs := cl,
+    sal := snap.Metadata'.ConfState'.AutoLeave' }
 
 /-- The storage once `Compact(ci)` succeeded (2026-10-12): the boundary is `ci` at the
 term `t` (its entry's), the stored entries those after it. -/
@@ -193,11 +195,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 instance storState_countable : Pos.Countable StorState :=
-  .ofInjective (fun σ => Pos.Countable.encode (((σ.prev, σ.ents), σ.ss), σ.pend))
-    (fun ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h => by
+  .ofInjective (fun σ => Pos.Countable.encode
+      (((((σ.prev, σ.ents), σ.ss), σ.pend),
+        (((σ.scs.voters, σ.scs.learners), σ.scs.outgoing), σ.scs.learnersNext)), σ.sal))
+    (fun ⟨_, _, _, _, ⟨_, _, _, _⟩, _⟩ ⟨_, _, _, _, ⟨_, _, _, _⟩, _⟩ h => by
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := h
+      obtain ⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩ := h
       rfl)
 
 /-- The ghost names of a `MemoryStorage` (2026-10-10; until then one `GName`, of the
@@ -252,6 +256,26 @@ theorem ownCSRest_zero : ⊢ ownCSRest (GF := GF) (zero_val raftpb.ConfState) :=
   · iapply ownSlice_nil
   iapply ownSlice_nil
 
+/-- The four slices with their lists (2026-10-15, stage S) as `ownCSRO`. -/
+theorem ownCSL_csro (cs : raftpb.ConfState) (cl : CSLists) :
+    ownCSL (GF := GF) cs cl ⊢ ownCSRO cs cl.voters := by
+  unfold ownCSL ownCSRO ownCSRest
+  iintro ⟨#Hv, #Hl, #Ho, #Hn⟩
+  iframe Hv
+  iexists cl.learners, cl.outgoing, cl.learnersNext
+  iframe Hl Ho Hn
+
+/-- The zero `ConfState`'s lists are empty (2026-10-15, stage S). -/
+theorem ownCSL_zero : ⊢ ownCSL (GF := GF) (zero_val raftpb.ConfState) ∅ := by
+  unfold ownCSL
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSlice_nil
+  iapply ownSlice_nil
+
 theorem ownCSRO_zero : ⊢ ownCSRO (GF := GF) (zero_val raftpb.ConfState) [] := by
   unfold ownCSRO
   isplitr
@@ -271,11 +295,13 @@ half of `hardState` and of `snapshot`, the other halves being `memStorMeta`'s, a
 counters of `callStats` but `initialState`, which is `memStorMeta`'s. -/
 def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
   iprop(∃ (hs : raftpb.HardState) (snap : raftpb.Snapshot) (es : GoSlice)
-    (dummy : raftpb.Entry) (nfi nli nen nte nsn : w64) (voters : List w64),
+    (dummy : raftpb.Entry) (nfi nli nen nte nsn : w64),
   "HhardState" ∷ ms.[MemoryStorage, go!"hardState"] ↦{DFrac.own (1 : Qp).half} hs ∗
   "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦{DFrac.own (1 : Qp).half} snap ∗
-  "%Hsnap_id" ∷ ⌜snapId snap = σ.ss⌝ ∗
-  "Hvoters" ∷ ownCSRO snap.Metadata'.ConfState' voters ∗
+  -- (2026-10-15, stage S) with the snapshot's `AutoLeave` and (`Hvoters`) the lists behind its
+  -- `ConfState`, which `σ` records (`scs`, `sal`)
+  "%Hsnap_id" ∷ ⌜snapId snap = σ.ss ∧ snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+  "Hvoters" ∷ ownCSL snap.Metadata'.ConfState' σ.scs ∗
   "Hents_f" ∷ ms.[MemoryStorage, go!"ents"] ↦ es ∗
   "Hents" ∷ es ↦*□ (dummy :: σ.ents) ∗
   "Hents_cap" ∷ ownSliceCap raftpb.Entry es (DFrac.own 1) ∗
@@ -471,7 +497,7 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
     subst Hσ
     isplitr
     · ipureintro
-      exact ⟨rfl, rfl, .inl rfl, fun _ => rfl⟩
+      exact ⟨rfl, ⟨rfl, rfl, rfl⟩, .inl rfl, fun _ => rfl⟩
     isplitl [Hh Hw Hep]
     · iexists hist
       iframe Hh
@@ -490,11 +516,11 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
       · rw [Hlast] at HD
         injection HD with h
         subst h
-        exact ⟨rfl, rfl, .inl rfl, fun h => absurd h Hne⟩
+        exact ⟨rfl, ⟨rfl, rfl, rfl⟩, .inl rfl, fun h => absurd h Hne⟩
       · simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or] at HD
         injection HD with h
         subst h
-        exact ⟨rfl, rfl, .inr ⟨Hne, rfl⟩, fun h => absurd h Hne⟩
+        exact ⟨rfl, ⟨rfl, rfl, rfl⟩, .inr ⟨Hne, rfl⟩, fun h => absurd h Hne⟩
     isplitl [Hh Hep]
     · iexists H ++ [storAbsorb σ]
       iframe Hh

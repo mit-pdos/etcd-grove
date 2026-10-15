@@ -157,6 +157,12 @@ structure StorState [FfiSyntax] where
   answer only what both agree on ("Storage: a pending append, for node.go",
   notes/decisions.md). -/
   pend : List raftpb.Entry
+  /-- (2026-10-15, stage S) The snapshot's `ConfState`: the lists behind its four slices and
+  its `AutoLeave` (`HSnapshot` hands them out with the snapshot), so that raft knows which
+  certified snapshot (`snapCert`, `ownRaftLog`'s `Hsksn`) it sends. `∅`/`false` for the empty
+  snapshot a fresh storage holds. -/
+  scs : CSLists := ∅
+  sal : Bool := false
 
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
 of the development, not an assumption: abstract because the implementation is not
@@ -225,9 +231,6 @@ def PendOk (σ : StorState) (p : List raftpb.Entry) : Prop :=
   ∀ e0, p.head? = some e0 →
     uint.Z σ.prev.index' < uint.Z e0.Index' ∧
     uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1
-
-/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
-instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
 
 /-- Each list a permutation of the other's. -/
 def CSLists.Perm (a b : CSLists) : Prop :=
@@ -383,7 +386,9 @@ def isStorageWith (P : StorState → IProp GF)
      premise on the initial storage, and preserved because nothing in scope changes
      the storage. And the snapshot's `ConfState.Voters` slice is handed out
      **read-only, for good** (`↦*□`), like `Entries`' result: the snapshot comes back
-     by value, but its slices are the storage's, which `MemoryStorage` never writes in
+     by value, but its slices are the storage's (since 2026-10-15, stage S, the lists `σ.scs`
+     and `AutoLeave` `σ.sal` the storage's state records, so that raft knows which certified
+     snapshot it forwards), which `MemoryStorage` never writes in
      place (`CreateSnapshot` replaces the whole `ConfState`; `ApplySnapshot` the whole
      snapshot). raft puts that slice in a `MsgSnap` (`maybeSendSnapshot`) and the
      abstraction of the queued message reads it (`msgAbs`, `InvRaftPhys.lean`).
@@ -400,8 +405,9 @@ def isStorageWith (P : StorState → IProp GF)
      {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
          P σ ∗
          (⌜err = esu⌝ ∨
-          (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-           ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}) ∗
+          (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0 ∧
+             snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+           ownCSL snap.Metadata'.ConfState' σ.scs)) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
      pending append, for node.go"). The application appends a `Ready`'s entries on its own
      goroutine while raft keeps reading the storage. Two laws, ghost updates of the

@@ -67,19 +67,20 @@ m.index m.logterm m.commit m.rejecthint m.entries`). -/
 def propForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
     (cl : List w8 := []) : Msg :=
   Msg.mkV .propose id lead (W64 0) m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint'
-    ents [] cl
+    ents ∅ false cl
 
 /-- A read-index request forwarded to the leader `lead` (2026-10-12): `From` stamped if unset
 (a twice-forwarded request keeps its requester), `Term` left at `0`. -/
 def readForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
     (cl : List w8 := []) : Msg :=
   Msg.mkV .readIndex (if m.From' = W64 0 then id else m.From') lead (W64 0) m.Reject' m.Index'
-    m.LogTerm' m.Commit' m.RejectHint' ents [] cl
+    m.LogTerm' m.Commit' m.RejectHint' ents ∅ false cl
 
 /-- What `stepFollower` does with `m`, by type. `dropped` is whether it returned
 `ErrProposalDropped` (the postcondition then says `err` is that global's value;
 otherwise `err = nil`). -/
-def FollowerStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+def FollowerStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
+    (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8 := []) : Prop :=
   if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
@@ -93,7 +94,7 @@ def FollowerStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mess
   else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
     dropped = false ∧ s' = s
   else if m.Type' = MsgSnap then
-    dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv s'
+    dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s'
   else if m.Type' = MsgPreVoteResp then dropped = false ∧ s' = s
   -- read-index (2026-10-12): a request goes to the leader, a response becomes a `ReadState`
   else if m.Type' = MsgReadIndex then
@@ -137,7 +138,7 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
      else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
        dropped = false ∧ s' = s
      else if m.Type' = MsgSnap then
-       dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv s'
+       dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s'
      else if m.Type' = MsgPreVoteResp then dropped = false ∧ s' = s
      -- read-index (2026-10-12): a request goes to the leader, a response becomes a `ReadState`
      else if m.Type' = MsgReadIndex then
@@ -160,7 +161,7 @@ theorem FollowerStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64
     {m : raftpb.Message}
     {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
     {cl : List w8} (h : FollowerStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
-    FollowerStepResult cfg id s m ents sv dropped s' cl := by
+    FollowerStepResult cfg scfg id s m ents sv dropped s' cl := by
   obtain ⟨-, h⟩ := h
   unfold FollowerStepResult
   by_cases hT : m.Type' = MsgTimeoutNow

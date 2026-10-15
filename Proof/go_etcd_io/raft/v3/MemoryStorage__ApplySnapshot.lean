@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem MemoryStorage.ApplySnapshot.wp_proof :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
-  intro ms γs σ hs snap snap' voters eood Hidle Hbnd
+  intro ms γs σ hs snap snap' cl eood Hidle Hbnd
   wp_start as ⟨Hms, Hmeta, #Hvoters', #Herr⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, %Hbounded⟩
@@ -41,7 +41,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof :
   have Hσp : σp = σ := Hvw.2.2.2 Hidle
   subst Hσp
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs0, %snap0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, %voters1,
+  icases Hfields_inv with ⟨%hs0, %snap0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn,
     Hfields_inv⟩
   iNamed Hfields_inv
   -- the two halves of `snapshot` make the whole field
@@ -49,7 +49,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof :
   subst Heq
   ihave Hsnap := (ptsto_halves _ _).2 $$ [Hsnapshot_m Hsnapshot]
   · iframe Hsnapshot_m Hsnapshot
-  have Hss : σp.ss.index' = snap.Metadata'.Index' := by rw [← Hsnap_id]; rfl
+  have Hss : σp.ss.index' = snap.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
   wp_auto
   wp_if_destruct
   rotate_left
@@ -65,7 +65,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof :
       iexists σp
       iframe Hgs_inv
       isplitl
-      · iexists hs0, snap, es, dummy, nfi, nli, nen, nte, nsn, voters1
+      · iexists hs0, snap, es, dummy, nfi, nli, nen, nte, nsn
         iframe # ∗
         ipureintro; exact ⟨Hsnap_id, Hdummy⟩
       ipureintro; exact Hpb_inv
@@ -93,7 +93,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof :
     iintro %sl_ptr ⟨Hsl, Hsl_cap⟩
     imod ownSlice_persist $$ Hsl with #Hsl
     wp_auto
-    imod memView_set γs σp σp (memStorApplied snap') Hidle rfl $$ Hview Hgs_inv
+    imod memView_set γs σp σp (memStorApplied snap' cl) Hidle rfl $$ Hview Hgs_inv
       with ⟨-, Hview, Hgs_inv⟩
     icases (ptsto_halves _ _).1 $$ Hsnap with ⟨Hsnapshot_m, Hsnapshot⟩
     wp_method_call
@@ -102,13 +102,13 @@ theorem MemoryStorage.ApplySnapshot.wp_proof :
       Hsl_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
     · inext
       unfold memstorageInv memstorageFields
-      iexists memStorApplied snap'
+      iexists memStorApplied snap' cl
       iframe Hgs_inv
       isplitl
       · simp only [memStorApplied, snapId]
-        iexists hs0, snap', _, _, nfi, nli, nen, nte, nsn, voters
+        iexists hs0, snap', _, _, nfi, nli, nen, nte, nsn
         iframe # ∗
-        ipureintro; exact ⟨rfl, rfl, rfl⟩
+        ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl⟩
       ipureintro; simp only [memStorApplied, snapId, List.length_nil]; word
     iapply HΦ
     iright
@@ -119,8 +119,9 @@ theorem MemoryStorage.ApplySnapshot.wp_proof :
       iframe # ∗
       ipureintro; simp only [memStorApplied, snapId, List.length_nil]; word
     unfold memStorMeta
-    iexists n, voters
+    iexists n, cl.voters
     iframe # ∗
+    iapply ownCSL_csro $$ Hvoters'
 
 end proof
 

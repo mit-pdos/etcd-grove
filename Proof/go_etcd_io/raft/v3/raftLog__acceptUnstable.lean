@@ -61,9 +61,9 @@ theorem raftLog.acceptUnstable.wp_proof
   wp_apply wp_unstable_acceptInProgress _ (unstableOf lv ls) Hcontig Hnw' $$ [$Hun]
     as %nip ⟨Hun, %Hnip⟩
   obtain ⟨Hip0, Hip1⟩ := Hnip
-  iclear Husnap Hu_logger
+  iclear Husnap Hpksn Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huoff, %Hipv⟩
+    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Hipv⟩
   -- the new `offsetInProgress` is the end of the log
   have Hend : uint.Z uv'.offsetInProgress'
       = uint.Z lv.unstable'.offset' + (ls.uents.length : Int) := by

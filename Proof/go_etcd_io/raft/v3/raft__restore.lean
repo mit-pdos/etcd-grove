@@ -438,7 +438,7 @@ theorem raft.restore.wp_proof
     ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
       %(LogGhOk.of_snap (by simp [logRestore]))
-    generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapId sv) } : NState) = s1
+    generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapTrip sv cl) } : NState) = s1
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
     wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩

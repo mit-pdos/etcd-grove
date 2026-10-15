@@ -490,8 +490,8 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
-      Hu_logger
+      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Huents_cap Hl_logger Hu_logger
 
 /-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
 theorem ownRaftPhysC_last_bound (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :

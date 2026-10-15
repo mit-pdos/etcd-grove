@@ -54,7 +54,7 @@ theorem campRoleState_logst (id : w64) (s : NState) (pre : Bool) :
 `lastEntryID()` returned when it was built, and the `Context` `cl` (2026-10-13: the
 leader-transfer marker, or nothing). -/
 def campReq (pre : Bool) (id y T : w64) (e : entryID) (cl : List w8) : Msg :=
-  Msg.mkV (vreqTy pre) id y T false e.index' e.term' (W64 0) (W64 0) [] [] cl
+  Msg.mkV (vreqTy pre) id y T false e.index' e.term' (W64 0) (W64 0) [] ∅ false cl
 
 /-- The message `campaign` sends on behalf of voter `y`: the self-addressed response
 when `y` is this node, a request otherwise. `send` panics on a self-addressed request,

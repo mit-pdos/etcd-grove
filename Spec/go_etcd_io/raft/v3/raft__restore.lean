@@ -76,7 +76,8 @@ abbrev snapCfg (sv : raftpb.Snapshot) (cl : CSLists) : CfgM :=
   csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext sv.Metadata'.ConfState'.AutoLeave'
 
 /-- The three exits of `restore`; see the file header. -/
-def RestoreResult (s : NState) (sv : raftpb.Snapshot) (b : Bool) (s' : NState) : Prop :=
+def RestoreResult (s : NState) (sv : raftpb.Snapshot) (cl : CSLists) (b : Bool) (s' : NState) :
+    Prop :=
   let ls := s.logst
   let es := ls.sents ++ ls.uents
   let sid := snapId sv
@@ -89,8 +90,8 @@ def RestoreResult (s : NState) (sv : raftpb.Snapshot) (b : Bool) (s' : NState) :
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧ b = true ∧
-   ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs, logst := logRestore ls sid,
-                               isLearner := il })
+   ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs,
+                               logst := logRestore ls (snapTrip sv cl), isLearner := il })
 
 /-- The configuration the node is at after `restore` (2026-10-14, reconfiguration stage A3; the
 snapshot's any `ConfState`'s since B8): the snapshot's when it restored (`b`), the one it was
@@ -126,7 +127,7 @@ abbrev raft.restore.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sv))
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗
-      ⌜RestoreResult s sv b s'⌝ }}
+      ⌜RestoreResult s sv cl b s'⌝ }}
 
 end spec
 

@@ -44,12 +44,16 @@ theorem NewRawNode.wp_proof
   -- `prevSoftSt` points to a `SoftState` nobody writes again
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as Hphys
-  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hgh, Hrst,
-    Hrpd, Hsdr', Hdom⟩ := Hpost
+  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hks, Hsg, Hgh,
+    Hrst, Hrpd, Hsdr', Hdom⟩ := Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have Hrel : NStateRel s initPState :=
     newRaft_post_init hs s Hhs ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ (by rw [Hp, Hprev])
       (by rw [Hse, Hents]) Hue (by rw [Hcm]; simp [committedAfter, Hhs, Hprev]) Hrst Hrpd
+      (by rw [Hks]; apply initKsn_zero
+          rcases Hss with h | h
+          · exact h
+          · rw [h, Hprev]; rfl)
   icases ownRaftPhysC_sdr _ r cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
   icases ownRaftPhysC_logwf _ r cv.ID' s $$ Hphys with ⟨%Hlw, Hphys⟩
   have Hdlen0 : ([] : List raftpb.Entry).length = (uint.Z s.logst.applying).toNat := by

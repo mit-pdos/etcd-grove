@@ -41,7 +41,7 @@ theorem MemoryStorage.Compact.wp_proof
   have Hσp : σp = σ := Hvw.2.2.2 Hidle
   subst Hσp
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, %voters,
+  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn,
     Hfields_inv⟩
   iNamed Hfields_inv
   icases Hents with #Hents
@@ -68,7 +68,7 @@ theorem MemoryStorage.Compact.wp_proof
       iexists σp
       iframe Hgs_inv
       isplitl
-      · iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn, voters
+      · iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn
         iframe # ∗
         ipureintro; exact ⟨Hsnap_id, Hd0i, Hd0t⟩
       ipureintro; exact Hpb_inv
@@ -83,14 +83,14 @@ theorem MemoryStorage.Compact.wp_proof
   ihave Hf : memstorageFields ms σp $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn, voters
+    iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn
     iframe # ∗
     ipureintro; exact ⟨Hsnap_id, Hd0i, Hd0t⟩
   wp_apply wp_MemoryStorage_lastIndex ms σp Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
   wp_if_destruct
   · exfalso; word
   iunfold memstorageFields at Hf
-  icases Hf with ⟨%hs1, %snap1, %es1, %dummy1, %nfi1, %nli1, %nen1, %nte1, %nsn1, %voters1, Hf⟩
+  icases Hf with ⟨%hs1, %snap1, %es1, %dummy1, %nfi1, %nli1, %nen1, %nte1, %nsn1, Hf⟩
   iNamedSuffix Hf "_1"
   obtain ⟨Hd1i, Hd1t⟩ := Hdummy_1
   icases Hents_1 with #Hents_1
@@ -173,7 +173,9 @@ theorem MemoryStorage.Compact.wp_proof
     iexists memStorCompacted σp ci e.Term'
     iframe Hgs_inv
     isplitl
-    · iexists hs1, snap1, es', d', nfi1, nli1, nen1, nte1, nsn1, voters1
+    · rw [show (memStorCompacted σp ci e.Term').scs = σp.scs from rfl,
+        show (memStorCompacted σp ci e.Term').sal = σp.sal from rfl]
+      iexists hs1, snap1, es', d', nfi1, nli1, nen1, nte1, nsn1
       iframe # ∗
       ipureintro
       exact ⟨Hsnap_id_1, by simp [d', memStorCompacted, Hei], rfl⟩

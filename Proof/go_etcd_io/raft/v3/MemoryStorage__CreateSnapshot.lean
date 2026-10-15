@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.CreateSnapshot.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) := by
-  intro ms γs σ hs snap i cs dq c data eood Hidle Hpre
+  intro ms γs σ hs snap i cs dq c cl data eood Hidle Hpre
   wp_start as ⟨Hms, Hmeta, Hcs, #Herr⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, %Hbounded⟩
@@ -43,7 +43,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   have Hσp : σp = σ := Hvw.2.2.2 Hidle
   subst Hσp
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs0, %snap0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, %voters1,
+  icases Hfields_inv with ⟨%hs0, %snap0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn,
     Hfields_inv⟩
   iNamed Hfields_inv
   -- the two halves of `snapshot` make the whole field
@@ -51,7 +51,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   subst Heq
   ihave Hsnap := (ptsto_halves _ _).2 $$ [Hsnapshot_m Hsnapshot]
   · iframe Hsnapshot_m Hsnapshot
-  have Hss : σp.ss.index' = snap.Metadata'.Index' := by rw [← Hsnap_id]; rfl
+  have Hss : σp.ss.index' = snap.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
   wp_auto
   wp_if_destruct
   · -- `ErrSnapOutOfDate`: nothing changes
@@ -65,7 +65,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       iexists σp
       iframe Hgs_inv
       isplitl
-      · iexists hs0, snap, es, dummy, nfi, nli, nen, nte, nsn, voters1
+      · iexists hs0, snap, es, dummy, nfi, nli, nen, nte, nsn
         iframe # ∗
         ipureintro; exact ⟨Hsnap_id, Hdummy⟩
       ipureintro; exact Hpb_inv
@@ -101,14 +101,14 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   ihave Hf : memstorageFields ms σp $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs0, snap, es, dummy, nfi, nli, nen, nte, nsn, voters1
+    iexists hs0, snap, es, dummy, nfi, nli, nen, nte, nsn
     iframe # ∗
     ipureintro; exact ⟨Hsnap_id, Hd0i, Hd0t⟩
   wp_apply wp_MemoryStorage_lastIndex ms σp Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
   wp_if_destruct
   · exfalso; word
   iunfold memstorageFields at Hf
-  icases Hf with ⟨%hs1, %snap1, %es1, %dummy1, %nfi1, %nli1, %nen1, %nte1, %nsn1, %voters2, Hf⟩
+  icases Hf with ⟨%hs1, %snap1, %es1, %dummy1, %nfi1, %nli1, %nen1, %nte1, %nsn1, Hf⟩
   iNamedSuffix Hf "_1"
   icombine Hsnapshot_m Hsnapshot_1 gives %Heq1
   subst Heq1
@@ -153,7 +153,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     imod memView_set γs σp σp
       { prev := σp.prev, ents := σp.ents, pend := σp.pend,
         ss := snapId (raftpb.Snapshot.mk data
-          (raftpb.SnapshotMetadata.mk snap.Metadata'.ConfState' i e.Term')) }
+          (raftpb.SnapshotMetadata.mk snap.Metadata'.ConfState' i e.Term')),
+        scs := σp.scs, sal := σp.sal }
       Hidle Hidle $$ Hview Hgs_inv with ⟨-, Hview, Hgs_inv⟩
     wp_method_call
     wp_call
@@ -165,9 +166,9 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       iexists _
       iframe Hgs_inv
       isplitl
-      · iexists hs1, _, es1, dummy1, nfi1, nli1, nen1, nte1, nsn1, voters2
+      · iexists hs1, _, es1, dummy1, nfi1, nli1, nen1, nte1, nsn1
         iframe # ∗
-        ipureintro; exact ⟨rfl, Hd1i, Hd1t⟩
+        ipureintro; exact ⟨⟨rfl, Hsnap_id_1.2⟩, Hd1i, Hd1t⟩
       ipureintro; exact Hpb_inv
     iapply HΦ
     isplitl [Hcs]
@@ -180,6 +181,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     · ipureintro; exact ⟨Hnew, Hterm, by simp [memSnapCreated], rfl⟩
     isplitl [Hview]
     · unfold ownMemoryStorage
+      simp only [Hif, ↓reduceIte, memSnapCreated, Option.getD_none, ← Hsnap_id_1.2]
       iframe # ∗
       ipureintro; exact Hbounded
     unfold memStorMeta
@@ -187,13 +189,14 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     simp only
     iframe # ∗
   -- `cs != nil`: the `ConfState` is `*cs`
-  icases Hcs with (%Hn | ⟨Hc, %vc, #Hcv⟩)
+  icases Hcs with (%Hn | ⟨Hc, #Hcv⟩)
   · exact absurd Hn Hif
   wp_auto
   icases (ptsto_halves _ _).1 $$ Hsnap with ⟨Hsnapshot_m, Hsnapshot⟩
   imod memView_set γs σp σp
     { prev := σp.prev, ents := σp.ents, pend := σp.pend,
-      ss := snapId (raftpb.Snapshot.mk data (raftpb.SnapshotMetadata.mk c i e.Term')) }
+      ss := snapId (raftpb.Snapshot.mk data (raftpb.SnapshotMetadata.mk c i e.Term')),
+      scs := cl, sal := c.AutoLeave' }
     Hidle Hidle $$ Hview Hgs_inv with ⟨-, Hview, Hgs_inv⟩
   wp_method_call
   wp_call
@@ -205,13 +208,13 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     iexists _
     iframe Hgs_inv
     isplitl
-    · ihave #Hcv' : ownCSRO (raftpb.Snapshot.mk data
-          (raftpb.SnapshotMetadata.mk c i e.Term')).Metadata'.ConfState' vc $$ []
+    · ihave #Hcv' : ownCSL (raftpb.Snapshot.mk data
+          (raftpb.SnapshotMetadata.mk c i e.Term')).Metadata'.ConfState' cl $$ []
       · iexact Hcv
       iexists hs1, raftpb.Snapshot.mk data (raftpb.SnapshotMetadata.mk c i e.Term'), es1, dummy1,
-        nfi1, nli1, nen1, nte1, nsn1, vc
+        nfi1, nli1, nen1, nte1, nsn1
       iframe # ∗
-      ipureintro; exact ⟨rfl, Hd1i, Hd1t⟩
+      ipureintro; exact ⟨⟨rfl, rfl⟩, Hd1i, Hd1t⟩
     ipureintro; exact Hpb_inv
   iapply HΦ
   isplitl [Hc]
@@ -222,11 +225,13 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   · ipureintro; exact ⟨Hnew, Hterm, by simp [memSnapCreated, Hif], rfl⟩
   isplitl [Hview]
   · unfold ownMemoryStorage
+    simp only [Hif, ↓reduceIte, memSnapCreated, Option.getD_some]
     iframe # ∗
     ipureintro; exact Hbounded
   unfold memStorMeta
-  iexists n, vc
+  iexists n, cl.voters
   iframe # ∗
+  iapply ownCSL_csro $$ Hcv
 
 end proof
 

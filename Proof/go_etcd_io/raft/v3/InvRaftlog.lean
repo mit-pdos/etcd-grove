@@ -139,6 +139,8 @@ structure UnstableSt [FfiSyntax] where
   offset : w64
   inprogress : w64
   snap : Option entryID
+  /-- (2026-10-15, stage S) the log's `ksn`, ghost: the pending snapshot is in it (`pendKsn`) -/
+  ksn : List SnapTrip
 
 /-- The state at which a `raftLog` at struct value `lv` and state `ls` hands its
 `unstable` field to an `unstable` method: the suffix `ls.uents`, starting at the
@@ -151,7 +153,7 @@ fields; `omega` does not, and a proof hands it projections rewritten by `simp on
 [unstableOf]` (or uses `word`, which rewrites them with the projection lemmas). -/
 abbrev unstableOf [FfiSyntax] (lv : raftLog) (ls : LogState) : UnstableSt :=
   { ents := ls.uents, offset := lv.unstable'.offset', inprogress := ls.inprogress,
-    snap := ls.snap }
+    snap := ls.snap, ksn := ls.ksn }
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -253,6 +255,37 @@ instance ownSnap_pers (p : Loc) (snap : Option entryID) :
     Persistent (ownSnap (GF := GF) p snap) := by
   rw [ownSnap_unseal]; cases snap <;> unfold ownSnapDef <;> infer_instance
 
+/-- The snapshots a log built on the storage at `σ` may send at first (2026-10-15, stage S): the
+storage's, unless it is the empty one. -/
+def initKsn (σ : StorState) : List SnapTrip :=
+  if σ.ss.index' = W64 0 then [] else [SnapTrip.mk σ.ss σ.scs σ.sal]
+
+theorem initKsn_mem (σ : StorState) (h : σ.ss.index' ≠ W64 0) :
+    SnapTrip.mk σ.ss σ.scs σ.sal ∈ initKsn σ := by
+  unfold initKsn; rw [if_neg h]; exact List.mem_singleton_self _
+
+theorem initKsn_zero (σ : StorState) (h : uint.Z σ.ss.index' = 0) : initKsn σ = [] := by
+  have : σ.ss.index' = W64 0 := by word
+  simp [initKsn, this]
+
+/-- The snapshots the node may send (2026-10-15, stage S): the pending snapshot, if any, is one
+of them (`K`, the log's `ksn`) -- what `raftLog.snapshot` returns of it, the snapshot `p`
+points to with the lists behind its `ConfState`, is in `K`. -/
+def pendKsn (p : Loc) (snap : Option entryID) (K : List SnapTrip) : IProp GF :=
+  iprop(□ ∀ (sid : entryID), ⌜snap = some sid⌝ -∗ ∃ (sv : raftpb.Snapshot) (cl : CSLists),
+    p ↦□ sv ∗ ⌜snapId sv = sid⌝ ∗ ownCSL sv.Metadata'.ConfState' cl ∗ ⌜snapTrip sv cl ∈ K⌝)
+
+instance pendKsn_pers (p : Loc) (snap : Option entryID) (K : List SnapTrip) :
+    Persistent (pendKsn (GF := GF) p snap K) := by
+  unfold pendKsn; infer_instance
+
+/-- With no snapshot pending, nothing to say. -/
+theorem pendKsn_none (p : Loc) (K : List SnapTrip) : ⊢ pendKsn (GF := GF) p none K := by
+  unfold pendKsn
+  imodintro
+  iintro %sid %h
+  cases h
+
 /-! ## The `unstable` struct
 
 `ownUnstable u us` owns the `unstable` at `u` -- in the development always the
@@ -283,6 +316,8 @@ def ownUnstable (u : Loc) (us : UnstableSt) : IProp GF :=
   "Hents_cap" ∷ ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
   "Hents" ∷ uv.entries' ↦*□ us.ents ∗
   "#Hsnap" ∷ ownSnap uv.snapshot' us.snap ∗
+  -- (2026-10-15, stage S)
+  "#Hpksn" ∷ pendKsn uv.snapshot' us.snap us.ksn ∗
   "#Hlogger" ∷ isLoggerVal uv.logger' ∗
   "%Hoff" ∷ ⌜uv.offset' = us.offset⌝ ∗
   "%Hoip" ∷ ⌜uv.offsetInProgress' = us.inprogress⌝)
@@ -292,16 +327,17 @@ that `iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger` fixes the va
 entries and the snapshot from the hypotheses and leaves the two `offset`s as the
 goal. -/
 theorem ownUnstable_intro (u : Loc) (uv : unstable) (ents : List raftpb.Entry)
-    (off ip : w64) (snap : Option entryID) :
+    (off ip : w64) (snap : Option entryID) (K : List SnapTrip) :
     ⊢ (u ↦ uv : IProp GF) -∗ ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) -∗
-      uv.entries' ↦*□ ents -∗ ownSnap uv.snapshot' snap -∗ isLoggerVal uv.logger' -∗
+      uv.entries' ↦*□ ents -∗ ownSnap uv.snapshot' snap -∗ pendKsn uv.snapshot' snap K -∗
+      isLoggerVal uv.logger' -∗
       ⌜uv.offset' = off ∧ uv.offsetInProgress' = ip⌝ -∗
-      ownUnstable u ⟨ents, off, ip, snap⟩ := by
-  iintro Hu Hents_cap #Hents #Hsnap #Hlogger %H
+      ownUnstable u ⟨ents, off, ip, snap, K⟩ := by
+  iintro Hu Hents_cap #Hents #Hsnap #Hpksn #Hlogger %H
   unfold ownUnstable
   iexists uv
   simp only [named]
-  iframe Hu Hents_cap Hents Hsnap Hlogger
+  iframe Hu Hents_cap Hents Hsnap Hpksn Hlogger
   ipureintro
   exact H
 
@@ -314,13 +350,14 @@ theorem ownUnstable_open (u : Loc) (us : UnstableSt) :
     ⊢ ownUnstable u us -∗ ∃ (uv : unstable),
       (u ↦ { uv with offset' := us.offset, offsetInProgress' := us.inprogress } : IProp GF) ∗
       ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗ uv.entries' ↦*□ us.ents ∗
-      ownSnap uv.snapshot' us.snap ∗ isLoggerVal uv.logger' := by
+      ownSnap uv.snapshot' us.snap ∗ pendKsn uv.snapshot' us.snap us.ksn ∗
+      isLoggerVal uv.logger' := by
   iintro Hun
   iunfold ownUnstable at Hun
   iNamed Hun
   iexists uv
   rw [← Hoff, ← Hoip]
-  iframe Hu Hents_cap Hents Hsnap Hlogger
+  iframe Hu Hents_cap Hents Hsnap Hpksn Hlogger
 
 /-- How the visible log relates to what `Storage` holds, by whether a snapshot is
 pending. The storage holds `σ.ents` after `σ.prev` (`ownStorage`).
@@ -471,6 +508,10 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "HStorage" ∷ ownStorage lv.storage' σ ∗
   "%Hstore" ∷ ⌜LogStoreOk ls.snap σ ls.prev ls.sents ls.uents⌝ ∗
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
+  -- (2026-10-15, stage S) the snapshots `raftLog.snapshot` may return are ones the node may
+  -- send (`ksn`): the storage's, once it is not the empty one, and the pending one
+  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn⌝ ∗
+  "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
                  = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1⌝ ∗
   "Huents" ∷ lv.unstable'.entries' ↦*□ ls.uents ∗
@@ -515,7 +556,7 @@ fix `ls` to the state the hypotheses were opened at before the goal's (new) stat
 seen. (Until 2026-10-09 it took the state as eleven field variables and the storage as
 three.) -/
 theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState)
-    (snap : Option entryID) (uents : List raftpb.Entry) (ls : LogState) :
+    (snap : Option entryID) (uents : List raftpb.Entry) (ls : LogState) {K : List SnapTrip} :
     lv.storage' = st →
     lv.committed' = ls.committed →
     lv.applied' = ls.applied →
@@ -541,27 +582,31 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     lv.maxApplyingEntsSize' = ls.apmax →
     lv.storage' = ls.storage →
     PendLogOk σ ls →
+    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn) →
     ls.snap = snap →
     ls.uents = uents →
+    ls.ksn = K →
     ⊢ l ↦ lv -∗
       isStorage (GF := GF) st -∗
       ownStorage st σ -∗
       ownSnap lv.unstable'.snapshot' snap -∗
+      pendKsn lv.unstable'.snapshot' snap K -∗
       lv.unstable'.entries' ↦*□ uents -∗
       ownSliceCap raftpb.Entry lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
       isLoggerVal lv.unstable'.logger' -∗
       ownRaftLog l ls := by
   intro Hst Hcm Hap Hidx Hnowrap Hstore Hoffset Happlied Hpapplied
-    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hsnap Huents
-  subst Hst Hsnap Huents
-  iintro Hl #HisStorage HStorage #Husnap #Huents Huents_cap #Hl_logger #Hu_logger
+    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hsksn Hsnap
+    Huents HK
+  subst Hst Hsnap Huents HK
+  iintro Hl #HisStorage HStorage #Husnap #Hpksn #Huents Huents_cap #Hl_logger #Hu_logger
   unfold ownRaftLog
   iexists lv, σ
   simp only [named]
-  iframe Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger
+  iframe Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
   ipureintro
-  exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hoffset, Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend⟩
+  exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hsksn, Hoffset, Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend⟩
 
 /-- The struct, for a field read. `committed` and `applied` are what the state says
 they are. -/
@@ -579,7 +624,7 @@ theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
   · iintro Hl
     iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- Read a pure fact of `ownRaftLog` out of it, without consuming it, from the facts
@@ -608,7 +653,7 @@ theorem ownRaftLog_pure (l : Loc) (ls : LogState) (φ : Prop)
       Hipb Happlying
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- The `Ready`-side facts, read out without consuming the log: `inprogress` between
@@ -678,8 +723,8 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
     ⟨rfl, fun _ e0 He0 => by simp at He0⟩
   iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
     Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hssnap' Hapg Hip Hipb
-    Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' rfl rfl $$ Hl HisStorage HStorage Husnap
-    Huents Huents_cap Hl_logger Hu_logger
+    Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hsksn rfl rfl rfl $$ Hl HisStorage HStorage
+    Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
 
 /-- `Hnowrap`, read out without consuming the log. Needed to know `lastIndex() + 1`
 does not wrap, which is what makes the range premises of `raftLog.slice` and
@@ -914,14 +959,15 @@ theorem ownUnstable_reopen (l : Loc) (lv : raftLog) (us : UnstableSt) :
       ownUnstable l.[raftLog, go!"unstable"] us -∗
       ∃ uv, l ↦ { lv with unstable' := uv } ∗
         ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
-        uv.entries' ↦*□ us.ents ∗ ownSnap uv.snapshot' us.snap ∗ isLoggerVal uv.logger' ∗
+        uv.entries' ↦*□ us.ents ∗ ownSnap uv.snapshot' us.snap ∗
+        pendKsn uv.snapshot' us.snap us.ksn ∗ isLoggerVal uv.logger' ∗
         ⌜uv.offset' = us.offset⌝ ∗ ⌜uv.offsetInProgress' = us.inprogress⌝ := by
   iintro Hlback Hun
   iunfold ownUnstable at Hun
   iNamed Hun
   ihave Hl := Hlback $$ Hu
   iexists uv
-  iframe Hl Hents_cap Hents Hsnap Hlogger
+  iframe Hl Hents_cap Hents Hsnap Hpksn Hlogger
   ipureintro
   exact ⟨Hoff, Hoip⟩
 
@@ -936,15 +982,16 @@ theorem raftLog_lend_unstable (l : Loc) (lv : raftLog) (ls : LogState) :
       ownSliceCap raftpb.Entry lv.unstable'.entries' (DFrac.own 1) -∗
       lv.unstable'.entries' ↦*□ ls.uents -∗
       ownSnap lv.unstable'.snapshot' ls.snap -∗
+      pendKsn lv.unstable'.snapshot' ls.snap ls.ksn -∗
       isLoggerVal lv.unstable'.logger' -∗
       ownUnstable l.[raftLog, go!"unstable"] (unstableOf lv ls) ∗
       (∀ uv, l.[raftLog, go!"unstable"] ↦ uv -∗ l ↦ { lv with unstable' := uv }) := by
   intro Hip
-  iintro Hl Hcap #Hents #Hsnap #Hlogger
+  iintro Hl Hcap #Hents #Hsnap #Hpksn #Hlogger
   icases raftLog_split_unstable l lv $$ Hl with ⟨Huf, Hlback⟩
   iframe Hlback
   unfold unstableOf
-  iapply ownUnstable_intro $$ Huf Hcap Hents Hsnap Hlogger
+  iapply ownUnstable_intro $$ Huf Hcap Hents Hsnap Hpksn Hlogger
   ipureintro
   exact ⟨rfl, Hip⟩
 
@@ -956,7 +1003,8 @@ theorem ownUnstable_return (l : Loc) (lv : raftLog) (ls : LogState) :
       ownUnstable l.[raftLog, go!"unstable"] (unstableOf lv ls) -∗
       ∃ uv, l ↦ { lv with unstable' := uv } ∗
         ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
-        uv.entries' ↦*□ ls.uents ∗ ownSnap uv.snapshot' ls.snap ∗ isLoggerVal uv.logger' ∗
+        uv.entries' ↦*□ ls.uents ∗ ownSnap uv.snapshot' ls.snap ∗
+        pendKsn uv.snapshot' ls.snap ls.ksn ∗ isLoggerVal uv.logger' ∗
         ⌜uv.offset' = lv.unstable'.offset'⌝ ∗ ⌜uv.offsetInProgress' = ls.inprogress⌝ :=
   ownUnstable_reopen l lv (unstableOf lv ls)
 
@@ -968,7 +1016,7 @@ set_option hygiene false in
 (Rocq `try done`; a plain `assumption` runs out of recursion depth on the `2^64`
 bounds), or, after `reopen_unstable`, by the same once rewritten with `Huoff`. -/
 macro "reseal_raftLog" : tactic =>
-  `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger Hu_logger) <;>
+  `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger) <;>
     try (first | with_reducible rfl | with_reducible assumption
                | ((rewrite [Huoff]); with_reducible assumption)
                -- the storage and its pending batch (2026-10-10), for a state that
@@ -985,7 +1033,7 @@ and substituted the value's fields for the record's.) -/
 macro "open_unstable" : tactic =>
   `(tactic| (
     icases Perennial.EtcdGrove.ownUnstable_open _ _ $$ Hun
-      with ⟨%uv, Hu, Hents_cap, Hents, #Hsnap, #Hlogger⟩))
+      with ⟨%uv, Hu, Hents_cap, Hents, #Hsnap, #Hpksn, #Hlogger⟩))
 
 set_option hygiene false in
 /-- Reopen `Hun` after the proof of an `unstable` method handed it, closed by
@@ -1002,7 +1050,7 @@ set_option hygiene false in
 construction. -/
 macro "close_unstable" : tactic =>
   `(tactic| (
-    iapply Perennial.EtcdGrove.ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger
+    iapply Perennial.EtcdGrove.ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
     ipureintro
     exact ⟨rfl, rfl⟩))
 
@@ -1014,7 +1062,7 @@ with `Hlback` the wand that takes it back. (Since 2026-10-09; until then
 macro "lend_unstable" : tactic =>
   `(tactic| (
     icases Perennial.EtcdGrove.raftLog_lend_unstable _ _ _ Hip $$ Hl Huents_cap Huents Husnap
-      Hu_logger with ⟨Hun, Hlback⟩))
+      Hpksn Hu_logger with ⟨Hun, Hlback⟩))
 
 set_option hygiene false in
 /-- After a `raftLog` method has lent the `unstable` field (`lend_unstable`) to an
@@ -1026,10 +1074,10 @@ new value `uv'`, `Huents_cap`, `Huents`, `Husnap` and `Hu_logger` are its pieces
 as before. -/
 macro "reopen_unstable" : tactic =>
   `(tactic| (
-    iclear Husnap Hu_logger
+    iclear Husnap Hpksn Hu_logger
     clear Hip
     icases Perennial.EtcdGrove.ownUnstable_return _ _ _ $$ Hlback Hun
-      with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huoff, %Hip⟩))
+      with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Hip⟩))
 
 end EtcdGrove
 end Perennial

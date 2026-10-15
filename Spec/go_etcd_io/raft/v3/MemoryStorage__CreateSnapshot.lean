@@ -32,9 +32,9 @@ bound is in the method's documentation
 (issues/raft-memorystorage-createsnapshot-bounds.md).
 
 Like `ApplySnapshot`, it takes `ownMemoryStorage` with nothing pending and
-`memStorMeta`; a non-`nil` `cs` comes with its four slices read-only (`ownCSRO`; until
-2026-10-14 only `Voters`: a joint `ConfState`'s other slices are what `confchange.Restore`
-reads too) -- the stored snapshot's `ConfState` is the storage's, its slices read-only for
+`memStorMeta`; a non-`nil` `cs` comes with its four slices read-only (`ownCSL`, with their lists
+`cl`, which the new state records: 2026-10-15, stage S; until 2026-10-14 only `Voters`: a joint
+`ConfState`'s other slices are what `confchange.Restore` reads too) -- the stored snapshot's `ConfState` is the storage's, its slices read-only for
 good -- and is given back. The error variable's value is passed in, as `Snapshot`'s spec
 does for its error.
 
@@ -47,7 +47,7 @@ application proves before the call. -/
 abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (hs : raftpb.HardState)
     (snap : raftpb.Snapshot) (i : w64) (cs : Loc) (dq : DFrac) (c : raftpb.ConfState)
-    (data : GoSlice) (eood : GoInterface),
+    (cl : CSLists) (data : GoSlice) (eood : GoInterface),
   σ.pend = [] →
   (uint.Z σ.ss.index' < uint.Z i →
     uint.Z σ.prev.index' ≤ uint.Z i ∧
@@ -55,7 +55,7 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Hmeta" ∷ memStorMeta ms γs hs snap ∗
-      "Hcs" ∷ (⌜cs = null⌝ ∨ cs ↦{dq} c ∗ ∃ (voters : List w64), ownCSRO c voters) ∗
+      "Hcs" ∷ (⌜cs = null⌝ ∨ cs ↦{dq} c ∗ ownCSL c cl) ∗
       "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot"))
       (Val #i)) (Val #cs)) (Val #data))
@@ -66,7 +66,9 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
       (∃ (t : w64), ⌜uint.Z σ.ss.index' < uint.Z i ∧ termAt σ.prev σ.ents i = some t ∧
           snap' = memSnapCreated snap i t (if cs = null then none else some c) data ∧
           err = interface.nil⌝ ∗
-        ownMemoryStorage ms γs { σ with ss := snapId snap' } ∗ memStorMeta ms γs hs snap')) }}
+        ownMemoryStorage ms γs { σ with ss := snapId snap', scs := if cs = null then σ.scs else cl,
+                                        sal := snap'.Metadata'.ConfState'.AutoLeave' } ∗
+        memStorMeta ms γs hs snap')) }}
 
 end spec
 

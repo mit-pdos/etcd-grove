@@ -66,6 +66,10 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · iapply (ownSnap_None _).2; ipureintro; rfl
     isplitr
+    · ipureintro; exact initKsn_mem σ
+    isplitr
+    · iapply pendKsn_none
+    isplitr
     · ipureintro; word
     isplitr
     · iapply ownSlice_nil

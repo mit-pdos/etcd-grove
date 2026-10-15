@@ -71,9 +71,9 @@ theorem raftLog.stableTo.wp_proof
   wp_apply wp_unstable_stableTo _ (unstableOf lv ls) id Hsoff Hnw' $$ [$Hun]
     as %us' ⟨Hun, %Hus'⟩
   obtain ⟨Hhit, Hmiss⟩ := Hus'
-  iclear Husnap Hu_logger
+  iclear Husnap Hpksn Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hu_logger, %Huoff, %Huoip⟩
+    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Huoip⟩
   iapply HΦ
   have Hiff := stableHit_unstable lv ls id Hoffset
   unfold logStableTo

@@ -30,19 +30,20 @@ It changes what raft reads, so it takes the owner's `ownMemoryStorage` with noth
 pending (no `Ready`'s entries being appended), and `memStorMeta`. The premises: the
 snapshot's index is below `2^61` (`ownMemoryStorage`'s bound; a client assumption, as
 `Append`'s), and its `ConfState`'s four slices are read-only, for good (`ownCSRO`, as
-`memstorageFields` holds them; until 2026-10-14 only `Voters`). The snapshot stored, and held
+`memstorageFields` holds them; until 2026-10-14 only `Voters`), with their lists `cl`, which the
+new state records (2026-10-15, stage S: `memStorApplied snap' cl`). The snapshot stored, and held
 by the new `memStorMeta`, is `snap'` itself, `ConfState` included: A3 (`SnapObl`,
 `SnapConf.lean`) is the application's to show of `snap'` before the call. The error variable's value is passed in, as `Snapshot`'s
 spec does for its error. -/
 abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (hs : raftpb.HardState)
-    (snap snap' : raftpb.Snapshot) (voters : List w64) (eood : GoInterface),
+    (snap snap' : raftpb.Snapshot) (cl : CSLists) (eood : GoInterface),
   σ.pend = [] →
   uint.Z snap'.Metadata'.Index' < 2^61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Hmeta" ∷ memStorMeta ms γs hs snap ∗
-      "#Hvoters" ∷ ownCSRO snap'.Metadata'.ConfState' voters ∗
+      "#Hvoters" ∷ ownCSL snap'.Metadata'.ConfState' cl ∗
       "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot"))
       (Val #snap'))
@@ -52,7 +53,7 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
         ownMemoryStorage ms γs σ ∗ memStorMeta ms γs hs snap) ∨
       (⌜¬ (σ.ss.index' ≠ W64 0 ∧ uint.Z snap'.Metadata'.Index' ≤ uint.Z σ.ss.index') ∧
           err = interface.nil⌝ ∗
-        ownMemoryStorage ms γs (memStorApplied snap') ∗ memStorMeta ms γs hs snap') }}
+        ownMemoryStorage ms γs (memStorApplied snap' cl) ∗ memStorMeta ms γs hs snap') }}
 
 end spec
 

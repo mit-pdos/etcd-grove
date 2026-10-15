@@ -185,10 +185,10 @@ theorem raftLog.term.wp_proof
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
-      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend
+      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hsksn
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
       Hl_logger
-      Hu_logger Husnap
+      Hu_logger Husnap Hpksn
     clear lv uv' isv fi li σ
     iNamed Hlog
     wp_auto

@@ -59,8 +59,9 @@ private theorem logTruncateAppend_fields (ls : LogState) (ents : List raftpb.Ent
     (logTruncateAppend ls ents).snap = ls.snap ∧
     (logTruncateAppend ls ents).unpersisted = ls.unpersisted ∧
     (logTruncateAppend ls ents).stored = ls.stored ∧
-    (logTruncateAppend ls ents).storage = ls.storage := by
-  cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    (logTruncateAppend ls ents).storage = ls.storage ∧
+    (logTruncateAppend ls ents).ksn = ls.ksn := by
+  cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- A matched entry is inside the log. -/
 private theorem matches_le_last (b : entryID) (es : List raftpb.Entry) (id : entryID) :

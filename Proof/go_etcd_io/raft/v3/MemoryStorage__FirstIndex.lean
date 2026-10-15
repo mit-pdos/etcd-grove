@@ -44,7 +44,7 @@ theorem MemoryStorage.FirstIndex.wp_proof
   wp_auto
   ihave Hf : memstorageFields ms σ0 $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, _, nli, nen, nte, nsn, voters
+    iexists hs, snap, es, dummy, _, nli, nen, nte, nsn
     iframe
     ipureintro; exact ⟨Hsnap_id, Hdummy⟩
   wp_apply wp_MemoryStorage_firstIndex ms σ0 Hpb_inv $$ [$Hf] as %fi ⟨%Hfi, Hf⟩

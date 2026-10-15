@@ -67,7 +67,7 @@ theorem raft.sendHeartbeat.wp_proof
       Entries' := slice.nil, Commit' := cm, Vote' := 0, Snapshot' := null, Reject' := false,
       RejectHint' := 0, Context' := ctx, Responses' := slice.nil }
   have Hok : SendOk id s hb [] cl
-      [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl] :=
+      [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] ∅ false cl] :=
     Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, rfl⟩)
   wp_apply wp_raft_send c r id s hb [] cl _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
   · isplitr

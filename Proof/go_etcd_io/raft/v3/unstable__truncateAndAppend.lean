@@ -83,7 +83,7 @@ theorem unstable.truncateAndAppend.wp_proof
     iapply HΦ
     rw [List.take_of_length_le (by omega)]
     isplitl [Hu Hents_cap Hents]
-    · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger
+    · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
       ipureintro
       constructor
       · unfold w64Min; rw [if_neg (by omega)]
@@ -114,7 +114,7 @@ theorem unstable.truncateAndAppend.wp_proof
     rw [show (uint.Z e0.Index' - uint.Z us.offset).toNat = 0 by omega, List.take_zero,
       List.nil_append]
     isplitl
-    · iapply ownUnstable_intro $$ Hu Hcap Hes Hsnap Hlogger
+    · iapply ownUnstable_intro $$ Hu Hcap Hes Hsnap Hpksn Hlogger
       ipureintro
       constructor
       · unfold w64Min
@@ -155,7 +155,7 @@ theorem unstable.truncateAndAppend.wp_proof
   wp_if_destruct <;>
   · iapply HΦ
     isplitl [Hu Hsl_cap Hsl]
-    · iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hlogger
+    · iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hpksn Hlogger
       ipureintro
       constructor
       · unfold w64Min; rw [if_neg (by omega)]

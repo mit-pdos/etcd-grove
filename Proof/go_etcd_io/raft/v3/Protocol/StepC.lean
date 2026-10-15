@@ -546,7 +546,7 @@ inductive StepC : PState → List Msg → PState → Prop where
       StepC s [m]
         (psendMsgs s
           [Msg.mkV .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
-             m.rejecthint m.entries [] m.ctx])
+             m.rejecthint m.entries ∅ false m.ctx])
   | snapRestore (m : Msg) (s : PState) :
       m.ty = .snap →
       m.dst = id →
@@ -558,7 +558,8 @@ inductive StepC : PState → List Msg → PState → Prop where
       StepC s [m]
         (psendMsgs
           { padoptLeader s m.src with
-              base := entryID.mk m.logterm m.index, log := [], commit := m.index }
+              base := entryID.mk m.logterm m.index, log := [], commit := m.index,
+              snaps := s.snaps ++ [m.trip] }
           [Msg.mk .appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []])
   | snapFastfwd (m : Msg) (s : PState) :
       m.ty = .snap →

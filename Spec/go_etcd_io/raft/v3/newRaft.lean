@@ -169,6 +169,8 @@ abbrev newRaft.spec : Prop :=
         s.logst.applying = w64Max σ.prev.index'
           (if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied') ∧
         s.logst.unpersisted = [] ∧ s.logst.snap = none ∧
+        -- (2026-10-15, stage S) the snapshots it may send: the storage's, unless empty
+        s.logst.ksn = initKsn σ ∧
         -- the storage it reads (2026-10-10, for `RNState.storage`)
         s.logst.storage = interface.ok si ∧
         -- no ghost lower bound yet (2026-10-10, `NGhost`)

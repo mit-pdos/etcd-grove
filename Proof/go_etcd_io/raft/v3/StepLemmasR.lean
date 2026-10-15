@@ -177,7 +177,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
       StepCF s [m]
         (psendMsgs s
           [Msg.mkV .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
-             m.rejecthint m.entries [] m.ctx])
+             m.rejecthint m.entries ∅ false m.ctx])
   | snapFastfwd (m : Msg) (s : PState) :
       m.ty = .snap →
       m.dst = id →
@@ -630,7 +630,8 @@ theorem stepR_snap_restore {Adm : List raftpb.Entry → CCState → Prop} {dec :
     (h8 : FullOk (entryID.mk m.logterm m.index) fp') (h9 : id ∈ cs'.cfg.ids) (h10 : Adm fp' cs')
     (Hp : toPState s' = psendMsgs
       { padoptLeader (toPState s) m.src with
-          base := entryID.mk m.logterm m.index, log := [], commit := m.index }
+          base := entryID.mk m.logterm m.index, log := [], commit := m.index,
+          snaps := (toPState s).snaps ++ [m.trip] }
       [Msg.mk .appResp id m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []])
     (Ha : s'.logst.applied = s.logst.applied) (Hsn : s'.logst.snap.isSome = true)
     (Hl' : s'.role ≠ .leader) :
@@ -642,7 +643,8 @@ theorem stepR_snap_restore {Adm : List raftpb.Entry → CCState → Prop} {dec :
       { rOf s g with
         p := psendMsgs
           { padoptLeader (rOf s g).p m.src with
-              base := entryID.mk m.logterm m.index, log := [], commit := m.index }
+              base := entryID.mk m.logterm m.index, log := [], commit := m.index,
+              snaps := (rOf s g).p.snaps ++ [m.trip] }
           [Msg.mk .appResp id m.src (rOf s g).p.term false m.index (W64 0) (W64 0) (W64 0) []]
         snap := true
         cidx := uint.nat m.index

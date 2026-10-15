@@ -281,7 +281,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [m] { r with
         p := psendMsgs r.p
           [Msg.mkV .propose id r.p.lead (W64 0) m.reject m.index m.logterm m.commit
-             m.rejecthint m.entries [] m.ctx] }
+             m.rejecthint m.entries ∅ false m.ctx] }
   | snapRestore (m : Msg) (r : RState) (fp' : List raftpb.Entry) (cs' : CCState) :
       m.ty = .snap →
       m.dst = id →
@@ -296,7 +296,8 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [m] { r with
         p := psendMsgs
           { padoptLeader r.p m.src with
-              base := entryID.mk m.logterm m.index, log := [], commit := m.index }
+              base := entryID.mk m.logterm m.index, log := [], commit := m.index,
+              snaps := r.p.snaps ++ [m.trip] }
           [Msg.mk .appResp id m.src r.p.term false m.index (W64 0) (W64 0) (W64 0) []]
         snap := true
         cidx := uint.nat m.index

@@ -39,7 +39,7 @@ theorem MemoryStorage.Snapshot.wp_proof :
   -- the contents have the view's snapshot (2026-10-10)
   icases memView_agree γs σ σ0 $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, %voters, Hfields_inv⟩
+  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
   icases Hvoters with #Hvoters
@@ -51,7 +51,7 @@ theorem MemoryStorage.Snapshot.wp_proof :
     iexists σ0
     iframe Hgs_inv
     isplitl
-    · iexists hs, snap, es, dummy, _, _, _, _, _, voters
+    · iexists hs, snap, es, dummy, _, _, _, _, _
       iframe # ∗
       ipureintro; exact ⟨Hsnap_id, Hdummy⟩
     ipureintro; exact Hpb_inv
@@ -63,8 +63,8 @@ theorem MemoryStorage.Snapshot.wp_proof :
   iright
   isplitr
   · ipureintro
-    exact ⟨rfl, Hsnap_id.trans Hvw.2.1⟩
-  iapply ownCSRO_csl
+    exact ⟨rfl, Hsnap_id.1.trans Hvw.2.1.1, Hsnap_id.2.trans Hvw.2.1.2.2⟩
+  rw [← Hvw.2.1.2.1]
   iexact Hvoters
 
 end proof

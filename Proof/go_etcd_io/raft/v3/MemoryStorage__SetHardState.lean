@@ -36,7 +36,7 @@ theorem MemoryStorage.SetHardState.wp_proof :
   icases Hinv with ⟨%σp, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs0, %snap0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, %voters0,
+  icases Hfields_inv with ⟨%hs0, %snap0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn,
     Hfields_inv⟩
   iNamedSuffix Hfields_inv "_f"
   icombine HhardState HhardState_f gives %Heq
@@ -55,7 +55,7 @@ theorem MemoryStorage.SetHardState.wp_proof :
     iexists σp
     iframe Hgs_inv
     isplitl
-    · iexists st, snap0, es, dummy, nfi, nli, nen, nte, nsn, voters0
+    · iexists st, snap0, es, dummy, nfi, nli, nen, nte, nsn
       iframe
       ipureintro; exact ⟨Hsnap_id_f, Hdummy_f⟩
     ipureintro; exact Hpb_inv

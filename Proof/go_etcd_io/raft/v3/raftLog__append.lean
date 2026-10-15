@@ -151,9 +151,9 @@ theorem raftLog.append.wp_proof
     wp_apply wp_unstable_truncateAndAppend _ (unstableOf lv ls) _ _ _ _ He0 Hle' Hnw'
         $$ [$Hun $Hes Hadopt] as ⟨Hun, Hes⟩
     · iexact Hadopt
-    iclear Husnap Hu_logger
+    iclear Husnap Hpksn Hu_logger
     icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-      with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hu_logger, %Hoffm, %Hoip'⟩
+      with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hpksn, #Hu_logger, %Hoffm, %Hoip'⟩
     have Hoff' : uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z lv.unstable'.offset') := by
       rw [Hoffm, w64Min_spec]
     -- the new state
@@ -267,8 +267,8 @@ theorem raftLog.append.wp_proof
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
           Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 ?_ ?_
-        $$ Hl HisStorage HStorage Husnap Hents Hents_cap Hl_logger Hu_logger
+          Hstor Hpend2 Hsksn ?_ ?_ ?_
+        $$ Hl HisStorage HStorage Husnap Hpksn Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     iapply HΦ $$ %li

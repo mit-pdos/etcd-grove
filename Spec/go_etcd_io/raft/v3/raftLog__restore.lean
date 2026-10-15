@@ -42,7 +42,8 @@ cannot fail): the snapshot is above the commit index (`raft.restore`'s first tes
 `applied <= committed` survives and the index is non-zero; and its index is below
 `2^61`, `LogStoreOk`'s bound for a pending snapshot (a transport premise of `Step`).
 The snapshot's `ConfState.Voters` are passed in read-only, for `ownSnap` (since
-2026-10-03). -/
+2026-10-03). (2026-10-15, stage S) The snapshot, with those lists (`snapTrip`), joins the ones
+the node may send (`logRestore`'s `ksn`). -/
 abbrev raftLog.restore.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (sv : raftpb.Snapshot) (voters : CSLists),
   uint.Z ls.committed < uint.Z (snapId sv).index' →
@@ -50,7 +51,7 @@ abbrev raftLog.restore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "#Hvoters" ∷ ownCSL sv.Metadata'.ConfState' voters }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"restore")) (Val #sv))
-  {{ RET #(); ownRaftLog l (logRestore ls (snapId sv)) }}
+  {{ RET #(); ownRaftLog l (logRestore ls (snapTrip sv voters)) }}
 
 end spec
 

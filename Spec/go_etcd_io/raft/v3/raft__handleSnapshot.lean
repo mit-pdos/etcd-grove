@@ -40,7 +40,7 @@ variable [FfiSyntax]
 
 /-- The three exits; see the file header. -/
 def HandleSnapResult (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (s' : NState) : Prop :=
+    (sv : raftpb.Snapshot) (cl : CSLists) (s' : NState) : Prop :=
   let ls := s.logst
   let es := ls.sents ++ ls.uents
   let sid := snapId sv
@@ -56,8 +56,8 @@ def HandleSnapResult (id : w64) (s : NState) (m : raftpb.Message)
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧
    ∃ prs pvs il,
-     s' = sendMsgs { s with progress := prs, prvals := pvs, logst := logRestore ls sid,
-                            isLearner := il }
+     s' = sendMsgs { s with progress := prs, prvals := pvs,
+                            logst := logRestore ls (snapTrip sv cl), isLearner := il }
             [appResp id s dst false sid.index' (W64 0) (W64 0)])
 
 /-- Whether `restore` restored the snapshot (its third exit): newer than the commit index, and
@@ -102,7 +102,7 @@ abbrev raft.handleSnapshot.spec : Prop :=
       "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' cl }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #m))
   {{ (s' : NState) (c' : CfgM), RET #();
-      ownRaftPhysCV c' c'.voters r id s' ∗ ⌜HandleSnapResult id s m sv s'⌝ ∗
+      ownRaftPhysCV c' c'.voters r id s' ∗ ⌜HandleSnapResult id s m sv cl s'⌝ ∗
       ⌜SnapCfgOk c s sv cl c'⌝ }}
 
 end spec

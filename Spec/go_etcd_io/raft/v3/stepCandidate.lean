@@ -93,7 +93,8 @@ def PrecandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.M
 /-- What `stepCandidate` does with `m`, by type; `dropped` as in `FollowerStepResult`
 (`Spec/stepFollower.lean`). For `MsgApp` the `Progress` values `becomeFollower`'s
 `reset` leaves are `pvs` (unconstrained: a follower's are invisible to `toPState`). -/
-def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+def CandidateStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
+    (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8 := []) : Prop :=
   if m.Type' = MsgVoteResp then
@@ -114,7 +115,7 @@ def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
   else if m.Type' = MsgSnap then
     dropped = false ∧
     ∃ (pvs : GMap w64 Progress), HandleSnapResult id
-      { becomeFollower s s.term m.From' with prvals := pvs } m sv s'
+      { becomeFollower s s.term m.From' with prvals := pvs } m sv scfg s'
   else if m.Type' = MsgPreVoteResp then
     dropped = false ∧
     (if s.role = .preCandidate then PrecandVoteRespResult cfg id s m s'
@@ -176,7 +177,7 @@ def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m 
      else if m.Type' = MsgSnap then
        dropped = false ∧
        ∃ (pvs : GMap w64 Progress), HandleSnapResult id
-         { becomeFollower s s.term m.From' with prvals := pvs } m sv s'
+         { becomeFollower s s.term m.From' with prvals := pvs } m sv scfg s'
      else if m.Type' = MsgPreVoteResp then
        dropped = false ∧
        (if s.role = .preCandidate then PrecandVoteRespResultC c id s m s'
@@ -210,7 +211,7 @@ theorem CandidateStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w6
     {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
     {cl : List w8} (hne : cfg ≠ ∅)
     (h : CandidateStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
-    CandidateStepResult cfg id s m ents sv dropped s' cl := by
+    CandidateStepResult cfg scfg id s m ents sv dropped s' cl := by
   obtain ⟨-, h⟩ := h
   unfold CandidateStepResult
   by_cases hV : m.Type' = MsgVoteResp

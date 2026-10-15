@@ -1590,6 +1590,74 @@ theorem dynOn_elim (γ : RaftNames) (P : IProp GF) (h : γ.reDyn ≠ none) : dyn
   · exact absurd H h
   · iexact H
 
+/-- The configuration a `ConfState`'s lists denote; `AutoLeave` only when joint (what
+`Restore` keeps of it). -/
+def csCfgM (vo v l ln : List w64) (al : Bool) : CfgM :=
+  { incoming := GMap.listToSet v, outgoing := GMap.listToSet vo,
+    learners := GMap.listToSet l, learnersNext := GMap.listToSet ln,
+    autoLeave := if vo = [] then false else al }
+
+/-- A well-formed `ConfState`: at least one voter, no `0` id (which `Changer.apply` skips),
+a learner neither an incoming nor an outgoing voter, a staged learner an outgoing voter that
+is neither an incoming voter nor a learner, no staged learner when not joint. These are
+`checkInvariants`' conditions on the configuration it denotes (`csCfgM_cfgInv`), with "a staged
+learner is no incoming voter", which every reachable configuration has (`CCGood`-like:
+`makeLearner` removes the id from the incoming voters before staging it, `makeVoter` unstages
+it). Duplicates are allowed (`Restore` is idempotent on them). -/
+def CSWf (vo v l ln : List w64) : Prop :=
+  v ≠ [] ∧
+  (∀ x, x ∈ vo ∨ x ∈ v ∨ x ∈ l ∨ x ∈ ln → x ≠ W64 0) ∧
+  (∀ x, x ∈ l → x ∉ v ∧ x ∉ vo) ∧
+  (∀ x, x ∈ ln → x ∈ vo ∧ x ∉ v ∧ x ∉ l) ∧
+  (vo = [] → ln = [])
+
+/-! ### The application's certificate of a snapshot (2026-10-15, stage S)
+
+A `MsgSnap`'s receiver restores its configuration from the snapshot's `ConfState` (`raft.restore`,
+`confchange.Restore`), so what it needs of the lists is what the application promised when it
+made the snapshot (A3, `SnapConf.lean`): `snapCert γ k`. It is persistent and is stated on the
+snapshot's id and lists only (`SnapTrip`), so the abstract message carries it (`isMessage`'s
+`snap` case) from the sender, which holds one for every snapshot it may send (`PState.snaps`,
+`ownRaftGhost`'s `Hsnaps`): its `Storage`'s, certified by the application, and the ones it
+restored, certified by the message that brought them.
+
+* `SnapListsOk k`: the lists are well formed (`CSWf`), without repeats, at most `2^62` in all,
+  `AutoLeave` off when not joint, and the index below `2^61` -- `SnapScope`'s facts
+  (`Spec/raft__restore.lean`), which `raft.restore` needs;
+* in the static mode (`γ.reDyn = none`), the incoming voters are `γ.reCfg` and the
+  configuration is not joint (the configuration a restore installs is then still `CfgStatic`);
+* in the dynamic mode (`γ.dyn = some D`), A3: for any recorded full-log prefix ending at the
+  snapshot's id -- the committed prefix the snapshot covers, which records make unique -- the
+  lists denote its configuration (`D.fold`). -/
+
+/-- `SnapScope`'s facts of a snapshot's lists and index (see above). -/
+def SnapListsOk (k : SnapTrip) : Prop :=
+  CSWf k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext ∧
+  k.cl.voters.Nodup ∧ k.cl.learners.Nodup ∧ k.cl.outgoing.Nodup ∧ k.cl.learnersNext.Nodup ∧
+  (k.cl.voters.length + k.cl.learners.length + k.cl.outgoing.length +
+    k.cl.learnersNext.length : Int) ≤ 2 ^ 62 ∧
+  (k.cl.outgoing = [] → k.al = false) ∧
+  uint.Z k.sid.index' < 2 ^ 61
+
+/-- The configuration a snapshot's lists denote. -/
+def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
+  csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
+
+/-- The application's certificate of the snapshot `k` (see above). -/
+def snapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+  iprop(⌜SnapListsOk k⌝ ∗
+    ⌜γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = []⌝ ∗
+    □ (∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List raftpb.Entry), logRecs γ base0 fp -∗
+        ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
+
+instance snapCert_persistent (γ : RaftNames) (k : SnapTrip) :
+    Persistent (snapCert (GF := GF) γ k) := by
+  unfold snapCert; infer_instance
+
+instance snapCert_timeless (γ : RaftNames) (k : SnapTrip) :
+    Timeless (snapCert (GF := GF) γ k) := by
+  unfold snapCert; infer_instance
+
 /-- A witness `(t', n', G', a')` of the conf entry at position `k` of `F`, of a term below
 `B`: it covers the entry (`k + 1 ≤ n'`), its configuration index is at most `k` with exactly
 the conf entries of `F` before `k`, and its log agrees with `F` up to the entry. -/

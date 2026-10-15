@@ -52,13 +52,14 @@ theorem NewMemoryStorage.wp_proof :
     isplitl
     · unfold memstorageFields
       iexists zero_val raftpb.HardState, zero_val raftpb.Snapshot, sl, zero_val raftpb.Entry,
-        _, _, _, _, _, []
+        _, _, _, _, _
       simp only [named]
       iframe
       isplitr
-      · ipureintro; rfl
+      · ipureintro; exact ⟨rfl, rfl⟩
       isplitr
-      · iapply ownCSRO_zero
+      · rw [show memStorEmpty.scs = (∅ : CSLists) from rfl]
+        iapply ownCSL_zero
       isplitr
       · rw [show zero_val raftpb.Entry :: memStorEmpty.ents = List.replicate 1 (zero_val raftpb.Entry)
           from rfl]

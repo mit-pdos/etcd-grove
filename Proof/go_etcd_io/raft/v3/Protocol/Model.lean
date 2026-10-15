@@ -97,13 +97,39 @@ inductive MsgType where
   | preVote | preVoteResp | readIndex | readIndexResp
   deriving DecidableEq, Inhabited
 
+/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
+`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
+`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). (In `Defs.lean`
+until 2026-10-15, stage S, when the abstract message came to carry them.) -/
+structure CSLists where
+  voters : List w64
+  learners : List w64
+  outgoing : List w64
+  learnersNext : List w64
+
+/-- No lists (the argument of a spec about a `ConfState` where none is read; a message that
+is no snapshot). -/
+instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+
+/-- A snapshot as the protocol knows it (2026-10-15, stage S): its entry id `(Term, Index)`,
+its `ConfState`'s four lists and its `AutoLeave`. What a node may send in a `MsgSnap`
+(`PState.snaps`, `SnapOk`) and what the application certifies of a snapshot it makes
+(`snapCert`, `Protocol/Ghost.lean`). -/
+structure SnapTrip [FfiSyntax] where
+  sid : entryID
+  cl : CSLists
+  al : Bool
+
 /-- Every field of a `raftpb.Message` the protocol reads. `entries` is the list behind
 `Message.Entries`; see `absMsg` (`Defs.lean`) for why the abstraction of a physical
 message needs that list as an argument.
 
 `index`/`logterm` of a `snap` are the snapshot's `Metadata.Index`/`Metadata.Term`, and
 `voters` its `Metadata.ConfState.Voters` -- all behind the pointer `Message.Snapshot`,
-read by `absSnap` (`Defs.lean`). Every other message has `voters = []`. -/
+read by `absSnap` (`Defs.lean`). Every other message has `voters = []`.
+(2026-10-15, stage S) A `snap` carries all four lists of its `ConfState` (`cs`) and its
+`AutoLeave` (`al`): `isMessage` carries the application's certificate of them (`snapCert`); every
+other message has `cs = ∅`, `al = false`. -/
 structure Msg [FfiSyntax] where
   mkV ::
   ty : MsgType
@@ -123,8 +149,10 @@ structure Msg [FfiSyntax] where
   rejecthint : w64
   /-- `Entries` -/
   entries : List raftpb.Entry
-  /-- a `snap`'s `ConfState.Voters`; `[]` otherwise -/
-  voters : List w64
+  /-- a `snap`'s `ConfState` lists; `∅` otherwise (until 2026-10-15 only `Voters`) -/
+  cs : CSLists
+  /-- a `snap`'s `ConfState.AutoLeave`; `false` otherwise (2026-10-15, stage S) -/
+  al : Bool
   /-- `Context` (2026-10-12, for read-index): the bytes `Message.Context` holds; `[]`
   for every message but a heartbeat and its response carrying a read position -/
   ctx : List w8
@@ -139,7 +167,10 @@ nothing that reduces, injects or rewrites a message has to unfold anything by ha
 changed). -/
 @[reducible] def Msg.mk (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
     (es : List raftpb.Entry) : Msg :=
-  Msg.mkV t0 fr to0 tm rj ix lt cm rh es [] []
+  Msg.mkV t0 fr to0 tm rj ix lt cm rh es ∅ false []
+
+/-- What a `snap` says of its snapshot (2026-10-15, stage S): its entry id, lists, `AutoLeave`. -/
+def Msg.trip (m : Msg) : SnapTrip := ⟨entryID.mk m.logterm m.index, m.cs, m.al⟩
 
 /-- A message with no payload: every replication field zero. -/
 def Msg.plain (ty : MsgType) (src dst term : w64) (reject : Bool) : Msg :=
@@ -383,6 +414,10 @@ structure PState [FfiSyntax] where
   commit : w64
   /-- `Progress.Match` per voter, leaders only -/
   matched : GMap w64 w64
+  /-- The snapshots the node may send (2026-10-15, stage S): its `Storage`'s and the ones it
+  restored, each with the application's certificate (`ownRaftGhost`'s `Hsnaps`); a `snap` it
+  sends is one of them (`SnapOk`). Ghost: the code's `LogState.ksn`. -/
+  snaps : List SnapTrip
   /-- the read-index state (2026-10-12): the `ReadState`s, a leader's read-only object
   (fresh for a non-leader) and the pending requests -/
   rd : RdState := {}
@@ -1367,6 +1402,7 @@ def pbecomeFollower (s : PState) (term lead : w64) : PState where
   log := s.log
   commit := s.commit
   matched := ∅
+  snaps := s.snaps
   rd := rdNL s.rd
 
 def pbecomeCandidate (s : PState) : PState where
@@ -1380,6 +1416,7 @@ def pbecomeCandidate (s : PState) : PState where
   log := s.log
   commit := s.commit
   matched := ∅
+  snaps := s.snaps
   rd := rdNL s.rd
 
 def pbecomeLeader (s : PState) (mt : GMap w64 w64) : PState where
@@ -1393,6 +1430,7 @@ def pbecomeLeader (s : PState) (mt : GMap w64 w64) : PState where
   log := s.log
   commit := s.commit
   matched := mt
+  snaps := s.snaps
   rd := rdNL s.rd
 
 /-- What `reset` leaves in `Progress.Match` (`raft.go:779-808`): `0` for every voter,
@@ -1424,7 +1462,7 @@ def pselfAck (s : PState) : Msg :=
 last.index, LogTerm: last.term`), and (2026-10-13) the `Context` `cl`: the leader-transfer
 marker for a transfer's campaign (`campaignTransfer`), `[]` otherwise. -/
 def pvoteReq (dst term : w64) (last : entryID) (cl : List w8 := []) : Msg :=
-  Msg.mkV .vote id dst term false last.index' last.term' (W64 0) (W64 0) [] [] cl
+  Msg.mkV .vote id dst term false last.index' last.term' (W64 0) (W64 0) [] ∅ false cl
 
 /-- Receiving a message from the leader of the current term: `stepFollower`'s
 `r.lead = m.From` or `stepCandidate`'s `becomeFollower(m.Term, m.From)`, which agree on
@@ -1499,13 +1537,17 @@ The last two are conjuncts since 2026-10-03. They are what a receiver needs
 `(logterm, index)`), and `snapOk_message` builds that from them. The sender has them
 from `raftLog.snapshot`'s spec: a pending snapshot is the log's own base; a `Storage`
 snapshot is the storage's current one, which `ownRaftLog` keeps at or below
-`committed` and in the log (`StoredSnapOk`, `InvRaftlog.lean`). The voters are not
-constrained here (the receiver's `Step` takes them as a transport premise). -/
+`committed` and in the log (`StoredSnapOk`, `InvRaftlog.lean`). (2026-10-15, stage S) The
+snapshot is one the node may send (`PState.snaps`: its storage's or one it restored), so its
+`ConfState` comes with the application's certificate (`ownRaftGhost`'s `Hsnaps`), which the
+message carries (`isMessage`); until then the voters were not constrained here (the
+receiver's `Step` took them as a transport premise). -/
 def SnapOk (s : PState) (m : Msg) : Prop :=
   m.ty = .snap ∧ m.src = id ∧ m.term = s.term ∧
   m.dst ≠ id ∧ m.index ≠ W64 0 ∧
   uint.Z m.index ≤ uint.Z s.commit ∧
-  plogTermAt s.base s.log m.index = some m.logterm
+  plogTermAt s.base s.log m.index = some m.logterm ∧
+  m.trip ∈ s.snaps
 
 /-- What `maybeSendAppend` may send: an `app`, or (when the log no longer has what the
 peer needs) a `snap`. -/
@@ -1806,7 +1848,7 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [m]
         (psendMsgs s
           [Msg.mkV .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
-             m.rejecthint m.entries [] m.ctx])
+             m.rejecthint m.entries ∅ false m.ctx])
 
   /- ### Snapshots (phase 2 of notes/raft-replication-model.md)
 
@@ -1825,7 +1867,8 @@ inductive Step : PState → List Msg → PState → Prop where
   fixed-voter-set scope `Step` takes it as a transport premise. -/
 
   /-- `restore` proper: `raftLog.restore` makes the snapshot the compaction boundary,
-  with nothing after it, and commits it. -/
+  with nothing after it, and commits it; (2026-10-15, stage S) the node may now send it
+  (`snaps`). -/
   | snapRestore (m : Msg) (s : PState) :
       m.ty = .snap →
       m.dst = id →
@@ -1837,7 +1880,8 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [m]
         (psendMsgs
           { padoptLeader s m.src with
-              base := entryID.mk m.logterm m.index, log := [], commit := m.index }
+              base := entryID.mk m.logterm m.index, log := [], commit := m.index,
+              snaps := s.snaps ++ [m.trip] }
           [Msg.mk .appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []])
   /-- The log already has the snapshot's last entry: `commitTo(Index)` only. -/
   | snapFastfwd (m : Msg) (s : PState) :

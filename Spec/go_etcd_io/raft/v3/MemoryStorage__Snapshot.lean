@@ -41,12 +41,9 @@ is the read-only one `ownMemoryStorage` holds.
 
 Since 2026-10-14 (reconfiguration stage B8) all four of its `ConfState`'s slices, read-only
 (`ownCSL`), which the storage keeps (`ownCSRO` in `memstorageFields`) and `isStorage`'s
-`HSnapshot` hands out. What it does not say: *which* `ConfState` -- the storage's state as raft
-sees it (`StorState`) records the snapshot's id only, so the `ConfState` returned is not related
-to the one `CreateSnapshot`/`ApplySnapshot` stored, though it is that one (the lock's half of
-`ms.snapshot` and `memStorMeta`'s agree). Relating it is what carrying A3 from the application
-to a leader's `MsgSnap` needs (notes/STATUS.md, "Reconfiguration, stage B8 (snapshots at a
-changing configuration)"). -/
+`HSnapshot` hands out. Since 2026-10-15 (stage S) *which* `ConfState`: the lists `σ.scs` and the
+`AutoLeave` `σ.sal` the storage's state records, the ones `CreateSnapshot`/`ApplySnapshot`
+stored, so that raft knows which certified snapshot it forwards (`ownRaftLog`'s `Hsksn`). -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface),
@@ -57,8 +54,9 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
   {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧ snapId snap = σ.ss⌝ ∗
-        ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}
+       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧
+          snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+        ownCSL snap.Metadata'.ConfState' σ.scs)) }}
 
 end spec
 
