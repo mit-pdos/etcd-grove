@@ -390,6 +390,72 @@ instance GMode.SnapOk_persistent (γ : RaftNames) (md : GMode) (sv : raftpb.Snap
     (scfg : CSLists) : Persistent (md.SnapOk (GF := GF) γ sv scfg) := by
   cases md <;> unfold GMode.SnapOk <;> infer_instance
 
+/-! ### The snapshot a `MsgSnap` carries, certified (2026-10-15, stage S)
+
+`isMessage`'s `snap` case carries the application's certificate of the snapshot's `ConfState`
+(`snapCert`, `Protocol/Ghost.lean`): `SnapScope`'s facts, and what the mode asks of it
+(`GMode.SnapOk`). So `raft.Step`'s `"Hsnap"` no longer takes either. -/
+
+theorem isMessage_absSnap_cert (γ : RaftNames) (m : raftpb.Message) (sv : raftpb.Snapshot)
+    (scfg : CSLists) :
+    isMessage (GF := GF) γ (absSnap m sv scfg) ⊢ snapCert γ (snapTrip sv scfg) := by
+  unfold isMessage
+  simp only [absSnap, absSnapFrom]
+  iintro ⟨-, -, -, -, H⟩
+  rw [show snapTrip sv scfg = Msg.trip (Msg.mkV MsgType.snap m.From' m.To' m.Term' m.Reject'
+      sv.Metadata'.Index' sv.Metadata'.Term' m.Commit' m.RejectHint' [] scfg
+      sv.Metadata'.ConfState'.AutoLeave' []) from rfl]
+  iexact H
+
+theorem snapCert_scope (γ : RaftNames) (sv : raftpb.Snapshot) (scfg : CSLists) :
+    snapCert (GF := GF) γ (snapTrip sv scfg) ⊢ ⌜SnapScope sv scfg⌝ := by
+  unfold snapCert
+  iintro ⟨%H, -, -⟩
+  ipureintro
+  exact H
+
+/-- The certificate gives what the mode asks of the snapshot: statically, from `γ`'s static
+mode (`ownRaftGhost`'s flag), the ghost state's voters, not joint; dynamically A3, from the
+mode's fold (`ghostRest`'s `γ.dyn`). -/
+theorem snapOk_of_cert (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (sv : raftpb.Snapshot) (scfg : CSLists) :
+    ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
+      snapCert γ (snapTrip sv scfg) -∗
+      md.SnapOk γ sv scfg ∗ ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s := by
+  cases md with
+  | static =>
+    iintro Hg Hr #Hc
+    ihave %Hm := ownRaftGhost_mode γ id (toPState s) $$ Hg
+    have Hn : γ.reDyn = none := by
+      simp only [GMode.isDyn] at Hm
+      cases h : γ.reDyn with
+      | none => rfl
+      | some _ => rw [h] at Hm; cases Hm
+    iframe Hg Hr
+    unfold snapCert
+    icases Hc with ⟨-, %Hs, -⟩
+    simp only [GMode.SnapOk]
+    ipureintro; exact Hs Hn
+  | dyn dec c0 h0 g =>
+    iintro Hg Hr #Hc
+    simp only [ghostRest]
+    icases Hr with ⟨%Hdc, #Hfr, Hcamp⟩
+    obtain ⟨HD, hc, HI⟩ := Hdc
+    iframe Hg Hfr Hcamp
+    isplitr
+    · unfold snapCert
+      icases Hc with ⟨%Hl, -, #Hd⟩
+      simp only [GMode.SnapOk]
+      imodintro
+      iintro %fp #Hfp %Hfull
+      ihave %Hf := Hd $$ %_ %HD %fp Hfp %Hfull
+      ipureintro
+      refine ⟨Hl.1, ?_⟩
+      simp only [DynCfg.ofFold, Option.map_eq_some_iff] at Hf
+      obtain ⟨s', Hs', Hc'⟩ := Hf
+      exact ⟨s', Hs', Hc'.symm⟩
+    ipureintro; exact ⟨HD, hc, HI⟩
+
 /-- An id `restore`'s `found` search finds is an id of the configuration the `ConfState`
 denotes. -/
 theorem snapCfg_ids {sv : raftpb.Snapshot} {scfg : CSLists} {id : w64} (h : scfg.Has id) :

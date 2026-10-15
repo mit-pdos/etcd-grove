@@ -312,26 +312,31 @@ current term the receiver is not a leader -- the sender leads that term (`isMess
 the three `step_snap_*` rules need no other protocol fact: a restore replaces the log
 wholesale and the fast-forward's `commitTo` is in range by `matchTerm`. In either mode since
 2026-10-14 (stage B8): the branch's `StepCDS` witness updates the mode's ghost state
-(`ghost_stepCDS`), with what the mode asks of the snapshot (`GMode.SnapOk`). -/
+(`ghost_stepCDS`), with what the mode asks of the snapshot (`GMode.SnapOk`), which (2026-10-15,
+stage S) the message's certificate gives (`snapOk_of_cert`), with `SnapScope`. -/
 private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message) (sv : raftpb.Snapshot) (scfg : CSLists)
     (Φ : val → IProp GF) (Hwf : NStateWf s)
     (Hty : m.Type' = MsgSnap)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
-    (Hscope : SnapScope sv scfg) (Hid : scfg.Has id) :
+    (Hid : scfg.Has id) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       m.Snapshot' ↦□ sv -∗
       ownCSL sv.Metadata'.ConfState' scfg -∗
-      md.SnapOk γ sv scfg -∗
       isMessage γ (absSnap m sv scfg) -∗
       ▷ stepPost γ md c r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
-  iintro #Hinit Hphys Hghost Hrest #Hsv #Hcs #Hso #Hm HΦ
+  iintro #Hinit Hphys Hghost Hrest #Hsv #Hcs #Hm HΦ
+  -- (2026-10-15, stage S) the snapshot's certificate, from the message: `SnapScope` and what
+  -- the mode asks of it
+  ihave #Hcert := isMessage_absSnap_cert γ m sv scfg $$ Hm
+  ihave %Hscope := snapCert_scope γ sv scfg $$ Hcert
+  icases snapOk_of_cert γ md c id s sv scfg $$ Hghost Hrest Hcert with ⟨#Hso, Hghost, Hrest⟩
   -- at the current term the receiver is not a leader: the sender leads it
   ihave #Hl2 := isMessage_snap_isLeader γ m sv scfg $$ Hm
   ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hghost Hl2
@@ -655,10 +660,9 @@ theorem raft.Step.wp_proof
   by_cases Hns : m.Type' = MsgSnap
   · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"` (either mode since 2026-10-14,
     -- stage B8)
-    icases Hsnap $$ %Hns with ⟨%sv, %scfg, #Hsv, #Hcs, %Hsc, #Hso, #Hm'⟩
-    obtain ⟨Hscope, Hid⟩ := Hsc
-    iapply dispatch_Snap P γ md c r id s m sv scfg Φ Hwf Hns (Hsnapt Hns) Hscope Hid
-      $$ Hinit Hphys Hghost Hrest Hsv Hcs Hso Hm' HΦ
+    icases Hsnap $$ %Hns with ⟨%sv, %scfg, #Hsv, #Hcs, %Hid, #Hm'⟩
+    iapply dispatch_Snap P γ md c r id s m sv scfg Φ Hwf Hns (Hsnapt Hns) Hid
+      $$ Hinit Hphys Hghost Hrest Hsv Hcs Hm' HΦ
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
   -- from `Hpre`
   have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>
