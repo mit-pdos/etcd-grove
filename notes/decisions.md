@@ -5657,3 +5657,8 @@ Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
   ghost log of the linearization points with the clock value at each. `CounterClock` is proved;
   `MonotonicClock` (etcd's `time.Since`) is not specifiable in Perennial's time model
   (`STATUS.md`, "Porcupine").
+- **No alias `Results.lean`** for porcupine and the driver (decided with the user): their
+  `Link.lean` results (`porcupine.wp_CheckOperations*`, `lintest.wp_Run`) are the exported
+  results, and the Links are the TCB report's roots; a file restating them would only repeat
+  them. `lintest/counter/Results.lean` stays: it holds a new statement, `Check` on
+  `CounterClock()`'s clock, closed (`wp_CheckCounterClock`).

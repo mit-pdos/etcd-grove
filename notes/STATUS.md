@@ -28,7 +28,7 @@ TaDa-linearizable library traced as etcd traces its requests passes porcupine's 
 **What is proved** (all `wp_proof`s, no `sorry`, no axiom of this repository; `#print axioms` of
 the results is Lean's three and Perennial's opaque standard-library types):
 
-- `porcupine/Results.lean`: `CheckOperationsVerbose` (what etcd calls), `CheckOperationsTimeout`
+- `porcupine.wp_CheckOperationsVerbose` (`porcupine/Link.lean`): `CheckOperationsVerbose` (what etcd calls), `CheckOperationsTimeout`
   never answer `Illegal` on a `Linearizable` history and answer `Ok` with no timeout;
   `CheckOperations` answers `true`. For any model with a specification (`isModel`: no
   `Partition`; `Init`, `Step` or `StepContext` stepping as the sequential model `S.M`; `Equal`
@@ -41,7 +41,7 @@ the results is Lean's three and Perennial's opaque standard-library types):
   proved `sort.Sort`, `fillDefault`), B (`checkSingle` with the bitset, the cache, the dancing
   links), C (`checkParallel`: the goroutines, the results channel, the timeout, the
   cancellation, below) carried it to the heap.
-- `lintest/Results.lean`, `run_never_illegal`: `Run` (`examples/lintest/lintest.go`) runs
+- `lintest.wp_Run` (`lintest/Link.lean`): `Run` (`examples/lintest/lintest.go`) runs
   `clients` goroutines of `ops` operations of a library `apply`, logically atomic against
   `S.M` (`applySpec`), on inputs from `gen` (any inputs satisfying `inOk`: randomized traffic
   included), each traced with a monotone clock (`clockSpec`) read just before and just after,
