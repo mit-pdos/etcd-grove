@@ -38,6 +38,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
+       etc/gen-link.py --raft37 > Raft37/Proof/go_etcd_io/raft/v3/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -115,6 +116,10 @@ in the header: a package proved in units links what is done, from the full list.
 The clients' modes (`--cache`, `--concurrency`, `--leasing`, `--recipes`) state their links over
 the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class of
 `cache/v3/EtcdModel.lean`, which the server instantiates; the vertical slice's unit V1).
+`--raft37` links the raft v3.7 proofs ported so far into the parallel tree `Raft37/` (the
+retarget of the raft proof, `notes/raft-retarget-plan.md`), from etc/link-lean-first-raft37.txt:
+its specs are looked up in `Raft37/Spec/` only (the old raft's, in `Spec/`, have the same Go
+paths), its results are named as the old raft's Link names them.
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -212,6 +217,11 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.register go_etcd_io.raft.v3",
                    "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
                    "The register example's proofs (`examples/register`)", [""]),
+    # raft v3.7 plus the read-index fix, the parallel tree the raft proof is ported into
+    # (project raft37 of etc/goose.py): its specs are Raft37/Spec's alone
+    "--raft37": ("link-lean-first-raft37.txt", "go_etcd_io.raft.v3",
+                 "go_etcd_io.raft.v3.Assumptions",
+                 "The raft v3.7 proofs ported so far (the parallel tree `Raft37/`)", ["Raft37"]),
     # porcupine (third_party/porcupine), the linearizability checker of etcd's robustness tests
     "--porcupine": ("link-lean-first-porcupine.txt", "github_com.anishathalye.porcupine",
                     "github_com.anishathalye.porcupine.Assumptions",

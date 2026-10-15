@@ -1,6 +1,9 @@
 # raft: `MemoryStorage.InitialState` accesses its fields without the mutex
 
-**Status**: open (not reported upstream).
+**Status**: open (not reported upstream). **Also in raft v3.7.0** (2026-10-15, the retarget's
+inventory): `storage.go:128-134` still takes no lock, and now also *writes*: `pb.EnsureConfState(cs)`
+sets the stored snapshot's `ConfState.AutoLeave` when it is nil (`raftpb/util.go:20-28`), and
+returns `ms.hardState` and that `ConfState` uncloned (the caller shares them with the storage).
 
 **Where** (etcd-io/raft at `40f8be730b18`, the revision `etc/goose.py` pins):
 

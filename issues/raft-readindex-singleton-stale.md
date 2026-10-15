@@ -7,6 +7,13 @@
   as branch `raft-goose-lean` of `upamanyus/etcd` (a branch holding etcd-io/raft's history), from
   which the proof's raft pin (`etc/goose.py`, project `etcd-raft`) is taken since 2026-10-14
   (the register's `go.mod` replaces `go.etcd.io/raft/v3` by it). Not reported upstream.
+  **Also in v3.7.0** (2026-10-15), the raft etcd links (`go.etcd.io/raft/v3 v3.7.0` in etcd's
+  `go.mod`, etcd-io/raft `b867cf13`): `raft.go:1355-1361` has the same unconditional
+  `IsSingleton` shortcut. The fix rebased onto v3.7.0's pointer messages is `509271dac` on branch
+  `raft37-goose-lean` (to be pushed to `upamanyus/etcd`), saved as
+  `raft-conf-lag-model/0001-raft-readindex-singleton-fix-v3.7.0.patch`, with the regression tests
+  adapted to `*pb.Message` and getters (they fail without the fix; `go test ./...` passes); it is
+  the pin of `etc/goose.py`'s project `raft37`, the retarget of the proof (`notes/raft-retarget-plan.md`).
 - **Where** (etcd-io/raft at `40f8be730b18`, the revision `etc/goose.py` pins):
   - `raft.go:1341-1348` (`stepLeader`, `MsgReadIndex`): `if r.trk.IsSingleton()` answers at
     once with `r.raftLog.committed`. This runs *before* the `committedEntryInCurrentTerm`

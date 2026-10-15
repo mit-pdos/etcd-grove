@@ -6792,3 +6792,42 @@ API-version and metrics paths are proved for any metadata. *Rejected:* proving t
 local `isContext` axiom for `cancellableContext` (false: the finding above); dropping the
 branch's metadata path from the spec (the API-version check and the metrics run first and are
 proved).
+
+---
+
+## Retargeting raft in a parallel tree
+
+**2026-10-15 · accepted (stage R0, branch `raft-retarget`)**
+
+- **The target is v3.7.0 plus the read-index fix**, not upstream's tip and not v3.7.0 alone: v3.7.0
+  is what etcd's `go.mod` links (`go.etcd.io/raft/v3 v3.7.0`), so the retargeted proof can discharge
+  the server's raft contract (`isRaftNodeIfc`, today a premise) and retire `EtcdDeps/`; and v3.7.0
+  still has the single-voter read-index shortcut of `issues/raft-readindex-singleton-stale.md`, which
+  a spec could exclude only by restricting runs (stage F's reasoning, "Verifying a fork revision of
+  raft"). The fix is rebased onto the pointer code as one commit (`509271dac`, branch
+  `raft37-goose-lean` of the etcd fork), the same meaning as on `40f8be7`: the shortcut only at a
+  voter leader with a commit of its term. *Rejected*: upstream's tip (etcd does not link it);
+  v3.7.0 unfixed (the stale read stays reachable).
+- **A parallel tree, not an in-place retarget.** The earlier attempt (2026-10-09, branch
+  `raft-upstream-1c0011d2-wip`) showed that the retarget is a redesign of entry, message and
+  snapshot ownership touching most of 100k lines; done in place, `lean` would not build for weeks
+  and no other unit could merge. So raft v3.7 is translated into a module root of its own,
+  `Raft37/` (`Raft37/{Code,GeneratedProof,Spec,Proof}`), the proof is rebuilt there file by file
+  (copying and adapting the old one), and when it reaches the old proof's results the trees are
+  swapped in one commit (`Raft37/*` becomes `Code/go_etcd_io/raft`, `Spec/...`, `Proof/...`; `EtcdDeps`
+  retired; the server imports the verified raft). Both trees define `Perennial.go_etcd_io.raft.v3.*`,
+  so no module imports both; `etc/proof_roots.py` runs Lean on each part root's roots apart, as for
+  `EtcdDeps`.
+- **A project with a root, not a `Part`.** A `Part` translates more packages of its project's own
+  checkout (etcd's raft dependency, from etcd's module graph); raft v3.7 plus the fix is another
+  repository revision. So `etc/goose.py`'s `Project` gained `root` (default `""`: `Code/`), the least
+  change: `pieces()` emits it as the main piece's root, `etc/proof_roots.py` counts project roots as
+  part roots, and `etc/verified-code.py` keys a rooted project's packages `<root>:<path>` so that its
+  Go functions are counted apart from etcd-raft's (same Go paths). `etc/gen-link.py --raft37` is a
+  Lean-first mode whose specs are looked up in `Raft37/Spec` only.
+- **The model's data become pure records** (stage R0, provisional; `notes/raft-retarget-plan.md`, D1).
+  The protocol model used gogoproto's Goose values (`raftpb.Entry`, `raftpb.Message`,
+  `raftpb.ConfChangeSingle`) as plain data; in v3.7 those structs hold pointers and protobuf state.
+  `PbModel.lean`'s `EntryM`, `MessageM`, `ConfChangeSingleM` keep the old field names, so the model
+  ports by a type rename; porting `quorum`/`tracker` needed it because their shared definitions
+  import the model. The names and the rest of the design are for the review of the plan.

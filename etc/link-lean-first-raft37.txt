@@ -1,0 +1,43 @@
+# The raft v3.7 proofs ported so far into the parallel tree Raft37/ (stage R0:
+# quorum, tracker and slices.Sort; notes/raft-retarget-plan.md), with their callees in the
+# order of each wp_proof's hypotheses (as Proof/go_etcd_io/raft/v3/Link.lean links them).
+# `etc/gen-link.py --raft37 > Raft37/Proof/go_etcd_io/raft/v3/Link.lean`.
+quorum_JointConfig__CommittedIndex: quorum_MajorityConfig__CommittedIndex
+quorum_JointConfig__IDs:
+quorum_JointConfig__VoteResult: quorum_MajorityConfig__VoteResult
+quorum_MajorityConfig__CommittedIndex: slices_Sort
+quorum_MajorityConfig__Slice: slices_Sort
+quorum_MajorityConfig__VoteResult:
+quorum_mapAckIndexer__AckedIndex:
+slices_Sort:
+tracker_Config__Clone:
+tracker_Inflights__Add: tracker_Inflights__Full tracker_Inflights__grow
+tracker_Inflights__Clone:
+tracker_Inflights__Count:
+tracker_Inflights__FreeLE:
+tracker_Inflights__Full:
+tracker_Inflights__grow:
+tracker_Inflights__reset:
+tracker_MakeProgressTracker:
+tracker_NewInflights:
+tracker_ProgressTracker__Committed: quorum_JointConfig__CommittedIndex tracker_matchAckIndexer__AckedIndex
+tracker_ProgressTracker__ConfState: quorum_MajorityConfig__Slice
+tracker_ProgressTracker__IsSingleton:
+tracker_ProgressTracker__LearnerNodes: slices_Sort
+tracker_ProgressTracker__QuorumActive: tracker_ProgressTracker__Visit quorum_JointConfig__VoteResult
+tracker_ProgressTracker__RecordVote:
+tracker_ProgressTracker__ResetVotes:
+tracker_ProgressTracker__TallyVotes: quorum_JointConfig__VoteResult
+tracker_ProgressTracker__Visit: slices_Sort
+tracker_ProgressTracker__VoterNodes: quorum_JointConfig__IDs slices_Sort
+tracker_Progress__BecomeProbe: tracker_Progress__ResetState
+tracker_Progress__BecomeReplicate: tracker_Progress__ResetState
+tracker_Progress__BecomeSnapshot: tracker_Progress__ResetState
+tracker_Progress__CanBumpCommit:
+tracker_Progress__IsPaused:
+tracker_Progress__MaybeDecrTo:
+tracker_Progress__MaybeUpdate:
+tracker_Progress__ResetState: tracker_Inflights__reset
+tracker_Progress__SentCommit:
+tracker_Progress__SentEntries: tracker_Inflights__Add tracker_Inflights__Full
+tracker_matchAckIndexer__AckedIndex:

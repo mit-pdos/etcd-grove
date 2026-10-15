@@ -8,7 +8,9 @@ T.M.spec`; `Results.lean` beside it restates exported results).  A project of
 `etc/goose.py` may translate more packages into a module root of its own (a `Part`,
 `<root>/Code/`, ..., `<root>/Proof/`), for a Go path that is also translated from another
 source; the modules that reach one part root's translations cannot be imported with
-those that reach another's, or the main root's same path.
+those that reach another's, or the main root's same path.  A project translated into a
+root of its own (`Project.root`: raft v3.7's parallel tree `Raft37/`) is a part root
+here too.
 
 The roots are the theorems of every `Link.lean` and `Results.lean` under `Proof/` and
 `<root>/Proof/`, so a new package's proofs are picked up when its directory has them.
@@ -32,8 +34,9 @@ sys.dont_write_bytecode = True  # no etc/__pycache__
 sys.path.insert(0, os.path.join(ROOT, "etc"))
 import goose  # noqa: E402  (etc/goose.py: the projects, their parts)
 
-# The module roots of the projects' parts (`<root>/Code/`, ..., `<root>/Proof/`).
-PART_ROOTS = sorted({part.root for p in goose.PROJECTS for part in p.parts})
+# The module roots of the projects' parts and of the projects translated into a root of
+# their own (`<root>/Code/`, ..., `<root>/Proof/`).
+PART_ROOTS = sorted({root for p in goose.PROJECTS for root, _, _, _ in goose.pieces(p) if root})
 # This repository's specs and proofs, as module prefixes and directories.
 PROJECT_MODS = tuple(["Spec.", "Proof."] + [f"{r}.{d}." for r in PART_ROOTS
                                              for d in ("Spec", "Proof")])
