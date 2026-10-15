@@ -26,7 +26,11 @@ translate = ["!*",
   "serverWatchStream.recvLoop", "serverWatchStream.sendLoop", "IsCreateEvent", "sendFragments",
   "serverWatchStream.close", "serverWatchStream.newResponseHeader", "filterNoDelete",
   "filterNoPut", "FiltersFromRequest", "minWatchProgressInterval", "ctrlStreamBufLen",
-  "progressReportInterval", "progressReportIntervalMu"]
+  "progressReportInterval", "progressReportIntervalMu",
+  # the watch slice's unit W-W: interceptor.go's stream interceptor
+  "newStreamInterceptor", "monitorLeader", "streamsMap", "cancellableContext",
+  "newCancellableContext", "cancellableContext.Cancel", "cancellableContext.Err",
+  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",
