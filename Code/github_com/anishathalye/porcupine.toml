@@ -1,0 +1,23 @@
+# github.com/anishathalye/porcupine (third_party/porcupine): the checker (checker.go,
+# bitset.go), the models (model.go) and the CheckOperations entry points (porcupine.go),
+# with bodies; not the event-history entry points (CheckEvents*, renumber,
+# convertEntries) nor the visualizer (visualization.go), whose types only are translated
+# (Annotation is a field of LinearizationInfo).
+translate = ["!*",
+  "entryKind", "callEntry", "returnEntry", "entry", "LinearizationInfo", "Annotation",
+  "LinearizationInfo.PartialLinearizations",
+  "byTime", "byTime.Len", "byTime.Swap", "byTime.Less", "makeEntries", "node",
+  "insertBefore", "makeLinkedEntries", "cacheEntry", "cacheKey", "cacheContains",
+  "callsEntry", "lift", "unlift", "checkSingle", "fillDefault", "checkParallel",
+  "checkOperations",
+  "prime", "bitset", "newBitset", "bitset.clone", "bitsetIndex", "bitset.set",
+  "bitset.clear", "bitset.hash", "bitset.equal",
+  "Operation", "EventKind", "CallEvent", "ReturnEvent", "Event", "Model",
+  "NondeterministicModel", "merge", "NondeterministicModel.ToModel", "noPartition",
+  "noPartitionEvent", "shallowEqual", "defaultDescribeOperation", "defaultDescribeState",
+  "defaultDescribeOperationMetadata", "CheckResult", "Unknown", "Ok", "Illegal",
+  "CheckOperations", "CheckOperationsTimeout", "CheckOperationsVerbose"]
+imports = ["!*", "context", "fmt", "sort", "strings", "time"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

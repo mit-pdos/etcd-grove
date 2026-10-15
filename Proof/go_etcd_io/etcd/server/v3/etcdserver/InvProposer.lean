@@ -276,7 +276,7 @@ token's data decoding to a request claimed under its id. -/
 def srvMintInv (ρ : ReqNames) : IProp GF :=
   inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.fresh 1 F ∗
     [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
-      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim ρ.ids id d)
+      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim ρ.ids id d γf)
 
 instance srvMintInv_persistent (ρ : ReqNames) : Persistent (srvMintInv (GF := GF) ρ) := by
   unfold srvMintInv; infer_instance
@@ -338,7 +338,7 @@ instance srvPeersOk_persistent (cl : Loc) (cid : w64) (tr : GoInterface) :
 header), the applier's environment `E` (whose store's certificates the results carry), the
 request path's ghost names `ρ`. -/
 def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
-  iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen ∗
+  iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
     structFieldRef EtcdServer go!"w" s ↦□ v.w ∗ waitInv v.w ρ E ∗
     srvRaftNode s ρ.raft ∗
     srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ v.maxReq ∗
@@ -392,21 +392,24 @@ def srvMaybeDeposited (ρ : ReqNames) (rq : apply.IRRModel) : IProp GF :=
 the request at the KV state `x` (its log `x.log`, the log the entry met), to `x'`
 (`apply.applyStep`, outcome `o`, `skip` the wrapper's `SkipRangeExecution`), the response is the
 apply package's (`dispatchAnswer` with no error), mvcc's certificate of the log after, the
-token of the revision the step appended, if it appended one (`revMinted`, unit V1); and
+token of the revision the step appended, if it appended one (`revMinted`, unit V1);
 (2026-10-14, unit C2a) the log after applied through an index of the committed log
-(`appliedWit γr`, the result's witness, `resultIsW`). -/
-def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (resp : GoInterface) :
+(`appliedWit γr`, the result's witness, `resultIsW`); and (the vertical slice's unit V2) a KV
+write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`). -/
+def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (F : mvcc.Log)
+    (resp : GoInterface) :
     IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
-    ⌜apply.applyStep rq' true x x' (.dispatched o skip)⌝ ∗
+    ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit γr x'.log)
 
 /-- **The apply thread's answer to `rq'` carried the error `err`** (`result.Err`): the result
 `ar` of applying `rq'` (`resultIs`), whose `Err` is `err`. -/
-def appliedErr (E : apply.AEnv GF) (rq' : apply.IRRModel) (err : GoInterface) : IProp GF :=
+def appliedErr (E : apply.AEnv GF) (rq' : apply.IRRModel) (F : mvcc.Log) (err : GoInterface) :
+    IProp GF :=
   iprop(∃ (ar : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result),
-    ar ↦□ v ∗ ⌜v.Err' = err⌝ ∗ resultIs E rq' ar)
+    ar ↦□ v ∗ ⌜v.Err' = err⌝ ∗ resultIs E rq' F ar)
 
 end srv
 

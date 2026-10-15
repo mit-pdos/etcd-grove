@@ -27,21 +27,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`qa.check(ctx, r)`** of a `*pb.PutRequest` `r`: the quota's `Available(r)`; if not, the
-NOSPACE alarm is raised through `s.Alarm` (`EtcdServer.Alarm`: the request path's premises, an id
+/-- **`qa.check(ctx, r)`** of a request `r` of a type `rt` with `apply.quotaReqTy rt` (`*pb.PutRequest`,
+`*pb.TxnRequest`): the quota's `Available(r)`; if not, the NOSPACE alarm is raised through `s.Alarm` (`EtcdServer.Alarm`: the request path's premises, an id
 credit minted from the server's budget `□ |==> idCred ρ.ids 1`, `srvStarted`'s idealization)
 and the error `ErrGRPCNoSpace` returned. The reader slot of `leadTimeMu` and the auth store's reader
 resource `E.RD` (2026-10-14, unit A2: `Alarm`'s) come back. -/
 abbrev v3rpc.quotaAlarmer.check.spec : Prop :=
   ∀ (qa s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc),
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (rt : go.GoType),
+  apply.quotaReqTy rt →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       v3rpc.quotaAlarmerAt qa s ∗ isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
       srvLeadTimeReader s ∗ E.RD ∗ context.isContext ci cd }}
     (App (App (Val (qa @!! go.GoType.PointerType v3rpc.quotaAlarmer.ty @!! go!"check"))
       (Val #(GoInterface.ok ci)))
-      (Val #(interface.mkOk (go.GoType.PointerType etcdserverpb.PutRequest.ty) #r : GoInterface)))
+      (Val #(interface.mkOk rt #r : GoInterface)))
   {{ (err : GoInterface), RET #err; srvLeadTimeReader s ∗ E.RD }}
 
 end spec

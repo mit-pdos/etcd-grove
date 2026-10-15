@@ -45,6 +45,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInter
 public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Txn
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
@@ -250,6 +251,10 @@ theorem quotaAlarmer.wp_check :
 theorem quotaKVServer.wp_Put :
     EtcdGrove.v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.quotaKVServer.Put.wp_proof quotaAlarmer.wp_check
+
+theorem quotaKVServer.wp_Txn :
+    EtcdGrove.v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.quotaKVServer.Txn.wp_proof quotaAlarmer.wp_check
 
 end links_hasLC
 

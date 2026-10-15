@@ -34,15 +34,15 @@ model of a committed raft log `L` at which the deposit gave `□ Q L` (`rangeRea
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
-    (ot : Option Loc) (te : Bool) (Q : List EntryModel → IProp GF),
+    (ot : Option Loc) (te : Bool) (Q : List EntryModel → IProp GF) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-      kvDep γr.kv Q }}
+      kvDep γr.kv Q ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ rangeReadOk E γr c o resp Q) ∨
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ rangeReadOk E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

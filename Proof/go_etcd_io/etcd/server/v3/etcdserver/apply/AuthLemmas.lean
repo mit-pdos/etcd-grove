@@ -78,6 +78,50 @@ theorem apply.auth_pass_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain)
     split <;> simp [Hst]
   iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
 
+/-- `auth_reject_kvPost` with a floor (unit V2): a rejection meets any floor. -/
+theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
+    (inner : GoInterface) (rq : IRRModel) (log F : mvcc.Log) (R : apply.Outcome → IProp GF)
+    (Pre Q Post : IProp GF) (hk : apply.authChecks (dispatchKind rq) = true)
+    (hm : apply.authMayReject on rq) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      R (.rejected .auth) -∗ apply.kvOwn E log -∗ apply.authInfoOwn p -∗
+      apply.chainRes c inner -∗ mvcc.csContract E.P E.f Pre Q Post -∗
+      apply.kvPostF E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log
+        F R Pre Post := by
+  iintro #Happ HR Hkv Hinfo Hres Hcs
+  ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
+  iunfold apply.kvPostF
+  iexists (.rejected .auth)
+  isplitr
+  · ipureintro
+    exact ⟨by simp [apply.chainStep, hk, hm], fun _ _ h => by cases h⟩
+  simp only [apply.Outcome.logAfter]
+  iframe HR Hkv
+  isplitl [Hinfo Hres]
+  · iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
+  iright; iexact HPre
+
+/-- `auth_pass_kvPost` with a floor (unit V2). -/
+theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
+    (inner : GoInterface) (rq : IRRModel) (log F : mvcc.Log) (R : apply.Outcome → IProp GF)
+    (Pre Post : IProp GF) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      apply.kvPostF E c inner rq log F R Pre Post -∗ apply.authInfoOwn p -∗
+      apply.kvPostF E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq
+        log F R Pre Post := by
+  iintro #Happ Hpost Hinfo
+  iunfold apply.kvPostF at Hpost
+  iunfold apply.kvPostF
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
+  iexists oc
+  iframe HR Hkv HPP
+  isplitr
+  · ipureintro
+    refine ⟨?_, Hst.2⟩
+    simp only [apply.chainStep]
+    split <;> simp [Hst.1]
+  iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
+
 /-- A `*pb.RequestOp`'s four kinds, as `checkTxnReqsPermission`'s type switch sees them. -/
 theorem apply.requestOpIs_cases_auth (p : Loc) (op : TxnOp) :
     txn.requestOpIs (GF := GF) p op ⊢ ⌜p ≠ null⌝ ∗

@@ -51,7 +51,7 @@ theorem EtcdServer.applyAll.wp_proof
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, HW, Hka, #Hkb⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -⟩
+  icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -, -⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
   ihave #Hsa' := Hsa

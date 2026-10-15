@@ -32,8 +32,8 @@ theorem apply.applierV3backend.Put.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hPut : txn.Put.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Put.spec (GF := GF) (hG := hG) := by
-  intro E p r rq o log Pre Q Post
-  wp_start as ⟨#Hb, Hpre⟩
+  intro E p r rq o log F Pre Q Post
+  wp_start as ⟨#Hb, Hpre, #HF⟩
   iunfold apply.putPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
@@ -57,8 +57,8 @@ theorem apply.applierV3backend.Put.wp_proof
     (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false
     (by unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr rfl)⟩) $$ Hcp
   ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
-  wp_apply (txn.put_soleWriter_of hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f L none false hlen) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
+  wp_apply (txn.put_soleWriter_floor hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
+      E.s E.γ r o log E.P Pre Q Post E.f L none false hlen F) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
     as %resp %trace %err ⟨Hrd, Hu, %Htr, Htrc, -, Hout⟩
   · iframe #
     isplitr
@@ -70,7 +70,7 @@ theorem apply.applierV3backend.Put.wp_proof
   isplitr [Htrc]
   rotate_left
   · iunfold apply.traceRes; iright; iexact Htrc
-  iunfold apply.kvPost
+  iunfold apply.kvPostF
   obtain ⟨hput, hk, -⟩ := Hrq
   icases Hout with (⟨%Hn, #He, Hsw, HPre⟩ | ⟨%Hn, #He, Hsw, HPost⟩ |
     ⟨%Herr, #Hresp, Hhdr, Hsw, #Hlok, HPost, -⟩)
@@ -80,7 +80,7 @@ theorem apply.applierV3backend.Put.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨o, hput, Or.inl ⟨Hn.1, rfl⟩⟩
+      exact ⟨⟨o, hput, Or.inl ⟨Hn.1, rfl⟩⟩, fun _ _ h => by cases h⟩
     simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres
     isplitl []
@@ -96,7 +96,7 @@ theorem apply.applierV3backend.Put.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨o, hput, Or.inr (Or.inl ⟨Hn.1, Hn.2.1, rfl⟩)⟩
+      exact ⟨⟨o, hput, Or.inr (Or.inl ⟨Hn.1, Hn.2.1, rfl⟩)⟩, fun _ _ h => by cases h⟩
     simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres
     isplitl []
@@ -112,12 +112,12 @@ theorem apply.applierV3backend.Put.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨o, hput, Or.inr (Or.inr rfl)⟩
+      exact ⟨⟨o, hput, Or.inr (Or.inr rfl)⟩, fun _ _ _ => Herr.2⟩
     simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, Bool.false_eq_true,
       ↓reduceIte, apply.appliedHdr]
     iframe Hres Hresp Hhdr
     isplitl []
-    · ipureintro; exact ⟨Herr, Hl2, hlen⟩
+    · ipureintro; exact ⟨Herr.1, Hl2, hlen⟩
     isplitl [Hrd Hsw Hu Hard]
     · iunfold apply.kvOwn
       iframe Hrd Hsw Hard

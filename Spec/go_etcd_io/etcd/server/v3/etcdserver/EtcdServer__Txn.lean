@@ -34,12 +34,12 @@ or the proposal's, which may still be applied). -/
 abbrev EtcdServer.Txn.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
-    (ot : Option Loc) (te : Bool),
+    (ot : Option Loc) (te : Bool) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
       srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
-      ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ ∗
+      ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       (if txn.txnReadonly t then iprop(True) else srvNonPlain ρ.kv) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
@@ -47,11 +47,11 @@ abbrev EtcdServer.Txn.spec : Prop :=
       srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
       if txn.txnReadonly t then
         iprop(idCred ρ.ids 1 ∗
-          ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c t resp) ∨
+          ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t resp) ∨
            (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))
       else
-        iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E t resp) ∨
-          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ t err)) }}
+        iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }}
 
 end spec
 

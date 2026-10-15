@@ -31,7 +31,7 @@ through the client's retry interceptor). -/
 abbrev Client.getToken.spec : Prop :=
   ∀ (c : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
-      context.isContext ctx cd }}
+      ctxOk ctx cd }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; clientErrOk err }}

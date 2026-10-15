@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`aa.DeleteRange(r)`**: the auth store's `IsDeleteRangePermitted` and, with `PrevKv`, `IsRangePermitted` (an auth error: rejected), then the inner applier's `DeleteRange`. -/
 abbrev apply.authApplierV3.DeleteRange.spec : Prop :=
-  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
+  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log)
     (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
-      apply.deletePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq o log Pre Q Post }}
+      apply.deletePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log (apply.deleteAnswerIs log o resp err) Pre Post ∗
+      apply.kvPostF E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log F (apply.deleteAnswerIs log o resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

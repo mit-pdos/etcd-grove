@@ -30,7 +30,7 @@ abbrev kv.Put.spec : Prop :=
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
     (Q : PutRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-      context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2⌝ ∗
       isGrpcRpc addr go!"/etcdserverpb.KV/Put" Spec ∗
       □ ▷ Spec (putWireOf (opPutModel key val gs)) Q }}

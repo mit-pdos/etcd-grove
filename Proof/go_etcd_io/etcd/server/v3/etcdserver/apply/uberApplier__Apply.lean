@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.uberApplier.Apply.wp_proof
     (hD : apply.uberApplier.dispatch.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.spec (GF := GF) (hG := hG) := by
-  intro E p opts x r rq skip v3 Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip⟩
+  intro E p opts x r rq skip v3 F Pre Q Post
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip, #HF⟩
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs, %HcE⟩
   ihave #Hs' := Hs
@@ -48,13 +48,14 @@ theorem apply.uberApplier.Apply.wp_proof
       %(fun ar => iprop(∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
-        ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c'⌝ ∗
+        ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
+          apply.kvFloorOk rq v3 F x.log o⌝ ∗
         apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs] as %ar Hpost
   · iframe Hw Ha Hkv Hwt Hcs
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs⟩ HΦ'
-    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post) $$ [Hres Ha Hkv Hwt Hcs]
+    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post) $$ [Hres Ha Hkv Hwt Hcs]
     · iframe #
       iframe Hres Ha Hkv Hwt Hcs
       ipureintro; exact ⟨Hok, HcE⟩
@@ -73,7 +74,7 @@ theorem apply.uberApplier.Apply.wp_proof
       ipureintro
       rcases Hst.2 with h | ⟨-, -, ns, cr, h⟩ <;> simp [h, HcE]
     ipureintro
-    exact ⟨⟨Hskip, Hst.1, rfl, Hst.2⟩, Or.inr ⟨o, rfl⟩⟩
+    exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1⟩, Or.inr ⟨o, rfl⟩, Hst.2.2⟩
   · iunfold apply.rejectResultIs at Hrej
     icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeI⟩
     ipersist Hv
@@ -88,7 +89,7 @@ theorem apply.uberApplier.Apply.wp_proof
       iapply apply.cPre_pre
       iexact Hcs
     isplitr
-    · ipureintro; exact ⟨⟨Hna, rfl⟩, Or.inl rfl⟩
+    · ipureintro; exact ⟨⟨Hna, rfl⟩, Or.inl rfl, trivial⟩
     isplitl []
     · iapply apply.resTrace_err ar v Hvf.1 $$ Hv
     simp only [apply.applyResultIs]

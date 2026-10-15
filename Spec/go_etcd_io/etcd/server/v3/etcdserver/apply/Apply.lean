@@ -57,7 +57,7 @@ backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
 abbrev apply.Apply.spec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF)
-    (K G : Option GName → w64 → IProp GF) (ot : Option GName),
+    (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
@@ -65,14 +65,15 @@ abbrev apply.Apply.spec : Prop :=
        else iprop(True)) ∗ Pre ∗
       apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
-        apply.dispatchOk E.authOn rq⌝ }}
+        apply.dispatchOk E.authOn rq⌝ ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
       (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
-        ⌜apply.applyStep rq v3 x x' out⌝ ∗ apply.applyResultIs rq v3 x.log ar out ∗
+        ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
+        apply.applyResultIs rq v3 x.log ar out ∗
         (⌜out.waived = false⌝ ∨ G ot id) }}
 
 end spec

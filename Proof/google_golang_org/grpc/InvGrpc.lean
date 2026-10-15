@@ -534,6 +534,34 @@ abbrev interceptorCall (ic : GoFunc) (ctx method req reply cc : val) (inv : GoFu
   App (App (App (App (App (App (App (Val #ic) (Val ctx)) (Val method)) (Val req)) (Val reply))
     (Val cc)) (Val #inv)) (Val opts)
 
+/-- **A context that is never done and whose `Err()` returns `nil`** (persistent; the vertical
+slice's unit V2): `context.TODO()` and `context.Background()` (an `emptyCtx`: `Done()` is `nil`,
+`Err()` is `nil`), and value contexts over them (`valueCtx` delegates `Done` and `Err` to its
+parent: `withVersion`'s metadata context). Not an `isContext` (whose `Done()` is a channel). -/
+def ctxQuiet (ci : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.nil) -∗
+    WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxQuiet_persistent (ci : GoInterfaceOk) : Persistent (ctxQuiet (GF := GF) ci) := by
+  unfold ctxQuiet; infer_instance
+
+/-- **A context a client call takes** (persistent; the vertical slice's unit V2): one with the
+context model (`isContext`), or a quiet one (`ctxQuiet`: `context.TODO()`, which the recipes pass
+to every call). grpc's `invoke` and etcd's client interceptor accept either: the trust boundary's
+contracts below (`grpcInvokerOk`; the client's `withVersion`, `waitRetryBackoff`, `getToken`,
+`refreshToken`) are stated for `ctxOk`, true of Go's quiet contexts as of the others (a `nil`
+`Done()` channel never fires). -/
+def ctxOk (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(context.isContext ci cd ∨ ctxQuiet ci)
+
+instance ctxOk_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (ctxOk (GF := GF) ci cd) := by
+  unfold ctxOk; infer_instance
+
+theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    context.isContext (GF := GF) ci cd ⊢ ctxOk ci cd := by
+  iintro #H; unfold ctxOk; ileft; iexact H
+
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
 connection's interceptor chain; unit P3a): a call of a method registered at `addr` with `Spec`,
 for the request `inp` (`Req.send`, given back), into the reply `out` (owned, at any content:
@@ -549,7 +577,7 @@ def grpcInvokerOk (conn : Loc) (addr : GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (m : Req.M)
       (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ isGrpcRpc addr method Spec ∗ □ ▷ Spec m Φ ∗ context.isContext ctx cd ∗ Req.send inp m ∗
+    {{ isGrpcRpc addr method Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)

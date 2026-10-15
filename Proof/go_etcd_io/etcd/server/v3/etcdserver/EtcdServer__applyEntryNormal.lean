@@ -3,6 +3,7 @@ Proof of `Spec/EtcdServer__applyEntryNormal.lean`. Lean-first (no Rocq counterpa
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Lemmas
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
 public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
@@ -119,11 +120,14 @@ local macro "trig'" : tactic => `(tactic| (
   iunfold waitTrig
   iintro %Ψ HR
   iunfold reqWaitR at HR
-  icases HR with ⟨%d', %rq', #Hcl', %Hp'⟩
+  icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
   obtain ⟨hd', hΨ⟩ := Hp'
   subst hΨ
-  ihave %Hdd := idClaim_agree' ρ.ids id d' m.data $$ Hcl' Hcl0
-  subst Hdd
+  ihave %Hdd := idClaim_agree' ρ.ids id d' m.data γf' γf $$ Hcl' Hcl0
+  obtain ⟨Hdd, Hγ⟩ := Hdd
+  subst Hdd Hγ
+  ihave %HFF := floorAt_agree γf' F' F $$ Hfl' HfF
+  subst HFF
   rw [hdec] at hd'
   cases hd'
   iunfold resultΨ
@@ -141,7 +145,7 @@ local macro "trig'" : tactic => `(tactic| (
   iexists x, x', out
   iframe HRes Hcert HMint
   isplitr
-  · ipureintro; exact Hstep
+  · ipureintro; exact Hstep0
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -155,11 +159,14 @@ local macro "trig" : tactic => `(tactic| (
   iunfold waitTrig
   iintro %Ψ HR
   iunfold reqWaitR at HR
-  icases HR with ⟨%d', %rq', #Hcl', %Hp'⟩
+  icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
   obtain ⟨hd', hΨ⟩ := Hp'
   subst hΨ
-  ihave %Hdd := idClaim_agree' ρ.ids id d' m.data $$ Hcl' Hcl0
-  subst Hdd
+  ihave %Hdd := idClaim_agree' ρ.ids id d' m.data γf' γf $$ Hcl' Hcl0
+  obtain ⟨Hdd, Hγ⟩ := Hdd
+  subst Hdd Hγ
+  ihave %HFF := floorAt_agree γf' F' F $$ Hfl' HfF
+  subst HFF
   rw [hdec] at hd'
   cases hd'
   iunfold resultΨ
@@ -177,7 +184,7 @@ local macro "trig" : tactic => `(tactic| (
   iexists x, x', out
   iframe HRes Hcert HMint
   isplitr
-  · ipureintro; exact Hstep
+  · ipureintro; exact Hstep0
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -218,7 +225,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv0 := Hsrv
   iunfold isServer at Hsrv
-  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
+  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, #Hgen⟩
   ihave #Hat' := Hat
   iunfold srvAtomics at Hat'
   icases Hat' with ⟨#Hainv, -, #Hkvi⟩
@@ -321,8 +328,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         hdata hdec HkA.2 $$ Hkc
       iapply wp_fupd
       wp_apply hA fv.lg e m fv.ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
-        (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot
-        $$ [HKV Hwt HRD] as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep, -, #Hdel⟩
+        (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot x.log
+        $$ [HKV Hwt HRD] as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Hwt Hcp
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
@@ -331,7 +338,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         · ipureintro; exact Hlgnn
         isplitr
         · itrivial
+        iframe Hcx
         ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk⟩
+      have Hstep := Hstep0.1
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
@@ -425,6 +434,31 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq true (Hpe Htyp hdata rq hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       obtain ⟨HEP, HEf⟩ := HE
+      -- the floor its proposer recorded with the entry's claim (the vertical slice's unit V2)
+      -- (and, unit T1, the committed log it is in)
+      have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
+            ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
+              ∃ γf : GName, idClaim ρ.ids id m.data γf) ∗
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
+        unfold entryWaitOk; rw [ite_eq_left Htyp]
+      ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
+            ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
+              ∃ γf : GName, idClaim ρ.ids id m.data γf) ∗
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
+      · rw [← he]; iexact Hewo
+      icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
+      ihave #Hcl0' : iprop(∃ γf : GName, idClaim ρ.ids id0 m.data γf) $$ []
+      · iapply Hewc
+        ipureintro; exact ⟨hdata, hdec, hid⟩
+      icases Hcl0' with ⟨%γf, #Hcl0⟩
+      ihave #Hgen' := Hgen
+      iunfold srvGenAt at Hgen'
+      icases Hgen' with ⟨%gidg, -, #Hidg⟩
+      imod idClaim_fact ρ.ids gidg (srvFloorFact E) id0 m.data γf ⊤ (by simp) $$ Hidg Hcl0
+        with Hff
+      icases Hff with >#Hff
+      iunfold srvFloorFact at Hff
+      icases Hff with ⟨%F, #HfF, #HcF⟩
       wp_apply hA fv.lg e m fv.ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -433,9 +467,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           ciApplying ci m.index m.term ∗ applyBackend γ ci b)
         iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
           applyBackend γ ci b) x rq id0 RD
-        (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot
+        (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
         $$ [Hst Happ Hbe HKV Hwt HRD] as %ar %id
-          ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep, HRes, #Hdel⟩
+          ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Hwt Hcp
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
@@ -459,8 +493,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             isplitl [Hmt HTM Htok]
             · iunfold batchLockInv; iexists mm; iframe
             iexact Hst
-        · iframe Hst Happ Hbe
+        · iframe Hst Happ Hbe HcF
           ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk⟩
+      have Hstep := Hstep0.1
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st1 = ⟨m.index, m.index, m.index, false⟩ ∨ st1 = { st with p := m.index }⌝) $$ [Hout]
@@ -519,24 +554,10 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       iunfold isWait at Hwok
       icases Hwok with ⟨%wi, %Hwi, -, #HTrig, -⟩
       subst Hid
-      have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
-            ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              idClaim ρ.ids id m.data) ∗
-            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
-        unfold entryWaitOk; rw [ite_eq_left Htyp]
-      ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
-            ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              idClaim ρ.ids id m.data) ∗
-            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
-      · rw [← he]; iexact Hewo
-      icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
-      ihave #Hcl0 : iprop(idClaim ρ.ids id m.data) $$ []
-      · iapply Hewc
-        ipureintro; exact ⟨hdata, hdec, hid⟩
       ihave #HeW : iprop(entryWit ρ rq) $$ []
       · obtain ⟨jw, hjw, hjw'⟩ := List.getElem_of_mem HmLw
         iunfold entryWit
-        iexists Lw, jw, m, id
+        iexists Lw, jw, m, id, γf
         iframe HLw Hcl0
         ipureintro
         exact ⟨by rw [List.getElem?_eq_getElem hjw, hjw'], Htyp, hdec, hid⟩

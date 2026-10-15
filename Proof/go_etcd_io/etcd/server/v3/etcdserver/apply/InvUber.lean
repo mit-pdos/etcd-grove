@@ -70,6 +70,16 @@ def dispatchStep (c : Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (o : O
   else if storeKind (dispatchKind rq) = true then chainStep backendStep c rq log o
   else o.logAfter log = log
 
+/-- The request kinds whose triples take a floor (the vertical slice's unit V2): the KV writes. -/
+def isFloorKind : ReqKind → Bool
+  | .put | .deleteRange | .txn => true
+  | _ => false
+
+/-- **The floor met by `dispatch(rq, v3)`** (unit V2): a KV write dispatched with `v3` whose
+backend ran ran at a log extending the floor `F` (`floorOkO`). -/
+def kvFloorOk (rq : IRRModel) (v3 : Bool) (F log : mvcc.Log) (o : Outcome) : Prop :=
+  v3 = true → isFloorKind (dispatchKind rq) = true → floorOkO F log o
+
 /-- The uber-applier's chain after `dispatch(rq, v3)`: the same, or after an alarm request
 (`uberApplier.Alarm` calls `restoreAlarms` on an `ACTIVATE` or `DEACTIVATE`) the chain the alarm
 store's answers ask for. -/
@@ -106,6 +116,12 @@ def applyStep (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) : ApplyOut → Prop
   | .dispatched o skip => (skip = true → rq.txn.isSome = true) ∧
       dispatchStep x.chain rq v3 x.log o ∧ x'.log = o.logAfter x.log ∧
       chainAfter rq v3 x.chain x'.chain
+
+/-- **The floor met by `Apply(rq, v3)`** (unit V2): its dispatched outcome meets the floor
+(`kvFloorOk`); a skipped or rejected request ran nothing. -/
+def applyFloorOk (rq : IRRModel) (v3 : Bool) (F log : mvcc.Log) : ApplyOut → Prop
+  | .dispatched o _ => kvFloorOk rq v3 F log o
+  | _ => True
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

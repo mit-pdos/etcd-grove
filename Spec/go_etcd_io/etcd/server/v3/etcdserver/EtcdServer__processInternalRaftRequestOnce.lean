@@ -45,18 +45,19 @@ resource `E.RD` (`AuthInfoFromCtx`):
 abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
-    (Qr : List EntryModel → IProp GF),
+    (Qr : List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
-      (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) }}
+      (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
+      mvcc.idxCert E.γ.idx F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-          resultIsW E ρ.rd rq' res ∗ ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ □ Qr L) ∨
+          resultIsW E ρ.rd rq' F res ∗ ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ □ Qr L) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 end spec

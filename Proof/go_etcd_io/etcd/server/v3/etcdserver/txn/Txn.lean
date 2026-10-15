@@ -109,8 +109,8 @@ theorem txn.Txn_sole
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
-  intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te
-  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, #Hcok, Hcs, #Hhook⟩
+  intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te F
+  wp_start as ⟨#Hkv, Hrd, Hsw, #HF, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, #Hcok, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -130,7 +130,8 @@ theorem txn.Txn_sole
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
   have hlen3 : log.length + 3 ≤ 2 ^ 63 := by have := Hpre.1; omega
-  wp_apply (txn.soleWriter_Read hRead s γ md trace log false hlen3 Htr) $$ [$Hs $Hrd $Hsw $Htrc] as %mw ⟨%rev, Htx, Hsw⟩
+  wp_apply (txn.soleWriter_Read_floor hRead s γ md trace log false F hlen3 Htr) $$ [$Hs $Hrd $Hsw $Htrc $HF]
+    as %mw ⟨%rev, Htx, Hsw, %HFl⟩
   -- `compareToPath` in the trace's step
   icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te1, Htrc⟩, Hback⟩
   wp_apply (hStepF trace te1 _ _ slice.nil
@@ -261,7 +262,7 @@ theorem txn.Txn_sole
     simp only [srvRunTxn]
     rw [hch]
     isplitl []
-    · ipureintro; simp [Htr]
+    · ipureintro; simp [Htr, HFl]
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -345,7 +346,7 @@ theorem txn.Txn_sole
     · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
     iright
     isplitl []
-    · ipureintro; exact ⟨rfl, Htr, fun h => by rw [hro] at h; cases h⟩
+    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => by rw [hro] at h; cases h⟩
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr

@@ -35,6 +35,9 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --context > Proof/context/Link.lean
        etc/gen-link.py --read > Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Link.lean
        etc/gen-link.py --client > Proof/go_etcd_io/etcd/client/v3/Link.lean
+       etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
+       etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
+       etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -209,10 +212,29 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.register go_etcd_io.raft.v3",
                    "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
                    "The register example's proofs (`examples/register`)", [""]),
+    # porcupine (third_party/porcupine), the linearizability checker of etcd's robustness tests
+    "--porcupine": ("link-lean-first-porcupine.txt", "github_com.anishathalye.porcupine",
+                    "github_com.anishathalye.porcupine.Assumptions",
+                    "Porcupine's proofs (`third_party/porcupine`: the checker, its entry points)",
+                    [""]),
+    # the generic driver over porcupine (examples/lintest), over porcupine's (`@`)
+    "--lintest": ("link-lean-first-lintest.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
+                  "github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions",
+                  "The porcupine driver's proofs (`examples/lintest`)", [""]),
+    # its instance, a counter under a mutex (examples/lintest/counter), over the driver's (`@`)
+    "--lintest-counter": ("link-lean-first-lintest-counter.txt",
+                          "github_com.mit_pdos.etcd_grove.examples.lintest.counter "
+                          "github_com.mit_pdos.etcd_grove.examples.lintest "
+                          "github_com.anishathalye.porcupine",
+                          "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
+                          "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
+                          [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
-              "--txn": "txn", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
+              "--lintest-counter": "lintest", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}

@@ -12,6 +12,13 @@ returns an id nobody holds (`idFresh γi id`: the right to claim the id for a re
 The ids of other members' requests (other generators, other prefixes) are claimed in the same
 map: that the members' prefixes (`uint16(memberID)`) differ is a premise of the raft contract's
 apply side (`issues/etcd-request-id-member-prefix.md`).
+
+**A claim's ghost name** (the vertical slice's unit V2, 2026-10-14): a claim records, besides the
+data, a ghost name `γf` the claimer chose, and the generator's invariant holds, for every claim,
+the claimer's persistent fact `Φ id d γf` (`idGen γi g Φ`, `Φ` fixed at `NewGenerator`): the way a
+proposer hands the apply thread, which knows of the request only its committed data and their
+claim, what it knew when it proposed (the server's `Φ`: the certificate of a log the proposer's
+client had seen, `srvFloorFact`, `etcdserver/InvRequest.lean`).
 -/
 module
 
@@ -54,15 +61,28 @@ def idCred (γi : IdNames) (n : Nat) : IProp GF := own γi.cred (◯ n : Auth Na
 
 /-- The right to claim the id `id` for a request's data. -/
 def idUnclaimed (γi : IdNames) (id : w64) : IProp GF :=
-  id ↪[γi.issued] (none : Option (List w8))
+  id ↪[γi.issued] (none : Option (List w8 × GName))
 
-/-- The id `id` was claimed for the data `d` (persistent; agreeing). -/
-def idClaim (γi : IdNames) (id : w64) (d : List w8) : IProp GF :=
-  id ↪[γi.issued]□ (some d)
+/-- The id `id` was claimed for the data `d`, with the claimer's ghost name `γf` (persistent;
+agreeing). -/
+def idClaim (γi : IdNames) (id : w64) (d : List w8) (γf : GName) : IProp GF :=
+  id ↪[γi.issued]□ (some (d, γf))
 
-instance idClaim_persistent (γi : IdNames) (id : w64) (d : List w8) :
-    Persistent (idClaim (GF := GF) γi id d) := by
+instance idClaim_persistent (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
+    Persistent (idClaim (GF := GF) γi id d γf) := by
   unfold idClaim; infer_instance
+
+/-- The claimer's fact of the id `id`'s entry `v` (nothing if unclaimed). -/
+def idClaimFact (Φ : w64 → List w8 → GName → IProp GF) (id : w64)
+    (v : Option (List w8 × GName)) : IProp GF :=
+  match v with
+  | some (d, γf) => iprop(□ Φ id d γf)
+  | none => iprop(True)
+
+/-- The claimers' facts over the claimed ids of the map `I`. -/
+def idClaimsFacts (Φ : w64 → List w8 → GName → IProp GF)
+    (I : GMap w64 (Option (List w8 × GName))) : IProp GF :=
+  iprop([∗map] id ↦ v ∈ I, idClaimFact Φ id v)
 
 /-- The id's slot in the wait registry (exclusive): `Register(id)` takes it. -/
 def idSlot (γi : IdNames) (id : w64) : IProp GF :=
@@ -76,22 +96,25 @@ def idFresh (γi : IdNames) (id : w64) : IProp GF :=
 member id shifted by 48, so ids of distinct suffixes differ), its `suffix` (a plain `uint64` field
 the code updates with `atomic.AddUint64`) in an
 invariant with the credits' authority (`2 ^ 48 - 1` less the `k` ids issued) and the issued
-ids' ghost maps (the ids issued, `idIssued`, and only those, are in both maps). `NewGenerator`
+ids' ghost maps (the ids issued, `idIssued`, and only those, are in both maps), and the
+claimers' facts `Φ` of the claimed ones (unit V2). `NewGenerator`
 establishes it with `idCred γi (2 ^ 48 - 1)`; `Next` consumes a credit and returns an
 `idFresh` id. The bound is the premise that a process issues fewer than `2 ^ 48` request ids
 (the 48-bit suffix wraps after `2 ^ 48`). -/
-def idGen (γi : IdNames) (g : Loc) : IProp GF :=
+def idGen (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) : IProp GF :=
   iprop(∃ (pfx s0 : w64), ⌜g ≠ null⌝ ∗
     structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ pfx ∗
     ⌜uint.Z s0 < 2 ^ 48 ∧ pfx &&& W64 (2 ^ 48 - 1) = W64 0⌝ ∗
-    inv idN iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8))) (S : GMap w64 Unit),
+    inv idN iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8 × GName))) (S : GMap w64 Unit),
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" g ↦
         (s0 + W64 (k : Int)) ∗
       own γi.cred (● (2 ^ 48 - 1 - k) : Auth Nat) ∗ ⌜k ≤ 2 ^ 48 - 1⌝ ∗
       ghostMapAuth γi.issued 1 I ∗ ghostMapAuth γi.slot 1 S ∗
-      ⌜∀ id, ((I !! id).isSome ↔ idIssued pfx s0 k id) ∧ ((S !! id).isSome ↔ idIssued pfx s0 k id)⌝))
+      ⌜∀ id, ((I !! id).isSome ↔ idIssued pfx s0 k id) ∧ ((S !! id).isSome ↔ idIssued pfx s0 k id)⌝ ∗
+      idClaimsFacts Φ I))
 
-instance idGen_persistent (γi : IdNames) (g : Loc) : Persistent (idGen (GF := GF) γi g) := by
+instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) :
+    Persistent (idGen (GF := GF) γi g Φ) := by
   unfold idGen; infer_instance
 
 end ghost

@@ -36,15 +36,16 @@ theorem kv.Put.wp_proof
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api addr ci cd opv (opPutModel key val gs) Spec Q (fun _ _ => iprop(True))
-    (fun _ => iprop(True)) $$ []
+    (fun _ => iprop(True)) (fun _ _ => iprop(True)) (fun _ => iprop(True)) $$ []
     as %r %err Hout
   · iframe #
     unfold doRunOk
     iright
+    ileft
     iframe #
     ipureintro; exact Ht
   ihave Hout' : putCallOut Q r.put' err $$ [Hout]
-  · have Heq : doOut (opPutModel key val gs) Q (fun _ => iprop(True)) r err =
+  · have Heq : doOut (opPutModel key val gs) Q (fun _ => iprop(True)) (fun _ => iprop(True)) r err =
         putCallOut Q r.put' err := by
       unfold doOut; rw [Ht]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
     rw [← Heq]; iexact Hout

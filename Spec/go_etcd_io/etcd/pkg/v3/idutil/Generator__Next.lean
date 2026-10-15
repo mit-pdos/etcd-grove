@@ -24,8 +24,8 @@ variable [sem : go.Semantics]
 the generator's shape: its prefix `pfx` and the 48 low bits of its initial suffix `s0` plus the
 number `j` of ids issued so far, this one included. -/
 abbrev idutil.Generator.Next.spec : Prop :=
-  ∀ (γi : IdNames) (g : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil ∗ idGen γi g ∗
+  ∀ (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil ∗ idGen γi g Φ ∗
       idCred γi 1 }}
     (App (Val (g @!! go.GoType.PointerType idutil.Generator.ty @!! go!"Next")) (Val #()))
   {{ (id : w64), RET #id; idFresh γi id ∗

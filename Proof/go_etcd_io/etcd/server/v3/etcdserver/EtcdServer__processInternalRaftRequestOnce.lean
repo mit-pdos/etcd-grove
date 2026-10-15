@@ -144,19 +144,20 @@ local macro "piro_tail" : tactic => `(tactic| (
       simp [apply.withHeader, Hid0]
     iunfold idFresh at Hfresh
     icases Hfresh with ⟨Hunc, Hslot⟩
-    imod srv_claim_mint ρ v.gen id bs rq' Hdec Hidrq $$ HidGen Hmint Hunc with ⟨#Hclaim, Hpf⟩
+    imod srv_claim_mint ρ E v.gen id bs rq' F Hdec Hidrq $$ HidGen Hmint Hunc HF
+      with ⟨%γf, #Hclaim, #Hfl, Hpf⟩
     iunfold waitInv at Hwi
     icases Hwi with ⟨%RD, #Hwait⟩
     iunfold isWait at Hwait
     icases Hwait with ⟨%wi, %Hwi', #HReg, #HTrig, -⟩
     rw [Hwi']
     (try wp_auto)
-    wp_apply HReg $$ %id %(resultΨ E ρ rq') [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
+    wp_apply HReg $$ %id %(resultΨ E ρ rq' F) [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
     · iframe Hslot
       imodintro
       iunfold reqWaitR
-      iexists bs, rq'
-      iframe Hclaim
+      iexists bs, rq', γf, F
+      iframe Hclaim Hfl
       ipureintro; exact ⟨Hdec, rfl⟩
     (try wp_auto)
     wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) v.electionTicks v.tickMs $$ [] as %tmo -
@@ -241,7 +242,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         · ipureintro; rfl
         isplitr
         · iexact Hchan
-        iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ rq')) iprop(True) iprop(False) false _
+        iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ rq' F)) iprop(True) iprop(False) false _
           $$ Hho Hlc1 Hcons
         inext
         iintro %x %ok ⟨Hcons', Hgot⟩
@@ -264,11 +265,12 @@ local macro "piro_tail" : tactic => `(tactic| (
         subst Hx
         wp_auto_lc 2
         iunfold entryWit at HeW
-        icases HeW with ⟨%Lw, %mw, %ew, %idw, #HLw, #Hclw, %Hew⟩
+        icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
         obtain ⟨hlk, het, hdecw, hidw⟩ := Hew
         have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
         subst hidd
-        ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs $$ Hclw Hclaim
+        ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
+        replace Hdd := Hdd.1
         ihave #HWits' := HWits
         iunfold srvPropWits at HWits'
         imod HWits' $$ %bs %Qr %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
@@ -368,8 +370,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Qr Hid0
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩⟩
+  intro s E ρ ctx cd p rq Qr F Hid0
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_apply wp_with_defer as %defer defer
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
@@ -414,7 +416,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iframe #
   cases hx : exceedsLimit ai ci rq.leaseRevoke.isSome en
   · (try wp_auto)
-    wp_apply hNext ρ.ids v.gen $$ [Hcred] as %id ⟨Hfresh, %pfx, %s0, %j, #Hpfx, %Hidshape⟩
+    wp_apply hNext ρ.ids v.gen (srvFloorFact E) $$ [Hcred] as %id ⟨Hfresh, %pfx, %s0, %j, #Hpfx, %Hidshape⟩
     · iframe #; iframe Hcred
     (try wp_auto)
     ihave #Hirr' := Hirr

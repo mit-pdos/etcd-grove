@@ -95,7 +95,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.idutil.Assumptions]
 
 theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := hG)) :
     idutil.Generator.Next.spec (GF := GF) (hG := hG) := by
-  intro γi g
+  intro γi g Φc
   wp_start as ⟨#Hg, Hc⟩
   ihave #Hat : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
@@ -105,8 +105,8 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   wp_auto
   wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc g]
   · iexact Hat
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%k, %I, %S, Hsuf, Hcr, %Hk, HI, HS, %Hdom⟩
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcr, >%Hk, >HI, >HS, >%Hdom, HF⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -138,9 +138,9 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
     cases h : S !! nid with
     | none => rfl
     | some _ => exact absurd ((Hdom nid).2.mp (by simp [h])) Hnew
-  imod ghost_map_insert nid (none : Option (List w8)) HIn $$ HI with ⟨HI, Hu⟩
+  imod ghost_map_insert nid (none : Option (List w8 × GName)) HIn $$ HI with ⟨HI, Hu⟩
   imod ghost_map_insert nid () HSn $$ HS with ⟨HS, Hsl⟩
-  imod Hclose $$ [Hsuf Hcr HI HS] with -
+  imod Hclose $$ [Hsuf Hcr HI HS HF] with -
   · inext
     iexists (k + 1), (I.insert nid none), (S.insert nid ())
     have hsuf : s0 + W64 (k : Int) + W64 1 = s0 + W64 ((k + 1 : Nat) : Int) := by
@@ -149,28 +149,38 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
     iframe Hsuf
     rw [show 2 ^ 48 - 1 - (k + 1) = 2 ^ 48 - 1 - (k + 1) from rfl]
     iframe Hcr HI HS
-    ipureintro
-    refine ⟨by omega, fun id' => ⟨?_, ?_⟩⟩
-    · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').1, hid]
-      by_cases h : nid = id'
-      · subst h; simp
-      · constructor
-        · rintro (h' | ⟨_, h'⟩)
-          · exact absurd h' h
-          · exact Or.inl h'
-        · rintro (h' | h')
-          · exact Or.inr ⟨h, h'⟩
-          · exact absurd h'.symm h
-    · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').2, hid]
-      by_cases h : nid = id'
-      · subst h; simp
-      · constructor
-        · rintro (h' | ⟨_, h'⟩)
-          · exact absurd h' h
-          · exact Or.inl h'
-        · rintro (h' | h')
-          · exact Or.inr ⟨h, h'⟩
-          · exact absurd h'.symm h
+    isplitr
+    · ipureintro; omega
+    isplitr
+    · ipureintro
+      refine fun id' => ⟨?_, ?_⟩
+      · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').1, hid]
+        by_cases h : nid = id'
+        · subst h; simp
+        · constructor
+          · rintro (h' | ⟨_, h'⟩)
+            · exact absurd h' h
+            · exact Or.inl h'
+          · rintro (h' | h')
+            · exact Or.inr ⟨h, h'⟩
+            · exact absurd h'.symm h
+      · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').2, hid]
+        by_cases h : nid = id'
+        · subst h; simp
+        · constructor
+          · rintro (h' | ⟨_, h'⟩)
+            · exact absurd h' h
+            · exact Or.inl h'
+          · rintro (h' | h')
+            · exact Or.inr ⟨h, h'⟩
+            · exact absurd h'.symm h
+    iunfold idClaimsFacts at HF
+    iunfold idClaimsFacts
+    have HIn' : I.lookup nid = none := HIn
+    iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := I) (Φ := idClaimFact Φc) HIn').2
+    iframe HF
+    iunfold idClaimFact
+    itrivial
   imodintro
   wp_auto
   wp_apply hL (s0 + W64 (k : Int) + W64 1) (W64 48) (by word)

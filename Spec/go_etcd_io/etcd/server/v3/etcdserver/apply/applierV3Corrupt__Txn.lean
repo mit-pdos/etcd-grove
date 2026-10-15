@@ -29,12 +29,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`a.Txn(rt, skip)`**: `ErrCorrupt`; nothing written. -/
 abbrev apply.applierV3Corrupt.Txn.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel)
-    (log : mvcc.Log) (Pre Q Post : IProp GF),
+    (log F : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
-      apply.txnPre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) r rq t log Pre Q Post }}
+      apply.txnPre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq log (apply.txnAnswerIs log t skip resp err) Pre Post ∗
+      apply.kvPostF E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq log F (apply.txnAnswerIs log t skip resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

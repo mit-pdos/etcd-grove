@@ -23,12 +23,12 @@ variable [sem : go.Semantics]
 
 /-- `NewGenerator(memberID, now)` returns a generator (`idGen`, fresh ghost names) with its
 `2 ^ 48 - 1` id credits: its prefix `memberID << 48`, its suffix the 40 low bits of `now`'s
-milliseconds, shifted by 8. -/
+milliseconds, shifted by 8; with the claimers' facts `Φ` the caller chooses (unit V2). -/
 abbrev idutil.NewGenerator.spec : Prop :=
-  ∀ (memberID : w16) (now : time.Time),
+  ∀ (memberID : w16) (now : time.Time) (Φ : w64 → List w8 → GName → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil }}
     (App (App (Val (@! idutil.NewGenerator)) (Val #memberID)) (Val #now))
-  {{ (g : Loc), RET #g; ∃ γi : IdNames, idGen γi g ∗ idCred γi (2 ^ 48 - 1) }}
+  {{ (g : Loc), RET #g; ∃ γi : IdNames, idGen γi g Φ ∗ idCred γi (2 ^ 48 - 1) }}
 
 end spec
 

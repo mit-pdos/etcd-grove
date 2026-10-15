@@ -37,7 +37,8 @@ theorem v3rpc.quotaKVServer.Put.wp_proof
   iunfold v3rpc.quotaKVServerAt at Hq
   icases Hq with ⟨%Hqn, #Hkv, #Hqa⟩
   wp_auto
-  wp_apply wp_check _ s E ρ ci cd r $$ [Hlt Hard] as %err ⟨Hlt, Hard⟩
+  wp_apply wp_check _ s E ρ ci cd r (go.GoType.PointerType etcdserverpb.PutRequest.ty) (Or.inl rfl)
+    $$ [Hlt Hard] as %err ⟨Hlt, Hard⟩
   · iframe; iframe #
   cases err with
   | ok ei =>

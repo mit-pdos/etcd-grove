@@ -85,9 +85,11 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   wp_apply HGet $$ %kp %gsl %(withTopM (W64 0) (W64 2)) %(iprop(True) : IProp GF) %lo [$Hgres $Hlo]
     as %gresp %gerr ⟨-, #Hgr, -⟩
   · ipureintro
-    exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1⟩
-  iunfold kvGetResult at Hgr
-  icases Hgr with (%Hgne | ⟨%Hgnil, %g, %gm, #HgRev, -, #Hg, %Hgle, Hgr⟩)
+    exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1, by
+      simp [OpFull.getExact, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
+        OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
+  iunfold kvGetResultR at Hgr
+  icases Hgr with (%Hgne | ⟨%Hgnil, %g, #HgRev, #Hg, %Hgle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
       cases gerr with
       | nil => exact absurd rfl Hgne
@@ -249,7 +251,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   (try wp_auto)
   iunfold isEtcdTxnKVTodo at HTxn
   wp_apply HTxn as %t ⟨%B, HB, #HBs, #HCommit⟩
-  iunfold txnBuilderSpec at HBs
+  iunfold txnBuilderSpecX at HBs
   icases HBs with ⟨#HIf, #HThen, -, -, -⟩
   iunfold txnCommitErrTodo at HCommit
   wp_apply wp_slice_literal (l := [opB, opK])
@@ -304,7 +306,8 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   (try wp_auto)
   ihave HB := B_conv' B _ (seqBuild kp key val g) (by rfl) $$ HB
   wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨Hres, -⟩
-  · ipureintro; exact seqTxn_under pfx kp key val g Hk.2 Hpk
+  · ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
+        (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)

@@ -1,0 +1,10 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean` (all
+# Lean-first), read by `etc/gen-link.py --lintest`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# porcupine's entry point, linked in porcupine's `Link.lean`.
+CheckOperationsVerbose: @
+# the driver (examples/lintest/lintest.go)
+runClient:
+Run: runClient CheckOperationsVerbose
+CounterClock:

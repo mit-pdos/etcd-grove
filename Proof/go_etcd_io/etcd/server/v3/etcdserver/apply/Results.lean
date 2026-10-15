@@ -225,16 +225,24 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   imodintro
   iintro %Φ Hpre HΦ
   iunfold putPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hm⟩
-  iapply HPut $$ %r %rq %o %log %Pre %Q %Post [Hm]
-  · iunfold putPre
-    iframe Hm Hr
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases Hm with ⟨Hwt, Hm⟩
+  iunfold mPre at Hm
+  icases Hm with ⟨Hkv, Hm⟩
+  ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
+  iapply HPut $$ %r %rq %o %log %log %Pre %Q %Post [Hwt Hkv Hm]
+  · iframe Hc
+    iunfold putPre
+    iframe Hwt Hr Hcp
+    iunfold mPre
+    iframe Hkv Hm
     ipureintro; exact Hk
   inext
   iintro %resp %trace %err ⟨Hpost, Htr⟩
   iapply HΦ
-  iunfold kvPost at Hpost
-  icases Hpost with ⟨%oc, %Hst, HR⟩
+  iunfold kvPostF at Hpost
+  icases Hpost with ⟨%oc, %Hst0, HR⟩
+  have Hst := Hst0.1
   iexists oc
   icases HR with ⟨H1, H2, H3, H4⟩
   iframe H1 H2 H3 H4 Htr
@@ -265,16 +273,24 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   imodintro
   iintro %Φ Hpre HΦ
   iunfold deletePre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hm⟩
-  iapply HDel $$ %r %rq %o %log %Pre %Q %Post [Hm]
-  · iunfold deletePre
-    iframe Hm Hr
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases Hm with ⟨Hwt, Hm⟩
+  iunfold mPre at Hm
+  icases Hm with ⟨Hkv, Hm⟩
+  ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
+  iapply HDel $$ %r %rq %o %log %log %Pre %Q %Post [Hwt Hkv Hm]
+  · iframe Hc
+    iunfold deletePre
+    iframe Hwt Hr Hcp
+    iunfold mPre
+    iframe Hkv Hm
     ipureintro; exact Hk
   inext
   iintro %resp %trace %err ⟨Hpost, Htr⟩
   iapply HΦ
-  iunfold kvPost at Hpost
-  icases Hpost with ⟨%oc, %Hst, HR⟩
+  iunfold kvPostF at Hpost
+  icases Hpost with ⟨%oc, %Hst0, HR⟩
+  have Hst := Hst0.1
   iexists oc
   icases HR with ⟨H1, H2, H3, H4⟩
   iframe H1 H2 H3 H4 Htr
@@ -346,16 +362,24 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   imodintro
   iintro %Φ Hpre HΦ
   iunfold txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hm⟩
-  iapply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hm]
-  · iunfold txnPre
-    iframe Hm Hr
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases Hm with ⟨Hwt, Hm⟩
+  iunfold mPre at Hm
+  icases Hm with ⟨Hkv, Hm⟩
+  ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
+  iapply HTxn $$ %r %skip %rq %t %log %log %Pre %Q %Post [Hwt Hkv Hm]
+  · iframe Hc
+    iunfold txnPre
+    iframe Hwt Hr Hcp
+    iunfold mPre
+    iframe Hkv Hm
     ipureintro; exact Hk
   inext
   iintro %resp %trace %err ⟨Hpost, Htr⟩
   iapply HΦ
-  iunfold kvPost at Hpost
-  icases Hpost with ⟨%oc, %Hst, HR⟩
+  iunfold kvPostF at Hpost
+  icases Hpost with ⟨%oc, %Hst0, HR⟩
+  have Hst := Hst0.1
   iexists oc
   icases HR with ⟨H1, H2, H3, H4⟩
   iframe H1 H2 H3 H4 Htr

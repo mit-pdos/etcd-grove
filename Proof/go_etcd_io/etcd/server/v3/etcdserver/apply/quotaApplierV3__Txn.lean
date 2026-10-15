@@ -30,8 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.quotaApplierV3.Txn.wp_proof :
     apply.quotaApplierV3.Txn.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log Pre Q Post
-  wp_start as ⟨#Hq, #Hin, Hpre⟩
+  intro E c inner p r skip rq t log F Pre Q Post
+  wp_start as ⟨#Hq, #Hin, Hpre, #HF⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
@@ -55,14 +55,15 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   wp_apply HAvail $$ %_ %r [] as %ok %Hok
   · ipureintro; exact Or.inr (Or.inl rfl)
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
-  wp_apply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
+  wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.txnPre
     iunfold apply.mPre
     iframe
     iframe #
     ipureintro; exact Hk
-  iunfold apply.kvPost at Hpost
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
+  iunfold apply.kvPostF at Hpost
+  icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP⟩
+  obtain ⟨Hst, Hfl⟩ := Hst0
   ihave Hres := apply.chainRes_quota_in c p (.ok bi) $$ Hf Hres
   have hq : apply.quotaChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   rcases err with e | _
@@ -72,12 +73,12 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iunfold apply.kvPost
+    iunfold apply.kvPostF
     iexists oc
     iframe HR Hkv HPP Hres
     ipureintro
     simp only [apply.chainStep]
-    exact Hst
+    exact ⟨Hst, Hfl⟩
 
   · -- `err == nil`: the inner applied the put
     ihave %Hap := apply.txnAnswerIs_nil log t skip resp oc $$ HR
@@ -90,12 +91,12 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
       isplitr [Htrc]
       rotate_left
       · iexact Htrc
-      iunfold apply.kvPost
+      iunfold apply.kvPostF
       iexists (.applied log' false)
       iframe HR Hkv HPP Hres
       ipureintro
       simp only [apply.chainStep]
-      exact Hst
+      exact ⟨Hst, Hfl⟩
 
 end proof
 

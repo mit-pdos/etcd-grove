@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.Txn.wp_proof
     (hTxn : apply.CheckTxnAuth.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.Txn.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log Pre Q Post
-  wp_start as ⟨#Hauth, #Hinner, Hpre⟩
+  intro E c inner p r skip rq t log F Pre Q Post
+  wp_start as ⟨#Hauth, #Hinner, Hpre, #HF⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.txnPre at Hpre
@@ -59,7 +59,7 @@ theorem apply.authApplierV3.Txn.wp_proof
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPost E E.authOn c p (.ok bi) rq log _ Pre Q Post hk (Or.inr (Or.inr (by rw [Hk.2.1]; decide))) $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inr (Or.inr (by rw [Hk.2.1]; decide))) $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs]
       isplitr
@@ -68,7 +68,7 @@ theorem apply.authApplierV3.Txn.wp_proof
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HI $$ %r %skip %rq %t %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
+  wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.txnPre
     iunfold apply.mPre
     iframe
@@ -78,7 +78,7 @@ theorem apply.authApplierV3.Txn.wp_proof
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPost E E.authOn c p (.ok bi) rq log _ Pre Post $$ Happ Hpost
+  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
   iunfold apply.authInfoOwn; iexists info; iexact Hinfo
 
 end proof

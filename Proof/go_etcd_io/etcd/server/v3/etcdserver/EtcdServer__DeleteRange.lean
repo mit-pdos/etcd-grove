@@ -46,8 +46,8 @@ theorem EtcdServer.DeleteRange.wp_proof
     (hAS : «attribute».String.spec (GF := GF) (hG := hG))
   :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r op
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hdel, Hnp⟩
+  intro s E ρ ctx cd r op F
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hdel, Hnp, #HF⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -135,7 +135,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
-  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op) (fun _ => iprop(True)) rfl
+  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op) (fun _ => iprop(True)) F rfl
       $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
     isplitl [Hnp]
@@ -145,9 +145,11 @@ theorem EtcdServer.DeleteRange.wp_proof
   icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, -⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOk at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, #Hcert, HMint, -⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
+    obtain ⟨Hstep, Hfl⟩ := Hstep0
     have Hk : apply.dispatchKind rq' = .deleteRange := by
       rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
+    have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
     iunfold apply.dispatchAnswer at Hans
     rw [Hk] at *
     icases Hans with ⟨%op', %pr, %Hop, Hpo⟩
@@ -166,9 +168,10 @@ theorem EtcdServer.DeleteRange.wp_proof
     isplitr
     · ipureintro; rfl
     iexists hm, rq', op', x, x', .applied log' false, skip
-    iframe Hpo Hhdr Hcert HMint
+    iframe Hpo Hhdr Hcert HMint Hwit
     ipureintro
-    refine ⟨Hwire, Hop', ?_, Hstep, log', rfl⟩
+    refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
+      Hfl' log' false rfl⟩
     intro Hnz
     have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := by
       refine (Hwire.2.2.2 ?_)

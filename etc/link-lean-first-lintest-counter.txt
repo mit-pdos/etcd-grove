@@ -1,0 +1,11 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --lintest-counter`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# the driver, linked in lintest's `Link.lean`.
+Run: @
+# the instance (examples/lintest/counter/counter.go)
+counter_Model:
+counter_New:
+counter_Counter__Apply:
+counter_Check: Run counter_Model counter_New counter_Counter__Apply

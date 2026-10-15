@@ -270,7 +270,7 @@ theorem EtcdServer.run.wp_proof
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
+  icases Hsrv' with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, -⟩
   ihave #Hfv' := Hfv
   iunfold srvFieldsAt at Hfv'
   icases Hfv' with ⟨#Hlgf, %Hslgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has,

@@ -159,6 +159,20 @@ translate = [
   "filterCallOptions",
   "withMax",
   "withBackoff",
+  # the vertical slice's unit V2: the KV client's Delete and Txn over gRPC (`kv.go`'s `kv.Delete`,
+  # `kv.Txn`; `txn.go`'s builder `txn.If`/`Then`/`Else`/`Commit`; `op.go`'s `Op.toRequestOp`,
+  # `Op.toTxnRequest`, `Op.isWrite`; `retry.go`'s `retryKVClient.DeleteRange`/`Txn`)
+  "kv.Delete",
+  "kv.Txn",
+  "txn.If",
+  "txn.Then",
+  "txn.Else",
+  "txn.Commit",
+  "Op.toRequestOp",
+  "Op.toTxnRequest",
+  "Op.isWrite",
+  "retryKVClient.DeleteRange",
+  "retryKVClient.Txn",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer"]
 

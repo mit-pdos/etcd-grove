@@ -31,8 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3Capped.Txn.wp_proof
     (hCost : storage.BackendQuota.Cost.spec (GF := GF) (hG := hG)) :
     apply.applierV3Capped.Txn.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log Pre Q Post
-  wp_start as ⟨Hc, #Hin, Hpre⟩
+  intro E c inner p r skip rq t log F Pre Q Post
+  wp_start as ⟨Hc, #Hin, Hpre, #HF⟩
   iunfold apply.cappedIs at Hc
   ipersist Hc
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
@@ -60,10 +60,11 @@ theorem apply.applierV3Capped.Txn.wp_proof
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iunfold apply.kvPost
+    iunfold apply.kvPostF
     iexists (.rejected .noSpace)
     isplitr
     · ipureintro
+      refine ⟨?_, fun _ _ h => by cases h⟩
       simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
       simp
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
@@ -79,7 +80,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
     iapply apply.csContract_pre $$ Hcs
   · -- the inner applier's `Txn`
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ Hc Hres
-    wp_apply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hwt Hkv Hres Hcs]
+    wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs]
       as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.txnPre
       iunfold apply.mPre
@@ -90,13 +91,15 @@ theorem apply.applierV3Capped.Txn.wp_proof
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iunfold apply.kvPost at Hpost
-    iunfold apply.kvPost
-    icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
+    iunfold apply.kvPostF at Hpost
+    iunfold apply.kvPostF
+    icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP⟩
+    obtain ⟨Hst, Hfl⟩ := Hst0
     iexists oc
     iframe HR Hkv HPP
     isplitr
     · ipureintro
+      refine ⟨?_, Hfl⟩
       simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
       simp only [Bool.false_eq_true, ↓reduceIte]
       exact Or.inr Hst

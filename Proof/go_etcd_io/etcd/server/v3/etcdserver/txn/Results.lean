@@ -382,9 +382,11 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
               (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
             soleWriter γ (mvcc.commitLog log pend) ∗
             leasesKnown L (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) }} := by
-  wp_start_folded as Hpre
-  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te) $$ [Hpre]
-  · iframe Hpre Hpkg
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hrest⟩
+  ihave ⟨Hsw, #Hc⟩ := soleWriter_cert γ log $$ Hsw
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te log)
+    $$ [Hrd Hsw Hrest]
+  · iframe Hkv Hrd Hsw Hc Hrest Hpkg
   inext
   iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ
@@ -400,7 +402,7 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
     isplitl []; · ipureintro; exact ⟨Hok.1, Hok.2.1⟩
     iframe HPP
     iexists (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
-    isplitl []; · ipureintro; exact ⟨hs, Hok.2.2⟩
+    isplitl []; · ipureintro; exact ⟨hs, Hok.2.2.2⟩
     rw [← h1, ← h3, ← hs]
     iframe Hresp Hsw Hknown
 
@@ -428,9 +430,11 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
             txnResponseIs skip resp (W64 ((log.length - 1 : Nat) : Int)) t
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)) }} := by
-  wp_start_folded as Hpre
-  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te) $$ [Hpre]
-  · iframe Hpre Hpkg
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hrest⟩
+  ihave ⟨Hsw, #Hc⟩ := soleWriter_cert γ log $$ Hsw
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te log)
+    $$ [Hrd Hsw Hrest]
+  · iframe Hkv Hrd Hsw Hc Hrest Hpkg
   inext
   iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ
@@ -440,7 +444,7 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
     ileft
     iframe Herr
     ipureintro; exact ⟨Hn.1, Hn.2.2⟩
-  · have hch := Hok.2.2 hro
+  · have hch := Hok.2.2.2 hro
     rw [hch, show mvcc.commitLog log [] = log from rfl,
       show mvcc.writeRev log [] = log.length - 1 from rfl]
     iframe Hsw
@@ -470,9 +474,11 @@ theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc
         mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗ ∃ log' : mvcc.Log, soleWriter γ log' ∗
           ((⌜err ≠ GoInterface.nil⌝ ∗ Pre) ∨ (Pre ∨ Post)) ∗
           ⌜err ≠ GoInterface.nil → log' = log ∧ resp = null⌝ }} := by
-  wp_start_folded as Hpre
-  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te) $$ [Hpre]
-  · iframe Hpre Hpkg
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hrest⟩
+  ihave ⟨Hsw, #Hc⟩ := soleWriter_cert γ log $$ Hsw
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te log)
+    $$ [Hrd Hsw Hrest]
+  · iframe Hkv Hrd Hsw Hc Hrest Hpkg
   inext
   iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ

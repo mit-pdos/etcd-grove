@@ -78,19 +78,19 @@ theorem apply.newAuthApplierV3.wp_proof
   isplitr
   · -- Put: the auth applier's
     imodintro
-    iintro %r %rq %o %log %Pre %Q %Post
+    iintro %r %rq %o %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hPut E c (.ok bi) p r rq o log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
   · -- DeleteRange: the auth applier's
     imodintro
-    iintro %r %rq %o %log %Pre %Q %Post
+    iintro %r %rq %o %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hDel E c (.ok bi) p r rq o log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hDel E c (.ok bi) p r rq o log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
@@ -105,10 +105,10 @@ theorem apply.newAuthApplierV3.wp_proof
   isplitr
   · -- Txn: the auth applier's
     imodintro
-    iintro %r %skip %rq %t %log %Pre %Q %Post
+    iintro %r %skip %rq %t %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hTxn E c (.ok bi) p r skip rq t log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
