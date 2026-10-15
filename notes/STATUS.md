@@ -1,6 +1,13 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (stage R: **ReadIndex and proposals as persistent atomic updates over the full committed log** (`notes/raft-readindex-spec.md`) -- `rLog` replaces the client log, `propAu` fires at every committed occurrence, `noopAu` at raft's own entries, a read's `readAu` is deposited by `RawNode.ReadIndex`/`node.ReadIndex` and fired at every commit after, `read_collect`/`prop_collect` give `▷ ▷ □` results; one later credit per ghost step with the commit invariant in a log half and a registry half held open across the step; no voter-count premise left at the public API or in the register; see "The new ReadIndex and proposal specs (stage R)"; stage F: **the single-voter read-index fix verified at `raft.Step`** -- the raft pin is the fork revision `0560cb7` (etcd-io/raft `40f8be7` plus the fix of `issues/raft-readindex-singleton-stale.md`), `sendMsgReadIndexResponse`'s shortcut (the leader as single voter, after `committedEntryInCurrentTerm`) is the model's `readSingle`/`readReleaseSingle`, refined in both modes by the leader's own acknowledgement (quorum `{id}`), `raft.Step.spec`'s single-voter read-index premise gone; see "The single-voter read-index fix"; reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
+**Last updated:** 2026-10-15 (stage N: **node.go and the register under reconfiguration** --
+`node.go` verified in raft's dynamic mode (the run loop's configuration shared with the driver:
+`dlm`, `cap`, `ccq`, `cam`, `runCfg`; `isNode`'s static restriction gone, `RestartNode` in either
+mode, `node.Advance` with A1, `node.ApplyConfChange` for any in-order change), `RaftNames.reCCOk`
+(the conf-change bytes a cluster admits, since a pure decoder cannot read a slice), and the
+register in the dynamic mode: its apply loop applies conf entries before `Advance`, `Main` removes
+replica 3 at run time (`RemoveMember`), `Put`/`Get`/`Read` and adequacy statements unchanged; see
+"node.go and the register under reconfiguration (stage N)"; stage R: **ReadIndex and proposals as persistent atomic updates over the full committed log** (`notes/raft-readindex-spec.md`) -- `rLog` replaces the client log, `propAu` fires at every committed occurrence, `noopAu` at raft's own entries, a read's `readAu` is deposited by `RawNode.ReadIndex`/`node.ReadIndex` and fired at every commit after, `read_collect`/`prop_collect` give `▷ ▷ □` results; one later credit per ghost step with the commit invariant in a log half and a registry half held open across the step; no voter-count premise left at the public API or in the register; see "The new ReadIndex and proposal specs (stage R)"; stage F: **the single-voter read-index fix verified at `raft.Step`** -- the raft pin is the fork revision `0560cb7` (etcd-io/raft `40f8be7` plus the fix of `issues/raft-readindex-singleton-stale.md`), `sendMsgReadIndexResponse`'s shortcut (the leader as single voter, after `committedEntryInCurrentTerm`) is the model's `readSingle`/`readReleaseSingle`, refined in both modes by the leader's own acknowledgement (quorum `{id}`), `raft.Step.spec`'s single-voter read-index premise gone; see "The single-voter read-index fix"; reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
 for any `ConfState`** (`Restore.specG`, joint included, against `restoreM`; the non-joint
 `Restore.spec` derived), A3 as definitions (`SnapConf.lean`: `SnapConfOk`, `SnapObl`),
 `MemoryStorage` keeping a snapshot's four `ConfState` slices, and the asynchronous-storage
@@ -33,6 +40,136 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## node.go and the register under reconfiguration (stage N) (2026-10-15)
+
+**Changing the voters is now verified from the Go public API up to the register example's
+closed theorem.** `node.go` is verified in raft's dynamic mode (its `confc` arm applies any
+change the driver applies in order, its `advancec` arm takes A1 from the driver), and the
+register runs its cluster in that mode: its apply loop applies every committed conf-change entry
+to its node (`Node.ApplyConfChange`) before the `Advance` that acknowledges it
+(`issues/raft-advance-before-applyconfchange.md`), and `Main` removes replica 3 from the voters
+at run time through `Node.ProposeConfChange`. The register's `Put`/`Get`/`Read` statements and
+the adequacy theorem are unchanged: they now hold of a cluster whose voters change. This
+completes B7 part 2's "Left" items 1 and 2.
+
+Commits: `cdc8b3316` (N1, `node.go`), `38ca63186` (N2a, the conf-change bytes a cluster admits),
+`fd2dbe641` (N2b, the register), and this notes commit.
+
+- **N1, `node.go` in either mode** (`InvNode.lean`, `InvNodeRun.lean`, `node__run.lean`).
+  `run` and the driver share, besides `dlv`/`rof`: the committed log handed out as a `mono_list`
+  (`NodeNames.dlm`: `run` the authority, the driver lower bounds, `dlvLb`); the configuration
+  as of the last applied conf change (`cap`, halves: `run`'s in `runCfg`, the driver's in
+  `nodeCfg`), its index as a monotone nat (`cam`: `run` the authority, the driver lower bounds,
+  for A1), and an answer slot (`ccq`) by which the driver recognizes `run`'s answer on
+  `confstatec`. `runCfg γ rs` (in `headRest`/`runMid`, `runPre`) ties them to the `RawNode`:
+  `rs.mode = γ.mode`, `rs.capplied ≤ |rs.delivered|`, the shared index `ca ≤ rs.capplied` with
+  no conf entry in between (`Advance` may move the `RawNode`'s index past `ca`).
+  - The `confc` arm, dynamic: the payload (`confcP`) carries the driver's `cap` half,
+    `ccq`'s half at the expected answer `(k + 1, cs')`, `dlvLb ds` and `DynCCPreOp` on the
+    driver's view; `runCfg_confc` turns it into `DynCCPreOp` on the `RawNode`
+    (`dynCCPreOp_transfer`: `ds` a prefix of `rs.delivered`, the conf entry at `k` cannot be
+    below `rs.capplied`), moves the shared configuration, and `wp_rn_raft_applyConfChange_dyn`
+    (B7c-3's `wp_applyConf_dyn`, moved from `RawNode__ApplyConfChange.lean` to
+    `InvNodeRun.lean`) applies it. The arm's removed-node code (`okBefore && !okAfter`: the
+    `found` loops over `cs.Voters`, `cs.VotersOutgoing`, `propc = nil`) is verified (in the
+    static mode it was unreachable). The answer (`confstateP`) gives `cap`'s half back with
+    `ccq`'s other half at the same value and the new configuration's `ConfState`
+    (`confstateOk`).
+  - The `advancec` arm: `advanceP` carries a `cam` lower bound `ca` and A1 on it
+    (`NoConfIn (d ++ ce) ca |d ++ ce|`, dynamic mode only), which `runCfg_a1` makes A1 at the
+    `RawNode`; `runCfg_advance` re-establishes `runCfg` at `Advance`'s new index.
+  - The `readyc` arm: `runCfg_extend` (the `dlm` authority grows with the `Ready`'s committed
+    entries; `readyP` hands out the lower bound).
+  - `isNode`'s `⌜γ.raft.reDyn = none⌝` is gone; `node.run`'s proof needs
+    `maxHeartbeats 1000000` (60 s).
+- **N2a, the conf-change bytes a cluster admits** (`RaftNames.reCCOk`). A decoder (`CCDec`) is
+  a pure function of an entry and its prefix, and an entry's data is a slice, whose bytes are in
+  the heap: no pure decoder can decode what an application's `Unmarshal` reads. So a client that
+  applies conf entries pins, at allocation, which bytes a conf-change entry may carry:
+  `entDataIs γ e none` of a conf-change entry now also gives `γ.reCCOk e.Type' bs`, and
+  `ProposeConfChange` (RawNode and node) asks `CCAllowed γ o` (the marshaled bytes satisfy it).
+  `ownRaftGhost_alloc` (static) admits everything; `ownRaftGhost_alloc_gen` and
+  `raft_dyn_alloc` take the predicate.
+- **N2b, the register** (`examples/register`, Go changed).
+  - Go: `run` applies each committed `EntryConfChange` (`var cc pb.ConfChange;
+    cc.Unmarshal(e.Data); r.node.ApplyConfChange(cc)`, as etcd's raftexample) before `apply`
+    and the `Advance`; `RemoveMember(id)` proposes `pb.ConfChange{Type: ConfChangeRemoveNode,
+    NodeId: id}`; `Main` sets `StepDownOnRemoval`, after the read asks replica 1 to remove
+    replica 3 and then moves the leadership to replica 2 (was 3). `TestRemoveMember` (removes
+    replica 3, waits until both remaining voters applied it and know a leader among them, then
+    `Put`/`Get`/`Read` on replicas 1 and 2); `go test -race ./...` passes (60 runs of
+    `TestRemoveMember`/`TestCluster` without a hang). Translation regenerated.
+  - The cluster's conf changes are fixed in advance (`RegCC γn op c0 c1`, `Defs.lean`): every
+    conf-change entry carries `op` (raft's `reCCOk`: type 1, bytes decoding to a `ConfChange`
+    whose change is `op`), the decoder answers `op` (`ccDecOf`), `op` applies at `c0` giving
+    `c1` and at `c1` giving `c1`. `run`'s invariant `RunCfg` (the configuration index past
+    every applied conf entry, the configuration `c0` or `c1`) discharges `DynCCPreOp` at each
+    conf entry and A1 at `Advance`; a non-type-1 entry is no conf entry (`regCC_notConf`).
+  - `Main` allocates with `raft_dyn_alloc` (now also returning `isCommitted γ []`, the read
+    credits and `γ.reCfg`): `c0R` the voters {1, 2, 3}, `opR` = remove 3, `c1R` = {1, 2}
+    (`ccStepB_removeVoter`, `ccStepB_removeAbsent`, `cfgOk_cfgState`, `ccGood_cfgState`,
+    `InvApplyConf.lean`/`CfgOverlap.lean`/`InvApplyConfC.lean`); `RestartNode` in the dynamic
+    mode.
+  - `etc/gen-link.py`: an external callee's `Link` is its nearest enclosing package's
+    (`raftpb.ConfChange.wp_Unmarshal` is in raft's `Link.lean`).
+
+**The public specs that changed** (statement shapes):
+- `NodeNames`: `mode : RNMode`, `dlm`, `cap`, `ccq`, `cam`. `isNode`: no
+  `⌜γ.raft.reDyn = none⌝`. `nodeDriver`/`nodeDriverBusy` also hold `dlvLb` (same parameters;
+  `nodeDriver_lb`, `nodeDriverBusy_lb`). New: `nodeCfg γ ca cfg`, `dlvLb γ ds`.
+- `RestartNode.spec`: binder `md : RNMode`; premise `md.isDyn = true →
+  cv.StepDownOnRemoval' = true`; `rnInit γ md cv.ID' (listToSet voters)` (was `ownRaftGhost γ
+  cv.ID' initPState`); post adds `γn.mode = md` and `nodeCfg γn 0 (cfgState (listToSet voters)
+  ∅)`.
+- `node.Advance.spec`: binders `ca cfg`; premise `γ.mode.isDyn = true → NoConfIn ds ca
+  ds.length`; `nodeCfg γ ca cfg` in the pre and the post.
+- `node.ApplyConfChange.spec`: binders `ds ca cfg k e cs'`; premises `γ.mode = .static →
+  CCShrink …` (was unconditional) and `γ.mode = .dyn dec … → DynCCPreOp dec ds ca cfg (ccV2Of
+  o) k e cs'`; pre adds `⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds`; post `csp ↦ cs ∗
+  ((⌜static⌝ ∗ confstateS γ cs) ∨ (⌜isDyn⌝ ∗ nodeCfg γ (k + 1) cs' ∗ confstateOk cs cs'.cfg))`
+  (was `csp ↦ cs ∗ confstateP γ cs`, now the channel payload).
+- `node.ProposeConfChange.spec`, `RawNode.ProposeConfChange.spec`: premise `CCAllowed γ o`.
+- `RaftNames.reCCOk`; `entDataIs`'s conf-entry case; `ownRaftGhost_alloc_gen` (parameter
+  `ccOk`, post `γ.reCCOk = ccOk`), `ownRaftGhost_alloc` (post `γ.reCCOk = fun _ _ => True`),
+  `raft_dyn_alloc` (parameter `ccOk`; post `γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming`,
+  `isCommitted γ []`, `rdCred γ (2^64 - 2)`, `rdCredInv γ`).
+- `RawNode.ApplyConfChange.spec`: unchanged (`DynCCPre` is now `DynCCPreOp` of the state's
+  fields, the same proposition).
+- The register: `New.spec`, `Register.run.spec` take binders `op c0 c1` and `⌜RegCC γn op c0
+  c1⌝ ∗ nodeCfg γn 0 c0`; new `Register.RemoveMember.spec` (`CCAllowed γr.raft (.v1 (rmCC id))
+  → {{ isRegister }} r.RemoveMember(id) {{ True }}`, `register_RemoveMember` in `Results.lean`).
+  Unchanged: `Put`, `Get`, `Read`, `TransferLeadership`, `register_regLb_current`,
+  `register_Main` (`{{ isPkgInit register }} Main() {{ True }}`), `register_adequate`,
+  `register_cluster_safe`.
+
+Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries;
+`raft.txt` 6/0 unchanged). `register.txt` updated on purpose (`--check --update`): 4/9 to 6/9,
+the new axioms `raftpb.ConfChange.Marshal.wp_proof` and `raftpb.ConfChangeV2.Marshal.wp_proof`
+(gogoproto's encoders, trust-boundary axioms already in the baseline, now reached through
+`RemoveMember`'s `ProposeConfChange`). `etc/goose.py --check` passes; raft's `Link.lean`
+reproduces (no callee list moved); the register's regenerated (`run`: `ConfChange__Unmarshal`,
+`node__ApplyConfChange`; `RemoveMember`; `Main`).
+
+**Limits** (recorded, not started):
+- The register's conf changes are one fixed change (`RegCC`), applied idempotently: a general
+  application decoding arbitrary changes needs a decoder that reads the bytes, which a pure
+  `CCDec` cannot (`RaftNames.reCCOk` is the workaround: the bytes are pinned in advance).
+- Only a simple voter removal is exercised (no joint consensus, no auto-leave), with
+  `StepDownOnRemoval` on; only `EntryConfChange` (v1) entries (no `EntryConfChangeV2`: `reCCOk`
+  excludes them).
+- No node joins: adding a node (as voter or learner) needs a node started outside the initial
+  voters (`NewRawNode`/`RestartNode` ask `cv.ID' ∈ voters`) and, once logs are compacted, a
+  `MsgSnap` at the `RawNode` layer (B7 part 2's item 3, the next stage). The removed replica 3
+  keeps running, outside the configuration.
+- `Main` proposes the removal once (raft may drop it) and no operation waits after it
+  (liveness: a proposal forwarded to a leader that steps down is dropped and `do` does not
+  retry it, as during a leadership transfer); `TestRemoveMember` shows the operations going
+  on, unverified.
+
+Findings: no Go bug. The register's `do`, already documented as partial (a proposal dropped by
+the leader it was forwarded to is not retried), hangs after a removed leader steps down: a first
+`TestRemoveMember` that did not wait for a new leader hung in 1 run of 40.
 
 ## The new ReadIndex and proposal specs (stage R) (2026-10-14)
 
@@ -275,7 +412,8 @@ configuration at a `RawNode` (`appliedTo`'s auto-leave proposal, B7 part 1), and
 `StepDownOnRemoval` on in the dynamic mode (a removed leader that does not step down leaves
 `Hvoter`, which `ownRaftPhysCV c c.voters` does not admit).
 
-**Left:**
+**Left:** (items 1 and 2 done in stage N, 2026-10-15: "node.go and the register under
+reconfiguration (stage N)")
 1. **`node.go` in the dynamic mode.** Its `confc` arm calls `raft.applyConfChange` with the
    static premise (`CCShrink` through `confcP`); the dynamic one needs `DynCCPre` against the
    run loop's `RNState` (`capplied`, `cfg`), which the driver would have to share as ghost

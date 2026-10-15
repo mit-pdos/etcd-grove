@@ -7,9 +7,17 @@ Lean-first (no Rocq counterpart).
 `propc` (a proposal and, for `Propose`, a buffered result channel), `recvc` (a message from
 the network), `tickc` (buffered, a tick dropped when full), `readyc` (the next `Ready`),
 `advancec` (the application's "done with that `Ready`"), `confc`/`confstatec` (a conf change
-to apply and the resulting `ConfState`; since 2026-10-13, for changes that leave the
-configuration unchanged, `confcP`/`confstateP`), and `done`, `stop`, `status` (shutdown and
-status: out of scope, never used).
+to apply and the resulting `ConfState`, `confcP`/`confstateP`: since 2026-10-13 in the static
+mode a change that keeps the voters; since 2026-10-15, stage N, in the dynamic mode any change
+the driver applies in order), and `done`, `stop`, `status` (shutdown and status: out of scope,
+never used).
+
+Since 2026-10-15 (stage N) `node.go` is verified in either mode of the `RawNode`
+(`NodeNames.mode`). In the dynamic mode `run` and the driver also share the committed log handed
+out (`dlm`, a `mono_list`: `run`'s authority, the driver's `dlvLb`), the configuration as of the
+last applied conf change (`cap`, halves: `run`'s in `runCfg`, the driver's in `nodeCfg`) with its
+index as a monotone nat (`cam`), and an answer slot (`ccq`); see `confcP`, `confstateP`,
+`advanceP` and `runCfg`.
 
 ## The ghost state
 

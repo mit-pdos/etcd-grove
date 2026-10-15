@@ -21,7 +21,9 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # (`stepLeader`'s loop), which every `Step` reaches. Written by `--check --update` after a
 # full build.
 axiom gogoproto.Equal.wp_proof
+axiom raftpb.ConfChange.Marshal.wp_proof
 axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom raftpb.ConfChangeV2.Marshal.wp_proof
 axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof
 sorry Perennial.crypto.rand.wp_initialize'

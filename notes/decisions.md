@@ -3828,3 +3828,63 @@ user's defaults for its open questions)
 - **No extra facts in `readAu`'s precondition** (open question 8); lease-based reads and
   crash-restart stay out (10, 11).
 - Raft's read registry is `readsReg` (the register already had a `readsOwn`).
+
+## Stage N: `node.go`'s configuration shared with the driver, by slots and lower bounds
+
+**2026-10-15 · accepted**
+
+- **What is shared, and how.** In the dynamic mode `run` must check a conf change against its
+  `RawNode` (`DynCCPre`: the entry handed out, past the configuration index, at the
+  configuration in use) from what the driver knows, and A1 at `Advance`. The committed log
+  handed out is a `mono_list` (`dlm`): `run` holds the authority, the driver lower bounds, enough
+  since the change's facts are about a prefix. The configuration of the last applied change is a
+  ghost variable in halves (`cap`), which `confc` carries to `run` and `confstatec` back; its
+  index is also a monotone nat (`cam`) whose lower bound the driver hands to `advancec` with A1.
+  `Advance` may move the `RawNode`'s index past the shared one over no conf entry, so `runCfg`
+  states `ca ≤ rs.capplied` and `NoConfIn` between, rather than equality.
+- **The answer slot `ccq`.** A handshake's receiver gives its `Q` before it sees the payload
+  (`handshake_receive_au`), so neither `confstatec` nor `advancec` can hand back a resource whose
+  value depends on the request. The driver therefore keeps half of `ccq` at the answer it expects
+  (`(k + 1, cs')`) and sends the other half with the request; `run`'s answer carries `cap`'s half
+  with `ccq`'s at the same value, and agreement tells the driver which value came back.
+  *Rejected*: `advancec` returning the `cap` half (the `Q` problem: `Advance`'s new index is only
+  known after the receive); the driver sending `dlv` or `rof` halves as witnesses of the log
+  (in the busy state the driver holds both `dlv` halves, so `run` cannot tie them to its own).
+- **Statement shapes kept.** `nodeDriver`/`nodeDriverBusy` keep their parameters (the lower
+  bound is inside); the driver's view is a separate token `nodeCfg γ ca cfg`, which
+  `RestartNode` hands out and `Advance` frames; the static mode never moves it.
+
+## Stage N: the conf-change bytes a cluster admits (`RaftNames.reCCOk`)
+
+**2026-10-15 · accepted**
+
+- **Why.** B3's decoder (`CCDec`) is a pure function of an entry (and its prefix); an entry's
+  data is a `GoSlice`, whose bytes are in the heap, recorded only in the ghost map of proposed
+  slices (`reSl`), which grows after allocation. So no decoder fixed at allocation can be what an
+  application's `Unmarshal` computes (`decOfData`'s `data : GoSlice → List w8` cannot be
+  chosen). A client applying conf entries by decoding them must instead know which bytes a
+  conf-change entry can carry: `RaftNames.reCCOk ty bs`, fixed at allocation, recorded with each
+  conf entry's data (`entDataIs`), asked of each change proposed (`CCAllowed`). A client that
+  admits one change `op` (the register: removing replica 3) then uses the constant decoder
+  `ccDecOf op` and proves that what it decoded is `op`.
+- *Rejected*: a register-only invariant over the proposed conf changes (raft's ghost state does
+  not record who proposed an entry, and any holder of `isNode` may propose any change); not
+  decoding in Go (the apply loop passing a fixed change for every conf entry: not idiomatic, and
+  wrong as Go code); a ghost decoder (B5's model and every `cfgFold` are pure).
+- **Cost.** One field, one conjunct in `entDataIs`'s conf-entry case, one premise of the two
+  `ProposeConfChange` specs; static clusters admit everything.
+
+## Stage N: the register removes a voter (not adds a learner)
+
+**2026-10-15 · accepted**
+
+- **The change** is `RemoveNode 3` from {1, 2, 3}: a simple change of the voters (quorums
+  shrink to {1, 2}; a removed leader steps down, `StepDownOnRemoval`), no joint consensus, no new
+  node (so no node outside the initial voters and no `MsgSnap`, both out of scope). Removing it
+  again is nothing, so the configuration is `c0` or `c1` whatever number of conf entries is
+  committed. *Rejected*: adding a learner (simpler model lemmas exist, but the voters do not
+  change and the learner node would not exist).
+- **`Main` proposes once, and no operation waits after it** (raft may drop the proposal;
+  `do`/`Read` do not retry a request dropped by a leader that steps down, as during a
+  transfer). The transfers that end `Main` go to replica 2. `TestRemoveMember` (unverified)
+  retries the proposal, waits for a leader of the remaining voters, and checks the operations.
