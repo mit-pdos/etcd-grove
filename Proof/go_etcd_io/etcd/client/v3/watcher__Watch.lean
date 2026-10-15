@@ -66,6 +66,7 @@ theorem watcher.Watch.wp_proof
   · ipureintro; word
   imod start_bag (retcP V (opWatchModel key gs) rev) _ retc γret (by trivial) $$ Hretc Hreto with #Hbret
   irename ctx => Hctxp
+  icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hwrnn⟩
   iStructNamed «$r0»
   irename : iprop("_" ∷ True) => Hjunk
   iclear Hjunk
@@ -90,7 +91,7 @@ theorem watcher.Watch.wp_proof
   · unfold reqP
     iexists «$r0_ptr», P0
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, Hwrnn⟩
     unfold wrRO
     iframe #
     isplitr

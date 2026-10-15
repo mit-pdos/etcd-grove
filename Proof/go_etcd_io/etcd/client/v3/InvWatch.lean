@@ -465,7 +465,8 @@ instance closeErrPub_persistent (wgs : Loc) : Persistent (closeErrPub (GF := GF)
 covered, the file header.) -/
 def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
   iprop(∃ (wr : Loc) (P : WsPrm GF),
-    ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty) #wr⌝ ∗
+    ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty) #wr ∧
+      wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
     context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
     ⌜wsReqOk V.pfx P⌝)
