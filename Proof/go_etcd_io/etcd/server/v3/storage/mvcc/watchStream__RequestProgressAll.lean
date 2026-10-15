@@ -40,7 +40,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
   iNamed HR
   wp_auto
   wp_apply HprogAll $$ [$Hwm $Hws $HPR] as %b ⟨Hwm, HPR⟩
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hcl]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
   · inext
     iunfold mvcc.watchStreamInv
     iexists nextID, closed, cm, wm, CM, WM

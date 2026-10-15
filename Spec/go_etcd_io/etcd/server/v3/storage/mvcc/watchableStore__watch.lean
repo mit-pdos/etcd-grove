@@ -25,7 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 (`storeWatchParams`): a new watcher of the range (`end` nil: the single key), registered on the
 stream's channel `ch` (the close right's watchers grow), synced (a start revision `0` or past
 the current revision: from the next revision, or `startRev`) or unsynced (from `startRev`,
-behind), with its cancel closure (`cancelWatcher`). -/
+behind), with its cancel closure (`cancelWatcher`), what the registration says of it
+(`P.IWF`, `watcherIs`: its names, fixed fields, and first revision, `startRev` or, for `0`, the
+length of a committed log at the registration) and the bound on the channel's registered
+watchers (the watcher budget). -/
 abbrev mvcc.watchableStore.watch.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (key endk fcs : GoSlice) (k e : List w8) (fs : List GoFunc)
     (startRev id : w64) (ch : GoChan) (L : List Loc),
@@ -38,7 +41,9 @@ abbrev mvcc.watchableStore.watch.spec : Prop :=
       (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"watch")) (Val #key))
       (Val #endk)) (Val #startRev)) (Val #id)) (Val #ch)) (Val #fcs))
   {{ (w : Loc) (c : GoFunc), RET (PairV #w #c);
-      ⌜w ≠ null⌝ ∗ P.IW w ∗ mvcc.cancelSpec P c w ∗ P.CR ch (w :: L) ∗ P.R }}
+      ⌜w ≠ null⌝ ∗ P.IW w ∗ mvcc.cancelSpec P c w ∗ P.CR ch (w :: L) ∗ P.R ∗
+      (∃ lo : Nat, P.IWF w (mvcc.watchRangeOf k e endk startRev id) fcs lo) ∗
+      ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ }}
 
 end spec
 

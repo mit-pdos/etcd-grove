@@ -80,7 +80,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     rotate_left
     -- closed: `ErrEmptyWatcherRange`
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hcl]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, true, cm, wm, CM, WM
@@ -97,31 +97,67 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     iexact Heer
     -- open
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hcl with ⟨%L, HCR, #HL⟩
+    icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
+    iunfold mvcc.idsInv at Hids
+    icases Hids with ⟨%IDS, Hida, %Hidb⟩
     wp_auto
     wp_if_destruct
     -- `AutoWatchID`: the first free id from `nextID`
     ihave IH : iprop(∃ n : w64, "HnextID" ∷ ws.[watchStream, go!"nextID"] ↦ n ∗
-        "Hwm" ∷ wm ↦$ WM) $$ [HnextID Hwm]
+        "Hwm" ∷ wm ↦$ WM ∗
+        "%Hn" ∷ ⌜sint.Z nextID ≤ sint.Z n ∧ sint.Z n + mvcc.aboveCnt n WM ≤ L.length⌝)
+        $$ [HnextID Hwm]
     · iexists nextID
       iframe
+      ipureintro; exact ⟨Int.le_refl _, Hcnt.1⟩
     wp_for IH
     wp_apply wp_map_lookup1 $$ [$Hwm] as Hwm
     wp_if_destruct
-    · wp_for_post
+    · have hsome : ∃ w0, WM !! n = some w0 := by
+        cases h : WM !! n with
+        | none =>
+          exfalso
+          have hz : (zero_val Loc) = null := rfl
+          rw [h] at Hif
+          simp [hz] at Hif
+          have := go.intoVal_inj Hif
+          cases this
+        | some w0 => exact ⟨w0, rfl⟩
+      obtain ⟨w0, hw0⟩ := hsome
+      have hpos : 1 ≤ mvcc.aboveCnt n WM := by
+        rw [mvcc.aboveCnt_skip n w0 WM hw0 (by omega)]; omega
+      have hsk := mvcc.aboveCnt_skip n w0 WM hw0 (by omega)
+      have hs1 : sint.Z (n + W64 1) = sint.Z n + 1 := by word
+      wp_for_post
       iframe
       iexists _
       iframe
+      ipureintro
+      constructor <;> omega
     have hfree : (WM !! n).getD (zero_val Loc) = null := by
       exact Classical.byContradiction fun h => Hif (by simp [h])
     have hnone : WM !! n = none := by
       cases h : WM !! n with
       | none => rfl
       | some w => simp only [h, Option.getD_some] at hfree; exact absurd hfree (Hnn n w h)
+    have hnb : sint.Z n < 2 ^ 63 - 1 := by omega
+    have hs1 : sint.Z (n + W64 1) = sint.Z n + 1 := by word
+    -- the id `n` was never assigned: every assigned id is below `nextID`
+    have hstep : (W64 0 ≠ W64 0 ∧ 0 ≤ sint.Z (n + W64 1) ∧
+          ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z (n + W64 1)) ∨
+        (0 ≤ sint.Z n ∧ sint.Z n < sint.Z (n + W64 1) ∧
+          ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z n) := by
+      right
+      refine ⟨by omega, by omega, fun i hi => ?_⟩
+      have := Hidb.2 i hi; omega
+    have hcntF : ∀ w : Loc, sint.Z (n + W64 1) + mvcc.aboveCnt (n + W64 1) (<[n := w]> WM) ≤
+        L.length + 1 := fun w => by
+      have := mvcc.aboveCnt_assign n w WM hnb
+      rw [hs1]; omega
     rw [ite_eq_left (by simp [hfree])]
     wp_auto
     -- the id chosen: named `id` as in the other case (the parameter is `AutoWatchID` here)
-    generalize n = id at hnone ⊢
+    generalize n = id at hnone hcntF hstep ⊢
     rotate_left
     -- an explicit id: refused if in use
     wp_apply wp_map_lookup2 $$ [$Hwm] as Hwm
@@ -130,16 +166,25 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     -- in use: `ErrWatcherDuplicateID`
     simp only [Option.isSome_some]
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm HCR]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hida HCR]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, false, cm, wm, CM, WM
       simp only [named, Bool.false_eq_true, ↓reduceIte]
-      iframe
+      iframe HnextID Hclosed Hcf Hwf Hcm Hwm
       iframe #
       isplitr
       · ipureintro; exact Hdom
-      ipureintro; exact Hnn
+      isplitr
+      · ipureintro; exact Hnn
+      isplitl [Hida]
+      · iunfold mvcc.idsInv
+        iexists IDS
+        iframe Hida
+        ipureintro; exact Hidb
+      iframe HCR
+      iframe #
+      ipureintro; exact Hcnt
     iapply HΦ
     iframe HPR
     iright
@@ -152,11 +197,22 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     -- free: on to the watch, as `AutoWatchID`
     rotate_left
     simp only [Option.isSome_none]
+    have hstep : (id ≠ W64 0 ∧ 0 ≤ sint.Z nextID ∧
+          ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z nextID) ∨
+        (0 ≤ sint.Z id ∧ sint.Z id < sint.Z nextID ∧
+          ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z id) :=
+      Or.inl ⟨Hif, Hidb⟩
+    have hcntF : ∀ w : Loc, sint.Z nextID + mvcc.aboveCnt nextID (<[id := w]> WM) ≤
+        L.length + 1 := fun w => by
+      have := mvcc.aboveCnt_insert nextID id w WM
+      omega
     wp_auto
     all_goals
-      wp_apply Hwatch $$ [$HCR $HPR $HPT] as %w %c ⟨%hwnn, #HIW, #Hcspec, HCR, HPR⟩
+      wp_apply Hwatch $$ [$HCR $HPR $HPT] as %w %c
+        ⟨%hwnn, #HIW, #Hcspec, HCR, HPR, ⟨%lo, #HIWF⟩, %Hbnd⟩
       · iframe #
         try (ipureintro; exact Hsr)
+      wp_auto
       wp_apply hspan $$ [$Hctx] as %sp #Hsp
       iunfold trace.isSpan at Hsp
       icases Hsp with ⟨%si, %hsi, #HEnd, -⟩
@@ -165,12 +221,13 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       ipersist span
       wp_apply wp_mapInsert $$ [$Hcm] as Hcm
       wp_apply wp_mapInsert $$ [$Hwm] as Hwm
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm HCR]
+      imod mvcc.idsInv_next γ IDS _ _ _ w hstep $$ Hida with ⟨Hids, #Hia⟩
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids HCR]
       · inext
         iunfold mvcc.watchStreamInv
         iexists _, false, cm, wm, _, _
         simp only [named, Bool.false_eq_true, ↓reduceIte]
-        iframe HnextID Hclosed Hcf Hwf Hcm Hwm
+        iframe HnextID Hclosed Hcf Hwf Hcm Hwm Hids
         isplitr
         · ipureintro
           intro i
@@ -222,6 +279,13 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
             iapply Hcs $$ %i %c0 %w0 %h1 %h2
         iexists (w :: L)
         iframe HCR
+        isplitr
+        rotate_left
+        · ipureintro
+          refine ⟨?_, Hbnd⟩
+          have := hcntF w
+          simp only [List.length_cons]
+          exact this
         imodintro
         iintro %w0 %hin
         simp only [List.mem_cons] at hin
@@ -247,8 +311,11 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       · ipureintro; rfl
       isplitr
       · ipureintro; exact hne
-      ipureintro
-      first | (intro h; exact absurd rfl h) | (intro _; rfl)
+      isplitr
+      · ipureintro
+        first | (intro h; exact absurd rfl h) | (intro _; rfl)
+      iexists w, lo
+      iframe HIW HIWF Hia
 
 end proof
 

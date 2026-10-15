@@ -178,6 +178,23 @@ theorem watchEvents_modRev (L : Log) (hlen : L.length < 2 ^ 63) (r : WatchRange)
   have : sint.Z (W64 (j : Int)) = j := by word
   omega
 
+/-- **A watcher's events are at or above its first revision**: every event of the revisions
+`[lo, d)` of a log is at a revision `j` of the log with `lo ≤ j < d` (`watchEvents`, any `d`). -/
+theorem watchEvents_rev_ge (L : Log) (r : WatchRange) (lo d : Nat) :
+    ∀ ev ∈ watchEvents L r lo d, ∃ j, lo ≤ j ∧ j < d ∧ j < L.length ∧ ev.kv.modRev = W64 j := by
+  intro ev hev
+  unfold watchEvents at hev
+  exact logEvents_rev L lo d ev (List.mem_filter.1 hev).1
+
+/-- The same as signed revisions, for a log shorter than `2 ^ 63`. -/
+theorem watchEvents_modRev_ge (L : Log) (hlen : L.length < 2 ^ 63) (r : WatchRange) (lo d : Nat) :
+    ∀ ev ∈ watchEvents L r lo d, (lo : Int) ≤ sint.Z ev.kv.modRev := by
+  intro ev hev
+  obtain ⟨j, h1, -, h3, hm⟩ := watchEvents_rev_ge L r lo d ev hev
+  rw [hm]
+  have : sint.Z (W64 (j : Int)) = j := by word
+  omega
+
 /-! ## The batches of the range's events -/
 
 /-- `newWatcherBatch`'s fold for one member, over the events it gets. -/

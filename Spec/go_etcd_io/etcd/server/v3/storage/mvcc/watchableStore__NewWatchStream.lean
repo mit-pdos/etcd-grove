@@ -31,7 +31,7 @@ abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
       mvcc.isWatchableStore s st γ }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"NewWatchStream")) (Val #()))
   {{ (ws : Loc), RET #(interface.mkOk (go.GoType.PointerType watchStream.ty) #ws);
-      ∃ (γo : GName) (ch : Loc) (γc : mvcc.WatchChanNames),
+      ∃ (γo : mvcc.WsStreamNames) (ch : Loc) (γc : mvcc.WatchChanNames),
         mvcc.isWatchStream ws (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
           (mvcc.storeWatchParams s st γ) γo ∗
         ws.[watchStream, go!"ch"] ↦□ ch ∗ isChan ch γc.ch WatchResponse ∗

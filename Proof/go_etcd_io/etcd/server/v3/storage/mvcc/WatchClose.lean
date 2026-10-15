@@ -36,7 +36,7 @@ theorem chanWatcher_close (γ : WsNames) (γc : WatchChanNames) (b : Bool) (sent
     chanWatcher (GF := GF) γ γc b sent w ∗ watcherMeta γ w γw' ∗ cancelled γw' ⊢
       chanWatcher γ γc true sent w := by
   unfold chanWatcher
-  iintro ⟨⟨%γw, %r, %fcs, %evsw, %D, %d, #Hm, %Hγc, #Hf, Hevs, %HD, #HDs, #Hwf, Hlive⟩, #Hm', #Hc⟩
+  iintro ⟨⟨%γw, %r, %fcs, %evsw, %D, %d, #Hm, %Hγc, %Hslo, #Hf, Hevs, %HD, #HDs, #Hwf, Hlive⟩, #Hm', #Hc⟩
   unfold watcherMeta
   ihave %Heq := ghostMapElem_agree w γ.wmeta _ _ _ _ $$ Hm Hm'
   subst Heq
@@ -44,6 +44,8 @@ theorem chanWatcher_close (γ : WsNames) (γc : WatchChanNames) (b : Bool) (sent
   iframe Hm Hf Hevs HDs Hwf
   isplitr
   · ipureintro; exact Hγc
+  isplitr
+  · ipureintro; exact Hslo
   isplitr
   · ipureintro; exact HD
   iright

@@ -111,7 +111,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   ipersist closec
   -- the control stream: an SPSC channel of control responses
   let P' : Int → Loc → IProp GF := fun _ l => iprop(∃ m : v3rpc.WatchRespM, v3rpc.watchRespMsg l m ∗
-    ⌜m.hdr.clusterId = R.cid ∧ m.hdr.memberId = R.mid ∧ m.src = none⌝ ∗ v3rpc.ctrlOk γs m)
+    ⌜m.hdr.clusterId = R.cid ∧ m.hdr.memberId = R.mid ∧ m.src = none⌝ ∗ v3rpc.ctrlOk γs R.γ m)
   imod start_spsc ctrl P' (fun _ => iprop(True)) γch $$ Hctrl [Hoc] with ⟨%γctrl, #Hspsc, Hprod, Hcons'⟩
   · iright; iexact Hoc
   -- `closec`: a broadcast channel

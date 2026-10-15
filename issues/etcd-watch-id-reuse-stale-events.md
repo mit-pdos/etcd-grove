@@ -21,6 +21,14 @@
      watch's start revision and outside its range.
 
   The client cannot tell them apart (the response carries only the id).
+
+  **Variant** (2026-10-15, unit W-M): the same reuse happens without a second explicit id. mvcc's
+  `watchStream.Watch` with `AutoWatchID` skips only the ids live on the stream (`for
+  ws.watchers[ws.nextID] != nil { ws.nextID++ }`), so an explicit id `X` at or above `nextID`
+  that was canceled can later be assigned automatically to a new watch, whose created response
+  then flushes the canceled watcher's buffered responses as above. A stream on which every
+  create uses `AutoWatchID` (etcd's client: `toPB` sets no `WatchId`) never reuses an id: mvcc's
+  `idAssigned_agree` (an assigned id names one watcher for good; `notes/STATUS.md`, "W-M").
 - **Expected**: the documentation says nothing of id reuse; a client re-creating a watch with
   the same id expects only the new watch's events after its created response.
 - **How the proof handles it**: nothing is assumed: `sendLoop`'s proof attributes each mvcc

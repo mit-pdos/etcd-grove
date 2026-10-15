@@ -160,6 +160,18 @@ def ctrlAnswers (req : WatchReqM) (m : WatchRespM) : Prop :=
   | .cancel id => m.created = false ∧ m.canceled = true ∧ m.watchId = id
   | _ => False
 
+/-- **The range `r` a create request `c` registers** with the watch id `id` (`recvLoop`'s
+normalization): an empty key is `"\x00"` (the smallest key); an empty range end is a single key
+(`RangeEnd = nil`); the range end `"\x00"` is "from the key on" (`RangeEnd = []byte{}`, the end
+`some []`), or, in the model only, a single key: Perennial's `wp_slice_literal` does not say that
+the empty literal `[]byte{}` is not `nil` (in Go it is not; `notes/STATUS.md`, "W-M"); any other
+range end is kept. -/
+def createRangeOk (c : CreateReqM) (id : w64) (r : mvcc.WatchRange) : Prop :=
+  r.key = (if c.key = [] then [W8 0] else c.key) ∧ r.startRev = c.startRev ∧ r.id = id ∧
+  (if c.rangeEnd = [] then r.end? = none
+   else if c.rangeEnd = [W8 0] then r.end? = some [] ∨ r.end? = none
+   else r.end? = some c.rangeEnd)
+
 /-- **The response the send loop makes of the mvcc response `r`** with the header `h` (its
 revision `r.rev`): `r`'s watch id and events, not created, not canceled (mvcc's responses never
 carry a compaction: `respIs`), no reason, not fragmented, `r` as its ghost source. -/
@@ -412,13 +424,35 @@ instance downLbW_persistent (γ : StreamNames) (L : List WatchRespM) :
     Persistent (downLbW (GF := GF) γ L) := by
   unfold downLbW; infer_instance
 
-/-- **A control response** `m` (persistent): it answers the request `req` the client sent at
-some position `i` (`upAtW`), as `ctrlAnswers` says. -/
-def ctrlOk (γ : StreamNames) (m : WatchRespM) : IProp GF :=
-  iprop(∃ (i : Nat) (req : WatchReqM), upAtW γ i req ∗ ⌜ctrlAnswers req m⌝)
+/-- **The watcher a created response names** (persistent; the watch slice's unit W-M): for a
+create request `c` answered by a registered (not canceled) response `m`, the mvcc watcher `w`
+the store registered for it (`mvcc.watcherIs`: its names, its fixed range `r`, the request's
+key, range and start revision with the response's id, `createRangeOk c m.watchId r`, its
+filters, its first revision `lo`: `c.startRev`, or for `0` the length of a committed log at the
+registration); nothing for any other answer. -/
+def ctrlWatcher (γ : mvcc.WsNames) (req : WatchReqM) (m : WatchRespM) : IProp GF :=
+  match req with
+  | .create c => if m.canceled then iprop(True) else
+      iprop(∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
+        ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo)
+  | _ => iprop(True)
 
-instance ctrlOk_persistent (γ : StreamNames) (m : WatchRespM) :
-    Persistent (ctrlOk (GF := GF) γ m) := by
+instance ctrlWatcher_persistent (γ : mvcc.WsNames) (req : WatchReqM) (m : WatchRespM) :
+    Persistent (ctrlWatcher (GF := GF) γ req m) := by
+  unfold ctrlWatcher
+  split
+  · split <;> infer_instance
+  · infer_instance
+
+/-- **A control response** `m` (persistent): it answers the request `req` the client sent at
+some position `i` (`upAtW`), as `ctrlAnswers` says; a created response names the mvcc watcher
+registered for the request (`ctrlWatcher`, over the store's names `γ`). -/
+def ctrlOk (γs : StreamNames) (γ : mvcc.WsNames) (m : WatchRespM) : IProp GF :=
+  iprop(∃ (i : Nat) (req : WatchReqM), upAtW γs i req ∗ ⌜ctrlAnswers req m⌝ ∗
+    ctrlWatcher γ req m)
+
+instance ctrlOk_persistent (γs : StreamNames) (γ : mvcc.WsNames) (m : WatchRespM) :
+    Persistent (ctrlOk (GF := GF) γs γ m) := by
   unfold ctrlOk; infer_instance
 
 /-- **A response of the mvcc watch stream** sent at position `j` (persistent): the response of
@@ -442,7 +476,7 @@ mvcc watch stream's (`mvccOk`, over the store's names `γ`). -/
 def watchDn (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64) (j : Nat) (m : WatchRespM) :
     IProp GF :=
   iprop(⌜m.hdr.clusterId = cid ∧ m.hdr.memberId = mid⌝ ∗
-    ((⌜m.src = none⌝ ∗ ctrlOk γs m) ∨ mvccOk γs γ j m))
+    ((⌜m.src = none⌝ ∗ ctrlOk γs γ m) ∨ mvccOk γs γ j m))
 
 instance watchDn_persistent (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64) (j : Nat)
     (m : WatchRespM) : Persistent (watchDn (GF := GF) γs γ cid mid j m) := by
