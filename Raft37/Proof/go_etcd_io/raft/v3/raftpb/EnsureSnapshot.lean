@@ -40,13 +40,13 @@ theorem raftpb.EnsureSnapshot.wp_proof
     · iunfold smOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
     ihave Hn : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
     · iapply ownSlice_nil
-    imod ownSnapM_of_struct «$r0_ptr» { (zero_val raftpb.Snapshot) with Metadata' := rm }
+    imod ownSnapE_of_struct «$r0_ptr» { (zero_val raftpb.Snapshot) with Metadata' := rm }
       (SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))
       ⊤ (by rfl) $$ [«$r0» Hn Hsm] with Hsn
     · dsimp only
       iframe «$r0»
       iframe Hn
-      iunfold smOpt; iright; iexact Hsm
+      iexact Hsm
     imodintro
     iapply HΦ
     iframe
@@ -65,13 +65,11 @@ theorem raftpb.EnsureSnapshot.wp_proof
       imodintro
       iapply HΦ
       isplitl
-      · iunfold ownSnapM
+      · iunfold ownSnapE
         iexists ds, rm, uf
         isplitr
         · ipureintro; exact Hnn
         iframe
-        isplitl
-        · iunfold smOpt; iright; iexact Hsm
         iframe Hpb
       · ipureintro; intro _; rfl
 
