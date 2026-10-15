@@ -281,11 +281,29 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu
   · inext
     itrivial
+  -- (stage R4 phase 3) `emptyState`'s struct: its cells (all `nil`) frozen, its hidden fields
+  -- made into the `protobuf` invariant (`hsRO es ⟨0, 0, 0⟩` unfolded, `Base.lean`)
+  ihave %HesNN := typedPointsto_not_null $$ «$r0»
+  icases typedPointsto_split _ _ _ $$ «$r0» with Hes
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hes with ⟨Hst, HeT, HeV, HeC, Heuf, Hesc, -⟩
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod inv_alloc (nroot.@"protobuf") ⊤
+      iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice),
+        _.[raftpb.HardState, go!"state"] ↦ st ∗ _.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
+          _.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))
+      $$ [Hst Heuf Hesc Hnil] with #HesPb
+  · inext
+    iexists _, _, _
+    iframe Hst Hesc Heuf Hnil
   ipersist HES
   ipersist HEPD
   ipersist HGR
   ipersist HEmpty
-  ipersist «$r0»
+  ipersist HeT
+  ipersist HeV
+  ipersist HeC
   ipersist HEC
   ipersist HEU
   ipersist HESU
@@ -309,11 +327,20 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     iframe HEB
     ipureintro
     exact ⟨nofun, isNewError_of_ptr (by assumption)⟩
-  -- (raft v3.7, stage R4) `emptyState = &pb.HardState{}`: a pointer to a fresh zero struct
-  ihave #HEmpty' : iprop(∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗
-      (es ↦□ (zero_val raftpb.HardState) : IProp GF)) $$ [HEmpty «$r0»]
+  -- (raft v3.7, stage R4) `emptyState = &pb.HardState{}`: a pointer to a fresh zero struct,
+  -- as `hsRO es ⟨0, 0, 0⟩` unfolded (phase 3)
+  ihave #HEmpty' : iprop(∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ ⌜es ≠ null⌝ ∗
+      (es.[raftpb.HardState, go!"Term"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Vote"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Commit"] ↦□ null : IProp GF) ∗
+      inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
+          (sc : w32) (us : GoSlice),
+        es.[raftpb.HardState, go!"state"] ↦ st ∗ es.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
+          es.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8)))
+      $$ [HEmpty HeT HeV HeC HesPb]
   · iexists _
-    iframe HEmpty «$r0»
+    iframe HEmpty HeT HeV HeC HesPb
+    ipureintro; exact HesNN
   iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
   ipureintro
   exact ⟨nofun, nofun, isNewError_of_ptr (by assumption), nofun, nofun,
