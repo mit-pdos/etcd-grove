@@ -76,6 +76,20 @@ theorem csPts_not_null (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
     iexact H
   · ipureintro; exact Hnn
 
+/-- A snapshot's pointer is not `nil` (kept). -/
+theorem ownSnapM_not_null (p : Loc) (dq : DFrac) (sv : SnapshotM) :
+    ownSnapM (GF := GF) p dq sv ⊢ ownSnapM p dq sv ∗ ⌜p ≠ null⌝ := by
+  iintro H
+  iunfold ownSnapM at H
+  icases H with ⟨%ds, %pm, %uf, %Hnn, H⟩
+  isplitl
+  · iunfold ownSnapM
+    iexists ds, pm, uf
+    isplitr
+    · ipureintro; exact Hnn
+    iexact H
+  · ipureintro; exact Hnn
+
 end lemmas
 
 section wps
