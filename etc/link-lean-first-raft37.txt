@@ -244,3 +244,4 @@ voteRespMsgType:
 SoftState__equal:
 needStorageApplyMsg:
 needStorageApplyRespMsg: needStorageApplyMsg
+stepFollower: raft__handleAppendEntries raft__handleHeartbeat raft__handleSnapshot raft__send raft__hup raftpb_Message__GetType raftpb_Message__GetFrom raftpb_Message__GetEntries raftpb_Message__GetIndex raftpb_Entry__GetData
