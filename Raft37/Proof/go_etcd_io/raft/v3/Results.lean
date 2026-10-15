@@ -5,10 +5,19 @@ retarget, `notes/raft-retarget-plan.md`): `quorum`, `tracker` and `slices.Sort`,
 is its trust base (in the build log); `etc/tcb-report.py --collection
 etc/tcb-collections/raft37.txt` reports on them. The tree replaces the old raft proof's when
 it reaches its results (`Proof/go_etcd_io/raft/v3/Results.lean`).
+
+Since stage R1 also the protocol model's results (`Protocol/ResultsDyn.lean`, `Protocol/Facts.lean`:
+safety under reconfiguration, election safety, the read index, log matching, state machine
+safety, leader completeness), ported from the old tree by a type rename; and the model-level
+step lemmas (`StepGhostMode`) are imported so the build checks them.
 -/
 module
 
 public import Raft37.Proof.go_etcd_io.raft.v3.Link
+-- the protocol model's results (stage R1: the model ported)
+public import Raft37.Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
+public import Raft37.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Raft37.Proof.go_etcd_io.raft.v3.StepGhostMode
 
 @[expose] public section
 
@@ -54,6 +63,16 @@ namespace EtcdGrove
 #print axioms tracker.Progress.wp_MaybeUpdate
 #print axioms tracker.Progress.wp_SentCommit
 #print axioms tracker.Progress.wp_SentEntries
+
+-- the protocol model (stage R1)
+#print axioms raft_dyn_alloc
+#print axioms raft_dyn_committed_agree
+#print axioms raft_dyn_election_safety
+#print axioms raft_dyn_read_states
+#print axioms raft_dyn_read_index
+#print axioms log_matching
+#print axioms state_machine_safety
+#print axioms leader_completeness
 
 end EtcdGrove
 end Perennial
