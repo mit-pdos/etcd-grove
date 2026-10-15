@@ -27,15 +27,16 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `w.broadcastResponse(wr)`: sends `wr` to every registered substream that has not stopped;
-`true`. -/
+`true`. The targets' values are `Pf ws`, their `recvc` producers' histories `Sf ws`. -/
 abbrev watchGRPCStream.broadcastResponse.spec : Prop :=
-  ∀ (V : WEnv GF) (wgs wr : Loc) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac),
+  ∀ (V : WEnv GF) (wgs wr : Loc) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac)
+    (Pf : Loc → WsPrm GF) (Sf : Loc → List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
-      ([∗map] _k ↦ ws ∈ M, sendCap1 V ws wr) }}
+      ([∗map] _k ↦ ws ∈ M, ⌜(Pf ws).ws = ws⌝ ∗ sendCap1 V (Pf ws) (Sf ws) wr) }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"broadcastResponse")) (Val #wr))
   {{ RET #true; wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
-      ([∗map] _k ↦ ws ∈ M, sendDone V ws wr ∨ sendCap1 V ws wr) }}
+      ([∗map] _k ↦ ws ∈ M, sendDone (Pf ws) (Sf ws) wr ∨ sendFail V (Pf ws) (Sf ws) wr) }}
 
 end spec
 

@@ -32,7 +32,7 @@ abbrev NewWatchFromWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (c : Loc) (callSl : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watchSrvFacts V ∗
       ⌜c ≠ null⌝ ∗ structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
-      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c }}
+      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.NewWatchFromWatchClient)) (Val #(wcIface V.wc)))
       (Val #c))
   {{ (wi : GoInterface), RET #wi; ∃ (w lg : Loc),

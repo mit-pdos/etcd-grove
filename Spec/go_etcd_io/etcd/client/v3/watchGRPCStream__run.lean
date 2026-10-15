@@ -34,7 +34,9 @@ time: a create sent only for the head of `resuming`), dispatches the stream's re
 (`respc`) to the substreams with the contract's facts, closes the substreams that stop
 (`closingc`) and those the server cancels; stops when the stream's context is done, the gRPC
 stream fails (a halting error: `noRetryableStreamErr`) or no substream is left, shutting the
-substreams down and closing `donec` with its close error (`closeStream`). -/
+substreams down and closing `donec` with its close error (`closeStream`). Its thread token
+(`threadTok`) is deposited at each `Add(1)` and replaced by the fresh one of each `go`
+(`wgAdder`). -/
 abbrev watchGRPCStream.run.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (m0 : Loc) (s0 : GoSlice) (rc : Loc)
     (γrc γresp : ChanNames),
@@ -46,9 +48,10 @@ abbrev watchGRPCStream.run.spec : Prop :=
       wgsF G.wgs go!"closeErr" ↦ GoInterface.nil ∗
       wgsF G.wgs go!"resumec" ↦ rc ∗ ownBroadcastChan rc γrc iprop(True) .Pending ∗
       isChan G.respc γresp Loc ∗ ownChan γresp Loc .Idle ∗
-      ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗ wgAdder G.wgs (W32 0) }}
+      ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗ wgAdder G.wgs ∗ threadTok ∗
+      ghostMapAuth G.γws 1 (∅ : GMap Loc Unit) }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"run")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

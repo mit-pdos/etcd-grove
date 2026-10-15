@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `w.close()`: cancels the stream's context, waits for `run` to stop (`donec`), and returns
-`ContextError` of the receive error left in `errc`, if any. -/
+`ContextError` of the receive error left in `errc`, if any: an error grpc's `status` accepts. -/
 abbrev watchGRPCStream.close.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"close")) (Val #()))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; statusErrOk err }}
 
 end spec
 

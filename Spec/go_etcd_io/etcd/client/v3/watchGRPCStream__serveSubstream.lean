@@ -34,7 +34,8 @@ response (and publishes it if asked), buffers the others and publishes them on `
 producer's side, the cursor `γ.cur` from `rev - 1`) in order, each with the contract's facts
 (`rangeWatchElem`, from `recvElem`'s), until `recvc` is closed or the stream's or the watch's
 context is done (`resumec` is never closed: `False`); then closes its `donec`, hands what it holds
-to `run` on `closingc` (`closingP`) and signals the wait group. -/
+to `run` on `closingc` (`closingP`) and signals the wait group, which gives it the thread token it
+exits with (`wgDone`; `run` keeps the fresh token of the `go` statement). -/
 abbrev watchGRPCStream.serveSubstream.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (P : WsPrm GF) (b0 : GoSlice) (bl : Loc)
     (t0 : _root_.Perennial.time.Time) (rc : Loc) (γrc : ChanNames),
@@ -48,9 +49,11 @@ abbrev watchGRPCStream.serveSubstream.spec : Prop :=
       monoListAuthOwn P.γ.cur 1 [P.rev - W64 1] ∗
       spscConsumer P.γr ([] : List Loc) ∗ monoListIdxOwn P.γhi 0 (P.rev - W64 1) ∗
       ownBroadcastChan rc γrc iprop(False) .Unknown ∗
-      ownBroadcastChan P.donec P.γdn iprop(True) .Pending ∗ wgDone G.wgs }}
+      ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Pending ∗
+      dghostVar P.γx (DFrac.own 1) false ∗ wgDone G.wgs ∗
+      ghostMapElem G.γws P.ws (DFrac.own 1) () }}
     (App (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"serveSubstream")) (Val #P.ws)) (Val #rc))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

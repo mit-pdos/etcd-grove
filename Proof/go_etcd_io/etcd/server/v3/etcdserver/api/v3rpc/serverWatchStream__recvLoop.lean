@@ -544,7 +544,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               iframe HIWF
               icases Hia with (%Hne | ⟨#Hia, Hit⟩)
               · exact absurd Hwid0 Hne
-              iframe Hia Hit
+              iframe Hia Hit Hfl
             iintro !> Hprod
             wp_auto
             recv_next

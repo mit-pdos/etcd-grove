@@ -4624,7 +4624,7 @@ noncomputable def watcher.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (App (Val catchBreak) (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Var "reqc"))
-  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))
+  (Let "$v0" (App (Val (GoInstruction (Convert (go.GoType.PointerType watchRequest.ty) watchStreamRequest.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr")))
   (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchRequest.ty)))) (Var "wr"))))) (Val #()))
   (Let "$ch2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase watchStreamRequest.ty (Var "$ch0") (Var "$v0")) (Let "$r0" (Val #true)
@@ -4814,7 +4814,7 @@ noncomputable def watcher.RequestProgress.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType progressRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType progressRequest.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv watchStreamRequest.ty)))) (Var "reqc"))
-  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType progressRequest.ty)))) (Var "pr"))
+  (Let "$v0" (App (Val (GoInstruction (Convert (go.GoType.PointerType progressRequest.ty) watchStreamRequest.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType progressRequest.ty)))) (Var "pr")))
   (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (Let "$ch2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "donec"))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase watchStreamRequest.ty (Var "$ch0") (Var "$v0")) (App (Val doReturn)

@@ -30,27 +30,31 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 read only if it has no events; its events `es`): makes the `WatchResponse` `wrOf m h sl` (at a
 fresh location, read-only) and broadcasts it (a progress notification of id `-1`,
 `isBroadcast`) or sends it to the substream registered under its id (`unicastResponse`), each
-target's content of it given (`sendCap`); returns whether it was delivered (unicast). -/
+target's content of it given (`sendCap`, the target's values `Pf ws`, its `recvc` producer's
+history `Sf ws`); returns whether it was delivered (unicast). -/
 abbrev watchGRPCStream.dispatchEvent.spec : Prop :=
   ∀ (V : WEnv GF) (wgs p : Loc) (dq : DFrac) (mm : v3rpc.WatchRespM) (h : Loc) (sl : GoSlice)
-    (es : List EvModel) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac),
+    (es : List EvModel) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac)
+    (Pf : Loc → WsPrm GF) (Sf : Loc → List Loc),
   let Ψ : Loc → IProp GF := fun wr => iprop(wr ↦□ wrOf mm h sl)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ respFields p dq mm h sl ∗
       eventsAt sl es ∗ ⌜es.length = mm.evs.length⌝ ∗
       (⌜mm.evs = []⌝ -∗ hdrAt h mm.hdr.revision) ∗
       wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
-      (if decide (isBroadcast mm) then iprop([∗map] _k ↦ ws ∈ M, sendCap V ws Ψ)
+      (if decide (isBroadcast mm) then
+        iprop([∗map] _k ↦ ws ∈ M, ⌜(Pf ws).ws = ws⌝ ∗ sendCap V (Pf ws) (Sf ws) Ψ)
        else match M !! mm.watchId with
-         | some ws => sendCap V ws Ψ
+         | some ws => iprop(⌜(Pf ws).ws = ws⌝ ∗ sendCap V (Pf ws) (Sf ws) Ψ)
          | none => iprop(True)) }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"dispatchEvent")) (Val #p))
   {{ (b : Bool), RET #b; respFields p dq mm h sl ∗
       wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
       (if decide (isBroadcast mm) then
-        iprop([∗map] _k ↦ ws ∈ M, (∃ wr : Loc, sendDone V ws wr) ∨ sendCap V ws Ψ)
+        iprop(∃ wr : Loc, [∗map] _k ↦ ws ∈ M,
+          sendDone (Pf ws) (Sf ws) wr ∨ sendFail V (Pf ws) (Sf ws) wr)
        else match M !! mm.watchId with
-         | some ws => iprop((⌜b = true⌝ ∗ ∃ wr : Loc, sendDone V ws wr) ∨
-             (⌜b = false⌝ ∗ sendCap V ws Ψ))
+         | some ws => iprop(∃ wr : Loc, (⌜b = true⌝ ∗ sendDone (Pf ws) (Sf ws) wr) ∨
+             (⌜b = false⌝ ∗ sendFail V (Pf ws) (Sf ws) wr))
          | none => iprop(⌜b = false⌝)) }}
 
 end spec

@@ -35,7 +35,7 @@ abbrev NewWatcher.spec : Prop :=
       watchConnFacts V ∗ ⌜c ≠ null⌝ ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" c ↦□ V.conn ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
-      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c }}
+      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewWatcher)) (Val #c))
   {{ (wi : GoInterface), RET #wi; ∃ (w wc lg : Loc),
       ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗ isClientWatcher { V with wc := wc, lg := lg } w }}

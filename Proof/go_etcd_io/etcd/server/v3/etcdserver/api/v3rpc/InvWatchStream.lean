@@ -462,7 +462,7 @@ create request `c` answered by a registered (not canceled) response `m`, the mvc
 the store registered for it (`mvcc.watcherIs`: its names, its fixed range `r`, the request's
 key, range and start revision with the response's id, `createRangeOk c m.watchId r`, its
 filters, its first revision `lo`: `c.startRev`, or for `0` the length of a committed log at the
-registration), the stream `γo` having assigned the id to it (`mvcc.idAssigned`, persistent) and
+registration; no filter: `fcs` holds none, as `watchReqOk` asks), the stream `γo` having assigned the id to it (`mvcc.idAssigned`, persistent) and
 the id's token (`mvcc.idTok`, exclusive: a stream announces an id once); nothing for any other
 answer. -/
 def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM) (m : WatchRespM) :
@@ -471,6 +471,7 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
   | .create c => if m.canceled then iprop(True) else
       iprop(∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
+        fcs ↦*□ ([] : List GoFunc) ∗
         mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId)
   | _ => iprop(True)
 

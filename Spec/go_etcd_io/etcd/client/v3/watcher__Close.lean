@@ -30,7 +30,10 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 error. -/
 abbrev watcher.Close.spec : Prop :=
   ∀ (V : WEnv GF) (w : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isClientWatcher V w }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.errors ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
+        ⌜_root_.Perennial.errors.IsPointerError e⌝) ∗ isClientWatcher V w }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; True }}
 
