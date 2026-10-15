@@ -573,7 +573,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       unfold PtOk
       rw [HLF, Heidx, HlastF, Hpt]
       exact ⟨by omega, by omega, fun _ => rfl, fun h => by omega⟩
-    -- a new leader's own entry: the zero slice (2026-10-10)
+    -- a new leader's own entry: no bytes (2026-10-10; D6: until then the zero slice)
     unfold entData
     iexists none
     unfold entDataIs
@@ -2723,7 +2723,7 @@ theorem ownRaftGhost_step_read_pend (γ : RaftNames) (id : w64) (s : PState) (m 
     (by rfl) (by simp) $$ Hrd [] [] [Hcr]
   · iapply (BigSepL.bigSepL_nil).2; iempintro
   · iapply (BigSepL.bigSepL_singleton (Φ := fun _ (p : MessageM × List EntryM) =>
-      iprop(∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData (GF := GF) γ e.Data' c ∗ readReq γ c Lc))).2
+      iprop(∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc))).2
     iunfold isMessage at Hm
     rw [Hty]
     iexact Hm
@@ -2737,7 +2737,7 @@ its own term (`ownLogGhost_not_doomed_list`). -/
 theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (q : ReadReq)
     (e : EntryM) (c : List w8) (d : Option (w64 × GSet w64)) :
     s.role = .leader → q.index = s.commit → q.ents = [e] →
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗ rdOwn γ id s -∗ isPropData γ e.Data' c -∗
+    ⊢ ownLogGhost (GF := GF) γ id s kl -∗ rdOwn γ id s -∗ ⌜e.Data' = c⌝ -∗
       rqRecOk γ s.term ((c, s.commit), d) -∗ rdCred γ 1 ={⊤ \ ↑raftRegN}=∗
       ownLogGhost γ id s kl ∗
       rdOwn γ id { s with rd := { s.rd with ro := readonlyArrive s.rd.ro id q } } := by
@@ -2782,7 +2782,7 @@ theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) 
     isplitr
     · iapply (BigSepL.bigSepL_append (Φ := fun k (q' : ReadReq) => iprop(∃ r e',
         ⌜(recs ++ [((c, s.commit), d)])[uint.nat s.rd.ro.confirmed + k]? = some r ∧
-          q'.index = r.1.2 ∧ q'.ents = [e']⌝ ∗ isPropData (GF := GF) γ e'.Data' r.1.1))).2
+          q'.index = r.1.2 ∧ q'.ents = [e']⌝ ∗ ⌜e'.Data' = r.1.1⌝))).2
       isplitr
       · iapply BigSepL.bigSepL_impl $$ Hpq
         imodintro
@@ -2799,7 +2799,7 @@ theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) 
       · iapply (BigSepL.bigSepL_singleton (Φ := fun k (q' : ReadReq) => iprop(∃ r e',
           ⌜(recs ++ [((c, s.commit), d)])[uint.nat s.rd.ro.confirmed +
               (k + s.rd.ro.pending.length)]? = some r ∧
-            q'.index = r.1.2 ∧ q'.ents = [e']⌝ ∗ isPropData (GF := GF) γ e'.Data' r.1.1))).2
+            q'.index = r.1.2 ∧ q'.ents = [e']⌝ ∗ ⌜e'.Data' = r.1.1⌝))).2
         iexists ((c, s.commit), d), e
         iframe Hpd
         ipureintro
@@ -2884,7 +2884,7 @@ theorem ownRaftGhost_arrive (γ : RaftNames) (id : w64) (t : PState) (src : w64)
     t.role = .leader → plogTermAt t.base t.log t.commit = some t.term →
     t' = { t with rd := { t.rd with ro := readonlyArrive t.rd.ro id ⟨t.commit, src, ents⟩ } } →
     ⊢ ownRaftGhost (GF := GF) γ id t md -∗
-      (∃ e c Lc, ⌜ents = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) -∗ rdCred γ 1 ={⊤ \ ↑raftRegN}=∗
+      (∃ e c Lc, ⌜ents = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗ rdCred γ 1 ={⊤ \ ↑raftRegN}=∗
       ownRaftGhost γ id t' md := by
   intro Hr Hct Ht'
   subst Ht'
@@ -2916,7 +2916,7 @@ theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) 
   intro Hrole Hct
   iintro Hown
   imod ownRaftGhost_rdR γ id s ({ s with rd := { s.rd with pend := [] } }) []
-    (iprop(([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData (GF := GF) γ e.Data' c ∗
+    (iprop(([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗
       readReq γ c Lc) ∗ rdCred γ s.rd.pend.length)) (by cases s; simp) $$ [] Hown [] with
     ⟨Hown, Hps, Hcr⟩
   · iapply (BigSepL.bigSepL_nil).2; iempintro
@@ -2927,7 +2927,7 @@ theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) 
   -- the pending requests arrive one by one
   have key : ∀ (l : List (MessageM × List EntryM)) (r : ReadOnly),
       ⊢ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [], ro := r } }) md -∗
-        ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) -∗
+        ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗
         rdCred γ l.length ={⊤ \ ↑raftRegN}=∗
         ownRaftGhost γ id ({ s with rd := { s.rd with
           pend := []
@@ -3100,7 +3100,7 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
       (List.take_append_drop k _).symm
     ihave Hpq2 := (BigSepL.bigSepL_append (Φ := fun j (q' : ReadReq) => iprop(∃ r e',
         ⌜recs[uint.nat s.rd.ro.confirmed + j]? = some r ∧ q'.index = r.1.2 ∧ q'.ents = [e']⌝ ∗
-        isPropData (GF := GF) γ e'.Data' r.1.1))).1 $$ [Hpq]
+        ⌜e'.Data' = r.1.1⌝))).1 $$ [Hpq]
     · rw [← Hsplit]; iexact Hpq
     icases Hpq2 with ⟨#Hpq1, #Hpq2⟩
     have Htk : (s.rd.ro.pending.take k).length = k := by simp; omega
@@ -3440,7 +3440,7 @@ theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : 
   intro Hrole Hct Hsg
   iintro #Henv Hown
   imod ownRaftGhost_rdR γ id s ({ s with rd := { s.rd with pend := [] } }) []
-    (iprop(([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData (GF := GF) γ e.Data' c ∗
+    (iprop(([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗
       readReq γ c Lc) ∗ rdCred γ s.rd.pend.length)) (by cases s; simp) $$ [] Hown [] with
     ⟨Hown, Hps, -⟩
   · iapply (BigSepL.bigSepL_nil).2; iempintro
@@ -3451,7 +3451,7 @@ theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : 
   -- every pending request confirmed, at the state without them
   have key : ∀ (l : List (MessageM × List EntryM)),
       ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [] } }) md -∗
-        ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ={⊤ \ ↑raftRegN}=∗
+        ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ={⊤ \ ↑raftRegN}=∗
         ownRaftGhost γ id ({ s with rd := { s.rd with pend := [] } }) md ∗
         [∗list] q ∈ l.map (fun p => (⟨s.commit, p.1.From', p.2⟩ : ReadReq)), respFacts γ q := by
     intro l

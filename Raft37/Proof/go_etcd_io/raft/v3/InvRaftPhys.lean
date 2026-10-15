@@ -2144,7 +2144,7 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
         "Hf_Vote" ∷ r.[raft, go!"Vote"] ↦ s.vote ∗
         "Hf_readStates" ∷ r.[raft, go!"readStates"] ↦ rs ∗
         "%Hrs" ∷ ⌜s.rd.states.length = sint.nat rs.len ∧ 0 ≤ sint.Z rs.len⌝ ∗
-        "#HreadStates" ∷ rs ↦*□ s.rd.states ∗
+        "#HreadStates" ∷ readStatesPts rs s.rd.states ∗
         "HreadStates_cap" ∷ ownSliceCap ReadState rs (DFrac.own 1) ∗
         "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
         "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
@@ -2164,7 +2164,7 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
             r.[raft, go!"Term"] ↦ s.term -∗
             r.[raft, go!"Vote"] ↦ s.vote -∗
             r.[raft, go!"readStates"] ↦ rs' -∗
-            rs' ↦*□ rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
+            readStatesPts rs' rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
             ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend⌝ -∗
             r.[raft, go!"raftLog"] ↦ s.log -∗
             r.[raft, go!"state"] ↦ stateW64 s.role -∗
@@ -2185,7 +2185,7 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
   iunfold ownRaftMisc at Hmisc
   iNamed Hmisc
   ihave #HreadStates := HreadStates
-  ihave %Hrl := ownSlice_len _ _ _ $$ HreadStates
+  ihave %Hrl := readStatesPts_len _ _ $$ HreadStates
   icases raft_split_view r rv $$ Hr with
     ⟨Hfid, HfTerm, HfVote, Hfrs, Hflog, Hfst, Hfm, Hfma, Hfld, Hback⟩
   ihave #Hfid : r.[raft, go!"id"] ↦□ id $$ [Hfid]
@@ -3339,7 +3339,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
         "Hf_Vote" ∷ r.[raft, go!"Vote"] ↦ s.vote ∗
         "Hf_readStates" ∷ r.[raft, go!"readStates"] ↦ rs ∗
         "%Hrs" ∷ ⌜s.rd.states.length = sint.nat rs.len ∧ 0 ≤ sint.Z rs.len⌝ ∗
-        "#HreadStates" ∷ rs ↦*□ s.rd.states ∗
+        "#HreadStates" ∷ readStatesPts rs s.rd.states ∗
         "HreadStates_cap" ∷ ownSliceCap ReadState rs (DFrac.own 1) ∗
         "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
         "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
@@ -3359,7 +3359,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
             r.[raft, go!"Term"] ↦ s.term -∗
             r.[raft, go!"Vote"] ↦ s.vote -∗
             r.[raft, go!"readStates"] ↦ rs' -∗
-            rs' ↦*□ rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
+            readStatesPts rs' rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
             ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend⌝ -∗
             r.[raft, go!"raftLog"] ↦ s.log -∗
             r.[raft, go!"state"] ↦ stateW64 s.role -∗
@@ -3380,7 +3380,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   iunfold ownRaftMisc at Hmisc
   iNamed Hmisc
   ihave #HreadStates := HreadStates
-  ihave %Hrl := ownSlice_len _ _ _ $$ HreadStates
+  ihave %Hrl := readStatesPts_len _ _ $$ HreadStates
   icases raft_split_view r rv $$ Hr with
     ⟨Hfid, HfTerm, HfVote, Hfrs, Hflog, Hfst, Hfm, Hfma, Hfld, Hback⟩
   ihave #Hfid : r.[raft, go!"id"] ↦□ id $$ [Hfid]

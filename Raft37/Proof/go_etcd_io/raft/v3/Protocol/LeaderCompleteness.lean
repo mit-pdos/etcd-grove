@@ -702,7 +702,7 @@ theorem take_snoc_le {A : Type _} (l : List A) (e : A) (n : Nat) (h : n ≤ l.le
 theorem entDataIs_deposited (γ : RaftNames) (e : EntryM) (d : List w8) :
     entDataIs (GF := GF) γ e (some d) ⊢ deposited γ d := by
   unfold entDataIs
-  iintro ⟨-, -, #H⟩
+  iintro ⟨-, #H⟩
   iexact H
 
 /-- A proposal slot keeps its results as the log grows by an entry whose data is not its. -/

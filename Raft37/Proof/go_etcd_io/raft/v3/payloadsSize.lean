@@ -46,7 +46,7 @@ theorem payloadsSize.wp_proof
       "size" ∷ s_ptr ↦ acc ∗
       "ent" ∷ e_ptr ↦ ev ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (es.length : Int)⌝ ∗
-      "%Hacc" ∷ ⌜(∀ e ∈ es, sint.Z e.Data'.len = 0) → acc = W64 0⌝) $$ [i s e]
+      "%Hacc" ∷ ⌜(∀ e ∈ es, e.Data' = []) → acc = W64 0⌝) $$ [i s e]
   · iexists _, _, _
     iframe
     ipureintro
@@ -71,7 +71,7 @@ theorem payloadsSize.wp_proof
     -- was `0` by the invariant
     intro Hzero
     have Hz0 := Hzero e (List.mem_of_getElem? He)
-    rw [Hacc Hzero]
+    rw [Hacc Hzero, Hz0, List.length_nil]
     word
   · iapply HΦ
     isplitl

@@ -31,8 +31,8 @@ snapshot owned (`EnsureSnapshot`/`EnsureConfState`). The record's parts are quan
 the scalars `m : MessageM`, the entries `ents`, the context `ctx`, the snapshot `sn`, the
 responses `rs` -- so that every pure premise and abstraction keeps its text. `"Hents"`'s and
 `"Hents_cap"`'s heap parts and `"#Hctx"` are `msgIn`'s; a proposal's conf-change entries' bytes
-(`ccEntsOk`) stay and its entries' data bytes are new (`appendEntry` clones the entries, reading
-them); the `MsgSnap` premise is on the snapshot the message holds (`sn = some sv`) and its
+(`ccEntsOk`) stay (pure since D6: an entry's `Data'` is its bytes; phase 2 of R4 also took the
+entries' data bytes, for `appendEntry`'s clones, which D6 made unneeded); the `MsgSnap` premise is on the snapshot the message holds (`sn = some sv`) and its
 `ConfState`'s lists (`scfg = sv.Metadata'.ConfState'.lists`, until the retarget the read-only
 slices, `ownCSL`); `MsgStorageAppendResp`'s `m.Snapshot' = null` is `sn = none`, and
 `RestMsgOk`'s "`Entries`/`Context` `nil`" is `ents = []`/`ctx = []` (so it takes `ents`, `ctx`).
@@ -433,12 +433,8 @@ abbrev raft.Step.spec : Prop :=
       "Hm" ∷ (
          "Hmsg_in" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                        ⟨m, ents, sn, ctx, rs⟩ ∗
-         -- a proposal's conf-change entries' bytes, which decode, and (stage R4) its entries'
-         -- data bytes, which `appendEntry`'s clones copy
-         "Hents" ∷ (if m.Type' = MsgProp then
-                      (∃ cs, ccEntsOk ents cs) ∗
-                      ([∗list] e ∈ ents, ∃ bs : List w8, e.Data' ↦*□ bs)
-                    else emp) ∗
+         -- a proposal's conf-change entries' bytes, which decode
+         "Hents" ∷ (if m.Type' = MsgProp then (∃ cs, ccEntsOk ents cs) else emp) ∗
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
                       (ents.length : Int) < 2^61⌝ ∗
@@ -654,12 +650,8 @@ abbrev raft.Step.specS : Prop :=
       "Hm" ∷ (
          "Hmsg_in" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                        ⟨m, ents, sn, ctx, rs⟩ ∗
-         -- a proposal's conf-change entries' bytes, which decode, and (stage R4) its entries'
-         -- data bytes, which `appendEntry`'s clones copy
-         "Hents" ∷ (if m.Type' = MsgProp then
-                      (∃ cs, ccEntsOk ents cs) ∗
-                      ([∗list] e ∈ ents, ∃ bs : List w8, e.Data' ↦*□ bs)
-                    else emp) ∗
+         -- a proposal's conf-change entries' bytes, which decode
+         "Hents" ∷ (if m.Type' = MsgProp then (∃ cs, ccEntsOk ents cs) else emp) ∗
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
                       (ents.length : Int) < 2^61⌝ ∗

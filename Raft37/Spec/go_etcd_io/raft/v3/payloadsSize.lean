@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `Code/go_etcd_io/raft/v3.lean`) -- a `slice.for_range` accumulating
 `payloadSize(e)`, exactly `entsSize`'s shape.
 
-The result is **not** pinned to the sum of the `len(e.Data)`: that sum is computed in
+The result is **not** pinned to the sum of the `len(e.Data)` (since D6, stage R4, the
+bytes' lengths, and an empty payload `e.Data' = []`): that sum is computed in
 `uint64` with no overflow check, so a triple stating it would have to carry a bound
 premise that nothing on the election path can supply. What is pinned is the case the
 callers care about -- a batch of empty payloads weighs `0`.
@@ -43,7 +44,7 @@ abbrev payloadsSize.spec : Prop :=
     (App (Val #(functions payloadsSize [])) (Val #s))
   {{ (n : w64), RET #n;
       entsPts s dq es ∗
-      ⌜(∀ e ∈ es, sint.Z e.Data'.len = 0) → n = W64 0⌝ }}
+      ⌜(∀ e ∈ es, e.Data' = []) → n = W64 0⌝ }}
 
 end spec
 

@@ -1135,14 +1135,13 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) {md : Bool}
 
 /-- What the client of a new ghost state is handed before the commit invariant exists
 (2026-10-14, stage R): its half of the full committed log, the authorities of the fresh-data
-tokens, of the proposed slices and of the fresh read-context tokens, and the empty log's
+tokens and of the fresh read-context tokens, and the empty log's
 commit fact; it gives back the standing update `noopAu γ` (which may mention its own
 invariants, so it is built once `γ` is known) and keeps `C γ`. -/
 def allocClient (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → @DynCfg e))
     (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn⌝ -∗ isCommitted γ [] -∗ rLog γ [] -∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
-    ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8)) -∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
 
 /-- The allocation, in either mode (2026-10-14, stage B5: `dyn` is the ghost state's mode,
@@ -1184,7 +1183,6 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   icases (own_op γrc _ _).1 $$ HC with ⟨HCa, HCf⟩
   imod ownCommitted_alloc (GF := GF) with ⟨%γc, Hcauth, #Hclb⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName) with ⟨%γpr, Hpra⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := GoSlice) (V := List w8) with ⟨%γsl, Hsla⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfr, Hfra⟩
   imod ghostVar_alloc (GF := GF) ([] : List EntryM) with ⟨%γcl, Hcl0⟩
   -- (2026-10-14, reconfiguration stage B4) the winners table, empty
@@ -1193,7 +1191,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
     with ⟨Hcl1, Hcl2⟩
   · rw [Qp.half_add_half]; iexact Hcl0
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
-      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
+      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, Hcne⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
@@ -1206,7 +1204,6 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   have e8 : γ0.reCommit = γc := by rw [Hγ0]
   have e9 : γ0.reProps = γpr := by rw [Hγ0]
   have e0 : γ0.reCfg = cfg := by rw [Hγ0]
-  have e10 : γ0.reSl = γsl := by rw [Hγ0]
   have e11 : γ0.reRLog = γcl := by rw [Hγ0]
   have e12 : γ0.reFresh = γfr := by rw [Hγ0]
   have e13 : γ0.reLcm = nlc := by rw [Hγ0]
@@ -1215,13 +1212,13 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   have e15' : γ0.reRdFresh = γrf := by rw [Hγ0]
   have e16 : γ0.reRdCred = γrc := by rw [Hγ0]
   have e17 : γ0.reTbl = γtb := by rw [Hγ0]
-  rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e10, ← e11, ← e12, ← e13, ← e14,
+  rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e11, ← e12, ← e13, ← e14,
     ← e15, ← e15', ← e16, ← e17]
   ihave #Hc0 : isCommitted (GF := GF) γ0 [] $$ []
   · rw [isCommitted_unseal]; unfold isCommittedDef; iexact Hclb
   -- the client's part: its standing update
   iunfold allocClient at Hcl
-  imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hsla Hrfa with ⟨#Hnoop, HCl⟩
+  imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hrfa with ⟨#Hnoop, HCl⟩
   · ipureintro; exact ⟨e0, by rw [Hγ0]⟩
   · unfold rLog; iexact Hcl2
   imod inv_alloc rdCredN E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗

@@ -19,7 +19,7 @@ Lean-first: pure, no ghost state. The paper proof this file founds is
   (`IsConfEnt`) applied in order by `ccStepB` (`ccApplyM` and the size bound), its change
   read by `dec` from the entry and the prefix before it (`CCDec`, since stage B3: an
   application may change what it applies depending on the history, as etcd does; the
-  decoder from the proposed data, `isPropData`, is `decOfData`); `none` where Go would panic
+  decoder from the entries' bytes is `decOfData`); `none` where Go would panic
   (`applyConfChange`'s `panic(err)`, an undecodable entry) or the bound fails.
   `confPos`/`confCount` are a log's conf-change positions (0-based list indices: the entry
   at log index `i` of a log from `base0` is at position `i - 1`) and their number.
@@ -444,11 +444,11 @@ theorem fold_adjacent' (dec : CCDec) (l : List EntryM) (i j : Nat)
 
 /-! ### The decoder from the entries' bytes (2026-10-14, reconfiguration stage B3)
 
-A conf-change entry's `Data'` is a slice; what it holds is recorded, once proposed, in the
-ghost map of proposed slices (`isPropData`, `Protocol/Ghost.lean`), which agrees across
-nodes. Given that map's content as a function `data` from slices to bytes, a conf-change
-entry decodes the way `stepLeader` and `RawNode.ApplyConfChange` read it: `Unmarshal` by the
-entry's type (`ccDecodeV1`/`ccDecodeV2`), then `AsV2` (`ccV2Of`). An entry whose bytes do not
+A conf-change entry's `Data'` is its bytes (D6, stage R4; until then a slice whose bytes the
+ghost map of proposed slices recorded, `decOfData` taking that map as a function). A
+conf-change entry decodes the way `stepLeader` and `RawNode.ApplyConfChange` read it:
+`Unmarshal` by the entry's type (`ccDecodeV1`/`ccDecodeV2`), then `AsV2` (`ccV2Of`). An entry
+whose bytes do not
 decode has no change (`none`, which `cfgFold` turns into `none`: Go panics there). The
 decoder an etcd-like application uses may also depend on the prefix (`CCDec`); this one does
 not. -/
@@ -459,15 +459,15 @@ def ccMsgOfBytes (ty : w32) (bs : List w8) : Option CCMsg :=
   else if ty = W32 2 then (ccDecodeV2 bs).map CCMsg.v2
   else none
 
-/-- The decoder of entries whose slices hold `data`: by the entry alone. -/
-def decOfData (data : GoSlice → List w8) : CCDec :=
-  CCDec.ofEnt fun e => (ccMsgOfBytes e.Type' (data e.Data')).map ccV2Of
+/-- The decoder of entries by their bytes: by the entry alone. -/
+def decOfData : CCDec :=
+  CCDec.ofEnt fun e => (ccMsgOfBytes e.Type' e.Data').map ccV2Of
 
 /-- A conf-change entry whose bytes decode (`CCDecodes`, which `stepLeader` checks when it
 is proposed) has a change. -/
-theorem decOfData_some (data : GoSlice → List w8) (pre : List EntryM) (e : EntryM)
-    (hc : IsConfEnt e) (hd : CCDecodes e.Type' (data e.Data')) :
-    ∃ op, decOfData data pre e = some op := by
+theorem decOfData_some (pre : List EntryM) (e : EntryM)
+    (hc : IsConfEnt e) (hd : CCDecodes e.Type' e.Data') :
+    ∃ op, decOfData pre e = some op := by
   simp only [decOfData, CCDec.ofEnt, ccMsgOfBytes]
   rcases hc with h1 | h2
   · obtain ⟨m, hm⟩ := hd.1 h1

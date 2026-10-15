@@ -130,10 +130,11 @@ theorem MemoryStorage.Compact.wp_proof
   -- the fresh dummy entry at `ci`, frozen
   imod cellRO_alloc $$ «$v0» with #cI
   imod cellRO_alloc $$ «$v1» with #cT
-  let d' : EntryM := EntryM.mk e.Term' e.Index' (zero_val raftpb.EntryType) slice.nil
-  imod entOwn_of_struct «$r0_ptr» (raftpb.Entry.mk zeroValDef «$v1_ptr» «$v0_ptr» null slice.nil slice.nil 0) d' ⊤ rfl rfl $$ [«$r0»] with Hd'
+  let d' : EntryM := EntryM.mk e.Term' e.Index' (zero_val raftpb.EntryType) []
+  imod entOwn_of_struct «$r0_ptr» (raftpb.Entry.mk zeroValDef «$v1_ptr» «$v0_ptr» null slice.nil slice.nil 0) d' ⊤ rfl $$ [«$r0»] with Hd'
   · iframe «$r0» cT cI
-    iapply cellRO_null
+    isplitl []; · iapply cellRO_null
+    iapply ownSlice_nil
   imod entOwn_freeze $$ Hd' with #Hd'
   ihave %Hsllen := ownSlice_len $$ Hsl
   simp only [List.length_replicate] at Hsllen

@@ -8,7 +8,7 @@ Until stage R4 this file also held the conf-change messages' Goose values and th
 the messages are pointers: their predicates are `InvPb.lean`'s (stage R1: `ownCCV1`, `ownCCV2`,
 `ownCCI` over `*pb.ConfChange`/`*pb.ConfChangeV2`); the pure vocabulary is `CCModel.lean`'s
 (R1); `ccEntry`/`ccPropMsg` go with `ProposeConfChange`'s port (stage R5). What is left is over
-the model's entries (`EntryM`), whose `Data'` is the entry's data slice, as before.
+the model's entries (`EntryM`), whose `Data'` is the entry's bytes (D6).
 -/
 module
 
@@ -32,13 +32,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- What `stepLeader`'s proposal loop needs of an entry `e` of a proposal, with `o` its
 decoded conf change (2026-10-13): none for an entry that is not a conf change; for one,
-its data slice holds (read-only) bytes that decode to `o` as its type says. (`Unmarshal`
-panics if decoding fails, so the proposer has to provide the bytes; `confChangeToMsg`'s
-`CCData`.) -/
+its bytes decode to `o` as its type says (pure since D6, stage R4: the record holds the bytes;
+until then its data slice held them read-only). (`Unmarshal` panics if decoding fails, so the
+proposer has to provide the bytes; `confChangeToMsg`'s `CCData`.) -/
 def ccEntOk (e : EntryM) : Option CCMsg → IProp GF
   | none => iprop(⌜¬ IsConfEnt e⌝)
-  | some (.v1 m) => iprop(⌜e.Type' = W32 1⌝ ∗ ∃ bs, e.Data' ↦*□ bs ∗ ⌜ccDecodeV1 bs = some m⌝)
-  | some (.v2 m) => iprop(⌜e.Type' = W32 2⌝ ∗ ∃ bs, e.Data' ↦*□ bs ∗ ⌜ccDecodeV2 bs = some m⌝)
+  | some (.v1 m) => iprop(⌜e.Type' = W32 1 ∧ ccDecodeV1 e.Data' = some m⌝)
+  | some (.v2 m) => iprop(⌜e.Type' = W32 2 ∧ ccDecodeV2 e.Data' = some m⌝)
 
 /-- `ccEntOk` of every entry of a batch, with the decoded conf changes `cs`. -/
 def ccEntsOk (ents : List EntryM) (cs : List (Option CCMsg)) : IProp GF :=

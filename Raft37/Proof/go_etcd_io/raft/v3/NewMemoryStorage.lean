@@ -37,10 +37,12 @@ theorem NewMemoryStorage.wp_proof
   have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue [])] = 1 := rfl
   simp only [Hsz]
   -- the dummy entry, a fresh zero `*pb.Entry`, frozen
-  imod entOwn_of_struct l0 (zero_val raftpb.Entry) (zero_val EntryM) ⊤ rfl rfl $$ [Hl0] with He0
+  imod entOwn_of_struct l0 (zero_val raftpb.Entry) (zero_val EntryM) ⊤ rfl $$ [Hl0] with He0
   · iframe Hl0
-    isplitl [] <;> try isplitl []
-    all_goals iapply cellRO_null
+    isplitl []; · iapply cellRO_null
+    isplitl []; · iapply cellRO_null
+    isplitl []; · iapply cellRO_null
+    iapply ownSlice_nil
   imod entOwn_freeze $$ He0 with #He0
   wp_auto
   iStructNamed «$r0»

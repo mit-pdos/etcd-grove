@@ -45,6 +45,39 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Retargeting raft to v3.7, stage R4 phase 2b: an entry's data is its bytes (D6) (2026-10-15, branch `raft-retarget`)
+
+Decision D6 (`notes/decisions.md`, end of the stage R4 section) carried through the tree:
+
+- **Model**: `EntryM.Data' : List w8`; `ReadStateM` (`Index'`, `RequestCtx' : List w8`) for
+  `RdState.states`. `isPropData` and `RaftNames.reSl` are gone (its allocation in
+  `ownRaftGhost_alloc_gen` and `allocClient`'s authority with it); `entDataIs γ e (some d)` is
+  `⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ ∗ deposited γ d`, `none` a normal entry with no bytes
+  or a conf-change entry whose bytes decode (pure); every `isPropData γ x c` became `⌜x = c⌝`
+  (`isMessage`'s read-index clauses, `respFacts`, `readStateOk`, `rdLead`, `rdOwn`);
+  `decOfData` has no `data` parameter. The 19k lines of model proofs compiled with three edits
+  (`entDataIs_agree`, `entDataIs_deposited`, `raft_dyn_read_index`).
+- **Predicates**: `entPts` holds `l.Data ↦{dq} ds ∗ ds ↦*□ e.Data'`; `entOwn_of_struct` takes
+  the bytes frozen; `ccEntOk` pure; `readStatesPts rs sts` (`InvMisc`: the Go `ReadState`s
+  read-only, each `RequestCtx` slice `↦*□` the record's bytes) in `ownRaftMisc` and
+  `ownRaftPhys_view`.
+- **Trust boundary**: `proto.CloneEntry` (same name): `{{ entPts l dq e }} Clone {{ l', entPts l
+  dq e ∗ entOwn l' e }}`, the clone holding the same record (its fresh `Data` slice hidden).
+- **R1/R3**: `Entry.GetData` returns some `ds` with `ds ↦*□ e.Data'`; `payloadSize` returns
+  `W64 e.Data'.length`; `payloadsSize`'s/`increaseUncommittedSize`'s empty-payload premise is
+  `e.Data' = []`; the dummy entries of `NewMemoryStorage`/`ApplySnapshot`/`Compact` have `[]`.
+- **Phase 2 specs**: `EntsDataCopy` and the `"#Hdata"` premises dropped: `appendEntry`'s log
+  grows by `ents.mapIdx (stamp ...)` (the old statement), `LeaderProposeResult` is the old one,
+  `Step`'s `MsgProp` premise is `ccEntsOk` alone (`RestMsgOk` keeps `ents ctx`, for
+  `MsgTransferLeader`'s nil fields); `addReadState` takes bytes. So the `MsgProp` obstacle of
+  phase 2 is gone (the model's propose step appends the message's records, which the clones are).
+- **Statement changes beyond slice → bytes**: `raft_dyn_read_index` takes `readReq γ
+  st.RequestCtx' Lc` (no `c`, no `isPropData`); `entDataIs (some d)` needs `d ≠ []` (a proposal's
+  data must be non-empty: R5's `Propose` premise).
+- Gates: `lake build` passes (5447 jobs); `Link.lean` regenerates identically;
+  `etc/tcb-report.py --collection etc/tcb-collections/raft37.txt --check` matches (190 roots, 11
+  axioms, no `sorry`).
+
 ## Retargeting raft to v3.7, stage R4 phase 2: the `raft.go` specs over pointer messages (2026-10-15, branch `raft-retarget`)
 
 Phase 2 of stage R4: the 82 `raft.go`-layer spec files (`raft__*`, `step*`, `trace*`, `readOnly*`,

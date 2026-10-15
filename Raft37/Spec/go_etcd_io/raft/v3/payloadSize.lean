@@ -32,12 +32,13 @@ of empty entries has zero payload.
 
 raft v3.7 (stage R3, 2026-10-15): `payloadSize(e *pb.Entry)` reads `len(e.GetData())`, so the
 entry is a pointer, at any fraction (`entPts`; a log entry's `entRO`), given back; the result
-is still exactly the length of the entry's `Data` slice. -/
+is still exactly the length of the entry's `Data` slice, which since D6 (stage R4) is the
+length of its bytes `e.Data'`. -/
 abbrev payloadSize.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (e : EntryM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "He" ∷ entPts p dq e }}
     (App (Val #(functions payloadSize [])) (Val #p))
-  {{ RET #(e.Data'.len); entPts p dq e }}
+  {{ RET #(W64 e.Data'.length); entPts p dq e }}
 
 end spec
 

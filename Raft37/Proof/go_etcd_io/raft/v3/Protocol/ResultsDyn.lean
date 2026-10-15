@@ -159,26 +159,25 @@ theorem raft_dyn_read_states (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id :
   iexact Hst0
 
 /-- **The read-index guarantee** of the dynamic model: a `ReadState{Index: i, RequestCtx}` that
-a node `id1` holds (and hands out), whose context is the slice a client registered with bytes
-`c` (`isPropData`) when it created the read knowing the committed log `Lc` (`readReq γ c Lc`),
+a node `id1` holds (and hands out), whose context a client registered when it created the
+read knowing the committed log `Lc` (`readReq γ st.RequestCtx' Lc`; D6: the context is its
+bytes, until then a slice the client registered with bytes `c`),
 promises that the committed prefix of any node `id2` whose commit index is at least `i` extends
 `Lc`: applying up to `i` reads a state at least as new as the request. (`readOk_prefix` uses
 only the agreement of committed logs, `isCommitted_agree`, which the dynamic mode keeps.) -/
 theorem raft_dyn_read_index (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id1 id2 : w64)
-    (r1 r2 : RState) (st : ReadState) (c : List w8) (Lc : List EntryM) :
+    (r1 r2 : RState) (st : ReadStateM) (Lc : List EntryM) :
     st ∈ r1.p.rd.states → uint.Z st.Index' ≤ uint.Z r2.p.commit →
     ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
-      isPropData γ st.RequestCtx' c -∗ readReq γ c Lc -∗
+      readReq γ st.RequestCtx' Lc -∗
       ⌜Lc <+: r2.full.take (uint.nat r2.p.commit)⌝ := by
   intro Hin Hle
-  iintro H1 H2 #Hpd #Hrq
+  iintro H1 H2 #Hrq
   ihave #Hsts := raft_dyn_read_states γ dec c0 id1 r1 $$ H1
   ihave #Hst := (BigSepL.bigSepL_mem (Φ := fun st => readStateOk (GF := GF) γ st) Hin) $$ Hsts
   iunfold readStateOk at Hst
-  icases Hst with ⟨%c', #Hpd', #Hok⟩
-  unfold isPropData
-  icases ghostMapElem_agree _ _ _ _ _ _ $$ Hpd Hpd' with %Heq
-  subst Heq
+  icases Hst with ⟨%c, %Hpd', #Hok⟩
+  subst Hpd'
   unfold ownRaftGhostR
   icases H2 with ⟨Hg2, %HI2, #Hfr2, -⟩
   iunfold ownRaftGhost at Hg2
@@ -195,7 +194,7 @@ theorem raft_dyn_read_index (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id1 i
     unfold cprefix
     rw [List.length_take]
     word
-  icases readOk_prefix γ c st.Index' Lc (cprefix r2.fp r2.p) Hlen $$ Hok Hrq Hc2 with %H
+  icases readOk_prefix γ st.RequestCtx' st.Index' Lc (cprefix r2.fp r2.p) Hlen $$ Hok Hrq Hc2 with %H
   ipureintro
   unfold cprefix at H
   rw [toNat_uZ] at H

@@ -148,12 +148,32 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
   "Hucr_cap" ∷ ownSliceCap Loc rov.unconfirmedReads' (DFrac.own 1) ∗
   "Hreqs" ∷ ([∗list] _k ↦ p;q ∈ ptrs;r.pending, ownReadreq p q))
 
+/-- The `ReadState`s of `r.readStates` (D6, stage R4): the slice of Go structs read-only, each
+one's `Index` the record's and its `RequestCtx` a read-only slice holding the record's bytes
+(until D6 the model held the Go structs themselves). Persistent. -/
+def readStatesPts (rs : GoSlice) (sts : List ReadStateM) : IProp GF :=
+  iprop(∃ vs : List ReadState, rs ↦*□ vs ∗
+    [∗list] v;st ∈ vs;sts, ⌜v.Index' = st.Index'⌝ ∗ v.RequestCtx' ↦*□ st.RequestCtx')
+
+instance readStatesPts_persistent (rs : GoSlice) (sts : List ReadStateM) :
+    Persistent (readStatesPts (GF := GF) rs sts) := by
+  unfold readStatesPts; infer_instance
+
+theorem readStatesPts_len (rs : GoSlice) (sts : List ReadStateM) :
+    readStatesPts (GF := GF) rs sts ⊢ ⌜sts.length = sint.nat rs.len ∧ 0 ≤ sint.Z rs.len⌝ := by
+  iintro H
+  iunfold readStatesPts at H
+  icases H with ⟨%vs, Hs, Hb⟩
+  ihave %H1 := ownSlice_len $$ Hs
+  ihave %H2 := BigSepL2.bigSepL2_length $$ Hb
+  ipureintro; omega
+
 /-- Full ownership of the three read-index fields and everything hanging off them: the
 `readStates` slice, the `readOnly` object, and the `pendingReadIndexMessages` slice, at
 the physical read state `rd` (2026-10-12; until then existential, with the two queues
 empty).
 
-The `ReadState`s are held **read-only** (`↦*□`), with the capacity past the end owned
+The `ReadState`s are held **read-only** (`↦*□`, `readStatesPts`), with the capacity past the end owned
 (2026-10-13), as `ownReadOnly` holds its queue: `readyWithoutAccept` hands the slice out
 (`rd.ReadStates = r.readStates`) while the node keeps it until `acceptReady` sets the
 field to `nil`, and a `Ready` that `node.go` abandons may still be sent later, after
@@ -163,7 +183,7 @@ alone. -/
 def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
     (rd : RdState) : IProp GF :=
   iprop(
-  "HreadStates" ∷ readStates ↦*□ rd.states ∗
+  "HreadStates" ∷ readStatesPts readStates rd.states ∗
   "HreadStates_cap" ∷ ownSliceCap ReadState readStates (DFrac.own 1) ∗
   "Hro_obj" ∷ ownReadOnly ro rd.ro ∗
   -- (stage R4) a `[]*pb.Message`: the pointers owned with the capacity, each message frozen

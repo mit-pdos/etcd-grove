@@ -16,19 +16,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
-section results
-variable [FfiSyntax]
-
-/-- `ents'` is `ents` with each entry's `Data` slice replaced (stage R4: `appendEntry`'s clones,
-whose `Data` is a fresh slice holding the same bytes). -/
-def EntsDataCopy (ents ents' : List EntryM) : Prop :=
-  List.Forall₂ (fun e e' => e' = { e with Data' := e'.Data' }) ents ents'
-
-theorem EntsDataCopy.length {ents ents' : List EntryM} (H : EntsDataCopy ents ents') :
-    ents'.length = ents.length := (List.Forall₂.length_eq H).symm
-
-end results
-
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -164,13 +151,12 @@ the log away.
 clones each (`cloned[i] = proto.Clone(es[i]).(*pb.Entry)`), stamps the clones (`Term =
 new(r.Term)`, `Index = new(li + 1 + i)`) and appends those. So the batch is taken at any fraction
 and given back unchanged (`entsPts es dq ents`), and what reaches the log is the stamped clones.
-A clone is the entry but for its `Data`, a fresh slice holding the same bytes
-(`proto.CloneEntry.spec`, `Spec/google_golang_org/protobuf/proto/CloneEntry.lean`): the log grows
-by `ents'.mapIdx (stamp ...)` for copies `ents'` of the batch (`EntsDataCopy ents ents'`), and
-each copy's bytes are the original's, read-only (`"#Hdata"`, which the clone reads, and the
-post's pairs). (Until the retarget the batch itself was stamped in place and appended, the log
-growing by `ents.mapIdx (stamp ...)`; the design of R4 assumed the clones hold the same record,
-which `CloneEntry` does not give for `Data`: see `notes/STATUS.md`, "R4 phase 2".) -/
+A clone holds the same record (`proto.CloneEntry.spec`,
+`Spec/google_golang_org/protobuf/proto/CloneEntry.lean`: its `Data` is a fresh slice holding the
+same bytes, and since D6 the record's `Data'` is the bytes), so the log grows by
+`ents.mapIdx (stamp ...)`, as before the retarget, when the batch itself was stamped in place
+and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
+`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.) -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List EntryM) (dq : DFrac),
@@ -180,24 +166,21 @@ abbrev raft.appendEntry.spec : Prop :=
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      "Hes" ∷ entsPts es dq ents ∗
-      "#Hdata" ∷ ([∗list] e ∈ ents, ∃ bs : List w8, e.Data' ↦*□ bs) }}
+      "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
-  {{ (accepted : Bool) (ents' : List EntryM), RET #accepted;
+  {{ (accepted : Bool), RET #accepted;
       -- an all-empty batch is never dropped -- see above
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
-      -- (stage R4) the caller's batch, untouched; the clones, copies of it with the same bytes
+      ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
+      -- (stage R4) the caller's batch, untouched
       entsPts es dq ents ∗
-      ⌜EntsDataCopy ents ents'⌝ ∗
-      ([∗list] e;e' ∈ ents;ents', ∃ bs : List w8, e.Data' ↦*□ bs ∗ e'.Data' ↦*□ bs) ∗
       if accepted then
         ownRaftPhysCV c c.voters r id
           (sendMsgs
             { s with logst :=
-                logAppend s.logst (ents'.mapIdx (stamp s.term (logLast s.logst))) }
+                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
             [selfAck id
               { s with logst :=
-                  logAppend s.logst (ents'.mapIdx (stamp s.term (logLast s.logst))) }])
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
       else
         -- dropped: `Warningf` and `return false`, nothing written
         ownRaftPhysCV c c.voters r id s }}
@@ -210,22 +193,19 @@ abbrev raft.appendEntry.specS : Prop :=
   (ents.length : Int) < 2^61 →
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
-      "Hes" ∷ entsPts es dq ents ∗
-      "#Hdata" ∷ ([∗list] e ∈ ents, ∃ bs : List w8, e.Data' ↦*□ bs) }}
+      "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
-  {{ (accepted : Bool) (ents' : List EntryM), RET #accepted;
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
+  {{ (accepted : Bool), RET #accepted;
+      ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
       entsPts es dq ents ∗
-      ⌜EntsDataCopy ents ents'⌝ ∗
-      ([∗list] e;e' ∈ ents;ents', ∃ bs : List w8, e.Data' ↦*□ bs ∗ e'.Data' ↦*□ bs) ∗
       if accepted then
         ownRaftPhys cfg r id
           (sendMsgs
             { s with logst :=
-                logAppend s.logst (ents'.mapIdx (stamp s.term (logLast s.logst))) }
+                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
             [selfAck id
               { s with logst :=
-                  logAppend s.logst (ents'.mapIdx (stamp s.term (logLast s.logst))) }])
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
       else
         ownRaftPhys cfg r id s }}
 
@@ -234,17 +214,15 @@ theorem raft.appendEntry.spec_simple
     (H : raft.appendEntry.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.specS (GF := GF) (hG := hG) := by
   intro cfg r id s es ents dq Hlen Ht
-  iintro %Φ ⟨#Hpkg, Hphys, Hes, #Hdata⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s es ents dq Hlen Ht $$ [$Hpkg $Hphys $Hes $Hdata]
+  iapply H _ r id s es ents dq Hlen Ht $$ [$Hpkg $Hphys $Hes]
   inext
-  iintro %acc %ents' ⟨%Hacc, Hes, %Hcp, Hd, Hphys⟩
-  iapply HΦ $$ %acc %ents'
-  iframe Hes Hd
+  iintro %acc ⟨%Hacc, Hes, Hphys⟩
+  iapply HΦ $$ %acc
+  iframe Hes
   isplitr
   · ipureintro; exact Hacc
-  isplitr
-  · ipureintro; exact Hcp
   cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> iapply ownRaftPhysC_toS $$ Hphys
 
 end spec

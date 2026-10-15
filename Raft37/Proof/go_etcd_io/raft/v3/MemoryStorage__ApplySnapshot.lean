@@ -136,9 +136,10 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     simp only [Hsz]
     -- the fresh dummy entry, at the snapshot's id, frozen
     imod entOwn_of_struct l0 (raftpb.Entry.mk zeroValDef «$v0_ptr» «$v1_ptr» null slice.nil slice.nil 0) (EntryM.mk sv.Metadata'.Term' sv.Metadata'.Index'
-        (zero_val raftpb.EntryType) slice.nil) ⊤ rfl rfl $$ [Hl0] with He0
+        (zero_val raftpb.EntryType) []) ⊤ rfl $$ [Hl0] with He0
     · iframe Hl0 cT cI
-      iapply cellRO_null
+      isplitl []; · iapply cellRO_null
+      iapply ownSlice_nil
     imod entOwn_freeze $$ He0 with #He0
     imod ownSlice_persist $$ Hsl with #Hsl
     wp_auto

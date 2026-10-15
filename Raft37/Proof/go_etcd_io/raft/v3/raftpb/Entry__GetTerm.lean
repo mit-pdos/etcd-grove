@@ -39,7 +39,7 @@ theorem raftpb.Entry.GetTerm.wp_proof : raftpb.Entry.GetTerm.spec (GF := GF) (hG
       iexists uf
       isplitr
       · ipureintro; exact Hnn
-      iframe cT cI cY Hpb
+      iframe cT cI cY Hd Hpb
     · wp_if_destruct
       · exact absurd rfl Hpn
       · iapply HΦ
@@ -48,7 +48,7 @@ theorem raftpb.Entry.GetTerm.wp_proof : raftpb.Entry.GetTerm.spec (GF := GF) (hG
         iexists uf
         isplitr
         · ipureintro; exact Hnn
-        iframe cT cI cY Hpb
+        iframe cT cI cY Hd Hpb
   · wp_start
     wp_auto
     iapply HΦ; ipureintro; trivial

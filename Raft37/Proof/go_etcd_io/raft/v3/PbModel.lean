@@ -13,8 +13,10 @@ Each record here is what the getters of a raftpb message return, field for field
 Go field's name primed (as gogoproto's Goose fields were, so the model's text ports by a type
 rename); a nil field reads as zero, as the getters return it:
 
-* `EntryM`: `GetTerm`, `GetIndex`, `GetType`, `GetData` of a `*pb.Entry`. The bytes of
-  `Data'` are owned apart (a log entry's data is shared read-only), so it is the slice.
+* `EntryM`: `GetTerm`, `GetIndex`, `GetType`, `GetData` of a `*pb.Entry`. `Data'` is
+  the bytes (D6, stage R4: v3.7's `appendEntry` appends clones, whose `Data` is a fresh slice of
+  the same bytes, so a clone's record is its original's; until then the slice); the slice is
+  read-only for good (`InvPb.lean`'s `entPts`).
 * `MessageM`: the scalar getters of a `*pb.Message`; its references (`Entries`, `Snapshot`,
   `Context`, `Responses`) are not in it (the ownership predicate holds them,
   `InvPb.lean`'s `msgOwn`).
@@ -54,10 +56,10 @@ structure EntryM [FfiSyntax] where
   Term' : w64
   Index' : w64
   Type' : raftpb.EntryType
-  Data' : GoSlice
+  Data' : List w8
 
 instance EntryM.zero_val [FfiSyntax] : ZeroVal EntryM :=
-  ⟨EntryM.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨EntryM.mk zeroValDef zeroValDef zeroValDef []⟩
 
 /-- A message's scalar fields as the model sees them: what `GetType()`, `GetTo()`, ...,
 `GetRejectHint()` of a `*pb.Message` return. -/
@@ -131,6 +133,17 @@ structure HardStateM where
 
 instance HardStateM.zero_val [FfiSyntax] : ZeroVal HardStateM :=
   ⟨HardStateM.mk zeroValDef zeroValDef zeroValDef⟩
+
+/-- A read state as the model sees it (D6, stage R4): the Go struct `raft.ReadState`'s `Index`
+and the bytes of its `RequestCtx` (etcd matches read states by `bytes.Equal`, so the bytes are
+its identity). The fields are primed as the old Goose struct's were, so `⟨i, d⟩` ports. -/
+structure ReadStateM where
+  mk ::
+  Index' : w64
+  RequestCtx' : List w8
+
+instance ReadStateM.zero_val [FfiSyntax] : ZeroVal ReadStateM :=
+  ⟨ReadStateM.mk zeroValDef []⟩
 
 end EtcdGrove
 end Perennial

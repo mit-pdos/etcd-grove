@@ -86,10 +86,11 @@ raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), taken as `Step`
 `MsgProp` -- the conf-change loop replaces a refused entry's slot with a fresh `&pb.Entry{Type:
 EntryNormal}` -- and read-only otherwise) and not given back: a `MsgReadIndex` is frozen and kept
 (the pending slice, the read-only queue), the rest is dropped. `appendEntry` no longer writes the
-batch but appends stamped clones whose `Data` slices are fresh copies (`EntsDataCopy`,
-`Spec/raft__appendEntry.lean`), so an accepted proposal's log grows by copies `ents'` of the loop's
-batch (`LeaderProposeResult`), and a proposal's entries' data bytes are a premise (`"Hdata"`,
-which the clones read); the post's `(⌜MsgProp⌝ -∗ ∃ ents', m.Entries' ↦* ents')` is gone.
+batch but appends stamped clones, which hold the same records (D6: an entry's `Data'` is its
+bytes; `Spec/raft__appendEntry.lean`), so `LeaderProposeResult` is the old one; the post's
+`(⌜MsgProp⌝ -∗ ∃ ents', m.Entries' ↦* ents')` is gone. (Phase 2 of R4 had the log grow by
+copies `ents'` whose `Data` slices were fresh, `EntsDataCopy`, and the data bytes a premise
+`"Hdata"`; D6 removed both.)
 -/
 module
 
@@ -144,18 +145,17 @@ at the appended state, with no `Match` moved; for some decoded conf changes `cs`
 batch (2026-10-13; until then the batch was appended as proposed). `joint` (2026-10-14,
 reconfiguration stage A3): whether the configuration in use is joint, which decides which conf
 changes the loop refuses (`propConf`); `false` at a simple configuration. (2026-10-15, stage
-R4) What is appended is `appendEntry`'s clones of the loop's batch, copies `ents'` whose `Data`
-slices are fresh (`EntsDataCopy`; until the retarget the batch itself). -/
+R4) What is appended is `appendEntry`'s clones of the loop's batch, which hold the same records
+(D6). -/
 def LeaderProposeResult (id : w64) (s : NState) (ents : List EntryM)
     (dropped : Bool) (s' : NState) (joint : Bool := false) : Prop :=
   ∃ cs : List (Option CCMsg), CCTypesOk ents cs ∧
   if dropped then s' = s ∨ s' = { s with pci := (leaderPropConf s ents cs joint).2 }
-  else ∃ (ents' : List EntryM) (ms : List Msg) (pvs : GMap w64 Progress),
-    EntsDataCopy (leaderPropConf s ents cs joint).1 ents' ∧
+  else ∃ (ms : List Msg) (pvs : GMap w64 Progress),
     s' = { sendMsgs (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }
-             ents') ms with prvals := pvs } ∧
+             (leaderPropConf s ents cs joint).1) ms with prvals := pvs } ∧
     ReplSends id (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }
-      ents') ms ∧
+      (leaderPropConf s ents cs joint).1) ms ∧
     prvalsMatch pvs = prvalsMatch s.prvals
 
 /-- What the read-index code needs of the read-only state (2026-10-12; the ghost state,
@@ -299,7 +299,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   2026-10-13) `Hcc`: each conf-change entry's bytes, which decode (`Unmarshal`'s
   `panic`). The batch comes back, changed, in the postcondition. (Stage R4: the batch is the
   message's (`"Hm"`, entry pointers at `1`: the loop replaces refused entries' slots);
-  `appendEntry` clones it, reading the data bytes (`"Hdata"`); nothing comes back.)
+  `appendEntry` clones it; nothing comes back.)
 
 At any configuration since 2026-10-14 (reconfiguration stage A3): the struct at `c`
 (`ownRaftPhysCV c c.voters`); the read path's confirmation is the joint quorum index of the
@@ -351,9 +351,7 @@ abbrev stepLeader.spec : Prop :=
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (2026-10-13) and its conf-change entries' bytes, which decode
-      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗
-      -- (stage R4) a proposal's entries' data bytes, which `appendEntry`'s clones copy
-      "#Hdata" ∷ □ (⌜m.Type' = MsgProp⌝ -∗ [∗list] e ∈ ents, ∃ bs : List w8, e.Data' ↦*□ bs) }}
+      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) }}
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗

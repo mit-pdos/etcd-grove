@@ -22,13 +22,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `x.GetData()` of an entry holding `e` (at any fraction) is `e.Data'` (the slice; its bytes
-are not part of `entPts`); of a nil `*Entry`, the nil slice. -/
+/-- `x.GetData()` of an entry holding `e` (at any fraction) is its `Data` slice, which holds the
+bytes `e.Data'` read-only (D6, stage R4; until then `e.Data'` was the slice); of a nil `*Entry`,
+the nil slice. -/
 abbrev raftpb.Entry.GetData.spec : Prop :=
   (∀ (l : Loc) (dq : DFrac) (e : EntryM),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ entPts l dq e }}
       (App (Val (l @!! go.GoType.PointerType raftpb.Entry.ty @!! go!"GetData")) (Val #()))
-    {{ RET #e.Data'; entPts l dq e }}) ∧
+    {{ (ds : GoSlice), RET #ds; ds ↦*□ e.Data' ∗ entPts l dq e }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.Entry.ty @!! go!"GetData"))
       (Val #()))

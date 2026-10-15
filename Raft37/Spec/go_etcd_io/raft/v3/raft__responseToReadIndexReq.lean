@@ -18,7 +18,9 @@ raft v3.7 (2026-10-15, stage R4): `req` is a `*pb.Message`, frozen (`msgOwn req 
 read-only queue's or the pending slice's, or `stepLeader`'s frozen `MsgReadIndex`), read through
 its getters; the result is a fresh `*pb.Message`, owned (`msgOwn resp 1`): the empty
 `&pb.Message{}` for a local request, else the response, whose `To` cell and `Entries` slice are
-the request's (shared, read-only), so it holds the request's entries.
+the request's (shared, read-only), so it holds the request's entries. (D6) The `ReadState`'s
+context is the bytes of the request's first entry (`ReadStateM`; `r.readStates` holds the Go
+structs with their `RequestCtx` slices read-only, `readStatesPts`).
 -/
 module
 
@@ -45,8 +47,8 @@ def readIndexRespMsg (req : MessageM) (idx : w64) : MessageM :=
       Index' := idx }
 
 /-- A local request's `ReadState`, appended. -/
-def addReadState (s : NState) (idx : w64) (ctx : GoSlice) : NState :=
-  { s with rd := { s.rd with states := s.rd.states ++ [ReadState.mk idx ctx] } }
+def addReadState (s : NState) (idx : w64) (ctx : List w8) : NState :=
+  { s with rd := { s.rd with states := s.rd.states ++ [ReadStateM.mk idx ctx] } }
 
 end results
 

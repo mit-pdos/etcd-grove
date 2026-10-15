@@ -72,7 +72,7 @@ abbrev raft.increaseUncommittedSize.spec : Prop :=
   {{ (ok : Bool), RET #ok;
       ownRaftPhysCV c c.voters r id s ∗ entsPts es dq ents ∗
       -- an all-empty batch is never rejected
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true⌝ }}
+      ⌜(∀ e ∈ ents, e.Data' = []) → ok = true⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.increaseUncommittedSize.spec` by `raft.increaseUncommittedSize.spec_simple`. -/
@@ -86,7 +86,7 @@ abbrev raft.increaseUncommittedSize.specS : Prop :=
       (Val #es))
   {{ (ok : Bool), RET #ok;
       ownRaftPhys cfg r id s ∗ entsPts es dq ents ∗
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true⌝ }}
+      ⌜(∀ e ∈ ents, e.Data' = []) → ok = true⌝ }}
 
 open Iris.ProofMode in
 theorem raft.increaseUncommittedSize.spec_simple

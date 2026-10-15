@@ -30,8 +30,8 @@ the model records of `PbModel.lean` as indices:
 
 * `entPts l dq e`: a `*pb.Entry` holding `e`; `entRO l e` (`dq = □`) is the persistent fact of a
   log entry (raft writes an entry only between its allocation and its append, D2), `entOwn l e`
-  (`dq = 1`) a fresh one being filled (`appendEntry`'s clone). `Data`'s bytes are owned apart, as
-  before (`e.Data' ↦*□ bs`).
+  (`dq = 1`) a fresh one being filled (`appendEntry`'s clone). `Data`'s bytes are the record's
+  (D6) and read-only for good (`ds ↦*□ e.Data'`, at every `dq`): raft never writes them.
 * `msgPts l dq dqe ms`: a `*pb.Message` holding `ms : MsgSt` (the scalars `ms.msg : MessageM`, the
   entries, the snapshot, the context bytes, the responses' pointers); its pointer fields at
   `dq` (raft replaces them: `m.To = new(...)`, `send`), its `Entries` slice at `dqe` (read-only
@@ -202,12 +202,12 @@ instance pbMsg_persistent (T : Type) (l : Loc) (uf : List w8) :
 
 /-- A `*pb.Entry` at `l` holding `e`, its fields at `dq` (see the file header). -/
 def entPts (l : Loc) (dq : DFrac) (e : EntryM) : IProp GF :=
-  iprop(∃ (pt pi pty : Loc) (uf : List w8),
+  iprop(∃ (pt pi pty : Loc) (ds : GoSlice) (uf : List w8),
     "%Hnn" ∷ ⌜l ≠ null⌝ ∗
     "HT" ∷ l.[raftpb.Entry, go!"Term"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt e.Term' ∗
     "HI" ∷ l.[raftpb.Entry, go!"Index"] ↦{dq} pi ∗ "#cI" ∷ cellRO pi e.Index' ∗
     "HY" ∷ l.[raftpb.Entry, go!"Type"] ↦{dq} pty ∗ "#cY" ∷ cellRO pty e.Type' ∗
-    "HD" ∷ l.[raftpb.Entry, go!"Data"] ↦{dq} e.Data' ∗
+    "HD" ∷ l.[raftpb.Entry, go!"Data"] ↦{dq} ds ∗ "#Hd" ∷ ds ↦*□ e.Data' ∗
     "#Hpb" ∷ pbMsg raftpb.Entry l uf)
 
 /-- A log entry: read-only for good (D2). -/
@@ -432,7 +432,8 @@ theorem entPts_agree (l : Loc) (dq1 dq2 : DFrac) (e1 e2 : EntryM) :
   icombine HI1 HI2 gives %HI
   icombine HY1 HY2 gives %HY
   icombine HD1 HD2 gives %HD
-  subst HT HI HY
+  subst HT HI HY HD
+  ihave %Hd := ownSlice_agree (GF := GF) ds DFrac.discard DFrac.discard e1.Data' e2.Data' $$ Hd1 Hd2
   ihave %Ht := cellRO_agree (GF := GF) pt e1.Term' e2.Term' $$ [cT1 cT2]
   · isplitl [] <;> iassumption
   ihave %Hi := cellRO_agree (GF := GF) pi e1.Index' e2.Index' $$ [cI1 cI2]
@@ -450,22 +451,23 @@ theorem entOwn_freeze (l : Loc) (e : EntryM) : entOwn (GF := GF) l e ⊢ |==> en
   imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
   imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
   imod (typedPointsto_dfractional (GF := GF) _ pty).dfractional_persist _ $$ HY with #HY
-  imod (typedPointsto_dfractional (GF := GF) _ e.Data').dfractional_persist _ $$ HD with #HD
+  imod (typedPointsto_dfractional (GF := GF) _ ds).dfractional_persist _ $$ HD with #HD
   imodintro
   simp only [entRO]
   iunfold entPts
-  iexists pt, pi, pty, uf
+  iexists pt, pi, pty, ds, uf
   isplitr
   · ipureintro; exact Hnn
-  iframe HT cT HI cI HY cY HD Hpb
+  iframe HT cT HI cI HY cY HD Hd Hpb
 
 /-- A freshly allocated `*pb.Entry` (its hidden fields zero), its pointer fields set to cells
-holding `e`'s scalars and its `Data` to `e.Data'`, is an owned entry holding `e`. -/
+holding `e`'s scalars and its `Data` to a slice holding `e.Data'` read-only, is an owned entry
+holding `e`. -/
 theorem entOwn_of_struct (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
-    (Hd : v.Data' = e.Data') (Hu : v.unknownFields' = slice.nil) :
-    (l ↦ v ∗ cellRO v.Term' e.Term' ∗ cellRO v.Index' e.Index' ∗ cellRO v.Type' e.Type' :
-      IProp GF) ⊢ |={E}=> entOwn l e := by
-  iintro ⟨Hl, #cT, #cI, #cY⟩
+    (Hu : v.unknownFields' = slice.nil) :
+    (l ↦ v ∗ cellRO v.Term' e.Term' ∗ cellRO v.Index' e.Index' ∗ cellRO v.Type' e.Type' ∗
+      v.Data' ↦*□ e.Data' : IProp GF) ⊢ |={E}=> entOwn l e := by
+  iintro ⟨Hl, #cT, #cI, #cY, #Hd⟩
   ihave %Hnn := typedPointsto_not_null $$ Hl
   icases typedPointsto_split _ _ _ $$ Hl with Hl
   simp only [TypedPointsto.typedPointstoDef]
@@ -478,12 +480,11 @@ theorem entOwn_of_struct (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
   imodintro
   simp only [entOwn]
   iunfold entPts
-  iexists v.Term', v.Index', v.Type', []
-  rw [← Hd]
+  iexists v.Term', v.Index', v.Type', v.Data', []
   isplitr
   · ipureintro; exact Hnn
   iframe
-  iframe cT cI cY Hpb
+  iframe cT cI cY Hd Hpb
 
 /-! ### Conf states, snapshots, hard states -/
 

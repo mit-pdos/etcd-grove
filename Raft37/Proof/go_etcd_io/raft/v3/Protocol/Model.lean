@@ -175,11 +175,11 @@ structure ReadOnly [FfiSyntax] where
   acks : GMap w64 w64
   confirmed : w64
 
-/-- The physical read-index state (2026-10-12): `r.readStates` (as the Goose values),
+/-- The physical read-index state (2026-10-12): `r.readStates` (as `ReadStateM`s, D6),
 `r.readOnly` (as `ReadOnly`), and `r.pendingReadIndexMessages`, each with the entries
 its slice holds. -/
 structure RdState [FfiSyntax] where
-  states : List ReadState := []
+  states : List ReadStateM := []
   ro : ReadOnly := ⟨[], ∅, W64 0⟩
   pend : List (MessageM × List EntryM) := []
 

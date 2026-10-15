@@ -26,7 +26,12 @@ theorem payloadSize.wp_proof
   intro p dq e
   wp_start as He
   wp_auto
-  wp_apply wp_Entry_GetData.1 p dq e $$ [$He] as He
+  wp_apply wp_Entry_GetData.1 p dq e $$ [$He] as %ds ⟨#Hd, He⟩
+  ihave %Hl := ownSlice_len $$ Hd
+  have Hlen : ds.len = W64 e.Data'.length := by
+    obtain ⟨H1, H2⟩ := Hl
+    rw [H1]; word
+  rw [Hlen]
   iapply HΦ $$ He
 
 end proof

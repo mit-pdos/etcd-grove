@@ -228,11 +228,6 @@ structure RaftNames where
   registry half; `γq` names the update's result predicate. (Until stage R `data ↦ (γq, γk)`,
   `γk` the client's ticket for a one-shot result.) -/
   reProps : GName
-  /-- The proposed slices (2026-10-10): a ghost map `slice ↦ data` (persistent
-  elements, `isPropData`): the data a proposed entry's `Data'` slice holds, so that the
-  ghost commit knows what it commits. The authority is the application's
-  (`propDataInv`, `InvNode.lean`, keeps the heap points-tos). -/
-  reSl : GName
   /-- The full committed log, client view (2026-10-14, stage R; replaces the client log
   `reCLog` of first-occurrence data): a ghost variable of entries, halved between
   `raftCommitInv` (always the global committed log; the invariant's half split in quarters
@@ -768,44 +763,33 @@ def isTermLog (γ : RaftNames) (v t : w64) (γt : GName) (b : entryID)
 
 /-! ### Proposed data (2026-10-10)
 
-What an entry's `Data'` slice holds, for the updates over the committed log (`propAu`/`noopAu`,
+What an entry's `Data'` holds, for the updates over the committed log (`propAu`/`noopAu`,
 `GhostState.lean`; until 2026-10-14, stage R, the client log `cLog`): a
-leader's own entry (the empty entry a new leader appends) has the zero slice; every other
-entry was proposed, and its slice is recorded (`isPropData`) with data whose atomic
-update was deposited (`deposited`). -/
-
-/-- The slice `sl` was proposed holding `d` (persistent). -/
-def isPropData (γ : RaftNames) (sl : GoSlice) (d : List w8) : IProp GF :=
-  sl ↪[γ.reSl]□ d
+leader's own entry (the empty entry a new leader appends) has no bytes; every other
+entry was proposed, with data whose atomic update was deposited (`deposited`). Since D6
+(stage R4) `Data'` is the bytes themselves; until then it was the slice, and a ghost map of
+proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held. -/
 
 /-- `d`'s atomic update was deposited (persistent): its slot names `γq`. -/
 def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
   iprop(∃ γq : GName, d ↪[γ.reProps]□ γq)
 
-/-- The data of entry `e`: `some d` for a normal entry whose slice was proposed holding
-the client data `d`; `none` for an entry that is not a client operation -- a normal entry
-with the zero slice (a leader's own entry, a refused conf change's replacement), or
-(since 2026-10-13, reconfiguration stage D) an entry of another type, whose proposed slice
-holds bytes that decode as its type says (`CCDecodes`: a conf-change entry's, which
-`stepLeader` `Unmarshal`s). Only normal entries' data are client operations (`propAu` of
-their data moves the client's log, `noopAu` the others', `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice,
-and every entry was normal. -/
+/-- The data of entry `e`: `some d` for a normal entry holding the (non-empty, D6) client data
+`d`; `none` for an entry that is not a client operation -- a normal entry with no bytes (a
+leader's own entry, a refused conf change's replacement), or (since 2026-10-13,
+reconfiguration stage D) an entry of another type, whose bytes decode as its type says
+(`CCDecodes`: a conf-change entry's, which `stepLeader` `Unmarshal`s). Only normal entries'
+data are client operations (`propAu` of their data moves the client's log, `noopAu` the
+others', `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice, and
+every entry was normal. -/
 def entDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
-  | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = (zero_val EntryM).Data'⌝ ∨
-      (⌜e.Type' ≠ W32 0⌝ ∗ ∃ bs, isPropData γ e.Data' bs ∗
-        ⌜CCDecodes e.Type' bs ∧ γ.reCCOk e.Type' bs⌝))
-  | some d => iprop(⌜e.Data' ≠ (zero_val EntryM).Data' ∧ e.Type' = W32 0⌝ ∗
-      isPropData γ e.Data' d ∗ deposited γ d)
+  | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = []⌝ ∨
+      ⌜e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ γ.reCCOk e.Type' e.Data'⌝)
+  | some d => iprop(⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ ∗ deposited γ d)
 
 def entData (γ : RaftNames) (e : EntryM) : IProp GF :=
   iprop(∃ o, entDataIs γ e o)
 
-instance isPropData_persistent (γ : RaftNames) (sl : GoSlice) (d : List w8) :
-    Persistent (isPropData (GF := GF) γ sl d) := by
-  unfold isPropData; infer_instance
-instance isPropData_timeless (γ : RaftNames) (sl : GoSlice) (d : List w8) :
-    Timeless (isPropData (GF := GF) γ sl d) := by
-  unfold isPropData; infer_instance
 instance deposited_persistent (γ : RaftNames) (d : List w8) :
     Persistent (deposited (GF := GF) γ d) := by
   unfold deposited; infer_instance
@@ -814,7 +798,7 @@ instance entDataIs_persistent (γ : RaftNames) (e : EntryM) (o : Option (List w8
   cases o <;> unfold entDataIs <;> infer_instance
 instance entDataIs_timeless (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
     Timeless (entDataIs (GF := GF) γ e o) := by
-  cases o <;> unfold entDataIs <;> (try unfold isPropData deposited) <;> infer_instance
+  cases o <;> unfold entDataIs <;> (try unfold deposited) <;> infer_instance
 instance entData_persistent (γ : RaftNames) (e : EntryM) :
     Persistent (entData (GF := GF) γ e) := by
   unfold entData; infer_instance
@@ -827,16 +811,14 @@ theorem entDataIs_agree (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8))
     ⊢ entDataIs (GF := GF) γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
   cases o1 <;> cases o2 <;> unfold entDataIs
   · iintro _ _; ipureintro; rfl
-  · iintro (%H1 | ⟨%H1, -⟩) ⟨%H2, -⟩
-    · exact absurd H1.2 H2.1
-    · exact absurd H2.2 H1
-  · iintro ⟨%H1, -⟩ (%H2 | ⟨%H2, -⟩)
-    · exact absurd H2.2 H1.1
-    · exact absurd H1.2 H2
-  · unfold isPropData
-    iintro ⟨-, #H1, -⟩ ⟨-, #H2, -⟩
-    icases ghostMapElem_agree $$ H1 H2 with %H
-    ipureintro; rw [H]
+  · iintro (%H1 | %H1) ⟨%H2, -⟩
+    · exact absurd (H2.1.symm.trans H1.2) H2.2.1
+    · exact absurd H2.2.2 H1.1
+  · iintro ⟨%H1, -⟩ (%H2 | %H2)
+    · exact absurd (H1.1.symm.trans H2.2) H1.2.1
+    · exact absurd H1.2.2 H2.1
+  · iintro ⟨%H1, -⟩ ⟨%H2, -⟩
+    ipureintro; rw [← H1.1, ← H2.1]
 
 /-- Stamping keeps the data. -/
 theorem entDataIs_stamp (γ : RaftNames) (e : EntryM) (t i : w64) (o : Option (List w8)) :

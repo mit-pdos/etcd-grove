@@ -31,12 +31,13 @@ theorem raftpb.Entry.GetData.wp_proof :
     wp_if_destruct
     · exact absurd rfl Hnn
     · iapply HΦ
+      iframe Hd
       iunfold entPts
       iframe
       iexists uf
       isplitr
       · ipureintro; exact Hnn
-      iframe cT cI cY Hpb
+      iframe cT cI cY Hd Hpb
   · wp_start
     wp_auto
     iapply HΦ; ipureintro; trivial

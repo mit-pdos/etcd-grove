@@ -259,9 +259,9 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       iprop(⌜m.ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
         ⌜m.ctx = u64Le q ∧ HbAckOk m.src (uint.nat q) recs⌝ ∗ rqLb γ m.dst m.term recs)
   | .readIndex =>
-      iprop(∃ e c Lc, ⌜m.entries = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc)
+      iprop(∃ e c Lc, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc)
   | .readIndexResp =>
-      iprop(∃ e c, ⌜m.entries = [e]⌝ ∗ isPropData γ e.Data' c ∗ readOk γ c m.index)
+      iprop(∃ e c, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readOk γ c m.index)
   | _ => iprop(True)
 
 instance isMessage_persistent (γ : RaftNames) (m : Msg) :
@@ -916,7 +916,7 @@ instance readAu_persistent (γ : RaftNames) (Qr : List EntryM → IProp GF) :
   unfold readAu; infer_instance
 
 /-- A proposal's update (see the section header): persistent; raft chooses the entry `e` (a
-normal entry whose proposed slice holds `d`, `entDataIs`); fired at every committed
+normal entry holding the bytes `d`, `entDataIs`); fired at every committed
 occurrence, with the log before it. -/
 def propAu (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
@@ -1412,10 +1412,10 @@ theorem HbAckOk_w64Max (v x y : w64) (recs : List RqRec) :
 theorem HbAckOk_zero (v : w64) (recs : List RqRec) : HbAckOk v 0 recs :=
   ⟨Nat.zero_le _, fun r hr => by simp at hr⟩
 
-/-- What a confirmed request's answer needs (2026-10-13): its entry, a proposed slice whose
-context `c` the index reads (`readOk`). -/
+/-- What a confirmed request's answer needs (2026-10-13): its entry, whose bytes `c` (the
+context) the index reads (`readOk`). -/
 def respFacts (γ : RaftNames) (q : ReadReq) : IProp GF :=
-  iprop(∃ e c, ⌜q.ents = [e]⌝ ∗ isPropData γ e.Data' c ∗ readOk γ c q.index)
+  iprop(∃ e c, ⌜q.ents = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readOk γ c q.index)
 
 instance respFacts_persistent (γ : RaftNames) (q : ReadReq) :
     Persistent (respFacts (GF := GF) γ q) := by
@@ -1430,12 +1430,13 @@ theorem rdCount_append (a b : List Msg) : rdCount (a ++ b) = rdCount a + rdCount
 theorem rdCount_singleton (m : Msg) : rdCount [m] = if m.ty = .readIndex then 1 else 0 := by
   unfold rdCount; by_cases h : m.ty = .readIndex <;> simp [h]
 
-/-- A `ReadState` handed out (2026-10-13): its context is a slice proposed holding `c`,
-and its index is at least the log `c` was created knowing (`readOk`). -/
-def readStateOk (γ : RaftNames) (st : ReadState) : IProp GF :=
-  iprop(∃ c, isPropData γ st.RequestCtx' c ∗ readOk γ c st.Index')
+/-- A `ReadState` handed out (2026-10-13): its context holds the bytes `c` (D6: the context
+is its bytes; until then a slice proposed holding `c`), and its index is at least the log `c`
+was created knowing (`readOk`). -/
+def readStateOk (γ : RaftNames) (st : ReadStateM) : IProp GF :=
+  iprop(∃ c, ⌜st.RequestCtx' = c⌝ ∗ readOk γ c st.Index')
 
-instance readStateOk_persistent (γ : RaftNames) (st : ReadState) :
+instance readStateOk_persistent (γ : RaftNames) (st : ReadStateM) :
     Persistent (readStateOk (GF := GF) γ st) := by
   unfold readStateOk; infer_instance
 
@@ -1447,7 +1448,7 @@ def rdLead (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) : IProp GF :=
       ⌜recs.length = uint.nat s.rd.ro.confirmed + s.rd.ro.pending.length⌝ ∗
       ([∗list] k ↦ q ∈ s.rd.ro.pending, ∃ r e,
          ⌜recs[uint.nat s.rd.ro.confirmed + k]? = some r ∧ q.index = r.1.2 ∧ q.ents = [e]⌝ ∗
-         isPropData γ e.Data' r.1.1) ∗
+         ⌜e.Data' = r.1.1⌝) ∗
       ⌜∀ v a, s.rd.ro.acks !! v = some a → HbAckOk v (uint.nat a) recs⌝ ∗
       rdCred γ recs.length)
   | _ => iprop(⌜s.rd.ro = ⟨[], ∅, W64 0⟩⌝)
@@ -1467,7 +1468,7 @@ def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
     ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
     ⌜LcmOk rqm s⌝ ∗ rdLead γ s rqm ∗
     ([∗list] st ∈ s.rd.states, readStateOk γ st) ∗
-    ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ∗
+    ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
     rdCred γ (s.rd.pend.length + rdCount s.outbox) ∗
     rdCredInv γ)
 
@@ -1627,13 +1628,13 @@ theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
 /-- A step that changes only the outbox and the read state, not the read-only object:
 `ReadState`s added, pending requests added (each with its facts and a credit), and
 messages sent with as many credits as they hold read-index requests. -/
-theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List ReadState)
+theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List ReadStateM)
     (ps : List (MessageM × List EntryM)) (ms : List Msg) :
     s'.role = s.role → s'.term = s.term → s'.rd.ro = s.rd.ro →
     s'.rd.states = s.rd.states ++ sts → s'.rd.pend = s.rd.pend ++ ps →
     s'.outbox = s.outbox ++ ms →
     ⊢ rdOwn (GF := GF) γ id s -∗ ([∗list] st ∈ sts, readStateOk γ st) -∗
-      ([∗list] p ∈ ps, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) -∗
+      ([∗list] p ∈ ps, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗
       rdCred γ (ps.length + rdCount ms) -∗
       rdOwn γ id s' := by
   intro Hr Ht Hro Hst Hpd Hout
@@ -1658,7 +1659,7 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
   isplitr
   · rw [Hpd]
     iapply (BigSepL.bigSepL_append (Φ := fun _ (p : MessageM × List EntryM) => iprop(∃ e c Lc, ⌜p.2 = [e]⌝ ∗
-      isPropData (GF := GF) γ e.Data' c ∗ readReq γ c Lc))).2
+      ⌜e.Data' = c⌝ ∗ readReq γ c Lc))).2
     iframe Hpd0 Hps
   isplitl [Hcr Hcr']
   · rw [Hpd, Hout, List.length_append, rdCount_append,
@@ -1696,7 +1697,7 @@ theorem rdOwn_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg)
 theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
     rdOwn (GF := GF) γ id s ⊢
       rdOwn γ id { s with rd := { s.rd with pend := [] } } ∗
-      ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ∗
+      ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
       rdCred γ s.rd.pend.length := by
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
