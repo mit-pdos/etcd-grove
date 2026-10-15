@@ -23,15 +23,22 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `m.GetEntries()` of a message holding `ms` is its `Entries` slice: lent, with the entry
-pointers at the message's `dqe` (each entry read-only), until the caller gives the slice back
-(at once for a read-only slice, `dqe = □`); of a nil `*Message`, the nil slice. -/
+pointers at the message's `dqe` (each entry read-only), and the slice's capacity when the message
+holds it (`cap`, stage R4's `msgIn`), until the caller gives the slice back: the same capacity or
+none (`cap'`), and any entry pointers, each read-only, which the message then holds (`stepLeader`
+replaces a proposal's slots, `raft.go:1341`); of a nil `*Message`, the nil slice. (Stage R4:
+until then the slice went back unchanged and no capacity was held.) -/
 abbrev raftpb.Message.GetEntries.spec : Prop :=
-  (∀ (l : Loc) (dq dqe : DFrac) (ms : MsgSt),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPts l dq dqe ms }}
+  (∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPtsC l dq dqe cap ms }}
       (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetEntries")) (Val #()))
     {{ (es : GoSlice) (els : List Loc), RET #es;
         es ↦*{dqe} els ∗ ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
-        (es ↦*{dqe} els -∗ msgPts l dq dqe ms) }}) ∧
+        (if cap then ownSliceCap Loc es (DFrac.own 1) else emp) ∗
+        (∀ (cap' : Bool) (els' : List Loc) (ents' : List EntryM),
+          es ↦*{dqe} els' -∗ ([∗list] p;e ∈ els';ents', entRO p e) -∗
+          (if cap' then ownSliceCap Loc es (DFrac.own 1) else emp) -∗
+          msgPtsC l dq dqe cap' { ms with ents := ents' }) }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetEntries"))
       (Val #()))

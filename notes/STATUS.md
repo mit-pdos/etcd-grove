@@ -45,6 +45,36 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Retargeting raft to v3.7, stage R4 phase 1: the raft layer's shared predicates (2026-10-15, branch `raft-retarget`)
+
+Phase 1 of stage R4 (`notes/decisions.md`, "`raft.go` over pointer messages: the outbox owned,
+`Step` takes the message"): the shared predicates of the raft layer, ported from the old proof
+(`Raft37/Proof/go_etcd_io/raft/v3/`), no `raft.go` spec yet.
+
+- **Messages** (`InvPb.lean`, `InvPbMsg.lean` new): `msgPtsC l dq dqe cap st` is R1's `msgPts`
+  plus, when `cap`, the `Entries` slice's capacity; `msgPts` is `cap = false`, `msgOwn` as before,
+  `msgIn l dqe st` (`dq = 1`, `cap`) what `Step` receives. **The 14 `Message` getter specs are on
+  `msgPtsC` at any `cap`** (a getter on `msgIn` without conversion); `GetEntries` hands out the
+  capacity too and takes back any entries and capacity (`stepLeader` replaces a proposal's slots,
+  `handleAppendEntries` gives the capacity to `maybeAppend`). `InvPbMsg`: `msgOwn_persistent` (at
+  `□`), `msgOwn_persist`, `msgIn_to_msgOwn`, `msgPtsC_drop_cap`, `msgPtsC_of_struct`/
+  `msgOwn_of_struct` (`&pb.Message{...}`), the stores `msgPtsC_store_From`/`_Term`/`_To`.
+- **`InvRaftPhys`** (3,570 lines): the queues are `List QMsg` (a pointer and its `MsgSt`; the
+  slice holds `msgs.map QMsg.loc`, `ownSliceCap Loc`), `msgAbs` pure, `msgQ`, `outboxRel` owning
+  the messages (not persistent; `outboxRel_snoc`/`_snocAA`), `AAMsgOk id t (st : MsgSt)`,
+  `OutTermOk pv t (m : MessageM)`; the queue accessors take the appended pointer with `msgOwn l'
+  1 st'`; `HardSt`/`SoftSt`/`hsAbs`/`nodeHardstate`/`hardstateVal` (over `HardStateM`) moved in
+  from `InvRawnode`; `ownCSIds`, `ownCSL_ids`, `send_no_snap` dropped. Everything else verbatim.
+- **`InvMisc`**: `ownReadreq` holds the request message frozen (`msgOwn rv.req' □ ⟨mm, q.ents,
+  ...⟩`, `mm.From' = q.src`); `pendingReadIndexMessages` a `[]*pb.Message` of frozen messages
+  (`ownPendRI`). `InvConfChangeMsg` keeps `ccEntOk`/`ccEntsOk` over `EntryM`; `InvApplyConf(C)`
+  their heap sections (the models are R1's `CCApply(C)`); `InvBig` verbatim; `Init` for v3.7
+  (`emptyState` a pointer, `proto`'s initializer a `sorry` like `raftpb`'s, `os`'s, `strconv`'s;
+  `reflect`'s gone). `InvRaftpb` dropped.
+- **Gates**: `lake --packages=.lake/manifest-a54e199.json build` passes (5358 jobs); `Link.lean`
+  regenerates identically; `etc/tcb-report.py --collection etc/tcb-collections/raft37.txt --check`
+  matches (190 roots, 11 axioms, no `sorry`; nothing new is linked yet).
+
 ## Retargeting raft to v3.7, stages R2 and R3: confchange, the log layer over read-only entries (2026-10-15, branch `raft-retarget`)
 
 Stages R2 and R3 of the retarget (`notes/raft-retarget-plan.md`), on the decisions D1, D2, D4,

@@ -38,6 +38,10 @@ the model records of `PbModel.lean` as indices:
   `□` for a message built from the log, owned for a proposal, whose slots `stepLeader`
   replaces), each entry `entRO`, `Context` read-only bytes, `Snapshot` as `snapOpt`; `msgOwn l dq
   ms` is `dqe = □`. The responses' own ownership is the holder's (a `MsgStorage*` message's).
+  (Stage R4: `msgPts` is `msgPtsC l dq dqe false ms`; `msgPtsC ... true` also owns the `Entries`
+  slice's capacity, and `msgIn l dqe ms`, a message `raft.Step` receives, is it at `dq = 1`.
+  The `Message` getters' specs are on `msgPtsC` at any `cap`; the lemmas on messages that need
+  the snapshots' persistence are in `InvPbMsg.lean`.)
 * `csPts p dq c al`: a `*pb.ConfState` (the four lists at `dq`, `AutoLeave` a cell, `al`: its
   pointer is set); `ownCSM p dq c` is `al = false`. `smPts`, `ownSnapM`: a snapshot's metadata
   and the snapshot (its `Data` bytes at `dq`), nil nested pointers reading as the zero record
@@ -281,8 +285,10 @@ def hsRO (p : Loc) (hs : HardStateM) : IProp GF :=
 
 /-- A `*pb.Message` at `l` holding `ms` (D3): its pointer fields at `dq`, its `Entries` slice's
 elements at `dqe` (see the file header), each entry read-only, its `Context` bytes read-only, its
-snapshot owned at `dq`, its `Responses` slice's elements at `dq`. -/
-def msgPts (l : Loc) (dq dqe : DFrac) (ms : MsgSt) : IProp GF :=
+snapshot owned at `dq`, its `Responses` slice's elements at `dq`; and, when `cap`, the capacity
+of its `Entries` slice, owned (stage R4: a message `Step` receives, `msgIn`, whose array
+`unstable.truncateAndAppend` may adopt). -/
+def msgPtsC (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) : IProp GF :=
   iprop(∃ (pty pto pfr pte plt pix pco pvo prj prh : Loc) (es : GoSlice) (els : List Loc)
       (ps : Loc) (cs rs : GoSlice) (uf : List w8),
     "%Hnn" ∷ ⌜l ≠ null⌝ ∗
@@ -299,13 +305,24 @@ def msgPts (l : Loc) (dq dqe : DFrac) (ms : MsgSt) : IProp GF :=
       "#cRh" ∷ cellRO prh ms.msg.RejectHint' ∗
     "HEs" ∷ l.[raftpb.Message, go!"Entries"] ↦{dq} es ∗ "Hes" ∷ es ↦*{dqe} els ∗
       "#Hents" ∷ ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
+      "Hes_cap" ∷ (if cap then ownSliceCap Loc es (DFrac.own 1) else emp) ∗
     "HSn" ∷ l.[raftpb.Message, go!"Snapshot"] ↦{dq} ps ∗ "Hsn" ∷ snapOpt ps dq ms.snap ∗
     "HCx" ∷ l.[raftpb.Message, go!"Context"] ↦{dq} cs ∗ "#Hcs" ∷ cs ↦*□ ms.ctx ∗
     "HRs" ∷ l.[raftpb.Message, go!"Responses"] ↦{dq} rs ∗ "Hrs" ∷ rs ↦*{dq} ms.resps ∗
     "#Hpb" ∷ pbMsg raftpb.Message l uf)
 
+/-- A message without its `Entries` capacity (R1's `msgPts`). -/
+abbrev msgPts (l : Loc) (dq dqe : DFrac) (ms : MsgSt) : IProp GF := msgPtsC l dq dqe false ms
+
 /-- A message whose entries slice is read-only (every message raft builds, D3). -/
 abbrev msgOwn (l : Loc) (dq : DFrac) (ms : MsgSt) : IProp GF := msgPts l dq DFrac.discard ms
+
+/-- A message `raft.Step` receives (stage R4, Q3): the struct at `1` (`stepFollower` replaces
+`To`, `send` `From`/`Term`), the `Entries` slice's elements at `dqe` (`1` for a `MsgProp`,
+whose slots `stepLeader` replaces; `□` otherwise) and the slice's capacity at `1` (a `MsgApp`'s
+array is adopted by `unstable.truncateAndAppend`), the snapshot at `1` (`EnsureSnapshot`/
+`EnsureConfState` write its nil fields). Taken for good. -/
+abbrev msgIn (l : Loc) (dqe : DFrac) (ms : MsgSt) : IProp GF := msgPtsC l (DFrac.own 1) dqe true ms
 
 /-! ## Conf changes -/
 
@@ -768,7 +785,7 @@ theorem snapOpt_split (p : Loc) (dq1 dq2 : DFrac) (o : Option SnapshotM) :
 theorem msgOwn_split (l : Loc) (dq1 dq2 : DFrac) (ms : MsgSt) :
     msgOwn (GF := GF) l (dq1 • dq2) ms ⊢ msgOwn l dq1 ms ∗ msgOwn l dq2 ms := by
   iintro H
-  simp only [msgOwn]
+  simp only [msgOwn, msgPts]
   iNamed H
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HTy with ⟨HTy1, HTy2⟩
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HTo with ⟨HTo1, HTo2⟩
@@ -787,19 +804,22 @@ theorem msgOwn_split (l : Loc) (dq1 dq2 : DFrac) (ms : MsgSt) :
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HRs with ⟨HRs1, HRs2⟩
   icases (ownSlice_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ Hrs with ⟨Hrs1, Hrs2⟩
   ihave #Hes := Hes
+  iclear Hes_cap
   isplitl [HTy1 HTo1 HFr1 HTe1 HLt1 HIx1 HCo1 HVo1 HRj1 HRh1 HEs1 HSn1 Hsn1 HCx1 HRs1 Hrs1]
-  · iunfold msgPts
+  · iunfold msgPtsC
     iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
     isplitr
     · ipureintro; exact Hnn
     iframe
     iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs Hpb
-  · iunfold msgPts
+    simp only [named, Bool.false_eq_true, ↓reduceIte]; iempintro
+  · iunfold msgPtsC
     iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
     isplitr
     · ipureintro; exact Hnn
     iframe
     iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs Hpb
+    simp only [named, Bool.false_eq_true, ↓reduceIte]; iempintro
 
 end lemmas
 

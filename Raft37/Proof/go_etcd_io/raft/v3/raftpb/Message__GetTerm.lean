@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftpb.Message.GetTerm.wp_proof :
     raftpb.Message.GetTerm.spec (GF := GF) (hG := hG) := by
   constructor
-  · intro l dq dqe ms
+  · intro l dq dqe cap ms
     wp_start as Hm
     iNamed Hm
     wp_auto
@@ -35,7 +35,7 @@ theorem raftpb.Message.GetTerm.wp_proof :
       wp_auto
       rw [show (W64 0) = ms.msg.Term' from Hv.symm]
       iapply HΦ
-      iunfold msgPts
+      iunfold msgPtsC
       iexists pty, pto, pfr, null, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
       isplitr
       · ipureintro; exact Hnn
@@ -44,7 +44,7 @@ theorem raftpb.Message.GetTerm.wp_proof :
     · wp_if_destruct
       · exact absurd rfl Hpn
       · iapply HΦ
-        iunfold msgPts
+        iunfold msgPtsC
         iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
         isplitr
         · ipureintro; exact Hnn

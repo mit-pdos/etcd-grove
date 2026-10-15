@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `m.GetReject()` of a message holding `ms` is `ms.msg.Reject'` (a nil field reads as the zero
 value, `cellRO`); of a nil `*Message`, `false`. -/
 abbrev raftpb.Message.GetReject.spec : Prop :=
-  (∀ (l : Loc) (dq dqe : DFrac) (ms : MsgSt),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPts l dq dqe ms }}
+  (∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPtsC l dq dqe cap ms }}
       (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetReject")) (Val #()))
-    {{ RET #ms.msg.Reject'; msgPts l dq dqe ms }}) ∧
+    {{ RET #ms.msg.Reject'; msgPtsC l dq dqe cap ms }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetReject"))
       (Val #()))

@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftpb.Message.GetResponses.wp_proof :
     raftpb.Message.GetResponses.spec (GF := GF) (hG := hG) := by
   constructor
-  · intro l dq dqe ms
+  · intro l dq dqe cap ms
     wp_start as Hm
     iNamed Hm
     wp_auto
@@ -33,7 +33,7 @@ theorem raftpb.Message.GetResponses.wp_proof :
     · iapply HΦ
       iframe Hrs
       iintro Hrs
-      iunfold msgPts
+      iunfold msgPtsC
       iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
       isplitr
       · ipureintro; exact Hnn

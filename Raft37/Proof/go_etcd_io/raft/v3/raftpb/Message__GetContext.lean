@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftpb.Message.GetContext.wp_proof :
     raftpb.Message.GetContext.spec (GF := GF) (hG := hG) := by
   constructor
-  · intro l dq dqe ms
+  · intro l dq dqe cap ms
     wp_start as Hm
     iNamed Hm
     wp_auto
@@ -32,7 +32,7 @@ theorem raftpb.Message.GetContext.wp_proof :
     · exact absurd rfl Hnn
     · iapply HΦ
       iframe Hcs
-      iunfold msgPts
+      iunfold msgPtsC
       iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
       isplitr
       · ipureintro; exact Hnn

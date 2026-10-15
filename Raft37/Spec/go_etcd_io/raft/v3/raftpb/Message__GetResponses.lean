@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `m.GetResponses()` of a message holding `ms` is its `Responses` slice: lent, its elements at
 the message's `dq`, until the caller gives it back; of a nil `*Message`, the nil slice. -/
 abbrev raftpb.Message.GetResponses.spec : Prop :=
-  (∀ (l : Loc) (dq dqe : DFrac) (ms : MsgSt),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPts l dq dqe ms }}
+  (∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPtsC l dq dqe cap ms }}
       (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetResponses")) (Val #()))
     {{ (rs : GoSlice), RET #rs;
-        rs ↦*{dq} ms.resps ∗ (rs ↦*{dq} ms.resps -∗ msgPts l dq dqe ms) }}) ∧
+        rs ↦*{dq} ms.resps ∗ (rs ↦*{dq} ms.resps -∗ msgPtsC l dq dqe cap ms) }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetResponses"))
       (Val #()))

@@ -24,21 +24,21 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftpb.Message.GetEntries.wp_proof :
     raftpb.Message.GetEntries.spec (GF := GF) (hG := hG) := by
   constructor
-  · intro l dq dqe ms
+  · intro l dq dqe cap ms
     wp_start as Hm
     iNamed Hm
     wp_auto
     wp_if_destruct
     · exact absurd rfl Hnn
     · iapply HΦ
-      iframe Hes Hents
-      iintro Hes
-      iunfold msgPts
-      iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+      iframe Hes Hents Hes_cap
+      iintro %cap' %els' %ents' Hes #Hents' Hes_cap
+      iunfold msgPtsC
+      iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els', ps, cs, rs, uf
       isplitr
       · ipureintro; exact Hnn
       iframe
-      iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+      iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents' Hcs Hpb
   · wp_start
     wp_auto
     iapply HΦ; ipureintro; trivial

@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `m.GetSnapshot()` of a message holding `ms` is its `Snapshot` pointer (`nil` for `none`):
 lent, at the message's `dq`, until the caller gives it back; of a nil `*Message`, `nil`. -/
 abbrev raftpb.Message.GetSnapshot.spec : Prop :=
-  (∀ (l : Loc) (dq dqe : DFrac) (ms : MsgSt),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPts l dq dqe ms }}
+  (∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPtsC l dq dqe cap ms }}
       (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetSnapshot")) (Val #()))
     {{ (ps : Loc), RET #ps;
-        snapOpt ps dq ms.snap ∗ (snapOpt ps dq ms.snap -∗ msgPts l dq dqe ms) }}) ∧
+        snapOpt ps dq ms.snap ∗ (snapOpt ps dq ms.snap -∗ msgPtsC l dq dqe cap ms) }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetSnapshot"))
       (Val #()))
