@@ -6956,3 +6956,82 @@ no data bytes). **The reverse**: `InitialState` now needs the owner's `ownMemory
 `memStorMeta` (it touches the owner's snapshot), and its spec is for construction only; the
 snapshots and hard states are pointers with nil cases (`hsOpt`, `nil` from `CreateSnapshot`'s
 error path, `nextSnapshot`'s `nil`).
+
+## `raft.go` over pointer messages: the outbox owned, `Step` takes the message (stage R4 of the raft v3.7 retarget)
+
+**2026-10-15 · proposed (stage R4, branch `raft-retarget`)**
+
+Raft v3.7's `raft.go` builds every message as `&pb.Message{...}` with `new(x)` cells and `.Enum()`,
+reads every field through a getter, writes into the message it is stepping (`stepFollower` sets
+`m.To` and forwards `m`; `send` sets `From`/`Term`; `stepLeader` replaces slots of a proposal's
+`Entries`), shares cells and slices between a request and its response (`To: m.From`, `Context:
+m.GetContext()`, `Entries: req.GetEntries()`), clones a proposal's entries before stamping them
+(`appendEntry`), and returns and takes `*pb.HardState`/`*pb.ConfState`/`*pb.Snapshot`. The
+decisions D3 and D4 of `notes/raft-retarget-plan.md`, and Q2/Q3, as they are built for the raft
+layer (`InvRaftPhys`, `InvMisc`, the `raft.go` specs):
+
+- **The outbox holds owned messages** (D3, Q2): `ownRaftPhys`'s `r.msgs`/`r.msgsAfterAppend`
+  are `List Loc` slices (capacities owned, as before) and `outboxRel o msgs msgsAA` is the old
+  text with `msgAbs m a` replaced by `msgQ l a := ∃ st, msgOwn l 1 st ∗ ⌜msgAbs st a⌝`, where
+  `msgAbs (st : MsgSt) (a : Option Msg) : Prop` is the old relation made pure (`mtypeOf = none ∧
+  a = none`; `ty ≠ .snap ∧ a = some (absMsg ty st.msg st.ents st.ctx)`; `ty = .snap ∧ st.snap =
+  some sv ∧ a = some (absSnap st.msg sv sv.Metadata'.ConfState'.lists)`: a queued `MsgSnap`
+  carries its snapshot, as before). `outboxRel` is **no longer persistent**; the lemmas on it
+  (`outboxRel_nil`, `_perm`, `send`'s append) are restated. `AAMsgOk id t (st : MsgSt)` and
+  `OutTermOk pv t (m : MessageM)` are the old statements with `m.Entries' = slice.nil` as
+  `st.ents = []` and `m.Context' = slice.nil` as `st.ctx = []`. No capacity is held for a queued
+  message's `Entries` (`maybeSendAppend`'s slice is a prefix of the log's, whose slack is
+  frozen): the application re-decodes what it receives. *Rejected*: fractions until
+  `acceptReady` (Q2 chose the read-only `Ready` view, R5).
+- **`Step` takes the message for good** (Q3), as a received message: `msgIn ml dqe st`, the
+  struct at `1`, the `Entries` slice's elements at `dqe` (`1` for a `MsgProp`, whose slots
+  `stepLeader` replaces; `□` otherwise) **and the slice's capacity at `1`** (a `MsgApp`'s array
+  is adopted by `unstable.truncateAndAppend`, as in the old `Hents_cap`), the snapshot at `1`
+  (`handleSnapshot`'s `EnsureSnapshot` and `restore`'s `EnsureConfState` write its nil fields,
+  Q5). `msgIn` is `InvPb.lean`'s `msgPts` with the capacity conjunct (one definition
+  `msgPtsC l dq dqe cap st` of which `msgPts` is `cap = false`, so the field lemmas are shared).
+  The spec quantifies the pointer and the record's parts apart -- `(ml : Loc) (m : MessageM)
+  (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc)`, premise
+  `msgIn ml dqe ⟨m, ents, sn, ctx, rs⟩` -- so that every pure premise and every abstraction
+  (`m.Type' = ...`, `absMsg ty m ents ctx`) keeps its text. The `MsgSnap` premise is `sn = some
+  sv` with the old `"#Hsnap"` facts on `sv` (`SnapScope sv cl` with `cl =
+  sv.Metadata'.ConfState'.lists` where `ownCSL` tied the lists to the slices). Nothing of the
+  message is given back; `stepLeader`'s `(⌜MsgProp⌝ -∗ ∃ ents', m.Entries' ↦* ents')` goes. The
+  callee specs (`stepLeader`/`stepCandidate`/`stepFollower`, `handle*`) take the parts of
+  `msgIn` they read, as the old ones took the slices: a forwarded message (`stepFollower`'s
+  `MsgProp`/`MsgReadIndex`/`MsgTransferLeader`) is frozen to `msgOwn ml 1` and queued.
+- **`send` takes `msgOwn ml 1 ⟨m, ents, sn, ctx, rs⟩`** and queues it: `SendOk id s m ents ctx out`
+  is the old statement over `MessageM` (`ents = []`/`ctx = []` for `slice.nil`); the `MsgSnap`
+  clause's `"#Hsnap"` becomes `⌜sn = some sv ∧ out = [absSnapFrom m id s.term sv
+  sv.Metadata'.ConfState'.lists]⌝`. The cells `send` writes (`From`, `Term`) are fresh (`new`);
+  the ones it reads are shared with the request that caused the message (`cellRO`, persistent).
+- **Snapshots** (D4): `maybeSendSnapshot` puts `raftLog.snapshot`'s fresh clone (R3, owned at `1`)
+  in the message; `restore` takes `ownSnapE sp 1 sv` (metadata set, as `handleSnapshot`'s
+  `EnsureSnapshot` leaves it) and gives it back, the record unchanged (`EnsureConfState` may set
+  a nil `AutoLeave` cell to `false`, which reads the same); `raftLog.restore` (R3) clones it. A
+  snapshot whose metadata or conf state is nil is refused by `restore`'s first checks (index `0`,
+  no id found), which the specs need not say.
+- **Hard states** (D4): `hardState()` returns a fresh `hsRO p (hsOfSt (nodeHardstate s))`
+  (`nodeHardstate` and `HardSt` move from the old `InvRawnode` to `InvRaftPhys`; `hardstateVal`
+  becomes `HardSt → HardStateM`); `loadState` takes `hsRO`; `IsEmptyHardState`/`isHardStateEqual`/
+  `MustSync` take `hsOpt`/`hsRO` pointers.
+- **Conf states**: `applyConfChange` and `switchToConfig` return the tracker's fresh `csPts cs 1
+  (ConfStateM.mk xs ls os lns c'.cfg.autoLeave) true` (R0's `ProgressTracker.ConfState` post);
+  `newRaft`'s `InitialState` closure returns `(hp cs : Loc)` with `hsOpt hp hs`, `csPts cs 1 c
+  true` and a wand back to `ownStorage` (the shape of R3's `MemoryStorage.InitialState`; the lists
+  `c`'s replace `voters`), `newRaft` returning `cs` through the wand before it returns; `restore`
+  reads the snapshot's conf state in place (`confchange.Restore` at a fraction, R2).
+- **`appendEntry`** takes `entsPts es dq ents` at any fraction and gives it back unchanged: the
+  log gets fresh clones, stamped then frozen (`entOwn_freeze`); the post's log state is the old
+  `logAppend s.logst (ents.mapIdx (stamp ...))`.
+- **The read-index queues hold frozen messages**: `pendingReadIndexMessages` (`ownRaftMisc`) and
+  `readOnly`'s requests (`ownReadreq`) hold `msgOwn l □ st` (persistent, as the old `#Hpri_ents`
+  and `ownReadreq`), with `st.msg`/`st.ents` the record's pair (Q8: `RdState.pend : List
+  (MessageM × List EntryM)`) and `st.snap`/`st.ctx`/`st.resps` existential: nothing writes a
+  stored request (`responseToReadIndexReq` reads `From` and shares `Entries`). The slice
+  `pendingReadIndexMessages` itself is owned with its capacity, as before.
+- **Shared definitions**: `InvConfChangeMsg` keeps `ccEntOk`/`ccEntsOk`/`CCData`/`ccEntryType`/
+  `enterJointOf` over `EntryM` (`ownCCV1/V2/I` are R1's, `InvPb.lean`; `ccEntry`/`ccPropMsg`, the
+  value builders of `ProposeConfChange`, are R5's); `InvRaftpb` is gone (`SortedW64` moved to
+  `InvPb` in R1, `confStateDeepEq` with `reflect.DeepEqual`); `InvApplyConf(C)` port by the
+  rename; `InvBig`, `Init` copy.
