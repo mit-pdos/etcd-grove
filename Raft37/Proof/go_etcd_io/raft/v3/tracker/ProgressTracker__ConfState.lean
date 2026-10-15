@@ -29,6 +29,7 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   intro c trk tv t
   obtain ⟨votes, prs, pvs⟩ := t
   wp_start as ⟨Htrk, Hown⟩
+  iapply wp_fupd
   iunfold ownTrackerC at Hown
   iNamed Hown
   simp only at Hinv Hdom Hflags Hsize
@@ -110,8 +111,20 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   -- allocated (`«$v4»`), the struct in `return:` position is allocated here
   wp_apply wp_alloc as %csl Hcs
   rw [← Hal]
+  -- the fresh struct (hidden fields zero) into its ownership predicate (InvPb, stage R1)
+  ihave %Hpn := typedPointsto_not_null $$ «$v4»
+  imod cellRO_alloc _ _ $$ «$v4» with #cA
+  imod csPts_of_struct csl
+    { state' := zeroValDef, Voters' := sl0, Learners' := sl2, VotersOutgoing' := sl1,
+      LearnersNext' := sl3, AutoLeave' := «$v4_ptr», unknownFields' := slice.nil, sizeCache' := 0 }
+    (ConfStateM.mk xs0 xs2 xs1 xs3 tv.Config'.AutoLeave') ⊤ rfl
+    $$ [Hcs Hsl0 Hsl2 Hsl1 Hsl3 cA] with Hcs
+  · iframe
+    iframe cA
+  rw [show decide (_ ≠ null) = true from decide_eq_true Hpn]
+  imodintro
   iapply HΦ
-  iframe Htrk Hcs «$v4» Hsl0 Hsl1 Hsl2 Hsl3
+  iframe Htrk Hcs
   isplitl [Hvotes Hprogs Hcfg]
   · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
       $$ Hvotes Hprs Hprogs Hcfg

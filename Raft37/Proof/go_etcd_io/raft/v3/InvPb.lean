@@ -141,6 +141,11 @@ theorem sorted_perm_eq : ∀ (xs ys : List w64), xs ≡ₚ ys →
     have hp' : xs ≡ₚ ys := List.Perm.cons_inv hp
     rw [sorted_perm_eq xs ys hp' hx.2 hy.2]
 
+/-- What `(*ConfChange).AsV2` makes of a `ConfChange` holding `m`: the one change
+`{Type, NodeId}`, the `Auto` transition, the same context (`raftpb/confchange.go:58`). -/
+def CCV1M.asV2 [FfiSyntax] (m : CCV1M) : CCV2M :=
+  { transition := W32 0, changes := [ConfChangeSingleM.mk m.type m.nodeId], context := m.context }
+
 end pure
 
 section defs

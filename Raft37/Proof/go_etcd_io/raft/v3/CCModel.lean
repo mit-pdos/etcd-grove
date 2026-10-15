@@ -39,13 +39,16 @@ structure CCV2M [FfiSyntax] where
   changes : List ConfChangeSingleM
   context : List w8
 
-/-- What gogoproto's `(*ConfChange).Unmarshal` (`raft.pb.go:2940`) makes of `bs`, read into
-a zero `ConfChange`: the decoded content, or `none` where it returns an error. Opaque: the
-trust-boundary specs of `Marshal`/`Unmarshal` are what is known of it. -/
+/-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChange` (raft v3.7; until the
+retarget, gogoproto's generated `(*ConfChange).Unmarshal`): the decoded content (the getters'
+values), or `none` where it returns an error. Opaque: the trust-boundary specs of
+`proto.Marshal`/`proto.Unmarshal` (`Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`)
+are what is known of it. -/
 opaque ccDecodeV1 [FfiSyntax] : List w8 → Option CCV1M
 
-/-- What gogoproto's `(*ConfChangeV2).Unmarshal` (`raft.pb.go:3169`) makes of `bs`, read into
-a zero `ConfChangeV2`; `none` where it returns an error. Opaque, as `ccDecodeV1`. -/
+/-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
+retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
+Opaque, as `ccDecodeV1`. -/
 opaque ccDecodeV2 [FfiSyntax] : List w8 → Option CCV2M
 
 /-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
