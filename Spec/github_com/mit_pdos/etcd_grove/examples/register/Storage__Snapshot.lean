@@ -35,8 +35,9 @@ abbrev Storage.Snapshot.spec : Prop :=
   {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-        ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}
+       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0 ∧
+          snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
+        ownCSL snap.Metadata'.ConfState' σ.scs)) }}
 
 end spec
 
