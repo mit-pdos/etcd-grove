@@ -5666,3 +5666,41 @@ Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
   - for a configuration reduced to one voter, it rests on the reconfiguration invariants: the node
     applies the change that makes it the sole voter only once its commit index has passed that
     change.
+
+## The watch stream's server end: indexed queues, the delivery accounted by position (unit W-S, 2026-10-14)
+
+**Decided.** The server end of a gRPC bidirectional stream is `srvStreamIs st γ Req Rep Up Dn ci
+cd` (`v3rpc/InvWatchStream.lean`), the shape of `notes/grpc-stream-spec.md` with two ghost FIFO
+queues (`monoList`s: the up queue's and the down queue's), the receiver holding the up queue's
+receiver token and the sender the down queue's authority half. Each message carries a per-position
+content: `Up i m` (what the client promises of its `i`th request) and `Dn j m` (what the handler
+promises of its `j`th response). A method's stream specification relates `Dn` to the rest of the
+world: for `Watch`, `watchStreamSpec γs γ cid mid Dn := □ ∀ j m, Dn j m ∗-∗ watchDn γs γ cid mid j
+m`, persistent, a premise of the handler (the serving layer fixes `Dn` when the stream is
+created, so the client's `NewStream` can return it with the same `Spec`).
+
+**Why positions.** A response's content depends on the history of both queues and on the mvcc
+stream's deliveries: a control response answers the request at some up position (`ctrlOk` names
+the position, `upAtW`); an mvcc response is the next delivery of its watcher, and what "next" means
+is a statement about the down queue's prefix before it (`mvccOk`: the watcher's responses with
+events among the first `j` sent, then this one, are its responses with events received:
+`sentEvsOf (downLbW L) w ++ [r] = rs.filter (evs ≠ [])`). The down queue's lower bound at the send
+(`downLbW γs L` with `L.length = j`) makes the statement checkable by the client, who holds a lower
+bound of the same list; a predicate transformer per message could not say it.
+
+**Why the ghost source.** `WatchRespM.src` (an `Option mvcc.RespM`) records the mvcc response a
+wire response was made of: the client cannot recompute it (the wire has the watch id, not the
+watcher), and two watchers can share an id (an explicit id reused after a cancel:
+`issues/etcd-watch-id-reuse-stale-events.md`). The order is per watcher, not per id; the send
+loop's buffering is per id, so the pure model (`WatchSendModel.lean`: `SendInv` over the sent
+indices, the buffered indices per id and the announced ids; `send_claim`) bridges the two with
+one fact from mvcc: a watcher's responses with events all carry its id (`respOk`).
+
+**Alternatives rejected.** (1) `Dn` chosen by the handler (the note's first draft: `Spec γ Dn` in
+the handler's postcondition): the handler cannot choose what the client already holds; making it a
+premise costs nothing (persistent). (2) Returning the run slot: `Watch` returns while `recvLoop`
+may still be blocked in `Recv` (etcd's own comment: waiting would deadlock on a stream whose
+context is done but whose receive is not), so the receive loop's resources are not given back;
+the slot is per stream for the server's life, as the note's open point on the pool says. (3)
+Modeling fragmentation, `prev_kv` and filters now: no client of the slice sends them; the
+restriction `watchReqOk` (a premise on `Up`) leaves them to a later unit.

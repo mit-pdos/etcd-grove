@@ -1,0 +1,39 @@
+# The watch slice, unit W-S (2026-10-14): the gRPC watch service (etcd's
+# server/v3/etcdserver/api/v3rpc/watch.go) over mvcc's watch stream, against the server-end
+# stream interface (`srvStreamIs`, a premise): `watchServer.Watch` and `NewWatchServer` linked
+# (v3rpc/Results.lean's watch section) and the pure step lemmas. The trust boundary: mvcc's
+# (its collection), `isClientCtxErr` (grpc's `status.FromError`), `math/rand.Int63n`,
+# `(*time.Duration).Seconds` (Perennial's `time` lacks `Duration.Seconds`, so its pointer wrapper
+# too), and the names-only zap, time, otel, verify, prometheus functions.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/watch.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \bv3rpc\.(watch_server|new_watch_server|watchStreamSpec_step|srvStep_of_watch)$
+axiom attribute.Bool.wp_proof
+axiom attribute.Int64.wp_proof
+axiom attribute.String.wp_proof
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom errors.IsCtxErr.wp_proof
+axiom prometheus.CounterVec.WithLabelValues.wp_proof
+axiom rand.Int63n.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Duration.Seconds_ptr.wp_proof
+axiom time.NewTicker.wp_proof
+axiom time.Ticker.Stop.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
+axiom v3rpc.isClientCtxErr.wp_proof
+axiom verify.Assert.wp_proof
+axiom verify.Verify.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.NewNop.wp_proof

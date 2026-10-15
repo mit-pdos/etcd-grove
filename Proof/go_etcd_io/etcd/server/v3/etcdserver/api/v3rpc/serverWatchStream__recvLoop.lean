@@ -19,8 +19,6 @@ public import Spec.go_opentelemetry_io.otel.attribute.Bool
 public import Spec.errors.Is
 public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Error
-public import Spec.go_uber_org.zap.Logger__Sugar
-public import Spec.go_uber_org.zap.SugaredLogger__Infof
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchLemmas
 
 @[expose] public section
@@ -120,9 +118,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     (hAI64 : «attribute».Int64.spec (GF := GF) (hG := hG))
     (hABool : «attribute».Bool.spec (GF := GF) (hG := hG))
     (hZErr : zap.Logger.Error.spec (GF := GF) (hG := hG))
-    (hZE : zap.Error.spec (GF := GF) (hG := hG))
-    (hSugar : zap.Logger.Sugar.spec (GF := GF) (hG := hG))
-    (hInfof : zap.SugaredLogger.Infof.spec (GF := GF) (hG := hG)) :
+    (hZE : zap.Error.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) := by
   intro sws r L0 sent0
   wp_start as ⟨#Hsws, Hrt, Hprod, Hres⟩

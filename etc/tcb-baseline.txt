@@ -136,6 +136,7 @@ axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
+axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
@@ -156,6 +157,7 @@ axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom time.Duration.Seconds.wp_proof
+axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
 axiom time.NewTicker.wp_proof
 axiom time.Since.wp_proof
@@ -175,6 +177,7 @@ axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.ID.String.wp_proof
 axiom utf8.ValidString.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
+axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof

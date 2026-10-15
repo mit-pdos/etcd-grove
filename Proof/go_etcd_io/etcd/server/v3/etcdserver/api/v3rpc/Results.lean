@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
 
 @[expose] public section
 
@@ -482,6 +483,34 @@ theorem revToken_of_put (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (o : OpF
 
 end slice
 
+/-! ## The watch slice, unit W-S (2026-10-14): the gRPC watch service
+
+`watchServer.Watch` (`watch.go`) over the verified mvcc watch stream, against a server-end stream
+(`srvStreamIs`, InvWatchStream.lean: a premise, in the shape of `notes/grpc-stream-spec.md`):
+every response it sends at down position `j` carries `watchDn j m` (`watchStreamSpec`): its
+header is the server's, and it answers a request the client sent (`ctrlOk`) or is the mvcc
+stream's response for a watcher, the watcher's responses with events sent before it, then it,
+being exactly its responses with events received (`mvccOk`, whose `watchRecvOk` is mvcc's watch
+guarantee). `watchStreamSpec_step` turns a watcher's events into the clients' model's steps
+(`revEvs`), `srvStep_of_watch` into `srvStep` of the server's model. -/
+
+section watch
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **The watch service's method** (`watchServer.Watch`, linked): see the section header. -/
+theorem watch_server : EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=
+  watchServer.wp_Watch
+
+/-- **The watch server's constructor** (`NewWatchServer`, linked): `isWatchServer`. -/
+theorem new_watch_server : EtcdGrove.v3rpc.NewWatchServer.spec (GF := GF) (hG := hG) :=
+  wp_NewWatchServer
+
+end watch
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -511,6 +540,10 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.etcdState_of_txnRead
 #print axioms Perennial.EtcdGrove.v3rpc.etcdReached_of_hdr
 #print axioms Perennial.EtcdGrove.v3rpc.revToken_of_put
+#print axioms Perennial.EtcdGrove.v3rpc.watch_server
+#print axioms Perennial.EtcdGrove.v3rpc.new_watch_server
+#print axioms Perennial.EtcdGrove.v3rpc.watchStreamSpec_step
+#print axioms Perennial.EtcdGrove.v3rpc.srvStep_of_watch
 
 end EtcdGrove
 end Perennial

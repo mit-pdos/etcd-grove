@@ -254,6 +254,8 @@ PutRequest__GetLease:
 # The server's getters (the response header's), the read loop's delegation, the span
 # attributes' loops (tracing.go), newHeader.
 EtcdServer__KV:
+# The watch service's (the watch slice's unit W-S): the server's watchable store.
+EtcdServer__Watchable: EtcdServer__KV
 EtcdServer__Cluster:
 EtcdServer__getTerm:
 EtcdServer__Term: EtcdServer__getTerm

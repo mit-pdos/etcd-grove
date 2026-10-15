@@ -52,6 +52,8 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [etcd-range-keys-only-lease](etcd-range-keys-only-lease.md) | bug (regression in v3.7, 7624a8a2e) | `range-keys-only-lease` (01e522548) | txn (unit 2), 2026-10-11 |
 | [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) | bug (a panic on a coarse monotonic clock: Windows) | none | mvcc watchable store (unit 3b), 2026-10-12 |
 | [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) | bug | `lease-checkpoint-one-section` (2a163496c) | apply (unit 1), 2026-10-12 |
+| [etcd-watch-progress-interval-overflow](etcd-watch-progress-interval-overflow.md) | bug (a panic on a huge configured interval) | none (reproduced by an overlay test) | v3rpc watch (unit W-S), 2026-10-14 |
+| [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) | bug (not reproduced: from the proof's model) | none | v3rpc watch (unit W-S), 2026-10-14 |
 
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
 into the caller's nested `OpTxn` slice (a race only for callers who reuse the slice; assessed,
