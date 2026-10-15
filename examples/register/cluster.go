@@ -125,13 +125,15 @@ func tick(nd raft.Node) {
 // completed before B's Get began and nobody else puts, B sees "hello". B then reads by
 // read index on replica 3 (Read), which goes through the transport's read-index messages
 // and heartbeat contexts; its value is "hello" as well, but Main does not check it: Read's
-// specification states its value with lower bounds on the register's history. Last, B asks
-// every replica to hand the leadership over to replica 3: the leader does, through the
-// transport's MsgTimeoutNow and the vote requests of a transfer's campaign (the followers'
-// requests are dropped). Nothing follows it: an operation during the transfer could wait
+// specification states its value with lower bounds on the register's history. B then asks
+// raft to remove replica 3 from the cluster (RemoveMember: a configuration change through
+// the log, which every replica's register applies to its node; a removed leader steps down)
+// and, last, every replica to hand the leadership over to replica 2: the leader does, through
+// the transport's MsgTimeoutNow and the vote requests of a transfer's campaign (the
+// followers' requests are dropped). Nothing follows it: an operation during the transfer could wait
 // forever (a proposal forwarded to a leader that is transferring is dropped, and do does not
 // retry it; a read index asked of a node that knows no leader is dropped, and Read does not
-// retry it).
+// retry it); the same holds while a removed leader steps down.
 func Main() {
 	voters := []uint64{1, 2, 3}
 	peers := make(map[uint64]raft.Node)
@@ -146,6 +148,8 @@ func Main() {
 			MaxSizePerMsg:   1 << 20,
 			MaxInflightMsgs: 256,
 			Logger:          quietLogger{},
+			// a leader that a configuration change removes steps down
+			StepDownOnRemoval: true,
 		})
 		storages[id] = st
 	}
@@ -169,7 +173,8 @@ func Main() {
 		panic("register: a Get after a Put did not see its value")
 	}
 	regs[3].Read()
-	regs[1].TransferLeadership(3)
-	regs[2].TransferLeadership(3)
-	regs[3].TransferLeadership(3)
+	regs[1].RemoveMember(3)
+	regs[1].TransferLeadership(2)
+	regs[2].TransferLeadership(2)
+	regs[3].TransferLeadership(2)
 }

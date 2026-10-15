@@ -506,6 +506,30 @@ theorem cfgStateC_simple (cfg lrn : GSet w64) :
   unfold cfgStateC cfgState
   rw [CfgM.voters_simple]; rfl
 
+/-- (2026-10-15, stage N) A configuration of voters only is a reachable `confchange` state. -/
+theorem ccGood_cfgState (V : GSet w64) : CCGood (cfgState V ∅) := by
+  refine ⟨fun k => ?_, fun k b hb => ?_, fun k hk => absurd hk (GMap.not_elem_of_empty _),
+    fun k hk => absurd hk (GMap.not_elem_of_empty _)⟩
+  · show k ∈ cfgFlags V ∅ ↔ k ∈ (cfgM V ∅).ids
+    rw [cfgFlags_mem, mem_ids]
+    simp only [cfgM]
+    constructor
+    · rintro (h | h)
+      · exact .inl h
+      · exact absurd h (GMap.not_elem_of_empty _)
+    · rintro (h | h | h)
+      · exact .inl h
+      · exact absurd h (GMap.not_elem_of_empty _)
+      · exact absurd h (GMap.not_elem_of_empty _)
+  · have hb' : cfgFlags V ∅ !! k = some b := hb
+    rw [cfgFlags_lookup] at hb'
+    have hl : k ∉ (cfgM V ∅).learners := GMap.not_elem_of_empty _
+    by_cases h1 : k ∈ V
+    · rw [if_pos h1] at hb'; cases hb'
+      show false = decide (k ∈ (cfgM V ∅).learners)
+      simp [hl]
+    · rw [if_neg h1, if_neg (GMap.not_elem_of_empty _)] at hb'; cases hb'
+
 /-- A reachable state's flags are its configuration's (`cfgStateC`). -/
 theorem CCGood.flags {c : CfgM} {f : GMap w64 Bool} (h : CCGood ⟨c, f⟩) :
     f = cfgFlags c.voters c.learners := by

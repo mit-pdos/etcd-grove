@@ -110,8 +110,9 @@ func fits(es []pb.Entry) bool {
 }
 
 // run handles the node's Readys: persist the entries, send the messages, note the read
-// states, apply the committed entries in order, answer the reads whose index is applied,
-// then Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does
+// states, apply the committed entries in order (a configuration change, RemoveMember's, to
+// the node: Node.ApplyConfChange, before the Advance that acknowledges it, as raft needs),
+// answer the reads whose index is applied, then Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does
 // not happen). The applied index is the number of entries applied: the log starts empty,
 // at index 1, and the register takes no snapshots.
 func (r *Register) run(send func([]pb.Message)) {
@@ -126,6 +127,11 @@ func (r *Register) run(send func([]pb.Message)) {
 		send(rd.Messages)
 		pending = append(pending, rd.ReadStates...)
 		for _, e := range rd.CommittedEntries {
+			if e.Type == pb.EntryConfChange {
+				var cc pb.ConfChange
+				cc.Unmarshal(e.Data)
+				r.node.ApplyConfChange(cc)
+			}
 			r.apply(e)
 			applied++
 		}
@@ -233,6 +239,16 @@ func (r *Register) Get() string {
 // the outcome, and the register's operations are correct whoever leads.
 func (r *Register) TransferLeadership(to uint64) {
 	r.node.TransferLeadership(context.Background(), r.id, to)
+}
+
+// RemoveMember asks raft to remove replica id from the cluster's voters
+// (Node.ProposeConfChange): once the change is committed, every replica's run applies it to
+// its node (Node.ApplyConfChange), and the cluster's quorums are then those of the remaining
+// voters; a leader that removes itself steps down (Config.StepDownOnRemoval). Nothing is
+// promised of the outcome: raft drops a change proposed while another one is not yet
+// applied, and RemoveMember proposes it once.
+func (r *Register) RemoveMember(id uint64) {
+	r.node.ProposeConfChange(context.Background(), pb.ConfChange{Type: pb.ConfChangeRemoveNode, NodeId: id})
 }
 
 // Read returns the register's value, by a read index rather than through the log: a

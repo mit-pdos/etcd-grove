@@ -31,10 +31,11 @@ variable [RegStor GF]
 /-- See the file header. -/
 abbrev Register.run.spec : Prop :=
   ∀ (γr : RegNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc)
-    (cfg0 : CCState),
+    (op : CCOp) (c0 c1 : CCState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ isReplica γr γp r id n st ∗
-      -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
-      ⌜γp.node.mode = .static⌝ ∗ nodeCfg γp.node 0 cfg0 ∗
+      -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
+      -- `op` (`RegCC`), and the driver's view of its configuration, the initial one
+      ⌜RegCC γp.node op c0 c1⌝ ∗ nodeCfg γp.node 0 c0 ∗
       nodeDriver γp.node id n [] ∗ runOwn γr r [] ∗
       sendSpec send γp.node }}
     (App (Val (r @!! go.GoType.PointerType rRegisterTy @!! go!"run")) (Val #send))

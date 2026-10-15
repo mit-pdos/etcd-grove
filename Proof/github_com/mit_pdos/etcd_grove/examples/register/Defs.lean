@@ -434,5 +434,41 @@ def runOwn (γr : RegNames) (r : Loc) (ap : List raftpb.Entry) : IProp GF :=
 
 end ghost
 
+/-! ## The cluster's configuration changes (2026-10-15, stage N)
+
+The replicas' nodes are in raft's dynamic mode: the voters change by the conf-change entries
+their `run`s apply (`node.ApplyConfChange`, before the `Advance` that acknowledges them). A pure
+decoder (`CCDec`) cannot read an entry's bytes, so the cluster's conf changes are fixed in
+advance: every conf-change entry carries the change `op` (raft's `reCCOk`, at allocation), and
+the decoder answers `op` (`ccDecOf`). `op` applies at the initial configuration `c0`, giving
+`c1`, and again at `c1`, giving `c1` (a removal of a voter: removing it again is nothing); so
+the configuration a replica's node is at is `c0` or `c1` (`RunCfg`). -/
+
+section ccfg
+variable [FfiSyntax]
+
+/-- The decoder of a cluster whose conf-change entries all carry the change `op`. -/
+def ccDecOf (op : CCOp) : CCDec := fun _ _ => some op
+
+/-- A replica's node in the dynamic mode of a cluster whose conf changes are all `op` (see
+the section header). -/
+def RegCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
+  (∃ h0 h1, γn.mode = .dyn (ccDecOf op) c0 h0 h1) ∧
+  (∀ ty bs, γn.raft.reCCOk ty bs →
+    ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op) ∧
+  ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false
+
+/-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
+id}` (type `1`; no context, no id). -/
+def rmCC (id : w64) : CCV1M := { type := W32 1, nodeId := id, context := [], id := W64 0 }
+
+/-- What `run` knows of its node's configuration, at the committed log `D` applied up to
+position `len`: the configuration index `ca` of the last conf change applied, past which `D`
+has no conf entry before `len`, and the configuration, `c0` or `c1`. -/
+def RunCfg (D : List raftpb.Entry) (len ca : Nat) (cfg c0 c1 : CCState) : Prop :=
+  ca ≤ len ∧ NoConfIn D ca len ∧ (cfg = c0 ∨ cfg = c1)
+
+end ccfg
+
 end EtcdGrove
 end Perennial

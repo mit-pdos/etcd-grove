@@ -65,22 +65,26 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     W64 0 ∉ ids →
     ⊢ allocClient E c0.cfg.incoming (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) C -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk⌝ ∗
+      |={E}=> ∃ γ : RaftNames,
+        ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming⌝ ∗
         raftCommitInv (GF := GF) γ ∗ C γ ∗
-        [∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0) := by
+        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0)) ∗
+        -- (2026-10-15, stage N) as `ownRaftGhost_alloc`: the empty committed log, every read
+        -- credit
+        isCommitted γ [] ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ := by
   intro Hnz
   iintro Hcl
   imod ownRaftGhost_alloc_gen (GF := GF) E c0.cfg.incoming ids
     (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk C h0.2.1 Hnz $$ Hcl
-    with ⟨%γ, %Hγ, #Hinv, -, Hn, HC, -⟩
+    with ⟨%γ, %Hγ, #Hinv, #Hc0, Hn, HC, Hcr, #Hcri⟩
   simp only [Option.isSome_some]
   imodintro
   iexists γ
   isplitr
   · ipureintro
-    refine ⟨?_, Hγ.2.2⟩
+    refine ⟨?_, Hγ.2.2, Hγ.1⟩
     unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
-  iframe Hinv HC
+  iframe Hinv HC Hc0 Hcr Hcri
   iapply BigSepM.bigSepM_impl $$ Hn
   imodintro
   iintro %id %u %_ Hg

@@ -18,16 +18,26 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
   raft's allocation); any number of voters (since 2026-10-14, stage R).
 * **`New`** (`register_New`): a replica on its running node and storage, the shared register
   invariant and the replica's sequence-number token give `isRegister` and the credits; its
-  `run` goroutine drives the node (`register_run`).
+  `run` goroutine drives the node (`register_run`). Since 2026-10-15 (stage N) the node is in
+  raft's dynamic mode (`RegCC`: the cluster's conf changes are one fixed change `op`, applied
+  at the initial configuration and again after it), and `run` applies every committed
+  conf-change entry to the node (`Node.ApplyConfChange`) before the `Advance` that
+  acknowledges it.
+* **`RemoveMember`** (`register_RemoveMember`, 2026-10-15, stage N): proposes removing a
+  replica from the cluster's voters (`Node.ProposeConfChange`), for a change the cluster admits
+  (`CCAllowed`); nothing promised of the outcome. The register's other results hold whatever
+  the configuration: the voters may change at any time.
 * **The storage** (`register_NewStorage`, `register_storage_isStorage`,
   `register_storage_initialState`): `*register.Storage` meets raft's `Storage` contract
   (`isStorage`), and its `InitialState` is what `RestartNode` asks of its storage.
 * **The ghost state's allocation** (`regStorInv_alloc`, `regInv_alloc`, `Alloc.lean`): the
-  invariants the above assume, from raft's allocation (`ownRaftGhost_alloc`).
+  invariants the above assume, from raft's allocation (`raft_dyn_alloc` since 2026-10-15;
+  `ownRaftGhost_alloc` before).
 * **The cluster driver** (`register_Main`, `examples/register/cluster.go`): from the register
   package's `isPkgInit` alone, `Main()` -- three replicas over raft's `Node`, an in-process
   transport, a ticker per node, and two clients, B checking that its `Get` returns what A's
-  `Put` wrote, then reading by read index (unchecked) -- is safe: `{{ isPkgInit register }} Main() {{ RET #(); True }}`. Every ghost
+  `Put` wrote, then reading by read index (unchecked), asking raft to remove replica 3 (since
+  2026-10-15: the voters change at run time) and the leadership to move -- is safe: `{{ isPkgInit register }} Main() {{ RET #(); True }}`. Every ghost
   resource is allocated inside the proof (no storage registry is assumed: `register_Main`
   takes no `[RegStor GF]`).
 * **Adequacy** (`register_cluster_safe`, `Adequacy.lean`'s `register_adequate`): the same in
@@ -81,6 +91,10 @@ theorem register_regLb_current (γr : RegNames) (x : List w8) :
 /-- `New(id, node, storage, send)` (`Spec/github_com/mit_pdos/etcd_grove/examples/register/New.lean`). -/
 theorem register_New : register.New.spec (GF := GF) (hG := hG) :=
   register.wp_New
+
+/-- `r.RemoveMember(id)` (`Spec/github_com/mit_pdos/etcd_grove/examples/register/Register__RemoveMember.lean`). -/
+theorem register_RemoveMember : register.Register.RemoveMember.spec (GF := GF) (hG := hG) :=
+  register.Register.wp_RemoveMember
 
 /-- `r.run(send)` (`Spec/github_com/mit_pdos/etcd_grove/examples/register/Register__run.lean`). -/
 theorem register_run : register.Register.run.spec (GF := GF) (hG := hG) :=
@@ -159,6 +173,7 @@ end adequacy
 #print axioms register_Read
 #print axioms register_regLb_current
 #print axioms register_New
+#print axioms register_RemoveMember
 #print axioms register_run
 #print axioms register_NewStorage
 #print axioms register_storage_isStorage

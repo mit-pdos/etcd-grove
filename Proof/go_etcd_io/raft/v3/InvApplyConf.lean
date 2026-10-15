@@ -525,6 +525,86 @@ theorem simpleM_cfgState_removeLearner (V L : GSet w64) (c : raftpb.ConfChangeSi
     (cfgState V (GMap.delete c.NodeId' L)).cfg.incoming from Hsd)]
   simp [checkedM, cfgInv_cfgState _ _ Hd']
 
+/-! ### Removing a voter (2026-10-15, stage N: the register's membership change) -/
+
+theorem cfgFlags_delete_voter (V L : GSet w64) (id : w64) (h : id ∉ L) :
+    GMap.delete id (cfgFlags V L) = cfgFlags (GMap.delete id V) L := by
+  apply GMap.map_eq; intro k
+  rw [cfgFlags_lookup]
+  by_cases hk : id = k
+  · subst hk
+    rw [GMap.lookup_delete,
+      if_neg (show id ∉ (GMap.delete id V : GSet w64) by
+        rw [GMap.elem_of_gset, GMap.lookup_delete]; simp), if_neg h]
+  · rw [GMap.lookup_delete_ne _ hk, cfgFlags_lookup]
+    have e : k ∈ (GMap.delete id V : GSet w64) ↔ k ∈ V := by
+      rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_delete_ne _ hk]
+    by_cases h1 : k ∈ V
+    · rw [if_pos h1, if_pos (e.2 h1)]
+    · rw [if_neg h1, if_neg (fun h' => h1 (e.1 h'))]
+
+/-- One voter fewer changes the voters by at most one. -/
+theorem not_symdiffTooBig_delete (V : GSet w64) (id : w64) :
+    ¬ SymdiffTooBig V (GMap.delete id V) := by
+  unfold SymdiffTooBig symdiffN
+  have h1 : (GMap.delete id V) \ V = ∅ := by
+    apply GMap.map_eq; intro k
+    by_cases hk : id = k
+    · subst hk; rw [GMap.lookup_sdiff, GMap.lookup_delete]; simp
+    · rw [GMap.lookup_sdiff, GMap.lookup_delete_ne _ hk]
+      rcases h : V !! k with _ | v <;> simp
+  have h2 : GMap.size (V \ (GMap.delete id V)) ≤ 1 := by
+    have hsub : V \ (GMap.delete id V) ⊆ ({[id := ()]} : GMap w64 Unit) := by
+      intro k v hkv
+      by_cases hk : id = k
+      · subst hk; cases v; simp
+      · rw [GMap.lookup_sdiff, GMap.lookup_delete_ne _ hk] at hkv
+        rcases h : V !! k with _ | v' <;> simp_all
+    have := GMap.map_subseteq_size hsub
+    rw [GMap.map_size_singleton] at this
+    exact this
+  rw [h1, GMap.map_size_empty]
+  generalize GMap.size (V \ (GMap.delete id V)) = n at h2
+  rcases Nat.le_one_iff_eq_zero_or_eq_one.1 h2 with h0 | h0 <;> subst h0 <;> decide
+
+/-- `Simple([RemoveNode id])` on `cfgState V L`, `id` a voter (so no learner) whose removal
+leaves a voter: `id` leaves the voters. -/
+theorem simpleM_cfgState_removeVoter (V L : GSet w64) (c : raftpb.ConfChangeSingle)
+    (Hty : c.Type' = W32 1) (h0 : c.NodeId' ≠ W64 0) (hV : c.NodeId' ∈ V)
+    (hne : (GMap.delete c.NodeId' V : GSet w64) ≠ ∅) (Hd : ∀ k, k ∈ L → k ∉ V) :
+    simpleM [c] (cfgState V L) = some (cfgState (GMap.delete c.NodeId' V) L) := by
+  have hL : c.NodeId' ∉ L := fun h => Hd _ h hV
+  have Hd' : ∀ k, k ∈ L → k ∉ (GMap.delete c.NodeId' V : GSet w64) := by
+    intro k hk h
+    apply Hd k hk
+    rw [GMap.elem_of_gset] at h ⊢
+    by_cases hkk : c.NodeId' = k
+    · subst hkk; rw [GMap.lookup_delete] at h; cases h
+    · rw [GMap.lookup_delete_ne _ hkk] at h; exact h
+  have Hrm : removeM c.NodeId' (cfgState V L) = cfgState (GMap.delete c.NodeId' V) L := by
+    unfold removeM
+    rw [if_pos (show c.NodeId' ∈ (cfgState V L).prs from (cfgFlags_mem V L _).2 (.inl hV))]
+    have hout : c.NodeId' ∉ (cfgState V L).cfg.outgoing := GMap.not_elem_of_empty _
+    rw [if_neg hout]
+    simp only [cfgState, cfgM, removeCfg]
+    rw [GMap.delete_notin _ _ (gset_lookup_none L _ hL), GMap.delete_empty,
+      cfgFlags_delete_voter V L _ hL]
+  have Happ : applyM [c] (cfgState V L) = some (cfgState (GMap.delete c.NodeId' V) L) := by
+    simp only [applyM, applyAll, applyOne, if_neg h0, Hty]
+    rw [if_neg (show (W32 1 : w32) ≠ W32 0 by decide),
+      if_neg (show (W32 1 : w32) ≠ W32 3 by decide)]
+    simp only [if_true, Option.bind_some]
+    rw [Hrm]
+    try simp only [Option.bind_some]
+    rw [if_neg (show (cfgState (GMap.delete c.NodeId' V) L).cfg.incoming ≠ ∅ from hne)]
+  unfold simpleM
+  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
+    if_neg (fun h => h rfl), Happ]
+  simp only
+  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+    (cfgState (GMap.delete c.NodeId' V) L).cfg.incoming from not_symdiffTooBig_delete V _)]
+  simp [checkedM, cfgInv_cfgState _ _ Hd']
+
 /-- The one `Simple` change of a `ConfChange` (or a one-change `ConfChangeV2` with transition
 `Auto`) whose model answer is some learners (`CCVoterKeep`'s witness). -/
 theorem ccApplyM_single (cfg lrn lrn' : GSet w64) (c : raftpb.ConfChangeSingle)

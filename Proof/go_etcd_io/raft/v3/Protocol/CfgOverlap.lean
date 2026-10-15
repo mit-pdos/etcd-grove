@@ -477,6 +477,65 @@ theorem decOfData_some (data : GoSlice → List w8) (pre : List raftpb.Entry) (e
     obtain ⟨m, hm⟩ := hd.2 h2
     rw [if_neg h1, if_pos h2, hm]; exact ⟨_, rfl⟩
 
+/-! ### Removing a voter, as one step (2026-10-15, stage N: the register's membership change) -/
+
+theorem cfgState_empty_ids (V : GSet w64) : (cfgState V ∅).cfg.ids = V := by
+  apply GMap.set_eq; intro k
+  unfold CfgM.ids CfgM.voters
+  simp only [cfgState, cfgM, GMap.elem_of_union]
+  constructor
+  · rintro ((h | h) | h)
+    · exact h
+    · exact absurd h (GMap.not_elem_of_empty _)
+    · exact absurd h (GMap.not_elem_of_empty _)
+  · intro h; exact .inl (.inl h)
+
+theorem ccApplyM_single_simple (c : raftpb.ConfChangeSingle) (s : CCState) :
+    ccApplyM (W32 0) [c] s = simpleM [c] s := by
+  unfold ccApplyM
+  rw [if_neg (by simp)]
+  have He : enterJointOf (W32 0) [c].length = some (false, false) := by
+    simp [enterJointOf]
+  rw [He]
+
+/-- A `ConfChange` removing the voter `m.nodeId` from `cfgState V ∅` (a voter left). -/
+theorem ccStepB_removeVoter (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
+    (h0 : m.nodeId ≠ W64 0) (hV : m.nodeId ∈ V) (hne : (GMap.delete m.nodeId V : GSet w64) ≠ ∅)
+    (Hsz : GMap.size V < 2 ^ 62) :
+    ccStepB (ccV2Of (.v1 m)) (cfgState V ∅) = some (cfgState (GMap.delete m.nodeId V) ∅) := by
+  unfold ccStepB ccV2Of
+  simp only
+  rw [ccApplyM_single_simple, simpleM_cfgState_removeVoter V ∅ _ Hty h0 hV hne
+    (fun k hk => absurd hk (GMap.not_elem_of_empty _))]
+  simp only [Option.bind_some]
+  rw [cfgState_empty_ids]
+  have : GMap.size (GMap.delete m.nodeId V : GSet w64) ≤ GMap.size V := by
+    apply GMap.subseteq_size
+    rw [GMap.elem_of_subseteq]
+    intro x hx
+    rw [GMap.elem_of_gset] at hx ⊢
+    by_cases hk : m.nodeId = x
+    · subst hk; rw [GMap.lookup_delete] at hx; cases hx
+    · rw [GMap.lookup_delete_ne _ hk] at hx; exact hx
+  rw [if_pos (by omega)]
+
+/-- The same change at a configuration it is no voter of: nothing changes. -/
+theorem ccStepB_removeAbsent (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
+    (h0 : m.nodeId ≠ W64 0) (hV : m.nodeId ∉ V) (hne : V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) :
+    ccStepB (ccV2Of (.v1 m)) (cfgState V ∅) = some (cfgState V ∅) := by
+  unfold ccStepB ccV2Of
+  simp only
+  rw [ccApplyM_single_simple, simpleM_cfgState_removeLearner V ∅ _ Hty h0 hV hne
+    (fun k hk => absurd hk (GMap.not_elem_of_empty _)), GMap.delete_empty]
+  simp only [Option.bind_some]
+  rw [cfgState_empty_ids, if_pos Hsz]
+
+/-- A configuration of voters only (`V` non-empty, few) is one a node can be in. -/
+theorem cfgOk_cfgState (V : GSet w64) (hne : V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) :
+    CfgOk (cfgState V ∅) :=
+  ⟨cfgInv_cfgState V ∅ (fun k hk => absurd hk (GMap.not_elem_of_empty _)), hne,
+    by rw [cfgState_empty_ids]; exact Hsz⟩
+
 end model
 
 end EtcdGrove

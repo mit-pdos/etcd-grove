@@ -842,5 +842,84 @@ theorem opCred_spend (γp : RepNames) (c : Nat) :
 
 end lemmas
 
+/-! ## Conf-change entries, at the applier (2026-10-15, stage N) -/
+
+section confs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The data of the last entry of a committed log. -/
+theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.Entry)
+    (e : raftpb.Entry) (E : CoPset) (HE : ↑raftN ⊆ E) :
+    ⊢ isNode γ id n -∗ isCommitted γ.raft (l ++ [e]) ={E}=∗ ∃ o, entDataIs (GF := GF) γ.raft e o := by
+  iintro #Hnode #Hc
+  imod node_committed_data γ id n (l ++ [e]) E HE $$ Hnode Hc with ⟨%ods, #Hl⟩
+  ihave ⟨%o, %-, Ho⟩ := (BigSepL2.bigSepL2_lookup_left (Φ := fun _ e o => entDataIs (GF := GF) γ.raft e o)
+    (l1 := l ++ [e]) (l2 := ods) (i := l.length) (x1 := e) (by simp)) $$ Hl
+  imodintro
+  iexists o
+  iexact Ho
+
+/-- A recorded slice holds its bytes, at the node. -/
+theorem node_propData_heap (γ : NodeNames) (id : w64) (n : Loc) (sl : GoSlice) (bs : List w8)
+    (E : CoPset) (HE : ↑propDataN ⊆ E) :
+    ⊢ isNode γ id n -∗ isPropData (GF := GF) γ.raft sl bs ={E}=∗ sl ↦*□ bs := by
+  iintro #Hnode #Hpd
+  ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
+  iapply propData_heap γ.raft sl bs E HE $$ Hpdi Hpd
+
+/-- An entry of a type other than `EntryConfChange` is no conf-change entry, in the cluster: its
+conf-change entries are all of that type (`RegCC`). -/
+theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
+    (e : raftpb.Entry) (o : Option (List w8)) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜e.Type' ≠ W32 1 → ¬ IsConfEnt e⌝ := by
+  iintro He
+  cases o with
+  | some d =>
+    unfold entDataIs
+    icases He with ⟨%Hd, -⟩
+    ipureintro
+    intro _ hc
+    unfold IsConfEnt at hc
+    rw [Hd.2] at hc
+    rcases hc with h | h <;> revert h <;> word
+  | none =>
+    unfold entDataIs
+    icases He with (%Hz | ⟨%Hty, %bs, -, %Hdec⟩)
+    · ipureintro
+      intro _ hc
+      unfold IsConfEnt at hc
+      rw [Hz.1] at hc
+      rcases hc with h | h <;> revert h <;> word
+    · ipureintro
+      intro hn _
+      exact hn (H.2.1 _ _ Hdec.2).1
+
+/-- A conf-change entry of the cluster carries `op` (`RegCC`): its bytes, recorded, decode to a
+`ConfChange` whose change is `op`. -/
+theorem regCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
+    (e : raftpb.Entry) (o : Option (List w8)) (Hty : e.Type' = W32 1) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ∃ (bs : List w8) (m : CCV1M),
+      isPropData γn.raft e.Data' bs ∗ ⌜ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op⌝ := by
+  iintro He
+  cases o with
+  | some d =>
+    unfold entDataIs
+    icases He with ⟨%Hd, -⟩
+    exfalso; rw [Hd.2] at Hty; revert Hty; word
+  | none =>
+    unfold entDataIs
+    icases He with (%Hz | ⟨%Hty', %bs, #Hpd, %Hdec⟩)
+    · exfalso; rw [Hz.1] at Hty; revert Hty; word
+    · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hdec.2
+      iexists bs, m
+      iframe Hpd
+      ipureintro; exact ⟨Hm, Hop⟩
+
+end confs
+
 end EtcdGrove
 end Perennial

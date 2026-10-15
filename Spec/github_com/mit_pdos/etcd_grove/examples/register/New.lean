@@ -1,7 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
 `New(id, node, storage, send)` (register.go:96): replica `id` on its running node (the
-driver's token at the empty committed log) and its storage; it starts `run`. The replica's
+driver's token at the empty committed log) and its storage; it starts `run`. Since
+2026-10-15 (stage N) the node is in raft's dynamic mode (`RegCC`: the cluster's conf changes are
+`op`), with the driver's view of its configuration (`nodeCfg`), which `run` keeps. The replica's
 seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) gives it `2^64 - 1` operation
 credits.
 -/
@@ -29,10 +31,12 @@ variable [RegStor GF]
 
 /-- See the file header. -/
 abbrev New.spec : Prop :=
-  ∀ (γr : RegNames) (γn : NodeNames) (id : w64) (n st : Loc) (send : GoFunc) (cfg0 : CCState),
+  ∀ (γr : RegNames) (γn : NodeNames) (id : w64) (n st : Loc) (send : GoFunc) (op : CCOp)
+    (c0 c1 : CCState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ regInv γr ∗ nodeDriver γn id n [] ∗ ⌜γn.raft = γr.raft⌝ ∗
-      -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
-      ⌜γn.mode = .static⌝ ∗ nodeCfg γn 0 cfg0 ∗
+      -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
+      -- `op` (`RegCC`), and the driver's view of its configuration, the initial one
+      ⌜RegCC γn op c0 c1⌝ ∗ nodeCfg γn 0 c0 ∗
       ⌜γn.stor = regStorIface st⌝ ∗ (∃ (ms : Loc) (γs : MemStorNames), regStorRec st ms γs) ∗ isCommitted γr.raft [] ∗ id ↪[γr.seq] (W64 0) ∗
       sendSpec send γn }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.New))

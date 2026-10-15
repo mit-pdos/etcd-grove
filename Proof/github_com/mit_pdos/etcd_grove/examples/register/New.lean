@@ -27,7 +27,7 @@ variable [RegStor GF]
 
 theorem New.wp_proof (wp_run : register.Register.run.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro γr γn id n st send cfg0
+  intro γr γn id n st send op c0 c1
   wp_start as ⟨#Hinv, Hdrv, %Hraft, %Hmd, Hncfg, %Hstor, #Hsrec, #Hc0, Hseq, #Hsend⟩
   wp_auto
   wp_apply wp_map_make1 (K := List w8) (V := Bool) as %mA HA
@@ -74,7 +74,7 @@ theorem New.wp_proof (wp_run : register.Register.run.spec (GF := GF) (hG := hG))
     iframe #
     ipureintro; exact ⟨Hraft, Hstor⟩
   wp_apply wp_fork $$ [Hdlv value applied HA Hncfg]
-  · wp_apply wp_run γr ⟨γn, γc⟩ «$r0_ptr» id n st send cfg0
+  · wp_apply wp_run γr ⟨γn, γc⟩ «$r0_ptr» id n st send op c0 c1
       $$ [$Hpkg $Hrep Hdlv value applied HA Hncfg]
     · iframe #
       isplitr

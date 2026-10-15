@@ -253,6 +253,17 @@ def specref(fn):
     return f"EtcdGrove.{spec[fn]}" if nsd else spec[fn]
 
 
+def external_link(fn):
+    """The `Link` module that links the external callee `fn`: its package's, or the nearest
+    enclosing package's that has one (raft's `Link.lean` links `raftpb`'s functions too)."""
+    parts = where[fn].split(".")[:-1]
+    while parts:
+        if os.path.exists(os.path.join(root, "Proof", *parts, "Link.lean")):
+            return "Proof." + ".".join(parts + ["Link"])
+        parts = parts[:-1]
+    return "Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
+
+
 order, seen = [], set()
 
 
@@ -284,8 +295,7 @@ hand.
     out.extend(f"public import {proof_module(fn)}" for fn in fns
                if fn not in external and fn not in pending)
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
-    out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
-                       for fn in external}))
+    out.extend(sorted({"public import " + external_link(fn) for fn in external}))
     out.append(f"""
 @[expose] public section
 

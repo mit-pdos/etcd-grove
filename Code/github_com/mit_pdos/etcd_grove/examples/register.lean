@@ -412,15 +412,17 @@ noncomputable def tick.impl [FfiSyntax] [GoGlobalContext] : val :=
     completed before B's Get began and nobody else puts, B sees "hello". B then reads by
     read index on replica 3 (Read), which goes through the transport's read-index messages
     and heartbeat contexts; its value is "hello" as well, but Main does not check it: Read's
-    specification states its value with lower bounds on the register's history. Last, B asks
-    every replica to hand the leadership over to replica 3: the leader does, through the
-    transport's MsgTimeoutNow and the vote requests of a transfer's campaign (the followers'
-    requests are dropped). Nothing follows it: an operation during the transfer could wait
+    specification states its value with lower bounds on the register's history. B then asks
+    raft to remove replica 3 from the cluster (RemoveMember: a configuration change through
+    the log, which every replica's register applies to its node; a removed leader steps down)
+    and, last, every replica to hand the leadership over to replica 2: the leader does, through
+    the transport's MsgTimeoutNow and the vote requests of a transfer's campaign (the
+    followers' requests are dropped). Nothing follows it: an operation during the transfer could wait
     forever (a proposal forwarded to a leader that is transferring is dropped, and do does not
     retry it; a read index asked of a node that knows no leader is dropped, and Read does not
-    retry it).
+    retry it); the same holds while a removed leader steps down.
 
-    go: cluster.go:135:6 -/
+    go: cluster.go:137:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -483,15 +485,19 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (Val #(W64 3))
+  (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Register.ty) go!"TransferLeadership"))) (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType Register.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Register.ty))))) (Var "regs"))) (Val #(W64 3)))) (Var "$a0"))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(W64 3))
+  (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Register.ty) go!"TransferLeadership"))) (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType Register.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Register.ty))))) (Var "regs"))) (Val #(W64 2)))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(W64 3))
+  (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Register.ty) go!"TransferLeadership"))) (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType Register.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Register.ty))))) (Var "regs"))) (Val #(W64 1)))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 3))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Register.ty) go!"RemoveMember"))) (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType Register.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Register.ty))))) (Var "regs"))) (Val #(W64 1)))) (Var "$a0")))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Register.ty) go!"Read"))) (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType Register.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Register.ty))))) (Var "regs"))) (Val #(W64 3)))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Register.ty) go!"Get"))) (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType Register.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Register.ty))))) (Var "regs"))) (Val #(W64 2)))) (Val #())) (Val #(go!"hello"))))))
@@ -555,7 +561,8 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v4" (Val #(W64 1048576))
   (Let "$v5" (Val #(W64 256))
   (Let "$v6" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType Storage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v6")))]))))))))))
+  (Let "$v7" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType Storage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"StepDownOnRemoval")) (ElementExpression go.bool (Var "$v7")))])))))))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.RestartNode []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "st"))
@@ -750,12 +757,13 @@ noncomputable def fits.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)]))) (Val #())) (Var "$a0")))))))) (Val #false)))))))
 
 /-- run handles the node's Readys: persist the entries, send the messages, note the read
-    states, apply the committed entries in order, answer the reads whose index is applied,
-    then Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does
+    states, apply the committed entries in order (a configuration change, RemoveMember's, to
+    the node: Node.ApplyConfChange, before the Advance that acknowledges it, as raft needs),
+    answer the reads whose index is applied, then Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does
     not happen). The applied index is the number of entries applied: the log starts empty,
     at index 1, and the register takes no snapshots.
 
-    go: register.go:117:20 -/
+    go: register.go:118:20 -/
 noncomputable def Register.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "send"
@@ -796,11 +804,23 @@ noncomputable def Register.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "applied") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "applied")) (Val #(W64 1)))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Var "e"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Register.ty) go!"apply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Register.ty)))) (Var "r"))) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Type"))) (Var "e"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryConfChange))))
+  (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Var "cc")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ApplyConfChange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Register.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Register.ty)))) (Var "r"))))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Data"))) (Var "e")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"Unmarshal"))) (Var "cc")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
@@ -831,7 +851,7 @@ noncomputable def Register.run.impl [FfiSyntax] [GoGlobalContext] : val :=
     of this replica's reads waiting for its answer is dropped (raft hands out a node's read
     states only to that node, so a read's context is always its own replica's).
 
-    go: register.go:141:20 -/
+    go: register.go:147:20 -/
 noncomputable def Register.answer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "pending"
@@ -950,7 +970,7 @@ noncomputable def Register.answer.impl [FfiSyntax] [GoGlobalContext] : val :=
     takes effect once. Operations are told apart by their encoding, which is unique: the
     replica and a sequence number of its own.
 
-    go: register.go:172:20 -/
+    go: register.go:178:20 -/
 noncomputable def Register.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "e"
@@ -1076,7 +1096,7 @@ noncomputable def Register.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
     the leader it is forwarded to drops (a leader transferring its leadership) is not: do then
     waits forever (partial correctness, like Read).
 
-    go: register.go:208:20 -/
+    go: register.go:214:20 -/
 noncomputable def Register.«do».impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "kind"
@@ -1126,7 +1146,7 @@ noncomputable def Register.«do».impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Put sets the register to val.
 
-    go: register.go:221:20 -/
+    go: register.go:227:20 -/
 noncomputable def Register.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "val"
@@ -1143,7 +1163,7 @@ noncomputable def Register.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Get returns the register's value.
 
-    go: register.go:226:20 -/
+    go: register.go:232:20 -/
 noncomputable def Register.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1159,7 +1179,7 @@ noncomputable def Register.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
     request to its leader, which the transport drops: deliverable). Nothing is promised of
     the outcome, and the register's operations are correct whoever leads.
 
-    go: register.go:234:20 -/
+    go: register.go:240:20 -/
 noncomputable def Register.TransferLeadership.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -1175,13 +1195,37 @@ noncomputable def Register.TransferLeadership.impl [FfiSyntax] [GoGlobalContext]
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "to"))
   (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"TransferLeadership"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Register.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Register.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))))
 
+/-- RemoveMember asks raft to remove replica id from the cluster's voters
+    (Node.ProposeConfChange): once the change is committed, every replica's run applies it to
+    its node (Node.ApplyConfChange), and the cluster's quorums are then those of the remaining
+    voters; a leader that removes itself steps down (Config.StepDownOnRemoval). Nothing is
+    promised of the outcome: raft drops a change proposed while another one is not yet
+    applied, and RemoveMember proposes it once.
+
+    go: register.go:250:20 -/
+noncomputable def Register.RemoveMember.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Register.ty)))) (Var "r"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Let "$v0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode)
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeId")) (ElementExpression go.uint64 (Var "$v1")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ProposeConfChange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Register.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Register.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))))))
+
 /-- Read returns the register's value, by a read index rather than through the log: a
     fresh context (the replica and a new sequence number, like an operation's), the read
     index raft confirms for it with a quorum (Node.ReadIndex), and the value once the
     replica has applied the log that far. A request raft drops (no leader known) is not
     retried: Read then waits forever.
 
-    go: register.go:243:20 -/
+    go: register.go:259:20 -/
 noncomputable def Register.Read.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1557,6 +1601,7 @@ class Register.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Register.ty) go!"Get" Register.Get.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType Register.ty) go!"Put" Register.Put.impl
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType Register.ty) go!"Read" Register.Read.impl
+  ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType Register.ty) go!"RemoveMember" Register.RemoveMember.impl
   ptr_TransferLeadership_unfold : MethodUnfold (go.GoType.PointerType Register.ty) go!"TransferLeadership" Register.TransferLeadership.impl
   ptr_answer_unfold : MethodUnfold (go.GoType.PointerType Register.ty) go!"answer" Register.answer.impl
   ptr_apply_unfold : MethodUnfold (go.GoType.PointerType Register.ty) go!"apply" Register.apply.impl
@@ -1586,6 +1631,7 @@ attribute [instance] Register.TypeAssumptions.type_repr
   Register.TypeAssumptions.ptr_Get_unfold
   Register.TypeAssumptions.ptr_Put_unfold
   Register.TypeAssumptions.ptr_Read_unfold
+  Register.TypeAssumptions.ptr_RemoveMember_unfold
   Register.TypeAssumptions.ptr_TransferLeadership_unfold
   Register.TypeAssumptions.ptr_answer_unfold
   Register.TypeAssumptions.ptr_apply_unfold
