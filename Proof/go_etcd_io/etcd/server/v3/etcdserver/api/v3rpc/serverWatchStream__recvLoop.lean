@@ -276,8 +276,11 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             iunfold v3rpc.ctrlOk
             iexists L.length, (.create c)
             iframe Hat
-            ipureintro
-            simp [v3rpc.ctrlAnswers, m]
+            isplitr
+            · ipureintro
+              simp [v3rpc.ctrlAnswers, m]
+            simp only [v3rpc.ctrlWatcher, m, ↓reduceIte]
+            itrivial
           iintro !> Hprod
           wp_auto
           recv_next
@@ -312,24 +315,42 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         wp_auto
         ihave %Hel := ownSlice_len $$ Hesv
         -- the range end: `nil` for an empty one
-        wp_join iprop(∃ es1 : GoSlice, creq_ptr ↦ cr ∗
+        wp_join iprop(∃ es1 : GoSlice,
+            ⌜(c.rangeEnd = [] → es1 = slice.nil) ∧ (c.rangeEnd ≠ [] → es1 ≠ slice.nil)⌝ ∗
+            creq_ptr ↦ cr ∗
             structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" cr ↦ es1 ∗ es1 ↦*□ c.rangeEnd)
-          with [Hes creq] as ⟨%es1, creq, Hes, #Hesv1⟩
+          with [Hes creq] as ⟨%es1, %Hes1, creq, Hes, #Hesv1⟩
         · have he : c.rangeEnd = [] := by
             apply List.eq_nil_of_length_eq_zero; rw [Hel.1, Hif]; rfl
           iexists slice.nil
+          isplitr
+          · ipureintro; exact ⟨fun _ => rfl, fun h => absurd he h⟩
           iframe
           rw [he]
           iapply ownSlice_nil
         · iexists es
+          isplitr
+          · ipureintro
+            constructor
+            · intro h
+              exfalso; apply Hif
+              have h1 := Hel.1; rw [h] at h1
+              simp only [List.length_nil] at h1
+              have h2 := Hel.2
+              unfold sint.nat at h1
+              word
+            · intro _ hnil; apply Hif; rw [hnil]; rfl
           iframe
           iframe #
         ihave %Hel1 := ownSlice_len $$ Hesv1
         -- the range end: `[]byte{}` (from the key on) for `"\x00"`
-        wp_join iprop(∃ es2 : GoSlice, creq_ptr ↦ cr ∗
+        wp_join iprop(∃ es2 : GoSlice,
+            ⌜(c.rangeEnd = [] → es2 = slice.nil) ∧
+              (c.rangeEnd ≠ [] → c.rangeEnd ≠ [W8 0] → es2 ≠ slice.nil)⌝ ∗
+            creq_ptr ↦ cr ∗
             structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" cr ↦ es2 ∗
             es2 ↦*□ (if c.rangeEnd = [W8 0] then [] else c.rangeEnd))
-          at next with [Hes creq] as ⟨%es2, creq, Hes, #Hesv2⟩
+          at next with [Hes creq] as ⟨%es2, %Hes2, creq, Hes, #Hesv2⟩
         · wp_if_destruct
           · have h0 : (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es1.len) := by
               rw [Hif]; decide
@@ -354,6 +375,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               wp_join_done
               iexists _
               iframe creq Hes
+              isplitr
+              · ipureintro
+                exact ⟨fun h => absurd (hb.symm.trans h) (by simp), fun _ h => absurd hb h⟩
               rw [hb, if_pos rfl]
               iexact He0
             · wp_join_done
@@ -361,6 +385,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                 intro h; rw [hb] at h; simp at h; exact Hif h
               simp only [hne, ↓reduceIte]
               iexists es1
+              isplitr
+              · ipureintro; exact ⟨Hes1.1, fun h _ => Hes1.2 h⟩
               iframe
               iframe #
           · have hne : c.rangeEnd ≠ [W8 0] := by
@@ -369,6 +395,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             isplitr
             · itrivial
             iexists es1
+            isplitr
+            · ipureintro; exact ⟨Hes1.1, fun h _ => Hes1.2 h⟩
             iframe
             iframe #
         wp_apply hFil cr fs c.filters DFrac.discard $$ [] as %fsl ⟨-, %fl, Hfl, %Hflen⟩
@@ -418,7 +446,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           isplitl
           · iapply BigSepL.bigSepL_nil.2; iempintro
           ipureintro; exact hsr0
-        icases Hwres with (⟨%Hwe, %Hrng, %Hid⟩ | ⟨%Hid, Hwe⟩)
+        icases Hwres with (⟨%Hwe, %Hrng, %Hid, %w, %lo, -, #HIWF, -⟩ | ⟨%Hid, Hwe⟩)
         · -- registered
           subst Hwe
           wp_auto
@@ -488,8 +516,23 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               iunfold v3rpc.ctrlOk
               iexists L.length, (.create c)
               iframe Hat
-              ipureintro
-              exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inr ⟨rfl, hsr0, Hid⟩⟩
+              isplitr
+              · ipureintro
+                exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inr ⟨rfl, hsr0, Hid⟩⟩
+              simp only [v3rpc.ctrlWatcher, m, Bool.false_eq_true, ↓reduceIte]
+              iexists w, (mvcc.watchRangeOf (if c.key = [] then [W8 0] else c.key)
+                (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) es2 c.startRev id'), fsl, lo
+              isplitr
+              · ipureintro
+                unfold v3rpc.createRangeOk mvcc.watchRangeOf
+                refine ⟨rfl, rfl, rfl, ?_⟩
+                by_cases h1 : c.rangeEnd = []
+                · simp only [h1, ↓reduceIte, Hes2.1 h1]
+                · by_cases h2 : c.rangeEnd = [W8 0]
+                  · simp only [h2, ↓reduceIte]
+                    by_cases h3 : es2 = slice.nil <;> simp [h3]
+                  · simp only [h1, h2, ↓reduceIte, Hes2.2 h1 h2]
+              iexact HIWF
             iintro !> Hprod
             wp_auto
             recv_next
@@ -558,8 +601,11 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               iunfold v3rpc.ctrlOk
               iexists L.length, (.create c)
               iframe Hat
-              ipureintro
-              exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inl ⟨rfl, rfl⟩⟩
+              isplitr
+              · ipureintro
+                exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inl ⟨rfl, rfl⟩⟩
+              simp only [v3rpc.ctrlWatcher, m, ↓reduceIte]
+              itrivial
             iintro !> Hprod
             wp_auto
             recv_next
@@ -659,8 +705,11 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           iunfold v3rpc.ctrlOk
           iexists L.length, (.create c)
           iframe Hat
-          ipureintro
-          simp [v3rpc.ctrlAnswers, m]
+          isplitr
+          · ipureintro
+            simp [v3rpc.ctrlAnswers, m]
+          simp only [v3rpc.ctrlWatcher, m, ↓reduceIte]
+          itrivial
         iintro !> Hprod
         wp_auto
         recv_next
@@ -732,8 +781,11 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             iunfold v3rpc.ctrlOk
             iexists L.length, (.cancel cid)
             iframe Hat
-            ipureintro
-            exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+            isplitr
+            · ipureintro
+              exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+            simp only [v3rpc.ctrlWatcher]
+            itrivial
           iintro !> Hprod
           wp_auto
           wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []

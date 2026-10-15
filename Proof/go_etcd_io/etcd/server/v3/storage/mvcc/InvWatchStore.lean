@@ -234,6 +234,12 @@ def chanIsClosed {V : Type} : ChanState V → Bool
   | .Closed _ => true
   | _ => false
 
+/-- **A watcher's first revision and its start revision** (pure): the first revision `lo` a
+watcher of the range `r` watches from is its start revision, unless that is `0` ("now": then
+`lo` is the length of the committed log at the registration, `watcherIs`). -/
+def startLo (r : WatchRange) (lo : Nat) : Prop :=
+  r.startRev ≠ W64 0 → lo = (sint.Z r.startRev).toNat
+
 /-- A delivery of a watcher's events: the events it covers (unfiltered) and those kept. -/
 abbrev Deliv := List EvM × List EvM
 
@@ -481,7 +487,7 @@ def chanWatcher (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
     (w : Loc) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (evsw : List EvM)
       (D : List Deliv) (d : Nat),
-    watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝ ∗ watcherFixed w r fcs ∗
+    watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝ ∗ ⌜startLo r γw.lo⌝ ∗ watcherFixed w r fcs ∗
     monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
     ⌜(D.map Prod.fst).flatten = evsw ∧
       (sent.filter (fun x => decide (x.w = w))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd⌝ ∗
@@ -674,11 +680,25 @@ instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
     Persistent (isWatchableStore (GF := GF) s st γ) := by
   unfold isWatchableStore; simp only [named]; infer_instance
 
+/-- **What a registration says of the watcher `w`** (persistent; the store's `IWF`): its
+names (`watcherMeta`), its fixed fields (range `r`, filters `fcs`), and its first revision `lo`:
+the start revision, or, for a start revision `0`, the length of a committed log `C` at the
+registration (`idxCert`: the next revision the store will commit). -/
+def watcherIs (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : GoSlice) (lo : Nat) : IProp GF :=
+  iprop(∃ (γw : WatcherNames) (C : Log), watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
+    idxCert γ.st.idx C ∗
+    ⌜γw.lo = lo ∧ lo = if r.startRev = W64 0 then C.length else (sint.Z r.startRev).toNat⌝)
+
+instance watcherIs_persistent (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : GoSlice)
+    (lo : Nat) : Persistent (watcherIs (GF := GF) γ w r fcs lo) := by
+  unfold watcherIs; infer_instance
+
 /-- The store's choices for the stream's contract (`isWatchable`): a watcher of the store
 (`IW`), cancelled (`WC`), nothing of the channel (`C`: the close right has its invariant),
 filters deciding predicates (`F`), the close right (`CR`: the channel, its invariant, the
 stream's half of the registered watchers), the reader slots (`R`) and a watch token (`T`: a
-registration's cost, `watchTok`). -/
+registration's cost, `watchTok`), and what a registration says of its watcher (`IWF`:
+`watcherIs`). -/
 def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   IW w := iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
     watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜0 ≤ sint.Z r.startRev⌝)
@@ -689,10 +709,12 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
   T := watchTok γ
+  IWF := watcherIs γ
   IW_pers _ := by infer_instance
   WC_pers _ := by infer_instance
   C_pers _ := by infer_instance
   F_pers _ := by infer_instance
+  IWF_pers _ _ _ _ := by infer_instance
 
 /-! ## The write transaction -/
 

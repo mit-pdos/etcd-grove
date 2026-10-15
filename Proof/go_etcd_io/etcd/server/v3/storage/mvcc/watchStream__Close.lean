@@ -41,10 +41,10 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
   | true =>
     simp only [↓reduceIte]
     iunfold mvcc.watchStreamOpen at Hcl Htok
-    icases token_exclusive γ $$ Hcl Htok with ⟨⟩
+    icases token_exclusive γ.tok $$ Hcl Htok with ⟨⟩
   | false =>
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hcl with ⟨%L, HCR, #HL⟩
+  icases Hcl with ⟨%L, HCR, #HL, -⟩
   wp_auto
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -110,7 +110,7 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
   iunfold gaugeSpec at HgS
   icases HgS with ⟨-, #HDec, -⟩
   wp_apply HDec
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Htok]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Htok]
   · inext
     iunfold mvcc.watchStreamInv
     iexists nextID, true, cm, wm, CM, WM

@@ -383,11 +383,40 @@ theorem mvcc.watch_key_fresh (w : Loc) (ks : GoSlice) (r : mvcc.WatchRange) (fcs
   have := DFrac.valid_own_op_discard.1 Hv
   simp at this
 
+/-- The watchers registered on a channel have names. -/
+theorem mvcc.chanWatchers_named (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (closed : Bool)
+    (sent : List mvcc.RespM) (M : GMap Loc mvcc.WatcherNames) :
+    ∀ L : List Loc, ghostMapAuth (GF := GF) γ.wmeta 1 M ∗
+      ([∗list] w ∈ L, mvcc.chanWatcher γ γc closed sent w) ⊢ ⌜∀ x ∈ L, (M !! x).isSome⌝
+  | [] => by
+    iintro -
+    ipureintro; simp
+  | x :: L => by
+    iintro ⟨Ha, Hl⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hl with ⟨Hx, Hl⟩
+    iunfold mvcc.chanWatcher at Hx
+    icases Hx with ⟨%γw, %r, %fcs, %evsw, %D, %d, #Hm, -⟩
+    iunfold mvcc.watcherMeta at Hm
+    icombine Hm Ha gives %hx
+    ihave %IH := mvcc.chanWatchers_named γ γc closed sent M L $$ [$Ha $Hl]
+    ipureintro
+    intro y hy
+    rcases List.mem_cons.1 hy with rfl | hy
+    · show (M.lookup y).isSome; rw [hx]; rfl
+    · exact IH y hy
+
+/-- A duplicate-free list of keys of a map is at most its size. -/
+theorem mvcc.list_length_le_size {V : Type} (M : GMap Loc V) (L : List Loc) (hnd : L.Nodup)
+    (h : ∀ x ∈ L, (M !! x).isSome) : L.length ≤ GMap.size M := by
+  rw [GMap.size_eq_dom_list_length]
+  exact (List.subperm_of_subset hnd (fun k hk => (GMap.mem_dom_list M k).2 (h k hk))).length_le
+
 /-- **Registering a new watcher** (ghost): its names (fresh: the watcher's key field is owned in
 full, so no watcher with names, no registered watcher and no response is of it), registered on
-its channel (the close right's watchers grow), its fixed fields persisted. -/
+its channel (the close right's watchers grow, none without names), its fixed fields persisted. -/
 theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames) (w ch : Loc)
-    (ks : GoSlice) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) (C : mvcc.Log) (L : List Loc) :
+    (ks : GoSlice) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) (C : mvcc.Log) (L : List Loc)
+    (hlo : mvcc.startLo r lo) :
     £ 1 ∗ ghostMapAuth γ.wmeta 1 M ∗
       □ ([∗map] w' ↦ _γw ∈ M, ∃ (r' : mvcc.WatchRange) (fcs' : GoSlice),
         mvcc.watcherFixed w' r' fcs') ∗
@@ -398,6 +427,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
       □ (typedPointsto (structFieldRef watcher go!"key" w) ks DFrac.discard -∗
         mvcc.watcherFixed w r fcs) ⊢
     |={⊤}=> ∃ γw : mvcc.WatcherNames, ⌜M !! w = none ∧ γw.lo = lo⌝ ∗
+      ⌜(w :: L).Nodup ∧ ∀ x ∈ L, (M !! x).isSome⌝ ∗
       ghostMapAuth γ.wmeta 1 (M.insert w γw) ∗ mvcc.watcherMeta γ w γw ∗
       mvcc.watcherFixed w r fcs ∗ mvcc.watcherChan γ w γw ch ∗
       ghostVar γw.wc.regl (1 : Qp).half (w :: L) ∗
@@ -460,6 +490,8 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     rw [hxw]
     iexfalso
     iapply mvcc.watch_key_fresh $$ [$Hkey $Hf]
+  icases persistent_entails_right (mvcc.chanWatchers_named γ γc _ sent M L) $$ [$Hmeta $Hws]
+    with ⟨%Hnamed, Hmeta, Hws⟩
   have Hsent' : sent.filter (fun x => decide (x.w = w)) = [] := by
     rw [List.filter_eq_nil_iff]
     intro x hx; simp only [decide_eq_true_eq]; exact fun h => Hsent ⟨x, hx, h⟩
@@ -508,6 +540,8 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     isplitr
     · ipureintro; rfl
     isplitr
+    · ipureintro; exact hlo
+    isplitr
     · ipureintro; exact ⟨rfl, by rw [Hsent']; rfl⟩
     isplitr
     · imodintro
@@ -537,6 +571,8 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   iframe Hmeta Hfixed Hregl0 He1 Hl1
   isplitr
   · ipureintro; exact ⟨hM, rfl⟩
+  isplitr
+  · ipureintro; exact ⟨List.nodup_cons.2 ⟨HwL, Hnd.1⟩, Hnamed⟩
   isplitr
   · iunfold mvcc.watcherMeta; iexact Hmw
   iunfold mvcc.watcherChan
@@ -616,12 +652,41 @@ theorem mvcc.watchableStore.watch.wp_proof
     · simp only [r, hn, ↓reduceIte]
       iframe He
       ipureintro; exact hn
-  imod mvcc.watch_register γ σ.M w ch key r fcs lo C L $$ [$Hlc2 $Hmeta $Hmfix $HCR $HcertQ $key $Hfix]
-    with ⟨%γw, ⟨%hM, %hlo⟩, Hmeta, #Hmw, #Hfixed, #Hwc, HCR, He, Hl⟩
-  -- the registration's token spent
-  imod mvcc.watchBudget_spend γ σ.M w γw hM $$ [$Hwt $Htok] with Hwt
   have hCne : 1 ≤ C.length := List.length_pos_iff.2 HneQ
   have hcur : sint.Z (W64 ((C.length : Int) - 1)) = (C.length : Int) - 1 := by word
+  -- the first revision: the start revision, or the committed log's length for `0`
+  have hloC : lo = if r.startRev = W64 0 then C.length else (sint.Z r.startRev).toNat := by
+    show (if synced then _ else _) = _
+    by_cases h0 : startRev = W64 0
+    · have hsy : synced = true := by simp only [synced, h0, decide_true, Bool.or_true]
+      simp only [hsy, h0, r, ↓reduceIte]
+      rw [show sint.nat (W64 0) = 0 from rfl]; omega
+    · simp only [r, h0, ↓reduceIte]
+      by_cases hs : sint.Z (W64 ((C.length : Int) - 1)) < sint.Z startRev
+      · have hsy : synced = true := by simp only [synced, decide_eq_true hs, Bool.true_or]
+        simp only [hsy, ↓reduceIte]
+        rw [show sint.nat startRev = (sint.Z startRev).toNat from rfl]; omega
+      · have hsy : synced = false := by
+          simp only [synced, decide_eq_false hs, decide_eq_false h0, Bool.or_false]
+        simp only [hsy]; rfl
+  have hslo : mvcc.startLo r lo := by
+    intro h0; rw [hloC]; simp only [h0, ↓reduceIte]
+  imod mvcc.watch_register γ σ.M w ch key r fcs lo C L hslo
+      $$ [$Hlc2 $Hmeta $Hmfix $HCR $HcertQ $key $Hfix]
+    with ⟨%γw, ⟨%hM, %hlo⟩, %Hreg, Hmeta, #Hmw, #Hfixed, #Hwc, HCR, He, Hl⟩
+  -- the registration's token spent
+  imod mvcc.watchBudget_spend γ σ.M w γw hM $$ [$Hwt $Htok] with Hwt
+  icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb'⟩
+  have hbnd : (w :: L).length + 3 ≤ 2 ^ 63 := by
+    have := mvcc.list_length_le_size (<[w := γw]> σ.M) (w :: L) Hreg.1 (fun x hx => by
+      rw [GMap.lookup_insert_eq_iff]
+      by_cases hwx : w = x
+      · simp [hwx]
+      · simp only [hwx, ↓reduceIte]
+        rcases List.mem_cons.1 hx with rfl | hx
+        · exact absurd rfl hwx
+        · exact Hreg.2 x hx)
+    omega
   wp_auto
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
   have hLmu : σ.Lmu.length ≤ C.length := HpC.length_le
@@ -711,13 +776,22 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         iexists γw.wc
         iframe Hic Hinv HCR
-      iunfold mvcc.watchReader
-      iframe Hmur
-      iunfold mvcc.storeReader
-      iexists ti
-      simp only [named]
-      iframe HmuR HrevMuR HtiR HrtR
-      iframe #
+      isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+      · iunfold mvcc.watchReader
+        iframe Hmur
+        iunfold mvcc.storeReader
+        iexists ti
+        simp only [named]
+        iframe HmuR HrevMuR HtiR HrtR
+        iframe #
+      isplitr
+      · iexists lo
+        iunfold mvcc.watcherIs
+        iexists γw, C
+        rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
+        iframe Hmw Hfixed HcertQ
+        ipureintro; exact ⟨hlo, hloC⟩
+      ipureintro; exact hbnd
     · rw [decide_eq_false h2]
       wp_auto
       have hm : (lo : Int) = sint.Z (W64 ((C.length : Int) - 1) + W64 1) := by
@@ -798,13 +872,22 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         iexists γw.wc
         iframe Hic Hinv HCR
-      iunfold mvcc.watchReader
-      iframe Hmur
-      iunfold mvcc.storeReader
-      iexists ti
-      simp only [named]
-      iframe HmuR HrevMuR HtiR HrtR
-      iframe #
+      isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+      · iunfold mvcc.watchReader
+        iframe Hmur
+        iunfold mvcc.storeReader
+        iexists ti
+        simp only [named]
+        iframe HmuR HrevMuR HtiR HrtR
+        iframe #
+      isplitr
+      · iexists lo
+        iunfold mvcc.watcherIs
+        iexists γw, C
+        rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
+        iframe Hmw Hfixed HcertQ
+        ipureintro; exact ⟨hlo, hloC⟩
+      ipureintro; exact hbnd
   · rw [decide_eq_false hs]
     wp_auto
     by_cases h0 : startRev = W64 0
@@ -895,13 +978,22 @@ theorem mvcc.watchableStore.watch.wp_proof
           icases Hwc with ⟨Hic, Hinv, -⟩
           iexists γw.wc
           iframe Hic Hinv HCR
-        iunfold mvcc.watchReader
-        iframe Hmur
-        iunfold mvcc.storeReader
-        iexists ti
-        simp only [named]
-        iframe HmuR HrevMuR HtiR HrtR
-        iframe #
+        isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+        · iunfold mvcc.watchReader
+          iframe Hmur
+          iunfold mvcc.storeReader
+          iexists ti
+          simp only [named]
+          iframe HmuR HrevMuR HtiR HrtR
+          iframe #
+        isplitr
+        · iexists lo
+          iunfold mvcc.watcherIs
+          iexists γw, C
+          rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
+          iframe Hmw Hfixed HcertQ
+          ipureintro; exact ⟨hlo, hloC⟩
+        ipureintro; exact hbnd
     · rw [decide_eq_false h0]
       wp_auto
       have hsy : synced = false := by simp only [synced, decide_eq_false hs, decide_eq_false h0, Bool.or_false]
@@ -983,13 +1075,22 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         iexists γw.wc
         iframe Hic Hinv HCR
-      iunfold mvcc.watchReader
-      iframe Hmur
-      iunfold mvcc.storeReader
-      iexists ti
-      simp only [named]
-      iframe HmuR HrevMuR HtiR HrtR
-      iframe #
+      isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+      · iunfold mvcc.watchReader
+        iframe Hmur
+        iunfold mvcc.storeReader
+        iexists ti
+        simp only [named]
+        iframe HmuR HrevMuR HtiR HrtR
+        iframe #
+      isplitr
+      · iexists lo
+        iunfold mvcc.watcherIs
+        iexists γw, C
+        rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
+        iframe Hmw Hfixed HcertQ
+        ipureintro; exact ⟨hlo, hloC⟩
+      ipureintro; exact hbnd
 
 end proof
 

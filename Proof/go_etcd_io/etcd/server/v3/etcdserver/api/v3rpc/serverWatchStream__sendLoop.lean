@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStr
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgress
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
 public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Spec.time.NewTicker
 public import Spec.time.Ticker__Stop
@@ -661,7 +662,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (hZD : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hZW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
-    (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
+    (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG))
+    (hChan : mvcc.watchStream.Chan.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
   intro sws r
   wp_start as ⟨#Hsws, Hst, Hcons, Hwc, Hres, Hmu⟩
@@ -745,9 +747,10 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     iintro !> %n %x %h
     simp at h
   wp_for Hinv
-  rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty)
-    (m := go!"Chan")]
-  wp_call
+  wp_apply +noauto hChan r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo as %ch' ⟨-, #Hch'⟩
+  · iframe #
+  icombine Hwch Hch' gives %Hcheq
+  subst Hcheq
   wp_auto_lc 2
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
@@ -1199,7 +1202,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
         #HfEv, #Heps, %Hepsl, #Hevs⟩
       ihave #Hco' := Hco
       iunfold v3rpc.ctrlOk at Hco'
-      icases Hco' with ⟨%ireq, %req, #Hupat, %Hans⟩
+      icases Hco' with ⟨%ireq, %req, #Hupat, %Hans, -⟩
       have Hcc : m.canceled = true → m.created = true → m.watchId = W64 (-1) := by
         intro h1 h2
         unfold v3rpc.ctrlAnswers at Hans

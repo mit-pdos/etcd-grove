@@ -29,7 +29,8 @@ theorem mvcc.watchStream.Chan.wp_proof : mvcc.watchStream.Chan.spec (GF := GF) (
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
   wp_auto
-  iapply HΦ $$ HC
+  iapply HΦ
+  iframe HC Hch
 
 end proof
 

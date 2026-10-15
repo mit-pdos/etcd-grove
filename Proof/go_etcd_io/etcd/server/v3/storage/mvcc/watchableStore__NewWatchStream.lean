@@ -134,9 +134,12 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · ipureintro; exact ⟨List.nodup_nil, by simp⟩
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
-  imod token_alloc (GF := GF) with ⟨%γo, Htok⟩
+  imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
+  let γo : mvcc.WsStreamNames := ⟨γt, γi⟩
   imod sync.init_Mutex (mvcc.watchStreamInv wsl (mvcc.storeWatchParams s st γ) ch γo) ⊤
-    (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2] with #Hmu
+    (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids]
+    with #Hmu
   · inext
     iunfold mvcc.watchStreamInv
     iexists _, false, cm, wm, ∅, ∅
@@ -150,12 +153,26 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · iintro !> %id %w %h; simp [GMap.lookup_empty] at h
     isplitr
     · iintro !> %id %c %w %h; simp [GMap.lookup_empty] at h
+    isplitl [Hids]
+    · iunfold mvcc.idsInv
+      iexists ∅
+      iframe Hids
+      ipureintro
+      refine ⟨by first | decide | rfl | (show (0 : Int) ≤ 0; omega) | word, fun i hi => ?_⟩
+      simp [GMap.lookup_empty] at hi
     iexists []
     isplitl [Hregl2]
     · simp only [mvcc.storeWatchParams]
       iexists γc
       iframe Hch Hinv Hregl2
-    iintro !> %w %h; simp at h
+    isplitr
+    · iintro !> %w %h; simp at h
+    ipureintro
+    have h0 : ∀ n, mvcc.aboveCnt n (∅ : GMap w64 Loc) = 0 := fun n => by
+      unfold mvcc.aboveCnt; rw [GMap.map_filter_empty, GMap.map_size_empty]
+    refine ⟨?_, by simp⟩
+    rw [h0]
+    first | decide | (simp) | word
   ipersist watchable
   ipersist ch
   (try wp_auto)

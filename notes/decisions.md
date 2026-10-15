@@ -6698,3 +6698,43 @@ Perennial `9092f8eaa` made `WaitGroup.Add`'s counter overflow a model assumption
 cache's proof; the assumption was false, and `105fb79f5` reverted it in favour of thread tokens
 (`notes/STATUS.md`, "The wait-group counter and thread tokens"). The rule is in `CLAUDE.md`,
 "Changes to Perennial".
+
+---
+
+## The mvcc watch specs for the watch client: `IWF`, per-stream id names, a bounded `nextID` (unit W-M, 2026-10-15 · adopted)
+
+- **What a registration says is the store's choice, `WatchParams.IWF`.** The stream (`watcher.go`)
+  is proved over an abstract `watchable` (`isWatchable wa P`), so `watchStream.Watch` cannot name
+  the store's `watcherMeta`/`watcherFixed`. As for `IW`, `WatchParams` gains a persistent
+  `IWF w r fcs lo` ("`w` has the fixed range `r`, filters `fcs`, first revision `lo`"), returned
+  by the contract's `watch` (with the range `watchRangeOf k e endk startRev id`, the store's
+  `end == nil` test) and passed through by `watchStream.Watch`; the store instantiates it by
+  `watcherIs γ` (names, fixed fields, and `lo` = `startRev`, or for `0` the length of a committed
+  log `C` with `idxCert`, what `watchableStore.watch` reads under `revMu`). *Rejected:* stating it
+  directly in `watchStream.Watch`'s spec over the store (the stream's spec is generic in `P`, and
+  W-S's `recvLoop` uses it at `storeWatchParams` through `wParams`, which unfolds to the same).
+- **A watcher's start revision is a fact of its channel entry.** `watchRecvOk` needs
+  `startRev ≠ 0 → lo = startRev` for any watcher a response is of; the receiver only has the
+  channel invariant, so the fact (`startLo r γw.lo`) is a pure conjunct of `chanWatcher`,
+  established at the registration (`watch_register`) and carried by every rebuild of the entry
+  (six lemmas). *Rejected:* in `watcherMeta` (its unfoldings use the ghost-map element alone),
+  in `respOk` (rebuilt at every send).
+- **The stream's ghost names are a structure, `WsStreamNames`** (`tok`, the open token; `ids`, a
+  ghost map from an auto-assigned id to its watcher, persistent elements `idAssigned γ id w`), in
+  place of the `GName` of the open token: one name per stream, next to the others, rather than a
+  second parameter of `isWatchStream` and of every stream spec.
+- **`nextID` is bounded, so assigned ids are fresh.** `Watch` with `AutoWatchID` takes `nextID`
+  and increments it (and skips live ids); a ghost map insertion needs the id not yet assigned,
+  i.e. `nextID` never wraps. The invariant keeps every assigned id in `[0, nextID)` (`idsInv`)
+  and, while open, `nextID + aboveCnt nextID WM ≤ |L|` (`aboveCnt`: the live ids at or above
+  `nextID`; `L` the watchers ever registered on the channel, the close right's list) with
+  `|L| + 3 ≤ 2 ^ 63`: a skip trades a live id at or above `nextID` for one increment, an
+  assignment adds a watcher to `L`. The bound on `|L|` comes from the store's watcher budget: the
+  contract's `watch` returns `(w :: L).length + 3 ≤ 2 ^ 63` (the registered watchers are
+  distinct watchers with names, at most the budget's). *Rejected:* a per-stream token budget in
+  `NewWatchStream` (W-S's handler would have to thread it); an unbounded statement (false: after
+  `2 ^ 64` increments an id repeats).
+- **W-S's control responses carry the watcher, not the id's uniqueness.** `ctrlOk γs γ m` gains
+  `ctrlWatcher γ req m`: a registered create response names the watcher (`watcherIs`, the range
+  `createRangeOk`). The id's uniqueness (`idAssigned`) cannot be stated there: `watchStreamSpec`
+  is a premise of the handler, fixed before `NewWatchStream` allocates the stream's names.

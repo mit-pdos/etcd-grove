@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- **`ws.RequestProgressAll()`**: asks the store for the progress of all the stream's
 watchers. -/
 abbrev mvcc.watchStream.RequestProgressAll.spec : Prop :=
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : GName),
+  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchStream ws wa P γ ∗ P.R }}
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"RequestProgressAll")) (Val #()))
