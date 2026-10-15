@@ -448,6 +448,19 @@ theorem map_some_get {β : Type} (rcv : List mvcc.RespM) (P : List Nat) (xs : Li
   rw [h1] at h2
   exact Option.some.inj h2
 
+/-- A copy loop's step: the `k`th element written over the zero fill. -/
+theorem take_replicate_set {α : Type} (ps : List α) (z : α) {k : Nat} (hk : k < ps.length) :
+    (ps.take k ++ List.replicate (ps.length - k) z).set k ps[k] =
+      ps.take (k + 1) ++ List.replicate (ps.length - (k + 1)) z := by
+  have hl : (ps.take k).length = k := by simp; omega
+  rw [List.set_append_right _ _ (by omega), hl, Nat.sub_self]
+  obtain ⟨m, hm⟩ : ∃ m, ps.length - k = m + 1 := ⟨ps.length - k - 1, by omega⟩
+  rw [hm, List.replicate_succ, List.set_cons_zero, List.take_add_one]
+  simp only [List.getElem?_eq_getElem hk, Option.toList_some, List.append_assoc,
+    List.singleton_append]
+  congr 2
+  rw [show ps.length - (k + 1) = m by omega]
+
 end v3rpc
 end EtcdGrove
 end Perennial
