@@ -45,6 +45,55 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Retargeting raft to v3.7, stage R4 phase 2: the `raft.go` specs over pointer messages (2026-10-15, branch `raft-retarget`)
+
+Phase 2 of stage R4: the 82 `raft.go`-layer spec files (`raft__*`, `step*`, `trace*`, `readOnly*`,
+the util helpers, `newRaft`, ...) ported into `Raft37/Spec/go_etcd_io/raft/v3/`, with
+`Proof/.../raft__Step/Base.lean` (the `Step` proof's glue, proofs compile) and the copied
+`math/big`/`crypto/rand` specs and proofs (`lockedRand.Intn`'s callees). No `raft.go` proof yet
+(phase 3). 47 files port by the imports and the rename alone (`raftpb.Message/Entry/Snapshot` ->
+`MessageM/EntryM/SnapshotM`); `hup`'s and `restore`'s `section results` were already in R1's
+`SpecResults.lean`. A message is `(ml : Loc)` plus its parts `m ents sn ctx rs` (`msgIn`/`msgOwn`/
+`msgPtsC`), so pure premises keep their text. Specs whose meaning changed beyond the representation:
+
+- **`appendEntry`**: v3.7 clones each entry (`proto.Clone`) and appends stamped clones, so the
+  caller's batch comes back unchanged (`entsPts es dq ents`, any fraction) and the log grows by
+  *copies* `ents'` whose `Data` slices are fresh (`EntsDataCopy`, `proto.CloneEntry.spec`), the bytes
+  equal; a new premise `"#Hdata"` (each entry's data bytes, `↦*□`, which `Clone` reads). The R4
+  design assumed the clones hold the same record; `CloneEntry` does not give that for `Data`.
+- **`stepLeader`**: `LeaderProposeResult`'s accepted case appends such copies of the loop's batch;
+  premise `"#Hdata"` for a `MsgProp`; the post's batch is gone. **`raft.Step`**: a `MsgProp` also
+  needs its entries' data bytes (`"Hents"`); `RestMsgOk` takes `ents ctx`; the message is taken
+  for good (`msgIn`), the `MsgSnap` premise on `sn = some sv` and `scfg = sv...ConfState'.lists`.
+  **Open for phase 3:** the model's `Step.propose`/`StepR.propose` append the message's batch up
+  to `PropRepl` (equal entries, or a refused conf change zeroed), not data copies, so `Step`'s
+  `MsgProp` case cannot be proved from these specs until the model admits copies (or names data by
+  its bytes); `becomeLeader`'s `leaderEntry` (`Data = nil`) needs `CloneEntry` to keep a nil `Data`
+  nil (protobuf-go does: an unset `bytes` field is not merged), which its spec does not say yet.
+- `IsEmptyHardState`/`isHardStateEqual`/`MustSync`: `*pb.HardState`s, `hsOpt` (`nil` reads as the
+  zero record; `IsEmptyHardState(nil)` is true). `IsEmptyHardState`'s proof through
+  `isHardStateEqual` will need `emptyState` as `hsRO` (`Init.lean` gives `↦□ zero_val`, no `pbMsg`).
+- `IsEmptySnap`: `snapOpt sp dq o`, given back, `nil` empty. `hardState`: a fresh `hsRO p`;
+  `getBasicStatus`: `basicStatusOf id s hp` (the embedded `*pb.HardState`) with `hsRO hp`.
+  `loadState`: `hsRO hp hs`.
+- `newRaft`: `InitialState` returns `(hp, cs)`: `hsOpt hp hs`, `csPts cs 1 csm true` lent with a wand
+  back to `ownStorage` (`MemoryStorage.InitialState`'s shape); the conf state a record `csm`
+  (voters-only scope as before; tracked ids `listToSet csm.Voters'`).
+- `send`: `msgOwn ml 1`; the `MsgSnap` clause's `"Hsnap"` is the pure premise `SnapOut` (the message
+  holds `sv`, `out` at `sv...ConfState'.lists`); `SendOk` over `ents = []`/`ctx = []`.
+- `responseToReadIndexReq`: request `msgOwn □`; a fresh owned response, the full empty message for
+  a local request (until now only `To' = 0`), else `readIndexRespMsg` (scalars) with the request's
+  entries. `sendMsgReadIndexResponse`, `readOnly.addRequest`: the request `msgOwn □`.
+- `handleHeartbeat`: the message at any fraction (`msgPtsC`), given back; `handleAppendEntries`,
+  `handleSnapshot`, `stepFollower`/`stepCandidate`: `msgIn` taken (snapshot premises pure).
+  `logSliceFromMsgApp`: lends the `Entries` slice as `GetEntries` does.
+- `restore`: `ownSnapE sp 1 sv` given back, `cl = sv...lists`; `switchToConfig`/`applyConfChange`:
+  the fresh `csPts cs 1 ... true` (`applyConfChange` on `ownCCV2 cc dq ccm`);
+  `assertConfStatesEquivalent`: `ownCSM`, its slice-level `specS`/`spec_simple` dropped.
+- Gates: `lake --packages=.lake/manifest-a54e199.json build` passes (5447 jobs); `Link.lean`
+  regenerates identically (nothing new linked); `etc/tcb-report.py --collection
+  etc/tcb-collections/raft37.txt --check` matches (190 roots, 11 axioms, no `sorry`).
+
 ## Retargeting raft to v3.7, stage R4 phase 1: the raft layer's shared predicates (2026-10-15, branch `raft-retarget`)
 
 Phase 1 of stage R4 (`notes/decisions.md`, "`raft.go` over pointer messages: the outbox owned,
