@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
@@ -39,6 +40,9 @@ public import Proof.errors.IsCtxErr
 public import Proof.errors.IsDeadlineExceeded
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.filterNoDelete
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.filterNoPut
+public import Proof.google_golang_org.grpc.GenericServerStream__Context
+public import Proof.google_golang_org.grpc.GenericServerStream__Recv
+public import Proof.google_golang_org.grpc.GenericServerStream__Send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream__Send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fillWithoutRevision
@@ -341,6 +345,22 @@ theorem etcdserverpb.wp__KV_Range_Handler :
 theorem etcdserverpb.wp__KV_Txn_Handler :
     EtcdGrove.etcdserverpb._KV_Txn_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._KV_Txn_Handler.wp_proof
+
+theorem grpc.GenericServerStream.wp_Recv :
+    EtcdGrove.grpc.GenericServerStream.Recv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.GenericServerStream.Recv.wp_proof
+
+theorem grpc.GenericServerStream.wp_Send :
+    EtcdGrove.grpc.GenericServerStream.Send.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.GenericServerStream.Send.wp_proof
+
+theorem grpc.GenericServerStream.wp_Context :
+    EtcdGrove.grpc.GenericServerStream.Context.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.GenericServerStream.Context.wp_proof
+
+theorem etcdserverpb.wp__Watch_Watch_Handler :
+    EtcdGrove.etcdserverpb._Watch_Watch_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Watch_Watch_Handler.wp_proof grpc.GenericServerStream.wp_Recv grpc.GenericServerStream.wp_Send grpc.GenericServerStream.wp_Context
 
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=

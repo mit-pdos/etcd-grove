@@ -36,6 +36,13 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
+axiom grpc.GenericServerStream.Context.wp_proof
+axiom grpc.GenericServerStream.Recv.wp_proof
+axiom grpc.GenericServerStream.Send.wp_proof
+axiom grpc.serveStream
+axiom grpcServesStream
+axiom grpcServesStream_persistent
+axiom grpcStreamServerAt
 axiom membership.localKept
 axiom membership.localKept_persistent
 axiom metadata.FromIncomingContext.wp_proof

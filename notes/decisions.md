@@ -6738,3 +6738,20 @@ cache's proof; the assumption was false, and `105fb79f5` reverted it in favour o
   `ctrlWatcher γ req m`: a registered create response names the watcher (`watcherIs`, the range
   `createRangeOk`). The id's uniqueness (`idAssigned`) cannot be stated there: `watchStreamSpec`
   is a premise of the handler, fixed before `NewWatchStream` allocates the stream's names.
+
+## The stream wire: both ends on grpc's raw streams, the generated wrappers proved, the registration as the handler's premise (unit W-W, 2026-10-15)
+
+The unary specification's author deferred streams; W-W built them in a new file,
+`google_golang_org/grpc/InvGrpcStream.lean`, in the same style. The trust boundary is grpc's own
+interfaces (`ServerStream` the runtime passes a `StreamDesc.Handler`, `ClientStream`
+`ClientConn.NewStream` returns), not the generated code: the generated handler
+(`_Watch_Watch_Handler`) and stub (`watchClient.Watch`) are proved over them, through the
+generic wrappers (`GenericServerStream`, `GenericClientStream`), whose methods are axioms stated
+as their Go bodies because Goose does not translate methods of generic types. W-S's interface
+(`srvStreamIs`, on the wrapper) is derived (`srvStreamIs_of_raw`). The stream specification is
+fixed per registered method and given to the handler as a premise (`grpcStreamMethodOk`, W-S's
+§2a.4), so it must be satisfiable per stream (`streamSpecOk`). A failed send leaves the sender's
+token at either list (soundness of the queues' ghost state). The server's stream interceptors are
+modelled as a chain of transparent interceptors (they may change the stream's context), their
+contracts premises; the client's stream interceptor is inside `NewStream` (etcd's, at no retry),
+as P3a had the unary one before proving it. Details: `notes/grpc-stream-spec.md` §6.

@@ -32,6 +32,17 @@ kVClient__Range: grpc_StaticMethod grpc_ClientConn__Invoke
 # the vertical slice's unit V2: the stub's `DeleteRange` and `Txn`, over the same generic `Invoke`
 kVClient__DeleteRange: grpc_StaticMethod grpc_ClientConn__Invoke
 kVClient__Txn: grpc_StaticMethod grpc_ClientConn__Invoke
+# Unit W-W (the gRPC stream wire): grpc's `ClientConn.NewStream` of any registered streaming method
+# (the stream transport, the client's stream interceptor included; `InvGrpcStream.lean`) and the
+# generic client-stream wrapper's methods (stream_interfaces.go; Goose does not translate methods
+# of generic types), axioms; the generated Watch stub (rpc_grpc.pb.go).
+grpc_ClientConn__NewStream:
+grpc_GenericClientStream__Send:
+grpc_GenericClientStream__Recv:
+grpc_GenericClientStream__CloseSend:
+grpc_GenericClientStream__Context:
+NewWatchClient:
+watchClient__Watch: grpc_StaticMethod grpc_ClientConn__NewStream grpc_GenericClientStream__Send grpc_GenericClientStream__Recv grpc_GenericClientStream__CloseSend grpc_GenericClientStream__Context
 # The retry client (client/v3/retry.go, retry_interceptor.go's `withRepeatablePolicy`).
 RetryKVClient: NewKVClient
 retryKVClient__Put: kVClient__Put

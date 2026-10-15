@@ -29,7 +29,12 @@ axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.serve
@@ -38,6 +43,8 @@ axiom grpcConn_persistent
 axiom grpcPeerOpt
 axiom grpcServerAt
 axiom grpcServes
+axiom grpcServesStream
+axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
 axiom peer.Peer.String.wp_proof

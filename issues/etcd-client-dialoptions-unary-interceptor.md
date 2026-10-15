@@ -114,3 +114,11 @@ func TestDialOptionsUnaryInterceptorReplacesRetry(t *testing.T) {
   caller's interceptors compose with it.
 - **Found**: 2026-10-14, unit P3a (moving the gRPC trust boundary below the retry interceptor:
   stating which interceptor chain the client's connection has).
+
+**The stream interceptor too** (unit W-W, 2026-10-15; by reading, not reproduced): `dialSetupOpts`
+also installs `grpc.WithStreamInterceptor(c.streamClientInterceptor(withMax(0), rrBackoff))`, and
+grpc's `WithStreamInterceptor` likewise keeps only the last one given; a
+`grpc.WithStreamInterceptor` in `Config.DialOptions` replaces it, so watch streams lose
+`withVersion`'s metadata and `getToken` (the token refresh on reconnect that etcd-io/etcd#11954
+added). `grpc.ClientConn.NewStream`'s axiom (`Spec/google_golang_org/grpc/ClientConn__NewStream.lean`)
+assumes the client's own stream interceptor.

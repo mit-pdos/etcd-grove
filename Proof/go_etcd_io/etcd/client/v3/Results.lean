@@ -2417,6 +2417,24 @@ theorem client_range_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF
 
 end proofs
 
+section watch_stub
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- **The generated Watch stub** (`watchClient.Watch`, linked; unit W-W): on a connection to a
+server at `addr` that serves the method with the stream specification `Spec` and the client's
+content `Up` (`isGrpcStream`, `etcd_watch_served` for etcd's server), it returns the client end
+of a fresh watch stream (`v3rpc.cliWatchStreamIs`, both tokens at `[]`, `Spec γ Dn`), or a `nil`
+stream and a client error; over grpc's `ClientConn.NewStream` and the generic client-stream
+wrapper's methods (axioms). What the client's `watch.go` (unit W-C) uses. -/
+theorem watchClient_Watch : EtcdGrove.watchClient.Watch.spec (GF := GF) (hG := hG) :=
+  watchClient.wp_Watch
+
+end watch_stub
+
 end client
 
 #print axioms Perennial.EtcdGrove.client.client_get_value
@@ -2437,6 +2455,7 @@ end client
 #print axioms Perennial.EtcdGrove.client.etcd_rangeMethodOk
 #print axioms Perennial.EtcdGrove.client.etcd_deleteMethodOk
 #print axioms Perennial.EtcdGrove.client.etcd_kv_served
+#print axioms Perennial.EtcdGrove.client.watchClient_Watch
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Put
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Get
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Do

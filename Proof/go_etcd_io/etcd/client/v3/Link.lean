@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient
 public import Proof.go_etcd_io.etcd.client.v3.OpDelete
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
@@ -35,7 +36,12 @@ public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
+public import Proof.google_golang_org.grpc.ClientConn__NewStream
 public import Proof.google_golang_org.grpc.ClientConn__Target
+public import Proof.google_golang_org.grpc.GenericClientStream__CloseSend
+public import Proof.google_golang_org.grpc.GenericClientStream__Context
+public import Proof.google_golang_org.grpc.GenericClientStream__Recv
+public import Proof.google_golang_org.grpc.GenericClientStream__Send
 public import Proof.google_golang_org.grpc.Peer
 public import Proof.google_golang_org.grpc.StaticMethod
 public import Proof.go_etcd_io.etcd.client.v3.isContextError
@@ -71,6 +77,7 @@ public import Proof.go_etcd_io.etcd.client.v3.txn__If
 public import Proof.go_etcd_io.etcd.client.v3.txn__Then
 public import Proof.go_etcd_io.etcd.client.v3.NewKV
 public import Proof.go_etcd_io.etcd.client.v3.waitRetryBackoff
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.watchClient__Watch
 public import Proof.go_etcd_io.etcd.client.v3.withBackoff
 public import Proof.go_etcd_io.etcd.client.v3.withMax
 public import Proof.go_etcd_io.etcd.client.v3.withRepeatablePolicy
@@ -285,6 +292,10 @@ theorem wp_NewKVClient :
     EtcdGrove.NewKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKVClient.wp_proof
 
+theorem wp_NewWatchClient :
+    EtcdGrove.NewWatchClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewWatchClient.wp_proof
+
 theorem v3.Op.wp_IsSortOptionValid :
     EtcdGrove.Op.IsSortOptionValid.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.IsSortOptionValid.wp_proof
@@ -308,6 +319,26 @@ theorem v3.wp_RetryKVClient :
 theorem grpc.ClientConn.wp_Invoke :
     EtcdGrove.grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.ClientConn.Invoke.wp_proof
+
+theorem grpc.ClientConn.wp_NewStream :
+    EtcdGrove.grpc.ClientConn.NewStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.ClientConn.NewStream.wp_proof
+
+theorem grpc.GenericClientStream.wp_CloseSend :
+    EtcdGrove.grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.GenericClientStream.CloseSend.wp_proof
+
+theorem grpc.GenericClientStream.wp_Context :
+    EtcdGrove.grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.GenericClientStream.Context.wp_proof
+
+theorem grpc.GenericClientStream.wp_Recv :
+    EtcdGrove.grpc.GenericClientStream.Recv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.GenericClientStream.Recv.wp_proof
+
+theorem grpc.GenericClientStream.wp_Send :
+    EtcdGrove.grpc.GenericClientStream.Send.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.GenericClientStream.Send.wp_proof
 
 theorem grpc.wp_StaticMethod :
     EtcdGrove.grpc.StaticMethod.spec (GF := GF) (hG := hG) :=
@@ -388,6 +419,10 @@ theorem v3.txn.wp_Then :
 theorem v3.wp_NewKV :
     EtcdGrove.NewKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKV.wp_proof v3.wp_RetryKVClient
+
+theorem watchClient.wp_Watch :
+    EtcdGrove.watchClient.Watch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchClient.Watch.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_NewStream grpc.GenericClientStream.wp_Send grpc.GenericClientStream.wp_Recv grpc.GenericClientStream.wp_CloseSend grpc.GenericClientStream.wp_Context
 
 theorem v3.wp_withBackoff :
     EtcdGrove.withBackoff.spec (GF := GF) (hG := hG) :=
