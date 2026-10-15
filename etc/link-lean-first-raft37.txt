@@ -1,5 +1,5 @@
 # The raft v3.7 proofs ported so far into the parallel tree Raft37/ (stage R0:
-# quorum, tracker and slices.Sort; notes/raft-retarget-plan.md), with their callees in the
+# quorum, tracker and slices.Sort; stage R1: raftpb; notes/raft-retarget-plan.md), with their callees in the
 # order of each wp_proof's hypotheses (as Proof/go_etcd_io/raft/v3/Link.lean links them).
 # `etc/gen-link.py --raft37 > Raft37/Proof/go_etcd_io/raft/v3/Link.lean`.
 quorum_JointConfig__CommittedIndex: quorum_MajorityConfig__CommittedIndex
@@ -41,3 +41,71 @@ tracker_Progress__ResetState: tracker_Inflights__reset
 tracker_Progress__SentCommit:
 tracker_Progress__SentEntries: tracker_Inflights__Add tracker_Inflights__Full
 tracker_matchAckIndexer__AckedIndex:
+
+# Stage R1: raftpb for protobuf-go v2 (the getters, Enum, Ensure*, the conf-change codec,
+# ConfState.Equivalent) and the trust boundary of protobuf-go (proto_*, axioms in the root's
+# Spec/Proof/google_golang_org/protobuf/proto/, stated per raft v3.7 message type).
+raftpb_ConfChangeSingle__GetNodeId:
+raftpb_ConfChangeSingle__GetType:
+raftpb_ConfChangeTransition__Enum:
+raftpb_ConfChangeType__Enum:
+raftpb_ConfChangeV2__AsV1:
+raftpb_ConfChangeV2__AsV2:
+raftpb_ConfChangeV2__EnterJoint: raftpb_ConfChangeV2__GetTransition
+raftpb_ConfChangeV2__GetChanges:
+raftpb_ConfChangeV2__GetContext:
+raftpb_ConfChangeV2__GetTransition:
+raftpb_ConfChangeV2__LeaveJoint: raftpb_ConfChangeV2__GetTransition raftpb_ConfChangeV2__GetChanges
+raftpb_ConfChange__AsV1:
+raftpb_ConfChange__AsV2: raftpb_ConfChange__GetType raftpb_ConfChangeType__Enum raftpb_ConfChange__GetNodeId
+raftpb_ConfChange__GetContext:
+raftpb_ConfChange__GetId:
+raftpb_ConfChange__GetNodeId:
+raftpb_ConfChange__GetType:
+raftpb_ConfState__Equivalent: proto_CloneConfState slices_Sort raftpb_ConfState__GetAutoLeave proto_EqualConfState
+raftpb_ConfState__GetAutoLeave:
+raftpb_ConfState__GetLearners:
+raftpb_ConfState__GetLearnersNext:
+raftpb_ConfState__GetVoters:
+raftpb_ConfState__GetVotersOutgoing:
+raftpb_EnsureConfState:
+raftpb_EnsureSnapshot: raftpb_EnsureSnapshotMetadata
+raftpb_EnsureSnapshotMetadata: raftpb_EnsureConfState
+raftpb_EntryType__Enum:
+raftpb_Entry__GetData:
+raftpb_Entry__GetIndex:
+raftpb_Entry__GetTerm:
+raftpb_Entry__GetType:
+raftpb_HardState__GetCommit:
+raftpb_HardState__GetTerm:
+raftpb_HardState__GetVote:
+raftpb_MarshalConfChange: raftpb_ConfChange__AsV1 raftpb_ConfChangeV2__AsV1 raftpb_ConfChangeV2__AsV2 proto_MarshalConfChange proto_MarshalConfChangeV2
+raftpb_MessageType__Enum:
+raftpb_Message__GetCommit:
+raftpb_Message__GetContext:
+raftpb_Message__GetEntries:
+raftpb_Message__GetFrom:
+raftpb_Message__GetIndex:
+raftpb_Message__GetLogTerm:
+raftpb_Message__GetReject:
+raftpb_Message__GetRejectHint:
+raftpb_Message__GetResponses:
+raftpb_Message__GetSnapshot:
+raftpb_Message__GetTerm:
+raftpb_Message__GetTo:
+raftpb_Message__GetType:
+raftpb_Message__GetVote:
+raftpb_SnapshotMetadata__GetConfState:
+raftpb_SnapshotMetadata__GetIndex:
+raftpb_SnapshotMetadata__GetTerm:
+raftpb_Snapshot__GetData:
+raftpb_Snapshot__GetMetadata:
+proto_CloneConfState:
+proto_CloneEntry:
+proto_CloneSnapshot:
+proto_EqualConfState:
+proto_MarshalConfChange:
+proto_MarshalConfChangeV2:
+proto_SizeEntry:
+proto_UnmarshalConfChange:
+proto_UnmarshalConfChangeV2:
