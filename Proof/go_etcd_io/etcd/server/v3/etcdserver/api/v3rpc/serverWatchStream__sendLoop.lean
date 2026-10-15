@@ -211,8 +211,8 @@ local macro "send_return" : tactic => `(tactic| (
       "Hwc" ∷ mvcc.watchConsumer r.γc rcv' ∗ "ws" ∷ ws_ptr ↦ v) $$ [Hwc ws]
   · iexists _, _; iframe
   wp_for Hdr
-  simp only [_root_.decide_true, ↓reduceIte]
-  wp_auto
+  (try simp only [_root_.decide_true, ↓reduceIte])
+  (try wp_auto)
   wp_apply mvcc.wp_watch_receive r.srv.γ r.ch r.γc rcv' $$ Hch Hchinv Hwc
   iintro %wv %okw Hres
   cases okw
@@ -241,7 +241,10 @@ local macro "send_return" : tactic => `(tactic| (
       · iexists _, _; iframe; ipureintro; decide
       wp_for HI
       wp_if_destruct
-      · have Hif' : sint.Z j < sint.Z sl.len := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+      · have Hif' : sint.Z j < sint.Z sl.len := by
+          first
+          | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+          | exact Hif
         have Hlen1 := Hlsl.1
         obtain ⟨l, hl⟩ : ∃ l, ls[(sint.Z j).toNat]? = some l :=
           ⟨_, List.getElem?_eq_getElem (by word)⟩
@@ -267,13 +270,13 @@ local macro "send_return" : tactic => `(tactic| (
         iexists _, _
         iframe
         ipureintro; word
-      · have Hf : (#(decide (sint.Z j < sint.Z sl.len)) : val) = #false := by
-          revert Hif; cases decide (sint.Z j < sint.Z sl.len) <;> intro Hif
-          · rfl
-          · exact absurd rfl Hif
-        rw [show decide ((#(decide (sint.Z j < sint.Z sl.len)) : val) = #false) = true from
-          decide_eq_true Hf]
-        simp only [↓reduceIte]
+      · (try (have Hf : (#(decide (sint.Z j < sint.Z sl.len)) : val) = #false := by
+                revert Hif; cases decide (sint.Z j < sint.Z sl.len) <;> intro Hif
+                · rfl
+                · exact absurd rfl Hif
+              rw [show decide ((#(decide (sint.Z j < sint.Z sl.len)) : val) = #false) = true from
+                decide_eq_true Hf]
+              simp only [↓reduceIte]))
         unfold forMapPostcondition
         iright; ileft
         isplitr
@@ -442,8 +445,10 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
   wp_for HF
   obtain ⟨Hj0, HjP, hIk, hDk⟩ := Hj
   wp_if_destruct
-  · have Hif' : sint.Z j < sint.Z ((PM !! $X).getD (zero_val GoSlice)).len :=
-      of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+  · have Hif' : sint.Z j < sint.Z ((PM !! $X).getD (zero_val GoSlice)).len := by
+      first
+      | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+      | exact Hif
     have Hlen1 := Hlsl.1
     have hkP : (sint.Z j).toNat < (pend $X).length := by rw [HlenP, ← Hxs.1]; word
     obtain ⟨l, hl⟩ : ∃ l, ls[(sint.Z j).toNat]? = some l :=
@@ -510,7 +515,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     rotate_left
     · send_fail
     subst Hserr
-    wp_auto
+    (try wp_auto)
     wp_for_post
     iframe
     have hj1 : sint.Z (j + W64 1) = sint.Z j + 1 := by word
@@ -528,21 +533,21 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     · rw [List.filterMap_append, hDk, ← List.append_assoc, List.filterMap_append (l := S ++ _)]
       simp [v3rpc.mvccResp, hrn]
   · have hnl : ¬ sint.Z j < sint.Z ((PM !! $X).getD (zero_val GoSlice)).len := by
-      intro h
-      apply Hif
-      rw [decide_eq_true h]
-    simp only [hnl, decide_false, eq_self_iff_true, _root_.decide_true, ↓reduceIte]
+      first
+      | exact Hif
+      | (intro h; apply Hif; rw [decide_eq_true h])
+    (try simp only [hnl, decide_false, eq_self_iff_true, _root_.decide_true, ↓reduceIte])
     have Hlen1 := Hlsl.1
     have hkE : (sint.Z j).toNat = (pend $X).length := by rw [HlenP, ← Hxs.1] at HjP ⊢; word
     rw [hkE, List.take_length, List.drop_length] at hIk
     rw [hkE, List.take_length] at hDk
-    wp_auto
+    (try wp_auto)
     wp_apply (wp_mapDelete pendL PM $X go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
       (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty))) $$ HPM as HPM
     wp_apply time.wp_Since as %du -
     wp_apply hSec du as %fs -
     observe hs3 Ho3
-    wp_auto
+    (try wp_auto)
     wp_for_post
     iframe
     iexists rcv, cs ++ [cl], D'
