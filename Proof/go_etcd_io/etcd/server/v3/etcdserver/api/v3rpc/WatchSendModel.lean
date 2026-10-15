@@ -382,6 +382,72 @@ theorem send_claim_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → 
   rw [hxX, hI.split X, hp]
   exact ⟨P, by simp⟩
 
+/-! ## Bookkeeping for the send loop's proof -/
+
+@[simp] theorem upd_same {α : Type} (g : w64 → α) (X : w64) (a : α) : upd g X a X = a := by
+  simp [upd]
+
+theorem upd_ne {α : Type} (g : w64 → α) {X Y : w64} (a : α) (h : Y ≠ X) : upd g X a Y = g Y := by
+  simp [upd, h]
+
+@[simp] theorem upd_upd {α : Type} (g : w64 → α) (X : w64) (a b : α) :
+    upd (upd g X a) X b = upd g X b := by
+  funext Y; unfold upd; by_cases h : Y = X <;> simp [h]
+
+theorem upd_self {α : Type} (g : w64 → α) (X : w64) : upd g X (g X) = g := by
+  funext Y; unfold upd; by_cases h : Y = X
+  · subst h; simp
+  · simp [h]
+
+/-- The last of a response's watcher's responses received up to it is the response. -/
+theorem take_filter_getLast (rcv : List mvcc.RespM) {n : Nat} {x : mvcc.RespM}
+    (h : rcv[n]? = some x) :
+    ((rcv.take (n + 1)).filter (fun y => decide (y.w = x.w))).getLast? = some x := by
+  have hn : n < rcv.length := by
+    rcases Nat.lt_or_ge n rcv.length with hl | hl
+    · exact hl
+    · rw [List.getElem?_eq_none hl] at h; cases h
+  rw [List.take_add_one, h]
+  simp [List.filter_append, List.getLast?_append]
+
+/-- Indices below the length read the same after a receipt. -/
+theorem filterMap_snoc_bound (rcv : List mvcc.RespM) (r : mvcc.RespM) (S : List Nat)
+    (hb : ∀ m ∈ S, m < rcv.length) :
+    S.filterMap (fun m => (rcv ++ [r])[m]?) = S.filterMap (fun m => rcv[m]?) := by
+  induction S with
+  | nil => rfl
+  | cons a S ih =>
+    simp only [List.filterMap_cons]
+    rw [List.getElem?_append_left (hb a List.mem_cons_self),
+      ih (fun m hm => hb m (List.mem_cons_of_mem _ hm))]
+
+/-- Buffered indices (all reading a response) read the same after a receipt. -/
+theorem map_snoc_some {β : Type} (rcv : List mvcc.RespM) (r : mvcc.RespM) (P : List Nat)
+    (xs : List β) (f : β → mvcc.RespM) (h : P.map (fun n => rcv[n]?) = xs.map (fun p => some (f p))) :
+    P.map (fun n => (rcv ++ [r])[n]?) = xs.map (fun p => some (f p)) := by
+  rw [← h]
+  apply List.map_congr_left
+  intro n hn
+  have : rcv[n]?.isSome := by
+    have hm : rcv[n]? ∈ P.map (fun n => rcv[n]?) := List.mem_map_of_mem hn
+    rw [h] at hm
+    obtain ⟨p, -, hp⟩ := List.mem_map.1 hm
+    rw [← hp]; rfl
+  rw [List.getElem?_append_left]
+  rcases Nat.lt_or_ge n rcv.length with hl | hl
+  · exact hl
+  · rw [List.getElem?_eq_none hl] at this; cases this
+
+/-- The `k`th buffered index reads the `k`th buffered response. -/
+theorem map_some_get {β : Type} (rcv : List mvcc.RespM) (P : List Nat) (xs : List β)
+    (f : β → mvcc.RespM) (h : P.map (fun n => rcv[n]?) = xs.map (fun p => some (f p)))
+    {k n : Nat} {p : β} (hn : P[k]? = some n) (hp : xs[k]? = some p) : rcv[n]? = some (f p) := by
+  have h1 : (P.map (fun n => rcv[n]?))[k]? = some rcv[n]? := by simp [hn]
+  have h2 : (xs.map (fun p => some (f p)))[k]? = some (some (f p)) := by simp [hp]
+  rw [h] at h1
+  rw [h1] at h2
+  exact Option.some.inj h2
+
 end v3rpc
 end EtcdGrove
 end Perennial
