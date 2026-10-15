@@ -65,7 +65,7 @@ def restoreM (vo v l ln : List w64) (al : Bool) : Option CCState :=
     (enterJointM al (restoreInCC vo v l ln))
 
 /-! `csCfgM` and `CSWf` are in `Protocol/Ghost.lean` since 2026-10-15 (stage S: the snapshot
-certificate `snapCert` is stated with them). -/
+certificate `raftSnapCert` is stated with them). -/
 
 theorem simpleFold_append (l1 l2 : List raftpb.ConfChangeSingle) (s : CCState) :
     simpleFold (l1 ++ l2) s = (simpleFold l1 s).bind (simpleFold l2) := by

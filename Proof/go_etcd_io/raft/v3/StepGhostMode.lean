@@ -393,12 +393,12 @@ instance GMode.SnapOk_persistent (γ : RaftNames) (md : GMode) (sv : raftpb.Snap
 /-! ### The snapshot a `MsgSnap` carries, certified (2026-10-15, stage S)
 
 `isMessage`'s `snap` case carries the application's certificate of the snapshot's `ConfState`
-(`snapCert`, `Protocol/Ghost.lean`): `SnapScope`'s facts, and what the mode asks of it
+(`raftSnapCert`, `Protocol/Ghost.lean`): `SnapScope`'s facts, and what the mode asks of it
 (`GMode.SnapOk`). So `raft.Step`'s `"Hsnap"` no longer takes either. -/
 
 theorem isMessage_absSnap_cert (γ : RaftNames) (m : raftpb.Message) (sv : raftpb.Snapshot)
     (scfg : CSLists) :
-    isMessage (GF := GF) γ (absSnap m sv scfg) ⊢ snapCert γ (snapTrip sv scfg) := by
+    isMessage (GF := GF) γ (absSnap m sv scfg) ⊢ raftSnapCert γ (snapTrip sv scfg) := by
   unfold isMessage
   simp only [absSnap, absSnapFrom]
   iintro ⟨-, -, -, -, H⟩
@@ -407,9 +407,9 @@ theorem isMessage_absSnap_cert (γ : RaftNames) (m : raftpb.Message) (sv : raftp
       sv.Metadata'.ConfState'.AutoLeave' []) from rfl]
   iexact H
 
-theorem snapCert_scope (γ : RaftNames) (sv : raftpb.Snapshot) (scfg : CSLists) :
-    snapCert (GF := GF) γ (snapTrip sv scfg) ⊢ ⌜SnapScope sv scfg⌝ := by
-  unfold snapCert
+theorem raftSnapCert_scope (γ : RaftNames) (sv : raftpb.Snapshot) (scfg : CSLists) :
+    raftSnapCert (GF := GF) γ (snapTrip sv scfg) ⊢ ⌜SnapScope sv scfg⌝ := by
+  unfold raftSnapCert
   iintro ⟨%H, -, -⟩
   ipureintro
   exact H
@@ -420,7 +420,7 @@ mode's fold (`ghostRest`'s `γ.dyn`). -/
 theorem snapOk_of_cert (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
     (sv : raftpb.Snapshot) (scfg : CSLists) :
     ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
-      snapCert γ (snapTrip sv scfg) -∗
+      raftSnapCert γ (snapTrip sv scfg) -∗
       md.SnapOk γ sv scfg ∗ ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s := by
   cases md with
   | static =>
@@ -432,7 +432,7 @@ theorem snapOk_of_cert (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : 
       | none => rfl
       | some _ => rw [h] at Hm; cases Hm
     iframe Hg Hr
-    unfold snapCert
+    unfold raftSnapCert
     icases Hc with ⟨-, %Hs, -⟩
     simp only [GMode.SnapOk]
     ipureintro; exact Hs Hn
@@ -443,7 +443,7 @@ theorem snapOk_of_cert (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : 
     obtain ⟨HD, hc, HI⟩ := Hdc
     iframe Hg Hfr Hcamp
     isplitr
-    · unfold snapCert
+    · unfold raftSnapCert
       icases Hc with ⟨%Hl, -, #Hd⟩
       simp only [GMode.SnapOk]
       imodintro

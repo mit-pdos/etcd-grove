@@ -435,7 +435,7 @@ abbrev raft.Step.spec : Prop :=
       -- slices hold, read-only (`ownCSL`); the node one of its ids (`CSLists.Has`); and the
       -- abstraction `absSnap` (`Defs.lean`) -- the snapshot's metadata and lists, not `m`'s own
       -- `Index`/`LogTerm` -- was legitimately sent. Since 2026-10-15 (stage S) the message
-      -- carries the application's certificate of the lists (`isMessage`'s `snapCert`), which
+      -- carries the application's certificate of the lists (`isMessage`'s `raftSnapCert`), which
       -- gives what the premise took until then: well formed (`SnapScope`) and what the mode asks
       -- of it (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3,
       -- the `ConfState` the fold of the snapshot's prefix). Transport assumptions like the rest.
@@ -707,7 +707,7 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
     iintro %Hns
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, #Hsv, #Hcs, #Hm'⟩
     ihave #Hcert := isMessage_absSnap_cert γ m sv scfg $$ Hm'
-    iunfold snapCert at Hcert
+    iunfold raftSnapCert at Hcert
     icases Hcert with ⟨-, %Hvs, -⟩
     iexists sv, scfg
     iframe Hsv Hcs Hm'

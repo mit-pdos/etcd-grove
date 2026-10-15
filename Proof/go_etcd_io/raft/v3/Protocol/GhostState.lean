@@ -246,7 +246,7 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
       ⌜m.src ≠ W64 0⌝ ∗
       -- (2026-10-15, stage S) the application's certificate of the snapshot's `ConfState`
-      snapCert γ m.trip)
+      raftSnapCert γ m.trip)
   | .propose =>
       -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch short enough
       -- for `appendEntry`, each entry with its data (`entData`: a normal entry's proposed,
@@ -1911,7 +1911,7 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) :
     -- ghost state is static, `γ.reDyn = none`, `ownRaftGhost_static`)
     "%Hmode"   ∷ ⌜γ.reDyn.isSome = md⌝ ∗
     -- 2026-10-15 (stage S): the certificates of the snapshots the node may send
-    "#Hsnaps"  ∷ ([∗list] k ∈ s.snaps, snapCert γ k))
+    "#Hsnaps"  ∷ ([∗list] k ∈ s.snaps, raftSnapCert γ k))
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
@@ -1933,7 +1933,7 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
       ⌜RoleOk id s⌝ -∗
       lcmOwn γ id s -∗
       rdOwn γ id s -∗
-      ([∗list] k ∈ s.snaps, snapCert γ k) -∗
+      ([∗list] k ∈ s.snaps, raftSnapCert γ k) -∗
       ownRaftGhost γ id s md := by
   intro Hname Hidnz Hmode
   unfold ownRaftGhost

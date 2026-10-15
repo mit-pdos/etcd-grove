@@ -1139,7 +1139,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
       -- (2026-10-15, stage S) the certificates of the snapshots the node may send
-      ([∗list] k ∈ s.snaps, snapCert γ k) -∗
+      ([∗list] k ∈ s.snaps, raftSnapCert γ k) -∗
       isMessage γ m := by
   intro Hr Hok Hid Hi1
   iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm #Hsnaps
@@ -1172,7 +1172,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
   · ihave #Hc' := commitIn_committed γ _ _ _ $$ Hc
     icases snapOk_message γ id s m Hr Hsnap $$ Hc' Hrecs Hb with ⟨-, #Hmeta, %Hidx⟩
     obtain ⟨Hty, Hfrom, Hterm, -, -, Hle, -, Hk⟩ := Hsnap
-    ihave #Hcert := (BigSepL.bigSepL_mem (Φ := fun k => snapCert (GF := GF) γ k) Hk) $$ Hsnaps
+    ihave #Hcert := (BigSepL.bigSepL_mem (Φ := fun k => raftSnapCert (GF := GF) γ k) Hk) $$ Hsnaps
     unfold isMessage
     rw [Hty]
     dsimp only

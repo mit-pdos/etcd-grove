@@ -1615,7 +1615,7 @@ def CSWf (vo v l ln : List w64) : Prop :=
 
 A `MsgSnap`'s receiver restores its configuration from the snapshot's `ConfState` (`raft.restore`,
 `confchange.Restore`), so what it needs of the lists is what the application promised when it
-made the snapshot (A3, `SnapConf.lean`): `snapCert γ k`. It is persistent and is stated on the
+made the snapshot (A3, `SnapConf.lean`): `raftSnapCert γ k`. It is persistent and is stated on the
 snapshot's id and lists only (`SnapTrip`), so the abstract message carries it (`isMessage`'s
 `snap` case) from the sender, which holds one for every snapshot it may send (`PState.snaps`,
 `ownRaftGhost`'s `Hsnaps`): its `Storage`'s, certified by the application, and the ones it
@@ -1644,19 +1644,19 @@ def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
   csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
 
 /-- The application's certificate of the snapshot `k` (see above). -/
-def snapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
   iprop(⌜SnapListsOk k⌝ ∗
     ⌜γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = []⌝ ∗
     □ (∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List raftpb.Entry), logRecs γ base0 fp -∗
         ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
 
-instance snapCert_persistent (γ : RaftNames) (k : SnapTrip) :
-    Persistent (snapCert (GF := GF) γ k) := by
-  unfold snapCert; infer_instance
+instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
+    Persistent (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
 
-instance snapCert_timeless (γ : RaftNames) (k : SnapTrip) :
-    Timeless (snapCert (GF := GF) γ k) := by
-  unfold snapCert; infer_instance
+instance raftSnapCert_timeless (γ : RaftNames) (k : SnapTrip) :
+    Timeless (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
 
 /-- A witness `(t', n', G', a')` of the conf entry at position `k` of `F`, of a term below
 `B`: it covers the entry (`k + 1 ≤ n'`), its configuration index is at most `k` with exactly

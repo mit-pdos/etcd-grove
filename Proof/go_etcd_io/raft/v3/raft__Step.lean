@@ -335,7 +335,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- (2026-10-15, stage S) the snapshot's certificate, from the message: `SnapScope` and what
   -- the mode asks of it
   ihave #Hcert := isMessage_absSnap_cert γ m sv scfg $$ Hm
-  ihave %Hscope := snapCert_scope γ sv scfg $$ Hcert
+  ihave %Hscope := raftSnapCert_scope γ sv scfg $$ Hcert
   icases snapOk_of_cert γ md c id s sv scfg $$ Hghost Hrest Hcert with ⟨#Hso, Hghost, Hrest⟩
   -- at the current term the receiver is not a leader: the sender leads it
   ihave #Hl2 := isMessage_snap_isLeader γ m sv scfg $$ Hm

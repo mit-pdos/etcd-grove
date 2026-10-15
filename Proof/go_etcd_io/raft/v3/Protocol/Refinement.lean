@@ -90,7 +90,7 @@ local macro "rd_mono" : tactic => `(tactic| (
 set_option hygiene false in
 /-- The snapshot certificates across a rule that keeps `snaps` (2026-10-15, stage S). -/
 local macro "snaps_keep" : tactic => `(tactic| (
-  iapply snapCerts_eq γ _ _ ?_ $$ Hsnaps <;>
+  iapply raftSnapCerts_eq γ _ _ ?_ $$ Hsnaps <;>
   first
     | rfl
     | (simp only [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate, pbecomeLeader]; done)
@@ -102,16 +102,16 @@ variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
 variable {md : Bool}
 
 /-- The snapshot certificates of two states with the same `snaps` (2026-10-15, stage S). -/
-theorem snapCerts_eq (γ : RaftNames) (s1 s2 : PState) (h : s2.snaps = s1.snaps) :
-    ⊢ ([∗list] k ∈ s1.snaps, snapCert (GF := GF) γ k) -∗ [∗list] k ∈ s2.snaps, snapCert γ k := by
+theorem raftSnapCerts_eq (γ : RaftNames) (s1 s2 : PState) (h : s2.snaps = s1.snaps) :
+    ⊢ ([∗list] k ∈ s1.snaps, raftSnapCert (GF := GF) γ k) -∗ [∗list] k ∈ s2.snaps, raftSnapCert γ k := by
   rw [h]; iintro H; iexact H
 
 /-- ... and with one more snapshot, certified. -/
-theorem snapCerts_snoc (γ : RaftNames) (l : List SnapTrip) (k : SnapTrip) :
-    ⊢ ([∗list] x ∈ l, snapCert (GF := GF) γ x) -∗ snapCert γ k -∗
-      [∗list] x ∈ l ++ [k], snapCert γ x := by
+theorem raftSnapCerts_snoc (γ : RaftNames) (l : List SnapTrip) (k : SnapTrip) :
+    ⊢ ([∗list] x ∈ l, raftSnapCert (GF := GF) γ x) -∗ raftSnapCert γ k -∗
+      [∗list] x ∈ l ++ [k], raftSnapCert γ x := by
   iintro Hl Hk
-  iapply (BigSepL.bigSepL_snoc (Φ := fun _ x => snapCert (GF := GF) γ x)).2
+  iapply (BigSepL.bigSepL_snoc (Φ := fun _ x => raftSnapCert (GF := GF) γ x)).2
   isplitl [Hl]
   · iexact Hl
   · iexact Hk
@@ -289,7 +289,7 @@ private theorem isMessage_snap_inv (γ : RaftNames) (m : Msg) :
          lpfull γ m.src m.term bL l fp ∗
          commitIn γ (fp ++ l) m.index m.term ∗
          isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
-      ⌜m.src ≠ W64 0⌝ ∗ snapCert γ m.trip := by
+      ⌜m.src ≠ W64 0⌝ ∗ raftSnapCert γ m.trip := by
   intro Hty
   unfold isMessage; rw [Hty]
   iintro H; iexact H
@@ -924,7 +924,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
           rw [Hce hD x (List.mem_of_getElem? Hk) hty, HF2, Hs2commit]
           exact ConfI1_snoc (Hi1 hD) (by rw [← He]; exact not_isConfEnt_zero)) $$
         Hnewlead2 Hp2 Hpf2 Hrecs2' Hcommit2 Hbase2 Hcmt2 []
-      iapply snapCerts_eq γ _ _ Hs2snaps $$ Hsnaps
+      iapply raftSnapCerts_eq γ _ _ Hs2snaps $$ Hsnaps
   · iapply tally_empty γ id _ (by show s2.votes = ∅; exact Hs2votes)
   · unfold leaderWit
     simp only [psendMsgs_role, Hs2role, psendMsgs_term]
@@ -946,7 +946,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       rw [Hs2role] at h'; cases h'
   · lcm_mono
   · iexact Hrd
-  · iapply snapCerts_eq γ _ _ ?_ $$ Hsnaps
+  · iapply raftSnapCerts_eq γ _ _ ?_ $$ Hsnaps
     simp only [psendMsgs]; exact Hs2snaps
 
 /-- `Step.beat`: a heartbeat carries the leadership, a commit index the leader has, and
@@ -2653,7 +2653,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   · rd_mono
   · -- (2026-10-15, stage S) the restored snapshot, certified by the message
     simp only [psendMsgs]
-    iapply snapCerts_snoc γ s.snaps m.trip $$ Hsnaps Hcert
+    iapply raftSnapCerts_snoc γ s.snaps m.trip $$ Hsnaps Hcert
 
 /-! ### The refinement obligation -/
 

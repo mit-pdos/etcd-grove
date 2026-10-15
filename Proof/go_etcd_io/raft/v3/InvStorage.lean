@@ -159,7 +159,7 @@ structure StorState [FfiSyntax] where
   pend : List raftpb.Entry
   /-- (2026-10-15, stage S) The snapshot's `ConfState`: the lists behind its four slices and
   its `AutoLeave` (`HSnapshot` hands them out with the snapshot), so that raft knows which
-  certified snapshot (`snapCert`, `ownRaftLog`'s `Hsksn`) it sends. `∅`/`false` for the empty
+  certified snapshot (`raftSnapCert`, `ownRaftLog`'s `Hsksn`) it sends. `∅`/`false` for the empty
   snapshot a fresh storage holds. -/
   scs : CSLists := ∅
   sal : Bool := false

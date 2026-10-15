@@ -114,7 +114,7 @@ instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its entry id `(Term, Index)`,
 its `ConfState`'s four lists and its `AutoLeave`. What a node may send in a `MsgSnap`
 (`PState.snaps`, `SnapOk`) and what the application certifies of a snapshot it makes
-(`snapCert`, `Protocol/Ghost.lean`). -/
+(`raftSnapCert`, `Protocol/Ghost.lean`). -/
 structure SnapTrip [FfiSyntax] where
   sid : entryID
   cl : CSLists
@@ -128,7 +128,7 @@ message needs that list as an argument.
 `voters` its `Metadata.ConfState.Voters` -- all behind the pointer `Message.Snapshot`,
 read by `absSnap` (`Defs.lean`). Every other message has `voters = []`.
 (2026-10-15, stage S) A `snap` carries all four lists of its `ConfState` (`cs`) and its
-`AutoLeave` (`al`): `isMessage` carries the application's certificate of them (`snapCert`); every
+`AutoLeave` (`al`): `isMessage` carries the application's certificate of them (`raftSnapCert`); every
 other message has `cs = ∅`, `al = false`. -/
 structure Msg [FfiSyntax] where
   mkV ::
