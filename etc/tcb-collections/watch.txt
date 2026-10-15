@@ -5,12 +5,19 @@
 # (its collection), `isClientCtxErr` (grpc's `status.FromError`), `math/rand.Int63n`,
 # `(*time.Duration).Seconds` (Perennial's `time` lacks `Duration.Seconds`, so its pointer wrapper
 # too), and the names-only zap, time, otel, verify, prometheus functions.
+# Unit W-W (2026-10-15): the wire: the generated stream handler and its served result
+# (`watch_handler`, `watch_streamHandlerOk`, `etcd_watchMethodOk`, `etcd_watch_served`,
+# `etcd_watch_served_chain`, v3rpc/Results.lean) and the generated stub (`client.watchClient_Watch`,
+# client/v3/Results.lean); new boundary: `InvGrpcStream.lean`'s `grpcStreamServerAt`,
+# `grpcServesStream`, `grpc.serveStream`, `ClientConn.NewStream`, the generic wrappers' methods.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/watch.txt [--check [--update]]
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots \bv3rpc\.(watch_server|new_watch_server|watchStreamSpec_step|srvStep_of_watch)$
+roots \bv3rpc\.(watch_handler|watch_streamHandlerOk|etcd_watchMethodOk|etcd_watch_served|etcd_watch_served_chain)$
+roots \bclient\.watchClient_Watch$
 axiom attribute.Bool.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
@@ -19,6 +26,21 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txLive
 axiom errors.IsCtxErr.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
+axiom grpc.GenericServerStream.Context.wp_proof
+axiom grpc.GenericServerStream.Recv.wp_proof
+axiom grpc.GenericServerStream.Send.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpc.serveStream
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcServesStream
+axiom grpcServesStream_persistent
+axiom grpcStreamServerAt
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom rand.Int63n.wp_proof
 axiom time.Duration.Seconds.wp_proof

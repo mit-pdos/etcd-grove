@@ -4,7 +4,7 @@ For: the author of `Proof/google_golang_org/grpc/InvGrpc.lean` (the generic gRPC
 units C1/P3a/P3b).
 From: the vertical slice's watch unit (`notes/STATUS.md`, "The vertical slice"; the request
 path's session).
-Status: proposal. Nothing of it is built. The watch slice's server hop (unit W-S, `server/v3/
+Status: built (unit W-W, 2026-10-15; §6). Before W-W: a proposal. The watch slice's server hop (unit W-S, `server/v3/
 etcdserver/api/v3rpc/watch.go`) is being proved against a local server-end interface of exactly
 this shape (`v3rpc/InvWatchStream.lean`, `srvStreamIs`), so that your axiom instantiates it when
 you add streams; the client hop (`client/v3/watch.go`) will use the client end. Names are
@@ -144,3 +144,69 @@ model instance between consecutive responses).
 - `grpc.serve`'s pool: one slot per stream for its whole life (the handler returns when the
   stream ends), so a server with `N` slots serves at most `N` watch streams at a time plus the
   unary runs: say whether the pool is shared or separate.
+
+## 6. As built (W-W, 2026-10-15)
+
+File: `Proof/google_golang_org/grpc/InvGrpcStream.lean` (namespace `EtcdGrove`; `InvGrpc.lean`
+untouched). W-S's `v3rpc/InvWatchStream.lean` re-exports the generic names (`export`); every W-S
+proof builds unchanged.
+
+**Vocabulary.** `StreamMsg` gains `own` (a message the receiver owns, into which a receive
+decodes; a fresh `new(T)` is one); `StreamNames` gains `downRcv`, `downEnd`; tokens
+`srvRecvTok`/`srvSendTok` (server), `cliSendTok`/`cliRecvTok` (client), persistent `upAt`, `upLb`,
+`downAt`, `downLb`, `upClosed`, `downClosed`; errors `streamErr` (server), `cliStreamErr`
+(client: also `clientErr` and `statusErrOk`, as the unary attempt's errors). Ends:
+`srvRawStreamIs` (grpc's `ServerStream`: `RecvMsg`/`SendMsg`/`Context`), `srvStreamIs` (W-S's, the
+generated `GenericServerStream` wrapper: `Recv`/`Send`/`Context`), `cliStreamIs` (grpc's
+`ClientStream`: `SendMsg`/`RecvMsg`/`CloseSend`/`Context`), `cliBidiStreamIs` (the
+`GenericClientStream` wrapper: `Send`/`Recv`/`CloseSend`/`Context`); `srvStreamIs_of_raw`,
+`cliBidiStreamIs_of_raw` derive the wrapped ends. Registration: `grpcStreamHandlerOk` (a service's
+stream method, WP form), `srvStreamChainWP` (grpc's `chainStreamServerInterceptors`),
+`srvStreamInterceptorOk`/`srvStreamInterceptorsOk` (transparent: calls the handler once on a
+server end of the same stream, possibly with another context, or fails), `srvStreamChainWP_of_ok`,
+`grpcStreamMethodOk mh srv ics S Up Spec` (`streamSpecOk Spec` ∗ the run through the chain on a
+fresh raw end, both tokens at `[]`, `Spec γ Dn`, `S`; nothing returned), `isGrpcStream`,
+`isGrpcStream_intro`, `grpc_serveStream_rpcs`.
+
+**Axioms** (12, all at the boundary):
+- `grpcStreamServerAt addr ics sregs` (opaque, exclusive): the server built with the stream chain
+  `ics`, its streams `sregs = (full name, StreamDesc.Handler, service value)` registered (beside
+  the unary `grpcServerAt`, whose arity is unchanged).
+- `grpcServesStream` and its persistence: introduced only by `grpc.serveStream`.
+- `grpc.serveStream`: from `grpcStreamServerAt`, `n` copies of `S` and `grpcStreamMethodOk` for each
+  of the methods `ms` (distinct, registered), `grpcServesStream` for each; a run consumes a copy
+  (a pool separate from the unary runs').
+- `grpc.ClientConn.NewStream.wp_proof`: on `grpcConn conn addr ics []`, `isGrpcStream addr method
+  Up Spec`, `ctxOk`, a read-only `StreamDesc`, call options `callOptsOk`: a raw client end with
+  both tokens at `[]` and `Spec γ Dn`, or a `nil` stream and `cliStreamErr`. Inside: etcd's
+  `streamClientInterceptor(withMax(0))` (`withVersion`, `getToken`, `filterCallOptions`; asked to
+  retry a bidirectional stream it returns `Unimplemented`), grpc's stream creation; the stream's
+  context is grpc's child of `ctx`.
+- `grpc.GenericServerStream.{Recv,Send,Context}.wp_proof`,
+  `grpc.GenericClientStream.{Send,Recv,CloseSend,Context}.wp_proof`: each the Go body (a call of
+  the embedded stream's method; `Recv` allocates `new(T)` first), for any message types. Goose
+  (the pinned translator) emits no body for a method of a generic type (only a `MethodUnfold`
+  naming an undefined `.impl`) and drops the type arguments of a promoted method's field access
+  (`StructFieldRef GenericClientStream.ty`): translator limitations, not fought.
+
+**Differences from §2/§2a, and why.**
+- A failed send leaves the token at the old **or** the new list (`∃ L', L' = L ∨ L' = L ++ [m]`),
+  not at the old one: a message delivered after the sender's token stayed at `L` would make the
+  receiver's lower bound exceed the sender's authority (unsound ghost state). W-S's `srvStreamIs`
+  changed accordingly (its proofs drop the token on a failed send: unchanged).
+- `Spec` must be satisfiable per stream (`streamSpecOk`: `□ ∀ γ, ∃ Dn, □ Spec γ Dn`, inside
+  `grpcStreamMethodOk`): the transport gives `Spec γ Dn` to both ends; without it `NewStream`
+  could produce `False`. `watchStreamSpec` meets it with `Dn := watchDn`.
+- The run slot is consumed (§2a.5, option 1): the handler's run need not return it.
+- The server's chain is modelled (transparent stream interceptors), not empty: etcd's
+  `v3rpc.Server` installs `[serverMetrics.StreamServerInterceptor(), newStreamInterceptor(s)]`
+  (`grpc.go`); their contracts are premises of `etcd_watch_served_chain` (the metrics one assumed,
+  `newStreamInterceptor`'s for the stream-interceptor unit).
+- `pbWatchRequest.send` is a real wire model now (`watchReqSend`, read-only fields), no longer
+  `True` (which let a sender claim any model).
+- grpc's `ClientStream`/`ServerStream` were axiomatized types (they name `metadata.MD`): grpc's
+  translation now imports `grpc/metadata`, so they are interfaces.
+
+**Open.** `RegisterWatchServer` translated, not proved (the registration is
+`grpcStreamServerAt`'s premise, as for KV); fragments, `prev_kv`, filters stay excluded
+(`watchReqOk`); the client's reconnection is W-C's.
