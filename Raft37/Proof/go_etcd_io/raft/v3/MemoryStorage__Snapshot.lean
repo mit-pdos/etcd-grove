@@ -9,6 +9,8 @@ public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
 
 @[expose] public section
 
+set_option linter.unusedSectionVars false
+
 noncomputable section
 
 namespace Perennial

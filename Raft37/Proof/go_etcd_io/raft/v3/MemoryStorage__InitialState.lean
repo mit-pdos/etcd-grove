@@ -9,6 +9,8 @@ public import Raft37.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 
+set_option linter.unusedSectionVars false
+
 noncomputable section
 
 namespace Perennial
