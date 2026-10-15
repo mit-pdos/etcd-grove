@@ -2,7 +2,8 @@
 The raft v3.7 results ported so far into the parallel tree `Raft37/` (stage R0 of the
 retarget, `notes/raft-retarget-plan.md`): `quorum`, `tracker` and `slices.Sort`; since stage R1
 `raftpb` (the getters, `Enum`, `Ensure*`, the conf-change codec, `ConfState.Equivalent`) and the
-nine protobuf-go axioms (`proto.*`, the trust boundary), as
+nine protobuf-go axioms (`proto.*`, the trust boundary); since stage R2 `confchange` (with
+etcd-grove's `fmt.Errorf` axiom and `raftpb.ConfChangeType.String` at the trust boundary), as
 `Proof/go_etcd_io/raft/v3/Link.lean` links them for the verified raft. `#print axioms` of each
 is its trust base (in the build log); `etc/tcb-report.py --collection
 etc/tcb-collections/raft37.txt` reports on them. The tree replaces the old raft proof's when
@@ -131,6 +132,31 @@ namespace EtcdGrove
 #print axioms raftpb.SnapshotMetadata.wp_GetTerm
 #print axioms raftpb.Snapshot.wp_GetData
 #print axioms raftpb.Snapshot.wp_GetMetadata
+
+-- confchange (stage R2), with etcd-grove's `fmt.Errorf` and `ConfChangeType.String` axioms
+#print axioms confchange.wp_incoming
+#print axioms confchange.wp_outgoing
+#print axioms confchange.wp_outgoingPtr
+#print axioms confchange.wp_joint
+#print axioms confchange.wp_nilAwareAdd
+#print axioms confchange.wp_nilAwareDelete
+#print axioms confchange.wp_symdiff
+#print axioms confchange.wp_checkInvariants
+#print axioms confchange.wp_checkAndReturn
+#print axioms confchange.Changer.wp_checkAndCopy
+#print axioms confchange.Changer.wp_err
+#print axioms confchange.Changer.wp_initProgress
+#print axioms confchange.Changer.wp_remove
+#print axioms confchange.Changer.wp_makeVoter
+#print axioms confchange.Changer.wp_makeLearner
+#print axioms raftpb.ConfChangeType.wp_String
+#print axioms confchange.Changer.wp_apply
+#print axioms confchange.Changer.wp_Simple
+#print axioms confchange.Changer.wp_EnterJoint
+#print axioms confchange.Changer.wp_LeaveJoint
+#print axioms confchange.wp_toConfChangeSingle
+#print axioms confchange.wp_chain
+#print axioms confchange.wp_Restore
 
 -- the protocol model (stage R1)
 #print axioms raft_dyn_alloc

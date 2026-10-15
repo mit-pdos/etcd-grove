@@ -109,3 +109,32 @@ proto_MarshalConfChangeV2:
 proto_SizeEntry:
 proto_UnmarshalConfChange:
 proto_UnmarshalConfChangeV2:
+
+# Stage R2: confchange (the old proof's 22 functions, `ccs ...*pb.ConfChangeSingle` read through
+# the getters, `toConfChangeSingle`/`Restore` on a `*pb.ConfState`), with etcd-grove's
+# `fmt.Errorf` axiom (linked in `Proof/fmt/Link.lean`) and `ConfChangeType.String` at the trust
+# boundary (protobuf plumbing, names-only in the v3.7 translation; the old proof's axiom restated).
+confchange_incoming:
+confchange_outgoing:
+confchange_outgoingPtr:
+confchange_joint: confchange_outgoing
+confchange_nilAwareAdd:
+confchange_nilAwareDelete:
+confchange_symdiff:
+confchange_checkInvariants: quorum_JointConfig__IDs confchange_joint confchange_outgoing confchange_incoming
+confchange_checkAndReturn: confchange_checkInvariants
+confchange_Changer__checkAndCopy: tracker_Config__Clone confchange_checkAndReturn
+confchange_Changer__err:
+confchange_Changer__initProgress: confchange_incoming tracker_NewInflights confchange_nilAwareAdd
+confchange_Changer__remove: confchange_incoming confchange_outgoing confchange_nilAwareDelete
+confchange_Changer__makeVoter: confchange_Changer__initProgress confchange_incoming confchange_nilAwareDelete
+confchange_Changer__makeLearner: confchange_Changer__initProgress confchange_Changer__remove confchange_outgoing confchange_nilAwareAdd
+confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming fmt_Errorf raftpb_ConfChangeType__String raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
+fmt_Errorf: @
+raftpb_ConfChangeType__String:
+confchange_Changer__Simple: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
+confchange_Changer__EnterJoint: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_incoming confchange_outgoingPtr confchange_outgoing confchange_Changer__apply confchange_checkAndReturn
+confchange_Changer__LeaveJoint: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_nilAwareAdd confchange_outgoing confchange_incoming confchange_outgoingPtr confchange_checkAndReturn
+confchange_toConfChangeSingle: raftpb_ConfChangeType__Enum
+confchange_chain:
+confchange_Restore: confchange_toConfChangeSingle confchange_Changer__Simple confchange_Changer__EnterJoint confchange_chain raftpb_ConfState__GetAutoLeave

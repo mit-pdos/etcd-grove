@@ -8,6 +8,28 @@ hand.
 -/
 module
 
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__Simple
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__apply
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__err
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__initProgress
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__makeLearner
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__makeVoter
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Changer__remove
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.Restore
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.chain
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.checkAndReturn
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.checkInvariants
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.incoming
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.joint
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.nilAwareAdd
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.nilAwareDelete
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.outgoing
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.outgoingPtr
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.symdiff
+public import Raft37.Proof.go_etcd_io.raft.v3.confchange.toConfChangeSingle
 public import Proof.google_golang_org.protobuf.proto.CloneConfState
 public import Proof.google_golang_org.protobuf.proto.CloneEntry
 public import Proof.google_golang_org.protobuf.proto.CloneSnapshot
@@ -28,6 +50,7 @@ public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
 public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__Enum
 public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
+public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
 public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
 public import Raft37.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
@@ -111,6 +134,7 @@ public import Raft37.Proof.go_etcd_io.raft.v3.tracker.Progress__ResetState
 public import Raft37.Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Raft37.Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Raft37.Proof.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
+public import Proof.fmt.Link
 
 @[expose] public section
 
@@ -127,6 +151,126 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem tracker.Config.wp_Clone :
+    tracker.Config.Clone.spec (GF := GF) (hG := hG) :=
+  tracker.Config.Clone.wp_proof
+
+theorem quorum.JointConfig.wp_IDs :
+    quorum.JointConfig.IDs.spec (GF := GF) (hG := hG) :=
+  quorum.JointConfig.IDs.wp_proof
+
+theorem confchange.wp_outgoing :
+    confchange.outgoing.spec (GF := GF) (hG := hG) :=
+  confchange.outgoing.wp_proof
+
+theorem confchange.wp_joint :
+    confchange.joint.spec (GF := GF) (hG := hG) :=
+  confchange.joint.wp_proof confchange.wp_outgoing
+
+theorem confchange.wp_incoming :
+    confchange.incoming.spec (GF := GF) (hG := hG) :=
+  confchange.incoming.wp_proof
+
+theorem confchange.wp_checkInvariants :
+    confchange.checkInvariants.spec (GF := GF) (hG := hG) :=
+  confchange.checkInvariants.wp_proof quorum.JointConfig.wp_IDs confchange.wp_joint confchange.wp_outgoing confchange.wp_incoming
+
+theorem confchange.wp_checkAndReturn :
+    confchange.checkAndReturn.spec (GF := GF) (hG := hG) :=
+  confchange.checkAndReturn.wp_proof confchange.wp_checkInvariants
+
+theorem confchange.Changer.wp_checkAndCopy :
+    confchange.Changer.checkAndCopy.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.checkAndCopy.wp_proof tracker.Config.wp_Clone confchange.wp_checkAndReturn
+
+theorem confchange.Changer.wp_err :
+    confchange.Changer.err.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.err.wp_proof
+
+theorem confchange.wp_outgoingPtr :
+    confchange.outgoingPtr.spec (GF := GF) (hG := hG) :=
+  confchange.outgoingPtr.wp_proof
+
+theorem tracker.wp_NewInflights :
+    tracker.NewInflights.spec (GF := GF) (hG := hG) :=
+  tracker.NewInflights.wp_proof
+
+theorem confchange.wp_nilAwareAdd :
+    confchange.nilAwareAdd.spec (GF := GF) (hG := hG) :=
+  confchange.nilAwareAdd.wp_proof
+
+theorem confchange.Changer.wp_initProgress :
+    confchange.Changer.initProgress.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.initProgress.wp_proof confchange.wp_incoming tracker.wp_NewInflights confchange.wp_nilAwareAdd
+
+theorem confchange.wp_nilAwareDelete :
+    confchange.nilAwareDelete.spec (GF := GF) (hG := hG) :=
+  confchange.nilAwareDelete.wp_proof
+
+theorem confchange.Changer.wp_makeVoter :
+    confchange.Changer.makeVoter.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.makeVoter.wp_proof confchange.Changer.wp_initProgress confchange.wp_incoming confchange.wp_nilAwareDelete
+
+theorem confchange.Changer.wp_remove :
+    confchange.Changer.remove.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.remove.wp_proof confchange.wp_incoming confchange.wp_outgoing confchange.wp_nilAwareDelete
+
+theorem confchange.Changer.wp_makeLearner :
+    confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.makeLearner.wp_proof confchange.Changer.wp_initProgress confchange.Changer.wp_remove confchange.wp_outgoing confchange.wp_nilAwareAdd
+
+theorem raftpb.ConfChangeType.wp_String :
+    raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeType.String.wp_proof
+
+theorem raftpb.ConfChangeSingle.wp_GetNodeId :
+    raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeSingle.GetNodeId.wp_proof
+
+theorem raftpb.ConfChangeSingle.wp_GetType :
+    raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeSingle.GetType.wp_proof
+
+theorem confchange.Changer.wp_apply :
+    confchange.Changer.apply.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.wp_incoming fmt.wp_Errorf raftpb.ConfChangeType.wp_String raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeSingle.wp_GetType
+
+theorem confchange.Changer.wp_EnterJoint :
+    confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.EnterJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.wp_incoming confchange.wp_outgoingPtr confchange.wp_outgoing confchange.Changer.wp_apply confchange.wp_checkAndReturn
+
+theorem confchange.Changer.wp_LeaveJoint :
+    confchange.Changer.LeaveJoint.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.LeaveJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.wp_nilAwareAdd confchange.wp_outgoing confchange.wp_incoming confchange.wp_outgoingPtr confchange.wp_checkAndReturn
+
+theorem confchange.wp_symdiff :
+    confchange.symdiff.spec (GF := GF) (hG := hG) :=
+  confchange.symdiff.wp_proof
+
+theorem confchange.Changer.wp_Simple :
+    confchange.Changer.Simple.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.Simple.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.Changer.wp_apply confchange.wp_incoming confchange.wp_symdiff confchange.wp_checkAndReturn
+
+theorem raftpb.ConfChangeType.wp_Enum :
+    raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeType.Enum.wp_proof
+
+theorem confchange.wp_toConfChangeSingle :
+    confchange.toConfChangeSingle.spec (GF := GF) (hG := hG) :=
+  confchange.toConfChangeSingle.wp_proof raftpb.ConfChangeType.wp_Enum
+
+theorem confchange.wp_chain :
+    confchange.chain.spec (GF := GF) (hG := hG) :=
+  confchange.chain.wp_proof
+
+theorem raftpb.ConfState.wp_GetAutoLeave :
+    raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfState.GetAutoLeave.wp_proof
+
+theorem confchange.wp_Restore :
+    confchange.Restore.spec (GF := GF) (hG := hG) :=
+  confchange.Restore.wp_proof confchange.wp_toConfChangeSingle confchange.Changer.wp_Simple confchange.Changer.wp_EnterJoint confchange.wp_chain raftpb.ConfState.wp_GetAutoLeave
 
 theorem proto.wp_CloneConfState :
     proto.CloneConfState.spec (GF := GF) (hG := hG) :=
@@ -176,10 +320,6 @@ theorem quorum.JointConfig.wp_CommittedIndex :
     quorum.JointConfig.CommittedIndex.spec (GF := GF) (hG := hG) :=
   quorum.JointConfig.CommittedIndex.wp_proof quorum.MajorityConfig.wp_CommittedIndex
 
-theorem quorum.JointConfig.wp_IDs :
-    quorum.JointConfig.IDs.spec (GF := GF) (hG := hG) :=
-  quorum.JointConfig.IDs.wp_proof
-
 theorem quorum.MajorityConfig.wp_VoteResult :
     quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG) :=
   quorum.MajorityConfig.VoteResult.wp_proof
@@ -196,21 +336,9 @@ theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
 
-theorem raftpb.ConfChangeSingle.wp_GetNodeId :
-    raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeSingle.GetNodeId.wp_proof
-
-theorem raftpb.ConfChangeSingle.wp_GetType :
-    raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeSingle.GetType.wp_proof
-
 theorem raftpb.ConfChangeTransition.wp_Enum :
     raftpb.ConfChangeTransition.Enum.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeTransition.Enum.wp_proof
-
-theorem raftpb.ConfChangeType.wp_Enum :
-    raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeType.Enum.wp_proof
 
 theorem raftpb.ConfChangeV2.wp_AsV1 :
     raftpb.ConfChangeV2.AsV1.spec (GF := GF) (hG := hG) :=
@@ -263,10 +391,6 @@ theorem raftpb.ConfChange.wp_GetContext :
 theorem raftpb.ConfChange.wp_GetId :
     raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChange.GetId.wp_proof
-
-theorem raftpb.ConfState.wp_GetAutoLeave :
-    raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfState.GetAutoLeave.wp_proof
 
 theorem raftpb.ConfState.wp_Equivalent :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) :=
@@ -416,10 +540,6 @@ theorem raftpb.Snapshot.wp_GetMetadata :
     raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG) :=
   raftpb.Snapshot.GetMetadata.wp_proof
 
-theorem tracker.Config.wp_Clone :
-    tracker.Config.Clone.spec (GF := GF) (hG := hG) :=
-  tracker.Config.Clone.wp_proof
-
 theorem tracker.Inflights.wp_Full :
     tracker.Inflights.Full.spec (GF := GF) (hG := hG) :=
   tracker.Inflights.Full.wp_proof
@@ -451,10 +571,6 @@ theorem tracker.Inflights.wp_reset :
 theorem tracker.wp_MakeProgressTracker :
     tracker.MakeProgressTracker.spec (GF := GF) (hG := hG) :=
   tracker.MakeProgressTracker.wp_proof
-
-theorem tracker.wp_NewInflights :
-    tracker.NewInflights.spec (GF := GF) (hG := hG) :=
-  tracker.NewInflights.wp_proof
 
 theorem tracker.matchAckIndexer.wp_AckedIndex :
     tracker.matchAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
