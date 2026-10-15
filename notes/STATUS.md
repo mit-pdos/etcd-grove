@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-15 (**`worktree-raft-rest` merged with `lean`** (`origin/lean` `50b57c990`, Perennial `a54e1999f`): raft repinned to the fork's `raft-goose-lean` `0560cb7` kept, the translations reproduce unchanged, every `Link.lean` reproduces; three raft proofs fixed for the new Perennial's `fmt` (`ArgsWf`), `stepLeader.lean`'s `iframe ∗` override deleted (Perennial `fb1ecb030` fixed the race), one new trust-boundary axiom (`raftpb.ConfChangeType.String.wp_proof`); see "Merge: `worktree-raft-rest` into `lean` (2026-10-15)"; stage S, partial: **the snapshot's `ConfState` recorded by the
+**Last updated:** 2026-10-15 (**`worktree-raft-rest` merged with `lean`** (`origin/lean` `50b57c990`, then its notes-only `29c85ba9e`; Perennial `a54e1999f`): raft repinned to the fork's `raft-goose-lean` `0560cb7` kept, the translations reproduce unchanged, every `Link.lean` reproduces; three raft proofs fixed for the new Perennial's `fmt` (`ArgsWf`), `stepLeader.lean`'s `iframe ∗` override deleted (Perennial `fb1ecb030` fixed the race), one new trust-boundary axiom (`raftpb.ConfChangeType.String.wp_proof`); see "Merge: `worktree-raft-rest` into `lean` (2026-10-15)"; the vertical slice's goal revised by the user: end-to-end specs and adequacy for the client's `Put` and `Range`, the client-side libraries and the watch slice out of scope, see "The vertical slice"; stage S, partial: **the snapshot's `ConfState` recorded by the
 storage and the log** -- `StorState.scs`/`sal`, `LogState.ksn` (the certified snapshots a node may
 send), the certificate `raftSnapCert` defined; carrying it to the receiver, `MsgSnap` at
 `RawNode.Step` and a pending snapshot in `Ready`/`Advance` left, with costs; see "Snapshots at the
@@ -2526,10 +2526,30 @@ over a reader resource (unit A2)".
 
 ## The vertical slice: client to server
 
-The goal: the clients' results (the cache, `client/v3/concurrency`, `client/v3/leasing`, the
-recipes), stated over a model of etcd, become statements about the verified server, through the
-real client library and the gRPC stub. Design: `notes/decisions.md`, "The client's model as a class
-the server instantiates; the wire as the handler's theorem transported".
+**The goal (revised 2026-10-15, by the user):** end-to-end specifications and adequacy for a
+client's `Put` and `Range` (`kv.Put`, `kv.Get` of `client/v3`), not the client-side libraries on
+top of them.
+
+- **The specs**: `kv.Put`/`kv.Get` through the real client library, the gRPC stub and the
+  verified server, as persistent atomic updates over the abstract etcd state, linearized by raft
+  (units T1/T2 of the backend: `notes/decisions.md`, "Put and Get as persistent atomic updates
+  linearized by raft"; the raft side: `notes/raft-readindex-spec.md`). DeleteRange and Txn get the
+  same form (they are on `lean` already, V2b), and every KV operation, leases included, eventually
+  has a transition on the abstract state.
+- **Adequacy**: a closed program — one etcd member and a client doing `Put` then `Get` — proved
+  with Perennial's `goose_adequacy`; what is left is listed in "Adequacy for a minimal client
+  example: what is left".
+- **Out of scope for now**: proving the client-side libraries (the cache, `client/v3/concurrency`,
+  `client/v3/leasing`, the recipes) over these specs, and so the watch slice (the server and client
+  hops of `Watch`, gRPC streams: `notes/grpc-stream-spec.md` is deferred) and the lease contracts
+  (`isEtcdLease`). V1's and V2's results (the clients' model as a class the server instantiates,
+  the recipes and the queue at the server's model) stay as they are; they are not extended.
+
+The original goal (V1, V2): the clients' results (the cache, `client/v3/concurrency`,
+`client/v3/leasing`, the recipes), stated over a model of etcd, become statements about the
+verified server, through the real client library and the gRPC stub. Design: `notes/decisions.md`,
+"The client's model as a class the server instantiates; the wire as the handler's theorem
+transported".
 
 ### V1: the client's model implemented by the server; the wire (2026-10-13)
 
@@ -2890,9 +2910,10 @@ notes). Design: decisions.md, "The client contracts derived: certified floors, t
   `isEtcdTxnKVTodo_of_kv`) and, through the floors, item 3 at one member (a revision the caller
   knows is reached becomes the request's certificate). Open: items 1, 2 (one history: the floors
   are certificates of one member's `E.γ.idx`), 3 across members, 7, 8, and the retried put.
-- **What the watch slice should do first**: derive `isEtcdRangeWatcherOpen` for the client's
-  `Watcher` over etcd's `Watch` service, the one premise of `isEtcdRecipesClient_of_kv` not
-  derived (the queue's wait path uses it).
+- **What the watch slice should do first** (deferred 2026-10-15: the slice's goal is now the
+  client's `Put`/`Range` and adequacy, see the section's head): derive `isEtcdRangeWatcherOpen` for
+  the client's `Watcher` over etcd's `Watch` service, the one premise of
+  `isEtcdRecipesClient_of_kv` not derived (the queue's wait path uses it).
 
 ### Merge of `origin/lean` (A2, T1 in part) (2026-10-14)
 
