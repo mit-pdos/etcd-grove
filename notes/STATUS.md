@@ -1,6 +1,10 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-15 (stage N: **node.go and the register under reconfiguration** --
+**Last updated:** 2026-10-15 (stage S, partial: **the snapshot's `ConfState` recorded by the
+storage and the log** -- `StorState.scs`/`sal`, `LogState.ksn` (the certified snapshots a node may
+send), the certificate `raftSnapCert` defined; carrying it to the receiver, `MsgSnap` at
+`RawNode.Step` and a pending snapshot in `Ready`/`Advance` left, with costs; see "Snapshots at the
+public API (stage S)"; stage N: **node.go and the register under reconfiguration** --
 `node.go` verified in raft's dynamic mode (the run loop's configuration shared with the driver:
 `dlm`, `cap`, `ccq`, `cam`, `runCfg`; `isNode`'s static restriction gone, `RestartNode` in either
 mode, `node.Advance` with A1, `node.ApplyConfChange` for any in-order change), `RaftNames.reCCOk`
@@ -40,6 +44,100 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Snapshots at the public API (stage S) (2026-10-15, partial)
+
+Goal: A3 (a snapshot's `ConfState` is the configuration of the prefix it covers) carried by a
+`MsgSnap` from the sender's storage to the receiving `raft.Step`, `MsgSnap` admitted at
+`RawNode.Step`, `Ready` handing out a pending snapshot, the register exercising it. **Done: the
+records at the storage and the log (S1, reduced). Not done: carrying the certificate to the
+receiver, S2, S3, S4, item 4** -- costs below. Trust base unchanged (`etc/tcb-report.py --check`:
+75 axioms, 10 sorries; `raft.txt` 6/0, `register.txt` 6/9); `etc/goose.py --check` passes; raft's
+`Link.lean` reproduces (no callee list moved); no Go change.
+
+Commits: `a477b29dc`, `781472e65`, `8fdbfceb4` (the full S1 by extending the abstract message,
+building, 75/10 -- now only on branch `stage-s-msg-extension`, see below), `fc81faf6e` (S1
+reduced to the parts that touch no central ghost definition, per the integration session's
+guidance), and this notes commit.
+
+**What is on the branch** (`fc81faf6e`):
+- **The storage records its snapshot's `ConfState`.** `StorState` has `scs : CSLists` and
+  `sal : Bool` (defaults empty/false). `isStorage`'s `HSnapshot` returns `ownCSL snap.cs σ.scs`
+  and `AutoLeave = σ.sal` (was `∃ voters, ownCSL …`). `memstorageFields` holds `ownCSL
+  snap.cs σ.scs` and `AutoLeave = σ.sal` (was `ownCSRO snap.cs voters`, voters existential);
+  `MemView` relates them. `MemoryStorage.Snapshot.spec`: returns `σ.scs`/`σ.sal`.
+  `MemoryStorage.CreateSnapshot.spec`: binder `cl`, a non-`nil` `cs` comes with `ownCSL c cl`
+  (was `∃ voters, ownCSRO c voters`); success state `{ σ with ss := snapId snap', scs := if cs =
+  null then σ.scs else cl, sal := snap'.…AutoLeave' }`. `MemoryStorage.ApplySnapshot.spec`:
+  binder `cl` (was `voters`), `ownCSL snap'.cs cl`, success state `memStorApplied snap' cl`.
+  The register's `Storage.Snapshot.spec` follows.
+- **The log records the snapshots it may send.** `LogState.ksn : List SnapTrip` (`SnapTrip`:
+  id, lists, `AutoLeave`, `Defs.lean`); `ownRaftLog` keeps the storage's snapshot in it once it is
+  not the empty one (`Hsksn`) and the pending one (`pendKsn`, also in `ownUnstable` through
+  `UnstableSt.ksn`, so that it survives the `unstable` methods' existential values);
+  `raftLog.snapshot.spec` adds `⌜snapTrip snap voters ∈ ls.ksn⌝`; `logRestore ls k` (was
+  `logRestore ls sid`) takes the restored snapshot `k = snapTrip sv cl` and adds it to `ksn`;
+  `unstable.restore.spec`, `raftLog.restore.spec`, `RestoreResult s sv cl b s'`,
+  `HandleSnapResult id s m sv cl s'` and the (dead) static `FollowerStepResult`/
+  `CandidateStepResult` take the lists. `newLogWithSize`'s log starts at `initKsn σ`. The
+  protocol does not read `ksn` (`toPState` unchanged).
+- **The certificate, as a definition** (`SnapConf.lean`): `raftSnapCert γ k` -- `SnapListsOk k`
+  (`SnapScope`'s facts), statically the ghost state's voters and not joint, dynamically A3 on any
+  recorded prefix ending at the snapshot's id (`γ.dyn`'s fold). Nothing produces or consumes it on
+  the branch.
+
+**What `stage-s-msg-extension` does on top** (builds the five targets, TCB 75/10, not merged):
+the abstract `Msg` gets the snapshot's four lists and `AutoLeave` (`cs`, `al`, replacing
+`voters`; every `Msg.mkV` site), `isMessage`'s `snap` case carries `raftSnapCert γ m.trip`,
+`PState.snaps` (= `LogState.ksn`) with the certificates in `ownRaftGhost` (`Hsnaps`), `SnapOk`
+asks a sent snapshot to be in `snaps`, `snapRestore` adds the restored one (all three step
+relations, the refinement's 29 `ownRaftGhost_intro` sites by a `snaps_keep` tactic); then
+`raft.Step.spec`'s `"Hsnap"` drops `SnapScope` and `md.SnapOk` (derived from the message:
+`isMessage_absSnap_cert`, `raftSnapCert_scope`, `snapOk_of_cert`). The integration session asked
+not to change `Msg`/`isMessage`/`ownRaftGhost` when a local route exists, so it is parked there.
+
+**Left, with what each costs:**
+1. **The certificate from `ksn` to the receiver.** Two routes:
+   - *on the message* (the branch above): done and building; touches `Msg`, `PState`,
+     `isMessage`, `ownRaftGhost`, the three step relations and `Refinement.lean`;
+   - *local* (`ownRawNode`/`netP`): `msgAbs`'s snap disjunct records `snapTrip sv voters ∈ ksn`
+     (`outboxRel` takes the log's `ksn`, weakened when `ksn` grows at a restore; `raft.send`
+     asks it of a `MsgSnap`); `ownRawNode` holds `[∗list] k ∈ s.logst.ksn, raftSnapCert γ k`,
+     which needs `ksn` kept by every step but a restore (`NetFrame`/`LocalFrame` gain `ksn`, so
+     do `HandleAppResult` and `raftLog.maybeAppend`'s frames); `RawNode.Ready` hands out a
+     certificate with each `MsgSnap` (`isRaftMsg` or a new conjunct), node.go's `netP` and the
+     register's transport carry it, and `RawNode.Step`'s precondition gives it to `raft.Step`
+     (which keeps `md.SnapOk`/`SnapScope` as premises, derived from the certificate at the
+     `RawNode` layer). It is usable only once `RawNode.Step` takes a `MsgSnap` (item 2).
+   Either way the application still has to certify a snapshot it makes: a lemma from `SnapObl`
+   and a node's committed records (`ownRaftGhost_cmt`, `ownStepGhost_deliv`, Log Matching as in
+   `stored_agree`) to `raftSnapCert` is not written; in scope no storage snapshot ever changes
+   while raft runs, so the obligation is vacuous today.
+2. **`MsgSnap` at `RawNode.Step` (S2).** `ownRawNode` asks `s.logst.snap = none`; a restore makes
+   a snapshot pending, so admitting `MsgSnap` means a pending snapshot in `ownRawNode` and in
+   every `RawNode` proof that reads `Hsnap` (19 files), plus `netStepTypes`/`NetMsgOk` (stamped,
+   `From ≠ id`) and the certificate in the precondition (item 1).
+3. **A pending snapshot through `Ready`/`Advance` (S3).** Unverified raft code on the path:
+   `raftLog.stableSnapTo`, `unstable.stableSnapTo`, `raft.appliedSnap`, `MsgStorageAppendResp`'s
+   snapshot arm (`raft.Step`'s spec asks `m.Snapshot' = null`), `newStorageAppendRespMsg` with a
+   snapshot, `readyWithoutAccept`/`acceptReady` with `snapshotInProgress`; and design: what
+   `RNState.delivered`/`capplied`/`cfg` become when the application installs a snapshot (a
+   committed prefix it never saw), the application's obligation on the snapshot's data, and a
+   protocol for the application to write the storage (`ApplySnapshot`, `CreateSnapshot`,
+   `Compact`) while raft holds `ownStorage` (as `Hhandout`/`Habsorb` do for appends).
+4. **The register (S4)** needs 2 and 3 and a storage-write protocol: today no storage snapshot
+   ever exists while a node runs (`NewRawNode`/`RestartNode` ask an empty storage; compaction
+   needs the storage the node owns), so no `MsgSnap` is ever sent in the register. Its
+   Results/Adequacy statements are unchanged.
+5. **A node outside the snapshot's lists** (`restore`'s `!found` exit): kept as the premise
+   `scfg.Has id`. Cheap to describe: the exit returns `false` after the stale test and before the
+   fast-forward, and `handleSnapshot` then acknowledges the commit index -- `StepC.snapStale`'s
+   message without its `index ≤ commit` premise, which `ownRaftGhost_step_stale` does not read;
+   `RestoreResult`/`HandleSnapResult`/`SnapRestores` would gain the case, `raft.restore`'s proof
+   the `Warningf` branch. Not done (a model rule change, deferred with item 1's choice).
+
+Findings: no Go bug; no false statement. The cache package has its own `snapCert` in the same
+namespace (hence `raftSnapCert`).
 
 ## node.go and the register under reconfiguration (stage N) (2026-10-15)
 

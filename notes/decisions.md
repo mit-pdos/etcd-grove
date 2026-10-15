@@ -3888,3 +3888,28 @@ user's defaults for its open questions)
   `do`/`Read` do not retry a request dropped by a leader that steps down, as during a
   transfer). The transfers that end `Main` go to replica 2. `TestRemoveMember` (unverified)
   retries the proposal, waits for a leader of the remaining voters, and checks the operations.
+
+## Stage S: a snapshot's `ConfState` recorded by the storage and the log; the certificate's carrier deferred
+
+**2026-10-15 · accepted (partial)**
+
+- **The storage records the lists, the log the certified snapshots it may send.**
+  `StorState.scs`/`sal` (the storage returns exactly what `CreateSnapshot`/`ApplySnapshot`
+  stored) and `LogState.ksn` (the storage's snapshot and every restored one). Raft keeps
+  `raftLog.snapshot`'s result in `ksn` as an invariant of `ownRaftLog` (`Hsksn`, `pendKsn`) rather
+  than as a fact of each call, so that the outbox (later) can name it. The pending snapshot's
+  membership lives in `ownUnstable` too (`UnstableSt.ksn`): the `unstable` methods return an
+  existential struct value, so a pointer-keyed fact held beside the log would be lost at each call.
+- **The certificate `raftSnapCert` is stated on the ghost records**, as `GMode.SnapOk`'s dynamic
+  clause is (any recorded prefix ending at the snapshot's id), plus `SnapScope`'s facts and the
+  static clause, so one persistent fact serves both modes and the transport premise `SnapScope`.
+- **Carrying it to the receiver: the abstract message was extended, then parked.** The first
+  version (branch `stage-s-msg-extension`) put the lists in `Msg` and the certificate in
+  `isMessage`, with `PState.snaps` and certificates in `ownRaftGhost`: the producer (`sendApps`)
+  then gets the certificate from the sender's ghost state, the receiver from the message, and
+  `raft.Step` loses two premises. The integration session asked to avoid changing `Msg`,
+  `isMessage` and `ownRaftGhost` when a route local to the `RawNode`/node layer exists. One does
+  (notes/STATUS.md, stage S, "Left" 1: an outbox invariant on the physical messages, certificates
+  in `ownRawNode`, `Ready` handing one out with each `MsgSnap`, the transport carrying it to
+  `RawNode.Step`), but it pays off only with `MsgSnap` at `RawNode.Step` (S2), so neither is on the
+  branch: the records stay, the carrier waits for S2.
