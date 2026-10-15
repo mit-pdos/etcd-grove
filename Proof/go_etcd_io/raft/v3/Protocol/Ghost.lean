@@ -279,6 +279,12 @@ structure RaftNames where
   record's, the node-local witnesses) are required. A function of the `FfiSyntax` instance
   (`DynCfg.all`), since `RaftNames` takes none. -/
   reDyn : Option ((e : FfiSyntax) → @DynCfg e)
+  /-- The conf-change entries' bytes the cluster admits (2026-10-15, stage N): every conf-change
+  entry's data `bs`, of type `ty`, satisfies `reCCOk ty bs` (`entDataIs`), which
+  `ProposeConfChange` asks of the change it proposes (`CCAllowed`). A client that applies the
+  conf entries with a decoder of the entry alone (a pure `CCDec` cannot read a slice's bytes)
+  pins the changes it may meet here; `fun _ _ => True` admits every change. -/
+  reCCOk : w32 → List w8 → Prop
   /-- The voter set is not empty (2026-10-14, reconfiguration stage B2). The protocol's
   step at a configuration (`StepC`) reads quorums by Go's convention, under which every
   set is a majority of an empty voter set (`MajQ`); the ghost state needs a real quorum
@@ -786,7 +792,8 @@ their data moves the client's log, `noopAu` the others', `GhostState.lean`). Unt
 and every entry was normal. -/
 def entDataIs (γ : RaftNames) (e : raftpb.Entry) : Option (List w8) → IProp GF
   | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = (zero_val raftpb.Entry).Data'⌝ ∨
-      (⌜e.Type' ≠ W32 0⌝ ∗ ∃ bs, isPropData γ e.Data' bs ∗ ⌜CCDecodes e.Type' bs⌝))
+      (⌜e.Type' ≠ W32 0⌝ ∗ ∃ bs, isPropData γ e.Data' bs ∗
+        ⌜CCDecodes e.Type' bs ∧ γ.reCCOk e.Type' bs⌝))
   | some d => iprop(⌜e.Data' ≠ (zero_val raftpb.Entry).Data' ∧ e.Type' = W32 0⌝ ∗
       isPropData γ e.Data' d ∗ deposited γ d)
 

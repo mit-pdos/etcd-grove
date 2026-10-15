@@ -60,22 +60,26 @@ theorem RInv_rinit (dec : CCDec) (c0 : CCState) : RInv dec c0 (rinit c0) :=
 
 /-- The dynamic ghost state of the nodes `ids`, allocated (with the commit invariant). -/
 theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
-    (ids : GSet w64) (C : RaftNames → IProp GF) :
+    (ids : GSet w64)
+    -- (2026-10-15, stage N) the conf-change bytes the cluster admits
+    (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     W64 0 ∉ ids →
     ⊢ allocClient E c0.cfg.incoming (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) C -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0)⌝ ∗
+      |={E}=> ∃ γ : RaftNames, ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk⌝ ∗
         raftCommitInv (GF := GF) γ ∗ C γ ∗
         [∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0) := by
   intro Hnz
   iintro Hcl
   imod ownRaftGhost_alloc_gen (GF := GF) E c0.cfg.incoming ids
-    (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) C h0.2.1 Hnz $$ Hcl
+    (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk C h0.2.1 Hnz $$ Hcl
     with ⟨%γ, %Hγ, #Hinv, -, Hn, HC, -⟩
   simp only [Option.isSome_some]
   imodintro
   iexists γ
   isplitr
-  · ipureintro; unfold RaftNames.dyn; rw [Hγ.2]; simp [DynCfg.all_self]
+  · ipureintro
+    refine ⟨?_, Hγ.2.2⟩
+    unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
   iframe Hinv HC
   iapply BigSepM.bigSepM_impl $$ Hn
   imodintro

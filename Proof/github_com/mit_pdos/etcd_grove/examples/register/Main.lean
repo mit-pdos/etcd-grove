@@ -250,7 +250,7 @@ theorem Main.wp_proof
       ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s) ∗
       ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8))))
     clusterIds_ne (by rw [GMap.elem_of_list_to_set]; decide) $$ []
-    with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs, HreSl⟩,
+    with ⟨%γ, %Hcfg', #Hcinv, #Hc0, Hghosts, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs, HreSl⟩,
       ⟨HrdC, #HrdI⟩⟩
   · unfold allocClient
     iintro %γ0 %_ #_ HcL Hfresh HreSl HrdF
@@ -263,6 +263,7 @@ theorem Main.wp_proof
     iexists γr0
     iframe Hreg0 Hval0 Hseqs0 HreSl
     ipureintro; rfl
+  have Hcfg := Hcfg'.1
   imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
   icases (tickCred_split bud (3 * ticksN) timeoutsN).1 $$ Hcred with ⟨Hcred, Htcred⟩

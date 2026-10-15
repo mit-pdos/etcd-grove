@@ -37,7 +37,7 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs c o dq
+  intro γ rn id rs c o dq Hok
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -46,7 +46,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   ipersist Hdata
   iunfold propRegister at Hreg
   imod Hreg $$ %data %bs Hdata with #Hpd
-  ihave #Hent := entData_cc γ o data bs Hbs $$ Hpd
+  ihave #Hent := entData_cc γ o data bs Hbs (Hok bs Hbs) $$ Hpd
   ihave #Hcc := ccEntsOk_cc o data bs Hbs $$ Hdata
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩

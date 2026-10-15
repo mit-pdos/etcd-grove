@@ -1150,12 +1150,15 @@ def allocClient (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) →
 a continuation (`allocClient`), which builds the standing update `noopAu` the commit invariant
 holds. -/
 theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
-    (dyn : Option ((e : FfiSyntax) → @DynCfg e)) (C : RaftNames → IProp GF) :
+    (dyn : Option ((e : FfiSyntax) → @DynCfg e))
+    -- (2026-10-15, stage N) the conf-change bytes the cluster admits
+    (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     ⊢ allocClient E cfg dyn C -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn⌝ ∗ raftCommitInv (GF := GF) γ ∗
+      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk⌝ ∗
+        raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState dyn.isSome) ∗
         C γ ∗
@@ -1191,7 +1194,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   · rw [Qp.half_add_half]; iexact Hcl0
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
-        dyn, Hcne⟩ :=
+        dyn, ccOk, Hcne⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1300,7 +1303,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
   imodintro
   iexists γ0
-  isplitr; · ipureintro; exact ⟨e0, by rw [Hγ0]⟩
+  isplitr; · ipureintro; exact ⟨e0, by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1312,7 +1315,8 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) (C : RaftNames → 
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     ⊢ allocClient E cfg none C -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg⌝ ∗ raftCommitInv (GF := GF) γ ∗
+      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reCCOk = fun _ _ => True⌝ ∗
+        raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState) ∗
         C γ ∗
@@ -1320,10 +1324,11 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) (C : RaftNames → 
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
   intro Hcne Hnz
   iintro Hcl
-  imod ownRaftGhost_alloc_gen E cfg ids none C Hcne Hnz $$ Hcl with ⟨%γ, %Hγ, H⟩
+  imod ownRaftGhost_alloc_gen E cfg ids none (fun _ _ => True) C Hcne Hnz $$ Hcl
+    with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
-  isplitr; · ipureintro; exact Hγ.1
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.2⟩
   simp only [Option.isSome_none]
   iexact H
 

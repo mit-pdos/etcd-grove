@@ -557,7 +557,7 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List raftpb.Entry) (E : CoPset)
         · imod propData_heap γ e.Data' bs E HE $$ Hinv Hpd with #Hbs
           imodintro
           by_cases H1 : e.Type' = W32 1
-          · obtain ⟨m, Hm⟩ := Hdec.1 H1
+          · obtain ⟨m, Hm⟩ := Hdec.1.1 H1
             iexists some (.v1 m)
             simp only [ccEntOk]
             isplitr
@@ -566,7 +566,7 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List raftpb.Entry) (E : CoPset)
             iframe Hbs
             ipureintro; exact Hm
           by_cases H2 : e.Type' = W32 2
-          · obtain ⟨m, Hm⟩ := Hdec.2 H2
+          · obtain ⟨m, Hm⟩ := Hdec.1.2 H2
             iexists some (.v2 m)
             simp only [ccEntOk]
             isplitr

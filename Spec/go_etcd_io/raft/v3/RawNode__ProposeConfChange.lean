@@ -72,9 +72,15 @@ theorem ccData_decodes (o : CCMsg) (bs : List w8) (H : CCData (some o) bs) :
   · refine ⟨fun h => ?_, fun _ => ⟨m, H⟩⟩
     exfalso; revert h; simp only [ccEntryType]; word
 
+/-- The conf change `o` is one the cluster admits (2026-10-15, stage N): the bytes it is
+marshaled to satisfy `γ.reCCOk` (`RaftNames.reCCOk`; always, for a cluster that admits every
+change). -/
+def CCAllowed (γ : RaftNames) (o : CCMsg) : Prop :=
+  ∀ bs, CCData (some o) bs → γ.reCCOk (ccEntryType (some o)) bs
+
 /-- A conf change's entry is no client operation: its data are bytes that decode. -/
 theorem entData_cc (γ : RaftNames) (o : CCMsg) (data : GoSlice) (bs : List w8)
-    (H : CCData (some o) bs) :
+    (H : CCData (some o) bs) (Hok : γ.reCCOk (ccEntryType (some o)) bs) :
     ⊢ isPropData (GF := GF) γ data bs -∗ entData γ (ccEntry (some o) data) := by
   iintro #Hpd
   unfold entData
@@ -89,7 +95,7 @@ theorem entData_cc (γ : RaftNames) (o : CCMsg) (data : GoSlice) (bs : List w8)
   dsimp only [ccEntry]
   iframe Hpd
   ipureintro
-  exact ccData_decodes o bs H
+  exact ⟨ccData_decodes o bs H, Hok⟩
 
 /-- What `Step` needs of the conf change's entry: its bytes, which decode. -/
 theorem ccEntsOk_cc (o : CCMsg) (data : GoSlice) (bs : List w8) (H : CCData (some o) bs) :
@@ -120,6 +126,8 @@ theorem ccEntsOk_cc (o : CCMsg) (data : GoSlice) (bs : List w8) (H : CCData (som
 abbrev RawNode.ProposeConfChange.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : CCMsg)
     (dq : DFrac),
+  -- (2026-10-15, stage N) a change the cluster admits
+  CCAllowed γ o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) ∗

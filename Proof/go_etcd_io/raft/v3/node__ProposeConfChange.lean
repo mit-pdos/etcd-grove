@@ -25,13 +25,13 @@ theorem node.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ id n c o dq
+  intro γ id n c o dq Hok
   wp_start as ⟨#Hnode, Hc⟩
   wp_auto
   wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %esl %data %bs ⟨Hc, Hes, Hcap, Hdata, %Hbs⟩
   ipersist Hdata
   imod node_read_register γ id n data bs ⊤ CoPset.subseteq_top $$ Hnode Hdata with #Hpd
-  ihave #Hent := entData_cc γ.raft o data bs Hbs $$ Hpd
+  ihave #Hent := entData_cc γ.raft o data bs Hbs (Hok bs Hbs) $$ Hpd
   wp_apply wp_node_Step γ id n (ccPropMsg esl) $$ [$Hnode Hes Hcap]
   · unfold stepP
     iright
