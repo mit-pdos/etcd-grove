@@ -18,6 +18,13 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+/-- A conf state whose lists and `AutoLeave` are the storage's is `storCS σ`. -/
+theorem confState_eq_storCS [FfiSyntax] (c : ConfStateM) (σ : StorState) (h1 : c.lists = σ.scs)
+    (h2 : c.AutoLeave' = σ.sal) : c = storCS σ := by
+  unfold storCS
+  rw [← h1, ← h2]
+  rfl
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -55,7 +62,74 @@ theorem entsRO_cons_len (s : GoSlice) (d : EntryM) (xs : List EntryM) :
   simp only [List.length_cons] at h1
   constructor <;> word
 
+/-- A conf state's pointer is not `nil` (kept). -/
+theorem csPts_not_null (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
+    csPts (GF := GF) p dq c al ⊢ csPts p dq c al ∗ ⌜p ≠ null⌝ := by
+  iintro H
+  iunfold csPts at H
+  icases H with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, H⟩
+  isplitl
+  · iunfold csPts
+    iexists sv, sl, so, sn, pa
+    isplitr
+    · ipureintro; exact Hnn
+    iexact H
+  · ipureintro; exact Hnn
+
 end lemmas
+
+section wps
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GoSemanticsFunctions] [preSem : go.PreSemantics]
+variable {s : Stuckness} {E : CoPset}
+variable {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+
+set_option goose.wp.unfoldSliceLiterals true in
+/-- `wp_slice_literal` (Perennial, `Slice.lean`) with the elements chosen by the array literal's
+evaluation: a slice literal whose elements are allocated (`[]*pb.Entry{{}}`,
+`NewMemoryStorage`) has elements that exist only after the allocation, so they cannot be given
+before (a local copy, existential in the elements; the proof is Perennial's). -/
+theorem wp_slice_literal_ex {st t : go.GoType} [IntoValTyped (GF := GF) V t]
+    [st ↓u go.SliceType t] (kvs : List keyed_element) (Φ : val → IProp GF) :
+    WP (App (Val (GoInstruction (CompositeLiteral (go.ArrayType (go.arrayLiteralSize kvs) t))))
+          (Val (LiteralValueV kvs))) @ s; E
+      {{ v, ∃ l : List V, ⌜v = #(array.mk (go.arrayLiteralSize kvs) l)⌝ ∗
+        (∀ sl_ptr : Loc,
+          (slice.mk sl_ptr (W64 (go.arrayLiteralSize kvs)) (W64 (go.arrayLiteralSize kvs)) ↦* l ∗
+            ownSliceCap V (slice.mk sl_ptr (W64 (go.arrayLiteralSize kvs))
+              (W64 (go.arrayLiteralSize kvs))) (DFrac.own 1)) -∗
+          Φ #(slice.mk sl_ptr (W64 (go.arrayLiteralSize kvs)) (W64 (go.arrayLiteralSize kvs)))) }} ⊢
+    WP (App (Val (GoInstruction (CompositeLiteral st))) (Val (LiteralValueV kvs))) @ s; E {{ Φ }} := by
+  iintro HΦ
+  wp_pures
+  by_cases hlen : go.arrayLiteralSize kvs < 2 ^ 63
+  · rw [ite_eq_left hlen]
+    wp_pures
+    wp_alloc_auto
+    wp_pure
+    wp_pure
+    wp_bind (App (Val (GoInstruction (CompositeLiteral (go.ArrayType _ t)))) (Val (LiteralValueV kvs)))
+    wp_apply_core wp_wand $$ HΦ
+    iintro %v ⟨%l, %Hv, HΦ⟩
+    subst Hv
+    wp_auto
+    have h0 : 0 ≤ go.arrayLiteralSize kvs := by
+      unfold go.arrayLiteralSize; split; omega
+    rw [ite_eq_left ⟨by decide, by word, by word⟩]
+    have hz : W64 (go.arrayLiteralSize kvs) - W64 0 = W64 (go.arrayLiteralSize kvs) := by word
+    simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0, hz]
+    wp_pures
+    ihave %Hlen := array_len _ _ _ _ $$ tmp
+    iapply HΦ
+    isplitl [tmp]
+    · iapply slice_array tmp_ptr _ (array.mk (go.arrayLiteralSize kvs) l) (by simp only; omega)
+      iexact tmp
+    · iapply ownSliceCap_empty _ rfl (by simp only; word)
+  · rw [ite_eq_right hlen]; iapply wp_AngelicExit
+
+end wps
 
 end EtcdGrove
 end Perennial
