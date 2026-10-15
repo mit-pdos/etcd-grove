@@ -1,14 +1,15 @@
 /-
-**The KV ghost state's updates** (unit T1, 2026-10-14; `notes/decisions.md`, "Put and Get as
-persistent atomic updates linearized by raft"): the persistent updates the server hands raft are
-built from the KV invariant (`kvInv`, `InvRequest.lean`), which they keep:
+**The KV ghost state's updates** (unit T1, 2026-10-14; unit T2, 2026-10-15: the whole state;
+`notes/decisions.md`, "Every KV operation as a persistent atomic update on the whole state"): the
+persistent updates the server hands raft are built from the KV invariant (`kvInv`,
+`InvRequest.lean`), which they keep:
 
-- `kv_prop_au`: a proposal's (`srvPropAu`), for a request with no KV effect, a client's plain put
-  (firing the client's `kvPutAu` at the commit), or none at all (the non-plain credit, which no
-  one has: `kv_nonplain_false`);
+- `kv_prop_au`: a proposal's (`srvPropAu`), for a request with no KV write, or a client's plain
+  write (a put, a delete, a transaction: firing the client's `kvOpAu` at the commit, the state
+  stepped by `kvOpStep`);
 - `kv_noop_au`: the standing update for raft's own entries (`srvNoopAu`);
-- `kv_read_compose`: one read update (`srvReadAu`) for a list of clients' `Get` updates
-  (`kvGetAu`), fired in turn at every firing (`readQs`: their results), and `readQs_get`, a
+- `kv_read_compose`: one read update (`srvReadAu`) for a list of clients' read updates
+  (`kvReadAu`), fired in turn at every firing (`readQs`: their results), and `readQs_get`, a
   client's own result out of the list.
 
 Lean-first (no Rocq counterpart).
@@ -29,34 +30,43 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
+/-! ## Pure facts of the model at the server's start -/
+
+/-- The model of a committed log is not empty (the start log is not). -/
+theorem kvModel_ne_nil (γk : KVNames) (L : List EntryModel) (h : γk.log0 ≠ []) :
+    kvModel γk L ≠ [] := by
+  intro he
+  apply h
+  have hp := kvRaftOf_extends γk.c0 γk.ch0 γk.log0 L
+  unfold kvModel at he
+  rw [he] at hp
+  exact List.prefix_nil.1 hp
+
+/-- **A plain write's entry steps the state** by its request (`kvReqStep`), at the start's chain,
+above the consistent index. -/
+theorem kvModel_snoc_state (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+    (rq : apply.IRRModel) (hch : γk.ch0 = apply.alarmChain false false false)
+    (h0 : γk.log0 ≠ []) (ht : e.typ = W32 0) (hd : e.data ≠ [])
+    (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index) :
+    kvStateOf (kvModel γk (L ++ [e])) = kvReqStep rq (kvStateOf (kvModel γk L)) := by
+  have h1 : kvModel γk (L ++ [e]) = kvEntry γk.c0 γk.ch0 (kvModel γk L) e := by
+    unfold kvModel; rw [kvRaftOf_snoc]
+  rw [h1, hch, kvEntry_base γk.c0 _ e rq ht hd hdec hidx]
+  exact kvStateOf_backendLog rq _ (kvModel_ne_nil γk L h0)
+
+/-- A write-free entry keeps the model's state. -/
+theorem kvModel_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+    (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
+      ¬ writeKind (apply.dispatchKind rq)) :
+    kvModel γk (L ++ [e]) = kvModel γk L := by
+  unfold kvModel; rw [kvRaftOf_snoc]
+  exact kvEntry_nonwrite _ _ _ e h
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **No one holds the non-plain credit**: its only token is in the KV invariant. -/
-theorem kv_nonplain_false (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : ↑kvN ⊆ E) :
-    ⊢ kvInv (GF := GF) γ γk -∗ srvNonPlain γk ={E}=∗ False := by
-  iintro #Hinv Hnp
-  iunfold kvInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, %M, -, -, Htok, -⟩
-  iunfold srvNonPlain at Hnp
-  iexfalso
-  iapply token_exclusive γk.np $$ Htok Hnp
-
-/-- A plain put's request keeps no ignore flag. -/
-theorem plainReq_put (rq : apply.IRRModel) (op : OpFull) (hp : plainReq rq)
-    (hk : apply.dispatchKind rq = .put) (hop : rq.put = some op) :
-    op.leaseID = W64 0 ∧ op.ignoreValue = false ∧ op.ignoreLease = false := by
-  unfold plainReq at hp
-  rw [hk] at hp
-  obtain ⟨-, -, h⟩ := hp
-  obtain ⟨h1, h2⟩ := h op hop
-  unfold txn.needsPrev at h2
-  simp only [Bool.or_eq_false_iff] at h2
-  exact ⟨h1, h2⟩
 
 /-- An entry with data that decode to a plain request is plain. -/
 theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
@@ -72,6 +82,62 @@ theorem srvIdxOk_last (ai0 : w64) (L : List EntryModel) (e : EntryModel)
   have := (h.2 L.length e (by simp)).1
   exact this
 
+/-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
+theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
+    (e : EntryModel)
+    (hok : plainLog L ∧ srvIdxOk γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [])
+    (hidx' : srvIdxOk γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
+    plainLog (L ++ [e]) ∧ srvIdxOk γ.ai0 (L ++ [e]) ∧
+      uint.Z γk.c0 ≤ uint.Z γ.ai0 + (L ++ [e]).length ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
+  obtain ⟨hplog, -, hc0, hch, h0⟩ := hok
+  refine ⟨?_, hidx', ?_, hch, h0⟩
+  · rw [plainLog_append]
+    refine ⟨hplog, fun m hm => ?_⟩
+    rw [List.mem_singleton] at hm
+    subst hm
+    exact hpl
+  · simp only [List.length_append, List.length_singleton]; push_cast; omega
+
+/-- **The KV invariant and the client's `etcdKV`, allocated** (2026-10-15, unit T2): from the
+server's half of raft's committed log at the start (empty), a start log not empty and a start
+consistent index at most the start index, the KV invariant at the base chain with auth disabled
+and the client's half of the state at the start log's state. -/
+theorem kvInv_alloc (γ : ServerRaftNames) (c0 : w64) (log0 : mvcc.Log) (cok hi : GName)
+    (E : CoPset) (hc0 : uint.Z c0 ≤ uint.Z γ.ai0) (h0 : log0 ≠ [])
+    (hidx : uint.Z γ.ai0 + 1 < 2 ^ 64) :
+    ⊢ srvRLog (GF := GF) γ [] ={E}=∗ ∃ st : GName,
+      kvInv γ ⟨st, c0, apply.alarmChain false false false, log0, cok, hi⟩ ∗
+      etcdKV ⟨st, c0, apply.alarmChain false false false, log0, cok, hi⟩ (kvStateOf log0) := by
+  iintro HL
+  imod ghostVar_alloc (GF := GF) (kvStateOf log0) with ⟨%st, Hv⟩
+  have hs : ⊢ ghostVar (GF := GF) st 1 (kvStateOf log0) -∗
+      ghostVar st (1 : Qp).half (kvStateOf log0) ∗ ghostVar st (1 : Qp).half (kvStateOf log0) := by
+    have := ghostVar_split (GF := GF) st (kvStateOf log0) (1 : Qp).half (1 : Qp).half
+    rw [Qp.half_add_half] at this
+    exact this
+  icases hs $$ Hv with ⟨Hv1, Hv2⟩
+  imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
+      srvRLog γ L ∗ ghostVar st (1 : Qp).half
+        (kvStateOf (kvModel ⟨st, c0, apply.alarmChain false false false, log0, cok, hi⟩ L)) ∗
+      ⌜plainLog L ∧ srvIdxOk γ.ai0 L ∧ uint.Z c0 ≤ uint.Z γ.ai0 + L.length ∧
+        apply.alarmChain false false false = apply.alarmChain false false false ∧ log0 ≠ []⌝))
+    $$ [HL Hv1] with #Hinv
+  · inext
+    iexists []
+    iframe HL
+    isplitl [Hv1]
+    · simp only [kvModel, kvRaftOf_nil]; iexact Hv1
+    ipureintro
+    refine ⟨fun m hm => by simp at hm, ⟨by simpa using hidx, fun n m h => by simp at h⟩,
+      by simpa using hc0, rfl, h0⟩
+  imodintro
+  iexists st
+  isplitl []
+  · iunfold kvInv; iexact Hinv
+  iunfold etcdKV; iexact Hv2
+
 /-- **A proposal's update, from the KV invariant** (see the file header). -/
 theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
@@ -80,9 +146,9 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
   have Hdisj := kvN_raftN
   iintro #Hinv Hok
   iunfold reqPropOk at Hok
-  icases Hok with (%Hno | ⟨%op, %Q, %Hput, #Hau⟩ | Hnp)
-  · -- no KV effect
-    obtain ⟨hplain, hk1, hk2, hQr⟩ := Hno
+  icases Hok with (%Hno | ⟨%op, %Q, %Hop, #Hau⟩)
+  · -- no KV write
+    obtain ⟨hplain, hnw, hQr⟩ := Hno
     subst hQr
     imodintro
     unfold srvPropAu
@@ -91,7 +157,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     unfold atomic_acc
     iunfold kvInv at Hinv
     iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%L, %M, HL, HM, Htok, %Hok⟩
+    icases Hi with ⟨%L, HL, Hσ, %Hok⟩
     isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
     iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
     iintro Hmask
@@ -100,47 +166,35 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     isplit
     · iintro HL
       imod Hmask with -
-      imod Hclose $$ [HL HM Htok] with -
-      · inext; iexists L, M; iframe HL HM Htok; ipureintro; exact Hok
+      imod Hclose $$ [HL Hσ] with -
+      · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
       imodintro
       itrivial
     · iintro %e ⟨%He, HL⟩
       imod Hmask with -
-      obtain ⟨hplog, hidx, hc0, hch, hM⟩ := Hok
       obtain ⟨het, hed, hidx'⟩ := He
-      have hent : kvEntry γk.c0 γk.ch0 (kvModel γk L) e = kvModel γk L := by
-        apply kvEntry_nonwrite
+      have hent : kvModel γk (L ++ [e]) = kvModel γk L := by
+        apply kvModel_snoc_nonwrite
         right; right
         intro rq' h
         rw [hed, hdec] at h
         cases h
-        exact ⟨hk1, hk2⟩
-      imod Hclose $$ [HL HM Htok] with -
+        exact hnw
+      imod Hclose $$ [HL Hσ] with -
       · inext
-        iexists L ++ [e], M
-        iframe HL HM Htok
+        iexists L ++ [e]
+        rw [hent]
+        iframe HL Hσ
         ipureintro
-        refine ⟨?_, hidx', ?_, hch, ?_⟩
-        · rw [plainLog_append]
-          refine ⟨hplog, fun m hm => ?_⟩
-          rw [List.mem_singleton] at hm
-          subst hm
-          exact plainEntry_of_data _ d rq hed hdec hplain
-        · simp only [List.length_append, List.length_singleton]; push_cast; omega
-        · intro k vo hk
-          unfold kvModel
-          rw [kvRaftOf_snoc]
-          unfold kvModel at hent
-          rw [hent]
-          exact hM k vo hk
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
       iintro !>
       itrivial
-  · -- a plain put, with its client's update
-    obtain ⟨hplain, hk, hop, -, -, hQr⟩ := Hput
+  · -- a plain write, with its client's update
+    obtain ⟨hplain, hop, -, hQr⟩ := Hop
     subst hQr
-    obtain ⟨hlease, hiv, hil⟩ := plainReq_put rq op hplain hk hop
-    iunfold kvPutAu at Hau
+    iunfold kvOpAu at Hau
+    iunfold kvAu at Hau
     imodintro
     unfold srvPropAu
     iintro !>
@@ -148,14 +202,14 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     unfold atomic_acc
     iunfold kvInv at Hinv
     iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%L, %M, HL, HM, Htok, %Hok⟩
+    icases Hi with ⟨%L, HL, Hσ, %Hok⟩
     ihave Hacc := aupd_aacc $$ Hau
     unfold atomic_acc
     imod Hacc with Hacc
     isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-    icases Hacc with ⟨%vo, Hpt, Hucl⟩
-    iunfold kvPt at Hpt
-    ihave %Hlk := ghost_map_lookup $$ HM Hpt
+    icases Hacc with ⟨%σ, Hc, Hucl⟩
+    iunfold etcdKV at Hc
+    ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
     isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
     imodintro
     iexists L
@@ -163,58 +217,39 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     isplit
     · iintro HL
       icases Hucl with ⟨Habort, -⟩
-      imod Habort $$ [Hpt] with -
-      · iunfold kvPt; iexact Hpt
-      imod Hclose $$ [HL HM Htok] with -
-      · inext; iexists L, M; iframe HL HM Htok; ipureintro; exact Hok
+      imod Habort $$ [Hc] with -
+      · iunfold etcdKV; iexact Hc
+      imod Hclose $$ [HL Hσ] with -
+      · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
       imodintro
       itrivial
     · iintro %e ⟨%He, HL⟩
       icases Hucl with ⟨-, Hcommit⟩
       isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-      obtain ⟨hplog, hidx, hc0, hch, hM⟩ := Hok
       obtain ⟨het, hed, hidx'⟩ := He
-      imod ghost_map_update (some op.val) $$ HM Hpt with ⟨HM, Hpt⟩
-      imod Hcommit $$ [Hpt] with #HQ
-      · iunfold kvPt; iexact Hpt
+      imod ghostVar_update_halves (kvOpStep op σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
+      imod Hcommit $$ [Hc] with #HQ
+      · iunfold etcdKV; iexact Hc
       have hdata : e.data ≠ [] := by rw [hed]; exact hd
       have hidxe : uint.Z γk.c0 < uint.Z e.index := by
         have := srvIdxOk_last γ.ai0 L e hidx'
+        have := Hok.2.2.1
         omega
-      have hent : kvEntry γk.c0 γk.ch0 (kvModel γk L) e =
-          kvModel γk L ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter (kvModel γk L)))]] := by
-        rw [hch]
-        exact kvEntry_put γk.c0 _ e rq op het hdata (by rw [hed]; exact hdec) hk hop hidxe
-      have hvo : vo = kvVal (kvModel γk L) op.key := hM op.key vo Hlk
-      imod Hclose $$ [HL HM Htok] with -
+      have hst : kvStateOf (kvModel γk (L ++ [e])) = kvOpStep op σ := by
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
+          (by rw [hed]; exact hdec) hidxe, Hag]
+        unfold kvReqStep; rw [hop]
+      imod Hclose $$ [HL Hσ] with -
       · inext
-        iexists L ++ [e], M.insert op.key (some op.val)
-        iframe HL HM Htok
+        iexists L ++ [e]
+        rw [hst]
+        iframe HL Hσ
         ipureintro
-        refine ⟨?_, hidx', ?_, hch, ?_⟩
-        · rw [plainLog_append]
-          refine ⟨hplog, fun m hm => ?_⟩
-          rw [List.mem_singleton] at hm
-          subst hm
-          exact plainEntry_of_data _ d rq hed hdec hplain
-        · simp only [List.length_append, List.length_singleton]; push_cast; omega
-        · intro k vo' hk'
-          unfold kvModel
-          rw [kvRaftOf_snoc]
-          unfold kvModel at hent
-          rw [hent]
-          rw [GMap.lookup_insert_Some] at hk'
-          rcases hk' with ⟨rfl, rfl⟩ | ⟨hne, hk'⟩
-          · rw [kvVal_put _ op _ hiv]
-          · rw [kvVal_put_other _ op _ k hne]
-            exact hM k vo' hk'
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
       iintro !>
-      rw [← hvo]
+      rw [Hag]
       iexact HQ
-  · -- the non-plain credit: no one has it
-    imod kv_nonplain_false γ γk E hE $$ Hinv Hnp with %Hf
-    exact Hf.elim
 
 /-- **The standing update for raft's own entries, from the KV invariant.** -/
 theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
@@ -227,7 +262,7 @@ theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
   unfold atomic_acc
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, %M, HL, HM, Htok, %Hok⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -236,69 +271,60 @@ theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL HM Htok] with -
-    · inext; iexists L, M; iframe HL HM Htok; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ] with -
+    · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro ⟨%hidx', HL⟩
     imod Hmask with -
-    obtain ⟨hplog, hidx, hc0, hch, hM⟩ := Hok
-    have hent : kvEntry γk.c0 γk.ch0 (kvModel γk L) e = kvModel γk L := by
-      apply kvEntry_nonwrite
+    have hent : kvModel γk (L ++ [e]) = kvModel γk L := by
+      apply kvModel_snoc_nonwrite
       rcases He with h | h
       · left; exact h
       · right; left; exact h
-    imod Hclose $$ [HL HM Htok] with -
+    imod Hclose $$ [HL Hσ] with -
     · inext
-      iexists L ++ [e], M
-      iframe HL HM Htok
+      iexists L ++ [e]
+      rw [hent]
+      iframe HL Hσ
       ipureintro
-      refine ⟨?_, hidx', ?_, hch, ?_⟩
-      · rw [plainLog_append]
-        refine ⟨hplog, fun m hm => ?_⟩
-        rw [List.mem_singleton] at hm
-        subst hm
-        intro ht hd'
-        rcases He with h | h
-        · exact absurd h hd'
-        · exact absurd ht h
-      · simp only [List.length_append, List.length_singleton]; push_cast; omega
-      · intro k vo hk
-        unfold kvModel
-        rw [kvRaftOf_snoc]
-        unfold kvModel at hent
-        rw [hent]
-        exact hM k vo hk
+      refine kvInv_facts_snoc γ γk L e Hok hidx' ?_
+      intro ht hd'
+      rcases He with h | h
+      · exact absurd h hd'
+      · exact absurd ht h
     imodintro
     itrivial
 
 /-! ## Reads: one update for many clients -/
 
-/-- Firing every registered `Get` update at the model of `L`, the KV authority agreeing. -/
-theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (M : GMap GoString (Option GoString))
-    (hM : ∀ k vo, M.lookup k = some vo → vo = kvVal (kvModel γk L) k) :
+/-- Firing every registered read update at the state of `L`'s model, the KV authority's half
+agreeing. -/
+theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) :
     ∀ gs : List GName,
-      ⊢ ghostMapAuth (GF := GF) γk.map 1 M -∗ ([∗list] g ∈ gs, regOk γk g) -∗
-        |={(⊤ \ ↑srvRaftN) \ ↑kvN}=> ghostMapAuth γk.map 1 M ∗ readQs gs L
+      ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) -∗
+        ([∗list] g ∈ gs, regOk γk g) -∗
+        |={(⊤ \ ↑srvRaftN) \ ↑kvN}=> ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
+          readQs gs L
   | [] => by
-    iintro HM -
+    iintro Hσ -
     imodintro
-    iframe HM
+    iframe Hσ
     unfold readQs
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
     itrivial
   | g :: gs => by
-    iintro HM #Hgs
+    iintro Hσ #Hgs
     icases (BigSepL.bigSepL_cons (Φ := fun _ g => regOk (GF := GF) γk g)).1 $$ Hgs with
       ⟨#Hg, #Hgs'⟩
     iunfold regOk at Hg
     icases Hg with ⟨%Q, #HQ, #Hd⟩
     iunfold kvDep at Hd
-    icases Hd with (⟨%k, %Q0, %HQeq, #Hau⟩ | %HQeq)
+    icases Hd with (⟨%Q0, %HQeq, #Hau⟩ | %HQeq)
     rotate_left
-    · imod kv_fire_reads γk L M hM gs $$ HM Hgs' with ⟨HM, #Hrest⟩
+    · imod kv_fire_reads γk L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
       imodintro
-      iframe HM
+      iframe Hσ
       unfold readQs
       iapply (BigSepL.bigSepL_cons (Φ := fun _ g => iprop(∃ Q : List EntryModel → IProp GF,
         savedPredOwn (GF := GF) g DFrac.discard Q ∗ □ Q L))).2
@@ -308,21 +334,22 @@ theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (M : GMap GoString (
         rw [HQeq]
         iintro !>; itrivial
       · iexact Hrest
-    iunfold kvGetAu at Hau
+    iunfold kvReadAu at Hau
+    iunfold kvAu at Hau
     ihave Hacc := aupd_aacc $$ Hau
     unfold atomic_acc
     imod Hacc with Hacc
     isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-    icases Hacc with ⟨%vo, Hpt, Hucl⟩
-    iunfold kvPt at Hpt
-    ihave %Hlk := ghost_map_lookup $$ HM Hpt
+    icases Hacc with ⟨%σ, Hc, Hucl⟩
+    iunfold etcdKV at Hc
+    ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-    imod Hcommit $$ [Hpt] with #HQ0
-    · iunfold kvPt; iexact Hpt
-    imod kv_fire_reads γk L M hM gs $$ HM Hgs' with ⟨HM, #Hrest⟩
+    imod Hcommit $$ [Hc] with #HQ0
+    · iunfold etcdKV; iexact Hc
+    imod kv_fire_reads γk L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
     imodintro
-    iframe HM
+    iframe Hσ
     unfold readQs
     iapply (BigSepL.bigSepL_cons (Φ := fun _ g => iprop(∃ Q : List EntryModel → IProp GF,
       savedPredOwn (GF := GF) g DFrac.discard Q ∗ □ Q L))).2
@@ -331,12 +358,12 @@ theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (M : GMap GoString (
       iframe HQ
       rw [HQeq]
       iintro !> !>
-      rw [← hM k vo Hlk]
+      rw [Hag]
       iexact HQ0
     · iexact Hrest
 
 /-- **One read update for the registered clients `gs`, from the KV invariant** (see the file
-header): at every firing, every client's `Get` update is fired in turn at the current value. -/
+header): at every firing, every client's read update is fired in turn at the current state. -/
 theorem kv_read_compose (γ : ServerRaftNames) (γk : KVNames) (gs : List GName) :
     ⊢ kvInv (GF := GF) γ γk -∗ ([∗list] g ∈ gs, regOk γk g) -∗
       srvReadAu γ (readQs gs) := by
@@ -348,8 +375,8 @@ theorem kv_read_compose (γ : ServerRaftNames) (γk : KVNames) (gs : List GName)
   unfold atomic_acc
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, %M, HL, HM, Htok, %Hok⟩
-  imod kv_fire_reads γk L M Hok.2.2.2.2 gs $$ HM Hgs with ⟨HM, #HQs⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok⟩
+  imod kv_fire_reads γk L gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -358,14 +385,14 @@ theorem kv_read_compose (γ : ServerRaftNames) (γk : KVNames) (gs : List GName)
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL HM Htok] with -
-    · inext; iexists L, M; iframe HL HM Htok; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ] with -
+    · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL HM Htok] with -
-    · inext; iexists L, M; iframe HL HM Htok; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ] with -
+    · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
     imodintro
     iintro !>
     iexact HQs
@@ -394,25 +421,13 @@ theorem readQs_get (gs : List GName) (L : List EntryModel) (n : Nat) (g : GName)
 theorem dispatchKind_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     apply.dispatchKind (apply.withHeader rq hm) = apply.dispatchKind rq := rfl
 
-/-- A put's request has no range set. -/
-theorem range_none_of_put (rq : apply.IRRModel) (hk : apply.dispatchKind rq = .put) :
-    rq.range = none := by
-  cases h : rq.range with
-  | none => rfl
-  | some r =>
-    exfalso
-    unfold apply.dispatchKind at hk
-    simp only [h, Option.isSome_some, ↓reduceIte] at hk
-    repeat' (split at hk)
-    all_goals (cases hk)
-
-/-- Whether a request that is neither a put nor a delete is plain depends only on its kind. -/
+/-- Whether a request that is no write is plain depends only on its kind. -/
 theorem plainReq_of_kind (rq rq' : apply.IRRModel) (hk : apply.dispatchKind rq' = apply.dispatchKind rq)
-    (h1 : apply.dispatchKind rq ≠ .put) (h2 : apply.dispatchKind rq ≠ .deleteRange)
-    (hp : plainReq rq) : plainReq rq' := by
+    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hp : plainReq rq) : plainReq rq' := by
+  unfold writeKind at hnw
   unfold plainReq at hp ⊢
   rw [hk]
-  revert hp h1 h2
+  revert hp hnw
   cases apply.dispatchKind rq <;> simp
 
 /-- **A proposal's permission carries to the request the wire decodes.** -/
@@ -422,25 +437,19 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
   obtain ⟨-, -, hk, hrq⟩ := hw
   rw [dispatchKind_withHeader] at hk
   unfold reqPropOk
-  iintro (%Hno | ⟨%op, %Q, %Hput, #Hau⟩ | Hnp)
+  iintro (%Hno | ⟨%op, %Q, %Hop, #Hau⟩)
   · ileft
-    obtain ⟨hp, h1, h2, hQ⟩ := Hno
+    obtain ⟨hp, hnw, hQ⟩ := Hno
     ipureintro
-    exact ⟨plainReq_of_kind rq rq' hk h1 h2 hp, by rw [hk]; exact h1, by rw [hk]; exact h2, hQ⟩
-  · iright; ileft
-    obtain ⟨hp, hkp, hop, hd, ht, hQ⟩ := Hput
-    have hnz : irrNoZeroEnd (apply.withHeader rq hm) := by
-      refine ⟨?_, ?_, ?_⟩
-      · intro o h; simp [apply.withHeader, range_none_of_put rq hkp] at h
-      · intro o h; simp [apply.withHeader, hd] at h
-      · intro t h; simp [apply.withHeader, ht] at h
+    exact ⟨plainReq_of_kind rq rq' hk hnw hp, by rw [hk]; exact hnw, hQ⟩
+  · iright
+    obtain ⟨hp, hop, hnz, hQ⟩ := Hop
     have he := hrq hnz
     subst he
     iexists op, Q
     iframe Hau
     ipureintro
-    exact ⟨hp, hkp, hop, hd, ht, hQ⟩
-  · iright; iright; iexact Hnp
+    exact ⟨hp, hop, hnz, hQ⟩
 
 /-! ### The KV logs' certificates (2026-10-14, unit T1) -/
 

@@ -22,17 +22,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.DeleteRange(ctx, r)`** (as `Put`; 2026-10-14, unit T1: a delete is not a plain proposal,
-it takes the non-plain credit `srvNonPlain`, which no one has): success, the apply package's answer to the delete
+/-- **`s.DeleteRange(ctx, r)`** (as `Put`; 2026-10-15, unit T2: a delete's update is over the
+whole state, `deletePermit`: its range end not `[0]`, the client's `kvOpAu (.deleteRange op)`; a
+success gives `□ Q` of the state it linearized at): success, the apply package's answer to the delete
 (`deleteOutcomeIs`, no error: applied; the response header's id fields owned, `appliedHdr`) of the request the proposed data decode to (`rq'`, whose delete is
 `op'`: `op` itself unless the range end is `[0]`, the model's ambiguity, `irrWireOf`), at the log
 the entry met, with mvcc's certificate of the log after. -/
 abbrev EtcdServer.DeleteRange.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull) (F : mvcc.Log),
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull) (Q : KVState → IProp GF)
+    (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.deleteRangeRequestIs r op ∗ srvNonPlain ρ.kv ∗ mvcc.idxCert E.γ.idx F }}
+      txn.deleteRangeRequestIs r op ∗ deletePermit ρ.kv op Q ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -44,7 +46,8 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
             F <+: x.log⌝ ∗
           apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log) ∨
+          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          ∃ σ : KVState, □ Q σ) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨

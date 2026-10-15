@@ -182,7 +182,7 @@ theorem txn.Txn_sole
   icases Hres with (⟨%Hok, #Hleases⟩ | ⟨%Herr, #Hce⟩)
   rotate_left
   · -- a check failed: the read transaction ended, nothing written
-    obtain ⟨Hne, rfl⟩ := Herr
+    obtain ⟨Hne, rfl, Hnp⟩ := Herr
     cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
@@ -198,7 +198,7 @@ theorem txn.Txn_sole
       ileft
       iframe Hce Hsw HPre
       isplitr
-      · ipureintro; exact ⟨rfl, rfl, Hne⟩
+      · ipureintro; exact ⟨rfl, rfl, Hne, Hnp⟩
       iexists trace, te9
       iframe Htrc
       ipureintro; exact Hteq
@@ -262,7 +262,7 @@ theorem txn.Txn_sole
     simp only [srvRunTxn]
     rw [hch]
     isplitl []
-    · ipureintro; simp [Htr, HFl]
+    · ipureintro; simp [Htr, HFl]; exact Hign
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -318,7 +318,7 @@ theorem txn.Txn_sole
     ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te5, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP; simp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn]; iexact Hcok
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP; simp only [hro, Bool.false_eq_true, ↓reduceIte]; isimp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn] at Hcok; iapply Hcok; ipureintro; exact Hign
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
     · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
     ihave #Hresp2 := Hresp
@@ -346,7 +346,7 @@ theorem txn.Txn_sole
     · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
     iright
     isplitl []
-    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => by rw [hro] at h; cases h⟩
+    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => (by rw [hro] at h; cases h), Hign⟩
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -436,7 +436,7 @@ theorem txn.Txn_read
   icases Hres with (⟨%Hok, #Hleases⟩ | ⟨%Herr, #Hce⟩)
   rotate_left
   · -- a check failed: the read transaction ended
-    obtain ⟨Hne, rfl⟩ := Herr
+    obtain ⟨Hne, rfl, Hnp⟩ := Herr
     cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>

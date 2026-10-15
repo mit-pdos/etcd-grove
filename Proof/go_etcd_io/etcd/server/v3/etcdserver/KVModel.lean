@@ -20,6 +20,21 @@ open go_etcd_io.etcd.server.v3.etcdserver
 
 /-! ## Where the apply relation departs from the function -/
 
+/-- A chain without a capped layer (2026-10-15, unit T2: the capped layer may reject a
+transaction or not, its cost being opaque). -/
+def apply.Chain.capFree : apply.Chain → Bool
+  | .backend => true
+  | .auth _ c => c.capFree
+  | .quota c => c.capFree
+  | .capped _ => false
+  | .corrupt c => c.capFree
+
+/-- **A chain on which the apply relation is the KV model** (2026-10-15, unit T2): auth disabled
+(`authOn`) and no capped layer (`capFree`); the start's chain, `alarmChain false false false`. -/
+def apply.Chain.kvExact (c : apply.Chain) : Bool := !c.authOn && c.capFree
+
+@[simp] theorem alarmChain_kvExact : (apply.alarmChain false false false).kvExact = true := rfl
+
 /-- **The backend's relation on a plain request is the function.** -/
 theorem backendStep_plain (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Outcome)
     (hp : plainReq rq) (h : apply.backendStep rq log o) :
@@ -31,79 +46,103 @@ theorem backendStep_plain (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Outc
   case put =>
     obtain ⟨op, hop, h⟩ := h
     obtain ⟨-, -, hp⟩ := hp
-    obtain ⟨hl, hn⟩ := hp op hop
+    have hl := hp op hop
     simp only [hop]
-    rcases h with ⟨h, -⟩ | ⟨h, -⟩ | h
+    rcases h with ⟨h, -⟩ | ⟨hn, hf, rfl⟩ | ⟨hs, rfl⟩
     · exact absurd hl h
-    · rw [hn] at h; cases h
-    · rw [h]; rfl
+    · rw [hn, hf]; rfl
+    · have : (txn.needsPrev op && (mvcc.findKey op.key (mvcc.stateAfter log)).isNone) = false := by
+        cases hn : txn.needsPrev op
+        · rfl
+        · have := hs hn
+          cases hf : mvcc.findKey op.key (mvcc.stateAfter log)
+          · rw [hf] at this; cases this
+          · rfl
+      rw [this]; rfl
   case deleteRange =>
-    obtain ⟨op, hop, h⟩ := h
+    obtain ⟨op, hop, rfl⟩ := h
+    simp only [hop]
+    rfl
+  case txn =>
+    obtain ⟨t, hop, h⟩ := h
     obtain ⟨-, -, hp⟩ := hp
     simp only [hop]
-    rcases h with h | ⟨h, -⟩
-    · rw [h]; rfl
-    · rw [hp op hop] at h; cases h
+    rcases h with ⟨rfl, hn⟩ | ⟨rfl, -, hig⟩
+    · rw [if_neg (hn (hp t hop))]; rfl
+    · rw [if_pos hig]; rfl
   case range => rw [h]; rfl
   all_goals (rcases h with h | h <;> (rw [h]; rfl))
 
-/-- **The chain's relation on a plain request is the function, or an auth rejection by an
-enabled auth layer.** -/
+/-- **The chain's relation on a plain request is the function**, unless the chain is not
+`kvExact` and the request was rejected (the log unchanged): an enabled auth layer's rejection, or
+a capped layer's. -/
 theorem chainStep_plain : ∀ (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log)
     (o : apply.Outcome), plainReq rq → apply.chainStep apply.backendStep c rq log o →
-      o.logAfter log = chainLog c rq log ∨ (o = .rejected .auth ∧ c.authOn = true)
+      o.logAfter log = chainLog c rq log ∨ (o.logAfter log = log ∧ c.kvExact = false)
   | .backend, rq, log, o, hp, h => Or.inl (backendStep_plain rq log o hp h)
   | .corrupt c, rq, log, o, hp, h => by
     simp only [apply.chainStep] at h
-    simp only [chainLog, apply.Chain.authOn]
+    simp only [chainLog, apply.Chain.kvExact, apply.Chain.authOn, apply.Chain.capFree]
     split at h
     · rename_i hk; rw [if_pos hk, h]; left; rfl
     · rename_i hk; rw [if_neg hk]; exact chainStep_plain c rq log o hp h
   | .capped c, rq, log, o, hp, h => by
     simp only [apply.chainStep] at h
-    simp only [chainLog, apply.Chain.authOn]
+    simp only [chainLog, apply.Chain.kvExact, apply.Chain.authOn, apply.Chain.capFree]
     split at h
     · rename_i hk; rw [if_pos hk, h]; left; rfl
     · rename_i hk
       rw [if_neg hk]
       split at h
-      · rename_i ht
-        unfold plainReq at hp; rw [ht] at hp; exact hp.elim
-      · exact chainStep_plain c rq log o hp h
+      · rcases h with h | h
+        · right; rw [h]; exact ⟨rfl, by simp⟩
+        · rcases chainStep_plain c rq log o hp h with h | ⟨h, -⟩
+          · left; exact h
+          · right; exact ⟨h, by simp⟩
+      · rcases chainStep_plain c rq log o hp h with h | ⟨h, -⟩
+        · left; exact h
+        · right; exact ⟨h, by simp⟩
   | .auth on c, rq, log, o, hp, h => by
     simp only [apply.chainStep] at h
-    simp only [chainLog, apply.Chain.authOn]
+    simp only [chainLog]
+    have hlift : c.kvExact = false → (apply.Chain.auth on c).kvExact = false := by
+      simp only [apply.Chain.kvExact, apply.Chain.authOn, apply.Chain.capFree]
+      intro h; cases ho : on <;> cases ha : c.authOn <;> simp_all
     split at h
     · rcases h with ⟨hm, h⟩ | h
       · cases hon : on
         · -- auth disabled: the rejection is of a request whose log does not change
           rw [hon] at hm
-          have hk : apply.dispatchKind rq ≠ .put ∧ apply.dispatchKind rq ≠ .deleteRange := by
+          have hk : ¬ writeKind (apply.dispatchKind rq) := by
             unfold plainReq at hp
+            unfold writeKind
             rcases hm with hm | hm | hm
             · cases hm
-            · constructor
-              · intro hk; rw [hk] at hp; rw [hp.2.1] at hm; cases hm
-              · intro hk; rw [hk] at hp; rw [hp.2.1] at hm; cases hm
-            · exact ⟨hm.1, hm.2.2⟩
+            · rintro (hk | hk | hk) <;> rw [hk] at hp <;>
+                first | (rw [hp.2.1] at hm; cases hm) | (rw [hp.2] at hm; cases hm)
+            · rintro (hk | hk | hk)
+              · exact hm.1 hk
+              · exact hm.2.2.1 hk
+              · exact hm.2.2.2 hk
           left; rw [h, chainLog_nonwrite rq log hk c]; rfl
-        · right; exact ⟨h, rfl⟩
+        · right; rw [h]
+          exact ⟨rfl, by simp [apply.Chain.kvExact, apply.Chain.authOn]⟩
       · rcases chainStep_plain c rq log o hp h with h | ⟨h1, h2⟩
         · left; exact h
-        · right; exact ⟨h1, by simp [h2]⟩
+        · right; exact ⟨h1, hlift h2⟩
     · rcases chainStep_plain c rq log o hp h with h | ⟨h1, h2⟩
       · left; exact h
-      · right; exact ⟨h1, by simp [h2]⟩
+      · right; exact ⟨h1, hlift h2⟩
   | .quota c, rq, log, o, hp, h => by
     simp only [apply.chainStep] at h
-    simp only [chainLog, apply.Chain.authOn]
+    simp only [chainLog, apply.Chain.kvExact, apply.Chain.authOn, apply.Chain.capFree]
     exact chainStep_plain c rq log o hp h
 
-/-- **`dispatch`'s relation on a plain request is the function, or an enabled auth layer's
-rejection.** -/
+/-- **`dispatch`'s relation on a plain request is the function**, unless the chain is not
+`kvExact` and the log is unchanged. -/
 theorem dispatchStep_plain (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (log : mvcc.Log)
     (o : apply.Outcome) (hp : plainReq rq) (h : apply.dispatchStep c rq v3 log o) :
-    o.logAfter log = dispatchLog c rq v3 log ∨ (o = .rejected .auth ∧ c.authOn = true) := by
+    o.logAfter log = dispatchLog c rq v3 log ∨ (o.logAfter log = log ∧ c.kvExact = false) := by
   unfold apply.dispatchStep at h
   unfold dispatchLog
   split at h
@@ -120,13 +159,13 @@ theorem plainReq_not_alarm (rq : apply.IRRModel) (hp : plainReq rq) :
   intro hk; unfold plainReq at hp; rw [hk] at hp; exact hp
 
 /-- **`apply.Apply`'s relation on a plain request**: the chain unchanged, and the log as
-`dispatchLog` says, unless the chain's auth layer is enabled and rejected it (the log unchanged).
-A skipped or admin-rejected request changes nothing, and `dispatchLog` agrees: a plain request
-that `Apply` may skip or reject is no put and no delete. -/
+`dispatchLog` says, unless the chain is not `kvExact` (the log unchanged). A skipped or
+admin-rejected request changes nothing, and `dispatchLog` agrees: a plain request that `Apply`
+may skip or reject is no put, no delete and no transaction. -/
 theorem applyStep_plain (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
     (out : apply.ApplyOut) (hp : plainReq rq) (h : apply.applyStep rq v3 x x' out) :
     x'.chain = x.chain ∧
-      (x'.log = dispatchLog x.chain rq v3 x.log ∨ (x.chain.authOn = true ∧ x'.log = x.log)) := by
+      (x'.log = dispatchLog x.chain rq v3 x.log ∨ (x.chain.kvExact = false ∧ x'.log = x.log)) := by
   have hnochg : (apply.noSideEffect rq = true ∨ apply.needAdminPermission rq = true) →
       dispatchLog x.chain rq v3 x.log = x.log := by
     intro hn
@@ -134,15 +173,12 @@ theorem applyStep_plain (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
     split
     · rfl
     · split
-      · have hk : apply.dispatchKind rq ≠ .put ∧ apply.dispatchKind rq ≠ .deleteRange := by
+      · have hk : ¬ writeKind (apply.dispatchKind rq) := by
           unfold plainReq at hp
-          constructor
-          · intro hk; rw [hk] at hp; rcases hn with hn | hn
-            · rw [hp.1] at hn; cases hn
-            · rw [hp.2.1] at hn; cases hn
-          · intro hk; rw [hk] at hp; rcases hn with hn | hn
-            · rw [hp.1] at hn; cases hn
-            · rw [hp.2.1] at hn; cases hn
+          unfold writeKind
+          rintro (hk | hk | hk) <;> rw [hk] at hp <;> rcases hn with hn | hn
+          all_goals first | (rw [hp.1] at hn; cases hn) | (rw [hp.2.1] at hn; cases hn) |
+            (rw [hp.2] at hn; cases hn)
         exact chainLog_nonwrite rq x.log hk _
       · rfl
   cases out with
@@ -161,12 +197,12 @@ theorem applyStep_plain (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
     refine ⟨hchain, ?_⟩
     rcases dispatchStep_plain x.chain rq v3 x.log o hp hd with h' | ⟨h', hon⟩
     · left; rw [hl, h']
-    · right; refine ⟨hon, ?_⟩; rw [hl, h']; rfl
+    · right; refine ⟨hon, ?_⟩; rw [hl, h']
 
-/-- **A raft entry's step on a plain entry, auth disabled**: the chain unchanged, and the log as
-`kvEntry` says. -/
+/-- **A raft entry's step on a plain entry, at a `kvExact` chain**: the chain unchanged, and the
+log as `kvEntry` says. -/
 theorem batchStep_plain (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
-    (hp : plainEntry m) (hoff : x.chain.authOn = false) (h : batchStep c₀ m x x') :
+    (hp : plainEntry m) (hoff : x.chain.kvExact = true) (h : batchStep c₀ m x x') :
     x'.chain = x.chain ∧ x'.log = kvEntry c₀ x.chain x.log m := by
   unfold batchStep at h
   unfold kvEntry
@@ -194,10 +230,10 @@ theorem batchStep_plain (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
     subst h
     exact ⟨rfl, rfl⟩
 
-/-- **The apply relation on a plain log, auth disabled, is the model**: the chain unchanged and
-the log `kvRaftOf` of the entries. -/
+/-- **The apply relation on a plain log, at a `kvExact` chain, is the model**: the chain
+unchanged and the log `kvRaftOf` of the entries. -/
 theorem entriesStep_plain (c₀ : w64) (A : List EntryModel) :
-    ∀ (x x' : apply.ApplyKV), plainLog A → x.chain.authOn = false → entriesStep c₀ A x x' →
+    ∀ (x x' : apply.ApplyKV), plainLog A → x.chain.kvExact = true → entriesStep c₀ A x x' →
       x'.chain = x.chain ∧ x'.log = kvRaftOf c₀ x.chain x.log A := by
   induction A with
   | nil => intro x x' _ _ h; simp only [entriesStep] at h; subst h; exact ⟨rfl, rfl⟩

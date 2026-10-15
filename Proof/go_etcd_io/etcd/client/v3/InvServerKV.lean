@@ -147,6 +147,69 @@ theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Et
 
 end todo
 
+/-! ## A client that does not track the abstract state (2026-10-15, unit T2) -/
+
+section anyAu
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **Any operation's update, with no result** (persistent): what a client that does not track
+etcd's abstract state hands the server's specs (`kvOpAu op` with `Q` trivial, for every
+operation). It has it from `etcdKV` in an invariant of its own (`kvAnyAu_of_inv`). -/
+def kvAnyAu (γ : ReadNames) : IProp GF :=
+  iprop(□ ∀ op : KVOp, kvOpAu γ.kv op (fun _ => iprop(True)))
+
+instance kvAnyAu_persistent (γ : ReadNames) : Persistent (kvAnyAu (GF := GF) γ) := by
+  unfold kvAnyAu; infer_instance
+
+/-- The namespace of a client's invariant holding `etcdKV`. -/
+def kvClientN : Namespace := nroot .@ "kv_client"
+
+theorem kvClientN_mask : (↑kvClientN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩,
+    fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩
+
+/-- **`kvAnyAu` from `etcdKV` in an invariant**: every update opens the invariant, hands the
+state over and takes the stepped state back. -/
+theorem kvAnyAu_of_inv (γ : ReadNames) :
+    inv kvClientN iprop(∃ σ : KVState, etcdKV γ.kv σ) ⊢ kvAnyAu (GF := GF) γ := by
+  have Hm := kvClientN_mask
+  iintro #Hinv
+  iunfold kvAnyAu
+  iintro !> %op
+  iunfold kvOpAu
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, Hσ⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ] with -
+    · inext; iexists σ; iexact Hσ
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ] with -
+    · inext; iexists (kvOpStep op σ); iexact Hσ
+    imodintro
+    iintro !>
+    itrivial
+
+end anyAu
+
 section floor
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -191,6 +254,33 @@ theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iunfold srvReadFieldsAt at Hsrd
   icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
   iexact Hsm
+
+/-- **The state a read linearized at, in the clients' model** (2026-10-15, unit T2: how the
+abstract state `σ` meets the vertical slice's `EtcdModel` instance): a linearizable range's reply
+gives `□ Q σ` at the state `σ` of a certified log (`kvStateOf`), and that log's state at its last
+revision, restricted to any prefix, is etcd's state at `σ.rev` in the server's model
+(`etcdState_of_cert_last`): `etcdState (W64 σ.rev) pfx (txn.underPfx pfx σ.kvs)`, persistent and well
+formed. -/
+theorem rangeReply_etcdState (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64) (o : OpFull)
+    (F : mvcc.Log) (Q : KVState → IProp GF) (m : RangeRespM) (pfx : GoString)
+    (hser : o.base.serializable = false) :
+    storeSmall E.γ ∗ rangeReplyOk E γr c F o cid mid Q m ⊢
+      ∃ σ : KVState, □ Q σ ∗
+        □ etcdState (self := v3rpc.etcdModelOfServer E) (W64 (σ.rev : Int)) pfx
+          (txn.underPfx pfx σ.kvs) ∗ ⌜EtcdStateWf pfx (txn.underPfx pfx σ.kvs)⌝ := by
+  iintro ⟨#Hsm, #H⟩
+  iunfold rangeReplyOk at H
+  simp only [hser, Bool.false_eq_true, ↓reduceIte]
+  icases H with ⟨%l, #Hcert, %Hl, -, #HQ⟩
+  obtain ⟨hlen, hlen', -⟩ := Hl
+  ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E l pfx hlen hlen' $$ [$Hsm $Hcert]
+  iexists kvStateOf l
+  iframe HQ
+  have hr : W64 ((l.length : Int) - 1) = W64 (((kvStateOf l).rev : Nat) : Int) := by
+    unfold kvStateOf; simp only; congr 1; omega
+  rw [← hr, show (kvStateOf l).kvs = mvcc.stateAfter l from rfl]
+  iframe Hst
+  ipureintro; exact Hwf
 
 end floor
 

@@ -53,9 +53,13 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
-  ihave #Hcok := apply.certPre_backend_applied E rq log
-    (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false
-    (by unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr rfl)⟩) $$ Hcp
+  ihave #Hcok : iprop(□ (⌜txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome⌝ -∗
+      mvcc.certOk E.γ (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]))) $$ []
+  · imodintro
+    iintro %hn
+    iapply (apply.certPre_backend_applied E rq log
+      (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false
+      (by unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr ⟨hn, rfl⟩)⟩)) $$ Hcp
   ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   wp_apply (txn.put_soleWriter_floor hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
       E.s E.γ r o log E.P Pre Q Post E.f L none false hlen F) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
@@ -112,7 +116,7 @@ theorem apply.applierV3backend.Put.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨o, hput, Or.inr (Or.inr rfl)⟩, fun _ _ _ => Herr.2⟩
+      exact ⟨⟨o, hput, Or.inr (Or.inr ⟨Herr.2.2, rfl⟩)⟩, fun _ _ _ => Herr.2.1⟩
     simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, Bool.false_eq_true,
       ↓reduceIte, apply.appliedHdr]
     iframe Hres Hresp Hhdr

@@ -203,30 +203,77 @@ instance irrNoHdrIs_persistent (p : Loc) (rq : apply.IRRModel) :
   infer_instance
 
 
-/-- **A put's permission is its proposal's** (2026-10-14, unit T1). -/
-theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : Option GoString → IProp GF) :
+/-- **A put's permission is its proposal's** (2026-10-14, unit T1; 2026-10-15, unit T2: the
+whole state). -/
+theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
     putPermit (GF := GF) γk op Q ⊢
-      reqPropOk γk (irrPut op) (fun L => iprop(□ Q (kvVal (kvModel γk L) op.key))) := by
+      reqPropOk γk (irrPut op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
   unfold putPermit reqPropOk
-  iintro (⟨%Hpl, #Hau⟩ | Hnp)
-  · iright; ileft
-    iexists op, Q
-    iframe Hau
-    ipureintro
-    obtain ⟨h1, h2, h3⟩ := Hpl
-    have hk : apply.dispatchKind (irrPut op) = .put := by
-      simp [apply.dispatchKind, irrPut, apply.irrEmpty]
-    refine ⟨?_, hk, rfl, rfl, rfl, rfl⟩
-    unfold plainReq
+  iintro ⟨%Hl, #Hau⟩
+  iright
+  iexists .put op, Q
+  iframe Hau
+  ipureintro
+  have hk : apply.dispatchKind (irrPut op) = .put := by
+    simp [apply.dispatchKind, irrPut, apply.irrEmpty]
+  refine ⟨?_, ?_, ?_, rfl⟩
+  · unfold plainReq
     rw [hk]
     refine ⟨by simp [apply.noSideEffect, irrPut, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrPut, apply.irrEmpty], ?_⟩
     intro op' hop'
     simp only [irrPut, Option.some.injEq] at hop'
     subst hop'
-    refine ⟨h1, ?_⟩
-    simp [txn.needsPrev, h2, h3]
-  · iright; iright; iexact Hnp
+    exact Hl
+  · unfold reqKVOp; rw [hk]; rfl
+  · refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
+
+/-- **A delete's permission is its proposal's** (2026-10-15, unit T2). -/
+theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
+    deletePermit (GF := GF) γk op Q ⊢
+      reqPropOk γk (irrDeleteRange op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+  unfold deletePermit reqPropOk
+  iintro ⟨%Hz, #Hau⟩
+  iright
+  iexists .deleteRange op, Q
+  iframe Hau
+  ipureintro
+  have hk : apply.dispatchKind (irrDeleteRange op) = .deleteRange := by
+    simp [apply.dispatchKind, irrDeleteRange, apply.irrEmpty]
+  refine ⟨?_, ?_, ?_, rfl⟩
+  · unfold plainReq
+    rw [hk]
+    exact ⟨by simp [apply.noSideEffect, irrDeleteRange, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrDeleteRange, apply.irrEmpty]⟩
+  · unfold reqKVOp; rw [hk]; rfl
+  · refine ⟨?_, ?_, ?_⟩
+    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+    · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hz
+    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+
+/-- **A writing transaction's permission is its proposal's** (2026-10-15, unit T2). -/
+theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) :
+    txnPermit (GF := GF) γk t Q ⊢
+      reqPropOk γk (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+  unfold txnPermit reqPropOk
+  iintro ⟨%Ht, #Hau⟩
+  iright
+  iexists .txn t, Q
+  iframe Hau
+  ipureintro
+  have hk : apply.dispatchKind (irrTxn t) = .txn := by
+    simp [apply.dispatchKind, irrTxn, apply.irrEmpty]
+  refine ⟨?_, ?_, ?_, rfl⟩
+  · unfold plainReq
+    rw [hk]
+    refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
+    intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.1
+  · unfold reqKVOp; rw [hk]; rfl
+  · refine ⟨?_, ?_, ?_⟩
+    · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+    · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+    · intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.2
 
 end defs
 

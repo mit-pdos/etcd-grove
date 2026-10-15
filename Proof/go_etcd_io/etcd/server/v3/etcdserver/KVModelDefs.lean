@@ -1,26 +1,32 @@
 /-
-**The KV model of the committed raft log: the definitions** (unit T1, 2026-10-14; `notes/decisions.md`, "Put and Get
-as persistent atomic updates linearized by raft"). Pure. Lean-first (no Rocq counterpart).
+**The KV model of the committed raft log: the definitions** (unit T1, 2026-10-14; unit T2,
+2026-10-15: every KV operation; `notes/decisions.md`, "Put and Get as persistent atomic updates
+linearized by raft" and "Every KV operation as a persistent atomic update on the whole state").
+Pure. Lean-first (no Rocq counterpart).
 
 A persistent atomic update fires at **commit**, before any member applies the entry, so the KV
 state after a committed log must be a function of the log. The apply package's model
 (`apply.applyStep`, `apply.chainStep`) is a relation. This file gives the function, `kvRaftOf`, and
 says exactly where the relation departs from it.
 
-- **Plain requests** (`plainReq`): a put with lease `0` and no ignore flags, a range, a delete
-  without `PrevKv`, or a request that does not touch the store. A put or delete must not also
-  carry a field that makes `Apply` skip it (`noSideEffect`) or check admin permission
-  (`needAdminPermission`). Excluded: txn, compaction, lease grant and revocation, alarm requests
-  and `AuthEnable` (their outcomes, or the outcomes of later requests, depend on stores that the
-  model treats as oracles).
+- **Plain requests** (`plainReq`): a put with lease `0` (any other flags), a range, a delete, a
+  plain transaction (`txn.txnPlain`: gets at revision `0`, puts with lease `0` and no
+  `IgnoreLease`), or a request that does not touch the store (2026-10-15, unit T2; T1 had puts
+  without ignore flags and deletes without `PrevKv` only). A put, delete or transaction must not
+  also carry a field that makes `Apply` skip it (`noSideEffect`) or check admin permission
+  (`needAdminPermission`). Excluded: compaction, lease grant and revocation, alarm requests and
+  `AuthEnable` (their outcomes, or the outcomes of later requests, depend on stores that the model
+  treats as oracles), and a put or transaction naming a lease (the lessor's lookup).
 - **The deterministic step** (`chainLog`, `dispatchLog`, `kvEntry`) and the fold `kvRaftOf c₀ ch log₀
   A` over raft entries: an empty entry, a conf change and an entry at or below the consistent
   index `c₀` change nothing.
-- **Where the relation departs from it** (`applyStep_plain`, `batchStep_plain`): for a plain
-  request, every outcome the relation allows changes the log as `dispatchLog` does, leaves the
-  chain alone, or is an **auth rejection** (`.rejected .auth`, the log unchanged). The model
-  allows the auth layer to reject whatever the store's state. Excluding that needs the auth
-  layer's mode in the model (`authOn`, the next step: `notes/decisions.md`).
+- **Where the relation departs from it** (`applyStep_plain`, `batchStep_plain`, `KVModel.lean`):
+  for a plain request, every outcome the relation allows changes the log as `dispatchLog` does
+  and leaves the chain alone, unless the chain is not `kvExact` (an enabled auth layer's
+  rejection, a capped layer's), the log unchanged. The start's chain is `kvExact`.
+- **The state** (`KVState`, `kvStateOf`: the store at its latest revision; 2026-10-15, unit T2)
+  and **an operation's step on it** (`KVOp`, `kvOpStep`, `reqKVOp`, `kvReqStep`): the backend's
+  log follows the state (`kvStateOf_backendLog`), so the KV ghost state can be the state.
 - **Shape** (`kvEntry_grow`, `kvRaftOf_prefix`) and the **intermediate value lemma** (`kvRaftOf_ivt`): a log
   between `kvRaftOf A₀` and `kvRaftOf B` (prefix order) is `kvRaftOf A` for some `A` between `A₀` and `B`,
   because each entry appends at most one revision.
@@ -44,14 +50,17 @@ open go_etcd_io.etcd.server.v3.etcdserver
 /-! ## Plain requests and entries -/
 
 /-- **A plain request**: one whose effect on the KV is a function of the log (see the file
-header). -/
+header). 2026-10-15 (unit T2): a put with any flags but a lease, any delete, a plain
+transaction (`txn.txnPlain`: its gets at revision `0`, its puts with no lease and no
+`IgnoreLease`). -/
 def plainReq (rq : apply.IRRModel) : Prop :=
   match apply.dispatchKind rq with
   | .put => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
-      ∀ op, rq.put = some op → op.leaseID = W64 0 ∧ txn.needsPrev op = false
-  | .deleteRange => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
-      ∀ op, rq.deleteRange = some op → op.base.prevKV = false
-  | .txn | .compaction | .leaseGrant | .leaseRevoke | .alarm | .authEnable | .none => False
+      ∀ op, rq.put = some op → op.leaseID = W64 0
+  | .deleteRange => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
+  | .txn => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
+      ∀ t, rq.txn = some t → txn.txnPlain t
+  | .compaction | .leaseGrant | .leaseRevoke | .alarm | .authEnable | .none => False
   | _ => True
 
 /-- **A plain entry**: a normal entry with data decodes to a plain request (an empty entry and a
@@ -82,17 +91,29 @@ def srvIdxOk (ai₀ : w64) (L : List EntryModel) : Prop :=
 
 /-! ## The deterministic step -/
 
-/-- The backend's effect on the log, deterministically (`apply.backendStep`'s applied outcome for
-a plain request). -/
+open Classical in
+/-- **The backend's effect on the log**, deterministically (`apply.backendStep`'s outcome for a
+plain request): a put not finding the previous key-value an ignore flag needs is rejected, else
+its change appended; a delete commits its range's deletions; a transaction whose path does not
+find a previous key-value it needs is rejected (`checkTxn`), else the server's run committed. -/
 def backendLog (rq : apply.IRRModel) (log : mvcc.Log) : mvcc.Log :=
   match apply.dispatchKind rq with
   | .put =>
       match rq.put with
-      | some op => log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]]
+      | some op =>
+        if txn.needsPrev op && (mvcc.findKey op.key (mvcc.stateAfter log)).isNone then log
+        else log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]]
       | none => log
   | .deleteRange =>
       match rq.deleteRange with
       | some op => mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) op)
+      | none => log
+  | .txn =>
+      match rq.txn with
+      | some t =>
+        if txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) then
+          mvcc.commitLog log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
+        else log
       | none => log
   | _ => log
 
@@ -158,10 +179,17 @@ theorem backendLog_grow (rq : apply.IRRModel) (log : mvcc.Log) :
   unfold backendLog
   split
   · split
-    · right; exact ⟨_, rfl⟩
+    · split
+      · left; rfl
+      · right; exact ⟨_, rfl⟩
     · left; rfl
   · split
     · exact commitLog_grow' _ _
+    · left; rfl
+  · split
+    · split
+      · exact commitLog_grow' _ _
+      · left; rfl
     · left; rfl
   · left; rfl
 
@@ -297,17 +325,22 @@ theorem kvVal_put_other (log : Log) (op : OpFull) (pv : Option EtcdKv) (k : GoSt
 
 end putValues
 
-/-- A request that is neither a put nor a delete changes no log through any chain. -/
+/-- **A write kind**: a put, a delete or a transaction (2026-10-15, unit T2: a transaction too). -/
+def writeKind (k : apply.ReqKind) : Prop := k = .put ∨ k = .deleteRange ∨ k = .txn
+
+/-- A request that is no put, no delete and no transaction changes no log through any chain. -/
 theorem chainLog_nonwrite (rq : apply.IRRModel) (log : mvcc.Log)
-    (hk : apply.dispatchKind rq ≠ .put ∧ apply.dispatchKind rq ≠ .deleteRange) :
+    (hk : ¬ writeKind (apply.dispatchKind rq)) :
     ∀ c : apply.Chain, chainLog c rq log = log := by
   intro c
+  unfold writeKind at hk
   induction c with
   | backend =>
     simp only [chainLog, backendLog]
     split
-    · rename_i hk'; exact absurd hk' hk.1
-    · rename_i hk'; exact absurd hk' hk.2
+    · rename_i hk'; exact absurd (Or.inl hk') hk
+    · rename_i hk'; exact absurd (Or.inr (Or.inl hk')) hk
+    · rename_i hk'; exact absurd (Or.inr (Or.inr hk')) hk
     · rfl
   | corrupt c ih => simp only [chainLog]; split <;> simp [ih]
   | capped c ih => simp only [chainLog]; split <;> simp [ih]
@@ -315,10 +348,10 @@ theorem chainLog_nonwrite (rq : apply.IRRModel) (log : mvcc.Log)
   | quota c ih => simp only [chainLog]; exact ih
 
 /-- **A write-free entry keeps the model** (an empty entry, a conf change, or a request that is
-neither a put nor a delete). -/
+no put, no delete and no transaction). -/
 theorem kvEntry_nonwrite (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (e : EntryModel)
     (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
-      apply.dispatchKind rq ≠ .put ∧ apply.dispatchKind rq ≠ .deleteRange) :
+      ¬ writeKind (apply.dispatchKind rq)) :
     kvEntry c₀ ch log e = log := by
   unfold kvEntry
   split
@@ -340,23 +373,165 @@ theorem kvEntry_nonwrite (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (e : E
       · rfl
   · rfl
 
-/-- **A plain put entry above the consistent index, through the base chain with auth off**:
-the put's change. -/
-theorem kvEntry_put (c₀ : w64) (log : mvcc.Log) (e : EntryModel) (rq : apply.IRRModel)
-    (op : OpFull) (ht : e.typ = W32 0) (hd : e.data ≠ []) (hdec : apply.irrDecode e.data = some rq)
-    (hk : apply.dispatchKind rq = .put) (hop : rq.put = some op)
+/-- **`dispatch` through the base chain, with `v3`, is the backend's** (whatever the kind: the
+pre-v3 kinds and the kinds the chain does not run change no log, as the backend's model). -/
+theorem dispatchLog_base (rq : apply.IRRModel) (log : mvcc.Log) :
+    dispatchLog (apply.alarmChain false false false) rq true log = backendLog rq log := by
+  have hb : chainLog (apply.alarmChain false false false) rq log = backendLog rq log := by
+    simp only [apply.alarmChain, apply.baseChain, Bool.false_eq_true, ↓reduceIte, chainLog]
+  have hnw : ¬ writeKind (apply.dispatchKind rq) → backendLog rq log = log := by
+    intro hk
+    have := chainLog_nonwrite rq log hk .backend
+    simpa only [chainLog] using this
+  unfold dispatchLog
+  rw [hb]
+  split
+  · rename_i h
+    rcases h with h | h
+    · rw [hnw]
+      unfold writeKind
+      intro hk; rcases hk with hk | hk | hk <;> rw [hk] at h <;> cases h
+    · cases h
+  · split
+    · rfl
+    · rename_i _ h
+      rw [hnw]
+      unfold writeKind
+      intro hk; rcases hk with hk | hk | hk <;> rw [hk] at h <;> exact h rfl
+
+/-- **An entry above the consistent index, through the base chain**: its request's backend log
+(2026-10-15, unit T2; it was `kvEntry_put`, for a put). -/
+theorem kvEntry_base (c₀ : w64) (log : mvcc.Log) (e : EntryModel) (rq : apply.IRRModel)
+    (ht : e.typ = W32 0) (hd : e.data ≠ []) (hdec : apply.irrDecode e.data = some rq)
     (hidx : uint.Z c₀ < uint.Z e.index) :
-    kvEntry c₀ (apply.alarmChain false false false) log e =
-      log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]] := by
+    kvEntry c₀ (apply.alarmChain false false false) log e = backendLog rq log := by
   unfold kvEntry
   rw [if_pos ht, if_neg hd, hdec]
   simp only
-  unfold dispatchLog
-  have h1 : apply.preV3Kind (apply.dispatchKind rq) = false := by rw [hk]; rfl
-  have h2 : apply.storeKind (apply.dispatchKind rq) = true := by rw [hk]; rfl
-  simp only [h1, h2, decide_eq_true hidx, Bool.false_eq_true, false_or, ↓reduceIte, reduceCtorEq]
-  simp only [apply.alarmChain, apply.baseChain, Bool.false_eq_true, ↓reduceIte, chainLog,
-    backendLog, hk, hop]
+  rw [decide_eq_true hidx]
+  exact dispatchLog_base rq log
+
+/-! ## The state at the latest revision (2026-10-15, unit T2)
+
+`notes/decisions.md`, "Every KV operation as a persistent atomic update on the whole state". The
+abstract state of etcd's KV is the store at its latest revision (`KVState`): every key's
+key-value (its value, create and mod revisions, version, lease: `EtcdKv`) and the current
+revision. A log's state is `kvStateOf`; an operation's effect on it is `kvOpStep` (a read's the
+identity, a rejected request's too), a function of the state, which the backend's log follows
+(`kvStateOf_backendLog`). -/
+
+/-- **The store at its latest revision**: the key-values (sorted by key) and the current
+revision. -/
+structure KVState where
+  kvs : List EtcdKv
+  rev : Nat
+
+/-- **The state of a log**: after every revision, at its last revision (`log.length - 1`: a read
+at `log` answers it). -/
+def kvStateOf (l : mvcc.Log) : KVState := ⟨mvcc.stateAfter l, l.length - 1⟩
+
+/-- A write's commit of the changes `cs` at the next revision (none if it changed nothing:
+`mvcc.commitLog`'s). -/
+def KVState.commit (σ : KVState) (cs : List mvcc.Change) : KVState :=
+  if cs = [] then σ else ⟨mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs, σ.rev + 1⟩
+
+/-- **A KV operation** as the server applies it. -/
+inductive KVOp where
+  | put (o : OpFull)
+  | range (o : OpFull)
+  | deleteRange (o : OpFull)
+  | txn (t : TxnModel)
+
+open Classical in
+/-- **The operation's effect on the state**: a put not finding the previous key-value its
+ignore flag needs changes nothing, else commits its one change; a range changes nothing; a
+delete commits its range's deletions; a transaction whose path does not find a previous
+key-value it needs changes nothing (`checkTxn`'s error), else commits the server's run
+(`srvRunTxn`, nested branches by their verdicts at the state). -/
+def kvOpStep : KVOp → KVState → KVState
+  | .put o, σ =>
+    if txn.needsPrev o && (mvcc.findKey o.key σ.kvs).isNone then σ
+    else σ.commit [txn.putChangeOf o (mvcc.findKey o.key σ.kvs)]
+  | .range _, σ => σ
+  | .deleteRange o, σ => σ.commit (txn.delChanges σ.kvs o)
+  | .txn t, σ =>
+    if txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) then
+      σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1
+    else σ
+
+/-- **The KV operation of a request**, by `dispatch`'s kind. -/
+def reqKVOp (rq : apply.IRRModel) : Option KVOp :=
+  match apply.dispatchKind rq with
+  | .put => rq.put.map .put
+  | .range => rq.range.map .range
+  | .deleteRange => rq.deleteRange.map .deleteRange
+  | .txn => rq.txn.map .txn
+  | _ => none
+
+/-- **A request's effect on the state**: its operation's, or none. -/
+def kvReqStep (rq : apply.IRRModel) (σ : KVState) : KVState :=
+  match reqKVOp rq with
+  | some op => kvOpStep op σ
+  | none => σ
+
+theorem kvStateOf_commitLog (l : mvcc.Log) (cs : List mvcc.Change) (hl : l ≠ []) :
+    kvStateOf (mvcc.commitLog l cs) = (kvStateOf l).commit cs := by
+  have hpos := List.length_pos_iff.2 hl
+  unfold kvStateOf KVState.commit mvcc.commitLog
+  split
+  · rfl
+  · simp only [List.length_append, List.length_singleton, KVState.mk.injEq]
+    refine ⟨?_, by omega⟩
+    rw [mvcc.stateAfter_append]
+    congr 2
+    omega
+
+/-- **The backend's log follows the state**: the state after a request's backend log is the
+request's step on the state before (a log with a revision: the server's always has two). -/
+theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []) :
+    kvStateOf (backendLog rq l) = kvReqStep rq (kvStateOf l) := by
+  have hpos := List.length_pos_iff.2 hl
+  have hrev : (kvStateOf l).rev + 1 = l.length := by unfold kvStateOf; simp only; omega
+  have hs : (kvStateOf l).kvs = mvcc.stateAfter l := rfl
+  unfold backendLog kvReqStep reqKVOp
+  cases hk : apply.dispatchKind rq
+  case put =>
+    dsimp only
+    cases hp : rq.put with
+    | none => rfl
+    | some op =>
+      simp only [Option.map_some, kvOpStep]
+      rw [hs]
+      split
+      · rfl
+      · have : l ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter l))]] =
+            mvcc.commitLog l [txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter l))] := by
+          simp [mvcc.commitLog]
+        rw [this, kvStateOf_commitLog _ _ hl]
+  case range =>
+    dsimp only
+    cases hp : rq.range with
+    | none => rfl
+    | some o => rfl
+  case deleteRange =>
+    dsimp only
+    cases hp : rq.deleteRange with
+    | none => rfl
+    | some op =>
+      simp only [Option.map_some, kvOpStep]
+      rw [kvStateOf_commitLog _ _ hl]
+      rfl
+  case txn =>
+    dsimp only
+    cases hp : rq.txn with
+    | none => rfl
+    | some t =>
+      simp only [Option.map_some, kvOpStep]
+      rw [hs, hrev]
+      split
+      · rw [kvStateOf_commitLog _ _ hl]
+      · rfl
+  all_goals rfl
 
 end EtcdGrove
 end Perennial

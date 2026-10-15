@@ -51,7 +51,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   obtain ⟨hdel, hk, hlen, hst⟩ := Hrq
   ihave #Hcok := apply.certPre_backend_applied E rq log
     (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false
-    (by unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, Or.inl rfl⟩) $$ Hcp
+    (by unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, rfl⟩) $$ Hcp
   ihave #Hcok := apply.certOkNext_of_commitLog E.γ log _ $$ Hcok
   wp_apply (txn.deleteRange_soleWriter_floor hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV'
       E.s E.γ r o log E.P Pre Q Post E.f none false hlen
@@ -77,7 +77,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨o, hdel, Or.inl rfl⟩, fun _ _ _ => Herr.2⟩
+      exact ⟨⟨o, hdel, rfl⟩, fun _ _ _ => Herr.2⟩
     simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
       Bool.false_eq_true, ↓reduceIte, apply.appliedHdr]
     iframe Hres Hresp Hhdr

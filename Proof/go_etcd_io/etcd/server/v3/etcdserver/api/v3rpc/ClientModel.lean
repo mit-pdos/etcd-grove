@@ -443,7 +443,7 @@ theorem put_appended (o : OpFull) (hm : apply.HeaderModel) (x x' : apply.ApplyKV
   obtain ⟨op, -, hb | hb | hb⟩ := hb
   · cases hb.2
   · cases hb.2.2
-  · cases hb
+  · cases hb.2
     exact ⟨_, rfl⟩
 
 end model

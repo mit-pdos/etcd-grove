@@ -126,17 +126,15 @@ theorem backendStep_prefix (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
   unfold apply.backendStep at h
   split at h
   · obtain ⟨op, -, h⟩ := h
-    rcases h with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | rfl
+    rcases h with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · exact List.prefix_refl _
     · exact List.prefix_refl _
     · exact List.prefix_append _ _
-  · obtain ⟨op, -, h⟩ := h
-    rcases h with rfl | ⟨-, rfl⟩
-    · exact hc _
-    · exact List.prefix_refl _
+  · obtain ⟨op, -, rfl⟩ := h
+    exact hc _
   · subst h; exact List.prefix_refl _
   · obtain ⟨t, -, h⟩ := h
-    rcases h with rfl | ⟨rfl, -⟩
+    rcases h with ⟨rfl, -⟩ | ⟨rfl, -⟩
     · exact List.prefix_refl _
     · exact hc _
   · obtain ⟨pend, -, rfl⟩ := h

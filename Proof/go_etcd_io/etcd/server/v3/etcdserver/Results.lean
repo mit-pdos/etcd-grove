@@ -478,8 +478,10 @@ context's).
 
 **`txn_readonly`** (linked `EtcdServer.Txn` at a read-only request): the server's run of the
 transaction at a certified log (`txnReadOk`, both serializability modes: after the read index
-unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request):
-the apply thread's application of the request the proposed data decode to (`txnAppliedOk`),
+unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request,
+with its client's update over the whole state, `txnPermit`; 2026-10-15, unit T2): the apply
+thread's application of the request the proposed data decode to (`txnAppliedOk`) and `□ Q` of the
+state the update linearized at,
 possibly with header-only ranges (`SkipRangeExecution`: the apply loops call the wait's
 `IsRegistered` knowing nothing of the id's registration, so the model admits the run of a
 transaction whose waiter had timed out, the plan's suspect 2, here for a waiter that did not;
@@ -601,7 +603,7 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t resp) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te F
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t (fun _ => iprop(True)) ot te F
   simp only [hro, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot]
   · iframe #; iframe Hlt Hcr Hrc Hct Hot
@@ -616,20 +618,22 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
 /-- **`txn_applied`** (see the section header). -/
 theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
-    (ot : Option Loc) (te : Bool) (F : mvcc.Log)
+    (Q : KVState → IProp GF) (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hw : txn.txnReadonly t = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
-        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F ∗ srvNonPlain ρ.kv }}
+        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F ∗
+        txnPermit ρ.kv t Q }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp) ∨
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp ∗
+            ∃ σ : KVState, □ Q σ) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t ot te F
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q ot te F
   simp only [hw, Bool.false_eq_true, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot Hnp]
   · iframe #; iframe Hlt Hcr Hrc Hct Hot Hnp; ipureintro; exact fun h => h.elim

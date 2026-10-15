@@ -46,7 +46,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     (hAS : «attribute».String.spec (GF := GF) (hG := hG))
   :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r op F
+  intro s E ρ ctx cd r op Q F
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hdel, Hnp, #HF⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -135,14 +135,15 @@ theorem EtcdServer.DeleteRange.wp_proof
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
-  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op) (fun _ => iprop(True)) F rfl
+  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
+      (fun L => iprop(□ Q (kvStateOf (kvModel ρ.kv L)))) F rfl
       $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
     isplitl [Hnp]
-    · iunfold reqPropOk; iright; iright; iexact Hnp
+    · iapply deletePermit_reqPropOk $$ Hnp
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, -⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, %Lq, #HLq, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOk at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
@@ -169,6 +170,9 @@ theorem EtcdServer.DeleteRange.wp_proof
     · ipureintro; rfl
     iexists hm, rq', op', x, x', .applied log' false, skip
     iframe Hpo Hhdr Hcert HMint Hwit
+    isplitr
+    rotate_left
+    · iexists kvStateOf (kvModel ρ.kv Lq); iexact HQq
     ipureintro
     refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
       Hfl' log' false rfl⟩

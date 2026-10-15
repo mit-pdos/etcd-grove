@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
+public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
@@ -272,14 +273,16 @@ instance srvReadWit_persistent (γ : ServerRaftNames) (Qr : List EntryModel → 
 
 end ghost
 
-/-! ## The KV ghost state (2026-10-14, unit T1)
+/-! ## The KV ghost state (2026-10-14, unit T1; 2026-10-15, unit T2: the whole state)
 
-`notes/decisions.md`, "Put and Get as persistent atomic updates linearized by raft". A client
-owns points-to `k ↦kv vo` (`kvPt`); their authority is in the KV invariant (`kvInv`) with the
-server's half of raft's committed log `L`, and agrees with the KV model of `L` (`kvModel`, the
-fold `kvRaftOf` from the start state). The invariant also keeps `L` plain (`plainLog`): the only
-updates raft can fire over `L` are the ones built from it (`kv_prop_au`, `kv_noop_au`), which
-check. -/
+`notes/decisions.md`, "Every KV operation as a persistent atomic update on the whole state". The
+abstract state of etcd's KV is one exclusive predicate `etcdKV γk σ` (`σ : KVState`, the store at
+its latest revision: every key-value and the current revision), half of a ghost variable whose
+other half is in the KV invariant (`kvInv`) with the server's half of raft's committed log `L`,
+`σ` being the state of the KV model of `L` (`kvStateOf (kvModel γk L)`). A client keeps `etcdKV`
+in its own invariant (a per-key view, if it wants one, is its ghost map beside it). The invariant
+also keeps `L` plain (`plainLog`): the only updates raft can fire over `L` are the ones built
+from it (`kv_prop_au`, `kv_noop_au`), which check. -/
 
 section kvGhost
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -287,14 +290,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The KV ghost state's names and the start state the model is folded from: the points-to
-map, the non-plain credit's token, the consistent index `c0`, the chain `ch0` and the log `log0`
-of the state the server started at; and the KV logs' certificates (`cok`: mvcc's `certOk`
-map, `kvCertInv`) with the longest certified log's length (`hi`, a ghost variable whose halves
-the certificates' invariant and the apply thread hold). -/
+/-- The KV ghost state's names and the start state the model is folded from: the state's ghost
+variable (`st`, halves: `etcdKV`'s and the KV invariant's), the consistent index `c0`, the chain
+`ch0` and the log `log0` of the state the server started at; and the KV logs' certificates
+(`cok`: mvcc's `certOk` map, `kvCertInv`) with the longest certified log's length (`hi`, a ghost
+variable whose halves the certificates' invariant and the apply thread hold). 2026-10-15 (unit
+T2): `st` replaces T1's points-to map and the non-plain credit's token. -/
 structure KVNames where
-  map : GName
-  np : GName
+  st : GName
   c0 : w64
   ch0 : apply.Chain
   log0 : mvcc.Log
@@ -307,35 +310,67 @@ def kvN : Namespace := nroot .@ "server_kv"
 theorem kvN_raftN : (↑kvN : CoPset) ⊆ ⊤ \ ↑srvRaftN :=
   mask_ndot_ne' nroot "server_kv" "server_raft_commit" (by decide)
 
-/-- **The value of `k` is `vo`** (`none`: absent), exclusively: `k ↦kv vo`. -/
-def kvPt (γk : KVNames) (k : GoString) (vo : Option GoString) : IProp GF := k ↪[γk.map] vo
+/-- Key-values are countable (for the state's ghost variable). -/
+instance kvStateKvCountable : Pos.Countable EtcdKv :=
+  .ofInjective (fun k => Pos.Countable.encode (k.key, k.createRev, k.modRev, k.version, k.value, k.lease))
+    (by rintro ⟨a, b, c, d, e, f⟩ ⟨a', b', c', d', e', f'⟩ h; have h := Pos.encode_inj h; simp_all)
 
-instance kvPt_timeless (γk : KVNames) (k : GoString) (vo : Option GoString) :
-    Timeless (kvPt (GF := GF) γk k vo) := by
-  unfold kvPt; infer_instance
+/-- States are countable (for the state's ghost variable). -/
+instance KVState.countable : Pos.Countable KVState :=
+  .ofInjective (fun σ => Pos.Countable.encode (σ.kvs, σ.rev))
+    (by rintro ⟨a, b⟩ ⟨a', b'⟩ h; have h := Pos.encode_inj h; simp_all)
 
-/-- **The non-plain credit**: what a proposal of a non-plain request needs (a txn, a lease grant
-or revocation, a compaction, an alarm, `AuthEnable`, a delete). Its only token is inside `kvInv`,
-so no one holds it. -/
-def srvNonPlain (γk : KVNames) : IProp GF := token γk.np
+/-- **etcd's KV is at the state `σ`** (2026-10-15, unit T2), exclusively: half of the state's
+ghost variable (the KV invariant holds the other). -/
+def etcdKV (γk : KVNames) (σ : KVState) : IProp GF := ghostVar γk.st (1 : Qp).half σ
+
+instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF := GF) γk σ) := by
+  unfold etcdKV; infer_instance
 
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
 
 /-- **The KV invariant** (see the section header): the server's half of the committed log `L`
-(after `ai0`, consecutive, plain, every entry above the start's consistent index), the
-points-to's authority `M`, each agreeing with the model of `L`, the non-plain token; the start's
-chain the base chain with auth disabled and no alarm. -/
+(after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
+half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
+with auth disabled and no alarm, the start log not empty. -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
-  inv kvN iprop(∃ (L : List EntryModel) (M : GMap GoString (Option GoString)),
-    srvRLog γ L ∗ ghostMapAuth γk.map 1 M ∗ token γk.np ∗
+  inv kvN iprop(∃ L : List EntryModel,
+    srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
     ⌜plainLog L ∧ srvIdxOk γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
-      γk.ch0 = apply.alarmChain false false false ∧
-      ∀ k vo, M.lookup k = some vo → vo = kvVal (kvModel γk L) k⌝)
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
   unfold kvInv; infer_instance
+
+/-- **A client's persistent atomic update of the KV by `f`** (2026-10-15, unit T2): `□ Q` of the
+state it linearized at. Persistent: a write's may be applied more than once (the client's retry
+interceptor, raft's duplicates), a read's is fired at every committed log from its deposit. -/
+def kvAu (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γk (f σ), COMM □ Q σ }>)
+
+instance kvAu_persistent (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
+    Persistent (kvAu (GF := GF) γk f Q) := by
+  unfold kvAu; infer_instance
+
+/-- **A client's update for the operation `op`**: its step (`kvOpStep`; a rejected request's the
+identity). -/
+def kvOpAu (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
+  kvAu γk (kvOpStep op) Q
+
+instance kvOpAu_persistent (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+    Persistent (kvOpAu (GF := GF) γk op Q) := by
+  unfold kvOpAu; infer_instance
+
+/-- **A client's read update**: the state unchanged. -/
+def kvReadAu (γk : KVNames) (Q : KVState → IProp GF) : IProp GF :=
+  kvAu γk (fun σ => σ) Q
+
+instance kvReadAu_persistent (γk : KVNames) (Q : KVState → IProp GF) :
+    Persistent (kvReadAu (GF := GF) γk Q) := by
+  unfold kvReadAu; infer_instance
 
 /-! ### The KV logs' certificates (mvcc's `certOk`)
 
@@ -390,53 +425,48 @@ def kvApplied (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (x : 
     IProp GF :=
   iprop(kvAppliedL γ γk A x.log ∗ ⌜x.chain = γk.ch0⌝)
 
-/-- **A client's persistent `Put` update** of `k` to `v` (2026-10-14, unit T1): `□ Q` of the value
-before. -/
-def kvPutAu (γk : KVNames) (k v : GoString) (Q : Option GoString → IProp GF) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (vo : Option GoString), kvPt γk k vo }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ kvPt γk k (some v), COMM □ Q vo }>)
+/-- **What a put of `op` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: any flags but a
+lease): the lease `0`, and its client's update. -/
+def putPermit (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(⌜op.leaseID = W64 0⌝ ∗ kvOpAu γk (.put op) Q)
 
-/-- **A client's persistent `Get` update** of `k` (2026-10-14, unit T1): `□ Q` of the value. -/
-def kvGetAu (γk : KVNames) (k : GoString) (Q : Option GoString → IProp GF) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (vo : Option GoString), kvPt γk k vo }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ kvPt γk k vo, COMM □ Q vo }>)
+/-- **What a delete of `op` needs** (2026-10-15, unit T2): its range end not `[0]` (the wire
+keeps it: `irrWireOf`), and its client's update. -/
+def deletePermit (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(⌜op.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu γk (.deleteRange op) Q)
 
-instance kvPutAu_persistent (γk : KVNames) (k v : GoString) (Q : Option GoString → IProp GF) :
-    Persistent (kvPutAu (GF := GF) γk k v Q) := by
-  unfold kvPutAu; infer_instance
-instance kvGetAu_persistent (γk : KVNames) (k : GoString) (Q : Option GoString → IProp GF) :
-    Persistent (kvGetAu (GF := GF) γk k Q) := by
-  unfold kvGetAu; infer_instance
+/-- No range end of a transaction's comparisons and operations is `[0]` (`irrNoZeroEnd` of its
+request: the wire keeps it). -/
+def txnNoZeroEnd (t : TxnModel) : Prop :=
+  (∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0]) ∧ txnOpsNoZeroEnd t.thenOps ∧ txnOpsNoZeroEnd t.elseOps
 
-/-- **What a put of `op` needs** (2026-10-14, unit T1): plain (lease `0`, no ignore flag) with its
-client's update of the key, or the non-plain credit (no one has it). -/
-def putPermit (γk : KVNames) (op : OpFull) (Q : Option GoString → IProp GF) : IProp GF :=
-  iprop((⌜op.leaseID = W64 0 ∧ op.ignoreValue = false ∧ op.ignoreLease = false⌝ ∗
-      kvPutAu γk op.key op.val Q) ∨ srvNonPlain γk)
+/-- **What a writing transaction `t` needs** (2026-10-15, unit T2): plain (`txn.txnPlain`: its
+gets at revision `0`, its puts with no lease and no `IgnoreLease`), no range end `[0]`, and its
+client's update. -/
+def txnPermit (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗ kvOpAu γk (.txn t) Q)
 
-/-- **What a proposal of `rq` needs** (2026-10-14, unit T1), with the result `Qr` its update
-gives: a request with no KV effect (plain, neither a put nor a delete: `Qr` trivial); a plain put
-of `k` to `v` with its client's update (`Qr L` the client's `□ Q` at the value of `k` after `L`);
-or the non-plain credit (no one has it). -/
+/-- **What a proposal of `rq` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: every plain
+write), with the result `Qr` its update gives: a plain request with no KV write (no put, no
+delete, no transaction: `Qr` trivial); or a plain request of the KV operation `op` (`reqKVOp`),
+no range end of it `[0]` (so the wire keeps it, `irrWireOf`), with its client's update (`Qr L`
+the client's `□ Q` at the state of `L`'s model). -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq rq ∧ apply.dispatchKind rq ≠ .put ∧ apply.dispatchKind rq ≠ .deleteRange ∧
-        Qr = fun _ => iprop(True)⌝) ∨
-    (∃ (op : OpFull) (Q : Option GoString → IProp GF), ⌜plainReq rq ∧ apply.dispatchKind rq = .put ∧
-        rq.put = some op ∧ rq.deleteRange = none ∧ rq.txn = none ∧
-        Qr = fun L => iprop(□ Q (kvVal (kvModel γk L) op.key))⌝ ∗
-      kvPutAu γk op.key op.val Q) ∨
-    srvNonPlain γk)
-
+  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ Qr = fun _ => iprop(True)⌝) ∨
+    (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
+        irrNoZeroEnd rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
+      kvOpAu γk op Q))
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 
-/-- **A client's read deposit** for the result predicate `Q` over committed logs: a `Get` update
-of a key `k` with result `Q0`, `Q` being `□ Q0` of `k`'s value after the log; or no update at all
-(`Q` trivial: a read with no client update, the read-only `Txn`'s). -/
+/-- **A client's read deposit** for the result predicate `Q` over committed logs: a read update
+with result `Q0`, `Q` being `□ Q0` of the state of the log's model (2026-10-15, unit T2: the whole
+state, T1's was a key's value); or no update at all (`Q` trivial: a read with no client update,
+the read-only `Txn`'s). -/
 def kvDep (γk : KVNames) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop((∃ (k : GoString) (Q0 : Option GoString → IProp GF),
-    ⌜Q = fun L => iprop(□ Q0 (kvVal (kvModel γk L) k))⌝ ∗ kvGetAu γk k Q0) ∨
+  iprop((∃ Q0 : KVState → IProp GF,
+    ⌜Q = fun L => iprop(□ Q0 (kvStateOf (kvModel γk L)))⌝ ∗ kvReadAu γk Q0) ∨
     ⌜Q = fun _ => iprop(True)⌝)
 
 instance kvDep_persistent (γk : KVNames) (Q : List EntryModel → IProp GF) :
@@ -820,13 +850,12 @@ theorem backendStep_grow {rq : apply.IRRModel} {log : mvcc.Log} {o : apply.Outco
   · obtain ⟨op, -, h | h | h⟩ := h
     · rw [h.2]; left; rfl
     · rw [h.2.2]; left; rfl
-    · rw [h]; right; exact ⟨_, rfl⟩
-  · obtain ⟨op, -, h | h⟩ := h
-    · rw [h]; exact commitLog_grow _ _
-    · rw [h.2]; left; rfl
+    · rw [h.2]; right; exact ⟨_, rfl⟩
+  · obtain ⟨op, -, h⟩ := h
+    rw [h]; exact commitLog_grow _ _
   · rw [h]; left; rfl
   · obtain ⟨t, -, h | h⟩ := h
-    · rw [h]; left; rfl
+    · rw [h.1]; left; rfl
     · rw [h.1]; exact commitLog_grow _ _
   · obtain ⟨pend, -, h⟩ := h
     rw [h]; exact commitLog_grow _ _

@@ -73,7 +73,8 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
         putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
         □ (⌜o.ignoreLease = true⌝ -∗
           leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
-        mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
+        □ (⌜needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome⌝ -∗
+          mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]])) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le)) (Val #kv)) (Val #p))
@@ -109,9 +110,9 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
       iapply Hl
       ipureintro; exact Hil
     imodintro
-    iintro %ilog %Hpin
-    rw [pinned_sole log ilog hlen Hpin]
-    iexact Hcok
+    iintro %ilog ⟨%Hpin, %Hn⟩
+    rw [pinned_sole log ilog hlen Hpin] at Hn ⊢
+    iapply Hcok; ipureintro; exact Hn
   inext
   iintro %resp %trace %err ⟨Hrd, Htoks, Hu, %Ht, Htrc, %Hteq, Hout⟩
   ihave Hsw : soleWriterOpen γ log $$ [Htoks]
@@ -147,7 +148,7 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
   · -- the put committed
     iright; iright
     isplitl []
-    · ipureintro; exact Herr
+    · ipureintro; exact Herr.1
     iframe Hresp Hhdr Hlok HPost
     isplitl [Hsw]
     · have hc : mvcc.commitLog ilog [putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] =
@@ -171,7 +172,8 @@ theorem put_soleWriter_floor (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoIn
         putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
         □ (⌜o.ignoreLease = true⌝ -∗
           leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
-        mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
+        □ (⌜needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome⌝ -∗
+          mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]])) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f ∗ mvcc.idxCert γ.idx F }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le)) (Val #kv)) (Val #p))
@@ -184,7 +186,8 @@ theorem put_soleWriter_floor (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoIn
          (⌜needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none ∧ resp = null⌝ ∗
             errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err ∗
             soleWriter γ log ∗ Post) ∨
-         (⌜err = GoInterface.nil ∧ F <+: log⌝ ∗
+         (⌜err = GoInterface.nil ∧ F <+: log ∧
+              (needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome)⌝ ∗
             putResponseIs resp (W64 (log.length : Int))
               (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter log) else none) ∗
             respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
@@ -208,9 +211,9 @@ theorem put_soleWriter_floor (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoIn
       iapply Hl
       ipureintro; exact Hil
     imodintro
-    iintro %ilog %Hpin
-    rw [(pinned_floor log F L0 ilog hlen HL0.1 HL0.2 Hpin).1]
-    iexact Hcok
+    iintro %ilog ⟨%Hpin, %Hn⟩
+    rw [(pinned_floor log F L0 ilog hlen HL0.1 HL0.2 Hpin).1] at Hn ⊢
+    iapply Hcok; ipureintro; exact Hn
   inext
   iintro %resp %trace %err ⟨Hrd, Htoks, Hu, %Ht, Htrc, %Hteq, Hout⟩
   ihave Hsw : soleWriterOpen γ log $$ [Htoks]
@@ -246,7 +249,7 @@ theorem put_soleWriter_floor (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoIn
   · -- the put committed
     iright; iright
     isplitl []
-    · ipureintro; exact ⟨Herr, hFl⟩
+    · ipureintro; exact ⟨Herr.1, hFl, Herr.2⟩
     iframe Hresp Hhdr Hlok HPost
     isplitl [Hsw]
     · have hc : mvcc.commitLog ilog [putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] =

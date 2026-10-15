@@ -5442,6 +5442,12 @@ contract restated, the read loop's registry, mvcc's log certificates, the apply 
 ghost state, the server's `Put`/`Range`, the gRPC layer's deposits, the client's `kv.Put`/`kv.Get`
 with persistent updates. Full build green, no new axiom, no new `sorry` (`notes/STATUS.md`, "Unit
 T1"). The two gaps found while designing are resolved below ("The two gaps, resolved").
+**Superseded in part (2026-10-15, unit T2)**: the per-key points-to (`k ↦kv vo`, `kvPutAu`,
+`kvGetAu`), the plain workload's limits (puts without ignore flags, deletes without `PrevKv`, no
+transaction) and the non-plain credit `srvNonPlain` below are replaced by one exclusive state
+`etcdKV γ σ` and a transition for every KV operation: "Every KV operation as a persistent atomic
+update on the whole state". The raft contract, the read loop's registry, mvcc's certificates and
+the two gaps' resolutions stand.
 
 **Goal.** TaDa-style specs, linearized by raft:
 
@@ -5721,6 +5727,148 @@ Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
 - **Raft's own entries** through `srvNoopAu`, taken at the node's start.
 
 ---
+
+## Every KV operation as a persistent atomic update on the whole state (unit T2, 2026-10-15 · adopted)
+
+**Status.** Implemented (2026-10-15, `notes/STATUS.md`, "Unit T2"): puts (any flag but a lease),
+ranges, deletes (with or without `PrevKv`) and plain transactions are deterministic in the KV
+model and step one exclusive abstract state; the server's and the client's `Put`, `Range`/`Get`,
+`DeleteRange` and `Txn` take persistent atomic updates over it. It supersedes unit T1's per-key
+points-to (`k ↦kv vo`, `kvPutAu`, `kvGetAu`) and merge M1's non-plain credit (`srvNonPlain`,
+`srvNonPlainAll`), both removed. No new axiom, no new `sorry`.
+
+### The user's decisions (2026-10-15)
+
+- Every etcd KV operation (leases included, later) has a transition on the abstract etcd state;
+  an operation not handled yet has no spec (no unobtainable token).
+- **The abstract state is the whole store**: one exclusive predicate `etcdKV γ σ`, `σ` the store
+  at its latest revision. Each operation's spec takes `□ AU <{∃∃ σ, etcdKV γ σ}> <{etcdKV γ (step
+  op σ), COMM □ Q σ}>` (a read's step the identity, a rejected request's too) and returns `□ Q` of
+  the state it linearized at. A per-key points-to is a client-side view (a ghost map in the
+  client's own invariant beside `etcdKV`).
+- Writes' updates stay persistent (retries, raft's duplicates); reads use raft's persistent read
+  update (T1), pinned to a committed raft prefix through mvcc's certificates (T1).
+
+### The state and the step (`KVModelDefs.lean`)
+
+- `KVState := {kvs : List EtcdKv, rev : Nat}` (every key's value, create and mod revisions,
+  version and lease; the current revision), `kvStateOf l := ⟨stateAfter l, l.length - 1⟩` (a read
+  at `l` answers revision `l.length - 1`). `KVState.commit σ cs`: no change for no change
+  (`commitLog`'s), else the changes at revision `σ.rev + 1`.
+- `KVOp := put o | range o | deleteRange o | txn t`, `kvOpStep`: a put whose ignore flag's key is
+  missing changes nothing (`ErrKeyNotFound`), else commits `putChangeOf`; a range nothing; a delete
+  commits its range's deletions (`delChanges`); a transaction whose path does not find a key an
+  ignore flag needs changes nothing (`checkTxn`'s error), else commits the server's run
+  (`srvRunTxn`, nested branches by their verdicts at the state).
+- `reqKVOp rq` (by `dispatch`'s kind), `kvReqStep`; the backend's deterministic log (`backendLog`,
+  now with the put's rejection and the transaction) follows the state: `kvStateOf_backendLog`
+  (`kvStateOf (backendLog rq l) = kvReqStep rq (kvStateOf l)` for `l ≠ []`); `dispatchLog_base`,
+  `kvEntry_base`: at the start's chain with `v3`, an entry's effect is its request's backend log.
+- **Plain** (`plainReq`): a put with lease `0` (any other flags), any delete, a plain transaction
+  (`txn.txnPlain`: gets at revision `0`, puts naming lease `0` and keeping none: no
+  `IgnoreLease`, whose `putKeep`/`putIgnVal _ none` drop the request's `Lease` field that
+  `checkPut` still looks up), a range, or a request that does not write. Excluded (no spec):
+  leases (grant, revoke, a put or transaction naming one), compaction, alarms (the quota
+  assumption already excludes NOSPACE), `AuthEnable` and the admin requests.
+
+### Making the apply relation exact (what determinism needed)
+
+The apply package's outcome relation left four choices open; each is now closed by a
+strengthened spec of the code, not by a premise:
+
+- **A put's ignore flag**: `txn.Put.spec`'s commit now says the previous key-value an ignore flag
+  needs was found, and the caller certifies only such a put's log (`□ ∀ ilog, ⌜Pinned ∧ (needsPrev
+  → found)⌝ -∗ certOk …`); `backendStep`'s applied put carries it.
+- **A delete with `PrevKv`**: its range read cannot fail at the apply thread's never-done context
+  (`txn.DeleteRange.spec`'s `nd`); `backendStep`'s delete is the applied commit only.
+- **A transaction's check**: `checkTxn.spec`'s error says, for a plain transaction, that a put of
+  the path did not find a key it needed (`txnPlain t → ¬ PathsIgnOk …`: a range at revision `0`
+  passes `checkRange`, a put naming lease `0` passes `checkLease`); `txn.Txn.specSole`'s success
+  says `PathsIgnOk`, its error the same as `checkTxn`, and the caller certifies only a write whose
+  path finds its keys; `backendStep`'s transaction carries both.
+- **The auth layer on a transaction with auth disabled**: `CheckTxnAuth`/`checkTxnPermission`/
+  `checkTxnReqsPermission` now return `nil` when the store is disabled (`on = false`: they are made
+  of the permission checks, which do); `authMayReject` no longer lets a disabled auth layer reject
+  a transaction.
+- The capped layer (a `NOSPACE` alarm) may reject a transaction or not; the start's chain has no
+  capped layer, so the determinism lemmas take `c.kvExact` (auth disabled, no capped layer:
+  `Chain.kvExact`, `alarmChain false false false`'s) instead of T1's `authOn = false`.
+
+### The KV ghost state (`InvRequest.lean`, `KVLemmas.lean`)
+
+- `KVNames` has `st` (the state's ghost variable) in place of T1's `map` and `np`; `etcdKV γk σ :=
+  ghostVar γk.st ½ σ`; the KV invariant holds the other half at `kvStateOf (kvModel γk L)` of the
+  committed log `L`, with T1's plain/index facts and `γk.log0 ≠ []` (`kvInv_alloc` allocates both
+  halves from an empty committed log).
+- `kvAu γk f Q := □ AU <{∃∃ σ, etcdKV γk σ}> @ (⊤∖↑srvRaftN)∖↑kvN, ∅ <{etcdKV γk (f σ), COMM □ Q
+  σ}>`, `kvOpAu γk op Q := kvAu γk (kvOpStep op) Q`, `kvReadAu γk Q := kvAu γk id Q`.
+- `reqPropOk γk rq Qr`: a plain request with no write (`Qr` trivial), or a plain request of the
+  operation `op` (`reqKVOp rq = some op`), no range end `[0]` (`irrNoZeroEnd`: the wire keeps it),
+  with its client's `kvOpAu γk op Q`, `Qr L = □ Q (kvStateOf (kvModel γk L))`. `kv_prop_au` fires
+  the client's update at the commit (`kvModel_snoc_state`: the entry steps the state by its
+  request). The permits: `putPermit` (lease `0`), `deletePermit` (range end not `[0]`),
+  `txnPermit` (`txnPlain`, `txnNoZeroEnd`), each with its `*_reqPropOk`.
+- `kvDep γk Q`: a read update `kvReadAu γk Q0` with `Q L = □ Q0 (kvStateOf (kvModel γk L))`, or
+  none; `kv_fire_reads`/`kv_read_compose` fire every registered read at the current state.
+
+### The specs
+
+- Server: `EtcdServer.Put … Q` (pre `putPermit`), `DeleteRange … Q` (pre `deletePermit`), `Txn … t
+  Q` (a writing `t`: pre `txnPermit`), success adding `∃ σ, □ Q σ`; `Range … Q` with `kvDep`.
+- gRPC layer: `KVDep := none | op o Q | read Q`; a put, a delete and a writing transaction take
+  the deposited operation's update (`kvDepPre`), their answers add `∃ σ, □ opDepQ d σ`.
+- Client: `etcdPutSpec` (`∃ Q, ⌜lease 0⌝ ∗ kvOpAu (.put o) Q ∗ ∀ m, putReplied … m ∗ (∃ σ, □ Q σ) -∗
+  Φ m`), `etcdDeleteSpec` (likewise, range end not `[0]`), `etcdTxnSpec` (read-only and `Q`
+  trivial, or writing, `txnPlain`, `txnNoZeroEnd`, `kvOpAu (.txn t) Q`), `etcdRangeSpec` (`kvReadAu
+  Q` or nothing; `rangeReplyOk` carries `□ Q (kvStateOf log)` of the log read). End to end:
+  `client_put_end_to_end`, `client_get_end_to_end`, `client_range_end_to_end` (any options that keep
+  a range), `client_delete_end_to_end`, `client_txn_end_to_end`; `client_get_value`,
+  `rangeReply_state` (the reply is the state's selection, count and revision).
+
+### How `σ` meets the vertical slice's `EtcdModel`
+
+The class is unchanged. `σ` is always the state of a certified log (`kvStateOf l`, `l` the KV
+model of a committed raft log, which mvcc certified): a read's `□ Q σ` comes with `idxCert l`
+(`rangeReplyOk`), so `rangeReply_etcdState` gives `etcdState (W64 σ.rev) pfx (underPfx pfx σ.kvs)`
+in `v3rpc.etcdModelOfServer E` (`etcdState_of_cert_last`): the instance's `etcdState` at `σ.rev`
+is `σ` restricted to the prefix. A write's `σ` is the state before the entry, at the log the
+apply thread met (`x.log`, certified: the reply's `putReplied` etc.); the specs do not yet tie
+`σ` to the reply's `x.log` (the proposal's witness is collected at the occurrence the reply is
+of, but `resultIs` does not name the raft prefix): a refinement for the next unit.
+
+### The V2b client contracts
+
+A client that does not track the abstract state holds every operation's update with no result,
+`kvAnyAu γ := □ ∀ op, kvOpAu γ.kv op True`, from `etcdKV` in an invariant of its own
+(`kvAnyAu_of_inv`). The derived contracts (`kv_put_result`, `kv_delete_result`, `kv_txn_commit`,
+`isEtcd*KVTodo_of_kv`, the recipes', `queue_vertical`) take it in place of `srvNonPlainAll`, plus,
+for the operations with a lease, which no server spec covers until unit T3, their client-level
+triples as premises (`kvLeasedPutTodo`, `kvLeasedCommitTodo`; bundled as `kvWritesOk`). Deletes and
+lease-free puts and transactions are meaningful again; leased ones wait for T3.
+
+### Unit T3: leases (the plan; not implemented)
+
+- **State**: `σ.leases : List (w64 × Nat)` (id, granted TTL), the lessor's table; a key-value's
+  `lease` field already in `σ.kvs`.
+- **Transitions**: `LeaseGrant(id, ttl)` (the id fixed before the proposal, `reqIDGen` if `0`;
+  `ErrLeaseExists` the identity; TTL raised to the minimum) adds the lease; `LeaseRevoke(id)`
+  (`ErrLeaseNotFound` the identity) deletes every key attached to `id` (`σ.kvs` with `lease = id`,
+  one revision, sorted as the lessor's revoke deletes them) and removes `id`; a put or a
+  transaction naming a lease not in `σ.leases` is rejected (`ErrLeaseNotFound`), else attaches;
+  `IgnoreLease` keeps the previous key-value's lease. `LeaseCheckpoint` and keep-alives change no
+  `σ` (the remaining TTL is not in `σ`: expiry is not a function of the log).
+- **Determinism**: the lessor's lookups at the apply thread must be `σ.leases` (`lessorUser γ.leases
+  L` related to the model's table: the apply thread's `leasesKnown` becomes an equality with the
+  committed log's lease table), and the lessor's `Revoke` contract (unit 9) must delete exactly the
+  attached keys (its item set kept equal to `{k | σ.kvs[k].lease = id}` by `Attach`/`Detach`, the
+  put and delete paths).
+- **Expiry**: the lessor's expiry loop (`revokeExpiredLeases`, names-only) proposes revocations no
+  client asked for. Leases may expire at any time, so a client holding `etcdKV` agrees to any
+  revocation: the server's construction takes `□ ∀ id, kvOpAu (.leaseRevoke id) True` (what
+  `kvAnyAu` gives), which the expiry loop deposits with its proposals.
+- **Specs**: server `LeaseGrant`/`LeaseRevoke` (and `LeaseRenew`, `LeaseTimeToLive`, outside raft,
+  no `σ` step), the client's `Grant`/`Revoke`/`KeepAlive`; `kvLeasedPutTodo` and
+  `kvLeasedCommitTodo` then become theorems and leave `kvWritesOk`.
 
 ## Porcupine: vendored, complete only, a model as closure specs, a driver over TaDa
 

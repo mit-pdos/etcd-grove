@@ -112,7 +112,10 @@ theorem chainStep_alarm_put (on ns cr : Bool) (rq : IRRModel) (op : OpFull) (log
     rw [hk] at h'
     obtain ⟨op', hp', h'⟩ := h'
     rw [hp] at hp'; cases hp'
-    exact h'
+    rcases h' with h' | h' | ⟨-, h'⟩
+    · exact Or.inl h'
+    · exact Or.inr (Or.inl h')
+    · exact Or.inr (Or.inr h')
   have hbase : chainStep backendStep (baseChain on) rq log o →
       o = .rejected .auth ∨ ∃ o', putModel op log o' ∧ quotaAfter o' o := by
     intro h
@@ -134,7 +137,7 @@ theorem chainStep_alarm_delete (on ns cr : Bool) (rq : IRRModel) (op : OpFull) (
     rw [hk] at h'
     obtain ⟨op', hp', h'⟩ := h'
     rw [hp] at hp'; cases hp'
-    exact h'
+    exact Or.inl h'
   have hbase : chainStep backendStep (baseChain on) rq log o →
       o = .rejected .auth ∨ deleteModel op log o := by
     intro h
@@ -173,7 +176,9 @@ theorem chainStep_alarm_txn (on ns cr : Bool) (rq : IRRModel) (t : TxnModel) (lo
     rw [hk] at h'
     obtain ⟨t', hp', h'⟩ := h'
     rw [hp] at hp'; cases hp'
-    exact h'
+    rcases h' with ⟨h', -⟩ | ⟨h1, h2, -⟩
+    · exact Or.inl h'
+    · exact Or.inr ⟨h1, h2⟩
   have hbase : chainStep backendStep (baseChain on) rq log o →
       o = .rejected .auth ∨ ∃ o', txnModel t log o' ∧ quotaAfter o' o := by
     intro h
@@ -531,7 +536,7 @@ theorem apply_readonly_no_write (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) (ou
       · rw [hk] at hb
         obtain ⟨t', ht', hb⟩ := hb
         rw [ht] at ht'; cases ht'
-        rcases hb with rfl | ⟨rfl, hnil⟩
+        rcases hb with ⟨rfl, -⟩ | ⟨rfl, hnil, -⟩
         · rfl
         · simp only [Outcome.logAfter, mvcc.commitLog]; rw [if_pos (hnil hro)]
     unfold dispatchStep at hd

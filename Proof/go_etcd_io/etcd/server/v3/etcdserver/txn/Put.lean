@@ -180,7 +180,7 @@ theorem txn.Put.wp_proof
   ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
   wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
   · iapply mvcc.txnEndPre_write; iframe Hhook HP
-    iunfold mvcc.certOkNext; iright; iapply Hcok; ipureintro; exact Hpin
+    iunfold mvcc.certOkNext; iright; iapply Hcok; ipureintro; exact ⟨Hpin, Hn⟩
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_nil, ↓reduceIte]
   icases Hpost with ⟨#Hc, -⟩
   (try wp_auto)
@@ -201,7 +201,7 @@ theorem txn.Put.wp_proof
   iframe HPost
   iright
   iframe Hresp Hhdr Hc Hlok2
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, Hn⟩
 
 end proof
 

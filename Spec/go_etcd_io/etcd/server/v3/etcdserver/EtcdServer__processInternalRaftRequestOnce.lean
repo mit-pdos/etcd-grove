@@ -34,8 +34,9 @@ resource `E.RD` (`AuthInfoFromCtx`):
   entry met, and mvcc's certificate of the log after; 2026-10-14, unit C2a: `resultIsW E ρ.rd`, with
   the witness that the log after is applied through an index of the committed log, `appliedWit`);
   and (2026-10-14, unit T1) the result `Qr` of the proposal's update at a committed log (`reqPropOk
-  ρ.kv rq Qr`: the request has no KV effect, `Qr` trivial; or it is a plain put with its client's
-  update; or the non-plain credit, which no one has): `□ Qr L` of the committed log `L` before
+  ρ.kv rq Qr`: the request has no KV write, `Qr` trivial; or, since 2026-10-15 (unit T2), it is a
+  plain write, a put, a delete or a transaction, with its client's update over the whole state,
+  `Qr L` the client's `□ Q` at the state of `L`'s model): `□ Qr L` of the committed log `L` before
   the entry the result is of;
 * failure: no result, an error the gRPC layer can take (`applyErrIs`: in an error tree, a safe map
   key, with a message; 2026-10-12, unit 3a), and the proposal, if made, deposited (`srvMaybeDeposited`: it may

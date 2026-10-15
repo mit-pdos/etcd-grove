@@ -133,7 +133,7 @@ theorem EtcdServer.Put.wp_proof
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
   wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op)
-      (fun L => iprop(□ Q (kvVal (kvModel ρ.kv L) op.key))) F rfl
+      (fun L => iprop(□ Q (kvStateOf (kvModel ρ.kv L)))) F rfl
       $$ [Hrd Hard Hcred Header Hperm] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
     isplitl [Hperm]
@@ -174,7 +174,7 @@ theorem EtcdServer.Put.wp_proof
     iframe Hpo Hhdr Hcert HMint Hwit
     isplitr
     · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
-    iexists kvVal (kvModel ρ.kv Lq) op.key
+    iexists kvStateOf (kvModel ρ.kv Lq)
     iexact HQq
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)

@@ -192,7 +192,9 @@ theorem txn.checkTxn_strong
             (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
         txn.leasesOk Lv (txn.opsLeases (mvcc.stateAfter log)
           (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
-       (⌜err ≠ GoInterface.nil ∧ n = W64 0⌝ ∗ txn.checkErrIs err)) }} := by
+       (⌜err ≠ GoInterface.nil ∧ n = W64 0 ∧
+          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err)) }} := by
   intro trace mw s γ log rev rt t le γl pl rest Lv lu
   iloeb as IH generalizing %rt %t %pl %rest
   wp_start as ⟨%Htr, Htx, #Hrt, #Hle, Hu, #Hpl, %Hlu⟩
@@ -234,8 +236,10 @@ theorem txn.checkTxn_strong
       iexists ssl, sps; iframe; simp only [TxnModel.branch, ↓reduceIte]; iframe #
   have Hro : lu = false → ∀ op ∈ t.branch (txn.txnOk s0 t), txn.opIsGet op = true :=
     fun h => txn.readonly_branch t (Hlu h) _
+  have Hpl0 : txn.txnPlain t → txn.opsPlain (t.branch (txn.txnOk s0 t)) :=
+    fun h => txn.txnPlain_branch t _ h
   generalize hops : t.branch (txn.txnOk s0 t) = ops
-  rw [hops] at Hro
+  rw [hops] at Hro Hpl0
   ihave %Hrl := txn.requestOpsIs_length_ct _ _ $$ Hrps
   ihave %Hrsll := ownSlice_len _ _ _ $$ Hrsl
   ihave HI : (∃ (i : Nat) (pv : GoSlice) (x : Bool) (q : Loc),
@@ -306,7 +310,8 @@ theorem txn.checkTxn_strong
         iframe Htx Hu
         iright
         isplitl []
-        · ipureintro; exact ⟨by simp, rfl⟩
+        · ipureintro
+          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsPlain_get ops i _ hop (Hpl0 hpl))⟩
         iunfold txn.checkErrIs
         iright; iright; ileft
         iexists ef; iframe Hef; ipureintro; rfl
@@ -317,7 +322,8 @@ theorem txn.checkTxn_strong
         iframe Htx Hu
         iright
         isplitl []
-        · ipureintro; exact ⟨by simp, rfl⟩
+        · ipureintro
+          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsPlain_get ops i _ hop (Hpl0 hpl))⟩
         iunfold txn.checkErrIs
         iright; iright; iright
         iexists ec; iframe Hec; ipureintro; rfl
@@ -374,7 +380,12 @@ theorem txn.checkTxn_strong
         · iright; iexact Hu
         iright
         isplitl []
-        · ipureintro; exact ⟨by simp, rfl⟩
+        · ipureintro
+          refine ⟨by simp, rfl, fun hpl hig => ?_⟩
+          first
+            | exact Hne (txn.putTxnOp_plain_lease o (txn.opsPlain_get ops i _ hop (Hpl0 hpl)))
+            | (have := txn.putTxnOp_ign_isSome s0 o (txn.pathsIgnOk_get s0 ops i _ hop hig) Hne.1
+               rw [Hne.2] at this; cases this)
         iunfold txn.checkErrIs
       · ileft; iexact He
       · iright; ileft; iexact He
@@ -442,7 +453,7 @@ theorem txn.checkTxn_strong
       rw [hL]
       have hnc : (txn.nestedCount s0 tn : Int) + 1 ≤ sint.Z pv.len := by omega
       have hlen63 : sint.Z pv.len < 2 ^ 63 := by unfold sint.Z; have := BitVec.toInt_lt (x := pv.len); omega
-      icases Hres with (⟨⟨%He, %Hn, %Hig⟩, #Hls'⟩ | ⟨⟨%He, %Hn⟩, #Herr⟩)
+      icases Hres with (⟨⟨%He, %Hn, %Hig⟩, #Hls'⟩ | ⟨⟨%He, %Hn, %Hnp⟩, #Herr⟩)
       · subst He Hn
         have hsum : W64 (txn.nestedCount s0 tn : Int) + W64 1 = W64 (L.length : Int) := by
           rw [hLlen]; word
@@ -505,7 +516,12 @@ theorem txn.checkTxn_strong
             iright; iexact Hu
           iright
           isplitl []
-          · ipureintro; exact ⟨by simp, rfl⟩
+          · ipureintro
+            refine ⟨by simp, rfl, fun hpl hig => Hnp ?_ ?_⟩
+            · have := txn.opsPlain_get ops i _ hop (Hpl0 hpl)
+              rw [← htn]; exact this
+            · have := txn.pathsIgnOk_get s0 ops i _ hop hig
+              rw [txn.pathIgnOk_txn_ct, htn] at this; exact this
           iexact Herr
   · rw [decide_eq_false Hif]
     simp only [Bool.false_eq_true, ↓reduceIte]

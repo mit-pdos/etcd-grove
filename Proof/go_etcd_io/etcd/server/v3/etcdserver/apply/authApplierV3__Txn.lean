@@ -50,7 +50,7 @@ theorem apply.authApplierV3.Txn.wp_proof
   icases Ht with ⟨-, -, -, #HI, -⟩
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
-  wp_apply (hTxn st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) r t) $$ [$Hst $Hle $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI⟩
+  wp_apply (hTxn st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) r t) $$ [$Hst $Hle $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
@@ -59,7 +59,7 @@ theorem apply.authApplierV3.Txn.wp_proof
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inr (Or.inr (by rw [Hk.2.1]; decide))) $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs]
       isplitr

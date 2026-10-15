@@ -65,9 +65,9 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (x : apply.ApplyKV) (m : Ent
   · rw [h]; exact hl
   · rcases hok with hd | ⟨rq, hdec, -, hrq, -⟩
     · rw [kvEntry_nonwrite c₀ ch x.log m (Or.inl hd)] at h; simp at h
-    · by_cases hk : apply.dispatchKind rq = .put ∨ apply.dispatchKind rq = .deleteRange
+    · by_cases hk : writeKind (apply.dispatchKind rq)
       · rw [h, List.length_append, List.length_singleton]
-        rcases hk with hk | hk
+        rcases hk with hk | hk | hk
         · have := hrq; simp only [apply.rqOk, hk, apply.putOk] at this; omega
         · cases ho : rq.deleteRange with
           | some o =>
@@ -78,10 +78,19 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (x : apply.ApplyKV) (m : Ent
               unfold backendLog; rw [hk]; simp only [ho]
             rw [kvEntry_of_chainLog c₀ ch x.log m rq hdec (chainLog_of_backendLog rq x.log hb)] at h
             simp at h
+        · cases ho : rq.txn with
+          | some t =>
+            have := hrq; simp only [apply.rqOk, hk] at this
+            have := (this t ho).1; omega
+          | none =>
+            have hb : backendLog rq x.log = x.log := by
+              unfold backendLog; rw [hk]; simp only [ho]
+            rw [kvEntry_of_chainLog c₀ ch x.log m rq hdec (chainLog_of_backendLog rq x.log hb)] at h
+            simp at h
       · have hnw : ∀ rq', apply.irrDecode m.data = some rq' →
-            apply.dispatchKind rq' ≠ .put ∧ apply.dispatchKind rq' ≠ .deleteRange := by
+            ¬ writeKind (apply.dispatchKind rq') := by
           intro rq' h'; rw [hdec] at h'; cases h'
-          exact ⟨fun h => hk (Or.inl h), fun h => hk (Or.inr h)⟩
+          exact hk
         rw [kvEntry_nonwrite c₀ ch x.log m (Or.inr (Or.inr hnw))] at h; simp at h
 
 /-- **A dispatched request's chain log is the entry's model log** (`v3`: above `c₀`). -/
@@ -94,13 +103,13 @@ theorem kvEntry_chainLog (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m : E
   simp only
   unfold dispatchLog
   rw [decide_eq_true hv]
-  by_cases hk : apply.dispatchKind rq = .put ∨ apply.dispatchKind rq = .deleteRange
+  by_cases hk : writeKind (apply.dispatchKind rq)
   · have h1 : apply.preV3Kind (apply.dispatchKind rq) = false := by
-      rcases hk with hk | hk <;> rw [hk] <;> rfl
+      rcases hk with hk | hk | hk <;> rw [hk] <;> rfl
     have h2 : apply.storeKind (apply.dispatchKind rq) = true := by
-      rcases hk with hk | hk <;> rw [hk] <;> rfl
+      rcases hk with hk | hk | hk <;> rw [hk] <;> rfl
     simp [h1, h2]
-  · have hn := chainLog_nonwrite rq log ⟨fun h => hk (Or.inl h), fun h => hk (Or.inr h)⟩ ch
+  · have hn := chainLog_nonwrite rq log hk ch
     rw [hn]
     split <;> (try split) <;> simp [hn]
 
@@ -124,11 +133,11 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, %M, HL, HM, Htok, %Hok⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "server_raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
-  imod Hclose $$ [HL HM Htok] with -
-  · inext; iexists L, M; iframe HL HM Htok; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
   imodintro
   ipureintro
   exact ⟨fun m hm => Hok.1 m (Hp.subset hm), Hok.2.2.2.1⟩
@@ -146,7 +155,7 @@ theorem kvCert_certOk (γk : KVNames) (γs : mvcc.StoreNames) (hγ : γs.cok = �
 every outcome's log is the entry's model log (auth disabled), which is certified. -/
 theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
     (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool)
-    (hp : plainReq rq) (hoff : x.chain.authOn = false) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hp : plainReq rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : v3 = decide (uint.Z c₀ < uint.Z m.index)) :
     kvCert (GF := GF) γk (kvEntry c₀ x.chain x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
   iintro #Hc
@@ -168,7 +177,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (m : EntryModel) (x : apply.ApplyKV)
     (hlen : (kvEntry γr.kv.c0 x.chain x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntry m ∧ x.chain = γr.kv.ch0 ∧ x.chain.authOn = false⌝ ∗
+      ⌜plainEntry m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
@@ -187,7 +196,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   iframe Ha
   ipureintro
   refine ⟨Hpl m (by simp), Hch, ?_⟩
-  rw [Hch, Hch0]; simp
+  rw [Hch, Hch0]; rfl
 
 /-- The certificate in the apply thread's KV ghost state. -/
 theorem kvAppliedL_cert (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log) :

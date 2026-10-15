@@ -229,44 +229,42 @@ def txnAppliedAns (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnM
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log)
 
-/-- **A client's update, deposited with a call** (2026-10-14, unit T1): none, a `Put` of `k` to
-`v` with result `Q` (`kvPutAu`), or a `Get` of `k` with result `Q` (`kvGetAu`). -/
+/-- **A client's update, deposited with a call** (2026-10-14, unit T1; 2026-10-15, unit T2: over
+the whole state): none, a write's update for the KV operation `o` with result `Q` (`kvOpAu`: a
+put, a delete or a writing transaction), or a read's with result `Q` (`kvReadAu`: a linearizable
+range). -/
 inductive KVDep (GF : BundledGFunctors) where
   | none
-  | put (k v : GoString) (Q : Option GoString → IProp GF)
-  | get (k : GoString) (Q : Option GoString → IProp GF)
-  /-- the non-plain credit (`srvNonPlain`: no one has it), for a delete or a writing transaction -/
-  | nonplain
+  | op (o : KVOp) (Q : KVState → IProp GF)
+  | read (Q : KVState → IProp GF)
 
-/-- The deposit's update: a put's at the request path's KV names, a get's at the read names' (both
-persistent), or the non-plain credit. -/
+/-- The deposit's update: a write's at the request path's KV names, a read's at the read names'
+(both persistent). -/
 def kvDepOwn (ρ : ReqNames) (γr : ReadNames) : KVDep GF → IProp GF
   | .none => iprop(True)
-  | .put k v Q => kvPutAu ρ.kv k v Q
-  | .get k Q => kvGetAu γr.kv k Q
-  | .nonplain => srvNonPlain ρ.kv
+  | .op o Q => kvOpAu ρ.kv o Q
+  | .read Q => kvReadAu γr.kv Q
 
-
-/-- A put's result under the deposit. -/
-def putDepQ : KVDep GF → Option GoString → IProp GF
-  | .put _ _ Q => Q
+/-- A write's result under the deposit. -/
+def opDepQ : KVDep GF → KVState → IProp GF
+  | .op _ Q => Q
   | _ => fun _ => iprop(True)
 
 /-- A range's result over committed logs under the deposit (`kvDep`'s form). -/
 def rangeDepQ (γk : KVNames) : KVDep GF → List EntryModel → IProp GF
-  | .get k Q => fun L => iprop(□ Q (kvVal (kvModel γk L) k))
+  | .read Q => fun L => iprop(□ Q (kvStateOf (kvModel γk L)))
   | _ => fun _ => iprop(True)
 
-/-- **What a request must be under the deposit**: a put the deposit's (its key and value, plain:
-lease `0`, no ignore flag), or any put under the non-plain credit; a range of the deposit's key,
-linearizable, if a get is deposited; a delete or a writing transaction only under the non-plain
-credit (which no one has: unit T1). -/
+/-- **What a request must be under the deposit** (2026-10-15, unit T2): a put, a delete or a
+writing transaction the deposited write's operation (a put with no lease; a delete with its range
+end not `[0]`; a plain transaction, `txn.txnPlain`, no range end `[0]`: `txnNoZeroEnd`); a range
+linearizable if a read is deposited. -/
 def kvDepPre (d : KVDep GF) : KVReq → Prop
-  | .put o => (∃ k v Q, d = .put k v Q ∧ o.key = k ∧ o.val = v ∧ o.leaseID = W64 0 ∧
-      o.ignoreValue = false ∧ o.ignoreLease = false) ∨ d = .nonplain
-  | .range o => ∀ k Q, d = .get k Q → o.key = k ∧ o.base.serializable = false
-  | .deleteRange _ => d = .nonplain
-  | .txn cs ts es => ∀ t, txnModelOf cs ts es = some t → txn.txnReadonly t = true ∨ d = .nonplain
+  | .put o => (∃ Q, d = .op (.put o) Q) ∧ o.leaseID = W64 0
+  | .range o => ∀ Q, d = .read Q → o.base.serializable = false
+  | .deleteRange o => (∃ Q, d = .op (.deleteRange o) Q) ∧ o.base.rangeEnd ≠ [W8 0]
+  | .txn cs ts es => ∀ t, txnModelOf cs ts es = some t → txn.txnReadonly t = true ∨
+      ((∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t)
 
 /-- **The server's parameters of `raftKV`** (see the file header), with the caller's floor `F`
 (the vertical slice's unit V2) and the client's deposit `d` (2026-10-14, unit T1). -/
@@ -277,13 +275,13 @@ def srvKVAns (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c 
     | .txn cs ts es => txnInModel cs ts es
     | _ => True) ∧ kvDepPre d q
   ok q resp _h r := iprop(srvRdCall s E γr c ∗ match q with
-    | .put o => iprop(putAppliedOk s E ρ.rd F o resp r ∗ ∃ vo, □ putDepQ d vo)
-    | .deleteRange o => deleteAppliedOk s E ρ.rd F o resp r
+    | .put o => iprop(putAppliedOk s E ρ.rd F o resp r ∗ ∃ σ, □ opDepQ d σ)
+    | .deleteRange o => iprop(deleteAppliedOk s E ρ.rd F o resp r ∗ ∃ σ, □ opDepQ d σ)
     | .range o => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
         rangeAnsOk E γr c F o resp r (rangeDepQ γr.kv d))
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗ txnReadAns E γr c F t resp r)
-        else txnAppliedAns E ρ.rd F t resp r))
+        else iprop(txnAppliedAns E ρ.rd F t resp r ∗ ∃ σ, □ opDepQ d σ)))
   err q e := iprop(srvRdCall s E γr c ∗ match q with
     | .put o => putErrOk s E ρ F o e
     | .deleteRange o => deleteErrOk s E ρ F o e
@@ -300,11 +298,10 @@ theorem kvDep_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) :
   iunfold kvDep
   cases d with
   | none => iright; ipureintro; rfl
-  | put k v Q => iright; ipureintro; rfl
-  | nonplain => iright; ipureintro; rfl
-  | get k Q =>
+  | op o Q => iright; ipureintro; rfl
+  | read Q =>
     ileft
-    iexists k, Q
+    iexists Q
     iunfold kvDepOwn at H
     iframe H
     ipureintro; rfl
@@ -312,18 +309,44 @@ theorem kvDep_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) :
 open Iris.ProofMode in
 /-- A put's permit (`putPermit`) from its deposit. -/
 theorem putPermit_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) (o : OpFull)
-    (hd : kvDepPre d (.put o)) : kvDepOwn ρ γr d ⊢ putPermit ρ.kv o (putDepQ d) := by
+    (hd : kvDepPre d (.put o)) : kvDepOwn ρ γr d ⊢ putPermit ρ.kv o (opDepQ d) := by
   iintro H
   iunfold putPermit
   simp only [kvDepPre] at hd
-  rcases hd with ⟨k, v, Q, rfl, hk, hv, hl, hiv, hil⟩ | rfl
-  · ileft
-    iunfold kvDepOwn at H
-    isplitr
-    · ipureintro; exact ⟨hl, hiv, hil⟩
-    simp only [putDepQ]
-    rw [hk, hv]; iexact H
-  · iright; iunfold kvDepOwn at H; iexact H
+  obtain ⟨⟨Q, rfl⟩, hl⟩ := hd
+  isimp only [kvDepOwn] at H
+  isplitr
+  · ipureintro; exact hl
+  simp only [opDepQ]
+  iexact H
+
+open Iris.ProofMode in
+/-- A delete's permit (`deletePermit`) from its deposit. -/
+theorem deletePermit_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) (o : OpFull)
+    (hd : kvDepPre d (.deleteRange o)) : kvDepOwn ρ γr d ⊢ deletePermit ρ.kv o (opDepQ d) := by
+  iintro H
+  iunfold deletePermit
+  simp only [kvDepPre] at hd
+  obtain ⟨⟨Q, rfl⟩, hz⟩ := hd
+  isimp only [kvDepOwn] at H
+  isplitr
+  · ipureintro; exact hz
+  simp only [opDepQ]
+  iexact H
+
+open Iris.ProofMode in
+/-- A writing transaction's permit (`txnPermit`) from its deposit. -/
+theorem txnPermit_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) (t : TxnModel)
+    (hd : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t) :
+    kvDepOwn ρ γr d ⊢ txnPermit ρ.kv t (opDepQ d) := by
+  iintro H
+  iunfold txnPermit
+  obtain ⟨⟨Q, rfl⟩, hp, hz⟩ := hd
+  isimp only [kvDepOwn] at H
+  isplitr
+  · ipureintro; exact ⟨hp, hz⟩
+  simp only [opDepQ]
+  iexact H
 
 /-- **The `*kvServer` `p`, but for the server's contract** (`kvServerIs` without `raftKV`): its
 header, `kv` the server `s`, the transaction budget `n`. What `NewKVServer(s)` builds, apart
@@ -498,7 +521,7 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
-  wp_apply hPut s E ρ ci cd r o (putDepQ d) F $$ [Hrd Hard Hcred Hpp] as %resp %err ⟨Hrd, Hard, Hres⟩
+  wp_apply hPut s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hpp] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe #; iframe Hrd Hard Hcred Hpp
   ihave Hrc := Hrc $$ Hard
   iapply HΦ
@@ -554,22 +577,21 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
   iintro ⟨#Hpkg, #Hsrv⟩
   iunfold kvDeleteOk
   iintro %ctx %r %o !> %Φ ⟨Hcall, #Hr, %Hok⟩ HΦ
-  have hd : d = .nonplain := Hok.2.2
-  subst hd
+  have hd : kvDepPre d (.deleteRange o) := Hok.2.2
   simp only [srvKVAns]
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF⟩
-  iunfold kvDepOwn at Hdep
+  ihave Hdep := deletePermit_of_dep ρ γr d o hd $$ Hdep
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
-  wp_apply hDel s E ρ ci cd r o F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
+  wp_apply hDel s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe #; iframe Hrd Hard Hcred Hdep
   ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit⟩ |
-    ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit,
+    #HQv⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hwire, Hop', Hnz, Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
     simp only [apply.deleteOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -588,6 +610,9 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
     iframe Hrc
+    isplitl [Hrd HMint]
+    rotate_left
+    · iexact HQv
     iunfold deleteAppliedOk
     iframe Hrd
     iunfold deleteApplied
@@ -687,15 +712,14 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   ihave #Hrt := txnReqIs_txnRequestIs r cs ts es ts' es' hts hes $$ Hr
   generalize ht : ({ cmps := cs, thenOps := ts', elseOps := es' } : TxnModel) = t at hm ⊢
   have hg := txnGetsOk_of_check _ _ _ _ _ Hck hm Hin
-  have hT := hTxn s E ρ γr c ci cd r t none false F
+  have hT := hTxn s E ρ γr c ci cd r t (opDepQ d) none false F
   cases hro : txn.txnReadonly t
   · -- a writing transaction: through raft, as `Put`
-    have hnp : d = .nonplain := by
+    have hdp : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t := by
       rcases Hro t hm with h | h
       · rw [hro] at h; cases h
       · exact h
-    subst hnp
-    iunfold kvDepOwn at Hdep
+    ihave Hdep := txnPermit_of_dep ρ γr d t hdp $$ Hdep
     simp only [hro, Bool.false_eq_true, ↓reduceIte] at hT
     wp_apply hT $$ [Hlt Hcred Hrc Hdep] as %resp %err ⟨Hlt, Hrc, Hres⟩
     · iframe #; iframe Hlt Hcred Hrc
@@ -707,6 +731,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     iunfold kvAnswer
     icases Hres with (⟨%Herr, Hok'⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
+      icases Hok' with ⟨Hok', #HQv⟩
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       icases Hok' with ⟨%hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit⟩
@@ -731,6 +756,9 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact hm
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
+      isplitl
+      rotate_left
+      · iexact HQv
       iunfold txnAppliedAns
       iexists hm', rq', t', x, x', l, skip
       isplitr

@@ -318,7 +318,7 @@ theorem txn_applied_exact (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : appl
   have hb := v3rpc.chainStep_applied_false x.chain hd
   unfold apply.backendStep at hb
   rw [hk] at hb
-  obtain ⟨t'', ht'', hb | ⟨hb, -⟩⟩ := hb
+  obtain ⟨t'', ht'', ⟨hb, -⟩ | ⟨hb, -⟩⟩ := hb
   · cases hb
   · rw [ht] at ht''
     cases ht''
@@ -786,6 +786,56 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       rw [v3rpc.etcdModelOfServer_etcdRevToken]
       iexact Htok
 
+/-! ## Transactions in the KV model (2026-10-15, unit T2) -/
+
+/-- An operation that names no lease (`0`) and keeps none (no `IgnoreLease`). -/
+def TxnOp.leaseFree : TxnOp → Prop
+  | .put _ _ l => l = W64 0
+  | .putIgnVal _ l => l = some (W64 0)
+  | .putKeep _ _ => False
+  | _ => True
+
+/-- **A transaction with no lease** (every operation of both branches `leaseFree`): with
+`exactGets`, its wire's transaction is plain in the KV model (`txnPlain_wire`). -/
+def TxnModel.leaseFree (t : TxnModel) : Prop := ∀ op ∈ t.thenOps ++ t.elseOps, TxnOp.leaseFree op
+
+theorem opsPlain_wire (ops : List TxnOp)
+    (h : ∀ op ∈ ops, TxnOp.plain op ∧ TxnOp.leaseFree op ∧ ∀ o, op = .get o → o.base.rev = W64 0) :
+    txn.opsPlain (ops.map opWire) := by
+  induction ops with
+  | nil => simp [txn.opsPlain]
+  | cons op ops ih =>
+    simp only [List.map_cons, txn.opsPlain]
+    refine ⟨?_, ih (fun op' h' => h op' (List.mem_cons_of_mem _ h'))⟩
+    obtain ⟨hp, hl, hg⟩ := h op List.mem_cons_self
+    cases op with
+    | get o => simp only [opWire, txn.opPlain]; rw [(wire_fields o).2.2.1]; exact hg o rfl
+    | delete o => simp [opWire, txn.opPlain]
+    | txn _ _ _ => exact hp.elim
+    | put k v l => simpa [opWire, txn.opPlain, TxnOp.leaseFree] using hl
+    | putKeep k v => exact hl.elim
+    | putIgnVal k l => simpa [opWire, txn.opPlain, TxnOp.leaseFree] using hl
+
+/-- **A plain lease-free transaction with exact gets is plain in the KV model** on the wire. -/
+theorem txnPlain_wire (t : TxnModel) (hp : TxnModel.plain t) (hx : t.exactGets)
+    (hl : TxnModel.leaseFree t) : txn.txnPlain (txnWireOf t) := by
+  have h : ∀ op ∈ t.thenOps ++ t.elseOps,
+      TxnOp.plain op ∧ TxnOp.leaseFree op ∧ ∀ o, op = .get o → o.base.rev = W64 0 := by
+    intro op hop
+    refine ⟨?_, hl op hop, fun o he => (hx.1 o (he ▸ hop)).1⟩
+    rcases List.mem_append.1 hop with h | h
+    · exact hp.1 op h
+    · exact hp.2 op h
+  exact ⟨opsPlain_wire _ (fun op h' => h op (List.mem_append_left _ h')),
+    opsPlain_wire _ (fun op h' => h op (List.mem_append_right _ h'))⟩
+
+/-- **A writing transaction with exact gets has no range end `[0]`** on the wire. -/
+theorem txnNoZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t) (hx : t.exactGets)
+    (hw : txn.txnReadonly (txnWireOf t) = false) : txnNoZeroEnd (txnWireOf t) := by
+  rw [txnReadonly_wire] at hw
+  obtain ⟨hng, hc, hd⟩ := hx.2 hw
+  exact (noZeroEnd_wire t hp hng hc hd).2.2 _ rfl
+
 /-! ## The builder -/
 
 theorem txnModelIn_wire (t : TxnModel) (hx : t.exactGets) : txnModelIn (txnWireOf t) := by
@@ -827,20 +877,53 @@ theorem etcdReached_zero (E : apply.AEnv GF) :
   ileft
   ipureintro; exact Int.le_refl _
 
+/-- **A writing transaction with a lease, its `Commit()`** (a premise, persistent; 2026-10-15, unit
+T2: leases are outside the KV model until unit T3, so no server spec covers a writing transaction
+with a lease): `kv_txn_commit`'s triple for such a transaction. -/
+def kvLeasedCommitTodo (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) (addr : GoString) :
+    IProp GF :=
+  iprop(□ ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
+      (F : mvcc.Log),
+    ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ txn.txnReadonly (txnWireOf b.model) = false ∧
+      ¬ TxnModel.leaseFree b.model⌝ -∗
+    {{ txnObjAt tp addr ci cd b ∗ mvcc.idxCert E.γ.idx F }}
+      (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗
+            txnReplied E γw γr (W64 0) F (txnWireOf b.model) cid mid m) ∨
+          ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ }})
+
+instance kvLeasedCommitTodo_persistent (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64)
+    (addr : GoString) : Persistent (kvLeasedCommitTodo E γw γr cid mid addr) := by
+  unfold kvLeasedCommitTodo; infer_instance
+
 /-- **`Commit()` on a real builder, its call** (at a floor `F`, the committed index `0`): the
-reply's message with `txnReplied`, or a client error. -/
+reply's message with `txnReplied`, or a client error. 2026-10-15 (unit T2): a read-only or
+lease-free transaction with the caller's update `kvAnyAu` (etcd's `Txn` spec over the whole state),
+a writing one with a lease by the premise `kvLeasedCommitTodo`. -/
 theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (F : mvcc.Log) (hp : TxnModel.plain b.model) (hx : b.model.exactGets) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
-        mvcc.idxCert E.γ.idx F ∗ srvNonPlainAll γw }}
+        mvcc.idxCert E.γ.idx F ∗ kvAnyAu γw ∗ kvLeasedCommitTodo E γw γr cid mid addr }}
       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗
             txnReplied E γw γr (W64 0) F (txnWireOf b.model) cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hrpc, #HF, #Hnp⟩ HΦ
+  iintro %Φ ⟨#Pc, Hobj, #Hrpc, #HF, #Hnp, #Hlc⟩ HΦ
+  by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model
+  rotate_left
+  · have hk1 : txn.txnReadonly (txnWireOf b.model) = false := by
+      cases h : txn.txnReadonly (txnWireOf b.model)
+      · rfl
+      · exact absurd (Or.inl h) hk
+    have hk2 : ¬ TxnModel.leaseFree b.model := fun h => hk (Or.inr h)
+    iunfold kvLeasedCommitTodo at Hlc
+    ihave #Ht := Hlc $$ %tp %ci %cd %b %F %(⟨hp, hx, hk1, hk2⟩)
+    iapply Ht $$ [Hobj] HΦ
+    iframe Hobj HF
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   ihave #Hc0 : committedAtLeast γr (W64 0) $$ []
   · unfold committedAtLeast
@@ -855,11 +938,23 @@ theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
     unfold etcdTxnSpec
     isplitl []
     · ipureintro; exact ⟨txnWireOf_plain _ hp, txnModelIn_wire _ hx⟩
+    iexists (fun _ => iprop(True))
     isplitr
-    · iright; iunfold srvNonPlainAll at Hnp; iexact Hnp
+    · cases hro : txn.txnReadonly (txnWireOf b.model)
+      · iright
+        isplitr
+        · ipureintro
+          have hl : TxnModel.leaseFree b.model := by
+            rcases hk with h | h
+            · rw [hro] at h; cases h
+            · exact h
+          exact ⟨rfl, txnPlain_wire _ hp hx hl, txnNoZeroEnd_wire _ hp hx hro⟩
+        iunfold kvAnyAu at Hnp
+        iapply Hnp
+      · ileft; ipureintro; exact ⟨rfl, rfl⟩
     iexists (W64 0), F
     iframe #
-    iintro %m Hm
+    iintro %m ⟨Hm, -⟩
     iexact Hm
   inext
   iintro %resp %err Hout
@@ -883,9 +978,9 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
-        clientErrsIs ∗ srvNonPlainAll γw ⊢
+        clientErrsIs ∗ kvAnyAu γw ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
       isEtcdTxnKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hcei, #Hnp⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hcei, #Hnp, #Hlc⟩
   ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
   unfold isEtcdTxnKVTodo
   iintro !> %Φ !> - HΦ
@@ -901,14 +996,14 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
   have hcommit : ∀ (b : TxnBuild) (lo : w64), b.model.Under pfx → b.model.exactGets →
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗ storeSmall E.γ ∗
-        srvNonPlainAll γw ⊢
+        kvAnyAu γw ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
       {{ txnB tp addr cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo b.model resp err ∗
           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
     intro b lo hu hx
-    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hsm, #Hnp⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
+    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hsm, #Hnp, #Hlc⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
     iunfold txnB at HB
     icases HB with ⟨Hobj, %hp⟩
     ihave ⟨%F, #HF, %HFl⟩ := floor_of_reached s E γr lo $$ [$Hsrd $Hlo]
@@ -983,7 +1078,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
         · exact h2 op h⟩
     isplitl []
     · iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-      iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp] [HB]
+      iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp $Hlc] [HB]
       · iframe; iframe #
       inext
       iintro %resp %err ⟨Hr, -⟩
@@ -1012,7 +1107,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
       · ileft; ipureintro; exact Herr.1
   · unfold txnCommitErrTodo
     iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-    iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp] [HB]
+    iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp $Hlc] [HB]
     · iframe; iframe #
     inext
     iintro %resp %err ⟨Hr, Herr⟩
@@ -1023,6 +1118,19 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
     · iright
       iunfold clientErrsIs at Hcei
       iapply Hcei $$ %err %He.2
+
+/-- **The writes' updates and the operations with a lease** (persistent; 2026-10-15, unit T2: it
+replaces the merge M1's non-plain credit): any operation's update with no result (`kvAnyAu`, which a
+client that does not track etcd's abstract state has, `kvAnyAu_of_inv`) and, until unit T3, the
+clients' triples of a put and of a writing transaction with a lease (`kvLeasedPutTodo`,
+`kvLeasedCommitTodo`), which no server spec covers. -/
+def kvWritesOk (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
+    (cid mid : w64) : IProp GF :=
+  iprop(kvAnyAu γw ∗ kvLeasedPutTodo api E ∗ kvLeasedCommitTodo E γw γr cid mid addr)
+
+instance kvWritesOk_persistent (api : Loc) (addr : GoString) (E : apply.AEnv GF)
+    (γw γr : ReadNames) (cid mid : w64) : Persistent (kvWritesOk api addr E γw γr cid mid) := by
+  unfold kvWritesOk; infer_instance
 
 end proofs
 

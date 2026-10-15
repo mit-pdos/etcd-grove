@@ -152,11 +152,13 @@ def quotaChecks : ReqKind → Bool
 /-- **Whether the auth layer may reject `rq`** (2026-10-14, unit T1): always if auth is enabled
 (`on`); with auth disabled the store's checks pass (`IsPutPermitted`, `IsRangePermitted`,
 `IsDeleteRangePermitted`, `IsAdminPermitted` return `nil`: `isAuthStore … false`), so a put, a
-range or a delete is not rejected unless it needs admin permission; the other requests' checks
-(a txn's, a lease revocation's, the user and role gets') are not followed. -/
+range, a delete or (2026-10-15, unit T2: `CheckTxnAuth` is made of those checks) a transaction is
+not rejected unless it needs admin permission; the other requests' checks (a lease revocation's,
+the user and role gets') are not followed. -/
 def authMayReject (on : Bool) (rq : IRRModel) : Prop :=
   on = true ∨ needAdminPermission rq = true ∨
-    (dispatchKind rq ≠ .put ∧ dispatchKind rq ≠ .range ∧ dispatchKind rq ≠ .deleteRange)
+    (dispatchKind rq ≠ .put ∧ dispatchKind rq ≠ .range ∧ dispatchKind rq ≠ .deleteRange ∧
+      dispatchKind rq ≠ .txn)
 
 /-- **The outcome relation** of the chain `c` on `rq` at `log`, over the backend's `B`. -/
 def chainStep (B : IRRModel → mvcc.Log → Outcome → Prop) :
@@ -183,30 +185,37 @@ def chainStep (B : IRRModel → mvcc.Log → Outcome → Prop) :
 
 /-- **What the backend applier does with `rq` at the sole writer's log `log`** (the txn package's
 results, `backend.go`): a put is the txn package's `Put` (the lease not found or, with an ignore
-flag, the key missing: rejected; else the one change `putChangeOf` committed); a delete the
-filter (`delChanges` committed; or, with `PrevKv`, the range read's error); a range reads `log`;
-a transaction is `checkTxn`'s error or the server's run `srvRunTxn` committed (nothing for a
-read-only one); a revocation commits the lessor's deletions of the lease's keys; the other
-requests do not touch the KV (applied, or the component's error). Compaction is out of the model
-(`False`), and so is a request with no field set (`dispatch` panics). -/
+flag, the key missing: rejected; else, the key found if an ignore flag needs it, the one change
+`putChangeOf` committed); a delete the filter (`delChanges` committed: the apply thread's context
+is never done, so the `PrevKv` range read does not fail); a range reads `log`; a transaction is
+`checkTxn`'s error (for a plain transaction, `txn.txnPlain`, only when a put of its path does not
+find the previous key-value it needs) or, every such put finding it (`PathsIgnOk`), the server's
+run `srvRunTxn` committed (nothing for a read-only one); a revocation commits the lessor's
+deletions of the lease's keys; the other requests do not touch the KV (applied, or the
+component's error). Compaction is out of the model (`False`), and so is a request with no field
+set (`dispatch` panics). 2026-10-15 (unit T2): the put's, the delete's and the transaction's cases
+made exact, so that the KV model is a function of the state (`KVModelDefs.lean`). -/
 def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
   match dispatchKind rq with
   | .put => ∃ op, rq.put = some op ∧
       ((op.leaseID ≠ W64 0 ∧ o = .rejected .backend) ∨
        (txn.needsPrev op = true ∧ mvcc.findKey op.key (mvcc.stateAfter log) = none ∧
          o = .rejected .backend) ∨
-       o = .applied (log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]])
-         false)
+       ((txn.needsPrev op = true → (mvcc.findKey op.key (mvcc.stateAfter log)).isSome) ∧
+        o = .applied (log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]])
+         false))
   | .deleteRange => ∃ op, rq.deleteRange = some op ∧
-      (o = .applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) op)) false ∨
-       (op.base.prevKV = true ∧ o = .rejected .backend))
+      o = .applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) op)) false
   | .range => o = .applied log false
   | .txn => ∃ t, rq.txn = some t ∧
-      (o = .rejected .backend ∨
+      ((o = .rejected .backend ∧
+          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
        (o = .applied (mvcc.commitLog log
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false ∧
         (txn.txnReadonly t = true →
-          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = [])))
+          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = []) ∧
+        txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))))
   | .leaseRevoke => ∃ pend : List mvcc.Change, (∀ ch ∈ pend, ch.isDel = true) ∧
       o = .applied (mvcc.commitLog log pend) false
   | .compaction => False
