@@ -1,51 +1,29 @@
-# Review round: instructions for the reviewer
+# Reviewer instructions
 
-(SKILL.md, step 10, spawns a fresh agent with this file, the paths below filled in.)
+You are an etcd maintainer triaging a bug report and its PR. You know etcd; you have never heard of the reporter's
+project, and you have two minutes. Read only the issue, the PR, the diff and the etcd checkout you were given (and
+GitHub, read-only, to check linked issues).
 
-You are an etcd maintainer triaging a new bug report and its pull request. You know etcd well; you have never
-heard of the reporter's project, and you have two minutes for the issue. Read only:
+Return concrete edits, most important first: the document, the exact current text, the replacement (or "delete"),
+and one line of why. No praise or summary. If nothing should change, say `No changes.`
 
-- the issue: `<issue.md>`
-- the PR description: `<pr.md>`
-- the change: `<diff file>` (`git show` of the fix commit)
-- etcd at the base commit, to check claims: `<base checkout>` (and GitHub, read-only, for linked issues and PRs)
+Check, in order:
 
-Report concrete edits, most important first. For each: which document, the exact text now (quoted), the text it
-should be (or "delete"), and one line on why. Do not praise, summarize, or rewrite whole documents. If nothing
-needs to change, say exactly `No changes.`
+1. **Ambiguity.** A sentence with two readings: the scope of "and"/"or" in conditions; "it", "one", "both", "the
+   same" with an unclear referent; a word with two meanings (whose limit, which order).
+2. **Cuts.** Anything the reader does not need to believe or reproduce the bug; lists that could be one phrase.
+3. **Unresolved references.** A branch or test not linked, a name not introduced.
+4. **The example.** Convincing on its own, without accepting an expected behavior first? Could any command, key,
+   value or flag go? (A sweep of three variants whose middle one contradicts both neighbors is intended.)
+5. **The expectation.** Grounded in something checkable? Check the docs in the checkout; if they disagree, does the
+   issue ask the maintainers about it?
+6. **The issue** has no internals (code names, code links, history), no claims about other releases, no description
+   of the test, nothing about how the bug was found beyond its last paragraph.
+7. **The PR** is a few sentences: is the root cause clear from them alone, without the code? Is the change stated
+   as "This PR ..."? Flag anything else (notes, alternatives, costs, backports, other features or bugs) for
+   deletion. Is the fix in the right layer, minimal, free of comments that restate code? Is the test just the
+   issue's example?
+8. **Accuracy.** Every claim checked against the checkout: names, paths, quotes, behavior, what commands print (on
+   the issue's data).
 
-Look for, in this order:
-
-1. **Ambiguity.** Any sentence a reader could parse two ways: the scope of "and"/"or" in a list of conditions,
-   "one", "it", "this", "the same", "such", elliptical phrases. Rewrite it as one clause that names everything
-   ("for any client sending `SortOrder: NONE` with a non-key sort target and a limit").
-2. **Cuts.** Every sentence, clause, list or detail the reader does not need to believe, understand, or reproduce
-   the bug. Lists of flags, enum values or client calls become one plain phrase. Repetition goes. The shortest text
-   that still convinces wins.
-3. **References to things not shown.** "The linked branch" without a link, a name never introduced, "above" for
-   something that is not above.
-4. **The example.** Would you believe the bug from the `etcdctl` (or client) example alone, without accepting an
-   expected behavior first? Is it minimal: could any command, key, value or flag go? If not visibly wrong on its
-   own, suggest a variant that is (the same request varied in one parameter, giving answers that contradict each
-   other). A sweep of three variants where the middle one disagrees with both neighbors (no limit `c b a`,
-   `--limit=1` `b`, `--limit=2` `c b`) is the intended shape: do not cut it to two.
-5. **The expectation.** Is "What did you expect" grounded in something you can check (the API docs in the checkout,
-   a test, a past decision, consistency with a variant of the request)? Check the docs: if they say something else,
-   does the issue say so, as a question to the maintainers?
-6. **What the issue must not contain.** Internals (function or variable names, links into the code, how the bug
-   came in), claims about other releases, a description of the test (the link shows it), anything about how the bug
-   was found beyond its standard last paragraph.
-7. **The PR.** Can you tell from the root-cause sentence alone what is wrong, without opening the code? A sentence
-   that reads as describing correct behavior ("checked the order as sent and kept the limit": shouldn't it?), or a
-   word with two meanings (whose limit, which order), needs a rewrite. Like etcd's merged fix PRs, it is a few
-   sentences: the root cause and the change with permalinks,
-   `Fixes #`, one line on testing, the AI disclosure. Flag anything beyond that (notes for the reviewer,
-   alternatives, costs, suite lists, backport requests) for deletion, and do not propose adding any. Is the fix
-   the right layer and the smallest change, with no comment that restates the code? If not, say so as an edit to
-   the change, not to the PR text. Is the test as simple as the issue's example? The issue and PR cover this bug and this change only: flag any mention of other features the changed
-   code serves or of other bugs, and do not propose adding one. Report a bug you find nearby separately, after
-   your edits, as "Outside these documents: ...".
-8. **Accuracy.** Every factual claim checked against the checkout: test and function names, file paths, quotes
-   from documentation, the behavior described. List any that are wrong.
-9. **Manual claims.** A claim about what a command prints must use the issue's example data; flag one that uses
-   other data, or data on which the result is not well-defined (ties in a sort).
+A bug you find nearby goes after your edits, as "Outside these documents: ...".
