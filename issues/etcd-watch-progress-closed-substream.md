@@ -1,6 +1,12 @@
 # The watch client's progress broadcast can send on a canceled substream's closed `recvc`
 
-- **Status**: open (not reported).
+- **Status**: fixed in the verified fork (not reported upstream): `goose-lean` `107edf7e4`, the
+  cherry-pick of `1ac646214` (branch `watch-progress-closed-substream` of the fork, on upstream
+  `f061acd09`): `run`'s `Canceled` case removes the substream from `substreams` when it closes its
+  `recvc`, so `broadcastResponse` never reaches it; the commit adds the regression test
+  `TestWatchProgressBroadcastAfterServerCancel` (`client/v3/watch_progress_cancel_test.go`), which
+  panics on every run without the fix. The reproduction below (3000 trials) no longer panics with it
+  (731 trials reached the broadcast).
 - **Where**: `client/v3/watch.go` at `upamanyus/etcd` `bc8b52a50` (the same code as upstream
   `main`; the pinned `457b8d1b6` adds one line at 868, shifting the later lines by one):
   `watchGRPCStream.run` (the `Canceled` case, lines 620–629: `close(ws.recvc)` for a substream
@@ -122,8 +128,9 @@ func TestWatchProgressAfterServerCancel(t *testing.T) {
   (`watch.go:747` is `broadcastResponse`'s send, `738` `dispatchEvent`'s call of it.)
 - **Expected**: `RequestProgress` is safe to call at any time (its documentation states no
   restriction); a canceled substream is never sent to.
-- **How the proof handles it**: `watcher.RequestProgress` is not verified (its calls can make
-  `run` panic, so no spec of it holds), and the derived watcher contract
+- **How the proof handles it** (before the fix; the watch slice's unit W-K verifies the fixed
+  code): `watcher.RequestProgress` is not verified (its calls can make `run` panic, so no spec of it
+  holds), and the derived watcher contract
   (`isEtcdRangeWatcher`, `notes/STATUS.md`, "W-C") is for a watcher on which no progress request
   is sent: `run`'s invariant keeps every request it sent a create or a cancel, and the server's
   stream specification sends a response of watch id `-1` only in answer to a progress request.
