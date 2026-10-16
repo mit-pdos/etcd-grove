@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: `MemoryStorage.InitialState` accesses its fields without the mutex
 
 **Status**: open (not reported upstream). **Also in raft v3.7.0** (2026-10-15, the retarget's
@@ -40,6 +46,42 @@ func TestMemoryStorageInitialStateRace(t *testing.T) {
 In raft's own use `InitialState` is called once, from `newRaft`, before any `Ready` is
 handed to the application, so raft itself does not race; the issue is the method against
 its type's documentation.
+
+**How it happens**: `MemoryStorage` embeds a mutex documented to protect all of its fields.
+Every exported method takes it except `InitialState`, which increments a counter and reads
+`hardState` and the snapshot's `ConfState` bare. In the test above:
+
+1. A goroutine calls `SetHardState` in a loop; each call takes the lock and writes
+   `ms.hardState`.
+2. The test goroutine calls `InitialState` in a loop; each call reads `ms.hardState` without
+   the lock.
+3. The race detector reports the read at `storage.go:123` against the write in
+   `SetHardState`.
+
+```go
+// storage.go:97-101 and 120-124 (etcd-io/raft 40f8be7)
+type MemoryStorage struct {
+	// Protects access to all fields. Most methods of MemoryStorage are
+	// run on the raft goroutine, but Append() is run on an application
+	// goroutine.
+	// ...
+
+// InitialState implements the Storage interface.
+func (ms *MemoryStorage) InitialState() (pb.HardState, pb.ConfState, error) {
+	ms.callStats.initialState++ // <- no lock
+	return ms.hardState, ms.snapshot.Metadata.ConfState, nil // <-
+}
+```
+
+```go
+// storage.go:128-134 (raft v3.7.0)
+func (ms *MemoryStorage) InitialState() (*pb.HardState, *pb.ConfState, error) {
+	ms.callStats.initialState++
+	cs := ms.snapshot.GetMetadata().GetConfState()
+	cs = pb.EnsureConfState(cs) // <- may write the stored ConfState
+	return ms.hardState, cs, nil // <- shared with the storage
+}
+```
 
 **Expected**: `InitialState` takes the lock like every other exported method, or the
 documentation says it must not run concurrently with the writers.

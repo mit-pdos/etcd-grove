@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server: RangeStream accepts a sort by a non-key target with no order and returns duplicated and missing keys
 
 - **Status**: open (a wrong result, reachable from clients: `clientv3.KV.GetStream` with
@@ -22,6 +28,66 @@
   with `Unimplemented: RangeStream does not support custom sort orders`. Reproduction (in
   `tests/integration/clientv3`): put key `k` + `'a'+i` `12-i` times for `i` in `0..11`, then the
   call above.
+- **How it happens**: `RangeStream` serves a range as a sequence of chunks. Each chunk is an
+  ordinary `txn.Range` with a small limit, and the next chunk starts just after the last key of
+  the previous one. That is correct only if every chunk is in key order, so the stream rejects
+  custom sort orders with `IsDefaultOrdering`. But `IsDefaultOrdering` is true whenever the
+  order is `NONE`, whatever the target, while `txn.Range` sorts a non-key target with order
+  `NONE` as `ASCEND`. So a request sorted by version with no order passes the check, and each
+  chunk comes back sorted by version. Its last key is then not its largest key, and the next
+  chunk starts in the middle of the keys already sent. On `main`, with the example above:
+
+  1. Keys `ka`..`kl` have versions 12..1. The client calls `GetStream("k", WithPrefix(),
+     WithSort(SortByVersion, SortNone))`; `checkRangeStreamRequest` accepts it (the order is
+     `NONE`).
+  2. Chunk 1 has limit 10. `txn.Range` reads 11 keys in key order (`ka`..`kk`, one more to
+     detect `More`), sorts them by ascending version (`kk` (2), `kj` (3), ..., `ka` (12)) and
+     keeps 10: `kk kj ... kb`, with `More` set. `ka` is dropped.
+  3. The next chunk starts after the chunk's last key, `kb`: at `kb\x00`.
+  4. Chunk 2 (limit 20) reads `kc`..`kl` and sorts them: `kl kk ... kc`. Nine of these keys
+     were already sent in chunk 1. `More` is false, so the stream ends.
+  5. The client gets 20 key-values: `ka` is missing, `kc`..`kk` appear twice, and `Count` (the
+     sum of the chunks) is 20.
+
+  ```go
+  // server/etcdserver/api/v3rpc/key.go:169-180 (etcd main f061acd09)
+  func checkRangeStreamRequest(r *pb.RangeRequest) error {
+  	if err := checkRangeRequest(r); err != nil {
+  		return err
+  	}
+  	if !txn.IsDefaultOrdering(r.SortTarget, r.SortOrder) { // <-
+  		return status.Errorf(codes.Unimplemented, "RangeStream does not support custom sort orders")
+  	}
+  	// ...
+  }
+  ```
+
+  ```go
+  // server/etcdserver/txn/range.go:97-103 and 125-129 (etcd main f061acd09)
+  func IsDefaultOrdering(sortTarget pb.RangeRequest_SortTarget, sortOrder pb.RangeRequest_SortOrder) bool {
+  	// ...
+  	return sortOrder == pb.RangeRequest_NONE || // <-
+  		(sortTarget == pb.RangeRequest_KEY && sortOrder == pb.RangeRequest_ASCEND)
+  }
+  // ...
+  func sortRangeResults(rr *mvcc.RangeResult, r *pb.RangeRequest, lg *zap.Logger) {
+  	sortOrder := r.SortOrder
+  	if r.SortTarget != pb.RangeRequest_KEY && sortOrder == pb.RangeRequest_NONE { // <-
+  		sortOrder = pb.RangeRequest_ASCEND
+  	}
+  ```
+
+  ```go
+  // server/etcdserver/v3_server.go:244-247 and 269-271 (etcd main f061acd09)
+  		var nextKey []byte
+  		if resp.More {
+  			nextKey = append(resp.Kvs[len(resp.Kvs)-1].Key, '\x00') // <-
+  		}
+  	// ...
+  		r.Key = nextKey
+  		r.Limit = adjustChunkLimit(r.Limit, proto.Size(resp), int(s.Cfg.MaxRequestBytes))
+  		r.Limit = min(r.Limit, totalLimit-count)
+  ```
 - **Expected**: rejected like `SortAscend` (`Unimplemented`), or streamed in the sorted order.
 - **Possible fix**: in `checkRangeStreamRequest`, test the order `txn.Range` sorts by (`NONE` with
   a non-key target is `ASCEND`), e.g. by exporting `txn`'s `rangeSortOrder` from the

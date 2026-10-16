@@ -1,3 +1,10 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/raft#354 issue open: related, not this bug (a rejected ConfChange becomes a silent no-op; same pendingConfIndex guard, no Advance/apply ordering)
+---
+
 # etcdserver: the leader calls raft's Advance before its apply loop has applied a conf change, which lets raft accept an overlapping membership change
 
 **Status of this draft**: unconfirmed in etcd. The two ingredients are confirmed (the first by
@@ -50,13 +57,67 @@ lines against upstream when filing) and to `go.etcd.io/raft/v3` v3.7.0, which et
    has advanced (the `raftAdvanceC` wait added for #15528), which serializes one client's
    sequential changes but not two concurrent ones.
 
-So: the leader commits `C1 = add 4`, `Advance`s, its apply loop is still behind (a large
-batch, a slow backend commit, a defragmentation); a concurrent `RemoveMember(2)` reaches
-raft, which accepts `C2` at the next index and commits it under the old configuration
-`{1,2,3}`. raft issue #TODO describes how this leads to two different entries at one index:
-the followers apply `C1` and `C2` (configuration `{1,3,4}`), the leader, still on `{1,2,3}`,
-commits `x` with `{1,2}`, and after a partition `{1,2} | {3,4}` member 3 wins with `{3,4}` and
-commits a different entry at the same index.
+The raft loop's two branches (the lines are the same in etcd `main` at f061acd09):
+
+```go
+// server/etcdserver/raft.go:289-331 (etcd main f061acd09)
+				confChanged := false
+				for _, ent := range rd.CommittedEntries {
+					if ent.GetType() == raftpb.EntryConfChange {
+						confChanged = true
+						break
+					}
+				}
+
+				if !islead {
+					// ...
+					// Candidate or follower needs to wait for all pending configuration
+					// changes to be applied before sending messages.
+					// Otherwise we might incorrectly count votes (e.g. votes from removed members).
+					// Also slow machine's follower raft-layer could proceed to become the leader
+					// on its own single-node cluster, before toApply-layer applies the config change.
+					// ...
+					if confChanged { // <- the follower waits for the apply loop
+						// ...
+						select {
+						case notifyc <- struct{}{}:
+						case <-r.stopped:
+							return
+						}
+					}
+					// ...
+				} else {
+					// leader already processed 'MsgSnap' and signaled
+					notifyc <- struct{}{} // <- the leader does not
+				}
+
+				// gofail: var raftBeforeAdvance struct{}
+				r.Advance() // <-
+```
+
+and the guard in raft v3.7.0 that `Advance` defeats:
+
+```go
+// raft.go:1326 (go.etcd.io/raft/v3 v3.7.0), stepLeader, MsgProp
+				alreadyPending := r.pendingConfIndex > r.raftLog.applied // <-
+```
+
+An example execution, with members 1, 2 and 3 and member 1 the leader:
+
+1. A client's `MemberAdd` of member 4 commits `C1 = add 4` at index 2 with `{1,2}`. Member 1's
+   raft loop takes the leader branch: it signals the apply loop and calls `Advance`, so raft's
+   applied index is 2. Member 1's apply loop is still behind (a large batch, a slow backend
+   commit, a defragmentation), so raft's configuration is still `{1,2,3}`.
+2. A concurrent `MemberRemove(2)` reaches raft. `pendingConfIndex` (2) is not above applied
+   (2), so raft accepts `C2 = remove 2` at index 3 and commits it under the old configuration
+   `{1,2,3}` with `{1,2}`.
+3. Members 3 and 4 receive indices 1-3 with commit 3 and apply both changes (configuration
+   `{1,3,4}`).
+4. Member 1, still on `{1,2,3}`, commits `x` at index 4 with `{1,2}`.
+5. Partition `{1,2} | {3,4}`. Member 3 has applied all it committed, so it may campaign. It
+   wins with `{3,4}`, a majority of `{1,3,4}`, and commits a different entry at index 4.
+
+raft issue #TODO reproduces steps 1-5 on raft alone.
 
 A second route with the same window: a leader that steps down (check quorum) after
 `Advance` but before its apply loop applied a conf change campaigns as a follower with the

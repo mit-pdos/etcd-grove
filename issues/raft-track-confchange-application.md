@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: track which conf changes have been applied, so that Advance before ApplyConfChange is safe
 
 ## Summary

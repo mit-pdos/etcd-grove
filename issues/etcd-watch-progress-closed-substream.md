@@ -1,6 +1,16 @@
+---
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#21969 issue closed: same bug (progress broadcast sends on a canceled substream's closed recvc); closed as stale (not planned), not fixed
+  - etcd-io/etcd#22191 pr open: same bug, fix (delete the substream from substreams after close(recvc)); no review, needs ok-to-test
+  - etcd-io/etcd#21981 pr closed: same fix, closed unmerged
+---
+
 # The watch client's progress broadcast can send on a canceled substream's closed `recvc`
 
-- **Status**: fixed in the verified fork (not reported upstream): `goose-lean` `107edf7e4`, the
+- **Status**: fixed in the verified fork (known upstream, not fixed there: see the front matter;
+  etcd-io/etcd#22191 proposes the same fix): `goose-lean` `107edf7e4`, the
   cherry-pick of `1ac646214` (branch `watch-progress-closed-substream` of the fork, on upstream
   `f061acd09`): `run`'s `Canceled` case removes the substream from `substreams` when it closes its
   `recvc`, so `broadcastResponse` never reaches it; the commit adds the regression test

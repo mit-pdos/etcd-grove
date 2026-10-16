@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft v3.7: `Step` writes into the caller's message and keeps it; `MemoryStorage.ApplySnapshot` writes into its argument
 
 - **Status**: open (documentation the code contradicts; not reported). Introduced with the move of

@@ -1,3 +1,13 @@
+---
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#22395 pr open: same root cause and fix (checkIntervals reads a from-key delete as empty); does not mention the panic, says not a security fix
+  - etcd-io/etcd#22445 issue closed: same root cause, closed as a duplicate of #22395
+  - etcd-io/etcd#22446 pr closed: same fix, closed as a duplicate of #22395
+candidate: issues/upstream/etcd-txn-delete-then-ignore-put/
+---
+
 # etcdserver: a txn that deletes from a key on and then puts it with IgnoreValue panics every member, permanently
 
 ## Summary
@@ -9,8 +19,74 @@ A transaction that deletes every key from `k` on (`DeleteRange{Key: k, RangeEnd:
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `kvServer.Txn` (`server/etcdserver/api/v3rpc/key.go:118-137`) calls `checkIntervals` (`key.go:236-315`) on each branch, which rejects a put that overlaps a delete of the same transaction (`ErrGRPCDuplicateKey`). It builds a delete's interval as `adt.NewStringAffineInterval(Key, RangeEnd)` (`key.go:251`). A from-key delete has `RangeEnd` `"\x00"` (`client/v3/op.go:445-453`), which the server reads as "every key from `Key` on" (`mkGteRange`, `server/etcdserver/txn/delete.go:63`; the watch server, `watch.go:325-328`), but here it gives the interval `[Key, "\x00")`, which is empty and overlaps no put.
+
+   ```go
+   // server/etcdserver/api/v3rpc/key.go:236-255 (etcd main f061acd09)
+   func checkIntervals(reqs []*pb.RequestOp) (map[string]struct{}, adt.IntervalTree, error) {
+   	dels := adt.NewIntervalTree()
+   	// collect deletes from this level; build first to check lower level overlapped puts
+   	for _, req := range reqs {
+   		tv, ok := req.Request.(*pb.RequestOp_RequestDeleteRange)
+   		// ...
+   		var iv adt.Interval
+   		if len(dreq.RangeEnd) != 0 {
+   			iv = adt.NewStringAffineInterval(string(dreq.Key), string(dreq.RangeEnd)) // <- [k, "\x00") is empty
+   		} else {
+   			iv = adt.NewStringAffinePoint(string(dreq.Key))
+   		}
+   		dels.Insert(iv, struct{}{})
+   	}
+   ```
+
+   ```go
+   // server/etcdserver/txn/delete.go:59-68 (etcd main f061acd09): how the executor reads the same range end
+   // mkGteRange determines if the range end is a >= range. This works around grpc
+   // sending empty byte strings as nil; >= is encoded in the range end as '\0'.
+   // ...
+   func mkGteRange(rangeEnd []byte) []byte {
+   	if len(rangeEnd) == 1 && rangeEnd[0] == 0 {
+   		return []byte{} // <- "from Key to the end"
+   	}
+   	return rangeEnd
+   }
+   ```
 2. `txn.Txn` checks the puts of the chosen branch at the transaction's read view, before any operation runs (`server/etcdserver/txn/txn.go:54`, `checkTxn` → `checkPut` at `txn.go:214` → `checkAndGetPrevKV`, `put.go:90-102`): `k` still exists there, so the `IgnoreValue` put passes.
+
+   ```go
+   // server/etcdserver/txn/put.go:90-102 (etcd main f061acd09)
+   func checkAndGetPrevKV(trace *traceutil.Trace, txnWrite mvcc.ReadView, p *pb.PutRequest) (prevKV *mvcc.RangeResult, err error) {
+   	prevKV, err = getPrevKV(trace, txnWrite, p) // <- at the read view, before the delete
+   	// ...
+   	if p.IgnoreValue || p.IgnoreLease {
+   		if prevKV == nil || len(prevKV.KVs) == 0 {
+   			// ignore_{lease,value} flag expects previous key-value pair
+   			return nil, errors.ErrKeyNotFound
+   		}
+   	}
+   	return prevKV, nil
+   }
+   ```
 3. In the write transaction, `executeTxn` runs the operations in order: the delete removes `k`, then `getPrevKV` re-reads `k` (`txn.go:172`) and finds nothing, and `put` (`put.go:54-59`) indexes `prevKV.KVs[0]` of the empty list and panics, with the backend's batch lock held. In a server this is in the apply loop (`applyEntryNormal`, `server/etcdserver/server.go:1940`), for a committed entry, on every member.
+
+   ```go
+   // server/etcdserver/txn/txn.go:167-176 and put.go:48-59 (etcd main f061acd09)
+   		case *pb.RequestOp_RequestPut:
+   			// ...
+   			prevKV, err := getPrevKV(trace, txnWrite, tv.RequestPut) // <- after the delete: no KVs
+   			if err != nil {
+   				return 0, fmt.Errorf("applyTxn: failed to get prevKV on put: %w", err)
+   			}
+   			resp := put(ctx, txnWrite, tv.RequestPut, prevKV)
+   // ...
+   func put(ctx context.Context, txnWrite mvcc.TxnWrite, p *pb.PutRequest, prevKV *mvcc.RangeResult) *pb.PutResponse {
+   	// ...
+   	if p.IgnoreValue {
+   		val = prevKV.KVs[0].Value // <- index out of range [0] with length 0
+   	}
+   	if p.IgnoreLease {
+   		leaseID = lease.LeaseID(prevKV.KVs[0].Lease) // <-
+   	}
+   ```
 4. On restart: the panic happens before the backend commits, so the backend's consistent index is that of an earlier entry, and the transaction's entry is in the WAL; the member replays it and panics again (below). `applyEntryNormal`'s deferred `SetConsistentIndex` (`server.go:1942-1949`) does run during the panic, but only in memory.
 
 `IgnoreLease` instead of `IgnoreValue` panics the same way (`put.go:58`). A plain put of `k` after the from-key delete does not panic, but it is the overlap `checkIntervals` is meant to reject, and is rejected when the delete names `k` alone.

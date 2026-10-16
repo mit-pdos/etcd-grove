@@ -1,3 +1,11 @@
+---
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#18424 issue closed: same root cause (ahrtr named the isContextError retry branch as unsafe for writes); closed not planned, maintainers judged it unreachable because ErrCanceled had no gRPC mapping
+  - etcd-io/etcd#21122 pr merged: related, not this bug; added the errors.ErrCanceled -> codes.Canceled mapping (2026-02), which makes the branch reachable from the server, against #18424's reasoning
+---
+
 # clientv3: the retry interceptor retries a Put (any non-repeatable RPC) after a `Canceled` or `DeadlineExceeded` status while the caller's context is live
 
 - **Status**: open (not filed; a robustness issue: a write may be applied twice, on a path that
@@ -92,6 +100,64 @@ func TestPutRetriedAfterCanceledStatus(t *testing.T) {
   `client/v3`): `the server received the Put 2 times`; the client's log shows `retrying of unary
   invoker failed ... code = Canceled desc = etcdserver: request canceled`, and `Put` returns
   success.
+- **How it happens**: the retry loop has a policy check, `isSafeRetry`, that stops a mutable RPC
+  from being retried once the request may have been sent. A context-error branch above it
+  `continue`s the loop for any method and any retry policy, so for a `Canceled` or
+  `DeadlineExceeded` status the check is never reached. In the reproduction above:
+
+  1. The caller runs `c.Put(ctx, "k", "v")` with a live 10-second context. `retryKVClient.Put`
+     passes no retry policy, so the call is `nonRepeatable`, with up to 100 attempts.
+  2. Attempt 0 reaches the server, which applies the put (counts it) and answers
+     `status.Error(codes.Canceled, "etcdserver: request canceled")`, the status etcd's server
+     gives a proposal whose context was canceled (`rpctypes.ErrGRPCCanceled`).
+  3. `isContextError(lastErr)` is true (`codes.Canceled`) and `ctx.Err()` is nil, so the loop
+     `continue`s without calling `isSafeRetry`.
+  4. Attempt 1 sends the same `Put` again. The server applies it a second time and answers
+     success.
+  5. `Put` returns success to the caller. The server received the `Put` twice.
+
+  ```go
+  // client/v3/retry_interceptor.go:54-98 (etcd main f061acd09), unaryClientInterceptor's loop
+  		for attempt := uint(0); attempt < callOpts.max; attempt++ {
+  			// ...
+  			lastErr = invoker(ctx, method, req, reply, cc, grpcOpts...)
+  			if lastErr == nil {
+  				return nil
+  			}
+  			// ...
+  			if isContextError(lastErr) { // <- codes.Canceled or codes.DeadlineExceeded
+  				if ctx.Err() != nil {
+  					// its the context deadline or cancellation.
+  					return lastErr
+  				}
+  				// its the callCtx deadline or cancellation, in which case try again.
+  				continue // <- any method, any retry policy
+  			}
+  			// ... token refresh ...
+  			if !isSafeRetry(c, lastErr, callOpts) { // <- never reached for a context error
+  				return lastErr
+  			}
+  ```
+
+  ```go
+  // client/v3/retry.go:77-94 (etcd main f061acd09): the policy that branch bypasses
+  // isSafeRetryMutableRPC returns "true" when a mutable request is safe for retry.
+  //
+  // mutable requests (e.g. Put, Delete, Txn) should only be retried
+  // when the status code is codes.Unavailable when initial connection
+  // has not been established (no endpoint is up).
+  //
+  // Returning "false" means retry should stop, otherwise it violates
+  // write-at-most-once semantics.
+  func isSafeRetryMutableRPC(err error) bool {
+  	if ev, ok := status.FromError(err); ok && ev.Code() != codes.Unavailable {
+  		// ...
+  		return false
+  	}
+  	desc := rpctypes.ErrorDesc(err)
+  	return desc == "there is no address available" || desc == "there is no connection available"
+  }
+  ```
 - **Expected**: `isSafeRetryMutableRPC`'s write-at-most-once: a non-repeatable RPC is retried only
   when the request was not sent (no connection, no address available). Neither the `KV.Put`
   documentation nor the interceptor's says that a successful `Put` may have been applied more than

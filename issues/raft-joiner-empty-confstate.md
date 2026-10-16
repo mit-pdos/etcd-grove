@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: with the initial `ConfState` in an index-0 snapshot, a node added later replays conf changes onto an empty configuration and can win alone
 
 - **Status**: open (undocumented precondition; not reported upstream).
@@ -17,12 +23,56 @@
   - After its own `add` it is a voter of a configuration made of the changes alone (`{4}`
     below): `promotable` (`raft.go:1934-1937`) holds, `hasUnappliedConfChanges` is false, and
     `TallyVotes` over that configuration counts its own vote as a quorum.
-- **What happens**: `C0 = {1,2,3}` bootstrapped on nodes 1-3 by an index-0 `ConfState`
-  snapshot; node 4 starts empty. Node 1 leads term 1 and commits `add 4` (index 2); node 4
-  catches up by `MsgApp` and applies it: its configuration is `voters=(4)` while node 1's is
-  `voters=(1 2 3 4)`. Node 4 is cut off; node 1 commits `x` at index 3 with `{1,2,3}`; node 4
-  campaigns, wins term 2 on its own vote and commits its empty entry at index 3. Every
-  application applies conf changes before `Advance` (faithful).
+- **What happens**: raft builds a node's configuration from its storage's `ConfState` and then
+  from the conf entries it applies. With the initial configuration only in an index-0
+  snapshot, a node that starts empty and is caught up by `MsgApp` from index 1 never sees it.
+  Every application applies conf changes before `Advance` (faithful):
+  1. `C0 = {1,2,3}`, set on nodes 1-3 by an index-0 `ConfState` snapshot. Node 4 starts empty.
+  2. Node 1 leads term 1 and commits `add 4` at index 2. Node 4 catches up by `MsgApp` and
+     applies it. Node 4's configuration is `voters=(4)`; node 1's is `voters=(1 2 3 4)`.
+  3. Node 4 is cut off. Node 1 commits `x` at index 3 with `{1,2,3}`.
+  4. Node 4 campaigns, wins term 2 on its own vote, and commits its empty entry at index 3.
+
+  ```go
+  // storage.go:207-221 (etcd-io/raft 40f8be7)
+  func (ms *MemoryStorage) ApplySnapshot(snap pb.Snapshot) error {
+  	ms.Lock()
+  	defer ms.Unlock()
+
+  	//handle check for old snapshot being applied
+  	msIndex := ms.snapshot.Metadata.Index
+  	snapIndex := snap.Metadata.Index
+  	// During bootstrap, applications (e.g., etcd) may initialize only the // <-
+  	// ConfState in the snapshot. In this case, both the snapshot index and // <-
+  	// term are 0. // <-
+  	if msIndex != 0 && msIndex >= snapIndex {
+  		return ErrSnapOutOfDate
+  	}
+
+  	ms.snapshot = snap
+  ```
+
+  ```go
+  // raft.go:1932-1937 (etcd-io/raft 40f8be7): only the node's own Progress is asked for
+  // promotable indicates whether state machine can be promoted to leader,
+  // which is true when its own id is in progress list.
+  func (r *raft) promotable() bool {
+  	pr := r.trk.Progress[r.id]
+  	return pr != nil && !pr.IsLearner && !r.raftLog.hasNextOrInProgressSnapshot() // <-
+  }
+  ```
+
+  ```go
+  // bootstrap.go:23-29 (etcd-io/raft 40f8be7): the recommendation that avoids the problem
+  // Bootstrap initializes the RawNode for first use by appending configuration
+  // changes for the supplied peers. This method returns an error if the Storage
+  // is nonempty.
+  //
+  // It is recommended that instead of calling this method, applications bootstrap // <-
+  // their state manually by setting up a Storage that has a first index > 1 and // <-
+  // which stores the desired ConfState as its InitialState.
+  ```
+
   Reproduction: `raft-conf-lag-model/joiner_empty_confstate_test.go`, which passes by
   asserting the violation:
 

@@ -1,3 +1,12 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#19091 issue closed: related, not this bug (the user's report: stale cached Get after the session lease expires, from the non-blocking session.Done check); closed by the stale bot
+  - etcd-io/etcd#19092 pr closed: related, not this bug (the user's fix for #19091); closed unmerged
+  - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
+---
+
 # clientv3/leasing: a key acquired just before a session ends stays cached under the next session
 
 ## Summary
@@ -10,7 +19,53 @@ References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `get` (`client/v3/leasing/kv.go:301-338`) acquires the key with `acquire` (`kv.go:265-299`). Its transaction puts the leasing key `pfx+key` with `WithLease(lkv.leaseID())`, the current session's lease (`kv.go:276`). On success `get` caches the response (`leases.Add`, `kv.go:330`) and starts `monitorLease` for the key.
 2. Suppose the session's lease ends after the acquisition commits and before `Add`. etcd deletes the leasing key along with the lease. `monitorSession` (`kv.go:129-157`) sees the session end, resets the cache (`kv.go:144`) and starts a new session. `Add` then caches the key anyway, after the reset.
+
+   ```go
+   // client/v3/leasing/kv.go:323-336 (etcd main f061acd09)
+   	resp, err := lkv.acquire(ctx, key, v3.OpGet(key))
+   	if err != nil {
+   		return nil, err
+   	}
+   	getResp := (*v3.GetResponse)(resp.Responses[0].GetResponseRange())
+   	getResp.Header = resp.Header
+   	if resp.Succeeded {
+   		getResp = lkv.leases.Add(key, getResp, op) // <- after a reset, if the session ended here
+   		lkv.wg.Add(1)
+   		go func() {
+   			defer lkv.wg.Done()
+   			lkv.monitorLease(ctx, key, resp.Header.Revision)
+   		}()
+   	}
+   ```
+
+   ```go
+   // client/v3/leasing/kv.go:138-145 (etcd main f061acd09), monitorSession
+   		lkv.leases.mu.Lock()
+   		select {
+   		case <-lkv.sessionc:
+   			lkv.sessionc = make(chan struct{})
+   		default:
+   		}
+   		lkv.leases.entries = make(map[string]*leaseKey) // <- the reset
+   		lkv.leases.mu.Unlock()
+   ```
 3. `monitorLease` (`kv.go:159-188`) watches the leasing key from the acquisition, but it skips every event that is not a `"REVOKE"` put (`kv.go:177-179`), the leasing key's delete included. So it never evicts the entry.
+
+   ```go
+   // client/v3/leasing/kv.go:174-185 (etcd main f061acd09), monitorLease
+   		wch := lkv.cl.Watch(cctx, lkv.pfx+key, v3.WithRev(rev+1))
+   		for resp := range wch {
+   			for _, ev := range resp.Events {
+   				if string(ev.Kv.Value) != "REVOKE" { // <- the leasing key's delete is skipped
+   					continue
+   				}
+   				if v3.LeaseID(ev.Kv.Lease) == lkv.leaseID() {
+   					lkv.rescind(cctx, key, ev.Kv.ModRevision)
+   				}
+   				return
+   			}
+   		}
+   ```
 4. Other clients' writes of the key are guarded by `CreateRevision(pfx+key) < rev+1`, which holds because the leasing key no longer exists. They commit without revoking anything. And a `"REVOKE"` put would keep the old lease, which is not the new session's, so `monitorLease` would return without rescinding (`kv.go:180`).
 5. The entry stays until the next session reset, and the leasing KV's `Get` returns its stale value.
 

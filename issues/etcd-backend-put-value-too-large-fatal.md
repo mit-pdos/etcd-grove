@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # A value above bbolt's `MaxValueSize` makes the backend's put exit the process
 
 - **Status**: open (not filed). An unstated precondition of `BatchTx.UnsafePut` /
@@ -15,6 +21,32 @@
   request by `--max-request-bytes` (default 1.5 MiB; the configuration only warns above 10 MiB),
   so a member configured with a limit near 2 GiB could exit on a large enough put. Not
   reproduced (it needs a 2 GiB request).
+- **How it happens**: the backend treats any error from bbolt's `Put` as fatal, and nothing
+  above it checks bbolt's size bound.
+
+  1. A member runs with `--max-request-bytes` near 2 GiB.
+  2. A client sends a put whose value is large enough that the marshalled `KeyValue` exceeds
+     `MaxValueSize = (1 << 31) - 2` bytes. The request passes the size limit and is applied.
+  3. mvcc's `put` calls `UnsafeSeqPut`, which reaches `bucket.Put`. bbolt returns
+     `ErrValueTooLarge`.
+  4. `unsafePut` calls `lg.Fatal`, and the process exits. Every member exits applying the same
+     entry.
+
+  ```go
+  // server/storage/backend/batch_tx.go:169-191 (etcd main f061acd09)
+  func (t *batchTx) unsafePut(bucketType Bucket, key []byte, value []byte, seq bool) {
+  	bucket := t.tx.Bucket(bucketType.Name())
+  	// ...
+  	if err := bucket.Put(key, value); err != nil {
+  		t.backend.lg.Fatal( // <- any bbolt error exits the process
+  			"failed to write to a bucket",
+  			zap.Stringer("bucket-name", bucketType),
+  			zap.Error(err),
+  		)
+  	}
+  	t.pending++
+  }
+  ```
 - **Expected**: the bound stated (or checked, with an error) where the request enters, or by
   `UnsafePut`'s documentation.
 - **How the proof handles it**: the backend's `UnsafePut`/`UnsafeSeqPut` specs take the bounds

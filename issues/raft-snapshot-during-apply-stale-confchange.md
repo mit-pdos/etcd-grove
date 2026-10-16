@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: a snapshot restored while a `Ready`'s conf changes are being applied makes `ApplyConfChange` apply them on top of the snapshot's configuration
 
 - **Status**: open (not reported upstream). Reproduced on raft by Go tests with hand-built
@@ -40,6 +46,74 @@
   (a `MsgApp` committing index 1, then a `MsgSnap` at index 2 or 3), each of a kind a leader
   sends; in a cluster the snapshot needs a follower behind the leader's compaction point
   while it is still applying an older batch.
+- **How it happens**: nothing stops a node from stepping messages between `Ready` and
+  `Advance`; `node.run` does it itself. A `MsgSnap` past the commit index is restored, and
+  `restore` replaces the configuration with the snapshot's `ConfState` without looking at the
+  committed entries the last `Ready` handed out. `applyConfChange` later receives only the
+  change, with no index, and applies it to the configuration in use. The execution of
+  `TestSnapshotDuringApplyStaleConfChange`:
+  1. `C0 = {1,2,3}`. Follower 2 receives `C1 = add 4` at index 1, committed. Its `Ready` hands
+     out `C1`, and the application starts applying it.
+  2. The leader commits `C2 = remove 4` at index 2 and something at index 3, compacts, and
+     sends node 2 a snapshot at index 3 with `ConfState {1,2,3}`. That configuration already
+     reflects `C1` and `C2`.
+  3. Node 2 steps the `MsgSnap`. Index 3 is above its commit index 1, so it restores:
+     configuration `{1,2,3}`.
+  4. The application finishes `C1` and calls `ApplyConfChange(C1)`, then `Advance`. raft
+     applies `add 4` on top of the snapshot's configuration: `{1,2,3,4}`.
+  5. The next `Ready` carries the snapshot, and the application applies it, but raft does not
+     re-install its `ConfState`. Node 2 stays on `{1,2,3,4}`, while the log's configuration at
+     index 3 is `{1,2,3}`.
+
+  ```go
+  // node.go:394-399, 435-445 (etcd-io/raft 40f8be7), node.run
+  		case m := <-n.recvc:
+  			if IsResponseMsg(m.Type) && !IsLocalMsgTarget(m.From) && r.trk.Progress[m.From] == nil {
+  				// Filter out response message from unknown From.
+  				break
+  			}
+  			r.Step(m) // <- also while the application holds a Ready
+  		// ...
+  		case readyc <- rd:
+  			n.rn.acceptReady(rd)
+  			if !n.rn.asyncStorageWrites {
+  				advancec = n.advancec
+  			} else {
+  				rd = Ready{}
+  			}
+  			readyc = nil // <-
+  		case <-advancec:
+  			n.rn.Advance(rd)
+  			rd = Ready{}
+  ```
+
+  ```go
+  // raft.go:1849-1852, 1909-1924, 1939-1959 (etcd-io/raft 40f8be7)
+  func (r *raft) restore(s pb.Snapshot) bool {
+  	if s.Metadata.Index <= r.raftLog.committed {
+  		return false
+  	}
+  	// ... (the snapshot is not in the log)
+  	r.raftLog.restore(s)
+
+  	// Reset the configuration and add the (potentially updated) peers in anew.
+  	r.trk = tracker.MakeProgressTracker(r.trk.MaxInflight, r.trk.MaxInflightBytes) // <-
+  	cfg, trk, err := confchange.Restore(confchange.Changer{
+  		Tracker:   r.trk,
+  		LastIndex: r.raftLog.lastIndex(),
+  	// ...
+  	assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk)) // <-
+  // applyConfChange has no index: it applies cc to whatever r.trk is now
+  func (r *raft) applyConfChange(cc pb.ConfChangeV2) pb.ConfState {
+  	cfg, trk, err := func() (tracker.Config, tracker.ProgressMap, error) {
+  		changer := confchange.Changer{
+  			Tracker:   r.trk, // <-
+  			LastIndex: r.raftLog.lastIndex(),
+  		}
+  	// ...
+  	return r.switchToConfig(cfg, trk)
+  }
+  ```
 - **Consequences**: a wrong configuration on a follower is used for its vote tally if it
   campaigns and for its commit quorum if it wins. One stale single change keeps majorities
   intersecting (adjacent configurations); several in one `Ready`, or a stale removal of a

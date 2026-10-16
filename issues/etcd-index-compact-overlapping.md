@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server/storage/mvcc: `treeIndex.Compact` needs its calls not to overlap (an unstated precondition)
 
 - **Status**: open (not filed; documentation only). Not reachable through mvcc's store: every

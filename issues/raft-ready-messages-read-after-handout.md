@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft v3.7: `node.go` reads `Ready.Messages` responses after handing the `Ready` out
 
 - **Status**: open (not reported; not reproduced by a test). A documentation issue: an

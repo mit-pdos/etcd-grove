@@ -1,3 +1,9 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+---
+
 # clientv3: a `grpc.WithUnaryInterceptor` in `Config.DialOptions` silently replaces the client's retry interceptor
 
 - **Status**: open (not filed; documentation: `Config.DialOptions` invites interceptors, without

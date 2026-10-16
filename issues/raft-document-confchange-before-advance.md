@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: document that a Ready's conf changes must be applied before Advance, and that entries and HardState must be persisted atomically
 
 ## Summary

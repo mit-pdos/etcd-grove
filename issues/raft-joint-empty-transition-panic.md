@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: an empty `ConfChangeV2` with a non-`Auto` transition is accepted while joint, then panics every node that applies it
 
 - **Status**: open (not reported upstream).
@@ -106,6 +112,75 @@
       applied {ConfChangeTransitionJointExplicit [{ConfChangeAddLearnerNode 2}] []}: ConfState voters:1 learners:2 voters_outgoing:1
       leader accepted {ConfChangeTransitionJointExplicit [] []} at index 3
       PANIC reproduced: ApplyConfChange({ConfChangeTransitionJointExplicit [] []}): config is already joint
+
+- **How it happens**: the leader and the apply side recognize a "leave joint" entry
+  differently. `stepLeader` counts changes: at a joint configuration it accepts any proposal
+  with none, whatever its `Transition`. `applyConfChange` leaves only if `LeaveJoint()` holds,
+  which needs the whole message zero apart from `Context`. An empty proposal with
+  `JointExplicit` or `JointImplicit` passes the first check and fails the second, so it goes
+  to `EnterJoint` at a configuration that is already joint. The test above runs:
+
+  1. Node 1 is the single voter and the leader.
+  2. It proposes `ConfChangeV2{Transition: JointExplicit, Changes: [AddLearner 2]}`, which
+     commits and is applied: the configuration is joint (`voters:1 learners:2
+     voters_outgoing:1`), without auto-leave.
+  3. With that change applied, nothing is pending. The application proposes
+     `ConfChangeV2{Transition: JointExplicit}` with no changes, as its leave. In `stepLeader`
+     `alreadyJoint` and `wantsLeaveJoint` are both true, so no check fails and the leader
+     appends the entry (index 3).
+  4. The entry commits. `ApplyConfChange` on it: `LeaveJoint()` is false (the `Transition` is
+     not zero), `EnterJoint()` answers `ok` with `autoLeave = false`, and
+     `Changer.EnterJoint` fails with "config is already joint".
+  5. `applyConfChange` panics with that error. Every node applies the same entry, so every
+     node panics, and again on every restart.
+
+  ```go
+  // raft.go:1312-1324 (etcd-io/raft 40f8be7)
+  			if cc != nil {
+  				alreadyPending := r.pendingConfIndex > r.raftLog.applied
+  				alreadyJoint := len(r.trk.Config.Voters[1]) > 0
+  				wantsLeaveJoint := len(cc.AsV2().Changes) == 0 // <- only the number of changes
+
+  				var failedCheck string
+  				if alreadyPending {
+  					failedCheck = fmt.Sprintf("possible unapplied conf change at index %d (applied to %d)", r.pendingConfIndex, r.raftLog.applied)
+  				} else if alreadyJoint && !wantsLeaveJoint { // <-
+  					failedCheck = "must transition out of joint config first"
+  				} else if !alreadyJoint && wantsLeaveJoint {
+  					failedCheck = "not in joint state; refusing empty conf change"
+  				}
+  ```
+
+  ```go
+  // raftpb/confchange.go:109-113 and raft.go:1939-1956 (etcd-io/raft 40f8be7)
+  func (c ConfChangeV2) LeaveJoint() bool {
+  	// NB: c is already a copy.
+  	c.Context = nil
+  	return proto.Equal(&c, &ConfChangeV2{}) // <-
+  }
+
+  func (r *raft) applyConfChange(cc pb.ConfChangeV2) pb.ConfState {
+  	cfg, trk, err := func() (tracker.Config, tracker.ProgressMap, error) {
+  		// ...
+  		if cc.LeaveJoint() {
+  			return changer.LeaveJoint()
+  		} else if autoLeave, ok := cc.EnterJoint(); ok { // <-
+  			return changer.EnterJoint(autoLeave, cc.Changes...)
+  		}
+  		return changer.Simple(cc.Changes...)
+  	}()
+
+  	if err != nil {
+  		// TODO(tbg): return the error to the caller.
+  		panic(err) // <-
+  	}
+  ```
+
+  etcd cannot reach it: it proposes only v1 `raftpb.ConfChange`s (`EtcdServer.configure`),
+  whose `AsV2()` has one change and the `Auto` transition, so it never enters a joint
+  configuration, and its apply loop panics on any `EntryConfChangeV2` anyway ("unknown entry
+  type"). raft v3.7.0 has the same bug: there `LeaveJoint` is `Transition == Auto &&
+  len(Changes) == 0`, and `stepLeader` still tests only the length.
 
 - **Expected**: the proposal is refused (replaced by an empty normal entry, as `stepLeader`
   does for the conf changes it refuses), since it is not the documented leave proposal:

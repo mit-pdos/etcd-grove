@@ -1,3 +1,10 @@
+---
+upstream: reported
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#20704 issue closed: same bug for cases 3 and 4 (its bugs 3 and 1: Update increments Version, Update after Delete); cases 1-2 (WithIgnoreValue, WithLease) not in it; closed by the stale bot as not planned, unfixed
+---
+
 # clientv3/leasing: after a put of a cached key, the cache can hold a key-value etcd does not have
 
 ## Summary
@@ -20,6 +27,39 @@ After a successful put, `leasingKV.put` (`client/v3/leasing/kv.go:236-263`, line
 - if the cached response has no key-value, it creates one with `CreateRevision` = the response's revision;
 - it increments `Version` unconditionally;
 - if `ModRevision < header.Revision`, it sets `ModRevision` and `Value` to the put's.
+
+```go
+// client/v3/leasing/cache.go:132-152 (etcd main f061acd09)
+func (lc *leaseCache) Update(key, val []byte, respHeader *v3pb.ResponseHeader) {
+	li := lc.entries[string(key)]
+	if li == nil {
+		return
+	}
+	cacheResp := li.response
+	if len(cacheResp.Kvs) == 0 {
+		kv := &mvccpb.KeyValue{
+			Key:            key,
+			CreateRevision: respHeader.Revision,
+		}
+		cacheResp.Kvs = append(cacheResp.Kvs, kv)
+		cacheResp.Count = 1
+	}
+	cacheResp.Kvs[0].Version++ // <- even for an older response
+	if cacheResp.Kvs[0].ModRevision < respHeader.Revision {
+		cacheResp.Header = respHeader
+		cacheResp.Kvs[0].ModRevision = respHeader.Revision
+		cacheResp.Kvs[0].Value = val // <- the op's bytes; no lease
+	}
+}
+```
+
+```go
+// client/v3/leasing/kv.go:248-251 (etcd main f061acd09)
+		if resp.Succeeded {
+			lkv.leases.mu.Lock()
+			lkv.leases.Update(op.KeyBytes(), op.ValueBytes(), resp.Header) // <-
+			lkv.leases.mu.Unlock()
+```
 
 `Update` sees only the put's value bytes, so:
 

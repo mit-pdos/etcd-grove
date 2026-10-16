@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # `ConcurrentReadTx` reuses a read-buffer copy from before a commit: deleted keys come back, old values return
 
 - **Status**: open (not filed).
@@ -214,6 +220,77 @@
   watchable store's ranges use the shared `ReadTx`, which a commit updates under its lock.
   The proof's contract of mvcc's backend promises no range read of a `ConcurrentReadTx`
   (`keyReadSnap`'s `rng = false`).
+- **How it happens**: the backend keeps recent writes in a read buffer on top of bbolt, and a
+  reader sees bbolt's last committed transaction plus that buffer. `ConcurrentReadTx` gives each
+  reader its own copy of the buffer. To save copies it caches the last copy, tagged with the
+  buffer's `bufVersion`, and reuses it while the version is unchanged. Only `writeback`
+  increments the version. A commit empties the read buffer, because its contents are now in the
+  new bbolt transaction, but does not touch the version. So after a commit the cached copy
+  still matches the version, and the next `ConcurrentReadTx` lays the pre-commit buffer over the
+  post-commit bbolt transaction. The third reproduction above, step by step:
+
+  1. A batch transaction puts `k1` into the `Key` bucket and unlocks. The write-back copies
+     `k1` into the read buffer and increments `bufVersion` to `v`.
+  2. A `ConcurrentReadTx` copies the read buffer (with `k1`) into the cache, at version `v`.
+  3. `ForceCommit` commits `k1` into bbolt and calls `readTx.reset`: the read buffer is empty,
+     its version is still `v`.
+  4. The next `ConcurrentReadTx` finds the cache at version `v`, equal to the buffer's, and
+     reuses the copy with `k1`, over a bbolt transaction that also has `k1`.
+  5. `UnsafeRange(Key, "k0", "k9")` returns bbolt's entries followed by the buffer's: `k1`
+     twice.
+
+  In the first reproduction the same stale copy is cached between the two critical sections of
+  `Unlock`: the write-back releases `readTx`, a reader caches the buffer with `k`, and the
+  commit that follows (forced by the pending delete) removes `k` from bbolt and resets the
+  buffer, version unchanged.
+
+  ```go
+  // server/storage/backend/backend.go:321-327 and 356-359 (etcd main f061acd09)
+  	curCache := b.txReadBufferCache.buf
+  	curCacheVer := b.txReadBufferCache.bufVersion
+  	curBufVer := b.readTx.buf.bufVersion
+
+  	isEmptyCache := curCache == nil
+  	isStaleCache := curCacheVer != curBufVer // <-
+
+  	// ...
+  	if isEmptyCache || curCacheVer == b.txReadBufferCache.bufVersion {
+  		// continue if the cache is never set or no one has modified the cache
+  		b.txReadBufferCache.buf = buf
+  		b.txReadBufferCache.bufVersion = curBufVer
+  ```
+
+  ```go
+  // server/storage/backend/batch_tx.go:381-398 and read_tx.go:133-138 (etcd main f061acd09)
+  func (t *batchTxBuffered) unsafeCommit(stop bool) {
+  	// ...
+  	if t.backend.readTx.tx != nil {
+  		// ...
+  		t.backend.readTx.reset() // <-
+  	}
+  // read_tx.go
+  func (rt *readTx) reset() {
+  	rt.buf.reset() // <- the buffer is emptied, bufVersion is not changed
+  	rt.buckets = make(map[BucketID]*bolt.Bucket)
+  	rt.tx = nil
+  	rt.txWg = new(sync.WaitGroup)
+  }
+  ```
+
+  ```go
+  // server/storage/backend/batch_tx.go:328-334 and 355-357 (etcd main f061acd09)
+  func (t *batchTxBuffered) Unlock() {
+  	if t.pending != 0 {
+  		t.backend.readTx.Lock() // blocks txReadBuffer for writing.
+  		// gofail: var beforeWritebackBuf struct{}
+  		t.buf.writeback(&t.backend.readTx.buf)
+  		// gofail: var afterWritebackBuf struct{}
+  		t.backend.readTx.Unlock() // <- a reader can cache the buffer here
+  		// ...
+  		if t.pending >= t.backend.batchLimit || t.pendingDeleteOperations > 0 {
+  			t.commit(false) // <-
+  		}
+  ```
 - **Expected**: a `ConcurrentReadTx` sees the batch transaction's committed and written-back
   state at some instant: after a commit, not the read buffer of before it.
 - **How the proof handles it**: the backend's contract makes the writer's `Unlock` take the

@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # etcdserver: keys-only ranges return lease 0 unless sorted by value (regression in v3.7)
 
 ## Summary
@@ -9,8 +15,46 @@ Since 7624a8a2e ("Range with --keys-only retrieves from memory when possible", P
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `executeRange` (`server/etcdserver/txn/range.go:67`) sets `FastKeysOnly: r.KeysOnly && r.SortTarget != pb.RangeRequest_VALUE`.
+
+   ```go
+   // server/etcdserver/txn/range.go:62-69 (etcd main f061acd09)
+   	limit := rangeLimit(r)
+   	ro := mvcc.RangeOptions{
+   		Limit:          limit,
+   		Rev:            r.Revision,
+   		CountOnly:      r.CountOnly,
+   		FastKeysOnly:   r.KeysOnly && r.SortTarget != pb.RangeRequest_VALUE, // <-
+   		WithTotalCount: withTotalCount,
+   	}
+   ```
 2. With `FastKeysOnly`, `storeTxnCommon.rangeKeys` (`server/storage/mvcc/kvstore_txn.go:90-105`) builds the key-values from the in-memory index alone: key, mod and create revisions, version. The index does not record leases, so `Lease` is 0.
+
+   ```go
+   // server/storage/mvcc/kvstore_txn.go:90-106 (etcd main f061acd09)
+   	if ro.FastKeysOnly {
+   		keys, modifies, creates, versions, total := tr.s.kvindex.Range(key, end, rev, int(ro.Limit), ro.WithTotalCount)
+   		// ...
+   		kvs := make([]*mvccpb.KeyValue, len(keys))
+   		for i := range len(kvs) {
+   			kvs[i] = &mvccpb.KeyValue{
+   				Key:            keys[i],
+   				ModRevision:    modifies[i].Main,
+   				CreateRevision: creates[i].Main,
+   				Version:        versions[i], // <- no Lease: the index does not record it
+   			}
+   		}
+   		return &RangeResult{KVs: kvs, Count: total, Rev: curRev}, nil
+   	}
+   ```
 3. A keys-only range sorted by value takes the full read (the value is needed to sort), which decodes the stored key-value with its lease; `asembleRangeResponse` (`range.go:156`, `:166`) then clears only the value.
+
+   ```go
+   // server/etcdserver/txn/range.go:165-168 (etcd main f061acd09), in asembleRangeResponse
+   	for i := range rr.KVs {
+   		if r.KeysOnly {
+   			rr.KVs[i].Value = nil // <- the lease stays
+   		}
+   ```
 4. `keys_only` is documented as "when set returns only the keys and not the values" (`api/etcdserverpb/rpc.proto:486`).
 
 So `etcdctl put --lease=<id> foo bar; etcdctl get foo --keys-only -w json` reports no lease for `foo`, and the same `get` with `--sort-by=VALUE` reports it. A client that reads keys-only to find which keys hold a lease (to check ownership, or to revoke or refresh it) sees none.

@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: a `ConfChangeV2` with an undefined `Transition` is committed, then panics every node that applies it
 
 **Status**: open (not reported upstream; an undocumented precondition: applications that build
@@ -85,6 +91,48 @@ func TestUnknownTransitionPanicsOnApply(t *testing.T) {
 ```
 
 Output: `ApplyConfChange panicked: unknown transition: {Transition:7 Changes:[{Type:ConfChangeAddNode NodeId:2}] Context:[]}`.
+
+**How it happens**: `ConfChangeTransition` is a protobuf `int32` enum with three named values,
+so a `ConfChangeV2` can carry any other value. The leader never checks the field, and
+`ConfChangeV2.EnterJoint`, which `applyConfChange` calls for every change that is not a plain
+leave, panics on such a value whenever joint consensus is requested, which any non-zero
+transition does. The test above runs:
+
+1. Node 1 is the single voter and the leader.
+2. The application calls `ProposeConfChange(ConfChangeV2{Transition: 7, Changes: [AddNode 2]})`.
+   In `stepLeader` no conf change is pending, the configuration is not joint, and the entry has
+   a change, so no check fails: the leader appends it and `ProposeConfChange` returns `nil`.
+3. The entry commits. `ApplyConfChange` on it: `LeaveJoint()` is false, so `applyConfChange`
+   calls `cc.EnterJoint()`. `Transition != Auto`, so it takes the joint-consensus branch, and
+   the `switch` reaches `default`: `panic("unknown transition: ...")`.
+4. Every node applies the same committed entry, so every node panics, and again on every
+   restart.
+
+```go
+// raftpb/confchange.go:82-104 (etcd-io/raft 40f8be7)
+func (c ConfChangeV2) EnterJoint() (autoLeave bool, ok bool) {
+	// ...
+	if c.Transition != ConfChangeTransitionAuto || len(c.Changes) > 1 { // <-
+		// Use Joint Consensus.
+		var autoLeave bool
+		switch c.Transition {
+		case ConfChangeTransitionAuto:
+			autoLeave = true
+		case ConfChangeTransitionJointImplicit:
+			autoLeave = true
+		case ConfChangeTransitionJointExplicit:
+		default:
+			panic(fmt.Sprintf("unknown transition: %+v", c)) // <-
+		}
+		return autoLeave, true
+	}
+	return false, false
+}
+```
+
+etcd cannot reach it: it proposes only v1 `raftpb.ConfChange`s, which convert to the `Auto`
+transition, and its apply loop rejects `EntryConfChangeV2` entries with its own panic. The
+panic site is unchanged in raft v3.7.0 (`raftpb/confchange.go:101`).
 
 **Expected**: either the proposal is refused (`ErrProposalDropped`, or the entry replaced by an
 empty normal entry, as `stepLeader` does for a conf change it refuses), or the precondition is

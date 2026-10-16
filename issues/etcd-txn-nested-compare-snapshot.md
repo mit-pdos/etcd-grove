@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server/etcdserver/txn: a nested transaction's comparisons see the state before the outer transaction's operations
 
 - **Status**: open (documentation: the behavior is not documented; not filed).

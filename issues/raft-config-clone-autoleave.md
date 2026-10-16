@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: `tracker.Config.Clone` drops `AutoLeave`, so `Status().Config.AutoLeave` is always false
 
 **Status**: open (not reported upstream; not checked whether raft after `40f8be7` fixed it).
@@ -38,6 +44,39 @@ func TestCloneDropsAutoLeave(t *testing.T) {
 	// passes: Clone() has AutoLeave == false
 }
 ```
+
+**How it happens**: `Clone`'s result literal lists only the voter and learner sets, so
+`AutoLeave` takes its zero value. `getStatus` reports the configuration through `Clone`. The
+test above runs:
+
+1. A `Changer` over `MakeProgressTracker(10, 0)` applies `Simple(AddNode 1)`: the configuration
+   is `voters=(1)`.
+2. `EnterJoint(true, AddNode 3)` returns a joint configuration `voters=(1 3)&&(1)` with
+   `AutoLeave = true`.
+3. `cfg.Clone()` returns the same sets with `AutoLeave = false`.
+
+On a running node the same happens in `Status()`: in a joint configuration entered with
+auto-leave, `Status().Config.AutoLeave` is false and `Config.String()` omits "autoleave". An
+application that reads it to decide whether it must propose the leave itself gets the wrong
+answer; the redundant leave it then proposes is refused by the leader.
+
+```go
+// tracker/tracker.go:95-112 and status.go:74 (etcd-io/raft 40f8be7)
+// Clone returns a copy of the Config that shares no memory with the original.
+func (c *Config) Clone() Config {
+	// ...
+	return Config{ // <- AutoLeave is not copied
+		Voters:       quorum.JointConfig{clone(c.Voters[0]), clone(c.Voters[1])},
+		Learners:     clone(c.Learners),
+		LearnersNext: clone(c.LearnersNext),
+	}
+}
+// status.go, getStatus
+	s.Config = r.trk.Config.Clone() // <-
+```
+
+etcd sees no effect: it never enters a joint configuration and does not read `AutoLeave`. The
+code is the same in raft v3.7.0.
 
 **Expected**: a copy, `AutoLeave` included, as the documentation says (or documentation
 saying `Clone` resets it).

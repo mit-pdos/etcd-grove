@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # etcdserver: checkIntervals accepts a put in a nested txn and a delete of the key in a later sibling txn
 
 - **Status**: open (not filed). Not a crash found; the check is inconsistent with itself.
@@ -48,6 +54,47 @@ func TestProbeSiblingPutThenDelete(t *testing.T) {
 
   prints `flat put;del: ... duplicate key given in txn request`, `nested txn(put);txn(del):
   <nil>`, `nested txn(del);txn(put): ... duplicate key ...`.
+- **How it happens**: at each level, `checkIntervals` checks a nested transaction's puts
+  against the deletes collected so far, and only then adds that transaction's deletes. The
+  example `Then(Txn(Then(Put(a))), Txn(Then(Delete(a))))`:
+
+  1. The top level has no deletes of its own, so `dels` starts empty.
+  2. The first nested transaction returns `putsThen = {a}`. `a` is not in `dels`, so it is
+     accepted and added to `puts`.
+  3. The second nested transaction returns `delsThen = {a}`, unioned into `dels`. Its puts are
+     empty, so nothing is checked against the new delete.
+  4. The level's own puts (none) are checked last. The function returns no error, and the
+     transaction applies a put of `a` and a delete of `a` in one revision.
+
+  ```go
+  // server/etcdserver/api/v3rpc/key.go:258-297 (etcd main f061acd09)
+  	// collect children puts/deletes
+  	puts := make(map[string]struct{})
+  	for _, req := range reqs {
+  	// ...
+  		putsThen, delsThen, err := checkIntervals(tv.RequestTxn.Success)
+  	// ...
+  		for k := range putsThen {
+  			if _, ok := puts[k]; ok {
+  				return nil, dels, rpctypes.ErrGRPCDuplicateKey
+  			}
+  			if dels.Intersects(adt.NewStringAffinePoint(k)) { // <- only deletes seen so far
+  				return nil, dels, rpctypes.ErrGRPCDuplicateKey
+  			}
+  			puts[k] = struct{}{}
+  		}
+  	// ...
+  		dels.Union(delsThen, adt.NewStringAffineInterval("\x00", "")) // <- added after
+  		dels.Union(delsElse, adt.NewStringAffineInterval("\x00", ""))
+  	}
+  ```
+
+  This order, put then delete, does no harm downstream as far as we found. mvcc writes the put
+  at `(R, 0)` and the tombstone at `(R, 1)`, and the delete's range sees the put. The key index
+  holds `{(R,0), (R,1)t}, {}`, so a read at `R` sees the key deleted, and compaction at `R`
+  keeps the tombstone (`key_index.go`, `doCompact`). Watchers get a PUT then a DELETE at `R`.
+  The reversed order, delete then put, is the one that corrupts compaction
+  (`etcd-compaction-delete-then-put`), and the check rejects it.
 - **Expected**: the check's documented purpose ("puts and deletes overlap for a list of ops");
   the same verdict for the two orders of the siblings, as for the flat case.
 - **How the proof handles it**: `v3rpc.intervalsOkCheckStmt`

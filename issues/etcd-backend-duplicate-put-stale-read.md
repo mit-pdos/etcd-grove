@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # The read buffer keeps both puts of one key: `ReadTx` returns the older value
 
 - **Status**: open (not filed). An unstated precondition of `BatchTx.UnsafePut`; no etcd
