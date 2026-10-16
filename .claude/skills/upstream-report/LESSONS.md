@@ -13,3 +13,15 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
 - 2026-10-16, etcd-range-sort-none-limit (my own check before review): the version block was typed in a format
   `etcd --version` does not print. Rule (step 8): every output in `issue.md` is pasted from a run at the base,
   binaries built there; test output may be trimmed, not reworded.
+- 2026-10-16, etcd-range-sort-none-limit: "Why should `SortOrder: NONE` give the same result as `ASCEND`? Is this
+  documented?" It is not: `rpc.proto` says `NONE` is "no sorting"; only the server (#6672), its tests and `etcdctl`'s
+  `--order` help say ascending. Rule (step 8, "What did you expect"): ground the expectation in a source the reader
+  can check, read the docs before relying on them, and say so when sources disagree.
+- 2026-10-16, etcd-range-sort-none-limit: "Shouldn't the fix just change etcdctl?" Rule (step 5): fix the layer where
+  the defect is and name the alternatives (a client-side fix, changing the documented or tested behavior) in the PR
+  with what each leaves broken.
+- 2026-10-16, etcd-range-sort-none-limit: "The example with increasing limit is more clear that something is buggy;
+  use it." Rules (step 8, "What happened"; step 4): lead with an example that is visibly wrong on its own (one
+  request varied in a parameter, answers contradicting each other), and test that property.
+- 2026-10-16, etcd-range-sort-none-limit: remove the unnecessary comment from the fix (the doc comment on the new
+  helper `rangeSortOrder`, which restated its code). Rule (step 5): no comment that restates the code.

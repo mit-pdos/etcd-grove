@@ -88,12 +88,20 @@ In the worktree, write the smallest test that shows the bug, where upstream woul
 existing tests, in their style (table tests, `require`, `integration.BeforeTest`, existing helpers). Prefer a unit
 test; add an integration or e2e test only if the bug is only visible there. Run it on the base commit and keep the
 failing output — it goes into the issue. A test that passes without the fix does not reproduce the bug: rethink it.
+When the expected behavior rests on a reading of the API that someone could dispute, test a property that needs no
+reading instead: one request against a variant of it (with a limit against without, at one revision against
+another), as the issue's example does (step 8).
 
 ### 5. The fix
 
 The smallest change that fixes the bug, in the surrounding code's style. No refactoring, no unrelated cleanup, none
-of the Goose branches' rewrites ("Gooseable"), no comments about verification. If there are several reasonable
-fixes, pick one and name the others in the PR's notes for the reviewer.
+of the Goose branches' rewrites ("Gooseable"), no comments about verification, and no comment that restates the
+code (a new helper gets one only where its neighbors have one). If there are several reasonable fixes, pick one and
+name the others in the PR's notes for the reviewer.
+
+Fix the layer where the defect is, and say why in the PR: a reviewer will ask why not a smaller-looking change
+elsewhere (in `etcdctl` or the client rather than the server, or by changing the documented or tested behavior
+instead of the code). Name each such alternative in the PR's notes with what it would leave broken or change.
 
 ### 6. Verify
 
@@ -114,8 +122,15 @@ worktree of the base, `go build -ldflags "-X go.etcd.io/etcd/api/v3/version.GitS
 into the version fields. Test output may be trimmed to the failing lines (no log noise), but not reworded.
 
 - **What happened?** — the user-visible behavior first, in etcd's terms (an `etcdctl` command, a client call, a
-  server config); then why, briefly, with permalinks to the few lines that matter.
-- **What did you expect to happen?**
+  server config); then why, briefly, with permalinks to the few lines that matter. Choose the example whose output
+  is visibly wrong on its own, without the reader having to accept an expected behavior first: the same request
+  varied in one parameter, giving answers that contradict each other (`--limit=1` returns `b` but `--limit=2` and
+  no limit start with `c`), beats one answer set against what the docs are said to promise.
+- **What did you expect to happen?** — grounded in a source the reader can check: the API's documentation
+  (`rpc.proto`, Go doc, the website), a test that pins the behavior, a maintainer's decision in an issue or PR, or
+  consistency with a variant of the same request. Before relying on a documented behavior, read the documentation:
+  when sources disagree (`rpc.proto` says `NONE` is "no sorting", the server sorts ascending), say so, and ground
+  the expectation in what holds under every reading.
 - **How can we reproduce it?** — the minimal steps (`etcdctl` sequence when one exists), then the test from the
   branch and its failing output.
 - **Anything else we need to know?** — impact and who is affected, workarounds, related code that may share the
