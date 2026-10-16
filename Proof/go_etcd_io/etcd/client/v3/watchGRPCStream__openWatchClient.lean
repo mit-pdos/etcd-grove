@@ -44,7 +44,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   iunfold watchSrvFacts at Hfacts'
   icases Hfacts' with ⟨#Hstub, #Hconn⟩
   iunfold watchConnFacts at Hconn
-  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, -, -, -, -, -, -, -, -, -, #Hcea, #Hvars, -⟩
+  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, -, -, -, -, -, -, -, #Hcea, #Hvars, -⟩
   iunfold ctxErrClientAllW at Hcea
   ihave #Hce := Hcea $$ %ci %cd Hctx
   ihave #Hcok := ctxOk_of_isContext ci cd $$ Hctx

@@ -2451,7 +2451,8 @@ one, `isEtcdRangeWatcher`, `cache/v3/InvEtcdTxn.lean`) at the server's model
 `watchClient_Watch`). The watcher `isClientWatcher V w` rests on `watchConnFacts V`: the
 registration `isGrpcStream … (watchUp V.R.γ) (watchSpec V.R)` at the connection's address, what
 `v3rpc.etcd_watch_served_etcd_chain` gives for etcd's server; the server facts it does not yet
-state (S2 `srvProgressAllAnswers`, S3 `srvEventIdsAssigned`, S4 `srvWatchCert`), `srvNoDupKeys`
+state (S4 `srvWatchCert`; S2 `srvProgressAllAnswers` and S3 `srvEventIdsAssigned` are theorems
+since unit W-M2, `srvProgressAllAnswers_holds`, `srvEventIdsAssigned_holds`), `srvNoDupKeys`
 (`issues/etcd-txn-check-intervals-sibling.md`), `noRetryableStreamErr` (the reconnection excluded:
 `issues/etcd-watch-resume-closing-substream.md`), the watch-token supply, `srvLogsSmall`
 (`srvLogsSmall_of_read`) and `V.R.γ.st = V.R.E.γ` (`watchSrvLink_of_server`). -/

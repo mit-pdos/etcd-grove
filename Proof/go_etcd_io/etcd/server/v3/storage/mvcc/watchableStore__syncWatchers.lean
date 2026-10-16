@@ -483,6 +483,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
+          isplitr
+          · ileft; ipureintro; rfl
           ipureintro
           refine ⟨Heplen, rfl, fun _ => rfl, fun ev hev => ?_, fun _ ev hev => ?_⟩
           · have := hmodB ev hev; rw [hcur]; omega
@@ -623,6 +625,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
+          isplitr
+          · ileft; ipureintro; rfl
           ipureintro
           refine ⟨Heplen, rfl, fun _ => rfl, fun ev hev => ?_, fun _ ev hev => ?_⟩
           · have := hmodB ev hev; rw [hcur]; omega

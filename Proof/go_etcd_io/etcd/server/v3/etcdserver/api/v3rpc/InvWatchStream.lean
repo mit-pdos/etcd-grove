@@ -274,13 +274,14 @@ theorem ansPool_mint (γa : GName) (n : Nat) :
 
 /-- The ghost names a watch run publishes in its stream's auxiliary name (`streamAuxIs`): its
 mvcc watch stream's (`γo`) and its answers' (`γa`). -/
-def auxOf (γo : mvcc.WsStreamNames) (γa : GName) : List GName := [γo.tok, γo.ids, γo.fresh, γa]
+def auxOf (γo : mvcc.WsStreamNames) (γa : GName) : List GName :=
+  [γo.tok, γo.ids, γo.fresh, γo.prog, γa]
 
 theorem auxOf_inj {γo γo' : mvcc.WsStreamNames} {γa γa' : GName}
     (h : auxOf γo γa = auxOf γo' γa') : γo = γo' ∧ γa = γa' := by
   unfold auxOf at h
   simp only [List.cons.injEq, and_true] at h
-  obtain ⟨h1, h2, h3, h4⟩ := h
+  obtain ⟨h1, h2, h3, h5, h4⟩ := h
   cases γo; cases γo'
   simp_all
 
@@ -485,18 +486,43 @@ def ctrlOk (γs : StreamNames) (γ : mvcc.WsNames) (m : WatchRespM) : IProp GF :
     streamAuxIs γs (auxOf γo γa) ∗ upAtW γs i req ∗ ⌜ctrlAnswers req m⌝ ∗
     ctrlWatcher γ γo req m ∗ ansTok γa i)
 
+/-- **The stream's progress fact** (unit W-M2): the client sent a progress request (at some
+position of the up queue). The handler saves it as the mvcc stream's progress fact
+(`NewWatchStream`'s `Q`), so a response of id `-1` (`progressAll`'s) carries it. -/
+def progQ (γs : StreamNames) : IProp GF := iprop(∃ i : Nat, upAtW γs i .progress)
+
+instance progQ_persistent (γs : StreamNames) : Persistent (progQ (GF := GF) γs) := by
+  unfold progQ; infer_instance
+
+instance progQ_timeless (γs : StreamNames) : Timeless (progQ (GF := GF) γs) := by
+  unfold progQ upAtW; infer_instance
+
+/-- **What an mvcc response says of the stream** (persistent; unit W-M2, what the client's watch
+needs, formerly its premises S2 and S3): if it has events, its id is one the stream (named in its
+auxiliary name) assigned to its watcher; if its id is `-1`, it answers a progress request. -/
+def mvccExtra (γs : StreamNames) (r : mvcc.RespM) : IProp GF :=
+  iprop(□ (⌜r.evs ≠ []⌝ -∗ ∃ (γo : mvcc.WsStreamNames) (γa : GName),
+      streamAuxIs γs (auxOf γo γa) ∗ mvcc.idAssigned γo r.id r.w) ∗
+    □ (⌜r.id = W64 (-1)⌝ -∗ progQ γs))
+
+instance mvccExtra_persistent (γs : StreamNames) (r : mvcc.RespM) :
+    Persistent (mvccExtra (GF := GF) γs r) := by
+  unfold mvccExtra; infer_instance
+
 /-- **A response of the mvcc watch stream** sent at position `j` (persistent): the response of
 the mvcc response `r` (`mvccResp`), whose header's revision is `r`'s, `r` the last of the
 responses `rs` received for its watcher (`mvcc.watchRecvOk`: their events are the watcher's
 deliveries), its id, unless `-1`, live after the responses before it (`idLive`; the watch
 slice's unit W-C); if `r` has events, the watcher's responses with events sent before `j` (the down
-queue's first `j` responses, `downLbW`), then `r`, are its responses with events received. -/
+queue's first `j` responses, `downLbW`), then `r`, are its responses with events received; and
+what it says of the stream (`mvccExtra`, unit W-M2). -/
 def mvccOk (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) : IProp GF :=
   iprop(∃ (r : mvcc.RespM) (rs : List mvcc.RespM) (L : List WatchRespM),
     ⌜m = mvccResp r m.hdr ∧ m.hdr.revision = r.rev ∧ L.length = j ∧ rs.getLast? = some r ∧
       (r.id ≠ W64 (-1) → idLive L r.id)⌝ ∗
     downLbW γs L ∗ mvcc.watchRecvOk γ r.w rs ∗
-    ⌜r.evs ≠ [] → sentEvsOf L r.w ++ [r] = rs.filter (fun x => decide (x.evs ≠ []))⌝)
+    ⌜r.evs ≠ [] → sentEvsOf L r.w ++ [r] = rs.filter (fun x => decide (x.evs ≠ []))⌝ ∗
+    mvccExtra γs r)
 
 instance mvccOk_persistent (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) :
     Persistent (mvccOk (GF := GF) γs γ j m) := by

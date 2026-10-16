@@ -54,12 +54,7 @@ theorem reg_mem (γc : WatchChanNames) (L : List Loc) (w : Loc) :
   ipureintro
   exact (regMap_lookup L w).1 (by rw [show regMap L !! w = (regMap L).lookup w from rfl, H]; rfl)
 
-/-- Two metas of a watcher agree. -/
-theorem watcherMeta_agree (γ : WsNames) (w : Loc) (γw γw' : WatcherNames) :
-    ⊢ watcherMeta (GF := GF) γ w γw -∗ watcherMeta γ w γw' -∗ ⌜γw = γw'⌝ := by
-  unfold watcherMeta
-  iintro H1 H2
-  iapply ghostMapElem_agree $$ H1 H2
+-- `watcherMeta_agree`: `InvWatchStore.lean` (unit W-M2).
 
 /-- A live watcher's entry is not in a closed channel. -/
 theorem chanWatcher_closed_live (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (w : Loc)
@@ -339,7 +334,7 @@ end mvcc
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
   intro γ w γw r fcs ch qc ql evsw d wr es evm dq
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, %Hpure⟩
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hidp, %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
@@ -665,6 +660,16 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
             iunfold mvcc.watchChanInv at Hi
             iNamed Hi
             ihave %Hwl := mvcc.reg_mem _ _ _ $$ Hreg Hregw
+            -- the response's id: `w`'s own (not `-1`: the registration), or with the progress fact
+            ihave #Hpnew : iprop(⌜wr.WatchID' = W64 (-1)⌝ → mvcc.progFact γw.wc.prog) $$ []
+            · icases Hidp with (%Heq | #Hp)
+              · icases BigSepL.bigSepL_mem_acc Hwl $$ Hrf with ⟨Hrw, -⟩
+                iunfold mvcc.chanRegFact at Hrw
+                icases Hrw with ⟨%rr, %fcs', #Hf', -, %Hrr⟩
+                ihave %Hag := mvcc.watcherFixed_agree w r rr fcs fcs' $$ [$Hfix $Hf']
+                iintro %h
+                exfalso; apply Hrr; rw [← Hag.1, ← Heq, h]
+              · iintro %-; iexact Hp
             iexists s
             iframe Hch
             have hpre := Hpre.length_le
@@ -741,6 +746,12 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                   rcases List.mem_append.1 hx with h | h
                   · exact Hnd.2 x h
                   · simp only [List.mem_singleton] at h; subst h; exact Hwl
+                isplitr
+                · iexact Hrf
+                isplitr
+                · iintro !>
+                  iapply BigSepL.bigSepL_snoc.2
+                  iframe Hpf Hpnew
                 iapply mvcc.chanWatchers_congr γ γw.wc (by simp [mvcc.chanIsClosed]) $$ Hws
               imodintro
               wp_auto

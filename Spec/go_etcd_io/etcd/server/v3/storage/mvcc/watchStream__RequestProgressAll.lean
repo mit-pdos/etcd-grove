@@ -22,11 +22,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`ws.RequestProgressAll()`**: asks the store for the progress of all the stream's
-watchers. -/
+watchers, with the stream's progress fact (unit W-M2: the response of id `-1` the store may send
+on the stream's channel carries it; `NewWatchStream` fixes what is saved at `γ.prog`). -/
 abbrev mvcc.watchStream.RequestProgressAll.spec : Prop :=
   ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchStream ws wa P γ ∗ P.R }}
+      mvcc.isWatchStream ws wa P γ ∗ mvcc.progFact γ.prog ∗ P.R }}
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"RequestProgressAll")) (Val #()))
   {{ (b : Bool), RET #b; P.R }}
 

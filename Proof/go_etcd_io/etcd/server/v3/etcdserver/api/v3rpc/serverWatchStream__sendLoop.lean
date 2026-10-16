@@ -58,14 +58,16 @@ instance v3rpc.pendSl_persistent (r : v3rpc.WRun GF) (rcv : List mvcc.RespM) (P 
     (sl : GoSlice) : Persistent (v3rpc.pendSl r rcv P sl) := by
   unfold v3rpc.pendSl; infer_instance
 
-/-- **What the send loop knows of the responses it received** (persistent): each is `respOk`, and
-the responses received for its watcher up to it are `watchRecvOk`. -/
-def v3rpc.rcvOk (γ : mvcc.WsNames) (rcv : List mvcc.RespM) : IProp GF :=
+/-- **What the send loop knows of the responses it received** (persistent): each is `respOk`, the
+responses received for its watcher up to it are `watchRecvOk`, and what it says of the stream
+(`mvccExtra`, unit W-M2). -/
+def v3rpc.rcvOk (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM) : IProp GF :=
   iprop(□ ∀ (n : Nat) (x : mvcc.RespM), ⌜rcv[n]? = some x⌝ -∗
-    mvcc.respOk x ∗ mvcc.watchRecvOk γ x.w ((rcv.take (n + 1)).filter (fun y => decide (y.w = x.w))))
+    mvcc.respOk x ∗ mvcc.watchRecvOk γ x.w ((rcv.take (n + 1)).filter (fun y => decide (y.w = x.w))) ∗
+    v3rpc.mvccExtra γs x)
 
-instance v3rpc.rcvOk_persistent (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
-    Persistent (v3rpc.rcvOk (GF := GF) γ rcv) := by
+instance v3rpc.rcvOk_persistent (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
+    Persistent (v3rpc.rcvOk (GF := GF) γs γ rcv) := by
   unfold v3rpc.rcvOk; infer_instance
 
 /-- **The send loop's state** of the mvcc responses `rcv` received with the responses `D` sent:
@@ -83,7 +85,7 @@ def v3rpc.sendSt (r : v3rpc.WRun GF) (idsL pendL : Loc) (rcv : List mvcc.RespM)
     ownMap idsL (DFrac.own 1) IM ∗ ownMap pendL (DFrac.own 1) PM ∗
     ([∗map] _X ↦ sl ∈ PM, ownSliceCap Loc sl (DFrac.own 1)) ∗
     ([∗map] X ↦ sl ∈ PM, v3rpc.pendSl r rcv (pend X) sl) ∗
-    v3rpc.rcvOk r.srv.γ rcv)
+    v3rpc.rcvOk r.γs r.srv.γ rcv)
 
 /-! ## Live ids (the watch slice's unit W-C) -/
 
@@ -173,8 +175,8 @@ theorem v3rpc.watcherFixed_id (w : Loc) (r r' : mvcc.WatchRange) (fcs fcs' : GoS
   ipureintro; exact Hi
 
 /-- A watcher's responses with events carry one id (`respOk`'s, through `watcherFixed_agree`). -/
-theorem v3rpc.rcvOk_same (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
-    v3rpc.rcvOk (GF := GF) γ rcv ⊢ ⌜∀ (m1 m2 : Nat) (x1 x2 : mvcc.RespM), rcv[m1]? = some x1 →
+theorem v3rpc.rcvOk_same (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
+    v3rpc.rcvOk (GF := GF) γs γ rcv ⊢ ⌜∀ (m1 m2 : Nat) (x1 x2 : mvcc.RespM), rcv[m1]? = some x1 →
       rcv[m2]? = some x2 → x1.w = x2.w → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id⌝ := by
   refine (forall_intro fun m1 => ?_).trans pure_forall.2
   refine (forall_intro fun m2 => ?_).trans pure_forall.2
@@ -201,11 +203,13 @@ theorem v3rpc.rcvOk_same (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
     exact absurd ⟨a, b, c, d, e⟩ h
 
 /-- A receipt: the response's facts (`watch_recv_au`'s) extend `rcvOk`. -/
-theorem v3rpc.rcvOk_snoc (γ : mvcc.WsNames) (rcv : List mvcc.RespM) (r : mvcc.RespM) :
-    v3rpc.rcvOk (GF := GF) γ rcv ∗ mvcc.respOk r ∗
-      mvcc.watchRecvOk γ r.w ((rcv ++ [r]).filter (fun x => decide (x.w = r.w))) ⊢
-      v3rpc.rcvOk γ (rcv ++ [r]) := by
-  iintro ⟨#H, #Ho, #Hw⟩
+theorem v3rpc.rcvOk_snoc (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM)
+    (r : mvcc.RespM) :
+    v3rpc.rcvOk (GF := GF) γs γ rcv ∗ mvcc.respOk r ∗
+      mvcc.watchRecvOk γ r.w ((rcv ++ [r]).filter (fun x => decide (x.w = r.w))) ∗
+      v3rpc.mvccExtra γs r ⊢
+      v3rpc.rcvOk γs γ (rcv ++ [r]) := by
+  iintro ⟨#H, #Ho, #Hw, #Hx⟩
   iunfold v3rpc.rcvOk at H
   iunfold v3rpc.rcvOk
   iintro !> %n %x %hx
@@ -222,7 +226,56 @@ theorem v3rpc.rcvOk_snoc (γ : mvcc.WsNames) (rcv : List mvcc.RespM) (r : mvcc.R
     simp at hx
     subst hx
     rw [show rcv.length + 1 = (rcv ++ [r]).length by simp, List.take_length]
-    iframe Ho Hw
+    iframe Ho Hw Hx
+
+/-- **What a received response says of the stream** (unit W-M2): with the stream's auxiliary
+name and its progress fact `progQ` saved at the mvcc stream's `prog` (the channel's), a response
+received on the mvcc channel with its registration fact (`chanRegFact`: its watcher's id, one the
+stream assigned) and, for id `-1`, the channel's progress fact, is `mvccExtra` (a later away: the
+saved propositions agree a step later; `progQ` is timeless). -/
+theorem v3rpc.mvccExtra_of_recv (γs : v3rpc.StreamNames) (γo : mvcc.WsStreamNames) (γa : GName)
+    (γc : mvcc.WatchChanNames) (x : mvcc.RespM) (h : γo.ids = γc.ids ∧ γo.prog = γc.prog) :
+    streamAuxIs γs (v3rpc.auxOf γo γa) ∗ savedPropOwn γo.prog DFrac.discard (v3rpc.progQ γs) ∗
+      mvcc.respOk x ∗ mvcc.chanRegFact γc x.w ∗ (⌜x.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ⊢
+      ◇ v3rpc.mvccExtra γs x := by
+  iintro ⟨#Haux, #Hsp, #Hok, #Hrf, #Hpf⟩
+  ihave #HI : □ (⌜x.evs ≠ []⌝ -∗ ∃ (γo' : mvcc.WsStreamNames) (γa' : GName),
+      streamAuxIs γs (v3rpc.auxOf γo' γa') ∗ mvcc.idAssigned γo' x.id x.w) $$ []
+  · iintro !> %hne
+    iexists γo, γa
+    iframe Haux
+    iunfold mvcc.respOk at Hok
+    icases Hok with ⟨-, %rr, %fcs, #Hf, %Hid⟩
+    iunfold mvcc.chanRegFact at Hrf
+    icases Hrf with ⟨%rr', %fcs', #Hf', #Hida, -⟩
+    ihave %Hag := v3rpc.watcherFixed_id x.w rr rr' fcs fcs' $$ [$Hf $Hf']
+    unfold mvcc.idAssigned
+    iunfold mvcc.chanIdAssigned at Hida
+    rw [h.1, Hid hne, Hag]
+    iexact Hida
+  by_cases hx : x.id = W64 (-1)
+  · ihave #Hp := Hpf $$ %hx
+    iunfold mvcc.progFact at Hp
+    icases Hp with ⟨%Q, #HQs, #HQ⟩
+    irevert Hsp; rw [h.2]; iintro #Hsp
+    ihave Heq := saved_prop_agree γc.prog _ _ Q (v3rpc.progQ γs) $$ HQs Hsp
+    ihave Hl : ▷ v3rpc.progQ γs $$ [Heq]
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨H1, -⟩
+      iapply H1
+      iexact HQ
+    imod Hl with #Hq
+    imodintro
+    iunfold v3rpc.mvccExtra
+    iframe HI
+    iintro !> -
+    iexact Hq
+  · imodintro
+    iunfold v3rpc.mvccExtra
+    iframe HI
+    iintro !> %h'
+    exact absurd h' hx
 
 /-- Buffered responses read the same after a receipt. -/
 theorem v3rpc.pendSl_snoc (r : v3rpc.WRun GF) (rcv : List mvcc.RespM) (x : mvcc.RespM)
@@ -571,7 +624,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
   ihave %Hlsl := ownSlice_len _ _ _ $$ Hls
   have HlenP : (pend $X).length = xs.length := by
     have := congrArg List.length Hxs.2.1; simpa using this
-  ihave %Hsame := v3rpc.rcvOk_same _ _ $$ Hrok
+  ihave %Hsame := v3rpc.rcvOk_same _ _ _ $$ Hrok
   ihave #Hrok' := Hrok
   iunfold v3rpc.rcvOk at Hrok'
   ihave HF : iprop(∃ (j : w64) (vv : Loc) (D' : List v3rpc.WatchRespM),
@@ -653,9 +706,12 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
         ihave #Hlb' := Hlb
         iunfold v3rpc.downLb at Hlb'
         iexact Hlb'
+      ihave ⟨-, #HwN, #HxN⟩ := Hrok' $$ %n %xp.1 %hrn
       isplitr
-      · ihave ⟨-, #Hw⟩ := Hrok' $$ %n %xp.1 %hrn
-        iexact Hw
+      · iexact HwN
+      isplitr
+      rotate_left
+      · iexact HxN
       ipureintro
       intro hev
       obtain ⟨-, hc⟩ := v3rpc.send_claim_flush hIk hpk hrn hev Hsame
@@ -756,7 +812,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmug⟩
+    #Hmug, %Hγoc, #Hsp⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
   icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars⟩
@@ -856,11 +912,14 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       wp_auto
       send_return
     simp only [mvcc.watchRecvResult, ↓reduceIte]
-    icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW⟩
+    icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP⟩
+    -- what the response says of the stream (unit W-M2)
+    imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x Hγoc $$ [$Haux $Hsp $HrO $HrF $HrP]
+      with #HrX
     iunfold v3rpc.sendSt at HS
     icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
     obtain ⟨hI, hD, hPM, hL⟩ := HSI
-    ihave #Hrok2 := v3rpc.rcvOk_snoc _ _ _ $$ [$Hrok $HrO $HrW]
+    ihave #Hrok2 := v3rpc.rcvOk_snoc _ _ _ _ $$ [$Hrok $HrO $HrW $HrX]
     ihave #HrI' := HrI
     iunfold mvcc.respIs at HrI'
     icases HrI' with ⟨%HwvI, %ps, #Hps, %Hpsl, #Hevs⟩
@@ -1004,7 +1063,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
         (try rw [Hsi])
         (try wp_auto)
         ihave ⟨Hst, #Hlb⟩ := v3rpc.srvSendTok_lb _ _ $$ Hst
-        ihave %Hsame := v3rpc.rcvOk_same _ _ $$ Hrok2
+        ihave %Hsame := v3rpc.rcvOk_same _ _ _ $$ Hrok2
         ihave HDn : r.Dn D.length (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
         · iunfold v3rpc.watchStreamSpec at Hspec
           icases Hspec $$ %D.length %(v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩)
@@ -1027,6 +1086,9 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
             iexact Hlb'
           isplitr
           · iexact HrW
+          isplitr
+          rotate_left
+          · iexact HrX
           ipureintro
           intro hev
           have hc := v3rpc.send_claim_direct hI hd hev Hsame

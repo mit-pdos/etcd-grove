@@ -179,14 +179,7 @@ instance watchResponseCountable [FfiSyntax] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
-/-- The ghost names of a stream's channel: the channel's, the consumer's received responses
-(`ghostVar (List RespM)`), the registered watchers (`ghostVar (List Loc)`, half the close
-right's) and their set (a ghost map with persistent elements: `chanReg`). -/
-structure WatchChanNames where
-  ch : ChanNames
-  recv : GName
-  regl : GName
-  reg : GName
+-- `WatchChanNames` (the channel's names): `InvWatchStream.lean` (unit W-M2).
 
 /-- A watcher's ghost names (see the module docstring); `lo` is the first revision it watches. -/
 structure WatcherNames where
@@ -198,9 +191,10 @@ structure WatcherNames where
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
-      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.lo))
+      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.lo))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f⟩, g⟩ ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f'⟩, g'⟩ h
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j⟩, g⟩
+        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j'⟩, g'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -448,6 +442,13 @@ instance watcherMeta_persistent (γ : WsNames) (w : Loc) (γw : WatcherNames) :
     Persistent (watcherMeta (GF := GF) γ w γw) := by
   unfold watcherMeta; infer_instance
 
+/-- Two metas of a watcher agree (moved from `watcher__send.lean`, unit W-M2). -/
+theorem watcherMeta_agree (γ : WsNames) (w : Loc) (γw γw' : WatcherNames) :
+    ⊢ watcherMeta (GF := GF) γ w γw -∗ watcherMeta γ w γw' -∗ ⌜γw = γw'⌝ := by
+  unfold watcherMeta
+  iintro H1 H2
+  iapply ghostMapElem_agree $$ H1 H2
+
 /-- The watcher was cancelled (persistent). -/
 def cancelled (γw : WatcherNames) : IProp GF := dghostVar γw.live DFrac.discard false
 
@@ -496,7 +497,20 @@ def chanWatcher (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
     evsWf γ r γw.lo evsw d ∗
     ((⌜closed = false⌝ ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true) ∨ cancelled γw))
 
-/-- **The stream channel `ch`'s invariant** (see the module docstring). -/
+/-- **What the channel knows of a watcher registered on it** (persistent; unit W-M2): its fixed
+range's id is one the channel's stream assigned to it (`chanIdAssigned`, made at the
+registration by the stream's callback, `isWatchable`), and not `-1`. -/
+def chanRegFact (γc : WatchChanNames) (w : Loc) : IProp GF :=
+  iprop(∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed w rr fcs ∗ chanIdAssigned γc rr.id w ∗
+    ⌜rr.id ≠ W64 (-1)⌝)
+
+instance chanRegFact_persistent (γc : WatchChanNames) (w : Loc) :
+    Persistent (chanRegFact (GF := GF) γc w) := by
+  unfold chanRegFact; infer_instance
+
+/-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
+registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
+progress fact. -/
 def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
   iprop(∃ (s : ChanState WatchResponse) (sent recv : List RespM) (vs : List WatchResponse)
       (L : List Loc),
@@ -510,6 +524,8 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "Hcl" ∷ (if chanIsClosed s then ghostVar γc.regl (1 : Qp).half L else iprop(True)) ∗
     "Hreg" ∷ ghostMapAuth γc.reg 1 (regMap L) ∗
     "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
+    "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
+    "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
     "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
 
 /-- The consumer's view: it has received `received`. -/
@@ -705,16 +721,18 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   WC w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ cancelled γw)
   C _ := iprop(True)
   F f := iprop(∃ p : EvM → Bool, filterSpec f p)
-  CR ch L := iprop(∃ γc : WatchChanNames, isChan ch γc.ch WatchResponse ∗
+  CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
   T := watchTok γ
   IWF := watcherIs γ
+  OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   IW_pers _ := by infer_instance
   WC_pers _ := by infer_instance
   C_pers _ := by infer_instance
   F_pers _ := by infer_instance
   IWF_pers _ _ _ _ := by infer_instance
+  OC_pers _ _ := by infer_instance
 
 /-! ## The write transaction -/
 

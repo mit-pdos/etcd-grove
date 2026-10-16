@@ -48,9 +48,10 @@ theorem mvcc.isWatchable_store
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %key %endk %fcs %k %e %fs %startRev %id %ch %L !> %Φ ⟨#Hk, #He, #Hf, #Hfs, #HC, HCR, HR, HT, %Hsr⟩ HΦ
-    iapply (hWatch s st γ key endk fcs k e fs startRev id ch L) $$ [HCR HR HT] HΦ
-    iframe Hpkg Hws Hk He Hf Hfs HC HCR HR HT
+  · iintro !> %key %endk %fcs %k %e %fs %startRev %id %ch %γc %L %Back !> %Φ
+      ⟨#Hk, #He, #Hf, #Hfs, #HC, HCR, HR, HT, %Hsr, Hcb⟩ HΦ
+    iapply (hWatch s st γ key endk fcs k e fs startRev id ch γc L Back) $$ [HCR HR HT Hcb] HΦ
+    iframe Hpkg Hws Hk He Hf Hfs HC HCR HR HT Hcb
     ipureintro; exact Hsr
   isplitr
   · iintro !> %w !> %Φ ⟨#HIW, HR⟩ HΦ
@@ -60,11 +61,11 @@ theorem mvcc.isWatchable_store
     · iframe Hpkg Hws HIW HR
     inext; iintro HR; iapply HΦ; iexact HR
   isplitr
-  · iintro !> %m %dq %M !> %Φ ⟨Hm, #HIW, HR⟩ HΦ
+  · iintro !> %m %dq %M %γc !> %Φ ⟨Hm, #HIW, #Hpf, HR⟩ HΦ
     have hR : (mvcc.storeWatchParams (GF := GF) s st γ).R = mvcc.watchReader (GF := GF) s st γ := rfl
     rw [hR]
-    iapply (hProgAll s st γ m dq M) $$ [Hm HR] [HΦ]
-    · iframe Hpkg Hws HIW Hm HR
+    iapply (hProgAll s st γ m dq M γc) $$ [Hm HR] [HΦ]
+    · iframe Hpkg Hws HIW Hpf Hm HR
     inext; iintro %b ⟨Hm, HR⟩; iapply HΦ; iframe Hm; iexact HR
   · iintro !> !> %Φ HR HΦ
     simp only [mvcc.storeWatchParams]
@@ -84,7 +85,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     (hProgAll : mvcc.watchableStore.progressAll.spec (GF := GF) (hG := hG))
     (hRev : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) := by
-  intro s st γ
+  intro s st γ Q
   wp_start as #Hws
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -106,7 +107,10 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   imod ghostVar_alloc (GF := GF) ([] : List Loc) with ⟨%γregl, Hregl⟩
   icases (mvcc.ghostVar_halves_nw γregl _).1 $$ Hregl with ⟨Hregl1, Hregl2⟩
   imod ghost_map_alloc_empty (K := Loc) (V := Unit) (GF := GF) with ⟨%γreg, Hreg⟩
-  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg⟩
+  -- the stream's id map (the channel's) and the progress fact `Q`
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
+  imod (saved_prop_alloc (GF := GF) Q DFrac.discard DFrac.valid_discard) with ⟨%γp, #Hsp⟩
+  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp⟩
   imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg] with #Hinv
   · inext
     iunfold mvcc.watchChanInv
@@ -132,13 +136,16 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
       rw [hrm]; iexact Hreg
     isplitr
     · ipureintro; exact ⟨List.nodup_nil, by simp⟩
+    isplitr
+    · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γf, Hidf⟩
-  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf⟩
-  imod sync.init_Mutex (mvcc.watchStreamInv wsl (mvcc.storeWatchParams s st γ) ch γo) ⊤
+  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf, γp⟩
+  imod sync.init_Mutex (mvcc.watchStreamInv wsl (mvcc.storeWatchParams s st γ) ch γc γo) ⊤
     (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids Hidf]
     with #Hmu
   · inext
@@ -164,7 +171,6 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     iexists []
     isplitl [Hregl2]
     · simp only [mvcc.storeWatchParams]
-      iexists γc
       iframe Hch Hinv Hregl2
     isplitr
     · iintro !> %w %h; simp at h
@@ -181,15 +187,20 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   iexists γo, ch, γc
   iunfold mvcc.watchStreamOpen
   iunfold mvcc.watchConsumer
-  iframe Htok Hrecv2 Hch Hinv ch
+  iframe Htok Hrecv2 Hch Hinv ch Hsp
+  isplitr
+  rotate_left
+  · ipureintro; exact ⟨rfl, rfl⟩
   iunfold mvcc.isWatchStream
-  iexists ch
+  iexists ch, γc
   simp only [named]
   iframe watchable ch Hwable Hmu
   isplitr
+  · ipureintro; exact ⟨rfl, rfl⟩
+  isplitr
   · simp only [mvcc.storeWatchParams]; itrivial
   iintro !> %L !> %Φ' H HΦ'
-  iapply (mvcc.wp_watch_close s st γ ch L) $$ H HΦ'
+  iapply (mvcc.wp_watch_close s st γ ch γc L) $$ H HΦ'
 
 
 end proof

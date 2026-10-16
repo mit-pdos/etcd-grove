@@ -45,9 +45,13 @@ theorem mvcc.watchableStore.progress.wp_proof
     by_cases h : id = r.id
     · subst h; rw [GMap.lookup_insert] at Hl; cases Hl
       simp only [mvcc.storeWatchParams]
+      isplitr
+      · iexists γw, r, fcs
+        iframe #
+        ipureintro; exact Hsr
       iexists γw, r, fcs
       iframe #
-      ipureintro; exact Hsr
+      ileft; ipureintro; rfl
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), GMap.lookup_empty] at Hl; cases Hl
   (try wp_auto)
   iapply HΦ

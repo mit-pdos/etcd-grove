@@ -816,8 +816,11 @@ theorem watchGRPCStream.run.wp_proof
   iunfold watchSrvFacts at Hsf'
   icases Hsf' with ⟨#Hstub, #Hconn⟩
   iunfold watchConnFacts at Hconn
-  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, #Htoks, #HnoRetry, #HS2, #HS3, #HS4, #Hsmall, #HnoDup,
+  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, #Htoks, #HnoRetry, #HS4, #Hsmall, #HnoDup,
     #Heof, #HerrNew, #Hcea, #Hvars, %Hpre⟩
+  -- S2 and S3, facts of the verified server (unit W-M2)
+  ihave #HS2 := srvProgressAllAnswers_holds V.R
+  ihave #HS3 := srvEventIdsAssigned_holds V.R
   wp_apply wp_with_defer
   iintro %defer Hdefer
   wp_auto
@@ -2106,7 +2109,7 @@ theorem watchGRPCStream.run.wp_proof
         | other => exact absurd Hcans (by simp [v3rpc.ctrlAnswers])
       ihave #Hmvcc' := Hmvcc
       iunfold v3rpc.mvccOk at Hmvcc'
-      icases Hmvcc' with ⟨%ρ, %rs, %Lp, %Hpure, #HLp, #Hrecv, %Hfilt⟩
+      icases Hmvcc' with ⟨%ρ, %rs, %Lp, %Hpure, #HLp, #Hrecv, %Hfilt, -⟩
       obtain ⟨Hmeq, Hrev, HLplen, Hlast, Hlive⟩ := Hpure
       have hsrc : m.src = some ρ := by rw [Hmeq]; rfl
       have hcr0 : m.created = false := by rw [Hmeq]; rfl

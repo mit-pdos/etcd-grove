@@ -6831,6 +6831,39 @@ proved).
   send on a closed channel (`issues/etcd-watch-resume-closing-substream.md`), so no proof of
   `run` covers it; the premise names the transport's codes `run` retries on.
 
+## The watch client's server facts in the mvcc channel invariant (unit W-M2, 2026-10-16 · adopted)
+
+- **Registration-time facts live in the channel's invariant**, the only thing `sendLoop` (which
+  never takes `ws.mu`) can open, and they must be there before the first response for the
+  watcher, which `notify` may send before `watchStream.Watch` returns. So `watchableStore.watch`
+  takes a **registration callback** (`∀ w, ⌜w ≠ null⌝ -∗ |==> chanIdAssigned γc id w ∗ Back w`,
+  the caller's `Back` returned): the store applies it as it adds `w` to the channel's registered
+  list and keeps `chanRegFact γc w` (the watcher's fixed id assigned to it, not `-1`) for every
+  registered watcher; the stream's caller supplies it from its id map's authority (the map is the
+  channel's: `γo.ids = γc.ids`). *Rejected:* per-registration id tokens in `chanWatcher` (the same
+  fact, more surgery in every lemma over `chanWatcher`); an explicit id (`watchStream.Watch` with
+  `id ≠ 0`) — it can be a reused one (`issues/etcd-watch-id-reuse-stale-events.md`), whose
+  watcher cannot be inserted; the stream's spec covers auto ids, the only ids the server under
+  `watchReqOk` uses.
+- **The progress fact is a saved proposition fixed at the channel's creation** (`prog`,
+  `progFact g := ∃ Q, savedPropOwn g □ Q ∗ □ Q`): mvcc cannot name the gRPC stream's request
+  queue, so the handler chooses what a response of id `-1` means (`NewWatchStream`'s `Q`, the
+  server's `progQ γs := ∃ i, upAtW γs i .progress`), `recvLoop` provides it at
+  `RequestProgressAll`, the channel invariant keeps it with every response of id `-1` sent, and
+  `sendLoop` gets `Q` back by agreement (under a later, stripped because `progQ` is timeless).
+  *Rejected:* an `IProp`-valued field of `WatchChanNames` (a parameter of every predicate over the
+  channel's names, for no gain).
+- **S4 stays a premise: a certificate issued at the seal is unsound for the server proof's
+  reads.** The planned fix (an `idxCert` over a sealed-log mono list, so a watch event's revision
+  is certified at the notify) would make every certificate a floor that `store.Read` no longer
+  meets: `watchableStoreTxnWrite.End` notifies before `storeTxnWrite.End` bumps `currentRev`, and
+  a read (`s.mu.RLock`, `revMu.RLock`, not the watchable store's lock) in between answers the
+  previous revision. The clients' contracts allow it (serializable gets get no floor), but the
+  server proof's `store.Read` (`log₀ <+: log`) and `rangeReplyOk` (`F <+: log`, serializable reads
+  included) do not. Fixing it needs committed certificates for `store.Read` and its callers, no
+  floor for serializable range replies, and a linearizable-read argument that a floor sealed
+  before the request is committed when the read is served (the apply wait): the user's call.
+
 ## Retargeting raft in a parallel tree
 
 **2026-10-15 · accepted (stage R0, branch `raft-retarget`)**
