@@ -7654,6 +7654,22 @@ and `PreVote` settings stay premises.
   `BootLogOk`'s `ccOk`. The composition: `isServerBuilt`'s raft rows (`isRaftNode`, the loop and
   apply tokens at `[]`, `rnSnapOnce`, `srvRaftLogInv` at `pre = []`) from `ownRaftGhost_alloc_boot`,
   `budget_alloc`, `memStorReg`, `NewMemoryStorage`, `StartNode.spec` and `newRaftNode`.
+- **Carried out (2026-10-16, R8b; `notes/STATUS.md`, "stage R8b").** As designed, with these
+  deviations. (i) `RaftNames.reBoot` is a derived function over an instance-free field
+  `reBootRaw : List BootEntry` (`EntryM` needs `FfiSyntax`, which `RaftNames` does not take);
+  every use reads `γ.reBoot`. (ii) One conjunct of `ownLogGhost` suffices (`|reBoot| ≤ commit`);
+  the prefix and term facts are derived from the records and `TermsLe`. (iii) `NewRawNode.spec`
+  itself ends open at `rawNodeFresh` for any conf state, `newRaft` and `confchange.Restore` drop
+  `Voters' ≠ []` (`Restore`'s post a disjunction), and `RestartNode` closes the node; no separate
+  `spec_empty` statements. (iv) The `InitialState` closure premise is not `□` where the function
+  calls it once (`StartNode`, `setupNode`, `NewRawNode`, `newRaft`); `MemoryStorage.InitialState`
+  consumes `memStorMeta`. (v) The budget enters at `termLB bud 1` (`budget_alloc_boot`). (vi) The
+  wrapper is returned as a struct value (`rnBuilt`), since `NewServer` copies it, with an installer
+  that yields `isRaftNode` once the transport is set. (vii) `rnSnapOnce` stays a construction
+  premise: the server holds no `ownMemoryStorage` once raft owns the storage, and
+  `MemoryStorage.Snapshot`'s spec does not state the clone's pointers non-nil. (viii) Raft's
+  `SetLogger` is a contract (`rnSetLoggerOk`): raft's package initializer drops the logger
+  globals' ownership. D12's risk 3 did not materialize.
 - **Staging.** R8b-A (the protocol: `reBoot`'s arms, the three conjuncts, leader completeness's
   boot cases, `ownRaftGhost_alloc_boot`) and R8b-B (raft: `Restore`/`newRaft`/`NewRawNode` at an
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in

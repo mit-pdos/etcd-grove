@@ -1202,7 +1202,7 @@ theorem wp_newRaftNode :
 
 theorem bootstrappedRaft.wp_newRaftNode [StorageModel GF] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
-  bootstrappedRaft.newRaftNode.wp_proof wp_StartNode wp_newRaftNode
+  bootstrappedRaft.newRaftNode.wp_proof wp_StartNode EtcdGrove.wp_newRaftNode
 
 theorem lease.Lease.wp_persistTo :
     lease.Lease.persistTo.spec (GF := GF) (hG := hG) :=
