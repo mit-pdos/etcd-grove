@@ -1355,6 +1355,18 @@ theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m
   · lcm_mono
   · rd_mono
 
+/-! ### An acknowledged index is within a leader's log (2026-10-16, stage R8a) -/
+
+/-- At a leader, an `ackIn` of its term is at most its last index: the prefix the witness names is
+of its own term log (`leadLogOwn`: every index in the term log is at most the last index, and the
+campaign log `l0` is a prefix of the log). What the physical `MaybeUpdate` needs (`PrvalsOk`,
+`Defs.lean`). **Stub** (2026-10-16): proved by the ghost side of stage R8a. -/
+theorem ownRaftGhost_ackIn_le (γ : RaftNames) (id : w64) (s : PState) (i : w64) :
+    s.role = .leader →
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ackIn γ s.term i -∗
+      ⌜uint.Z i ≤ plogLastIndexZ s.base s.log⌝ ∗ ownRaftGhost γ id s md := by
+  sorry
+
 /-! ### Read-index: a node of term `T` dooms no record of `T` (2026-10-13) -/
 
 theorem ownLogGhost_ack_le (γ : RaftNames) (v : w64) (s : PState) (kl : Option w64) (t i : w64) :

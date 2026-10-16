@@ -1040,6 +1040,24 @@ instance leadPrefix_timeless (γ : RaftNames) (ldr t : w64) (bL : entryID)
     (l : List EntryM) : Timeless (leadPrefix (GF := GF) γ ldr t bL l) := by
   unfold leadPrefix; infer_instance
 
+/-- **An acknowledged index is within the leader's log** (2026-10-16, stage R8a; D11,
+`notes/decisions.md`): `i` is `0`, or at most the last index of a prefix of the term-`t` leader's
+log (`leadPrefix`). An accepting `MsgAppResp` carries it (`isMessage`, `GhostState.lean`), so that
+the leader's `MaybeUpdate` keeps its progress within its log (`PrvalsOk`, `Defs.lean`): a peer's
+`Next` never runs past the leader's last index, which is what makes `maybeSendSnapshot`
+unreachable while the storage is uncompacted. -/
+def ackIn (γ : RaftNames) (t i : w64) : IProp GF :=
+  iprop(⌜uint.Z i = 0⌝ ∨
+    ∃ ldr bL l, leadPrefix γ ldr t bL l ∗ ⌜uint.Z i ≤ plogLastIndexZ bL l⌝)
+
+instance ackIn_persistent (γ : RaftNames) (t i : w64) : Persistent (ackIn (GF := GF) γ t i) := by
+  unfold ackIn; infer_instance
+instance ackIn_timeless (γ : RaftNames) (t i : w64) : Timeless (ackIn (GF := GF) γ t i) := by
+  unfold ackIn; infer_instance
+
+theorem ackIn_zero (γ : RaftNames) (t i : w64) (h : uint.Z i = 0) : ⊢ ackIn (GF := GF) γ t i := by
+  unfold ackIn; ileft; ipureintro; exact h
+
 /-- One entry's record, read out of `logRecs` (Rocq: `big_sepL_lookup` + `decide_True`). -/
 private theorem logRecs_elim (γ : RaftNames) (b : entryID) (es : List EntryM)
     (k : Nat) (e : EntryM) (Hk : es[k]? = some e)

@@ -272,6 +272,13 @@ instance isMessage_timeless (γ : RaftNames) (m : Msg) :
     Timeless (isMessage (GF := GF) γ m) := by
   unfold isMessage; split <;> (try split) <;> infer_instance
 
+/-- An accepting `MsgAppResp` acknowledges an index within the leader's log (stage R8a, D11).
+**Stub** (2026-10-16): proved once `isMessage`'s `appResp` clause carries `ackIn`. -/
+theorem isMessage_appResp_ackIn (γ : RaftNames) (m : Msg) :
+    m.ty = .appResp → m.reject = false →
+    ⊢ isMessage (GF := GF) γ m -∗ ackIn γ m.term m.index := by
+  sorry
+
 /-- The message types that carry nothing. -/
 def MsgFree (ty : MsgType) : Bool :=
   match ty with

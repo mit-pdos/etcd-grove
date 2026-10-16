@@ -7389,3 +7389,84 @@ for field (`EntryModel.toM`). So the pattern is D9's again.
   `Propose`'s result error; R7c retired them on raft's side the same day (`notes/STATUS.md`,
   "stage R7c"): `ctxErr` through this repository's `context.ErrDone` spec, `stepErr` through the
   proposal handoff.
+
+## The server's start over raft's `RestartNode`: what etcd's bootstrap needs of the model (stage R8 of the raft v3.7 retarget)
+
+**2026-10-16 · adopted (stage R8a first, then R8b; branch `raft-retarget`)**
+
+After R7 the server's raft contract is proved from raft's node specs, but the *composition* of the
+server's start with raft's `RestartNode` (the register does it in `Main`) is still open: R7a found
+that a bare `MemoryStorage` without a snapshot is not an `ownStorage`. Reading etcd's
+`bootstrapRaft` (`server/etcdserver/bootstrap.go`) shows the gap is wider: **none of etcd's three
+start paths is raft's `RestartNode` as verified.** (1) A new cluster (no WAL, `NewCluster`) calls
+`StartNode(c, peers)` with the member ids: raft's `Bootstrap` appends one conf-change entry per
+member at term 1, marks them committed and applies them; neither was ever proved, and the
+protocol's initial state has an empty log. (2) A member joining an existing cluster (no WAL) calls
+`RestartNode` on a fresh `MemoryStorage`: the storage is empty, as raft's premise asks, but so is
+its conf state, while raft's spec wants the voters known at start with this node among them (the
+node learns its configuration from the leader's first snapshot, which the server's apply loop is
+proved under a no-snapshot contract). (3) A restart from a WAL calls `RestartNode` on a storage
+holding the WAL's snapshot, hard state and entries: crash recovery, which the model does not have.
+(The comment in raft's `ApplySnapshot` about etcd applying a conf-state-only snapshot at index 0
+describes no path of etcd's server.)
+
+Under all three sits R7a's storage gap: a bare `MemoryStorage` has an empty snapshot until the
+server's first `CreateSnapshot`, and raft's storage contract (`isStorageWith`'s `Snapshot` clause)
+promises a non-empty one because `maybeSendSnapshot` panics on an empty snapshot. Real etcd is safe
+because that path is reached only after a `term(pr.Next - 1)` failed: `ErrCompacted` only once the
+storage has compacted (etcd compacts only after `CreateSnapshot`), `ErrUnavailable` only when a
+peer's `Next` runs past the leader's log, which never happens. The proof does not know the second:
+`raftLog.term`'s spec says so ("nothing in `ownProgress` bounds a peer's `Next` against the log").
+The register sidestepped it with its own `Storage` wrapper (`Snapshot` answers
+`ErrSnapshotTemporarilyUnavailable` while empty), which etcd does not have.
+
+- **Decision (the user's, 2026-10-16): route A then B.** R8a admits the bare `MemoryStorage`
+  without a snapshot as a `Storage` by proving the leader's progress bound; R8b models the new
+  cluster's start (`StartNode`/`Bootstrap`: the cluster's initial log in the protocol), the one
+  etcd start path the model can reach, and composes the server's start with it. The join path
+  (an empty configuration installed by the first snapshot, and the server applying a received
+  snapshot) and the restart from a WAL (crash recovery) stay out of scope. *Rejected:* a run premise
+  on the server's side ("the leader never asks for a snapshot while uncompacted"): it cannot be
+  stated as a resource the storage contract's `Snapshot` clause could consume, since the clause's
+  postcondition is what fails; a conf-state-only snapshot at index 0 as the composition's storage:
+  it composes with no etcd function.
+- **D11: the leader's progress is within its log, and an uncompacted storage may have no
+  snapshot.** Three parts, two sides.
+  - *The physical invariant* (`Defs.lean`, `InvRaftPhys.lean`): `PrOk ls p` -- `1 ≤ p.next ≤
+    logLast ls + 1`, `p.matched ≤ logLast ls`, `p.pendingSnapshot ≤ logLast ls` -- for every
+    tracked peer of a leader (`PrvalsOk s`), a pure conjunct of the sealed `ownRaftPhys`, carried
+    through its interface (`ownRaftPhys_intro`'s premise; a projection; an obligation on the
+    lemmas that rebuild the struct at a changed role, progress or log). Established by `reset`
+    (`Next = lastIndex + 1`, `Match = 0`, the node's own `lastIndex`: `raft.reset.spec` now
+    states the values), kept by every progress update of `stepLeader` and the replication path
+    (`MaybeDecrTo`, `BecomeProbe`, `BecomeReplicate`, `BecomeSnapshot` at an index at most the
+    commit index, `SentEntries` of entries from `Next` on, `switchToConfig`'s fresh `Progress` at
+    `max(lastIndex, 1)`), by a leader's log growing only (`appendEntry`), vacuous elsewhere (a
+    follower's log may shrink, its progress is reset on winning). The one update that needs a fact
+    from outside the node is `MaybeUpdate(m.Index)` on an accepted `MsgAppResp`: the ghost side.
+  - *The ghost witness* (`Protocol/`): `ackIn γ t i` (`Ghost.lean`) -- `i` is `0` or at most the
+    last index of a prefix of the term-`t` leader's log (`leadPrefix`) -- carried by an accepting
+    `MsgAppResp` beside `isAcked` (`isMessage`, `GhostState.lean`), supplied where such a message is
+    sent: `handleAppendEntries`' `lastnewi` from the `MsgApp`'s own `leadPrefix`, the leader's
+    self-acknowledgement from its log, `handleSnapshot`'s replies from the `MsgSnap`'s `leadPrefix`
+    (a restore or fast-forward) or by leader completeness (a stale snapshot acknowledges the commit
+    index). At the leader (`ownRaftGhost_ackIn_le`, `Refinement.lean`): the witness names its own
+    term log (`leadLogOwn`: every index in the term log is at most the last index, the campaign
+    log a prefix of the log), so `i ≤ plastIndex`. `raft.Step`'s proof turns it into the pure
+    premise `stepLeader` takes for `MaybeUpdate`.
+  - *The storage contract* (R8a's second phase, after the two above): `isStorageWith`'s `Snapshot`
+    clause promises a non-empty snapshot only once the storage is compacted (`σ.prev.index ≠ 0 →
+    Index ≠ 0`); `memOwnStorage`'s premise weakens to the same implication, so `NewMemoryStorage()`
+    is an `ownStorage` and so is `ApplySnapshot`'s result at any index; `raftLog.term` says which
+    error is which (`ErrCompacted` below the boundary, `ErrUnavailable` past the last index);
+    `raftLog.snapshot` and `maybeSendSnapshot` take the premise that the log is compacted, which
+    `maybeSendAppend` establishes from the bound (`1 ≤ Next ≤ lastIndex + 1` leaves `ErrCompacted`
+    as the only failure of `term(Next - 1)`, and that means `prev.index ≥ 1`). The register's
+    `Storage` still meets the clause.
+- **R8b (planned; its design is written before its proofs):** the cluster's initial log. The
+  protocol's initial state becomes the bootstrap log (`n` conf-change entries at term 1, committed,
+  the same on every member), the ghost allocation at that log, the certification of the initial
+  committed prefix by its presence on every node from the start, `newRaft` with an empty conf
+  state, `Bootstrap` and `StartNode` proved; then the server's composition on the new-cluster path
+  (`bootstrapRaftFromCluster` with the member ids, `pre = []`, the conf changes delivered first),
+  with `newRaftNode` and `bootstrappedRaft.newRaftNode` translated with their bodies.
