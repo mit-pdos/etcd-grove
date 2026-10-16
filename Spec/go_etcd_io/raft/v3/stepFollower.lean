@@ -239,7 +239,10 @@ abbrev stepFollower.spec : Prop :=
       plogFindConflict ls.prev es ents = W64 0 ∨
       uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
      -- from another node (2026-10-10, `handleAppendEntries`'s premise)
-     m.From' ≠ id) →
+     m.From' ≠ id ∧
+     -- (2026-10-16, stage R8a) not a leader (`handleAppendEntries`'s premise: a leader's log only
+     -- grows); `Step` dispatches here at a follower
+     s.role ≠ .leader) →
   (m.Type' = MsgHeartbeat →
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →

@@ -45,7 +45,9 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
     (ents : List EntryM)
-    (Hlrd : s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0) :
+    (Hlrd : s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0)
+    (Hack : s.role = .leader → m.Term' = s.term → m.Reject' = false →
+      uint.Z m.Index' ≤ uint.Z (logLast s.logst)) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -79,7 +81,7 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · iapply wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents .appResp (.inl Hty) Hterm Hlt Hwf
         $$ [$Hpkg $Hphys $Hm] HΦ
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hteq Hfnz Hrej
+      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents Hlrd Hack Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)
         $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'

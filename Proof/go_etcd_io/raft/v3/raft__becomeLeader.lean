@@ -37,12 +37,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `raft.wp_store_stateC` at the value the Go code stores. -/
 private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Hcfg : id ∈ c.voters) :
+    (Hcfg : id ∈ c.voters) (Hpr : ∀ v p, s.prvals !! v = some p → PrOk s.logst p) :
     {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
     {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .leader } }} :=
-  raft.wp_store_stateC c r id s .leader (fun _ => Hcfg)
+  raft.wp_store_stateC c r id s .leader (fun _ => Hcfg) (Hpr := fun _ => Hpr)
 
 theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
@@ -56,6 +56,8 @@ theorem raft.becomeLeader.wp_proof
   -- the node is a voter (`ownRaftPhysC`'s `Hvoter`: it is not a follower), so tracked
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hv, Hphys⟩
   have Hcfg : id ∈ c.voters := Hv Hrole
+  -- (stage R8a) `lastIndex() + 1` does not wrap: `reset`'s values are within the log
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨-, %Hnw, Hphys⟩
   wp_auto
   -- `becomeLeader` panics on a follower; by assumption we are not one.
   have Hnf : stateW64 s.role ≠ W64 0 := by
@@ -67,12 +69,20 @@ theorem raft.becomeLeader.wp_proof
   wp_apply raft.wp_store_stepC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_apply wp_raft_reset c r id { s with stepfn := functions stepLeader [] } s.term
-    (Int.le_refl _) $$ [$Hphys] as %pvs ⟨Hphys, %Hmr⟩
+    (Int.le_refl _) $$ [$Hphys] as %pvs ⟨Hphys, %Hmr, %Hrp⟩
   -- `r.tick`, `r.lead := r.id`, `r.state := StateLeader`
   wp_apply raft.wp_store_tickC (Hf := .inr rfl) $$ Hphys as Hphys
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_store_leadC $$ Hphys as Hphys
-  wp_apply wp_store_state_leader _ _ _ _ Hcfg $$ Hphys as Hphys
+  -- the state, named, so that the progress premise is stated at it
+  ihave Hphys : ownRaftPhysCV c c.voters r id
+      { resetTo { s with stepfn := functions stepLeader [] } s.term with
+          prvals := pvs, ticking := true, lead := id } $$ [Hphys]
+  · iapply ownRaftPhysC_eq c r id _ _ (by rfl) $$ Hphys
+  wp_apply wp_store_state_leader c r id
+      { resetTo { s with stepfn := functions stepLeader [] } s.term with
+          prvals := pvs, ticking := true, lead := id }
+      Hcfg (fun v p hv => (Hrp v p hv).prOk Hnw) $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
   ihave Hphys : ownRaftPhysCV c c.voters r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
@@ -81,6 +91,7 @@ theorem raft.becomeLeader.wp_proof
   -- the leader's own `Progress` is marked replicating and recently active; the map
   -- lookup is on the tracker object
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  icases ownRaftPhysC_prvals_ok c r id s1 $$ Hphys with ⟨%Hok1, %Hnw1, Hphys⟩
   icases ownRaftPhysC_tracker_prvals c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_auto
   wp_apply wp_trackerC_progress_lookup c tv _ id ((GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ Hcfg) $$ [$Htrk]
@@ -100,6 +111,7 @@ theorem raft.becomeLeader.wp_proof
     exact (progressAbs_Some _ _ _).2 ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩
   ihave Htrk := Hprback $$ %_ Hpr %rfl
   ihave Hphys := Hback $$ %_ %_ Htrkf Htrk
+    %(PrvalsOk.insert (pvs := s1.prvals) Hok1 (fun Hl => (Hok1.lookup Hl Hpv0).becomeReplicate Hnw1))
   -- `r.pendingConfIndex = r.raftLog.lastIndex()`
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩

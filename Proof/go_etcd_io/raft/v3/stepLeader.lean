@@ -78,7 +78,7 @@ theorem stepLeader.wp_proof
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG))
     (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr
+  intro c r id s ml m ents sn ctx rs Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc⟩ HΦ
   -- a leader is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
@@ -165,7 +165,7 @@ theorem stepLeader.wp_proof
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow wp_GetType wp_GetFrom wp_GetReject wp_GetIndex wp_GetRejectHint
       wp_GetLogTerm r id s ml m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
-      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 ents ctx sn rs _ _ _
+      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty) ents ctx sn rs _ _ _
       $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit

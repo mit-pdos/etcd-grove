@@ -150,6 +150,9 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   m.From' ≠ id →
   -- a `MsgApp` (stage R5): only then does `msgIn` hold the `Entries` capacity
   m.Type' = MsgApp →
+  -- (2026-10-16, stage R8a, D11) not at a leader: `maybeAppend` may truncate the log, and a
+  -- leader's log only grows (`PrvalsOk`); a leader never handles a `MsgApp` of its term
+  s.role ≠ .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -173,6 +176,7 @@ abbrev raft.handleAppendEntries.specS : Prop :=
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) →
   m.From' ≠ id →
   m.Type' = MsgApp →
+  s.role ≠ .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -184,10 +188,10 @@ open Iris.ProofMode in
 theorem raft.handleAppendEntries.spec_simple
     (H : raft.handleAppendEntries.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty
+  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty $$ [$Hpkg $Hphys $Hm]
+  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl $$ [$Hpkg $Hphys $Hm]
   inext
   iintro %s' ⟨Hphys, %Hres⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

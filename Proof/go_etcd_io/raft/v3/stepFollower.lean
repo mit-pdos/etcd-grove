@@ -135,7 +135,7 @@ theorem stepFollower.wp_proof
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp]
       exact Hlead
   · -- `MsgApp`: adopt the sender as leader, then `handleAppendEntries`
-    obtain ⟨Hwf, Hnw, Hconf, Hfid⟩ := Happ Hty
+    obtain ⟨Hwf, Hnw, Hconf, Hfid, Hnl⟩ := Happ Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgApp, MsgProp]]
     simp only [Hty, MsgApp]
@@ -144,7 +144,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs
-        Hwf Hnw Hconf Hfid Hty $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
+        Hwf Hnw Hconf Hfid Hty Hnl $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]

@@ -231,6 +231,7 @@ local macro "local_leader" : tactic => `(tactic| (
   wp_gets
   wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (by simp [Hty]) Hrole
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
+      (by ty_other)
     $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
   · iframe Hphys
     rw [if_neg (by rw [Hty]; w32_ne)]

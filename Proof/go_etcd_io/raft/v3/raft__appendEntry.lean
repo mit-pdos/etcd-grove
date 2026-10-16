@@ -331,13 +331,22 @@ theorem raft.appendEntry.wp_proof
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
     rw [Hado, Htac] at *
     simp only [Bool.false_eq_true, ↓reduceIte]
-    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.append _ Hgh0)
     have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stamp s.term li))) = li2 := by
       unfold logLast
       unfold logAppend at Hli2 ⊢
       simp only [List.length_append, List.length_mapIdx] at Hli2 ⊢
       push_cast at Hli2 ⊢
       word
+    -- (stage R8a) a leader's log only grows: the last index is not lower
+    have Hle2 : s.role = .leader → uint.Z (logLast s.logst) ≤
+        uint.Z (logLast (logAppend s.logst (ents.mapIdx (stamp s.term li)))) := by
+      intro _
+      rw [Hlast2, Hlast]
+      unfold logAppend at Hli2
+      simp only [List.length_append, List.length_mapIdx] at Hli2
+      push_cast at Hli2
+      word
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.append _ Hgh0) %Hle2
     -- the self-acknowledgement: `SendOk`'s `MsgAppResp` clause, with no entries
     try wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys

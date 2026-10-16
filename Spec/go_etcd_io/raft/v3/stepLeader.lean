@@ -344,6 +344,10 @@ abbrev stepLeader.spec : Prop :=
    (ctx = [] ∨ 8 ≤ ctx.length) ∧
    (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
                  ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))) →
+  -- (2026-10-16, stage R8a, D11) an accepted `MsgAppResp` acknowledges an index within the
+  -- leader's log, so `MaybeUpdate` keeps the leader's progress bound (`PrvalsOk`): `Step` has it
+  -- from the message's ghost witness (`ackIn`, `ownRaftGhost_ackIn_le`)
+  (m.Type' = MsgAppResp → m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a

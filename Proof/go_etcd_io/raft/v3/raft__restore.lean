@@ -448,6 +448,7 @@ theorem raft.restore.wp_proof
     icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_commitTo _ _ sv.Metadata'.Index' Hle $$ [$Hlog] as Hlog
     ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+      %(fun _ => logLast_le_of_fields rfl rfl rfl)
     try wp_auto
     ihave Hcs : csOptA pc (DFrac.own 1) sv.Metadata'.ConfState' $$ []
     · iunfold csOptA; iright; iright; iexact Hcf
@@ -483,6 +484,7 @@ theorem raft.restore.wp_proof
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]))
+      %(fun h => absurd (Hrole.symm.trans h) (by decide))
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
         (c := CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)) _ _ _
@@ -530,6 +532,7 @@ theorem raft.restore.wp_proof
     ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
       %(LogGhOk.of_snap (by simp [logRestore]))
+      %(PrvalsOk.not_leader (fun h => absurd (Hrole.symm.trans h) (by decide)))
     generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists) } : NState) = s1
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
@@ -540,6 +543,7 @@ theorem raft.restore.wp_proof
     wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
+        (fun h => absurd (Hrole1.symm.trans h) (by decide))
       $$ [$Htrkf $Hback2 $Hvotes $Hnew]
       as %cs2 %xs2 %os2 %ls2 %lns2 %s2 ⟨Hphys, Hcs2v, %Hcs2, %Hsw⟩
     · ipureintro; exact Hmi1

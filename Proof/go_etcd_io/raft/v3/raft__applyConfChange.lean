@@ -49,6 +49,8 @@ theorem raft.applyConfChange.wp_proof
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
+  -- (stage R8a) the leader's progress bound of the old values, for the new ones (`PrKept`)
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
       (fun _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) $$ Hphys
     with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
@@ -63,7 +65,8 @@ theorem raft.applyConfChange.wp_proof
   have Happ := Happ0
   unfold ccApplyM at Happ
   wp_auto
-  wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
+  wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+  have Hli' : li = logLast s.logst := logLast_eq_of_Z _ _ Hli
   wp_apply wp_ConfChangeV2_LeaveJoint cc dq ccm $$ [$Hcc] as Hcc
   by_cases Hlj : ccm.transition = W32 0 ∧ ccm.changes = []
   · -- `changer.LeaveJoint()`
@@ -80,22 +83,27 @@ theorem raft.applyConfChange.wp_proof
     subst Herr
     imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
         s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
-      with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
+      with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
     wp_auto
     -- `r.switchToConfig(cfg, trk)`
     ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
         ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+        ⌜PrvalsOk { s with progress := prs'', prvals := pvs'' }⌝ -∗
         ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
           { s with progress := prs'', prvals := pvs'' })
         $$ [Hback Hlf Hlog]
-    · iintro %tv' %prs'' %pvs'' Hf Ht
+    · iintro %tv' %prs'' %pvs'' Hf Ht %Hok
       ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+        %(Hok.of_fields rfl rfl rfl)
       iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
     wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
         (fun hl => by
           by_cases hin : id ∈ c'.cfg.voters
           · exact .inl ⟨hin, Hmk⟩
           · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
+        (fun hl => by
+          simp only at Hpk; rw [Hli'] at Hpk
+          exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
       $$ [$Htrkf $Hback' $Hvotes $Hnew]
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
     · ipureintro; exact Hmi
@@ -139,22 +147,27 @@ theorem raft.applyConfChange.wp_proof
         subst Herr
         imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
             s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
-          with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
+          with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
         ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
             ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+            ⌜PrvalsOk { s with progress := prs'', prvals := pvs'' }⌝ -∗
             ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
               { s with progress := prs'', prvals := pvs'' })
             $$ [Hback Hlf Hlog]
-        · iintro %tv' %prs'' %pvs'' Hf Ht
+        · iintro %tv' %prs'' %pvs'' Hf Ht %Hok
           ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+            %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
         wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
             (fun hl => by
               by_cases hin : id ∈ c'.cfg.voters
               · exact .inl ⟨hin, Hmk⟩
               · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
+            (fun hl => by
+              simp only at Hpk; rw [Hli'] at Hpk
+              exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
@@ -185,22 +198,27 @@ theorem raft.applyConfChange.wp_proof
         subst Herr
         imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
             s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
-          with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
+          with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
         ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
             ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+            ⌜PrvalsOk { s with progress := prs'', prvals := pvs'' }⌝ -∗
             ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
               { s with progress := prs'', prvals := pvs'' })
             $$ [Hback Hlf Hlog]
-        · iintro %tv' %prs'' %pvs'' Hf Ht
+        · iintro %tv' %prs'' %pvs'' Hf Ht %Hok
           ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+            %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
         wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
             (fun hl => by
               by_cases hin : id ∈ c'.cfg.voters
               · exact .inl ⟨hin, Hmk⟩
               · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
+            (fun hl => by
+              simp only at Hpk; rw [Hli'] at Hpk
+              exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi

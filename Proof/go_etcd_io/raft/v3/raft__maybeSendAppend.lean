@@ -79,6 +79,29 @@ local macro "msa_fetch" : tactic => `(tactic| (
   ihave Hphys := Hlogback $$ Hlog
   try wp_auto))
 
+/-- The leader's progress bound after `SentEntries` (2026-10-16, stage R8a, D11): the entries sent
+are a prefix of the log from `Next` on (`Hpre`), so `Next + |ents| ≤ lastIndex + 1`
+(`plogFrom_prefix_bound`). -/
+private theorem sentEntries_ok (s : NState) (p : Progress) (sl_e : GoSlice) (es_e : List EntryM)
+    (psz : w64) (Hok : s.role = .leader → PrOk s.logst p) (Hnw : LogNoWrap s.logst)
+    (Hlen : es_e.length = sint.nat sl_e.len ∧ 0 ≤ sint.Z sl_e.len)
+    (Hlo : uint.Z s.logst.prev.index' + 1 ≤ uint.Z p.next)
+    (Hpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next) :
+    s.role = .leader → PrOk s.logst (progressSentEntries p sl_e.len psz) := by
+  intro Hl
+  have Hp := Hok Hl
+  have Hlz := Hnw.logLast_Z
+  have Hn2 := Hp.2.1
+  have Hb := plogFrom_prefix_bound s.logst.prev (s.logst.sents ++ s.logst.uents) es_e p.next Hpre
+    Hlo (by unfold plogLastIndexZ; rw [List.length_append]; push_cast; omega)
+  unfold plogLastIndexZ at Hb
+  rw [List.length_append] at Hb
+  have He : (es_e.length : Int) = sint.Z sl_e.len := by
+    rw [Hlen.1]; word
+  push_cast at Hb
+  refine Hp.sentEntries Hnw Hlen.2 ?_
+  omega
+
 set_option hygiene false in
 /-- The message goes out: `r.send(MsgApp)`, `pr.SentEntries`, `pr.SentCommit`,
 `return true`. -/
@@ -127,12 +150,13 @@ local macro "msa_send" : tactic => `(tactic| (
   wp_apply wp_payloadsSize sl_e es_e DFrac.discard $$ [] as %psz ⟨-, -⟩
   · iframe # ∗
   -- `pr.SentEntries(...)`: `send` changed only the outbox, so `pr` is still at `p`
-  icases ownRaftPhysC_pr_upd c r id _ to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhysC_pr_upd c r id _ to pr p $$ Hphys %Hlk %Hpvs with ⟨%Hok, %Hnw, Hpa, Hpback⟩
   have Hwin2 : p.state = .replicate → 0 < sint.Z sl_e.len → inflightsFull p.infl = false :=
     fun H1 H2 => Hwin H1 (fun Heq => by rw [Heq] at Hlen; obtain ⟨Hl1, -⟩ := Hlen; simp only [List.length_nil] at Hl1; word)
   wp_apply wp_Progress_SentEntries pr p _ _ Hnosnap Hwin2 $$ [Hpa] as Hpa
   · iframe
   ihave Hphys := Hpback $$ %_ Hpa %(progressSentEntries_learner _ _ _)
+    %(sentEntries_ok s p sl_e es_e psz Hok Hnw Hlen Hlo Hpkgpre)
   -- `pr.SentCommit(r.raftLog.committed)`: the argument first, then `pr` once more, at
   -- the value `SentEntries` left
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -142,10 +166,10 @@ local macro "msa_send" : tactic => `(tactic| (
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   icases ownRaftPhysC_pr_upd c r id _ to pr (progressSentEntries p sl_e.len psz)
-    $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨Hpa, Hpback⟩
+    $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨%Hok2, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [Hpa] as Hpa
   · iframe
-  ihave Hphys := Hpback $$ %_ Hpa %rfl
+  ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok2 Hl).sentCommit _)
   iapply HΦ $$ %true
     %([Msg.mk MsgType.app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0)
         es_e] : List Msg)

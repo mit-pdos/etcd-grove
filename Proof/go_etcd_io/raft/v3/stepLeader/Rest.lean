@@ -95,15 +95,39 @@ private theorem ownRaftPhys_pr_at (r : Loc) (id : w64) (s : NState) (pvs : GMap 
     ⊢ ownRaftPhysCV (GF := GF) c c.voters r id { s with prvals := pvs } -∗
       ⌜s.progress !! to = some pr⌝ -∗
       ⌜pvs !! to = some p⌝ -∗
+      -- (stage R8a) the leader's progress bound of the value, taken back of the new one
+      ⌜s.role = .leader → PrOk s.logst p⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗
       ownProgress pr p ∗
       (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
+         ⌜s.role = .leader → PrOk s.logst p'⌝ -∗
          ownRaftPhysCV c c.voters r id { s with prvals := <[to := p']> pvs }) := by
   iintro Hphys %Hlk %Hv
   icases ownRaftPhysC_pr_upd c r id { s with prvals := pvs } to pr p $$ Hphys %Hlk %Hv
-    with ⟨Hp, Hback⟩
+    with ⟨%Hok, %Hnw, Hp, Hback⟩
+  isplitr
+  · ipureintro; exact Hok
+  isplitr
+  · ipureintro; exact Hnw
   iframe Hp
-  iintro %p' Hp %Hl
-  iapply Hback $$ %p' Hp %Hl
+  iintro %p' Hp %Hl %Hok'
+  iapply Hback $$ %p' Hp %Hl %Hok'
+
+set_option hygiene false in
+/-- The leader's progress bound of the value a `Progress` write leaves (2026-10-16, stage R8a,
+D11): from `Hok` (the old value's) and `Hnw` (`ownRaftPhys_pr_at`), by the lemma of the method
+applied; `MaybeUpdate` from the acknowledged index's bound `Hidx` (`stepLeader.spec`'s premise). -/
+local macro "prok" : tactic => `(tactic| (
+  intro Hl
+  first
+  | exact Hok Hl
+  | exact (Hok Hl).setPaused _
+  | exact (Hok Hl).setInfl _
+  | exact (Hok Hl).becomeProbe Hnw
+  | exact (Hok Hl).becomeReplicate Hnw
+  | exact ((Hok Hl).becomeProbe Hnw).becomeReplicate Hnw
+  | exact (Hok Hl).clearSnap.becomeProbe Hnw
+  | exact (Hok Hl).maybeDecrTo Hnw
+  | exact (Hok Hl).maybeUpdate (Hidx Hrej)))
 
 private theorem ownRaftPhys_ins_id (r : Loc) (id : w64) (s : NState) (pvs : GMap w64 Progress)
     (k : w64) (a : Progress) (Hk : pvs !! k = some a) :
@@ -356,7 +380,7 @@ theorem wp_stepLeader_report
     obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! m.From' = some p := by
       rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
     ihave Hphys := ownRaftPhys_prvals_self c r id s $$ Hphys
-    icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+    icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨%Hok, %Hnw, Hpa, Hpback⟩
     iNamed Hpa
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
     wp_if_destruct
@@ -377,7 +401,7 @@ theorem wp_stepLeader_report
       · rw [Hrep]
         wp_auto
         wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
-        ihave Hphys := Hpback $$ %(progressBecomeProbe p) Hpa %(by first | rfl | simp)
+        ihave Hphys := Hpback $$ %(progressBecomeProbe p) Hpa %(by first | rfl | simp) %(by prok)
         wp_join_done
         iexists progressBecomeProbe p
         iframe
@@ -386,7 +410,7 @@ theorem wp_stepLeader_report
           cases h : p.state <;> simp_all [prstateW64]
         simp only [show (prstateW64 p.state = W64 1) = False from eq_false Hne, decide_false]
         wp_auto
-        ihave Hphys := Hpback $$ %p Hpa %(by first | rfl | simp)
+        ihave Hphys := Hpback $$ %p Hpa %(by first | rfl | simp) %(by prok)
         wp_join_done
         iexists p
         iframe
@@ -408,7 +432,7 @@ theorem wp_stepLeader_report
         cases h : p.state <;> simp_all [prstateW64]
       simp only [show (prstateW64 p.state = W64 2) = False from eq_false Hne, decide_false]
       wp_auto
-      ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp)
+      ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs
       ihave Hphys := ownRaftPhys_ins_id c r id s s.prvals m.From' p Hpvs $$ Hphys
       iapply HΦ $$ %interface.nil %s
@@ -429,7 +453,7 @@ theorem wp_stepLeader_report
       · wp_auto
         ihave Hpa := ownProgress_intro pr _ p $$ Hpv Hinfl %Habs
         wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
-        ihave Hphys := Hpback $$ %(progressBecomeProbe p) Hpa %(by first | rfl | simp)
+        ihave Hphys := Hpback $$ %(progressBecomeProbe p) Hpa %(by first | rfl | simp) %(by prok)
         wp_apply raft.wp_load_idC $$ Hphys as Hphys
         wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
         wp_raft_logC
@@ -443,7 +467,7 @@ theorem wp_stepLeader_report
             obtain ⟨H1, H2, H3, H4, H5, -, H7, H8⟩ := Habs'
             exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, rfl, H7, H8⟩)
         wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
-        ihave Hphys := Hpback $$ %(progressBecomeProbe { p with pendingSnapshot := W64 0 }) Hpa %(by first | rfl | simp)
+        ihave Hphys := Hpback $$ %(progressBecomeProbe { p with pendingSnapshot := W64 0 }) Hpa %(by first | rfl | simp) %(by prok)
         wp_apply raft.wp_load_idC $$ Hphys as Hphys
         wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
         wp_raft_logC
@@ -454,11 +478,11 @@ theorem wp_stepLeader_report
     iNamed HR
     -- `pr.MsgAppFlowPaused = true`
     icases ownRaftPhys_pr_at c r id s (<[m.From' := p']> s.prvals) m.From' pr p' $$ Hphys
-      %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨Hpa, Hpback⟩
+      %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨%Hok, %Hnw, Hpa, Hpback⟩
     iNamed Hpa
     wp_auto
     have Habs2 := (progressAbs_Some _ _ _).1 Habs
-    ihave Hphys := Hpback $$ %{ p' with paused := true } [Hpv Hinfl] %(by first | rfl | simp)
+    ihave Hphys := Hpback $$ %{ p' with paused := true } [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
     · iapply ownProgress_intro pr _ { p' with paused := true } $$ Hpv Hinfl
       ipureintro
       obtain ⟨H1, H2, H3, H4, H5, H6, -, H8⟩ := Habs2
@@ -723,7 +747,7 @@ theorem wp_stepLeader_hbresp
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! m.From' = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
   ihave Hphys := ownRaftPhys_prvals_self c r id s $$ Hphys
-  icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨%Hok, %Hnw, Hpa, Hpback⟩
   iNamed Hpa
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
   wp_if_destruct
@@ -733,7 +757,7 @@ theorem wp_stepLeader_hbresp
   wp_auto
   -- `pr.RecentActive = true; pr.MsgAppFlowPaused = false` (`RecentActive` is in no record)
   have Habs' := (progressAbs_Some _ _ _).1 Habs
-  ihave Hphys := Hpback $$ %{ p with paused := false } [Hpv Hinfl] %(by first | rfl | simp)
+  ihave Hphys := Hpback $$ %{ p with paused := false } [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
   · iapply ownProgress_intro pr _ { p with paused := false } $$ Hpv Hinfl
     ipureintro
     obtain ⟨H1, H2, H3, H4, H5, H6, -, -⟩ := Habs'
@@ -1061,6 +1085,8 @@ theorem wp_stepLeader_appresp
     (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader) (Hid : id ∈ c.voters)
     (Hfrom0 : m.From' ≠ W64 0) (Hself : m.Reject' = true → m.From' ≠ id) (Hnz : s.term ≠ W64 0)
     (Hrdp : ∀ p ∈ s.rd.pend, p.2 ≠ [])
+    -- (stage R8a) an accepted acknowledgement is within the log (`MaybeUpdate` keeps `PrvalsOk`)
+    (Hidx : m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst))
     (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
@@ -1102,7 +1128,7 @@ theorem wp_stepLeader_appresp
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! m.From' = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
   ihave Hphys := ownRaftPhys_prvals_self c r id s $$ Hphys
-  icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨%Hok, %Hnw, Hpa, Hpback⟩
   iNamed Hpa
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
   wp_if_destruct
@@ -1112,7 +1138,7 @@ theorem wp_stepLeader_appresp
   wp_auto
   -- `pr.RecentActive = true`: the record is unchanged (`RecentActive` is in none)
   have Habs' := (progressAbs_Some _ _ _).1 Habs
-  ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp)
+  ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
   · iapply ownProgress_intro pr _ p $$ Hpv Hinfl
     ipureintro
     obtain ⟨H1, H2, H3, H4, H5, H6, H8, -⟩ := Habs'
@@ -1128,7 +1154,7 @@ theorem wp_stepLeader_appresp
     -- `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index && pr.State == StateProbe)`: its
     -- value does not matter to the postcondition, only that `pr` is left at
     -- `MaybeUpdate`'s value
-    icases ownRaftPhys_pr_at c r id s pvs1 m.From' pr p $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
+    icases ownRaftPhys_pr_at c r id s pvs1 m.From' pr p $$ Hphys %Hlk %Hpvs1' with ⟨%Hok, %Hnw, Hpa, Hpback⟩
     wp_join (Q := fun v => iprop(∃ cb : Bool, ⌜v = #cb⌝ ∗
         ownProgress pr (progressMaybeUpdate p m.Index') ∗
         "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "pr" ∷ pr_ptr ↦ pr)) at (If _ (Val #true) _) with [Hpa m Hm pr]
@@ -1156,7 +1182,7 @@ theorem wp_stepLeader_appresp
         iapply ownProgress_intro $$ Hpv Hinfl %Habs
     iintro ⟨%cb, %Hv, Hpa, m, Hm, pr⟩
     subst Hv
-    ihave Hphys := Hpback $$ %(progressMaybeUpdate p m.Index') Hpa %(by first | rfl | simp)
+    ihave Hphys := Hpback $$ %(progressMaybeUpdate p m.Index') Hpa %(by first | rfl | simp) %(by prok)
     have Hx : prvalsMatch s.prvals !! m.From' = some p.matched := by
       simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs]; rfl
     have Hmm2 : prvalsMatch (<[m.From' := progressMaybeUpdate p m.Index']> pvs1) =
@@ -1193,7 +1219,7 @@ theorem wp_stepLeader_appresp
         "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
       with [Hphys m Hm r pr] as HJ
     · icases ownRaftPhys_pr_at c r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2'
-        with ⟨Hpa, Hpback⟩
+        with ⟨%Hok, %Hnw, Hpa, Hpback⟩
       iNamed Hpa
       have Habs2 := (progressAbs_Some _ _ _).1 Habs
       have Hst := Habs2.2.1
@@ -1205,7 +1231,7 @@ theorem wp_stepLeader_appresp
         wp_auto
         ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
         wp_apply wp_Progress_BecomeReplicate $$ [$Hpa] as Hpa
-        ihave Hphys := Hpback $$ %(progressBecomeReplicate p2) Hpa %(by first | rfl | simp)
+        ihave Hphys := Hpback $$ %(progressBecomeReplicate p2) Hpa %(by first | rfl | simp) %(by prok)
         wp_join_done
         iexists progressBecomeReplicate p2
         iframe
@@ -1222,7 +1248,7 @@ theorem wp_stepLeader_appresp
           obtain ⟨A1, A2, A3, A4, A5, A6, A8, -⟩ := Habs2
           exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A6, A8, rfl⟩
         ihave Hpa := ownProgress_intro pr pv { p2 with infl := i' } $$ Hpv Hinfl %Habs3
-        ihave Hphys := Hpback $$ %{ p2 with infl := i' } Hpa %(by first | rfl | simp)
+        ihave Hphys := Hpback $$ %{ p2 with infl := i' } Hpa %(by first | rfl | simp) %(by prok)
         wp_join_done
         iexists { p2 with infl := i' }
         iframe
@@ -1233,7 +1259,7 @@ theorem wp_stepLeader_appresp
         wp_auto
         rw [Hm]
         ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
-        ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp)
+        ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp) %(by prok)
         ihave Hphys := ownRaftPhys_ins_id c r id s pvs2 m.From' p2 Hpvs2' $$ Hphys
         wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
         icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
@@ -1245,24 +1271,24 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           wp_raft_logC
           icases ownRaftPhys_pr_at c r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2'
-            with ⟨Hpa, Hpback⟩
+            with ⟨%Hok, %Hnw, Hpa, Hpback⟩
           wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
           wp_apply wp_Progress_BecomeReplicate $$ [$Hpa] as Hpa
-          ihave Hphys := Hpback $$ %(progressBecomeReplicate (progressBecomeProbe p2)) Hpa %(by first | rfl | simp)
+          ihave Hphys := Hpback $$ %(progressBecomeReplicate (progressBecomeProbe p2)) Hpa %(by first | rfl | simp) %(by prok)
           wp_join_done
           iexists progressBecomeReplicate (progressBecomeProbe p2)
           iframe
           ipureintro; rfl
         · -- `pr.State == StateReplicate`: no, `StateSnapshot`
           icases ownRaftPhys_pr_at c r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2'
-            with ⟨Hpa, Hpback⟩
+            with ⟨%Hok, %Hnw, Hpa, Hpback⟩
           iNamed Hpa
           have Hst' := ((progressAbs_Some _ _ _).1 Habs).2.1
           wp_auto
           simp only [Hst', Hst2, prstateW64]
           wp_auto
           ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
-          ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp)
+          ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp) %(by prok)
           wp_join_done
           iexists p2
           iframe
@@ -1325,9 +1351,9 @@ theorem wp_stepLeader_appresp
           ihave Hlog := Hlb $$ Hl
           ihave Hphys := Hlogback $$ Hlog
           icases ownRaftPhys_pr_at c r id s pvs3 m.From' pr p3 $$ Hphys %Hlk %Hpvs3'
-            with ⟨Hpa, Hpback⟩
+            with ⟨%Hok, %Hnw, Hpa, Hpback⟩
           wp_apply wp_Progress_CanBumpCommit $$ [$Hpa] as Hpa
-          ihave Hphys := Hpback $$ %p3 Hpa %(by first | rfl | simp)
+          ihave Hphys := Hpback $$ %p3 Hpa %(by first | rfl | simp) %(by prok)
           ihave Hphys := ownRaftPhys_ins_id c r id s pvs3 m.From' p3 Hpvs3' $$ Hphys
           cases Hcb : progressCanBumpCommit p3 lv.committed'
           · wp_auto
@@ -1588,10 +1614,10 @@ theorem wp_stepLeader_appresp
     iNamed HR
     wp_auto
     -- `pr.MaybeDecrTo(m.Index, nextProbeIdx)`
-    icases ownRaftPhys_pr_at c r id s pvs1 m.From' pr p $$ Hphys %Hlk %Hpvs1' with ⟨Hpa, Hpback⟩
+    icases ownRaftPhys_pr_at c r id s pvs1 m.From' pr p $$ Hphys %Hlk %Hpvs1' with ⟨%Hok, %Hnw, Hpa, Hpback⟩
     wp_apply wp_GetIndex.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_Progress_MaybeDecrTo $$ [$Hpa] as Hpa
-    ihave Hphys := Hpback $$ %(progressMaybeDecrTo p m.Index' np).2 Hpa %(by first | rfl | simp)
+    ihave Hphys := Hpback $$ %(progressMaybeDecrTo p m.Index' np).2 Hpa %(by first | rfl | simp) %(by prok)
     have Hmm2 : prvalsMatch (<[m.From' := (progressMaybeDecrTo p m.Index' np).2]> pvs1)
         = prvalsMatch s.prvals := by
       rw [← Hmm1]; exact prvalsMatch_insert_same _ _ p _ Hpvs1' (decrTo_match _ _ _)
@@ -1613,7 +1639,7 @@ theorem wp_stepLeader_appresp
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_raft_logC
     -- `if pr.State == StateReplicate { pr.BecomeProbe() }`
-    icases ownRaftPhys_pr_at c r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2' with ⟨Hpa, Hpback⟩
+    icases ownRaftPhys_pr_at c r id s pvs2 m.From' pr p2 $$ Hphys %Hlk %Hpvs2' with ⟨%Hok, %Hnw, Hpa, Hpback⟩
     iNamed Hpa
     have Hst2 := ((progressAbs_Some _ _ _).1 Habs).2.1
     wp_auto
@@ -1623,7 +1649,7 @@ theorem wp_stepLeader_appresp
     · rw [Hrep]
       wp_auto
       wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
-      ihave Hphys := Hpback $$ %(progressBecomeProbe p2) Hpa %(by first | rfl | simp)
+      ihave Hphys := Hpback $$ %(progressBecomeProbe p2) Hpa %(by first | rfl | simp) %(by prok)
       have HM3 : (progressBecomeProbe p2).matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := progressBecomeProbe p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1642,7 +1668,7 @@ theorem wp_stepLeader_appresp
         cases h : p2.state <;> simp_all [prstateW64]
       simp only [show (prstateW64 p2.state = W64 1) = False from eq_false Hne, decide_false]
       wp_auto
-      ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp)
+      ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp) %(by prok)
       have HM3 : p2.matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm

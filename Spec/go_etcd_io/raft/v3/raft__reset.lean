@@ -42,7 +42,11 @@ abbrev raft.reset.spec : Prop :=
       -- `Defs.lean`): the Visit closure writes a fresh `Progress{Match: 0, ...}` and then
       -- `pr.Match = lastIndex()` for `r.id`. `becomeLeader` needs it (`Step.win`'s
       -- `LeaderMatchOk`).
-      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
+      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ ∗
+      -- (2026-10-16, stage R8a, D11) and the values the closure writes (`ResetPr`, `Defs.lean`):
+      -- `Next = lastIndex + 1`, `Match` as above, no pending snapshot, `StateProbe` -- what
+      -- `becomeLeader` needs for the leader's progress bound (`PrvalsOk`)
+      ⌜∀ v p, pvs !! v = some p → ResetPr id (logLast s.logst) v p⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.reset.spec` by `raft.reset.spec_simple`. -/
@@ -53,7 +57,8 @@ abbrev raft.reset.specS : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"reset")) (Val #term))
   {{ (pvs : GMap w64 Progress), RET #();
       ownRaftPhys cfg r id { resetTo s term with prvals := pvs } ∗
-      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
+      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ ∗
+      ⌜∀ v p, pvs !! v = some p → ResetPr id (logLast s.logst) v p⌝ }}
 
 open Iris.ProofMode in
 theorem raft.reset.spec_simple
@@ -64,11 +69,13 @@ theorem raft.reset.spec_simple
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   iapply H _ r id s term Hle $$ [$Hpkg $Hphys]
   inext
-  iintro %pvs ⟨Hphys, %Hm⟩
+  iintro %pvs ⟨Hphys, %Hm, %Hr⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   iapply HΦ
   iframe Hphys
-  ipureintro; exact Hm
+  isplitr
+  · ipureintro; exact Hm
+  ipureintro; exact Hr
 
 end spec
 

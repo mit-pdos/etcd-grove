@@ -33,42 +33,48 @@ values range over the same peers as before, and every visited peer's `Match` is
 `reset`'s. -/
 private def ResetInv (id li : w64) (P0 pvs : GMap w64 Progress) (D : GSet w64) : Prop :=
   domSet pvs = domSet P0 ∧
-  ∀ k p, k ∈ D → pvs !! k = some p → p.matched = (if k = id then li else W64 0)
+  ∀ k p, pvs !! k = some p → (k ∈ D → ResetPr id li k p) ∧ (k ∉ D → P0 !! k = some p)
 
 /-- `lastIndex()`'s result, as `logLast`. -/
 private theorem logLast_unsigned (ls : LogState) (i : w64)
     (H : uint.Z i = uint.Z ls.prev.index' + (ls.sents.length : Int)
                     + (ls.uents.length : Int)) :
-    i = logLast ls := by
-  unfold logLast
-  apply uint_Z_inj.1
-  rw [← H]
-  word
+    i = logLast ls :=
+  logLast_eq_of_Z ls i H
 
 private theorem resetInv_empty (id li : w64) (P0 : GMap w64 Progress) :
     ResetInv id li P0 P0 ∅ :=
-  ⟨rfl, fun k _ Hk _ => absurd Hk (GMap.not_elem_of_empty k)⟩
+  ⟨rfl, fun k _ Hk => ⟨fun Hk' => absurd Hk' (GMap.not_elem_of_empty k), fun _ => Hk⟩⟩
 
 private theorem resetInv_step (id li : w64) (P0 pvs : GMap w64 Progress) (D : GSet w64)
     (i : w64) (v p0 : Progress) (H : ResetInv id li P0 pvs D) (Hi : pvs !! i = some p0)
-    (Hv : v.matched = (if i = id then li else W64 0)) :
+    (Hv : ResetPr id li i v) :
     ResetInv id li P0 (<[i := v]> pvs) ({[i]} ∪ D) := by
   obtain ⟨Hdom, Hm⟩ := H
   refine ⟨by rw [GMap.dom_insert_lookup _ _ _ _ Hi, Hdom], ?_⟩
-  intro k p Hk Hp
+  intro k p Hp
   by_cases Hki : k = i
   · subst Hki
     rw [GMap.lookup_insert_eq] at Hp
     cases Hp
-    exact Hv
+    refine ⟨fun _ => Hv, fun Hk => absurd ?_ Hk⟩
+    rw [GMap.elem_of_union, GMap.elem_of_singleton]; exact .inl rfl
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hki)] at Hp
-    rw [GMap.elem_of_union, GMap.elem_of_singleton] at Hk
-    exact Hm k p (Hk.resolve_left Hki) Hp
+    obtain ⟨H1, H2⟩ := Hm k p Hp
+    refine ⟨fun Hk => ?_, fun Hk => H2 (fun Hk' => Hk ?_)⟩
+    · rw [GMap.elem_of_union, GMap.elem_of_singleton] at Hk
+      exact H1 (Hk.resolve_left Hki)
+    · rw [GMap.elem_of_union]; exact .inr Hk'
 
 private theorem resetInv_done (id li : w64) (P0 pvs : GMap w64 Progress)
     (H : ResetInv id li P0 pvs (domSet P0)) :
-    prvalsMatch pvs = resetMatched id li P0 := by
+    prvalsMatch pvs = resetMatched id li P0 ∧ ∀ v p, pvs !! v = some p → ResetPr id li v p := by
   obtain ⟨Hdom, Hm⟩ := H
+  have Hall : ∀ v p, pvs !! v = some p → ResetPr id li v p := by
+    intro v p Hv
+    refine (Hm v p Hv).1 ?_
+    rw [← Hdom]; exact (GMap.elem_of_dom _ _).2 ⟨p, Hv⟩
+  refine ⟨?_, Hall⟩
   apply GMap.map_eq
   intro k
   rw [prvalsMatch, GMap.lookup_fmap', resetMatched, GMap.lookup_imap]
@@ -77,7 +83,7 @@ private theorem resetInv_done (id li : w64) (P0 pvs : GMap w64 Progress)
     cases HP : P0 !! k with
     | some q =>
       simp only [Option.map_some, Option.bind_some]
-      rw [Hm k p ((GMap.elem_of_dom _ _).2 ⟨q, HP⟩) Hk]
+      rw [(Hall k p Hk).2.1]
     | none =>
       exfalso
       have : k ∈ domSet pvs := (GMap.elem_of_dom _ _).2 ⟨p, Hk⟩
@@ -91,6 +97,19 @@ private theorem resetInv_done (id li : w64) (P0 pvs : GMap w64 Progress)
       rw [← Hdom] at this
       exact (GMap.not_elem_of_dom _ _).2 Hk this
     | none => rfl
+
+/-- The leader's progress bound through the `Visit` (2026-10-16, stage R8a): a visited peer's
+`Progress` is `reset`'s (within the log), an unvisited one the old (within it by `PrvalsOk`). A
+leader's `becomeFollower` runs `reset` with the role still `StateLeader`. -/
+private theorem resetInv_prvalsOk (id : w64) (s : NState) (term : w64) (pvs : GMap w64 Progress)
+    (D : GSet w64) (H : ResetInv id (logLast s.logst) s.prvals pvs D) (Hok : PrvalsOk s)
+    (Hnw : LogNoWrap s.logst) : PrvalsOk { resetTo0 s term with prvals := pvs } := by
+  intro Hl v p Hv
+  simp only [resetTo0] at Hl Hv ⊢
+  obtain ⟨H1, H2⟩ := H.2 v p Hv
+  by_cases HD : v ∈ D
+  · exact (H1 HD).prOk Hnw
+  · exact Hok.lookup Hl (H2 HD)
 
 end helpers
 
@@ -139,10 +158,9 @@ theorem raft.reset.wp_proof
     raft.reset.spec (GF := GF) (hG := hG) := by
   intro c V r id s term Hle
   wp_start as Hphys
-  -- `lastIndex()` does not wrap: the closure's `pr.Match = lastIndex()` is then `logLast`
-  icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlb⟩
-  icases ownRaftLog_nowrap $$ Hlog with ⟨%Hnw, Hlog⟩
-  ihave Hphys := Hlb $$ Hlog
+  -- `lastIndex()` does not wrap: the closure's `pr.Match = lastIndex()` is then `logLast`; and
+  -- (stage R8a) the leader's progress bound of the values the `Visit` has not yet reset
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, %Hnw, Hphys⟩
   wp_auto
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   -- Two arms: `r.Term != term` writes `Term` and `Vote`; otherwise nothing is written
@@ -183,6 +201,7 @@ theorem raft.reset.wp_proof
         ⌜ResetInv id (logLast s.logst) s.prvals pvsx D⌝ ∗
         (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
           ownTrackerC c tvx ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, pvsx'⟩ -∗
+          ⌜PrvalsOk { resetTo0 s term with prvals := pvsx' }⌝ -∗
           ownRaftPhysCV c V r id { resetTo0 s term with prvals := pvsx' })))
     $$ [$Htrkf $Htrk $r $HI]
     as ⟨%tvfin, %pvsfin, Htrkf, Htrk, r, %Hinv, HI⟩
@@ -200,7 +219,9 @@ theorem raft.reset.wp_proof
     dsimp only
     have Hpri' : (resetTo0 s term).progress !! i = some pr := Hpri
     ihave Htrk := Hprback $$ %p Hpr %rfl
-    ihave Hphys := HI $$ Htrkf Htrk
+    have Hok1 : PrvalsOk { resetTo0 s term with prvals := <[i := p]> pvs0 } := by
+      rw [GMap.insert_id _ _ _ Hpvi]; exact resetInv_prvalsOk _ _ _ _ _ Hinv0 Hok0 Hnw
+    ihave Hphys := HI $$ Htrkf Htrk %Hok1
     wp_auto
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hphys⟩
@@ -235,9 +256,19 @@ theorem raft.reset.wp_proof
         { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
           PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
           Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _ rfl $$ Hpv Hifl
+    -- the fresh value is within the log: `Next = lastIndex + 1`, `Match = 0` (whatever its window)
+    have Hli' : li = logLast s.logst := logLast_unsigned _ _ Hli0
+    have Hfresh : ∀ I, PrOk s.logst (progressOf
+          { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
+            PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
+            Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe I) :=
+      fun I => PrOk.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl) rfl
     ihave Hphys := HI $$ Htrkf [Htrk]
+      %(PrvalsOk.insert (pvs := <[i := p]> pvs0) Hok1 (fun _ => Hfresh _))
     · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
       rfl
+    -- the bound of what is now written, for the node's own second write
+    icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok2, -, Hphys⟩
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     -- Both arms end the same way: hand the field and the tracker back to `Visit`, and
     -- the wand back to `I`.
@@ -264,7 +295,17 @@ theorem raft.reset.wp_proof
           [Hpv Hinfl] %Habs2.1
       · iapply ownProgress_of pr { pv2 with Match' := li2 } p2.state _ Habs2.2.1
           $$ Hpv Hinfl
-      ihave Hphys := HI $$ Htrkf [Htrk]
+      -- the node's own value: `Match = lastIndex`, the rest as just written
+      have Hli2' : li2 = logLast s.logst := logLast_unsigned _ _ Hli1
+      have Hp2 := Hpv2
+      rw [GMap.lookup_insert_eq] at Hp2
+      have Hown : ∀ I, PrOk s.logst (progressOf { pv2 with Match' := li2 } p2.state I) :=
+        fun I => PrOk.of_reset_vals Hnw
+          (by simp only [progressOf]; rw [Habs2.2.2.2.1, ← Option.some.inj Hp2]
+              simp only [progressOf]; rw [Hli'])
+          (.inr (by simp only [progressOf]; exact Hli2'))
+          (by simp only [progressOf]; rw [Habs2.2.2.2.2.2.1, ← Option.some.inj Hp2]; rfl)
+      ihave Hphys := HI $$ Htrkf [Htrk] %(PrvalsOk.insert Hok2 (fun _ => Hown _))
       · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
         rfl
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
@@ -278,10 +319,14 @@ theorem raft.reset.wp_proof
       · ipureintro
         simp only [GMap.insert_insert]
         refine resetInv_step _ _ _ _ _ _ _ _ Hinv0 Hpvi ?_
-        simp only [progressOf, ite_eq_left Hii]
-        exact logLast_unsigned _ _ Hli1
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := HI $$ %tvx %pvsx Hf [Ht]
+        refine ⟨?_, ?_, ?_, ?_⟩
+        · simp only [progressOf]; rw [Habs2.2.2.2.1, ← Option.some.inj Hp2]
+          simp only [progressOf]; rw [Hli']
+        · simp only [progressOf, ite_eq_left Hii]; exact Hli2'
+        · simp only [progressOf]; rw [Habs2.2.2.2.2.2.1, ← Option.some.inj Hp2]; rfl
+        · simp only [progressOf]; rw [← Option.some.inj Hp2]; rfl
+      iintro %tvx %pvsx Hf Ht %Hokx
+      ihave Hphys := HI $$ %tvx %pvsx Hf [Ht] %Hokx
       · iapply ownTracker_cast _ _ _ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by rfl) $$ Hphys
@@ -298,14 +343,16 @@ theorem raft.reset.wp_proof
       · ipureintro
         simp only [GMap.insert_insert]
         refine resetInv_step _ _ _ _ _ _ _ _ Hinv0 Hpvi ?_
-        simp only [progressOf, ite_eq_right Hii]
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := HI $$ %tvx %pvsx Hf [Ht]
+        refine ⟨?_, ?_, rfl, rfl⟩
+        · simp only [progressOf]; rw [Hli']
+        · simp only [progressOf, ite_eq_right Hii]
+      iintro %tvx %pvsx Hf Ht %Hokx
+      ihave Hphys := HI $$ %tvx %pvsx Hf [Ht] %Hokx
       · iapply ownTracker_cast _ _ _ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by rfl) $$ Hphys
   -- `Visit` hands the field and the tracker back
-  ihave Hphys := HI $$ %tvfin %pvsfin Htrkf [Htrk]
+  ihave Hphys := HI $$ %tvfin %pvsfin Htrkf [Htrk] %(resetInv_prvalsOk _ _ _ _ _ Hinv Hok0 Hnw)
   · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
     rfl
   -- `pendingConfIndex := 0`, `uncommittedSize := 0`
@@ -322,10 +369,10 @@ theorem raft.reset.wp_proof
   iapply HΦ $$ %pvsfin
   isplitl
   · iapply ownRaftPhysC_eq c r id _ _ (by rfl) $$ Hphys
-  ipureintro
-  apply resetInv_done
-  rw [Hdomcfg]
-  exact Hinv
+  have Hdone := resetInv_done id (logLast s.logst) s.prvals pvsfin (by rw [Hdomcfg]; exact Hinv)
+  isplitr
+  · ipureintro; exact Hdone.1
+  ipureintro; exact Hdone.2
 
 end proof
 

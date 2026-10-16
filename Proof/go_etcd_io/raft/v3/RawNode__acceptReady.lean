@@ -543,7 +543,7 @@ theorem RawNode.acceptReady.wp_proof
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] [] [] [] Hlog
+    [] [] [] [] [] [] Hlog
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil
@@ -553,6 +553,7 @@ theorem RawNode.acceptReady.wp_proof
   · ipureintro; intro _ h; cases h
   · ipureintro; exact Nat.zero_le _
   · ipureintro; intro h; cases h
+  · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable]; exact Int.le_refl _
   -- the node after `Ready`
   have Hlf := logAcceptApplying_fields (logAcceptUnstable s.logst) ce sz
   have Hlogst : (readyNstate s ce sz).logst = logAcceptApplying (logAcceptUnstable s.logst) ce sz :=

@@ -245,6 +245,27 @@ theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s 
   iintro ⟨Hg, -⟩
   iapply ownRaftGhost_inv_md γ id (toPState s) $$ Hg
 
+/-- `ackIn` at equal arguments (2026-10-16, stage R8a): for an `ackIn` stated at a term and an index
+that are only definitionally the ones a lemma wants (`(toPState s).term`, `(absMsg …).index`). -/
+theorem ackIn_cast (γ : RaftNames) {t t' i i' : w64} (ht : t = t') (hi : i = i') :
+    ackIn (GF := GF) γ t i ⊢ ackIn γ t' i' := by
+  subst ht hi; exact .rfl
+
+/-- At a leader, an `ackIn` of its term is at most its last index (2026-10-16, stage R8a, D11):
+`ownRaftGhost_ackIn_le` through the mode's ghost state. -/
+theorem ownStepGhost_ackIn_le (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (i : w64) (Hl : s.role = .leader) :
+    ⊢ ownStepGhost (GF := GF) γ md c id s -∗ ackIn γ s.term i -∗
+      ⌜uint.Z i ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ ∗
+      ownStepGhost γ md c id s := by
+  unfold ownStepGhost
+  iintro ⟨Hg, Hrest⟩ Hai
+  ihave Hai' := ackIn_cast γ (show s.term = (toPState s).term from rfl) rfl $$ Hai
+  icases ownRaftGhost_ackIn_le γ id (toPState s) i
+      (by rw [toPState_role, proleRole_leader]; exact Hl) $$ Hg Hai' with ⟨%H, Hg⟩
+  iframe Hg Hrest
+  ipureintro; exact H
+
 /-- In the dynamic mode, `ownStepGhost` is `ownRaftGhostR`. -/
 theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh)
     (c : CfgM) (id : w64) (s : NState) :

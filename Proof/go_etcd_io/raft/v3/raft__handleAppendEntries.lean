@@ -108,7 +108,7 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp
+  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl
   wp_start as Hpre
   iNamed Hpre
   simp only [msgIn, needsCap_of_eq Htyapp]
@@ -160,6 +160,7 @@ theorem raft.handleAppendEntries.wp_proof
     · simp only [named, entsPts]; iexists els; iframe Hes Hents
     ihave Hphys := Hlogback $$ %ls' Hlog
       %(fun h => (Hgh0 h).elim (fun h1 => .inl (Hmagh.2 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)))
+      %(fun h => absurd h Hnl)
     cases Hpm : plogMaybeAppend s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') ents with
     | some res =>

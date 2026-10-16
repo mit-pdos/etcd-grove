@@ -1099,14 +1099,14 @@ theorem ownRaftPhys_voter (r : Loc) (id : w64) (s : NState) :
 wrap (`ownRaftLog`'s `Hnowrap`), read out without consuming anything. -/
 theorem ownRaftPhys_prvals_ok (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ⌜PrvalsOk s⌝ ∗ ⌜uint.Z (logLast s.logst) + 1 < 2 ^ 64⌝ ∗ ownRaftPhys cfg r id s := by
+      ⌜PrvalsOk s⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗ ownRaftPhys cfg r id s := by
   iintro H
   iNamed_phys H
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
   isplitr
   · ipureintro; exact Hprok
   isplitr
-  · ipureintro; exact logLast_nowrap _ Hnw
+  · ipureintro; exact Hnw
   clear Hnw
   reseal s
 
@@ -1914,7 +1914,7 @@ theorem ownRaftPhys_pr_upd (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Lo
     ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
       ⌜s.progress !! to = some pr⌝ -∗
       ⌜s.prvals !! to = some p⌝ -∗
-      ⌜s.role = .leader → PrOk s.logst p⌝ ∗ ⌜uint.Z (logLast s.logst) + 1 < 2 ^ 64⌝ ∗
+      ⌜s.role = .leader → PrOk s.logst p⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗
       ownProgress pr p ∗
       (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
          ⌜s.role = .leader → PrOk s.logst p'⌝ -∗
@@ -2520,14 +2520,14 @@ theorem ownRaftPhysC_reconfig (c0 c : CfgM) (r : Loc) (id : w64) (s : NState)
 `lastIndex() + 1` does not wrap, read out without consuming anything. -/
 theorem ownRaftPhysC_prvals_ok (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜PrvalsOk s⌝ ∗ ⌜uint.Z (logLast s.logst) + 1 < 2 ^ 64⌝ ∗ ownRaftPhysCV c V r id s := by
+      ⌜PrvalsOk s⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗ ownRaftPhysCV c V r id s := by
   iintro H
   iNamed_physC H
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
   isplitr
   · ipureintro; exact Hprok
   isplitr
-  · ipureintro; exact logLast_nowrap _ Hnw
+  · ipureintro; exact Hnw
   clear Hnw
   resealC c s
 
@@ -3149,7 +3149,7 @@ theorem ownRaftPhysC_pr_upd (r : Loc) (id : w64) (s : NState) (to : w64) (pr : L
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
       ⌜s.progress !! to = some pr⌝ -∗
       ⌜s.prvals !! to = some p⌝ -∗
-      ⌜s.role = .leader → PrOk s.logst p⌝ ∗ ⌜uint.Z (logLast s.logst) + 1 < 2 ^ 64⌝ ∗
+      ⌜s.role = .leader → PrOk s.logst p⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗
       ownProgress pr p ∗
       (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
          ⌜s.role = .leader → PrOk s.logst p'⌝ -∗

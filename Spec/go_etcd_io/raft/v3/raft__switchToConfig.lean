@@ -137,10 +137,15 @@ abbrev raft.switchToConfig.spec : Prop :=
   (s.role = .leader →
     (id ∈ c.voters ∧ MatchKept s.prvals pvs) ∨ (id ∉ c.voters ∧ s.sdr = true)) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c.voters) →
+  -- (2026-10-16, stage R8a, D11) at a leader the new `Progress` values are within its log (the
+  -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a
+  -- fresh one is at `max(lastIndex, 1)` (`applyConfChange`, `PrKept`)
+  (s.role = .leader → ∀ v p, pvs !! v = some p → PrOk s.logst p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
            ownTrackerC c tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhysCV c (c.voters ∪ {[id]}) r id { s with progress := prs', prvals := pvs' }) ∗
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
       "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
@@ -162,10 +167,12 @@ abbrev raft.switchToConfig.specS : Prop :=
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
   (s.role = .leader → id ∈ cfg ∧ MatchKept s.prvals pvs) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ cfg) →
+  (s.role = .leader → ∀ v p, pvs !! v = some p → PrOk s.logst p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
            ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
       "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
@@ -183,17 +190,17 @@ open Iris.ProofMode in
 theorem raft.switchToConfig.spec_simple
     (H : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s tv0 cfgv prsm prs pvs Hlead Hcand
+  intro cfg r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
   iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, %Hmi, Hnew⟩ HΦ
   ihave Hnew := ownConfigV_toC _ _ _ _ _ $$ Hnew
   iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv0 cfgv prsm prs pvs
       (fun hl => .inl (by rw [CfgM.voters_simple]; exact Hlead hl))
-      (fun hc => by rw [CfgM.voters_simple]; exact Hcand hc)
+      (fun hc => by rw [CfgM.voters_simple]; exact Hcand hc) Hpok
     $$ [$Hpkg $Htrkf Hback $Hvotes $Hnew]
   · isplitl [Hback]
-    · iintro %tv' %prs' %pvs' Hf Ht
+    · iintro %tv' %prs' %pvs' Hf Ht %Hok
       icases ownTrackerC_toTracker _ _ _ _ $$ Ht with ⟨Ht, %HL⟩
-      ihave Hp := Hback $$ %tv' %prs' %pvs' Hf Ht
+      ihave Hp := Hback $$ %tv' %prs' %pvs' Hf Ht %Hok
       ihave Hp := ownRaftPhys_toC' $$ Hp
       simp only at HL
       rw [HL]
@@ -252,6 +259,7 @@ theorem raft.switchToConfig.spec_follower
   iapply (raft.switchToConfig.spec_simple H) cfg r id s tv cfgv prsm prs pvs
       (fun h => absurd (Hrole.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
+      (fun h => absurd (Hrole.symm.trans h) (by decide))
     $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
   · ipureintro; exact Hmi
   inext
@@ -297,6 +305,7 @@ theorem raft.switchToConfig.spec_nonleader
   iapply (raft.switchToConfig.spec_simple H) cfg r id s tv cfgv prsm prs pvs
       (fun h => absurd (Hrole.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
+      (fun h => absurd (Hrole.symm.trans h) (by decide))
     $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
   · ipureintro; exact Hmi
   inext

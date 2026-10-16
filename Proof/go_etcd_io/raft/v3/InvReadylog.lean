@@ -145,6 +145,24 @@ theorem logAcceptApplying_applying (ls : LogState) (ce : List EntryM) (sz : w64)
     (logAcceptApplying ls ce sz).applying = e.Index' := by
   unfold logAcceptApplying; rw [He]
 
+/-- A `Ready`'s acceptance keeps the last index (2026-10-16, stage R8a): what `ownRaftPhysC_view`'s
+close asks of a leader. -/
+theorem logLast_acceptUnstable (ls : LogState) : logLast (logAcceptUnstable ls) = logLast ls := rfl
+
+theorem logLast_acceptApplying (ls : LogState) (ce : List EntryM) (sz : w64) :
+    logLast (logAcceptApplying ls ce sz) = logLast ls := by
+  unfold logAcceptApplying; split <;> rfl
+
+/-- `stableTo` keeps the last index (2026-10-16, stage R8a): what `ownRaftPhysC_log_at` asks of a
+leader. -/
+theorem logLast_stableTo (ls : LogState) (id : entryID) :
+    logLast (logStableTo ls id) = logLast ls := by
+  unfold logStableTo
+  split
+  · simp only [logLast, List.length_append, List.length_take, List.length_drop]
+    congr 1; push_cast; omega
+  · rfl
+
 theorem logStableTo_fields (ls : LogState) (id : entryID) :
     (logStableTo ls id).applying = ls.applying ∧
     (logStableTo ls id).unpersisted = ls.unpersisted ∧

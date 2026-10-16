@@ -153,6 +153,7 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
       icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, -, Hback⟩
       wp_apply _P.stableTo _ _ _ (Hstok Hmt Hi0) $$ [$Hlog] as Hlog
       ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff)
+        %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
       wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
       try wp_auto
       iapply HΦ $$ %interface.nil %_

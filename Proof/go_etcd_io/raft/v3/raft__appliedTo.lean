@@ -56,6 +56,7 @@ theorem raft.appliedTo.wp_proof
       | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) $$ [$Hlog] as Hlog
       | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega) $$ [$Hlog] as Hlog
     ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+      %(fun _ => logLast_le_of_fields rfl rfl rfl)
     -- `r.trk.Config.AutoLeave`: off, or the node is no leader (`Hal0`) -- the rest is dead
     icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htback⟩
     icases ownTrackerC_autoleave c _ _ $$ Htrk with ⟨%Hal, Htrk⟩

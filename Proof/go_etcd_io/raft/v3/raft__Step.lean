@@ -245,7 +245,39 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
       ipureintro; intro _; exact H1
     · ipureintro; exact fun h => absurd h hl
   ihave %Hlrd := Hlrd_lem $$ Hghost
-  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hfnz Hrej Hwf)
+  -- (2026-10-16, stage R8a, D11) an accepted acknowledgement of the leader's term is within its
+  -- log: the message's ghost witness (`ackIn`, `isMessage_appResp_ackIn`) at the leader
+  -- (`ownRaftGhost_ackIn_le`), in `logLast` through `lastIndex() + 1` not wrapping
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨-, %Hnw, Hphys⟩
+  have Hack_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+      isMessage γ (absMsg .appResp m ents) -∗
+      ⌜s.role = .leader → m.Term' = s.term → m.Reject' = false →
+        uint.Z m.Index' ≤ uint.Z (logLast s.logst)⌝ ∗
+      ownRaftGhost γ id (toPState s) md.isDyn := by
+    iintro Hg #Hmsg
+    by_cases hl : s.role = .leader
+    rotate_left
+    · iframe Hg; ipureintro; exact fun h => absurd h hl
+    by_cases ht : m.Term' = s.term
+    rotate_left
+    · iframe Hg; ipureintro; exact fun _ h => absurd h ht
+    by_cases hr : m.Reject' = false
+    rotate_left
+    · iframe Hg; ipureintro; exact fun _ _ h => absurd h hr
+    ihave #Hai := isMessage_appResp_ackIn γ (absMsg .appResp m ents) rfl hr $$ Hmsg
+    ihave Hai' := ackIn_cast γ (show (absMsg .appResp m ents).term = (toPState s).term from ht)
+      (show (absMsg .appResp m ents).index = m.Index' from rfl) $$ Hai
+    icases ownRaftGhost_ackIn_le γ id (toPState s) m.Index'
+        (by rw [toPState_role, proleRole_leader]; exact hl) $$ Hg Hai' with ⟨%H, Hg⟩
+    iframe Hg
+    ipureintro
+    intro _ _ _
+    rw [Hnw.logLast_Z]
+    simp only [toPState, plogLastIndexZ, List.length_append] at H
+    push_cast at H
+    omega
+  icases Hack_lem $$ Hghost Hm with ⟨%Hack, Hghost⟩
+  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents Hlrd Hack Hty Hto Hterm Hfnz Hrej Hwf)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

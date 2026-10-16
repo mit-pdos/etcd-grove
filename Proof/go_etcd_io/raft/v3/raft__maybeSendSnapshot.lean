@@ -136,6 +136,8 @@ theorem raft.maybeSendSnapshot.wp_proof
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_snapshot _ _ _ $$ [$Hlog $ErrSnapUnavail] as %snap %err ⟨Hlog, Herr⟩
+  -- (stage R8a) the commit index is within the log: `BecomeSnapshot`'s index is at most it
+  icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
   ihave Hphys := Hlogback $$ Hlog
   icases Herr with (%Herr | ⟨%Herr, %sv, Hsnap, %Hsv⟩)
   · -- `ErrSnapshotTemporarilyUnavailable`: log and return `false`. The
@@ -185,9 +187,12 @@ theorem raft.maybeSendSnapshot.wp_proof
     wp_raft_logC
     -- `pr.BecomeSnapshot(sindex)`: borrow `pr` again, give it back at
     -- the new value
-    icases ownRaftPhysC_pr_upd c r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨Hpr, Hback⟩
+    icases ownRaftPhysC_pr_upd c r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨%Hok, %Hnw, Hpr, Hback⟩
     wp_apply wp_Progress_BecomeSnapshot $$ [$Hpr] as Hpr
     ihave Hphys := Hback $$ %(progressBecomeSnapshot pp sv.Metadata'.Index') Hpr %rfl
+      %(fun Hl => (Hok Hl).becomeSnapshot Hnw (by
+          obtain ⟨⟨-, -, Hcle⟩, -⟩ := Hcmb
+          rw [Hnw.logLast_Z]; omega))
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
     -- `&pb.Message{To: new(to), Type: pb.MsgSnap.Enum(), Snapshot: snapshot}`: the message owns

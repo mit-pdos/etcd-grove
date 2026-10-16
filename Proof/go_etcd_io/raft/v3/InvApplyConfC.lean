@@ -133,10 +133,10 @@ theorem ownTrackerC_toCC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
       rw [← hb]; exact Hflags k p hp
 
 /-- What a result's new object is, once the old objects' rings are moved to it. -/
-private def newPrQC (peers : GMap w64 Progress) (k : w64) (pv : tracker.Progress) : IProp GF :=
+private def newPrQC (chg : confchange.Changer) (peers : GMap w64 Progress) (k : w64)
+    (pv : tracker.Progress) : IProp GF :=
   iprop(∃ p, ownInflights pv.Inflights' p.infl ∗
-    ⌜progressAbs pv p.infl = some p ∧
-      (uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched)⌝)
+    ⌜progressAbs pv p.infl = some p ∧ PrKeptAt peers chg.LastIndex' k p⌝)
 
 /-- `ownResult_noop_transfer` at any configuration: a `Changer` result in a reachable state
 `s'` (`CCGood`, `CfgInv`), with the old objects' rings moved to the new ones, is the new
@@ -150,12 +150,13 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
       ownPrsW chg base trk s'.prs ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
       |==> ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-        ownConfigC s'.cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ ∗ ⌜domSet prs = s'.cfg.ids⌝ := by
+        ownConfigC s'.cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ ∗
+        ⌜PrKept peers pvs chg.LastIndex'⌝ ∗ ⌜domSet prs = s'.cfg.ids⌝ := by
   iintro ⟨Hc, Hw, HR⟩
   unfold ownPrsW
   icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, Hnew⟩
   ihave HQ := ownNewPr_transfer chg base (fun k pv => progRAt (GF := GF) peers k pv)
-      (fun k pv => newPrQC (GF := GF) peers k pv) ?_ ?_ pvs $$ [$HR $Hnew]
+      (fun k pv => newPrQC (GF := GF) chg peers k pv) ?_ ?_ pvs $$ [$HR $Hnew]
   · intro k pv0 pv _ h1
     unfold progRAt newPrQC
     iintro ⟨%p, %Hp, Hinfl, %Habs⟩
@@ -165,7 +166,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     iframe Hinfl
     ipureintro
     obtain ⟨_, h2, h3, h4, h5, h6, h7, h8⟩ := (progressAbs_Some _ _ _).1 Habs
-    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8⟩, .inr ⟨p, Hp, rfl⟩⟩ <;>
+    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8⟩, .inl ⟨p, Hp, rfl, rfl, rfl⟩⟩ <;>
       (rw [h1]; assumption)
   · intro k pv Hf
     unfold newPrQC
@@ -175,9 +176,8 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     isplitl [Hinfl]
     · simp only [progressOf]; iexact Hinfl
     ipureintro
-    obtain ⟨Hm, -, -, Hst, -, -, -⟩ := Hf
-    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inl ?_⟩
-    simp only [progressOf, Hm]; rfl
+    obtain ⟨Hm, Hn, -, Hst, Hps, -, -⟩ := Hf
+    exact ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inr ⟨Hm, Hn, Hps⟩⟩
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
   have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
   obtain ⟨Hgd, Hgf, -, -⟩ := Hgood
@@ -191,14 +191,14 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     rw [GMap.elem_of_dom', GMap.mem_iff, Hdom k, ← flagsOf_mem, Hflags]
     exact Hgd k
   ihave HQ2 := (BigSepM2.bigSepM2_sepM (Φ1 := fun (_ : w64) (_ : Loc) => (emp : IProp GF))
-    (Φ2 := fun k pv => newPrQC (GF := GF) peers k pv) (m1 := prs) (m2 := pvs) Hdom0).2 $$ [HQ]
+    (Φ2 := fun k pv => newPrQC (GF := GF) chg peers k pv) (m1 := prs) (m2 := pvs) Hdom0).2 $$ [HQ]
   · isplitr
     · iapply (BigSepM.bigSepM_emp (m := prs)).2
       iempintro
     · iexact HQ
   ihave H := BigSepM2.bigSepM2_sep_eqv.2 $$ [$Hprs $HQ2]
   ihave H : ([∗map] k ↦ pr;pv ∈ prs;pvs, ((∃ p, ownProgress pr p ∗
-      ⌜(uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched) ∧
+      ⌜PrKeptAt peers chg.LastIndex' k p ∧
         p.learner = decide (k ∈ s'.cfg.learners)⌝) ∗ emp :
         IProp GF)) $$ [H]
   · iapply (BigSepM2.bigSepM2_mono (fun {k pr pv} _ hpv => ?_)) $$ H
@@ -215,7 +215,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
         exact ⟨Hm, ((progressAbs_Some _ _ _).1 Habs).1.symm.trans (Hlf k pv hpv)⟩
     · iempintro
   icases (BigSepM2.bigSepM2_sepM (Φ1 := fun k pr => iprop(∃ p, ownProgress (GF := GF) pr p ∗
-      ⌜(uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched) ∧
+      ⌜PrKeptAt peers chg.LastIndex' k p ∧
         p.learner = decide (k ∈ s'.cfg.learners)⌝))
     (Φ2 := fun (_ : w64) (_ : tracker.Progress) => (emp : IProp GF)) (m1 := prs) (m2 := pvs)
     Hdom0).1 $$ H with ⟨H, -⟩
@@ -262,9 +262,11 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     · rw [Htf]; exact Hinv
     · rw [← GMap.size_dom, Hpdom]; exact Hsz
   · ipureintro
-    refine ⟨fun k p' hp' => ?_, Hpdom⟩
-    obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp']; rfl))
-    exact (Hmk k pr p' hpr hp').1
+    refine ⟨fun k p' hp' => ?_, fun k p' hp' => ?_, Hpdom⟩
+    · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp']; rfl))
+      exact (Hmk k pr p' hpr hp').1.matchKept
+    · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp']; rfl))
+      exact (Hmk k pr p' hpr hp').1
 
 end heap
 
