@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.notify(rev, evs)` under `s.mu` (the lock's state `σ` at the sole writer's log `ilog`, its
 synced watchers delivered at most up to `ilog`'s length), for the events `evs` of the pending
-revision `rev = ilog.length` (sealed: the history's lower bound of `ilog ++ [pend]`): each synced
+revision `rev = ilog.length` (sealed: `idxSealed` of `ilog ++ [pend]`): each synced
 watcher with events gets them in one response (one revision: the `revs != 1` panic is
 unreachable) and is then delivered up to `rev + 1`, or, if its channel is full, becomes a victim
 with its batch; the others are delivered up to `rev + 1` with nothing to send. -/
@@ -33,7 +33,7 @@ abbrev mvcc.watchableStore.notify.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.watchStoreBody s γ 1 σ ∗
       ⌜σ.Lmu = ilog ∧ σ.syncedBelow ilog.length ∧ ilog.length + 2 < 2 ^ 63 ∧ ilog ≠ []⌝ ∗
-      monoListLbOwn γ.st.idx.hist (mvcc.histOf (ilog ++ [pend])) ∗
+      mvcc.idxSealed γ.st.idx (ilog ++ [pend]) ∗
       evs ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
       ⌜es.length = evm.length ∧ evm = mvcc.evsOfRevM ilog.length (mvcc.stateAfter ilog) pend⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"notify"))

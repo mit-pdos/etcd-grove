@@ -964,18 +964,85 @@ def idxWriterB (γ : IdxNames) (ilog : Log) (pend : List Change) (sealed : Bool)
 @[simp] theorem idxWriterB_true (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxWriterB (GF := GF) γ ilog pend true = idxWriterSealed γ ilog pend := rfl
 
+/-- A **sealed** log (unit W-M2b): its history is a prefix of the index's, and it is well
+formed and bounded (`idxCert` without the committed log's lower bound and the events' count: a
+revision is sealed before it is committed, `idxWriter_seal`, so this is what the watchers'
+deliveries certify). Two sealed logs are in prefix order (`idxSealed_prefix`). Not a floor for
+reads: a sealed log need not be committed yet (`idxCert` is). -/
+def idxSealed (γ : IdxNames) (log : Log) : IProp GF :=
+  iprop(monoListLbOwn γ.hist (histOf log) ∗
+    ⌜LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝)
+
+instance idxSealed_persistent (γ : IdxNames) (log : Log) :
+    Persistent (idxSealed (GF := GF) γ log) := by
+  unfold idxSealed; infer_instance
+
+/-- **Two sealed logs are in prefix order** (their histories are lower bounds of the index's). -/
+theorem idxSealed_prefix (γ : IdxNames) (log log' : Log) :
+    idxSealed (GF := GF) γ log ∗ idxSealed γ log' ⊢ ⌜log <+: log' ∨ log' <+: log⌝ := by
+  unfold idxSealed
+  iintro ⟨⟨Hl, -⟩, ⟨Hl', -⟩⟩
+  ihave %h := mono_list_lb_valid γ.hist (histOf log) (histOf log') $$ Hl Hl'
+  ipureintro; exact histOf_cmp_log h
+
+/-- `idxSealed_prefix`, curried (for `ihave … $$ H1 H2`). -/
+theorem idxSealed_cmp (γ : IdxNames) (log log' : Log) :
+    ⊢ idxSealed (GF := GF) γ log -∗ idxSealed γ log' -∗ ⌜log <+: log' ∨ log' <+: log⌝ := by
+  iintro H1 H2
+  iapply idxSealed_prefix γ log log'
+  isplitl [H1]
+  · iexact H1
+  · iexact H2
+
+/-- A sealed log's pure facts. -/
+theorem idxSealed_pure (γ : IdxNames) (log : Log) :
+    idxSealed (GF := GF) γ log ⊢
+      ⌜LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ := by
+  unfold idxSealed
+  iintro ⟨-, %h⟩; ipureintro; exact h
+
+/-- **Two sealed logs of one length are one log.** -/
+theorem idxSealed_agree_len (γ : IdxNames) (log log' : Log) :
+    idxSealed (GF := GF) γ log ∗ idxSealed γ log' ⊢ ⌜log.length = log'.length → log = log'⌝ := by
+  refine (idxSealed_prefix γ log log').trans (pure_mono fun h hlen => ?_)
+  rcases h with h | h
+  · exact h.eq_of_length hlen
+  · exact (h.eq_of_length hlen.symm).symm
+
+/-- The empty log is sealed. -/
+theorem idxSealed_nil (γ : IdxNames) : ⊢ |==> idxSealed (GF := GF) γ [] := by
+  unfold idxSealed
+  imod monoListLbOwn_nil (GF := GF) (A := HistItem) γ.hist with #H1
+  imodintro
+  have h1 : histOf [] = ([] : List HistItem) := rfl
+  rw [h1]
+  iframe H1
+  ipureintro
+  exact ⟨⟨fun h => absurd rfl h, fun r cs i k hr _ => by simp at hr⟩, by simp, by simp⟩
+
+/-- The writer's log with its pending revision committed is well formed and bounded. -/
+theorem IdxWf.sealed {ilog : Log} {pend : List Change} (h : IdxWf ilog pend) :
+    LogWf' (ilog ++ [pend]) ∧ (ilog ++ [pend]).length < 2 ^ 63 ∧
+      ∀ cs ∈ ilog ++ [pend], cs.length < 2 ^ 63 := by
+  obtain ⟨hwf, hl, hp, hcs⟩ := h
+  refine ⟨hwf, by simp; omega, fun cs hcs' => ?_⟩
+  rcases List.mem_append.1 hcs' with h | h
+  · exact hcs cs h
+  · simp at h; subst h; exact hp
+
 /-- **Seal** (a ghost step of the writer alone): the pending revision's commit marker, and the
-persistent lower bound of the history with the revision committed. -/
+log with the revision committed is sealed (persistent; unit W-M2b: `idxSealed`, which carries
+the history's lower bound and the log's well-formedness). -/
 theorem idxWriter_seal (γ : IdxNames) (ilog : Log) (pend : List Change) (hne : pend ≠ []) :
     idxWriter (GF := GF) γ ilog pend ==∗
-      idxWriterSealed γ ilog pend ∗ monoListLbOwn γ.hist (histOf (ilog ++ [pend])) := by
-  unfold idxWriter idxWriterSealed
+      idxWriterSealed γ ilog pend ∗ idxSealed γ (ilog ++ [pend]) := by
+  unfold idxWriter idxWriterSealed idxSealed
   iintro ⟨Hauth, #Hnev, %Hwf, Hlauth⟩
   imod monoListAuthOwn_update_app [HistItem.commit] $$ Hauth with ⟨Hauth, #Hlb⟩
   imodintro
   rw [histShape_seal]
   iframe Hauth Hlauth Hlb Hnev
-  ipureintro; exact ⟨Hwf, hne⟩
+  ipureintro; exact ⟨⟨Hwf, hne⟩, Hwf.sealed⟩
 
 /-- A sealed writer's pending revision is not empty. -/
 theorem idxWriterB_ne (γ : IdxNames) (ilog : Log) (pend : List Change) (b : Bool) :
@@ -1017,6 +1084,13 @@ def idxCert (γ : IdxNames) (log : Log) : IProp GF :=
 
 instance idxCert_persistent (γ : IdxNames) (log : Log) : Persistent (idxCert (GF := GF) γ log) := by
   unfold idxCert; infer_instance
+
+/-- A certified log is sealed (unit W-M2b). -/
+theorem idxCert_sealed (γ : IdxNames) (log : Log) :
+    idxCert (GF := GF) γ log ⊢ idxSealed γ log := by
+  unfold idxCert idxSealed
+  iintro ⟨Hl, -, %h, -⟩
+  iframe Hl; ipureintro; exact h
 
 /-- **Two certificates are of logs in prefix order.** -/
 theorem idxCert_prefix (γ : IdxNames) (log log' : Log) :
