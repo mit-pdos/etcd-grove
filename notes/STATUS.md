@@ -4899,7 +4899,19 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
   can reach the client before the earlier progress response, which the client then broadcasts to
   X: for a watch X from an old revision, "nothing changed up to `p`" before X's events below `p`.
   A broadcast progress response's coverage cannot be promised to every live watch without a fix;
-  a per-watcher progress response's can. The user's decision is pending.
+  a per-watcher progress response's can. The user's decision: fix it in the fork. A client-side
+  fix is impossible (a progress request has no id and the server may not answer it, so the client
+  cannot tell which request a broadcast answers); the server-side fix `c267e0ffe` (branch
+  `watch-progress-before-created`), cherry-picked as `goose-lean` `09669450f`: `sendLoop` sends the
+  responses queued on the watch channel before a `Created` response. **In progress** (working tree
+  of `slice-wk`, not committed): the pin `09669450f` and the regenerated `v3rpc` translation;
+  `serverWatchStream.sendLoop`'s proof breaks at the drain (the watch case's proof must become a
+  spec of the `sendWatch` closure, proved where the closure is made and used by both cases); then
+  the ordering fact K1b needs (a `Created` at down position `j` follows every watch-channel
+  response queued before it: the control response carries a lower bound of the watch channel's
+  sent list, and the drain's empty receive gives received = sent). Perennial limitation noted:
+  `wp_Len` relates a channel's length to nothing (`ChanAuSend.lean`), so a bounded drain is not
+  provable; the fix drains until empty instead.
 - **K1 (mvcc: progress means synced).** `progressIfSync` sends at the store's revision `rev` under
   `s.mu.RLock` only when every watcher of the map is synced with `startRev ≤ rev`: so the
   stream's channel already holds every event `≤ rev` of each of them. Give a progress response

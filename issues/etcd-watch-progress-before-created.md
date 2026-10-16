@@ -4,6 +4,16 @@ upstream: unchecked
 
 # A progress notification can reach a watch created after it, before the watch's events
 
+- **Fix** (the user's decision, 2026-10-16: folded into the verified fork): fork commit `c267e0ffe`
+  (branch `watch-progress-before-created`, on upstream `f061acd09`; not pushed), cherry-picked onto
+  `goose-lean` as `09669450f` (not pushed): before sending a `Created` response, `sendLoop` sends
+  the watch responses already queued on the watch channel (a non-blocking receive until the
+  channel is empty; the handling of a watch response moved into a closure `sendWatch`, used by
+  both cases). With it the reproduction finds no hit in 3 × 500 trials (without: a hit within 47,
+  252, 373 trials); v3rpc's unit tests and `tests/integration/clientv3/watch` pass. The commit
+  adds the reproduction as `TestWatchProgressBeforeCreatedRace`. A bounded drain
+  (`len(sws.watchStream.Chan())` responses) was the first version; it passes the same tests, but
+  Perennial's `Len` spec (`wp_Len`) only bounds the result, so the proof could not use it.
 - **Status**: bug (a wrong result): a watch created from an old revision can receive, as its first
   response, a progress notification at a revision above events it has not received yet. A client
   that reads a progress notification as "nothing changed under my range up to this revision" (its
