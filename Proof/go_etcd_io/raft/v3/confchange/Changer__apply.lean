@@ -9,7 +9,6 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__apply
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeVoter
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.fmt.Errorf
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
@@ -76,7 +75,6 @@ theorem confchange.Changer.apply.wp_proof
     (wp_Changer_makeVoter : confchange.Changer.makeVoter.spec (GF := GF) (hG := hG))
     (wp_Changer_makeLearner : confchange.Changer.makeLearner.spec (GF := GF) (hG := hG))
     (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (wp_ConfChangeType_String : raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetNodeId : raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG))
@@ -204,7 +202,7 @@ theorem confchange.Changer.apply.wp_proof
         rw [hl, applyAll_append, Hstep, Hnone]; rfl
       simp only [applyM, Hall, Option.bind_none]
       ipureintro; intro h; cases h
-  · -- the loop is over: `len(incoming(cfg.Voters)) == 0`?
+  · -- the loop is over: `len(cfg.Voters.Incoming) == 0`?
     have Hall : l.take (sint.nat n) = l := by
       apply List.take_of_length_le; have := Hclen.1; word
     rw [Hall] at Hn
@@ -212,7 +210,7 @@ theorem confchange.Changer.apply.wp_proof
       ⟨%cfg, %prs, %pvs, Hcfgp, Hc, Htrk, Hprs, %Hflags, Hnew⟩
     icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
     wp_auto
-    wp_apply wp_confchange_incoming _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
     wp_apply wp_map_len_lt $$ Hin as ⟨Hin, %Hlt⟩
     ihave Hc := ownCfgCC_intro cfg (DFrac.own 1) s'.cfg vin vout Harr Hal $$ Hin Hout Hl Hln
     ihave Hw := ownWork_intro chg base cfgp trk s' cfg prs pvs Hflags $$ Hcfgp Hc Htrk Hprs Hnew

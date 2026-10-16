@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `p.ConfState()` is the `ConfState` of the active configuration (tracker.go:
-`Voters: p.Voters[0].Slice()`, `VotersOutgoing: p.Voters[1].Slice()`, `Learners:
+`Voters: p.Voters.Incoming.Slice()`, `VotersOutgoing: p.Voters.Outgoing.Slice()`, `Learners:
 quorum.MajorityConfig(p.Learners).Slice()`, `LearnersNext: ...`, `AutoLeave: p.AutoLeave`):
 each list a permutation of its set (really sorted).
 

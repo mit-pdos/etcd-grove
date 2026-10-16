@@ -4,7 +4,6 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/joint.lean`. Lean-first (no Rocq co
 module
 
 public import Spec.go_etcd_io.raft.v3.confchange.joint
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
 
 @[expose] public section
 
@@ -22,13 +21,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem confchange.joint.wp_proof
-    (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG)) :
+theorem confchange.joint.wp_proof :
     confchange.joint.spec (GF := GF) (hG := hG) := by
   intro cfg vin vout s dq Harr
   wp_start as Hs
   wp_auto
-  wp_apply wp_confchange_outgoing _ vin vout Harr
+  rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
   unfold ownIdsetQ
   icases Hs with (⟨%Hnil, %Hs⟩ | Hm)
   · subst Hnil Hs

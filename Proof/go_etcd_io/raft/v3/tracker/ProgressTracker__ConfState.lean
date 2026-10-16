@@ -39,47 +39,43 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
     have := size_le_of_sub_dom s prs (by rw [Hdom]; exact hs)
     omega
   wp_auto
-  -- `Voters[0].Slice()`: the receiver is a pointer into the tracker's `JointConfig`
-  -- array. Split the array field out of `trk ↦ tv` and element 0 out of the array.
+  -- `Voters.Incoming.Slice()`: the field read out of `trk ↦ tv` and put back.
+  obtain ⟨Hvin, Hvout⟩ := (quorum.JointConfig.halves_eq _ _ _).1 Harr
   icases (Access.access
-      (A := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"] ↦
-        tv.Config'.Voters')
-      (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"] ↦
-        tv.Config'.Voters')
-      (P := trk ↦ tv)) $$ Htrk with ⟨Hvf, Htrkback⟩
-  icases array_acc _ (sint.Z (W64 0)) _ _ _ vin (by decide) (by rw [Harr]; rfl)
-    $$ Hvf with ⟨Hc0, Hcback⟩
+      (A := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Incoming"] ↦
+        tv.Config'.Voters'.Incoming')
+      (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Incoming"] ↦
+        tv.Config'.Voters'.Incoming')
+      (P := trk ↦ tv)) $$ Htrk with ⟨Hf, Htrkback⟩
   wp_method_call
   wp_call
   wp_auto
+  ihave Htrk : (trk ↦ tv : IProp GF) $$ [Hf Htrkback]
+  · iapply Htrkback; iexact Hf
+  rw [Hvin]
   ihave %Hvin_nn := ownMap_not_nil $$ Hin
   wp_apply wp_MajorityConfig_Slice _ c.incoming $$ [Hin] as %sl0 %xs0 ⟨Hin, Hsl0, -, %Hxs0⟩
   · isplitl
     · unfold ownIdsetOpt; iright; iexact Hin
     · ipureintro; exact Hsz _ (incoming_sub_ids c)
-  ihave Hvf := Hcback $$ Hc0
-  -- element 1, the outgoing voters
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
-    $$ Hvf with ⟨Hc1, Hcback⟩
+  -- the outgoing voters
+  icases (Access.access
+      (A := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"] ↦
+        tv.Config'.Voters'.Outgoing')
+      (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"] ↦
+        tv.Config'.Voters'.Outgoing')
+      (P := trk ↦ tv)) $$ Htrk with ⟨Hf, Htrkback⟩
   wp_method_call
   wp_call
   wp_auto
+  ihave Htrk : (trk ↦ tv : IProp GF) $$ [Hf Htrkback]
+  · iapply Htrkback; iexact Hf
+  rw [Hvout]
   icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hoq, %Hoc⟩
   wp_apply wp_MajorityConfig_Slice vout c.outgoing $$ [Hoq] as %sl1 %xs1 ⟨Hoo, Hsl1, -, %Hxs1⟩
   · isplitl
     · unfold ownIdsetOpt; iapply ownIdsetQ_elim _ _ _ $$ Hoq
     · ipureintro; exact Hsz _ (outgoing_sub_ids c)
-  ihave Hvf := Hcback $$ Hc1
-  have HarrEq : array.mk 2 ((tv.Config'.Voters'.arr.set (sint.Z (W64 0)).toNat vin).set
-      (sint.Z (W64 1)).toNat vout) = tv.Config'.Voters' := by
-    generalize tv.Config'.Voters' = a at Harr ⊢
-    cases a
-    simp only at Harr
-    subst Harr
-    rfl
-  rw [HarrEq]
-  ihave Htrk := Htrkback $$ Hvf
-  wp_auto
   icases ownIdsetC_split _ _ _ $$ Hl with ⟨Hlq, %Hlc⟩
   wp_apply wp_MajorityConfig_Slice tv.Config'.Learners' c.learners $$ [Hlq]
     as %sl2 %xs2 ⟨Hlo, Hsl2, -, %Hxs2⟩

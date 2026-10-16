@@ -4,7 +4,6 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__initProgress.lean`. Lean-f
 module
 
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.go_etcd_io.raft.v3.tracker.NewInflights
 public import Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
 
@@ -25,7 +24,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem confchange.Changer.initProgress.wp_proof
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_tracker_NewInflights : tracker.NewInflights.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareAdd : confchange.nilAwareAdd.spec (GF := GF) (hG := hG)) :
     confchange.Changer.initProgress.spec (GF := GF) (hG := hG) := by
@@ -55,7 +53,7 @@ theorem confchange.Changer.initProgress.wp_proof
   cases b
   · -- a voter: into the incoming voters
     wp_auto
-    wp_apply wp_confchange_incoming _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
     wp_apply wp_mapInsert $$ Hin as Hin
     -- `max(c.LastIndex, 1)`: Goose's `max` is stepped into
     wp_func_call

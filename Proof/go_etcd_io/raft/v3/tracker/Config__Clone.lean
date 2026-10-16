@@ -195,24 +195,18 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   -- the closure, as an opaque function value (so that its calls are not inlined)
   generalize hf : (func.mk BAnon (BNamed "m") cloneMapBody : GoFunc) = f
   -- the receiver is read at fraction `dq`: split the struct into its fields, then peel
-  -- `Voters[0]` and `Voters[1]` off the array
+  -- `Voters.Incoming` and `Voters.Outgoing` off `Voters`
   icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
   iStructNamed Hp
-  icases array_acc _ (sint.Z (W64 0)) _ _ _ vin (by decide) (by rw [Harr]; rfl)
-    $$ Voters with ⟨Hv0, Hvback⟩
+  obtain ⟨Hvin, Hvout⟩ := (quorum.JointConfig.halves_eq _ _ _).1 Harr
+  icases jointConfig_acc_Incoming _ _ _ vin Hvin $$ Voters with ⟨Hv0, Hvback⟩
   wp_auto
   ihave %Hinnn := ownMap_not_nil _ _ _ $$ Hin
   ihave Hin : ownIdsetQ vin dqc c.incoming $$ [Hin]
   · unfold ownIdsetQ; iright; iexact Hin
   wp_apply (wp_cloneMap f hf.symm) $$ Hin as %m0 ⟨Hin, Hm0⟩
   ihave Voters := Hvback $$ Hv0
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide)
-    (by
-      rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 0)).toNat]? = some vin by
-        rw [Harr]; rfl)]
-      show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some vout
-      rw [Harr]; rfl)
-    $$ Voters with ⟨Hv1, Hvback⟩
+  icases jointConfig_acc_Outgoing _ _ _ vout Hvout $$ Voters with ⟨Hv1, Hvback⟩
   wp_auto
   icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
   wp_apply (wp_cloneMap f hf.symm) $$ Hout as %m1 ⟨Hout, Hm1⟩
@@ -228,11 +222,6 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   icases clonedMap_C _ _ _ _ $$ Hln Hmln with ⟨Hln, Hmln⟩
   iapply HΦ
   ihave Voters := Hvback $$ Hv1
-  rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 0)).toNat]? = some vin by
-    rw [Harr]; rfl)]
-  rw [show (array.mk 2 cfg.Voters'.arr).arr = cfg.Voters'.arr from rfl]
-  rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some vout by
-    rw [Harr]; rfl)]
   isplitl [AutoLeave Learners LearnersNext Voters]
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
@@ -252,7 +241,6 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   · exact absurd H.1 Hinnn
   iframe Hm0 Hm1 Hml Hmln
   ipureintro
-  simp only [List.set, List.replicate]
   rfl
 
 end proof

@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `c.VoteResult(votes)` for a joint config (`quorum.JointConfig.VoteResult.impl`,
 joint.go:62), each component asked and the answers combined:
 
-    r1 := c[0].VoteResult(votes)
-    r2 := c[1].VoteResult(votes)
+    r1 := c.Incoming.VoteResult(votes)
+    r2 := c.Outgoing.VoteResult(votes)
     if r1 == r2 { return r1 }
     if r1 == VoteLost || r2 == VoteLost { return VoteLost }
     return VotePending
@@ -50,7 +50,7 @@ The sizes bound `MajorityConfig.VoteResult`'s `int` counters. -/
 abbrev quorum.JointConfig.VoteResult.spec : Prop :=
   ∀ (c : Loc) (dqc : DFrac) (a : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64)
     (vm : Loc) (dqv : DFrac) (votes : GMap w64 Bool),
-  a.arr = [v0, v1] →
+  a.halves = [v0, v1] →
   (GMap.size s0 : Int) < 2 ^ 63 → (GMap.size s1 : Int) < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ c ↦{dqc} a ∗
       ownIdsetQ v0 (DFrac.own 1) s0 ∗ ownIdsetQ v1 (DFrac.own 1) s1 ∗ vm ↦${dqv} votes }}

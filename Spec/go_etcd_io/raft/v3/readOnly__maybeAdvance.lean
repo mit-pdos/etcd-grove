@@ -6,7 +6,7 @@ Lean notes:
   `ownReadreq`, `readonly_advance` is `readonlyAdvance` (`InvMisc.lean`);
   `is_quorum_index` is `IsQuorumIndex` (`InvTracker.lean`).
 * `default (W64 0) (r.acks !! v)` is `(r.acks !! v).getD (W64 0)`; `array.arr c` is
-  `c.arr`; `size (dom ids)` is `GMap.size (domSet ids)`; `length r.pending`, at `Z`, is
+  `c.halves` (`quorum.JointConfig.halves`, `Base.lean`); `size (dom ids)` is `GMap.size (domSet ids)`; `length r.pending`, at `Z`, is
   `(r.pending.length : Int)`.
 * Rocq's `[∗ list] p; q ∈ ptrs; L, P` is `[∗list] _k ↦ p;q ∈ ptrs;L, P`.
 -/
@@ -41,9 +41,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
     ro.confirmedReads = newConfirmedReads
     return readStates
 
-The configuration `c` is passed by value: `c[0]` and `c[1]` are the two voter halves, `nil` or
+The configuration `c` is passed by value: `c.Incoming` and `c.Outgoing` are the two voter halves, `nil` or
 maps (`ownIdsetQ`; at any configuration since 2026-10-14, reconfiguration stage A3: until then
-`c[1]` was `nil`). The joint quorum index `N` of the voters' acknowledged positions
+`c.Outgoing` was `nil`). The joint quorum index `N` of the voters' acknowledged positions
 (`JCommittedIdx`: the smaller of the two halves' quorum indices, over `r.acks`, an empty half
 `MaxUint64`; unknown voters count `0`) is how many requests have ever been confirmed; `readonlyAdvance r N` (`InvMisc.lean`) is
 the new record and the confirmed requests, which are removed from the front of the
@@ -71,7 +71,7 @@ lent to `CommittedIndex` and come back. -/
 abbrev readOnly.maybeAdvance.spec : Prop :=
   ∀ (ro : Loc) (r : ReadOnly) (c : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r ∗
-      "%Hc" ∷ ⌜c.arr = [v0, v1]⌝ ∗
+      "%Hc" ∷ ⌜c.halves = [v0, v1]⌝ ∗
       "Hv0" ∷ ownIdsetQ v0 (DFrac.own 1) s0 ∗
       "Hv1" ∷ ownIdsetQ v1 (DFrac.own 1) s1 ∗
       "%Hsz" ∷ ⌜(GMap.size s0 : Int) ≤ 2 ^ 62 ∧ (GMap.size s1 : Int) ≤ 2 ^ 62⌝ ∗

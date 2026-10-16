@@ -7,9 +7,6 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
 public import Spec.go_etcd_io.raft.v3.confchange.joint
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__err
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.go_etcd_io.raft.v3.confchange.outgoingPtr
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__apply
 public import Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
 
@@ -33,9 +30,6 @@ theorem confchange.Changer.EnterJoint.wp_proof
     (wp_Changer_checkAndCopy : confchange.Changer.checkAndCopy.spec (GF := GF) (hG := hG))
     (wp_confchange_joint : confchange.joint.spec (GF := GF) (hG := hG))
     (wp_Changer_err : confchange.Changer.err.spec (GF := GF) (hG := hG))
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
-    (wp_confchange_outgoingPtr : confchange.outgoingPtr.spec (GF := GF) (hG := hG))
-    (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG))
     (wp_Changer_apply : confchange.Changer.apply.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG) := by
@@ -83,8 +77,8 @@ theorem confchange.Changer.EnterJoint.wp_proof
     rcases Hcout with h | h
     · exact h
     · exact absurd Hout0 h
-  -- `len(incoming(cfg.Voters)) == 0`?
-  wp_apply wp_confchange_incoming _ vin vout Harr
+  -- `len(cfg.Voters.Incoming) == 0`?
+  rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
   wp_apply wp_map_len_lt $$ Hin as ⟨Hin, %Hlt⟩
   wp_if_destruct
   · -- "can't make a zero-voter config joint"
@@ -100,22 +94,13 @@ theorem confchange.Changer.EnterJoint.wp_proof
     ipureintro; intro h; cases h
   have Hi0 : c.incoming ≠ ∅ := by
     intro h; rw [h, GMap.map_size_empty] at Hif; exact Hif rfl
-  -- `*outgoingPtr(&cfg.Voters) = quorum.MajorityConfig{}`
+  -- `cfg.Voters.Outgoing = quorum.MajorityConfig{}`
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mout Hmout
   icases typedPointsto_not_null_dup _ _ _ $$ cfg with ⟨Hcfgp, %Hcnn⟩
   iStructNamed Hcfgp
-  wp_apply wp_confchange_outgoingPtr
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
-    $$ Voters with ⟨Hv1, Hvback⟩
-  rw [show sint.Z (W64 1) = (1 : Int) by decide]
-  wp_auto
-  ihave Voters := Hvback $$ Hv1
-  rw [show (1 : Int).toNat = 1 from rfl]
-  have Harr2 : (cfg'.Voters'.arr.set 1 mout) = [vin, mout] := by
-    rw [Harr]; rfl
-  -- `for id := range incoming(cfg.Voters) { outgoing(cfg.Voters)[id] = struct{}{} }`
-  wp_auto
-  wp_apply wp_confchange_incoming _ vin mout Harr2
+  -- `for id := range cfg.Voters.Incoming { cfg.Voters.Outgoing[id] = struct{}{} }`
+  rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
+  have Harr2 : (quorum.JointConfig.mk vin mout).halves = [vin, mout] := rfl
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (x : w64)
@@ -124,7 +109,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
       "%Hmv" ∷ ⌜∀ k, k ∈ domSet mv ↔ k ∈ keys.take i.toNat⌝ ∗
       "id" ∷ id_ptr ↦ x ∗
       "Voters" ∷ cfg_ptr.[tracker.Config, go!"Voters"] ↦
-        (array.mk 2 (cfg'.Voters'.arr.set 1 mout) : quorum.JointConfig) ∗
+        (quorum.JointConfig.mk vin mout) ∗
       "Hmout" ∷ mout ↦$ mv)) $$ Hin
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
   isplitl [id Voters Hmout]
@@ -142,7 +127,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
     wp_auto
-    wp_apply wp_confchange_outgoing _ vin mout Harr2
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr2).2]
     wp_apply wp_mapInsert $$ Hmout as Hmout
     unfold forMapPostcondition
     iright; ileft
@@ -176,15 +161,15 @@ theorem confchange.Changer.EnterJoint.wp_proof
     rcases h1 : mv !! k with _ | ⟨⟩ <;> rcases h2 : c.incoming !! k with _ | ⟨⟩ <;> simp_all
   subst Hmv'
   -- the configuration: the outgoing voters a copy of the incoming ones
-  ihave Hcfgp : (cfg_ptr ↦ ({ cfg' with Voters' := array.mk 2 (cfg'.Voters'.arr.set 1 mout) } :
+  ihave Hcfgp : (cfg_ptr ↦ ({ cfg' with Voters' := (quorum.JointConfig.mk vin mout) } :
       tracker.Config)) $$ [Voters AutoLeave Learners LearnersNext]
   · iapply typedPointsto_combine _ _ _ Hcnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  ihave Hc0 : ownCfgCC ({ cfg' with Voters' := array.mk 2 (cfg'.Voters'.arr.set 1 mout) } :
+  ihave Hc0 : ownCfgCC ({ cfg' with Voters' := (quorum.JointConfig.mk vin mout) } :
       tracker.Config) (DFrac.own 1) (⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM)
     $$ [Hin Hmout Hl Hln]
-  · iapply ownCfgCC_intro ({ cfg' with Voters' := array.mk 2 (cfg'.Voters'.arr.set 1 mout) } :
+  · iapply ownCfgCC_intro ({ cfg' with Voters' := (quorum.JointConfig.mk vin mout) } :
       tracker.Config) (DFrac.own 1) (⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM)
       vin mout Harr2 (by simpa using Hal) $$ Hin [Hmout] Hl Hln
     unfold ownIdsetC; iright; iframe Hmout; ipureintro; exact Hi0

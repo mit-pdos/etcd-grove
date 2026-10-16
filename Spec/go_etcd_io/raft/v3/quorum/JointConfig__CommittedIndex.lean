@@ -23,8 +23,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `c.CommittedIndex(l)` for the joint config (`quorum.JointConfig.CommittedIndex.impl`,
 `Code/go_etcd_io/raft/v3/quorum.lean`; joint.go:50):
 
-    idx0 := c[0].CommittedIndex(l)
-    idx1 := c[1].CommittedIndex(l)
+    idx0 := c.Incoming.CommittedIndex(l)
+    idx1 := c.Outgoing.CommittedIndex(l)
     if idx0 < idx1 { return idx0 }               // exit 1
     return idx1                                  // exit 2
 
@@ -44,7 +44,7 @@ configuration was simple (`a = [m0, nil]`); that statement is
 abbrev quorum.JointConfig.CommittedIndex.spec : Prop :=
   ∀ (c : Loc) (dqc : DFrac) (a : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64)
     (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64),
-  a.arr = [v0, v1] →
+  a.halves = [v0, v1] →
   (GMap.size s0 : Int) ≤ 2 ^ 62 → (GMap.size s1 : Int) ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
       c ↦{dqc} a ∗ ownIdsetQ v0 (DFrac.own 1) s0 ∗ ownIdsetQ v1 (DFrac.own 1) s1 ∗
@@ -64,7 +64,7 @@ theorem quorum.JointConfig.CommittedIndex.spec_simple
     (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
       ⌜(GMap.size (domSet ids) : Int) ≤ 2 ^ 62⌝ ∗
-      c ↦ a ∗ ⌜a.arr = [m0, map.nil]⌝ ∗ m0 ↦$ ids ∗
+      c ↦ a ∗ ⌜a.halves = [m0, map.nil]⌝ ∗ m0 ↦$ ids ∗
       isAckedIndexer l P acked ∗ P }}
     (App (Val (c @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"CommittedIndex"))
       (Val #l))

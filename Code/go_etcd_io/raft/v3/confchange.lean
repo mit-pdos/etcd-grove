@@ -50,15 +50,6 @@ noncomputable def symdiff [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def joint [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.joint"
 
-noncomputable def incoming [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/raft/v3/confchange.incoming"
-
-noncomputable def outgoing [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/raft/v3/confchange.outgoing"
-
-noncomputable def outgoingPtr [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/raft/v3/confchange.outgoingPtr"
-
 noncomputable def Describe [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.Describe"
 
@@ -146,8 +137,7 @@ noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
-  (Let "$range" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))
+  (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
   (Lam "$key"
@@ -155,15 +145,12 @@ noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint64)) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))
-  (App (App (Val (GoInstruction (FuncResolve outgoingPtr []))) (Val #())) (Var "$a0"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (Let "$a0" (Val #(go!"can't make a zero-voter config joint"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
@@ -216,7 +203,7 @@ noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- LeaveJoint transitions out of a joint configuration. It is an error to call
     this method if the configuration is not joint, i.e. if the outgoing majority
-    config Voters[1] is empty.
+    config Voters.Outgoing is empty.
 
     The outgoing majority config of the joint configuration will be removed,
     that is, the incoming config is promoted as the sole decision maker. In the
@@ -269,17 +256,14 @@ noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"AutoLeave"))) (Var "cfg")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))
-  (App (App (Val (GoInstruction (FuncResolve outgoingPtr []))) (Val #())) (Var "$a0"))) (Var "$r0"))))))))
-  (Let "$range" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))) (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -365,7 +349,7 @@ noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Pair (Var "cfg") (Var "$r0")))))))))))))))))))
 
 /-- Simple carries out a series of configuration changes that (in aggregate)
-    mutates the incoming majority config Voters[0] by at most one. This method
+    mutates the incoming majority config Voters.Incoming by at most one. This method
     will return an error if that is not the case, if the resulting quorum is
     zero, or if the configuration is in a joint state (i.e. if there is an
     outgoing configuration).
@@ -402,10 +386,8 @@ noncomputable def Changer.Simple.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$ret2" (Snd (Var "__p"))
   (App (Val doReturn)
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2")))))))))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef Changer.ty go!"Tracker"))) (Var "c")))))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))
-  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef Changer.ty go!"Tracker"))) (Var "c"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))
   (App (App (App (Val (GoInstruction (FuncResolve symdiff []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -470,7 +452,7 @@ noncomputable def Changer.Simple.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))))))))
 
 /-- apply a change to the configuration. By convention, changes to voters are
-    always made to the incoming majority config Voters[0]. Voters[1] is either
+    always made to the incoming majority config Voters.Incoming. Voters.Outgoing is either
     empty or preserves the outgoing majority configuration while in a joint state.
 
     go: confchange.go:150:18 -/
@@ -488,8 +470,7 @@ noncomputable def Changer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))))
   (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doReturn)
   (Let "$a0" (Val #(go!"removed all voters"))
@@ -567,8 +548,7 @@ noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint64)) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"LearnersNext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
@@ -630,8 +610,7 @@ noncomputable def Changer.makeLearner.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -703,8 +682,7 @@ noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -732,8 +710,7 @@ noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (App (App (App (Val (GoInstruction (FuncResolve nilAwareDelete []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (App (App (App (Val (GoInstruction (FuncResolve go.delete [_root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
@@ -788,8 +765,7 @@ noncomputable def Changer.initProgress.impl [FfiSyntax] [GoGlobalContext] : val 
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLearner")))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint64)) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Learners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
@@ -830,10 +806,9 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Val UntypedNil))))))
   (App (Val doReturn)
-  (Let "$a0" (Val #(go!"cfg.Voters[1] must be nil when not joint"))
+  (Let "$a0" (Val #(go!"cfg.Voters.Outgoing must be nil when not joint"))
   (Let "$a1" (Val #slice.nil)
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
@@ -856,8 +831,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))
-  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Incoming"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -867,7 +841,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (App (Val doReturn)
-  (Let "$a0" (Val #(go!"%d is in Learners and Voters[0]"))
+  (Let "$a0" (Val #(go!"%d is in Learners and Voters.Incoming"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
@@ -877,8 +851,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (Var "$r0"))))))))))))
-  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -888,7 +861,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (App (Val doReturn)
-  (Let "$a0" (Val #(go!"%d is in Learners and Voters[1]"))
+  (Let "$a0" (Val #(go!"%d is in Learners and Voters.Outgoing"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
@@ -915,8 +888,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))
-  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -926,7 +898,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doReturn)
-  (Let "$a0" (Val #(go!"%d is in LearnersNext, but not Voters[1]"))
+  (Let "$a0" (Val #(go!"%d is in LearnersNext, but not Voters.Outgoing"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
@@ -1189,38 +1161,13 @@ noncomputable def joint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Var "cfg"))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"Outgoing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))))
-
-/-- go: confchange.go:404:6 -/
-noncomputable def incoming.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "voters"
-  (App (Val exceptionDo)
-  (Let "voters" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Var "voters"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (Var "voters") (Val #(W64 0)))))))))
-
-/-- go: confchange.go:405:6 -/
-noncomputable def outgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "voters"
-  (App (Val exceptionDo)
-  (Let "voters" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Var "voters"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (Var "voters") (Val #(W64 1)))))))))
-
-/-- go: confchange.go:406:6 -/
-noncomputable def outgoingPtr.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "voters"
-  (App (Val exceptionDo)
-  (Let "voters" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty)))) (Var "voters"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty)))) (Var "voters")) (Val #(W64 1))))))))
 
 /-- Describe prints the type and NodeId of the configuration changes as a
     space-delimited string.
 
-    go: confchange.go:410:6 -/
+    go: confchange.go:406:6 -/
 noncomputable def Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ccs"
   (App (Val exceptionDo)
@@ -1669,9 +1616,6 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   nilAwareDelete_unfold : FuncUnfold nilAwareDelete [] nilAwareDelete.impl
   symdiff_unfold : FuncUnfold symdiff [] symdiff.impl
   joint_unfold : FuncUnfold joint [] joint.impl
-  incoming_unfold : FuncUnfold incoming [] incoming.impl
-  outgoing_unfold : FuncUnfold outgoing [] outgoing.impl
-  outgoingPtr_unfold : FuncUnfold outgoingPtr [] outgoingPtr.impl
   Describe_unfold : FuncUnfold Describe [] Describe.impl
   toConfChangeSingle_unfold : FuncUnfold toConfChangeSingle [] toConfChangeSingle.impl
   chain_unfold : FuncUnfold chain [] chain.impl
@@ -1690,9 +1634,6 @@ attribute [instance] Assumptions.Changer_instance
   Assumptions.nilAwareDelete_unfold
   Assumptions.symdiff_unfold
   Assumptions.joint_unfold
-  Assumptions.incoming_unfold
-  Assumptions.outgoing_unfold
-  Assumptions.outgoingPtr_unfold
   Assumptions.Describe_unfold
   Assumptions.toConfChangeSingle_unfold
   Assumptions.chain_unfold

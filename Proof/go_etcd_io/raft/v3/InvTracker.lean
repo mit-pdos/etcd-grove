@@ -515,7 +515,7 @@ def ownTracker (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :=
   -- domain was `cfg`): the learners are the rest, `Hno_learners` below
   "%Hprs_dom" ∷ ⌜cfg ⊆ domSet t.prs⌝ ∗
   -- a simple configuration: second component of the joint config is nil
-  "%Hvoters_arr" ∷ ⌜tv.Config'.Voters'.arr = [voters_ref, map.nil]⌝ ∗
+  "%Hvoters_arr" ∷ ⌜tv.Config'.Voters'.halves = [voters_ref, map.nil]⌝ ∗
   -- and not a joint one on its way out: `AutoLeave` is only set on entering a joint
   -- configuration. `ConfState` reads it (added 2026-09-29, when `switchToConfig`
   -- stopped keeping the tracker value in hand across the call)
@@ -573,7 +573,7 @@ theorem ownTracker_intro (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
     (prs : GMap w64 Loc) (peers : GMap w64 Progress)
     (voters_ref : Loc) (voters learners learnersNext : GMap w64 Unit)
     (Hprs_dom : cfg ⊆ domSet prs)
-    (Hvoters_arr : tv.Config'.Voters'.arr = [voters_ref, map.nil])
+    (Hvoters_arr : tv.Config'.Voters'.halves = [voters_ref, map.nil])
     (Hautoleave : tv.Config'.AutoLeave' = false)
     (Hvoters_dom : domSet voters = cfg)
     (Hno_learners : LearnersOk cfg prs peers learners learnersNext)
@@ -1042,7 +1042,7 @@ configuration in this form (2026-10-13, stage D). -/
 def ownConfigV (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc)
     (pvs : GMap w64 Progress) : IProp GF :=
   iprop(∃ (vref : Loc) (vm learners : GMap w64 Unit),
-    "%Hcfgarr" ∷ ⌜cfgv.Voters'.arr = [vref, map.nil]⌝ ∗
+    "%Hcfgarr" ∷ ⌜cfgv.Voters'.halves = [vref, map.nil]⌝ ∗
     "Hcfgl" ∷ ownIdsetC cfgv.Learners' (DFrac.own 1) learners ∗
     "%Hcfgln" ∷ ⌜cfgv.LearnersNext' = map.nil⌝ ∗
     "%Hcfgal" ∷ ⌜cfgv.AutoLeave' = false⌝ ∗
@@ -1064,7 +1064,7 @@ def ownConfig (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap 
 /-- A voters-only configuration (no learners): every `Progress` a non-learner. -/
 theorem ownConfigV_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
     (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (vref : Loc) (vm : GMap w64 Unit)
-    (Hcfgarr : cfgv.Voters'.arr = [vref, map.nil])
+    (Hcfgarr : cfgv.Voters'.halves = [vref, map.nil])
     (Hcfgl : cfgv.Learners' = map.nil)
     (Hcfgln : cfgv.LearnersNext' = map.nil)
     (Hcfgal : cfgv.AutoLeave' = false)
@@ -1132,7 +1132,7 @@ theorem bigSepM_exist_sepM2 {A B : Type} (m : GMap w64 A) (Φ : w64 → A → B 
 /-- The tracker `MakeProgressTracker` builds is an `ownTracker` over the empty
 configuration. -/
 theorem ownTracker_empty (tv : tracker.ProgressTracker) (v0 : Loc)
-    (Harr : tv.Config'.Voters'.arr = [v0, map.nil])
+    (Harr : tv.Config'.Voters'.halves = [v0, map.nil])
     (Hl : tv.Config'.Learners' = map.nil)
     (Hln : tv.Config'.LearnersNext' = map.nil)
     (Hal : tv.Config'.AutoLeave' = false)
@@ -1162,7 +1162,7 @@ theorem ownTracker_empty (tv : tracker.ProgressTracker) (v0 : Loc)
 /-- What `confchange.Restore` builds for a voters-only `ConfState`, as an `ownConfig`. -/
 theorem ownConfig_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
     (prs : GMap w64 Loc) (vref : Loc) (vm : GMap w64 Unit)
-    (Hcfgarr : cfgv.Voters'.arr = [vref, map.nil])
+    (Hcfgarr : cfgv.Voters'.halves = [vref, map.nil])
     (Hcfgl : cfgv.Learners' = map.nil)
     (Hcfgln : cfgv.LearnersNext' = map.nil)
     (Hcfgal : cfgv.AutoLeave' = false)
@@ -1192,7 +1192,7 @@ theorem ownConfig_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
 (2026-10-13), as an `ownConfig`. -/
 theorem ownConfig_restore (cfg lrn : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
     (prs : GMap w64 Loc) (vref : Loc) (vm : GMap w64 Unit)
-    (Hcfgarr : cfgv.Voters'.arr = [vref, map.nil])
+    (Hcfgarr : cfgv.Voters'.halves = [vref, map.nil])
     (Hcfgln : cfgv.LearnersNext' = map.nil)
     (Hcfgal : cfgv.AutoLeave' = false)
     (Hvm : domSet vm = cfg)

@@ -148,9 +148,6 @@ namespace EtcdGrove
 #print axioms raftpb.Snapshot.wp_GetMetadata
 
 -- confchange (stage R2), with etcd-grove's `fmt.Errorf` and `ConfChangeType.String` axioms
-#print axioms confchange.wp_incoming
-#print axioms confchange.wp_outgoing
-#print axioms confchange.wp_outgoingPtr
 #print axioms confchange.wp_joint
 #print axioms confchange.wp_nilAwareAdd
 #print axioms confchange.wp_nilAwareDelete

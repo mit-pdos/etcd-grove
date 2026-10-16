@@ -8,7 +8,6 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
 public import Spec.go_etcd_io.raft.v3.confchange.joint
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__err
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__apply
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.go_etcd_io.raft.v3.confchange.symdiff
 public import Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
 
@@ -33,7 +32,6 @@ theorem confchange.Changer.Simple.wp_proof
     (wp_confchange_joint : confchange.joint.spec (GF := GF) (hG := hG))
     (wp_Changer_err : confchange.Changer.err.spec (GF := GF) (hG := hG))
     (wp_Changer_apply : confchange.Changer.apply.spec (GF := GF) (hG := hG))
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_confchange_symdiff : confchange.symdiff.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.Simple.spec (GF := GF) (hG := hG) := by
@@ -108,15 +106,18 @@ theorem confchange.Changer.Simple.wp_proof
   icases Hres with ⟨%Herr2, Hw⟩
   subst Herr2
   wp_auto
-  -- `symdiff(incoming(c.Tracker.Voters), incoming(cfg.Voters))`
+  -- `symdiff(c.Tracker.Voters.Incoming, cfg.Voters.Incoming)`
   unfold ownTrackerCC
   icases Htc with ⟨Htcc, Hpm, Hprs⟩
   icases ownCfgCC_elim _ _ _ $$ Htcc with ⟨%vin0, %vout0, %Harr0, Hin0, Hout0, Hl0, Hln0, %Hal0⟩
   icases ownWork_elim _ _ _ _ _ $$ Hw with
     ⟨%cfg1, %prs1, %pvs1, Hcfgp, Hc1, Htrk, Hprs1, %Hflags1, Hnew1⟩
   icases ownCfgCC_elim _ _ _ $$ Hc1 with ⟨%vin1, %vout1, %Harr1, Hin1, Hout1, Hl1, Hln1, %Hal1⟩
-  wp_apply wp_confchange_incoming _ vin0 vout0 Harr0
-  wp_apply wp_confchange_incoming _ vin1 vout1 Harr1
+  rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr0).1]
+  icases config_acc_Incoming _ _ _ vin1 ((quorum.JointConfig.halves_eq _ _ _).1 Harr1).1
+    $$ Hcfgp with ⟨Hf, Hcfgback⟩
+  wp_auto
+  ihave Hcfgp := Hcfgback $$ Hf
   wp_apply wp_confchange_symdiff $$ [$Hin0 $Hin1] as ⟨Hin0, Hin1⟩
   ihave Htcc := ownCfgCC_intro _ dqc c vin0 vout0 Harr0 Hal0 $$ Hin0 Hout0 Hl0 Hln0
   ihave Hc1 := ownCfgCC_intro cfg1 (DFrac.own 1) s1.cfg vin1 vout1 Harr1 Hal1 $$ Hin1 Hout1 Hl1 Hln1

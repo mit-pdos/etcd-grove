@@ -23,6 +23,63 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.raft.v3.quorum
 
+namespace JointConfig
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.quorum.Assumptions]
+
+instance JointConfig_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.quorum.JointConfig where
+  typedPointstoDef l v dq := iprop(
+    "Incoming" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Incoming" l) v.Incoming' dq ∗
+    "Outgoing" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Outgoing" l) v.Outgoing' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance JointConfig_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.quorum.JointConfig go_etcd_io.raft.v3.quorum.JointConfig.underlying := by
+  solve_into_val_typed_struct
+
+instance JointConfig_access_load_Incoming (l : Loc) (v : go_etcd_io.raft.v3.quorum.JointConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Incoming" l) v.Incoming' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Incoming" l) v.Incoming' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance JointConfig_access_store_Incoming (l : Loc) (v : go_etcd_io.raft.v3.quorum.JointConfig) (Incoming' : go_etcd_io.raft.v3.quorum.MajorityConfig) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Incoming" l) v.Incoming' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Incoming" l) Incoming' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Incoming' := Incoming' } : go_etcd_io.raft.v3.quorum.JointConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance JointConfig_access_load_Outgoing (l : Loc) (v : go_etcd_io.raft.v3.quorum.JointConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Outgoing" l) v.Outgoing' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Outgoing" l) v.Outgoing' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance JointConfig_access_store_Outgoing (l : Loc) (v : go_etcd_io.raft.v3.quorum.JointConfig) (Outgoing' : go_etcd_io.raft.v3.quorum.MajorityConfig) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Outgoing" l) v.Outgoing' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.JointConfig go!"Outgoing" l) Outgoing' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Outgoing' := Outgoing' } : go_etcd_io.raft.v3.quorum.JointConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end JointConfig
+
 namespace tup
 section def_
 

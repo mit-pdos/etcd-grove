@@ -253,6 +253,57 @@ theorem array_slice_bool (l : Loc) (a : GoArray Bool 23) (dq : DFrac) :
 
 end init
 
+/-- The two halves of a joint configuration, incoming first. Since raft#285 `quorum.JointConfig`
+is a struct `{Incoming, Outgoing MajorityConfig}`; until then it was a `[2]MajorityConfig`, and
+the specs said `a.arr = [v0, v1]` where they now say `a.halves = [v0, v1]`: the same statement
+of the same two maps. -/
+def quorum.JointConfig.halves [FfiSyntax] (a : quorum.JointConfig) : List quorum.MajorityConfig :=
+  [a.Incoming', a.Outgoing']
+
+@[simp] theorem quorum.JointConfig.halves_eq [FfiSyntax] (a : quorum.JointConfig)
+    (v0 v1 : quorum.MajorityConfig) :
+    a.halves = [v0, v1] ↔ a.Incoming' = v0 ∧ a.Outgoing' = v1 := by
+  simp [quorum.JointConfig.halves]
+
+section jointConfig
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A joint configuration's incoming half, through its field, put back unchanged. -/
+theorem jointConfig_acc_Incoming (p : Loc) (dq : DFrac) (a : quorum.JointConfig)
+    (v : quorum.MajorityConfig) (h : a.Incoming' = v) :
+    (p ↦{dq} a : IProp GF) ⊢ p.[quorum.JointConfig, go!"Incoming"] ↦{dq} v ∗
+      (p.[quorum.JointConfig, go!"Incoming"] ↦{dq} v -∗ p ↦{dq} a) := by
+  subst h; exact access_strict
+
+/-- A joint configuration's outgoing half, through its field, put back unchanged. -/
+theorem jointConfig_acc_Outgoing (p : Loc) (dq : DFrac) (a : quorum.JointConfig)
+    (v : quorum.MajorityConfig) (h : a.Outgoing' = v) :
+    (p ↦{dq} a : IProp GF) ⊢ p.[quorum.JointConfig, go!"Outgoing"] ↦{dq} v ∗
+      (p.[quorum.JointConfig, go!"Outgoing"] ↦{dq} v -∗ p ↦{dq} a) := by
+  subst h; exact access_strict
+
+/-- A configuration's incoming voter map, through `Voters.Incoming`, put back unchanged. -/
+theorem config_acc_Incoming (p : Loc) (dq : DFrac) (cfg : tracker.Config)
+    (v : quorum.MajorityConfig) (h : cfg.Voters'.Incoming' = v) :
+    (p ↦{dq} cfg : IProp GF) ⊢
+      p.[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Incoming"] ↦{dq} v ∗
+      (p.[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Incoming"] ↦{dq} v -∗ p ↦{dq} cfg) := by
+  subst h; exact Access.access
+
+/-- A configuration's outgoing voter map, through `Voters.Outgoing`, put back unchanged. -/
+theorem config_acc_Outgoing (p : Loc) (dq : DFrac) (cfg : tracker.Config)
+    (v : quorum.MajorityConfig) (h : cfg.Voters'.Outgoing' = v) :
+    (p ↦{dq} cfg : IProp GF) ⊢
+      p.[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"] ↦{dq} v ∗
+      (p.[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"] ↦{dq} v -∗ p ↦{dq} cfg) := by
+  subst h; exact Access.access
+
+end jointConfig
+
 end go_etcd_io.raft.v3
 
 end Perennial

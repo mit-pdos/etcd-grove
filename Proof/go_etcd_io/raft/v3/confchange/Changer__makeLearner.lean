@@ -6,7 +6,6 @@ module
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
 public import Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
 
 @[expose] public section
@@ -28,7 +27,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem confchange.Changer.makeLearner.wp_proof
     (wp_Changer_initProgress : confchange.Changer.initProgress.spec (GF := GF) (hG := hG))
     (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
-    (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareAdd : confchange.nilAwareAdd.spec (GF := GF) (hG := hG)) :
     confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) := by
   intro p cfgp trk chg base s id dq Hmi
@@ -96,7 +94,7 @@ theorem confchange.Changer.makeLearner.wp_proof
       simp only [removeM, ite_eq_left Hmem, removeCfg.proj_incoming, removeCfg.proj_outgoing,
         removeCfg.proj_learners, removeCfg.proj_learnersNext, removeCfg.proj_autoLeave] at Hal ⊢
       wp_auto
-      wp_apply wp_confchange_outgoing _ vin vout Harr
+      rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
       icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
       wp_apply wp_idset_lookup2 $$ Hout as Hout
       ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout

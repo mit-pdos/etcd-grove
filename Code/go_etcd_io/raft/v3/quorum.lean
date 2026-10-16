@@ -77,7 +77,7 @@ attribute [irreducible] VoteResult.ty
 noncomputable def _VoteResult_index [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/quorum._VoteResult_index"
 
-/-- go: joint.go:21:22 -/
+/-- go: joint.go:24:22 -/
 noncomputable def JointConfig.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -85,18 +85,18 @@ noncomputable def JointConfig.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "c" (App (Val (GoInstruction (GoAlloc JointConfig.ty))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Val #())))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Incoming"))) (Var "c"))) (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Outgoing"))) (Var "c")))
   (App (App (Val (GoInstruction (FuncResolve go.len [MajorityConfig.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Val #())) (Val #(go!"&&")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1))))) (Val #())))))
+  (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Incoming"))) (Var "c"))) (Val #())) (Val #(go!"&&")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Outgoing"))) (Var "c"))) (Val #())))))
   (App (Val doExecute)
   (Val #()))))))))
 
 /-- IDs returns a newly initialized map representing the set of voters present
     in the joint configuration.
 
-    go: joint.go:30:22 -/
+    go: joint.go:33:22 -/
 noncomputable def JointConfig.IDs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -106,16 +106,10 @@ noncomputable def JointConfig.IDs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m")))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "c"))
-  (Let "cc" (App (Val (GoInstruction (GoAlloc MajorityConfig.ty))) (App (Val (GoInstruction (GoZeroVal MajorityConfig.ty))) (Val #())))
-  (App (App (Val (array.forRange 2 MajorityConfig.ty)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (Var "cc"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Outgoing"))) (Var "c")))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
   (Lam "$key"
@@ -125,18 +119,25 @@ noncomputable def JointConfig.IDs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key"))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key")))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Incoming"))) (Var "c")))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
   (App (Val doExecute)
-  (Var "$key")))))
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore MajorityConfig.ty))) (Pair (Var "cc") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (Var "m") (Var "$r0")))))))))))
 
 /-- Describe returns a (multi-line) representation of the commit indexes for the
     given lookuper.
 
-    go: joint.go:42:22 -/
+    go: joint.go:49:22 -/
 noncomputable def JointConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
@@ -151,7 +152,7 @@ noncomputable def JointConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val 
     quorum. An index is jointly committed if it is committed in both constituent
     majorities.
 
-    go: joint.go:49:22 -/
+    go: joint.go:56:22 -/
 noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
@@ -159,11 +160,11 @@ noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] 
   (Let "c" (App (Val (GoInstruction (GoAlloc JointConfig.ty))) (Var "c"))
   (Let "l" (App (Val (GoInstruction (GoAlloc AckedIndexer.ty))) (Var "l"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad AckedIndexer.ty))) (Var "l"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex"))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Incoming"))) (Var "c"))) (Var "$a0")))
   (Let "idx0" (App (Val (GoInstruction (GoAlloc Index'.ty))) (App (Val (GoInstruction (GoZeroVal Index'.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad AckedIndexer.ty))) (Var "l"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex"))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Outgoing"))) (Var "c"))) (Var "$a0")))
   (Let "idx1" (App (Val (GoInstruction (GoAlloc Index'.ty))) (App (Val (GoInstruction (GoZeroVal Index'.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -183,7 +184,7 @@ noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] 
     a result indicating whether the vote is pending, lost, or won. A joint quorum
     requires both majority quorums to vote in favor.
 
-    go: joint.go:61:22 -/
+    go: joint.go:68:22 -/
 noncomputable def JointConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "votes"
@@ -191,11 +192,11 @@ noncomputable def JointConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "c" (App (Val (GoInstruction (GoAlloc JointConfig.ty))) (Var "c"))
   (Let "votes" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Incoming"))) (Var "c"))) (Var "$a0")))
   (Let "r1" (App (Val (GoInstruction (GoAlloc VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal VoteResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (StructFieldRef JointConfig.ty go!"Outgoing"))) (Var "c"))) (Var "$a0")))
   (Let "r2" (App (Val (GoInstruction (GoAlloc VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal VoteResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -773,13 +774,35 @@ attribute [instance] MajorityConfig.TypeAssumptions.underlying
   MajorityConfig.TypeAssumptions.ptr_String_unfold
   MajorityConfig.TypeAssumptions.ptr_VoteResult_unfold
 
-abbrev JointConfig [FfiSyntax] : Type := (GoArray MajorityConfig 2)
+structure JointConfig [FfiSyntax] where
+  mk ::
+  Incoming' : MajorityConfig
+  Outgoing' : MajorityConfig
+
+instance JointConfig.zero_val [FfiSyntax] : ZeroVal JointConfig :=
+  ⟨JointConfig.mk zeroValDef zeroValDef⟩
+
+@[reducible] def JointConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Incoming" MajorityConfig.ty),
+(go.field_decl.FieldDecl go!"Outgoing" MajorityConfig.ty)]
+
+@[irreducible] def JointConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  JointConfig.fieldsUnsealed
+
+instance equals_unfold_JointConfig [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold JointConfig.fields JointConfig.fieldsUnsealed :=
+  ⟨by unfold JointConfig.fields; rfl⟩
 
 @[reducible] def JointConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.ArrayType 2 MajorityConfig.ty)
+  (go.GoType.StructType JointConfig.fields)
 
 class JointConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying JointConfig.underlying JointConfig
   underlying : go.UnderlyingDirectedEq JointConfig.ty JointConfig.underlying
+  get_Incoming : ∀ (x : JointConfig), go.IsGoStepPureDetTagged under (StructFieldGet JointConfig.underlying go!"Incoming") #x (Val #(x.Incoming'))
+  set_Incoming : ∀ (x : JointConfig) (y : MajorityConfig), go.IsGoStepPureDetTagged under (StructFieldSet JointConfig.underlying go!"Incoming") (PairV #x #y) (Val #(({ x with Incoming' := y } : JointConfig)))
+  get_Outgoing : ∀ (x : JointConfig), go.IsGoStepPureDetTagged under (StructFieldGet JointConfig.underlying go!"Outgoing") #x (Val #(x.Outgoing'))
+  set_Outgoing : ∀ (x : JointConfig) (y : MajorityConfig), go.IsGoStepPureDetTagged under (StructFieldSet JointConfig.underlying go!"Outgoing") (PairV #x #y) (Val #(({ x with Outgoing' := y } : JointConfig)))
   CommittedIndex_unfold : MethodUnfold JointConfig.ty go!"CommittedIndex" JointConfig.CommittedIndex.impl
   Describe_unfold : MethodUnfold JointConfig.ty go!"Describe" JointConfig.Describe.impl
   IDs_unfold : MethodUnfold JointConfig.ty go!"IDs" JointConfig.IDs.impl
@@ -796,7 +819,12 @@ class JointConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   ptr_VoteResult_unfold : MethodUnfold (go.GoType.PointerType JointConfig.ty) go!"VoteResult" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"VoteResult"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "$r"))))
 
-attribute [instance] JointConfig.TypeAssumptions.underlying
+attribute [instance] JointConfig.TypeAssumptions.type_repr
+  JointConfig.TypeAssumptions.underlying
+  JointConfig.TypeAssumptions.get_Incoming
+  JointConfig.TypeAssumptions.set_Incoming
+  JointConfig.TypeAssumptions.get_Outgoing
+  JointConfig.TypeAssumptions.set_Outgoing
   JointConfig.TypeAssumptions.CommittedIndex_unfold
   JointConfig.TypeAssumptions.Describe_unfold
   JointConfig.TypeAssumptions.IDs_unfold

@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 unchanged. -/
 theorem ownTrackerC_halves (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ⊢ ownTrackerC (GF := GF) c tv t -∗
-      ∃ (vin vout : Loc), ⌜tv.Config'.Voters'.arr = [vin, vout]⌝ ∗
+      ∃ (vin vout : Loc), ⌜tv.Config'.Voters'.halves = [vin, vout]⌝ ∗
         ⌜(GMap.size c.incoming : Int) ≤ 2 ^ 62 ∧ (GMap.size c.outgoing : Int) ≤ 2 ^ 62⌝ ∗
         ownIdsetQ vin (DFrac.own 1) c.incoming ∗ ownIdsetQ vout (DFrac.own 1) c.outgoing ∗
         (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownIdsetQ vout (DFrac.own 1) c.outgoing -∗

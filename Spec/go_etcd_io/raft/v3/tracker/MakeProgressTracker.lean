@@ -35,7 +35,7 @@ abbrev tracker.MakeProgressTracker.spec : Prop :=
   {{ (tv : tracker.ProgressTracker) (v0 : Loc), RET #tv;
       ⌜tv.MaxInflight' = maxInflight ∧
         tv.MaxInflightBytes' = maxBytes ∧
-        tv.Config'.Voters'.arr = [v0, map.nil] ∧
+        tv.Config'.Voters'.halves = [v0, map.nil] ∧
         tv.Config'.Learners' = map.nil ∧
         tv.Config'.LearnersNext' = map.nil ∧
         tv.Config'.AutoLeave' = false⌝ ∗

@@ -4,8 +4,6 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__remove.lean`. Lean-first (
 module
 
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
 public import Spec.go_etcd_io.raft.v3.confchange.nilAwareDelete
 
 @[expose] public section
@@ -25,8 +23,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem confchange.Changer.remove.wp_proof
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
-    (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareDelete : confchange.nilAwareDelete.spec (GF := GF) (hG := hG)) :
     confchange.Changer.remove.spec (GF := GF) (hG := hG) := by
   intro p cfgp trk chg s prs id dq Hdomeq
@@ -42,7 +38,7 @@ theorem confchange.Changer.remove.wp_proof
   wp_if_destruct
   · -- `id` is tracked
     have Hmem : id ∈ s.prs := (mem_of_domSet_eq Hdomeq id).1 ((GMap.mem_iff prs id).2 (by simpa using Hif))
-    wp_apply wp_confchange_incoming _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
     wp_apply wp_mapDelete_named quorum.MajorityConfig.ty go.uint64 (go.GoType.StructType [])
       $$ Hin as Hin
     icases typedPointsto_not_null_dup _ _ _ $$ Hcfgp with ⟨Hcfgp, %Hcnn⟩
@@ -51,7 +47,7 @@ theorem confchange.Changer.remove.wp_proof
     wp_apply wp_confchange_nilAwareDelete $$ [$Learners $Hl] as %ml ⟨Learners, Hl⟩
     ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
     wp_apply wp_confchange_nilAwareDelete $$ [$LearnersNext $Hln] as %mln ⟨LearnersNext, Hln⟩
-    wp_apply wp_confchange_outgoing _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
     icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
     wp_apply wp_idset_lookup2 $$ Hout as Hout
     ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout

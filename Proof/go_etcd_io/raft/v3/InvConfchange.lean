@@ -45,7 +45,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 What `confchange`'s `Changer` computes, as pure functions on an abstract configuration
 (added 2026-10-12, when the package's specs were generalized from the one case `Restore`
 reaches to all inputs). A `tracker.Config` is `CfgM`: the incoming and outgoing voter
-sets (`Voters[0]`, `Voters[1]`), the learners, the staged learners (`LearnersNext`) and
+sets (`Voters.Incoming`, `Voters.Outgoing`), the learners, the staged learners (`LearnersNext`) and
 `AutoLeave`. The progress map is seen only through each tracked id's `IsLearner` flag:
 `confchange` reads and writes no other field of a `Progress` (`CCState.prs`). The Go
 code's checks are the model's: `CfgInv` is exactly what `checkInvariants` accepts, and
@@ -68,7 +68,7 @@ variable [FfiSyntax]
 every voter (incoming or outgoing), learner and staged learner is tracked; a staged learner
 is an outgoing voter not marked a learner; a learner is no voter and is marked one; a
 non-joint configuration (no outgoing voter) has no staged learner and `AutoLeave` off.
-(The Go code also asks that a non-joint config's `Voters[1]` and `LearnersNext` be `nil`,
+(The Go code also asks that a non-joint config's `Voters.Outgoing` and `LearnersNext` be `nil`,
 not merely empty; `ownCfgCC` represents both canonically, `nil` exactly when empty, so
 that check is this one.) -/
 def CfgInv (s : CCState) : Prop :=
@@ -240,7 +240,7 @@ proj_simps Perennial.EtcdGrove.clearAutoLeave Perennial.EtcdGrove.removeCfg
 voter map, `Learners` and `LearnersNext` are `nil`. What `Restore.spec` says of the
 configuration it starts from (`MakeProgressTracker`'s), and all `Config.Clone` reads. -/
 def ConfigVotersOnly [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
-  cfg.Voters'.arr = [v, map.nil] ∧ cfg.Learners' = map.nil ∧ cfg.LearnersNext' = map.nil
+  cfg.Voters'.halves = [v, map.nil] ∧ cfg.Learners' = map.nil ∧ cfg.LearnersNext' = map.nil
 
 /-- `ConfigVotersOnly`, and `AutoLeave` off: what Go's `checkInvariants` requires of a
 non-joint config, and what `Config.Clone` produces (it does not copy `AutoLeave`). -/
@@ -305,7 +305,7 @@ non-`nil` `Learners` map, which no `confchange` operation creates, is outside th
 the canonical representation is what lets `Restore`'s statement promise `Learners = nil`. -/
 def ownCfgCC (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
   iprop(∃ (vin vout : Loc),
-    "%Harr" ∷ ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗
+    "%Harr" ∷ ⌜cfg.Voters'.halves = [vin, vout]⌝ ∗
     "Hin" ∷ vin ↦${dq} c.incoming ∗
     "Hout" ∷ ownIdsetC vout dq c.outgoing ∗
     "Hl" ∷ ownIdsetC cfg.Learners' dq c.learners ∗
@@ -314,7 +314,7 @@ def ownCfgCC (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
 
 theorem ownCfgCC_elim (cfg : tracker.Config) (dq : DFrac) (c : CfgM) :
     ownCfgCC (GF := GF) cfg dq c ⊢ ∃ (vin vout : Loc),
-      ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗ vin ↦${dq} c.incoming ∗ ownIdsetC vout dq c.outgoing ∗
+      ⌜cfg.Voters'.halves = [vin, vout]⌝ ∗ vin ↦${dq} c.incoming ∗ ownIdsetC vout dq c.outgoing ∗
       ownIdsetC cfg.Learners' dq c.learners ∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext ∗
       ⌜cfg.AutoLeave' = c.autoLeave⌝ := by
   unfold ownCfgCC
@@ -325,7 +325,7 @@ theorem ownCfgCC_elim (cfg : tracker.Config) (dq : DFrac) (c : CfgM) :
   ipureintro; exact ⟨Harr, Hal⟩
 
 theorem ownCfgCC_intro (cfg : tracker.Config) (dq : DFrac) (c : CfgM) (vin vout : Loc)
-    (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave) :
+    (Harr : cfg.Voters'.halves = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave) :
     ⊢ (vin ↦${dq} c.incoming : IProp GF) -∗ ownIdsetC vout dq c.outgoing -∗
       ownIdsetC cfg.Learners' dq c.learners -∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext -∗
       ownCfgCC cfg dq c := by

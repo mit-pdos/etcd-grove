@@ -21,7 +21,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `MajorityConfig.Slice` returns the ids of the set, sorted. Stated on `ownIdsetOpt`
 (`InvTracker.lean`) so that it covers the `nil` sets a simple configuration carries
-(`Voters[1]`, `Learners`, `LearnersNext`), for which the result is the empty (nil)
+(`Voters.Outgoing`, `Learners`, `LearnersNext`), for which the result is the empty (nil)
 slice. Sortedness is not stated -- `slices.Sort`'s triple gives only a permutation, and
 nothing downstream needs more. At most `2^62` ids: `slices.Sort`'s bound. -/
 abbrev quorum.MajorityConfig.Slice.spec : Prop :=

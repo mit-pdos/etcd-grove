@@ -5,7 +5,6 @@ module
 
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeVoter
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.go_etcd_io.raft.v3.confchange.nilAwareDelete
 
 @[expose] public section
@@ -26,7 +25,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem confchange.Changer.makeVoter.wp_proof
     (wp_Changer_initProgress : confchange.Changer.initProgress.spec (GF := GF) (hG := hG))
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareDelete : confchange.nilAwareDelete.spec (GF := GF) (hG := hG)) :
     confchange.Changer.makeVoter.spec (GF := GF) (hG := hG) := by
   intro p cfgp trk chg base s id dq Hmi
@@ -73,7 +71,7 @@ theorem confchange.Changer.makeVoter.wp_proof
     wp_apply wp_confchange_nilAwareDelete $$ [$Learners $Hl] as %ml ⟨Learners, Hl⟩
     ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
     wp_apply wp_confchange_nilAwareDelete $$ [$LearnersNext $Hln] as %mln ⟨LearnersNext, Hln⟩
-    wp_apply wp_confchange_incoming _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
     wp_apply wp_mapInsert $$ Hin as Hin
     ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)) $$
         [Voters AutoLeave Learners LearnersNext]

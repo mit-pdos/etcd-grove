@@ -423,7 +423,7 @@ theorem ownIdsetQ_ofMaj (m : Loc) (s : GSet w64) :
 (`ownIdsetQ`), with the rest of the configuration kept in the wand that puts them back. -/
 theorem ownCfgCC_voters (cfg : tracker.Config) (c : CfgM) :
     ownCfgCC (GF := GF) cfg (DFrac.own 1) c ⊢ ∃ (vin vout : Loc),
-      ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗ ownIdsetQ vin (DFrac.own 1) c.incoming ∗
+      ⌜cfg.Voters'.halves = [vin, vout]⌝ ∗ ownIdsetQ vin (DFrac.own 1) c.incoming ∗
       ownIdsetQ vout (DFrac.own 1) c.outgoing ∗
       (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownIdsetQ vout (DFrac.own 1) c.outgoing -∗
         ownCfgCC cfg (DFrac.own 1) c) := by

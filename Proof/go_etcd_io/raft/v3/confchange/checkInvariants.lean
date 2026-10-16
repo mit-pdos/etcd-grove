@@ -6,8 +6,6 @@ module
 public import Spec.go_etcd_io.raft.v3.confchange.checkInvariants
 public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Spec.go_etcd_io.raft.v3.confchange.joint
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
 
 @[expose] public section
 
@@ -91,7 +89,7 @@ theorem ci_err {P : Prop} (e : GoInterfaceOk) (H : ¬ P) :
 
 /-- Close the configuration's representation from its pieces. -/
 theorem ci_close (cfg : tracker.Config) (c : CfgM) (vin vout : Loc) (dqc : DFrac)
-    (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave)
+    (Harr : cfg.Voters'.halves = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave)
     (Hinnn : vin ≠ map.nil) (Hcout : vout = map.nil ∨ c.outgoing ≠ ∅)
     (Hcln : cfg.LearnersNext' = map.nil ∨ c.learnersNext ≠ ∅)
     (Hcl : cfg.Learners' = map.nil ∨ c.learners ≠ ∅) :
@@ -107,9 +105,7 @@ theorem ci_close (cfg : tracker.Config) (c : CfgM) (vin vout : Loc) (dqc : DFrac
 
 theorem confchange.checkInvariants.wp_proof
     (wp_JointConfig_IDs : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
-    (wp_confchange_joint : confchange.joint.spec (GF := GF) (hG := hG))
-    (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG))
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG)) :
+    (wp_confchange_joint : confchange.joint.spec (GF := GF) (hG := hG)) :
     confchange.checkInvariants.spec (GF := GF) (hG := hG) := by
   intro cfg trk c prs pvs dqc dqm dqp
   wp_start as ⟨Hc, Htrk, Hprs⟩
@@ -315,7 +311,7 @@ theorem confchange.checkInvariants.wp_proof
     iNamed HP
     have HkLN : key ∈ c.learnersNext := by rw [GMap.mem_iff, Hvv]; rfl
     wp_auto
-    wp_apply wp_confchange_outgoing _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
     wp_apply wp_idset_lookup2 $$ Hout as Hout
     wp_if_destruct
     · obtain ⟨pr, pv, hpr, hpv⟩ := Htr key (.inr (.inr (.inr HkLN)))
@@ -377,7 +373,7 @@ theorem confchange.checkInvariants.wp_proof
           refine ⟨by simpa [GMap.mem_iff] using Hif, ?_⟩
           rw [flagsOf_lookup pvs k pv hpv]
           simp_all
-    · -- "%d is in LearnersNext, but not Voters[1]"
+    · -- "%d is in LearnersNext, but not Voters.Outgoing"
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
@@ -439,10 +435,10 @@ theorem confchange.checkInvariants.wp_proof
     iNamed HP
     have HkL : key ∈ c.learners := by rw [GMap.mem_iff, Hvv]; rfl
     wp_auto
-    wp_apply wp_confchange_outgoing _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
     wp_apply wp_idset_lookup2 $$ Hout as Hout
     wp_if_destruct
-    · -- "%d is in Learners and Voters[1]"
+    · -- "%d is in Learners and Voters.Outgoing"
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
@@ -466,10 +462,10 @@ theorem confchange.checkInvariants.wp_proof
       have h := (Hinv.2.2.1 key HkL).1
       rw [GMap.mem_iff] at h
       simp_all
-    wp_apply wp_confchange_incoming _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
     wp_apply wp_idset_lookup2 $$ Hin as Hin
     wp_if_destruct
-    · -- "%d is in Learners and Voters[0]"
+    · -- "%d is in Learners and Voters.Incoming"
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
@@ -582,7 +578,7 @@ theorem confchange.checkInvariants.wp_proof
       rcases Hcout with h | h
       · exact h
       · exact absurd Hout0 h
-    wp_apply wp_confchange_outgoing _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
     subst Hvout
     icases ownIdsetQ_nil_empty _ _ _ $$ Hln with ⟨Hln, %HlnE⟩
     wp_auto

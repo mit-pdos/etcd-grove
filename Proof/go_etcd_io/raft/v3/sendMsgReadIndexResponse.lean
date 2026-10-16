@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart; 2026-10-12, read-index).
 
-Since 2026-10-14 (the pinned raft with the single-voter fix): `r.trk.Voters[0][r.id]` is a
+Since 2026-10-14 (the pinned raft with the single-voter fix): `r.trk.Voters.Incoming[r.id]` is a
 lookup in the incoming voter set (`wp_idset_lookup2`), `IsSingleton` the sizes of the two
 halves (`IsSingleton.spec_trackerC`); both true is `CfgSingle c id` (`cfgSingle_iff`), and
 then `responseToReadIndexReq` at the commit index and, for a forwarded request, the `send` of
@@ -40,7 +40,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The incoming voter set of the tracker, borrowed. -/
 theorem ownTrackerC_incoming (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ⊢ ownTrackerC (GF := GF) c tv t -∗
-      ∃ (vin vout : Loc), ⌜tv.Config'.Voters'.arr = [vin, vout]⌝ ∗
+      ∃ (vin vout : Loc), ⌜tv.Config'.Voters'.halves = [vin, vout]⌝ ∗
         ownIdsetQ vin (DFrac.own 1) c.incoming ∗
         (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownTrackerC c tv t) := by
   obtain ⟨votes, prs, pvs⟩ := t
@@ -97,7 +97,7 @@ theorem sendMsgReadIndexResponse.wp_proof
   intro c r id s ml m ents sn ctx rs Hlead Hne
   wp_start as ⟨Hphys, #Hm⟩
   wp_auto
-  -- `_, isVoter := r.trk.Voters[0][r.id]`
+  -- `_, isVoter := r.trk.Voters.Incoming[r.id]`
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTrackerC_incoming c tv _ $$ Htrk with ⟨%vin, %vout, %Harr, Hv0, Htrkback⟩
@@ -105,8 +105,8 @@ theorem sendMsgReadIndexResponse.wp_proof
     _ tv (DFrac.own 1)).access_strict $$ Htrkf with ⟨Hcf, Hcfback⟩
   icases (go_etcd_io.raft.v3.tracker.Config.Config_access_load_Voters
     _ tv.Config' (DFrac.own 1)).access_strict $$ Hcf with ⟨Hvf, Hvfback⟩
-  icases array_acc_same (GF := GF) _ (sint.Z (W64 0)) _ _ _ vin (by decide)
-      (by simp [Harr]) $$ Hvf with ⟨Hv0f, Hv0back⟩
+  icases jointConfig_acc_Incoming _ _ _ vin ((quorum.JointConfig.halves_eq _ _ _).1 Harr).1
+      $$ Hvf with ⟨Hv0f, Hv0back⟩
   wp_auto
   ihave Hvf := Hv0back $$ Hv0f
   ihave Hcf := Hvfback $$ Hvf

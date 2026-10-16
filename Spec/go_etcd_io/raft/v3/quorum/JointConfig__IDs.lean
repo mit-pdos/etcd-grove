@@ -36,7 +36,8 @@ Until 2026-09-17 Goose emitted the element read `c[0]` inside `JointConfig.IDs` 
 `![MajorityConfig] (IndexRef (ArrayType 2 MajorityConfig) (c, 0))`, which Perennial's
 `load`/`index_ref` lemmas could not step (they expect the array element access to go
 through `arrayIndexRef`). `etc/update-goose-new.py` now emits `IndexRef JointConfig`,
-which steps (`index_ref_array'`), so the proof goes through.
+which steps (`index_ref_array'`), so the proof goes through. (Since raft#285 `JointConfig` is a
+struct `{Incoming, Outgoing}`: two loops, one per field, and no array access.)
 
 Generalized 2026-10-08 (when `confchange` was translated): stated on any `JointConfig`
 cell at any fraction, with the voter map at any fraction, since `checkInvariants` calls
@@ -47,7 +48,7 @@ may be `nil` or a map (`ownIdsetQ`), and the result is the union of the two sets
 abbrev quorum.JointConfig.IDs.spec : Prop :=
   ∀ (p : Loc) (jc : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GMap w64 Unit)
     (dq dq0 dq1 : DFrac),
-  jc.arr = [v0, v1] →
+  jc.halves = [v0, v1] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
       p ↦{dq} jc ∗ ownIdsetQ v0 dq0 s0 ∗ ownIdsetQ v1 dq1 s1 }}
     (App (Val (p @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))

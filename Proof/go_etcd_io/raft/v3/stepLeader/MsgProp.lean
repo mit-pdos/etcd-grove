@@ -70,7 +70,7 @@ left them (`leaderPropConf` of the first `n`), and `pendingConfIndex` as it left
 is decoded (`Unmarshal`, from `ccEntsOk`'s bytes, never failing) when it is a conf change,
 and checked: refused (overwritten with `pb.Entry{Type: EntryNormal}`) when a conf change
 is pending or its `wantsLeaveJoint` (an empty `ConfChangeV2`) disagrees with `alreadyJoint`,
-else accepted (`pendingConfIndex` moved). `alreadyJoint` is `len(r.trk.Config.Voters[1]) >
+else accepted (`pendingConfIndex` moved). `alreadyJoint` is `len(r.trk.Config.Voters.Outgoing) >
 0`, `c.joint` (since 2026-10-14, reconfiguration stage A3: until then the outgoing half was
 `nil`); `disableConfChangeValidation` is false (`ownRaftPhysC`). Then `appendEntry`
 stamps the loop's batch and, if it accepts it, `bcastAppend`.
@@ -300,28 +300,19 @@ theorem wp_stepLeader_prop
       wp_auto
       ihave Hlog := Hlb $$ Hl
       ihave Hphys := Hback $$ Hlog
-      -- `alreadyJoint := len(r.trk.Config.Voters[1]) > 0`: `c.joint` (2026-10-14)
+      -- `alreadyJoint := len(r.trk.Config.Voters.Outgoing) > 0`: `c.joint` (2026-10-14)
       icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
       icases ownTrackerC_halves c tv _ $$ Htrk with ⟨%vin, %vout, %Harr, %Hcsz, Hv0, Hv1, Htrkback⟩
-      have Hset1 : array.mk 2 (tv.Config'.Voters'.arr.set (sint.Z (W64 1)).toNat vout) =
-          tv.Config'.Voters' := by
-        generalize tv.Config'.Voters' = a at Harr ⊢
-        cases a
-        simp only at Harr
-        subst Harr
-        rfl
       icases (Access.access
-          (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"]
-            ↦ tv.Config'.Voters')
-          (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"]
-            ↦ tv.Config'.Voters')
+          (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"]
+            ↦ tv.Config'.Voters'.Outgoing')
+          (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"]
+            ↦ tv.Config'.Voters'.Outgoing')
           (P := r.[raft, go!"trk"] ↦ tv)) $$ Htrkf with ⟨Hvf, Htrkfback⟩
-      icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
-        $$ Hvf with ⟨Hc1, Hcback⟩
       wp_auto
-      ihave Hvf := Hcback $$ Hc1
-      rw [Hset1]
-      ihave Htrkf := Htrkfback $$ Hvf
+      ihave Htrkf : (r.[raft, go!"trk"] ↦ tv : IProp GF) $$ [Hvf Htrkfback]
+      · iapply Htrkfback; iexact Hvf
+      rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
       wp_apply wp_idset_len $$ Hv1 as ⟨Hv1, %Hlt1⟩
       have Hjd : decide (sint.Z (W64 0) < sint.Z (W64 (GMap.size c.outgoing : Int))) = c.joint := by
         unfold CfgM.joint
@@ -502,28 +493,19 @@ theorem wp_stepLeader_prop
       wp_auto
       ihave Hlog := Hlb $$ Hl
       ihave Hphys := Hback $$ Hlog
-      -- `alreadyJoint := len(r.trk.Config.Voters[1]) > 0`: `c.joint` (2026-10-14)
+      -- `alreadyJoint := len(r.trk.Config.Voters.Outgoing) > 0`: `c.joint` (2026-10-14)
       icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
       icases ownTrackerC_halves c tv _ $$ Htrk with ⟨%vin, %vout, %Harr, %Hcsz, Hv0, Hv1, Htrkback⟩
-      have Hset1 : array.mk 2 (tv.Config'.Voters'.arr.set (sint.Z (W64 1)).toNat vout) =
-          tv.Config'.Voters' := by
-        generalize tv.Config'.Voters' = a at Harr ⊢
-        cases a
-        simp only at Harr
-        subst Harr
-        rfl
       icases (Access.access
-          (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"]
-            ↦ tv.Config'.Voters')
-          (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"]
-            ↦ tv.Config'.Voters')
+          (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"]
+            ↦ tv.Config'.Voters'.Outgoing')
+          (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"].[quorum.JointConfig, go!"Outgoing"]
+            ↦ tv.Config'.Voters'.Outgoing')
           (P := r.[raft, go!"trk"] ↦ tv)) $$ Htrkf with ⟨Hvf, Htrkfback⟩
-      icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
-        $$ Hvf with ⟨Hc1, Hcback⟩
       wp_auto
-      ihave Hvf := Hcback $$ Hc1
-      rw [Hset1]
-      ihave Htrkf := Htrkfback $$ Hvf
+      ihave Htrkf : (r.[raft, go!"trk"] ↦ tv : IProp GF) $$ [Hvf Htrkfback]
+      · iapply Htrkfback; iexact Hvf
+      rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
       wp_apply wp_idset_len $$ Hv1 as ⟨Hv1, %Hlt1⟩
       have Hjd : decide (sint.Z (W64 0) < sint.Z (W64 (GMap.size c.outgoing : Int))) = c.joint := by
         unfold CfgM.joint

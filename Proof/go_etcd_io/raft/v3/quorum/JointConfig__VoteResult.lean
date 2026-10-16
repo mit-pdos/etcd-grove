@@ -1,9 +1,9 @@
 /-
 Port of election_proof/proof_JointConfig__VoteResult.v.
 
-Lean notes: Perennial's `array_acc_same` (`v3_proof/readonly.lean`, which cannot be
-imported here) is restated locally as `array_acc_same'` (as in
-`Proof/JointConfig__CommittedIndex.lean`). Rocq's `w8_absurd` is `decide` on the two
+Lean notes: the two halves are read through their fields (`jointConfig_acc_Incoming`/
+`_Outgoing`, `Base.lean`; until raft#285 `JointConfig` was a `[2]MajorityConfig`, read through
+a local `array_acc_same'`). Rocq's `w8_absurd` is `decide` on the two
 `VoteResult` constants.
 -/
 module
@@ -26,24 +26,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-/-- `array_acc`, putting back the same element. -/
-private theorem array_acc_same' {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
-    (i : Int) (dq : DFrac) (n : Int) (a : GoArray V n) (v : V)
-    (hpos : 0 ≤ i) (hlookup : a.arr[i.toNat]? = some v) :
-    typedPointsto (GF := GF) p a dq ⊢
-      iprop(typedPointsto (arrayIndexRef V i p) v dq ∗
-        (typedPointsto (arrayIndexRef V i p) v dq -∗ typedPointsto p a dq)) := by
-  have hset : a.arr.set i.toNat v = a.arr := by
-    obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 hlookup
-    exact List.set_getElem_self h
-  iintro Ha
-  icases array_acc (GF := GF) p i dq n a v hpos hlookup $$ Ha with ⟨Hv, Ha⟩
-  iframe Hv
-  iintro Hv
-  ihave Ha := Ha $$ %v Hv
-  rw [hset]
-  iexact Ha
-
 /-- What one half's answer says, as `MajQ` (pure). -/
 theorem majVote_facts (r : w8) (s q q' : GSet w64)
     (Hr : r = VoteWon ∨ r = VoteLost ∨ r = VotePending)
@@ -67,7 +49,7 @@ theorem jointVote_facts (r1 r2 : w8)
     (res = VoteLost ↔ r1 = VoteLost ∨ r2 = VoteLost) := by
   rcases Hr1 with rfl | rfl | rfl <;> rcases Hr2 with rfl | rfl | rfl <;> decide
 
-/-- Both halves asked, through `array_acc_same'` (each half's id set lent to
+/-- Both halves asked, through `jointConfig_acc_*` (each half's id set lent to
 `MajorityConfig.VoteResult` and given back), the answers combined (`jointVote_facts`). -/
 theorem quorum.JointConfig.VoteResult.wp_proof
     (wp_MajorityConfig_VoteResult : quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG)) :
@@ -79,15 +61,13 @@ theorem quorum.JointConfig.VoteResult.wp_proof
   wp_call
   wp_call
   wp_auto
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ v0 (by decide)
-      (by simp [Harr]) $$ c with ⟨Hc0, Hcback⟩
+  icases jointConfig_acc_Incoming _ _ _ v0 ((quorum.JointConfig.halves_eq _ _ _).1 Harr).1 $$ c with ⟨Hc0, Hcback⟩
   ihave Hv0 := ownIdsetQ_toMaj _ _ $$ Hv0
   wp_apply wp_MajorityConfig_VoteResult s0 $$ [$Hc0 $Hvotes $Hv0]
     as %r1 ⟨Hc0, Hvotes, Hv0, %Hr1, %Hemp1, %Hwon1, %Hlost1⟩
   · ipureintro; exact Hsz0
   ihave c := Hcback $$ Hc0
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ v1 (by decide)
-      (by simp [Harr]) $$ c with ⟨Hc1, Hcback⟩
+  icases jointConfig_acc_Outgoing _ _ _ v1 ((quorum.JointConfig.halves_eq _ _ _).1 Harr).2 $$ c with ⟨Hc1, Hcback⟩
   ihave Hv1 := ownIdsetQ_toMaj _ _ $$ Hv1
   wp_apply wp_MajorityConfig_VoteResult s1 $$ [$Hc1 $Hvotes $Hv1]
     as %r2 ⟨Hc1, Hvotes, Hv1, %Hr2, %Hemp2, %Hwon2, %Hlost2⟩

@@ -1,8 +1,9 @@
 /-
 Port of election_proof/proof_JointConfig__CommittedIndex.v.
 
-Lean notes: Perennial's `array_acc_same` (`v3_proof/readonly.lean`, which cannot be
-imported here) is restated locally as `array_acc_same'`.
+Lean notes: the two halves are read through their fields (`jointConfig_acc_Incoming`/
+`_Outgoing`, `Base.lean`; until raft#285 `JointConfig` was a `[2]MajorityConfig`, read through
+a local `array_acc_same'`).
 -/
 module
 
@@ -25,27 +26,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `array_acc`, putting back the same element. -/
-private theorem array_acc_same' {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
-    (i : Int) (dq : DFrac) (n : Int) (a : GoArray V n) (v : V)
-    (hpos : 0 ≤ i) (hlookup : a.arr[i.toNat]? = some v) :
-    typedPointsto (GF := GF) p a dq ⊢
-      iprop(typedPointsto (arrayIndexRef V i p) v dq ∗
-        (typedPointsto (arrayIndexRef V i p) v dq -∗ typedPointsto p a dq)) := by
-  have hset : a.arr.set i.toNat v = a.arr := by
-    obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 hlookup
-    exact List.set_getElem_self h
-  iintro Ha
-  icases array_acc (GF := GF) p i dq n a v hpos hlookup $$ Ha with ⟨Hv, Ha⟩
-  iframe Hv
-  iintro Hv
-  ihave Ha := Ha $$ %v Hv
-  rw [hset]
-  iexact Ha
-
-/-- The receiver is a value-receiver copy `c`: `c[0]` and `c[1]` are handed to
+/-- The receiver is a value-receiver copy `c`: `c.Incoming` and `c.Outgoing` are handed to
 `MajorityConfig.CommittedIndex` one after the other, each with its half's id set and the
-indexer's resource; then `min`. The array element reads go through `array_acc`. -/
+indexer's resource; then `min`. The field reads go through `jointConfig_acc_*`. -/
 theorem quorum.JointConfig.CommittedIndex.wp_proof
     (wp_MajorityConfig_CommittedIndex :
       quorum.MajorityConfig.CommittedIndex.spec (GF := GF) (hG := hG)) :
@@ -57,14 +40,14 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
   wp_call
   wp_call
   wp_auto
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ v0 (by decide) (by simp [Harr])
+  icases jointConfig_acc_Incoming _ _ _ v0 ((quorum.JointConfig.halves_eq _ _ _).1 Harr).1
     $$ c with ⟨Hc0, Hcback⟩
   ihave Hv0 := ownIdsetQ_toMaj _ _ $$ Hv0
   wp_apply wp_MajorityConfig_CommittedIndex s0 $$ [$Hc0 $Hidx $HP $Hv0]
     as %N0 ⟨Hc0, Hv0, HP, %Hemp0, %Hq0⟩
   · ipureintro; exact Hsz0
   ihave c := Hcback $$ Hc0
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ v1 (by decide) (by simp [Harr])
+  icases jointConfig_acc_Outgoing _ _ _ v1 ((quorum.JointConfig.halves_eq _ _ _).1 Harr).2
     $$ c with ⟨Hc1, Hcback⟩
   ihave Hv1 := ownIdsetQ_toMaj _ _ $$ Hv1
   wp_apply wp_MajorityConfig_CommittedIndex s1 $$ [$Hc1 $Hidx $HP $Hv1]

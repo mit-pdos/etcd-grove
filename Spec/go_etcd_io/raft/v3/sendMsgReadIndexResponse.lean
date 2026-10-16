@@ -2,7 +2,7 @@
 
 ## `sendMsgReadIndexResponse(r, m)` (raft.go:2130)
 
-    if _, isVoter := r.trk.Voters[0][r.id]; isVoter && r.trk.IsSingleton() {
+    if _, isVoter := r.trk.Voters.Incoming[r.id]; isVoter && r.trk.IsSingleton() {
         if resp := r.responseToReadIndexReq(m, r.raftLog.committed); resp.To != None {
             r.send(resp)
         }

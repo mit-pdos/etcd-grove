@@ -45,6 +45,15 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR etcd-io/raft#285 verified: `JointConfig` as a struct (2026-10-16, branch `pr-verify/raft-285`)
+
+This branch translates the PR (fork branch `pr-raft-285-goose-lean`) and re-proves every function
+it changes. The PR makes `quorum.JointConfig` a struct `{Incoming, Outgoing}` and removes
+confchange's `incoming`/`outgoing`/`outgoingPtr`. The specs now state a configuration's halves as
+`a.halves = [v0, v1]` (`quorum.JointConfig.halves`, `Base.lean`) where they said `a.arr`; it is the
+same statement. No axiom or `sorry` was added. The report is `notes/pr-verify/raft-285.md`. Not for
+merging into `lean`: the translation is of unmerged code, and `etc/goose.py --check` fails here.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

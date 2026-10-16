@@ -8,9 +8,6 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
 public import Spec.go_etcd_io.raft.v3.confchange.joint
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__err
 public import Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.go_etcd_io.raft.v3.confchange.outgoingPtr
 public import Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
 
 @[expose] public section
@@ -80,9 +77,6 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     (wp_confchange_joint : confchange.joint.spec (GF := GF) (hG := hG))
     (wp_Changer_err : confchange.Changer.err.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareAdd : confchange.nilAwareAdd.spec (GF := GF) (hG := hG))
-    (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG))
-    (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
-    (wp_confchange_outgoingPtr : confchange.outgoingPtr.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.LeaveJoint.spec (GF := GF) (hG := hG) := by
   intro p chg c prs pvs dq dqc dqm dqp
@@ -221,9 +215,9 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     · rw [ite_eq_right hk, ite_eq_right (show k ∉ c.learnersNext from fun h' => hk (h.2 h'))]
   clear HLI HpvsI Hkset Hklen Hknodup
   icases ownIdsetC_split _ _ _ $$ Hl with ⟨Hl, %Hcl⟩
-  -- `cfg.LearnersNext = nil`, then `for id := range outgoing(cfg.Voters) {...}`
+  -- `cfg.LearnersNext = nil`, then `for id := range cfg.Voters.Outgoing {...}`
   wp_auto
-  wp_apply wp_confchange_outgoing _ vin vout Harr
+  rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).2]
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_idset_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (y : w64)
@@ -254,7 +248,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
     wp_auto
-    wp_apply wp_confchange_incoming _ vin vout Harr
+    rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
     wp_apply wp_map_lookup2 $$ Hin as Hin
     wp_apply wp_idset_lookup2 $$ Hl as Hl
     cases h1 : (c.incoming !! key).isSome <;>
@@ -304,24 +298,18 @@ theorem confchange.Changer.LeaveJoint.wp_proof
       simp only [hk, hk', _root_.false_and, ite_false]
   have Hflags2 := lj_flags c pvs pvsI2 (c.learners ∪ c.learnersNext)
     (fun k => GMap.elem_of_union _ _ _) Hp2'
-  -- `*outgoingPtr(&cfg.Voters) = nil`, `cfg.AutoLeave = false`
+  -- `cfg.Voters.Outgoing = nil`, `cfg.AutoLeave = false`
   wp_auto
-  wp_apply wp_confchange_outgoingPtr
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
-    $$ Voters with ⟨Hv1, Hvback⟩
-  rw [show sint.Z (W64 1) = (1 : Int) by decide]
-  wp_auto
-  ihave Voters := Hvback $$ Hv1
-  rw [show (1 : Int).toNat = 1 from rfl]
-  have Harr2 : (cfg'.Voters'.arr.set 1 map.nil) = [vin, map.nil] := by rw [Harr]; rfl
-  ihave Hcfgp : (cfg_ptr ↦ (tracker.Config.mk (array.mk 2 (cfg'.Voters'.arr.set 1 map.nil)) false ml map.nil)) $$
+  rw [((quorum.JointConfig.halves_eq _ _ _).1 Harr).1]
+  have Harr2 : (quorum.JointConfig.mk vin map.nil).halves = [vin, map.nil] := rfl
+  ihave Hcfgp : (cfg_ptr ↦ (tracker.Config.mk (quorum.JointConfig.mk vin map.nil) false ml map.nil)) $$
       [Voters AutoLeave Learners LearnersNext]
   · iapply typedPointsto_combine _ _ _ Hcnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  ihave Hc2 : ownCfgCC (tracker.Config.mk (array.mk 2 (cfg'.Voters'.arr.set 1 map.nil)) false ml map.nil)
+  ihave Hc2 : ownCfgCC (tracker.Config.mk (quorum.JointConfig.mk vin map.nil) false ml map.nil)
       (DFrac.own 1) (leaveJointState { cfg := c, prs := flagsOf pvs }).cfg $$ [Hin Hl]
-  · iapply ownCfgCC_intro (tracker.Config.mk (array.mk 2 (cfg'.Voters'.arr.set 1 map.nil)) false ml map.nil)
+  · iapply ownCfgCC_intro (tracker.Config.mk (quorum.JointConfig.mk vin map.nil) false ml map.nil)
       (DFrac.own 1) (leaveJointState { cfg := c, prs := flagsOf pvs }).cfg vin map.nil Harr2
       (by simp [leaveJointState]) $$ [Hin] [] [Hl] []
     all_goals simp only [leaveJointState.proj_cfg]

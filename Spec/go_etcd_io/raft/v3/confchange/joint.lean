@@ -1,5 +1,5 @@
 /-
-`confchange.joint(cfg)` is `len(outgoing(cfg.Voters)) > 0`. Lean-first (no Rocq
+`confchange.joint(cfg)` is `len(cfg.Voters.Outgoing) > 0`. Lean-first (no Rocq
 counterpart); see `InvConfchange.lean`.
 -/
 module
@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (Generalized 2026-10-12 from the `nil` case.) -/
 abbrev confchange.joint.spec : Prop :=
   ∀ (cfg : tracker.Config) (vin vout : Loc) (s : GSet w64) (dq : DFrac),
-  cfg.Voters'.arr = [vin, vout] →
+  cfg.Voters'.halves = [vin, vout] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ownIdsetQ vout dq s }}
     (App (Val #(functions confchange.joint [])) (Val #cfg))
   {{ RET #(decide (0 < GMap.size s)); ownIdsetQ vout dq s }}

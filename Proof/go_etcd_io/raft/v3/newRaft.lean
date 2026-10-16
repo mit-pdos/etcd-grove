@@ -57,7 +57,7 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
     (Hvnd : c.Voters'.Nodup) (Hv0n : W64 0 ∉ c.Voters') (Hvlen : (c.Voters'.length : Int) ≤ 2 ^ 62)
     (Hcvo : c.VotersOutgoing' = []) (Hcl : c.Learners' = []) (Hcln : c.LearnersNext' = [])
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
-    (Harr : chg.Tracker'.Config'.Voters'.arr = [v0, map.nil])
+    (Harr : chg.Tracker'.Config'.Voters'.halves = [v0, map.nil])
     (Hl : chg.Tracker'.Config'.Learners' = map.nil)
     (Hln : chg.Tracker'.Config'.LearnersNext' = map.nil)
     (Hal : chg.Tracker'.Config'.AutoLeave' = false) :

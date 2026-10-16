@@ -41,8 +41,8 @@ namespace EtcdGrove
 
 open GMap go_etcd_io.raft.v3
 
-/-- A `tracker.Config`, abstractly: the incoming and outgoing voter sets (`Voters[0]`,
-`Voters[1]`), the learners, the staged learners (`LearnersNext`) and `AutoLeave`. (The
+/-- A `tracker.Config`, abstractly: the incoming and outgoing voter sets (`Voters.Incoming`,
+`Voters.Outgoing`), the learners, the staged learners (`LearnersNext`) and `AutoLeave`. (The
 `confchange` model, `InvConfchange.lean`, works on it.) -/
 structure CfgM where
   incoming : GSet w64
@@ -76,7 +76,7 @@ def JQuorumAcked (c : CfgM) (f : w64 → w64) (N : w64) : Prop :=
 
 /-- The node `id` is the only voter, with no outgoing half (2026-10-14, the single-voter
 read-index fix, `issues/raft-readindex-singleton-stale.md`): what `sendMsgReadIndexResponse`'s
-`_, isVoter := r.trk.Voters[0][r.id]; isVoter && r.trk.IsSingleton()` tests. -/
+`_, isVoter := r.trk.Voters.Incoming[r.id]; isVoter && r.trk.IsSingleton()` tests. -/
 def CfgSingle (c : CfgM) (id : w64) : Prop := c.incoming = {[id]} ∧ c.outgoing = ∅
 
 theorem cfgSingle_iff (c : CfgM) (id : w64) :
@@ -160,7 +160,7 @@ theorem JQuorum_intersect {c : CfgM} (hi : c.incoming ≠ ∅) {q1 q2 : GSet w64
 theorem QOverlap.refl {c : CfgM} (hi : c.incoming ≠ ∅) : QOverlap c c :=
   fun _ _ h1 h2 => JQuorum_intersect hi h1 h2
 
-/-- Whether the configuration `c` is joint: `len(r.trk.Config.Voters[1]) > 0`, `stepLeader`'s
+/-- Whether the configuration `c` is joint: `len(r.trk.Config.Voters.Outgoing) > 0`, `stepLeader`'s
 `alreadyJoint` (moved here from `Spec/stepLeader.lean` in stage B3, for `StepR`'s proposals). -/
 def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
 

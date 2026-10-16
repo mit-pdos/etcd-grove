@@ -56,7 +56,7 @@ abbrev confchange.Restore.spec : Prop :=
   restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' = some s' →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   -- the empty configuration
-  chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
+  chg.Tracker'.Config'.Voters'.halves = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
   chg.Tracker'.Config'.LearnersNext' = map.nil →
   chg.Tracker'.Config'.AutoLeave' = false →
@@ -112,7 +112,7 @@ abbrev confchange.Restore.specE : Prop :=
   c.LearnersNext' = [] →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   -- the empty configuration
-  chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
+  chg.Tracker'.Config'.Voters'.halves = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
   chg.Tracker'.Config'.LearnersNext' = map.nil →
   chg.Tracker'.Config'.AutoLeave' = false →
@@ -158,11 +158,11 @@ against the Go (`confchange/restore.go`, `confchange/confchange.go`) it says:
 - `toConfChangeSingle` turns `cs` into no outgoing changes and one `AddNode id` per
   `id ∈ cs.Voters`, since `VotersOutgoing`, `Learners` and `LearnersNext` are empty;
 - `chain` runs one `Changer.Simple(AddNode id)` per voter. Each `Simple` starts with
-  `checkAndCopy`, which `Clone`s the config (a fresh `Voters[0]` map; `Voters[1]`,
+  `checkAndCopy`, which `Clone`s the config (a fresh `Voters.Incoming` map; `Voters.Outgoing`,
   `Learners`, `LearnersNext` stay `nil`; `AutoLeave` is not copied, so `false`) and
   copies the progress map into a fresh one, each `Progress` shallow-copied into a fresh
   allocation. `makeVoter` on a new id calls `initProgress`, which adds `id` to
-  `Voters[0]` and allocates a `Progress` with `State = StateProbe`, `IsLearner = false`
+  `Voters.Incoming` and allocates a `Progress` with `State = StateProbe`, `IsLearner = false`
   and a fresh `NewInflights(MaxInflight, MaxInflightBytes)`; on a repeated id it only
   re-marks it a voter. `apply` **skips `NodeID = 0`**, hence the premise
   `0 ∉ voters`. No error is reachable: the config is never joint, one voter changes per
@@ -198,7 +198,7 @@ abbrev confchange.Restore.specS : Prop :=
   c.LearnersNext' = [] →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   -- the empty configuration
-  chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
+  chg.Tracker'.Config'.Voters'.halves = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
   chg.Tracker'.Config'.LearnersNext' = map.nil →
   chg.Tracker'.Config'.AutoLeave' = false →
@@ -213,7 +213,7 @@ abbrev confchange.Restore.specS : Prop :=
       ownCSM cs dq c ∗
       v0 ↦$ (∅ : GMap w64 Unit) ∗
       chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
-      ⌜cfgv.Voters'.arr = [vref, map.nil] ∧
+      ⌜cfgv.Voters'.halves = [vref, map.nil] ∧
         cfgv.LearnersNext' = map.nil ∧
         cfgv.AutoLeave' = false⌝ ∗
       ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet c.Learners') ∗

@@ -70,12 +70,9 @@ public import Proof.go_etcd_io.raft.v3.confchange.Restore
 public import Proof.go_etcd_io.raft.v3.confchange.chain
 public import Proof.go_etcd_io.raft.v3.confchange.checkAndReturn
 public import Proof.go_etcd_io.raft.v3.confchange.checkInvariants
-public import Proof.go_etcd_io.raft.v3.confchange.incoming
 public import Proof.go_etcd_io.raft.v3.confchange.joint
 public import Proof.go_etcd_io.raft.v3.confchange.nilAwareAdd
 public import Proof.go_etcd_io.raft.v3.confchange.nilAwareDelete
-public import Proof.go_etcd_io.raft.v3.confchange.outgoing
-public import Proof.go_etcd_io.raft.v3.confchange.outgoingPtr
 public import Proof.go_etcd_io.raft.v3.confchange.symdiff
 public import Proof.go_etcd_io.raft.v3.confchange.toConfChangeSingle
 public import Proof.go_etcd_io.raft.v3.entsSize
@@ -568,21 +565,13 @@ theorem quorum.JointConfig.wp_IDs :
     quorum.JointConfig.IDs.spec (GF := GF) (hG := hG) :=
   quorum.JointConfig.IDs.wp_proof
 
-theorem confchange.wp_outgoing :
-    confchange.outgoing.spec (GF := GF) (hG := hG) :=
-  confchange.outgoing.wp_proof
-
 theorem confchange.wp_joint :
     confchange.joint.spec (GF := GF) (hG := hG) :=
-  confchange.joint.wp_proof confchange.wp_outgoing
-
-theorem confchange.wp_incoming :
-    confchange.incoming.spec (GF := GF) (hG := hG) :=
-  confchange.incoming.wp_proof
+  confchange.joint.wp_proof
 
 theorem confchange.wp_checkInvariants :
     confchange.checkInvariants.spec (GF := GF) (hG := hG) :=
-  confchange.checkInvariants.wp_proof quorum.JointConfig.wp_IDs confchange.wp_joint confchange.wp_outgoing confchange.wp_incoming
+  confchange.checkInvariants.wp_proof quorum.JointConfig.wp_IDs confchange.wp_joint
 
 theorem confchange.wp_checkAndReturn :
     confchange.checkAndReturn.spec (GF := GF) (hG := hG) :=
@@ -606,7 +595,7 @@ theorem confchange.wp_nilAwareAdd :
 
 theorem confchange.Changer.wp_initProgress :
     confchange.Changer.initProgress.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.initProgress.wp_proof confchange.wp_incoming tracker.wp_NewInflights confchange.wp_nilAwareAdd
+  confchange.Changer.initProgress.wp_proof tracker.wp_NewInflights confchange.wp_nilAwareAdd
 
 theorem confchange.wp_nilAwareDelete :
     confchange.nilAwareDelete.spec (GF := GF) (hG := hG) :=
@@ -614,15 +603,15 @@ theorem confchange.wp_nilAwareDelete :
 
 theorem confchange.Changer.wp_makeVoter :
     confchange.Changer.makeVoter.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.makeVoter.wp_proof confchange.Changer.wp_initProgress confchange.wp_incoming confchange.wp_nilAwareDelete
+  confchange.Changer.makeVoter.wp_proof confchange.Changer.wp_initProgress confchange.wp_nilAwareDelete
 
 theorem confchange.Changer.wp_remove :
     confchange.Changer.remove.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.remove.wp_proof confchange.wp_incoming confchange.wp_outgoing confchange.wp_nilAwareDelete
+  confchange.Changer.remove.wp_proof confchange.wp_nilAwareDelete
 
 theorem confchange.Changer.wp_makeLearner :
     confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.makeLearner.wp_proof confchange.Changer.wp_initProgress confchange.Changer.wp_remove confchange.wp_outgoing confchange.wp_nilAwareAdd
+  confchange.Changer.makeLearner.wp_proof confchange.Changer.wp_initProgress confchange.Changer.wp_remove confchange.wp_nilAwareAdd
 
 theorem raftpb.ConfChangeType.wp_String :
     raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG) :=
@@ -638,7 +627,7 @@ theorem raftpb.ConfChangeSingle.wp_GetType :
 
 theorem confchange.Changer.wp_apply :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.wp_incoming fmt.wp_Errorf raftpb.ConfChangeType.wp_String raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeSingle.wp_GetType
+  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove fmt.wp_Errorf raftpb.ConfChangeType.wp_String raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeSingle.wp_GetType
 
 theorem confchange.wp_symdiff :
     confchange.symdiff.spec (GF := GF) (hG := hG) :=
@@ -646,15 +635,11 @@ theorem confchange.wp_symdiff :
 
 theorem confchange.Changer.wp_Simple :
     confchange.Changer.Simple.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.Simple.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.Changer.wp_apply confchange.wp_incoming confchange.wp_symdiff confchange.wp_checkAndReturn
-
-theorem confchange.wp_outgoingPtr :
-    confchange.outgoingPtr.spec (GF := GF) (hG := hG) :=
-  confchange.outgoingPtr.wp_proof
+  confchange.Changer.Simple.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.Changer.wp_apply confchange.wp_symdiff confchange.wp_checkAndReturn
 
 theorem confchange.Changer.wp_EnterJoint :
     confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.EnterJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.wp_incoming confchange.wp_outgoingPtr confchange.wp_outgoing confchange.Changer.wp_apply confchange.wp_checkAndReturn
+  confchange.Changer.EnterJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.Changer.wp_apply confchange.wp_checkAndReturn
 
 theorem confchange.wp_chain :
     confchange.chain.spec (GF := GF) (hG := hG) :=
@@ -1282,7 +1267,7 @@ theorem raftpb.ConfChangeV2.wp_EnterJoint :
 
 theorem confchange.Changer.wp_LeaveJoint :
     confchange.Changer.LeaveJoint.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.LeaveJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.wp_nilAwareAdd confchange.wp_outgoing confchange.wp_incoming confchange.wp_outgoingPtr confchange.wp_checkAndReturn
+  confchange.Changer.LeaveJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.wp_nilAwareAdd confchange.wp_checkAndReturn
 
 theorem raft.wp_applyConfChange [StorageModel GF] :
     raft.applyConfChange.spec (GF := GF) (hG := hG) :=
