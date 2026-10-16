@@ -14,8 +14,12 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
+# Since 2026-10-16 (stage R7c) also on etcd-grove's trust-boundary `context.ErrDone` axiom: the
+# node API's `ctx.Done()` case returns `ctx.Err()`, named (`Canceled`/`DeadlineExceeded`) for the
+# server's contract.
 roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
+axiom context.ErrDone.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof

@@ -30,7 +30,10 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # `sorry`, as raft's Init.lean says); none of the register's own (the `InitialState` premise of
 # raft's `RestartNode` takes the conf state at any `AutoLeave`, and `deliver` steps the wire's
 # copy of a message, `Ready` handing a response out at half; notes/STATUS.md, "stage R6").
+# Since 2026-10-16 (stage R7c) also on `context.ErrDone` (raft's node API names the context's
+# error; the register passes `Background()`, where the case is vacuous).
 axiom DescribeConfChange.wp_proof
+axiom context.ErrDone.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
