@@ -296,3 +296,11 @@ stepLeader: raft__bcastHeartbeat raft__sendAppend raft__maybeSendAppend raft__bc
 strings_Join:
 newRaft: Config__validate newLogWithSize tracker_MakeProgressTracker newReadOnly traceInitState raftLog__lastEntryID confchange_Restore raft__switchToConfig assertConfStatesEquivalent IsEmptyHardState raft__loadState raftLog__appliedTo raft__becomeFollower tracker_ProgressTracker__VoterNodes fmt_Sprintf strings_Join
 confChangeToMsg: raftpb_MarshalConfChange raftpb_MessageType__Enum raftpb_EntryType__Enum
+# Stage R5 (phase 3, G3): the node API
+newNode:
+node__Ready:
+node__Advance:
+node__Tick:
+node__ReportUnreachable: raftpb_MessageType__Enum
+node__ReportSnapshot: raftpb_MessageType__Enum
+node__TransferLeadership: raftpb_MessageType__Enum
