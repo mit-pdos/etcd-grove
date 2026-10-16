@@ -1037,6 +1037,8 @@ theorem mvcc.watchableStore.notify.wp_proof
     · rw [if_neg hwEne]
       simp only at Hlen
       iframe Hmeta Hfx Hfo Hch Hchf Hl Ha Hwf' Hsl HevB
+      isplitr
+      · ileft; ipureintro; rfl
       ipureintro
       refine ⟨Hlen, rfl, fun _ => rfl, ?_, ?_⟩
       · intro ev hev; rw [hmod ev hev]; exact Int.le_refl _

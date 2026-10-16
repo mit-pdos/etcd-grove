@@ -137,7 +137,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     · simp only [Option.isSome_map, hsy]
       ihave #Hiw := HM $$ %key %u %Hu
       simp only [mvcc.storeWatchParams]
-      icases Hiw with ⟨%γw, %rr, %fcs, #Hmeta, #Hfix, %Hsr⟩
+      icases Hiw with ⟨⟨%γw, %rr, %fcs, #Hmeta, #Hfix, %Hsr⟩, -⟩
       ihave #Hfix' := Hfix
       iunfold mvcc.watcherFixed at Hfix'
       icases Hfix' with ⟨%Hnn, %ks, %es, -, -, -, -, #HsR, -, -⟩
@@ -217,6 +217,12 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     iunfold mvcc.watcherOwn at Hwu
     icases Hwu with ⟨Hmin, Hvic, Hcomp, Hres, Hch⟩
     ihave #Hnil := ownSlice_nil (V := Loc) (GF := GF) DFrac.discard
+    -- the response's id: the watcher's own, or its channel's progress fact (unit W-M2)
+    icases HM $$ %key %u %Hu with ⟨-, %γw2, %rr2, %fcs2, #Hm2, #Hf2, #Hrid⟩
+    ihave %Hag1 := mvcc.watcherMeta_agree γ u γw γw2 $$ HmetaW Hm2
+    ihave %Hag2 := mvcc.watcherFixed_agree u rr rr2 fcs fcs2 $$ [$HfixW $Hf2]
+    obtain ⟨rfl, rfl⟩ := Hag2
+    subst Hag1
     wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard)
       $$ [$Hch $Hlv] as %b ⟨Hch, Hlv, -, -⟩
     · iframe #

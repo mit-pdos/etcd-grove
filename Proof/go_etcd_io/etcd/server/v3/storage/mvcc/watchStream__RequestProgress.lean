@@ -57,7 +57,7 @@ theorem mvcc.watchStream.RequestProgress.wp_proof :
     simp only [Option.isSome_some, Option.getD_some]
     wp_auto
     wp_apply Hprog $$ [Hws $HPR] as HPR
-    · iapply Hws $$ %id %w %hk
+    · icases Hws $$ %id %w %hk with ⟨$, -⟩
     iapply HΦ
     iframe HPR
 

@@ -146,12 +146,15 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
 
 /-- What the consumer gets from `v, ok := <-ch` with `received` received so far: on `ok`, the
 next response sent (`respIs v r`, `respOk r`), its consumer's view grown, and what it knows of
-`r`'s watcher from the responses received for it; on `!ok` (the channel closed and drained), its
-view unchanged. -/
+`r`'s watcher from the responses received for it, with (unit W-M2) what the channel knows of the
+watcher's registration (`chanRegFact`: its id, assigned by the stream) and, for a response of id
+`-1`, the channel's progress fact; on `!ok` (the channel closed and drained), its view
+unchanged. -/
 def watchRecvResult (γ : WsNames) (γc : WatchChanNames) (received : List RespM)
     (v : WatchResponse) (ok : Bool) : IProp GF :=
   if ok then iprop(∃ r : RespM, watchConsumer γc (received ++ [r]) ∗ respIs v r ∗ respOk r ∗
-    watchRecvOk γ r.w ((received ++ [r]).filter (fun x => decide (x.w = r.w))))
+    watchRecvOk γ r.w ((received ++ [r]).filter (fun x => decide (x.w = r.w))) ∗
+    chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → progFact γc.prog))
   else watchConsumer γc received
 
 theorem respsIs_cons (v : WatchResponse) (rest : List WatchResponse) (rs : List RespM) :
@@ -178,13 +181,16 @@ theorem watch_take (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (receiv
     (hsw : ∀ x ∈ sent, x.w ∈ L) :
     ghostVar (GF := GF) γc.recv (1 : Qp).half received ∗ ghostVar γc.recv (1 : Qp).half received ∗
       respsIs (v :: rest) (sent.drop received.length) ∗ □ ([∗list] x ∈ sent, respOk x) ∗
+      □ ([∗list] w ∈ L, chanRegFact γc w) ∗
+      □ ([∗list] x ∈ sent, ⌜x.id = W64 (-1)⌝ → progFact γc.prog) ∗
       ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ⊢
     |==> ∃ r : RespM, ghostVar γc.recv (1 : Qp).half (received ++ [r]) ∗
       ghostVar γc.recv (1 : Qp).half (received ++ [r]) ∗
       respsIs rest (sent.drop (received ++ [r]).length) ∗ ⌜received ++ [r] <+: sent⌝ ∗
       ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ∗ respIs v r ∗ respOk r ∗
-      watchRecvOk γ r.w ((received ++ [r]).filter (fun x => decide (x.w = r.w))) := by
-  iintro ⟨H1, H2, #Hvs, #Hok, Hws⟩
+      watchRecvOk γ r.w ((received ++ [r]).filter (fun x => decide (x.w = r.w))) ∗
+      chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → progFact γc.prog) := by
+  iintro ⟨H1, H2, #Hvs, #Hok, #Hrf, #Hpf, Hws⟩
   icases respsIs_cons _ _ _ $$ Hvs with ⟨%r, %rs', %Hd, #Hr, #Hrest⟩
   obtain ⟨Hp', Hd'⟩ := prefix_drop_cons' hpre Hd
   have hr : r ∈ sent := Hp'.subset (by simp)
@@ -193,10 +199,12 @@ theorem watch_take (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (receiv
     ((received ++ [r]).filter (fun x => decide (x.w = r.w))) (Hp'.filter _) $$ [$Hw $Hok]
   ihave Hws := Hback $$ Hw
   icases BigSepL.bigSepL_mem_acc hr $$ Hok with ⟨#Hro, -⟩
+  icases BigSepL.bigSepL_mem_acc (hsw r hr) $$ Hrf with ⟨#Hrrf, -⟩
+  icases BigSepL.bigSepL_mem_acc hr $$ Hpf with ⟨#Hrpf, -⟩
   imod ghostVar_update_halves (received ++ [r]) γc.recv _ _ $$ H1 H2 with ⟨H1, H2⟩
   imodintro
   iexists r
-  iframe H1 H2 Hws Hr Hro Hrok
+  iframe H1 H2 Hws Hr Hro Hrok Hrrf Hrpf
   rw [Hd']
   iframe Hrest
   ipureintro; exact Hp'
@@ -234,8 +242,8 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     irevert Hcl Hws; simp only [chanIsClosed, Bool.false_eq_true, ↓reduceIte]; iintro Hcl Hws
     simp only [chanInflight, Option.some.injEq] at Hinfl
     subst Hinfl
-    imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hws]
-      with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok⟩
+    imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
+      with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
     · inext
@@ -259,8 +267,8 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     irevert Hcl Hws; simp only [chanIsClosed, ↓reduceIte]; iintro Hcl Hws
     simp only [chanInflight, Option.some.injEq] at Hinfl
     subst Hinfl
-    imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hws]
-      with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok⟩
+    imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
+      with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
     · inext
@@ -331,8 +339,8 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
       irevert Hcl Hws; simp only [chanIsClosed, Bool.false_eq_true, ↓reduceIte]; iintro Hcl Hws
       simp only [chanInflight, Option.some.injEq] at Hinfl
       subst Hinfl
-      imod watch_take γ γc _ received sent L v' [] Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hws]
-        with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok⟩
+      imod watch_take γ γc _ received sent L v' [] Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
+        with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
       imod Hmask with -
       imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
       · inext

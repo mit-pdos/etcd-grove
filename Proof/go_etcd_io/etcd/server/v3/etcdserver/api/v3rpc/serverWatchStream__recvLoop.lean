@@ -133,7 +133,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmu⟩
+    #Hmu, %Hγoc, #Hsp⟩
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
   icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
@@ -454,8 +454,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · iframe #
           isplitl
           · iapply BigSepL.bigSepL_nil.2; iempintro
-          ipureintro; exact hsr0
-        icases Hwres with (⟨%Hwe, %Hrng, %Hid, %w, %lo, -, #HIWF, Hia⟩ | ⟨%Hid, Hwe⟩)
+          ipureintro; exact ⟨hsr0, Hwid0⟩
+        icases Hwres with (⟨%Hwe, %Hrng, %w, %lo, -, #HIWF, #Hia, Hit⟩ | ⟨%Hid, Hwe⟩)
+        have Hid : c.watchId ≠ W64 0 → id' = c.watchId := fun h => absurd Hwid0 h
         · -- registered
           subst Hwe
           wp_auto
@@ -515,7 +516,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             · ipureintro; exact ⟨rfl, rfl⟩
             isplit
             · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans Hia]
+            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans Hit]
             · iframe Hprod
               iunfold v3rpc.ctrlP
               iexists m
@@ -542,8 +543,6 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                     by_cases h3 : es2 = slice.nil <;> simp [h3]
                   · simp only [h1, h2, ↓reduceIte, Hes2.2 h1 h2]
               iframe HIWF
-              icases Hia with (%Hne | ⟨#Hia, Hit⟩)
-              · exact absurd Hwid0 Hne
               iframe Hia Hit Hfl
             iintro !> Hprod
             wp_auto
@@ -565,11 +564,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           itrivial
         · -- refused
           ihave ⟨%ei, %Hwei, #Heim⟩ : ∃ ei : GoInterfaceOk, ⌜werr = GoInterface.ok ei⌝ ∗ errMsgOk ei $$ [Hwe]
-          · icases Hwe with (#Hg | ⟨-, #Hg⟩)
-            · icombine Hg HeEWRg gives %Heq
-              iexists eEWR; iframe #; ipureintro; exact Heq
-            · icombine Hg HeDupg gives %Heq
-              iexists eDup; iframe #; ipureintro; exact Heq
+          · icases Hwe with #Hg
+            icombine Hg HeEWRg gives %Heq
+            iexists eEWR; iframe #; ipureintro; exact Heq
           subst Hwei
           wp_auto
           to_params
@@ -849,6 +846,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         wp_auto
         recv_next
     · -- progress
+      ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L .progress $$ Hrt
       icases Hm with ⟨%cr, %Hcrn, Hon⟩
       iunfold v3rpc.oneofProgress at Hon
       icases Hon with ⟨%w, %Hu', #Hw⟩
@@ -860,6 +858,15 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         as ⟨Hlk, HP⟩
       · iframe #
       to_params
+      -- the stream's progress fact: this request (unit W-M2)
+      ihave #Hpf : mvcc.progFact r.γo.prog $$ []
+      · iunfold mvcc.progFact
+        iexists (v3rpc.progQ r.γs)
+        iframe Hsp
+        iintro !>
+        iunfold v3rpc.progQ
+        iexists L.length
+        iexact Hat
       wp_apply hRPA r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo $$ [$HR] as %b HR
       · iframe #
       wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)

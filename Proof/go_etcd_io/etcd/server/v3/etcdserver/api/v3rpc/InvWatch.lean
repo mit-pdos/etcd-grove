@@ -26,7 +26,9 @@ and member ids, the logger, the request budget).
 (the gRPC stream, the mvcc watch stream `wsp` with its channel, the control stream `ctrl` (an SPSC
 channel from the receive loop to the send loop, `ctrlP`: each control response answers a request),
 the three maps, `closec` (a broadcast channel)), and the lock `mu` (a `sync.RWMutex` guarding the
-maps, `swsMu`: `prevKV` and `fragment` empty, the restrictions' consequence).
+maps, `swsMu`: `prevKV` and `fragment` empty, the restrictions' consequence); unit W-M2: the
+mvcc stream's id map and progress fact are its channel's, the progress fact the stream's
+progress request (`progQ`).
 -/
 module
 
@@ -422,7 +424,9 @@ def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
     inv mvcc.watchN (mvcc.watchChanInv r.srv.γ r.ch r.γc) ∗
     isSpsc r.γctrl r.ctrl (ctrlP r) (fun _ => iprop(True)) ∗
     ownBroadcastChan r.cc r.γcc iprop(True) .Unknown ∗
-    sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm))
+    sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm) ∗
+    ⌜r.γo.ids = r.γc.ids ∧ r.γo.prog = r.γc.prog⌝ ∗
+    savedPropOwn r.γo.prog DFrac.discard (progQ r.γs))
 
 instance swsIs_persistent (sws : Loc) (r : WRun GF) : Persistent (swsIs sws r) := by
   unfold swsIs; infer_instance

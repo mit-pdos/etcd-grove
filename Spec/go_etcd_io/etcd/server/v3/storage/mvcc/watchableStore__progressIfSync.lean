@@ -24,12 +24,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `s.progressIfSync(m, id)` under `s.mu`'s read side: if every watcher of the map is synced and
 at or below the current revision, a progress response (no events, the revision, the id given)
 is sent (without blocking) on the first one's channel; the result says whether all were synced
-and caught up. -/
+and caught up. Unit W-M2: the response's id `rid` is each watcher's own (`progress`) or the
+watchers' channel carries its progress fact (`progressAll`'s `-1`). -/
 abbrev mvcc.watchableStore.progressIfSync.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (m : Loc) (dq : DFrac) (M : GMap w64 Loc) (rid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ m ↦${dq} M ∗
-      □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ (mvcc.storeWatchParams s st γ).IW w) ∗
+      □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ (mvcc.storeWatchParams s st γ).IW w ∗
+        ∃ (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice), mvcc.watcherMeta γ w γw ∗
+          mvcc.watcherFixed w r fcs ∗ (⌜rid = r.id⌝ ∨ mvcc.progFact γw.wc.prog)) ∗
       mvcc.watchReader s st γ }}
     (App (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"progressIfSync"))
       (Val #m)) (Val #rid))

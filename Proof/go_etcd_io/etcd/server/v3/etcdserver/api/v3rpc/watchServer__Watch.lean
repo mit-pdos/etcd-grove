@@ -81,8 +81,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply hNWS R.wsl R.E.s R.γ $$ [] as %wsp ⟨%γo, %ch, %γc, #Hwstream, #Hwch, #Hch, #Hchinv, Hopen,
-    Hcons⟩
+  wp_apply hNWS R.wsl R.E.s R.γ (v3rpc.progQ γs) $$ [] as %wsp ⟨%γo, %ch, %γc, #Hwstream, #Hwch,
+    #Hch, #Hchinv, Hopen, Hcons, %Hγoc, #Hsp⟩
   · iframe #
   -- the run's answer tokens, and the stream's auxiliary name (the watch slice's unit W-C)
   imod v3rpc.ansPool_alloc (GF := GF) with ⟨%γa, HPool⟩
@@ -146,7 +146,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
     · ipureintro; exact ⟨Hswsn, Hnn.2⟩
     have hP : v3rpc.ctrlP r = P' := by funext k l; rfl
     rw [hP]
-    iexact Hspsc
+    iframe Hspsc
+    ipureintro; exact Hγoc
   iunfold v3rpc.watchRunSlot at Hslot
   icases Hslot with ⟨Hrres, Hsres⟩
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)

@@ -23,10 +23,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.NewWatchStream()`: a fresh stream (`isWatchStream`) over the store as its `watchable`
 (`storeWatchParams`), open (`watchStreamOpen`, for its one `Close`), with a fresh channel of
-`chanBufLen` responses, its invariant (`watchChanInv`, no response sent) and the consumer's view
-(`watchConsumer`, nothing received). -/
+names `γc` (its invariant, the consumer's view at nothing received). Unit W-M2: the stream's id
+map and progress fact are the channel's (`γo.ids = γc.ids`, `γo.prog = γc.prog`), and the
+progress fact is the caller's `Q` (saved at `γo.prog`: a response of id `-1` on the channel
+carries `progFact γc.prog`, so `Q`). -/
 abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"NewWatchStream")) (Val #()))
@@ -36,7 +38,8 @@ abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
           (mvcc.storeWatchParams s st γ) γo ∗
         ws.[watchStream, go!"ch"] ↦□ ch ∗ isChan ch γc.ch WatchResponse ∗
         inv mvcc.watchN (mvcc.watchChanInv γ ch γc) ∗
-        mvcc.watchStreamOpen γo ∗ mvcc.watchConsumer γc [] }}
+        mvcc.watchStreamOpen γo ∗ mvcc.watchConsumer γc [] ∗
+        ⌜γo.ids = γc.ids ∧ γo.prog = γc.prog⌝ ∗ savedPropOwn γo.prog DFrac.discard Q }}
 
 end spec
 

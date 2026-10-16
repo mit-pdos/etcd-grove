@@ -27,7 +27,9 @@ positive start revision: `verify.Verify`'s check), filtered by `w`'s filters, se
 channel without blocking (the channel is open: `w` is live), unless all its events were filtered
 out (then `true` without sending). On `true` the delivery is recorded (the events delivered
 grow by `evm`; `wr`'s events are the channel's for good); on `false` (the channel full) nothing
-changed. A progress response (`evm = []`) needs no delivered events. -/
+changed. A progress response (`evm = []`) needs no delivered events. Unit W-M2: the response
+carries `w`'s own id, or the channel's progress fact (`progressAll`'s response of id `-1`): the
+channel's invariant keeps it for every response of id `-1`. -/
 abbrev mvcc.watcher.send.spec : Prop :=
   ∀ (γ : mvcc.WsNames) (w : Loc) (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice)
     (ch : GoChan) (qc ql : Qp) (evsw : List mvcc.EvM) (d : Nat) (wr : WatchResponse)
@@ -40,6 +42,7 @@ abbrev mvcc.watcher.send.spec : Prop :=
       (if evm = [] then iprop(True) else
         monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ mvcc.evsWf γ r γw.lo (evsw ++ evm) d) ∗
       wr.Events' ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
+      (⌜wr.WatchID' = r.id⌝ ∨ mvcc.progFact γw.wc.prog) ∗
       ⌜es.length = evm.length ∧ wr.CompactRevision' = W64 0 ∧ (evm ≠ [] → wr.WatchID' = r.id) ∧
         (∀ ev ∈ evm, sint.Z ev.kv.modRev ≤ sint.Z wr.Revision') ∧
         (0 < sint.Z r.startRev → ∀ ev ∈ evm, sint.Z r.startRev ≤ sint.Z ev.kv.modRev)⌝ }}

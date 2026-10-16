@@ -38,6 +38,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchGroup
 public import Perennial.Ghost.Token
 public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.SavedProp
+public import Perennial.Golang.Theory.Chan
 
 @[expose] public section
 
@@ -148,6 +150,41 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+/-- The ghost names of a stream's channel: the channel's, the consumer's received responses
+(`ghostVar (List RespM)`), the registered watchers (`ghostVar (List Loc)`, half the close
+right's) and their set (a ghost map with persistent elements: `chanReg`); and (unit W-M2) the
+ids the stream assigned to the watchers registered on it (`ids`, a ghost map from an id to its
+watcher, persistent elements: `chanIdAssigned`; the stream's `idsInv` holds its authority) and
+the channel's progress fact (`prog`, a saved proposition fixed at the stream's creation: what a
+response of id `-1` says, `progFact`). Moved from `InvWatchStore.lean` (unit W-M2): the stream's
+contract names it. -/
+structure WatchChanNames where
+  ch : ChanNames
+  recv : GName
+  regl : GName
+  reg : GName
+  ids : GName
+  prog : GName
+
+/-- **The progress fact of the saved proposition `g`** (persistent; unit W-M2): some `Q` saved at
+`g`, and `Q`. A stream's creator fixes `Q` (`NewWatchStream`); a response of id `-1` on the
+channel (`progressAll`'s) carries it. -/
+def progFact (g : GName) : IProp GF :=
+  iprop(∃ Q : IProp GF, savedPropOwn g DFrac.discard Q ∗ □ Q)
+
+instance progFact_persistent (g : GName) : Persistent (progFact (GF := GF) g) := by
+  unfold progFact; infer_instance
+
+/-- **The channel's stream assigned `id` to the watcher `w`** (persistent; unit W-M2): an element
+of the channel's id map. The stream's `idAssigned` is the same element (`γ.ids = γc.ids`,
+`isWatchStream`). -/
+def chanIdAssigned (γc : WatchChanNames) (id : w64) (w : Loc) : IProp GF :=
+  ghostMapElem γc.ids id DFrac.discard w
+
+instance chanIdAssigned_persistent (γc : WatchChanNames) (id : w64) (w : Loc) :
+    Persistent (chanIdAssigned (GF := GF) γc id w) := by
+  unfold chanIdAssigned; infer_instance
+
 /-- What the watchable store chooses for the stream's contract (see the module doc). -/
 structure WatchParams (GF : BundledGFunctors) where
   /-- `w` is a watcher of the store (persistent). -/
@@ -158,8 +195,8 @@ structure WatchParams (GF : BundledGFunctors) where
   C : GoChan → IProp GF
   /-- What the store needs of a filter function (persistent). -/
   F : GoFunc → IProp GF
-  /-- The right to close the channel, with the watchers registered on it. -/
-  CR : GoChan → List Loc → IProp GF
+  /-- The right to close the channel (names `γc`), with the watchers registered on it. -/
+  CR : GoChan → WatchChanNames → List Loc → IProp GF
   /-- What the caller owns to call the store (lent to each call: the store's reader slots). -/
   R : IProp GF
   /-- What a registration costs (consumed by `watch`: the store's watcher budget, a token). -/
@@ -168,11 +205,15 @@ structure WatchParams (GF : BundledGFunctors) where
   filters `fcs` and the first revision `lo` (persistent): what `watch` says of the watcher it
   made. -/
   IWF : Loc → WatchRange → GoSlice → Nat → IProp GF
+  /-- `w` is registered on the channel with names `γc` (persistent; unit W-M2): what `watch`
+  says of the channel it registered `w` on. -/
+  OC : Loc → WatchChanNames → IProp GF
   IW_pers : ∀ w, Persistent (IW w)
   WC_pers : ∀ w, Persistent (WC w)
   C_pers : ∀ ch, Persistent (C ch)
   F_pers : ∀ f, Persistent (F f)
   IWF_pers : ∀ w r fcs lo, Persistent (IWF w r fcs lo)
+  OC_pers : ∀ w γc, Persistent (OC w γc)
 
 
 instance WatchParams.IW_persistent (P : WatchParams GF) (w : Loc) : Persistent (P.IW w) :=
@@ -186,6 +227,9 @@ instance WatchParams.F_persistent (P : WatchParams GF) (f : GoFunc) : Persistent
 instance WatchParams.IWF_persistent (P : WatchParams GF) (w : Loc) (r : WatchRange)
     (fcs : GoSlice) (lo : Nat) : Persistent (P.IWF w r fcs lo) :=
   P.IWF_pers w r fcs lo
+instance WatchParams.OC_persistent (P : WatchParams GF) (w : Loc) (γc : WatchChanNames) :
+    Persistent (P.OC w γc) :=
+  P.OC_pers w γc
 
 /-- `c` cancels the watcher `w` (persistent: callable any number of times). -/
 def cancelSpec (P : WatchParams GF) (c : GoFunc) (w : Loc) : IProp GF :=
@@ -197,31 +241,39 @@ instance cancelSpec_persistent (P : WatchParams GF) (c : GoFunc) (w : Loc) :
 
 /-- **The `watchable` the stream uses** (persistent), the interface value `wa`:
 `watch(key, end, startRev, id, ch, fcs)` registers a watcher on `ch` (the stream's channel,
-converted to send-only) with the range `key`/`end` and the filters `fcs`, all read-only for
-good (the watcher keeps them), and returns it with its cancel closure, adding it to the close
-right's watchers (a start revision at least `0`: `0` is "now", the documented domain), at the
-cost of the caller's `P.T` (consumed), with what it says of the watcher (`P.IWF`, the range
-`watchRangeOf`) and the bound on the watchers registered on `ch`;
-`progress(w)` takes a watcher's persistent fact only; `progressAll(m)` reads the map of the
-stream's watchers; `rev()` returns a revision. Every call is lent the caller's `P.R` (the store's
-reader slots: `rev` opens a read transaction, the others take the store's locks). -/
+converted to send-only, names `γc`) with the range `key`/`end` and the filters `fcs`, all
+read-only for good (the watcher keeps them), and returns it with its cancel closure, adding it
+to the close right's watchers (a start revision at least `0`: `0` is "now", the documented
+domain; an id other than `-1`, `clientv3.InvalidWatchID`), at the cost of the caller's `P.T`
+(consumed), with what it says of the watcher (`P.IWF`, the range `watchRangeOf`; `P.OC`, on
+`γc`) and the bound on the watchers registered on `ch`. **The registration callback** (unit
+W-M2): the caller's update `reg`, applied once, at the registration, to the new watcher `w`,
+makes the channel's `chanIdAssigned γc id w` (the stream records its id map there) and the
+caller's `Back w`, returned; so the channel's invariant knows the id of every watcher registered
+on it before any response for it is sent. `progress(w)` takes a watcher's persistent fact only;
+`progressAll(m)` reads the map of the stream's watchers, all on the channel `γc`, with the
+channel's progress fact (`progFact γc.prog`: the response of id `-1` it may send carries it);
+`rev()` returns a revision. Every call is lent the caller's `P.R` (the store's reader slots:
+`rev` opens a read transaction, the others take the store's locks). -/
 def isWatchable (wa : GoInterface) (P : WatchParams GF) : IProp GF :=
   iprop(∃ wi : GoInterfaceOk, ⌜wa = GoInterface.ok wi⌝ ∗
     □ (∀ (key endk fcs : GoSlice) (k e : List w8) (fs : List GoFunc) (startRev id : w64)
-        (ch : GoChan) (L : List Loc),
-      {{ key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.C ch ∗ P.CR ch L ∗
-          P.R ∗ P.T ∗ ⌜0 ≤ sint.Z startRev⌝ }}
+        (ch : GoChan) (γc : WatchChanNames) (L : List Loc) (Back : Loc → IProp GF),
+      {{ key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.C ch ∗
+          P.CR ch γc L ∗ P.R ∗ P.T ∗ ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
+          (∀ w : Loc, ⌜w ≠ null⌝ -∗ |==> (chanIdAssigned γc id w ∗ Back w)) }}
         (App (App (App (App (App (App (Val #(methods wi.ty go!"watch" wi.v)) (Val #key))
           (Val #endk)) (Val #startRev)) (Val #id)) (Val #ch)) (Val #fcs))
       {{ (w : Loc) (c : GoFunc), RET (PairV #w #c);
-          ⌜w ≠ null⌝ ∗ P.IW w ∗ cancelSpec P c w ∗ P.CR ch (w :: L) ∗ P.R ∗
+          ⌜w ≠ null⌝ ∗ P.IW w ∗ P.OC w γc ∗ cancelSpec P c w ∗ P.CR ch γc (w :: L) ∗ P.R ∗
           (∃ lo : Nat, P.IWF w (watchRangeOf k e endk startRev id) fcs lo) ∗
-          ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ }}) ∗
+          ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ ∗ Back w }}) ∗
     □ (∀ w : Loc,
       {{ P.IW w ∗ P.R }} (App (Val #(methods wi.ty go!"progress" wi.v)) (Val #w))
       {{ RET #(); P.R }}) ∗
-    □ (∀ (m : Loc) (dq : DFrac) (M : GMap w64 Loc),
-      {{ m ↦${dq} M ∗ □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ P.IW w) ∗ P.R }}
+    □ (∀ (m : Loc) (dq : DFrac) (M : GMap w64 Loc) (γc : WatchChanNames),
+      {{ m ↦${dq} M ∗ □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc) ∗
+          progFact γc.prog ∗ P.R }}
         (App (Val #(methods wi.ty go!"progressAll" wi.v)) (Val #m))
       {{ (b : Bool), RET #b; m ↦${dq} M ∗ P.R }}) ∗
     □ ({{ P.R }} (App (Val #(methods wi.ty go!"rev" wi.v)) (Val #()))
@@ -232,12 +284,15 @@ instance isWatchable_persistent (wa : GoInterface) (P : WatchParams GF) :
   unfold isWatchable; infer_instance
 
 /-- A stream's ghost names: its open token (`tok`), the ids it assigned (`ids`, a ghost map
-from an auto-assigned id to its watcher, persistent elements) and the same map with exclusive
-elements (`fresh`, the watch slice's unit W-C: one token per assigned id, `idTok`). -/
+from an auto-assigned id to its watcher, persistent elements: its channel's, `γc.ids`) and the
+same map with exclusive elements (`fresh`, the watch slice's unit W-C: one token per assigned id,
+`idTok`), and its channel's progress fact (`prog`, `γc.prog`; unit W-M2). -/
 structure WsStreamNames where
   tok : GName
   ids : GName
   fresh : GName
+  /-- the channel's progress fact's name (unit W-M2: `γ.prog = γc.prog`, `isWatchStream`) -/
+  prog : GName
 
 /-- The token of an open stream: `NewWatchStream` returns it, `Close` consumes it. -/
 def watchStreamOpen (γ : WsStreamNames) : IProp GF := token γ.tok
@@ -328,8 +383,30 @@ theorem idsInv_next (γ : WsStreamNames) (IDS : GMap w64 Loc) (NX idp aid : w64)
     iexists w
     iexact Hfe
 
+/-- **An assignment, as the store's registration callback** (unit W-M2): with the id `aid` free
+(below every assigned one's bound: all assigned ids below `aid`), recording `aid ↦ w` makes the
+channel's `chanIdAssigned γc aid w` (the stream's id map is the channel's, `γ.ids = γc.ids`),
+the invariant at the next `nextID` and the stream's `idAssigned`, `idTok`. -/
+theorem idsInv_assign (γ : WsStreamNames) (γc : WatchChanNames) (hγ : γ.ids = γc.ids)
+    (IDS : GMap w64 Loc) (NX aid : w64) (w : Loc)
+    (h : 0 ≤ sint.Z aid ∧ sint.Z aid < sint.Z NX ∧
+      ∀ i, (IDS !! i).isSome → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z aid) :
+    ghostMapAuth (GF := GF) γ.ids 1 IDS ∗ ghostMapAuth γ.fresh 1 IDS ⊢
+      |==> (chanIdAssigned γc aid w ∗ (idsInv γ NX ∗ idAssigned γ aid w ∗ idTok γ aid)) := by
+  iintro ⟨Ha, Hf⟩
+  imod idsInv_next γ IDS NX (W64 0) aid w (Or.inr h) $$ [$Ha $Hf] with ⟨Hi, Hd⟩
+  icases Hd with (%Hc | ⟨#Hel, Ht⟩)
+  · exact absurd rfl Hc
+  imodintro
+  iframe Hi Ht Hel
+  unfold chanIdAssigned
+  iunfold idAssigned at Hel
+  rw [← hγ]
+  iexact Hel
+
 /-- The state `ws.mu` guards (see the module doc). -/
-def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γ : WsStreamNames) : IProp GF :=
+def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γc : WatchChanNames)
+    (γ : WsStreamNames) : IProp GF :=
   iprop(∃ (nextID : w64) (closed : Bool) (cm wm : Loc) (CM : GMap w64 GoFunc)
       (WM : GMap w64 Loc),
     "HnextID" ∷ ws.[watchStream, go!"nextID"] ↦ nextID ∗
@@ -340,29 +417,31 @@ def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γ : WsStreamN
     "Hwm" ∷ wm ↦$ WM ∗
     "%Hdom" ∷ ⌜∀ id, (CM !! id).isSome = (WM !! id).isSome⌝ ∗
     "%Hnn" ∷ ⌜∀ id w, WM !! id = some w → w ≠ null⌝ ∗
-    "#Hws" ∷ □ (∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ P.IW w) ∗
+    "#Hws" ∷ □ (∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc) ∗
     "#Hcs" ∷ □ (∀ (id : w64) (c : GoFunc) (w : Loc), ⌜CM !! id = some c⌝ -∗
       ⌜WM !! id = some w⌝ -∗ cancelSpec P c w) ∗
     "Hids" ∷ idsInv γ nextID ∗
     "Hcl" ∷ (if closed then watchStreamOpen γ else
-      ∃ L : List Loc, P.CR ch L ∗
+      ∃ L : List Loc, P.CR ch γc L ∗
         □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ ((∃ id : w64, ⌜WM !! id = some w⌝) ∨ P.WC w)) ∗
         ⌜sint.Z nextID + aboveCnt nextID WM ≤ L.length ∧ L.length + 3 ≤ 2 ^ 63⌝))
 
-/-- **The stream** `ws` over the watchable `wa` (persistent; see the module doc). -/
+/-- **The stream** `ws` over the watchable `wa` (persistent; see the module doc): its channel
+`ch` with names `γc`, whose id map and progress fact are the stream's (unit W-M2). -/
 def isWatchStream (ws : Loc) (wa : GoInterface) (P : WatchParams GF) (γ : WsStreamNames) :
     IProp GF :=
-  iprop(∃ ch : GoChan,
+  iprop(∃ (ch : GoChan) (γc : WatchChanNames),
+    "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog⌝ ∗
     "#Hwa" ∷ ws.[watchStream, go!"watchable"] ↦□ wa ∗
     "#Hch" ∷ ws.[watchStream, go!"ch"] ↦□ ch ∗
     "#HC" ∷ P.C ch ∗
     "#Hwable" ∷ isWatchable wa P ∗
     "#Hclose" ∷ □ (∀ L : List Loc,
-      {{ P.CR ch L ∗ □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ P.WC w) }}
+      {{ P.CR ch γc L ∗ □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ P.WC w) }}
         (App (Val #(functions go.close
           [go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty])) (Val #ch))
       {{ RET #(); True }}) ∗
-    "#Hmu" ∷ sync.isMutex (ws.[watchStream, go!"mu"]) (watchStreamInv ws P ch γ))
+    "#Hmu" ∷ sync.isMutex (ws.[watchStream, go!"mu"]) (watchStreamInv ws P ch γc γ))
 
 instance isWatchStream_persistent (ws : Loc) (wa : GoInterface) (P : WatchParams GF)
     (γ : WsStreamNames) : Persistent (isWatchStream ws wa P γ) := by
