@@ -73,7 +73,7 @@ theorem read.NewRead.wp_proof
     iapply hNotify r γr ctx cd c g Q $$ [Hrr] HΦ'
     iframe #; iframe Hrr
   isplitr
-  · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp
+  · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp #Hmint
     iunfold isReadLoopPre
     iexists srv, rf, wc, γw
     iframe #

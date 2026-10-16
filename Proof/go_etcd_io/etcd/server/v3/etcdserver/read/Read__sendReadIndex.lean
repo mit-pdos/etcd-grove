@@ -38,9 +38,9 @@ theorem read.Read.sendReadIndex.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     read.Read.sendReadIndex.spec (GF := GF) (hG := hG) := by
   intro r γr RQ LR NR id n Qr
-  wp_start as ⟨#Hpre, HLR, #Hc, #HRA⟩
+  wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr, Hcr⟩
   iunfold isReadLoopPre at Hpre
-  icases Hpre with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, #Hcci, -⟩
+  icases Hpre with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, #Hcci, -, -⟩
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨-, %si, %Hsi, -, -, -, #HLg, -, -, -, #HRT⟩
   iunfold isReadRaft at Hraft
@@ -57,13 +57,15 @@ theorem read.Read.sendReadIndex.wp_proof
   · iPkgInit
   wp_auto
   wp_apply hB as %sl Hsl
+  -- the context's bytes read-only: raft keeps them in its read state
+  ipersist Hsl
   wp_apply context.wp_Background
   wp_apply HRT as %d -
   wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx⟩
   · iframe #
-  wp_apply HRI $$ %cctx %cd %sl %_ %id %n %Qr [Hsl] as %err ⟨Hsl, #HerrE, Hrq⟩
-  · iframe #; iframe Hsl
-  wp_auto
+  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr Hcr] as %err ⟨#HerrE, Hrq⟩
+  · iframe #; iframe Hfr Hcr
+  (try wp_auto)
   wp_apply Hcancel
   wp_apply read_wp_Is_var hIs err eR HlR as %b -
   · iframe #

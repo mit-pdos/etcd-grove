@@ -73,10 +73,10 @@ local macro "rci_resend" fcN:term:max : tactic => `(tactic| (
   ihave HN1 := HNRu
   imod HN1
   (try wp_auto)
-  wp_apply HNR $$ HN1 as %rid' -
+  wp_apply HNR $$ HN1 as %rid' ⟨Hfr', Hcr'⟩
   wp_apply wp_mapInsert go.uint64 mref _ rid' () $$ Hm as Hm
-  wp_apply hSRI r γr RQ LR NR rid' n Qr $$ [HLR] as %err' ⟨HLR, #HaE', HRQ'⟩
-  · iframe #; iframe HLR
+  wp_apply hSRI r γr RQ LR NR rid' n Qr $$ [HLR Hfr' Hcr'] as %err' ⟨HLR, #HaE', HRQ'⟩
+  · iframe #; iframe HLR Hfr' Hcr'
   cases err' with
   | ok ei' =>
     wp_auto
@@ -109,7 +109,8 @@ theorem read.Read.requestCurrentIndex.wp_proof
   wp_start as ⟨#Hpre, HLR, #HNRu, #Hlcn, #Hc, #HRA⟩
   ihave #Hpre' := Hpre
   iunfold isReadLoopPre at Hpre'
-  icases Hpre' with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, -⟩
+  icases Hpre' with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, -, -, #Hmint⟩
+  iunfold readCtxMinted at Hmint
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨-, %si, %Hsi, #HStopping, -, #HFC, #HLg, -, -, #HNR, #HRT⟩
   iunfold isReadRaft at Hraft
@@ -131,10 +132,10 @@ theorem read.Read.requestCurrentIndex.wp_proof
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mref Hm
   ihave HN0 := HNRu
   imod HN0
-  wp_apply HNR $$ [$HN0] as %rid0 -
+  wp_apply HNR $$ [$HN0] as %rid0 ⟨Hfr0, Hcr0⟩
   wp_apply wp_mapInsert go.uint64 mref _ rid0 () $$ [$Hm] as Hm
-  wp_apply hSRI r γr RQ LR NR rid0 n Qr $$ [HLR] as %err0 ⟨HLR, #HaE0, HRQ0⟩
-  · iframe #; iframe HLR
+  wp_apply hSRI r γr RQ LR NR rid0 n Qr $$ [HLR Hfr0 Hcr0] as %err0 ⟨HLR, #HaE0, HRQ0⟩
+  · iframe #; iframe HLR Hfr0 Hcr0
   cases err0 with
   | ok ei0 =>
     wp_auto
@@ -215,8 +216,13 @@ theorem read.Read.requestCurrentIndex.wp_proof
       · iapply BigAndL.bigAndL_nil.2; itrivial
     · wp_auto
       iunfold srvReadStateOk at Hrs
-      icases Hrs with ⟨%bs, #Hbs, %Hbl, #Hans⟩
+      icases Hrs with ⟨%bs, #Hbs, #Hdep, #Hans⟩
       ihave %Hsl := ownSlice_len _ _ _ $$ Hbs
+      -- the context is a minted id's: eight bytes (2026-10-16, stage R7b: raft's read states do
+      -- not carry the length; `read.go`'s guard's else branch is unreachable)
+      imod Hmint $$ %bs Hdep with %Hid
+      obtain ⟨rid1, Hid⟩ := Hid
+      have Hbl : bs.length = 8 := by rw [Hid]; exact beBytes_length rid1
       wp_if_destruct
       rotate_left
       · exfalso; apply Hif; word

@@ -263,9 +263,9 @@ instance rnLogFits_persistent (γ : RNNames) : Persistent (rnLogFits (GF := GF) 
 
 /-- **The read states' bridge** (persistent): a `ReadState` raft hands out (`readStateOk`, its
 cells read-only) answers the server's registrations (`srvReadStateOk`). `srvReadStateOk_of_raft`
-proves it from `rnEnvOk` but for the context's length (`srvReadStateOk` states eight bytes;
-raft's `readStateOk` does not know it: the read loop's fresh tokens, B2, pin every deposited
-context to a server-minted id). -/
+proves it from `rnEnvOk` and raft's commit invariant (`rnReadStateBridge_of_raft`; since B2 of
+stage R7b `srvReadStateOk` states the context deposited, `srvCtxDeposited`, not its length: the
+read loop derives the length from its mint, `readCtxMinted`). -/
 def rnReadStateBridge (E : RNEnv GF) (γ : RNNames) : IProp GF :=
   iprop(□ ∀ (st : ReadStateM) (v : ReadState),
     readStateOk γ.node.raft st -∗ ⌜v.Index' = st.Index'⌝ -∗ v.RequestCtx' ↦*□ st.RequestCtx' -∗
@@ -284,9 +284,8 @@ theorem rnReadCred_of_srv (E : RNEnv GF) (γ : RNNames) :
   iexact H
 
 /-- **A read state, in the server's terms** (what `rnReadStateBridge` states, under `rnEnvOk`
-and raft's commit invariant), given the context's length. -/
-theorem srvReadStateOk_of_raft (E : RNEnv GF) (γ : RNNames) (st : ReadStateM) (v : ReadState)
-    (Hlen : st.RequestCtx'.length = 8) :
+and raft's commit invariant). -/
+theorem srvReadStateOk_of_raft (E : RNEnv GF) (γ : RNNames) (st : ReadStateM) (v : ReadState) :
     rnEnvOk E γ ∗ srvRaftLogInv E.γr.raft ∗ readStateOk γ.node.raft st ∗ ⌜v.Index' = st.Index'⌝ ∗
       v.RequestCtx' ↦*□ st.RequestCtx' ⊢ srvReadStateOk E.γr.raft E.RQ v := by
   iintro ⟨#Henv, #Hinv, #Hst, %Hi, #Hctx⟩
@@ -300,7 +299,14 @@ theorem srvReadStateOk_of_raft (E : RNEnv GF) (γ : RNNames) (st : ReadStateM) (
   iexists st.RequestCtx'
   iframe Hctx
   isplitr
-  · ipureintro; exact Hlen
+  · -- the context was deposited (its registration, `readOk`'s `readReq`)
+    iunfold srvCtxDeposited
+    ihave #Hok' := Hok
+    iunfold readOk at Hok'
+    icases Hok' with ⟨%Lc', #Hreq', -⟩
+    iexists Lc'
+    rw [Hraft, Hc]
+    iexact Hreq'
   iintro !> %id %n %Qr %Hbs #HRQ'
   iunfold srvRQ at HRQ'
   icases HRQ' with ⟨%Lc, #Hrd, #Hreq, %HnLc⟩
@@ -322,6 +328,17 @@ theorem srvReadStateOk_of_raft (E : RNEnv GF) (γ : RNNames) (st : ReadStateM) (
     rw [Hi, Hraft]
     iframe Hrd2 Hok
   iapply srvReadWit_of_raft E.γr.raft (beBytes id) Qr v.Index' $$ Hinv Hw
+
+/-- **The read states' bridge, from raft** (2026-10-16, stage R7b): under `rnEnvOk` and raft's
+commit invariant (`srvRaftLogInv`). -/
+theorem rnReadStateBridge_of_raft (E : RNEnv GF) (γ : RNNames) :
+    ⊢ rnEnvOk E γ -∗ srvRaftLogInv E.γr.raft -∗ rnReadStateBridge E γ := by
+  iintro #Henv #Hinv
+  iunfold rnReadStateBridge
+  iintro !> %st %v #Hst %Hi #Hctx
+  iapply srvReadStateOk_of_raft E γ st v
+  iframe Henv Hinv Hst Hctx
+  ipureintro; exact Hi
 
 /-- **The `raft.Node` `n`** (see the file header; the trust boundary until R7's discharge):
 `Ready` returns the node's handshake channel (raft's `readyP`), `Advance` takes the busy driver
