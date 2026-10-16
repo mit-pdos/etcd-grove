@@ -96,23 +96,23 @@ theorem stepLeader.wp_proof
     · iframe
       iframe Hinit Hcc
     inext
-    iintro %err %s' %dropped ⟨Hphys, %Hres, Herr⟩
+    iintro %err %s' %dropped %rej ⟨Hphys, %Hres, Herr⟩
     iapply HΦ
     iframe Hphys Herr
     ipureintro
-    simp only [LeaderStepResultC, Hp, ↓reduceIte]
+    simp only [LeaderStepResultCR, Hp, ↓reduceIte]
     exact Hres
   ihave HΦ' : iprop(▷ ∀ (err : GoInterface) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
       ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦ]
   · inext
     iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
-    iapply HΦ $$ %err %s' %false
+    iapply HΦ $$ %err %s' %false %false
     iframe Hphys
     isplitr
     · ipureintro
-      simp only [LeaderStepResultC, Hp, ↓reduceIte]
-      exact ⟨trivial, Hres⟩
+      simp only [LeaderStepResultCR, Hp, ↓reduceIte]
+      exact ⟨trivial, trivial, Hres⟩
     · simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro; exact Herr
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |

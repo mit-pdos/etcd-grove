@@ -167,9 +167,17 @@ theorem RawNode.Propose.wp_proof
       (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
-  icases Herr with (%Herr | ⟨-, #Hd⟩)
+  icases Herr with (%Herr | ⟨-, #Hd⟩ | ⟨%Hce, -⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd
+  · -- (etcd-io/raft#454) `ErrConfChangeRejected` needs a conf-change entry: not this one
+    exfalso
+    obtain ⟨-, e, He, Hc⟩ := Hce
+    simp only [List.mem_singleton] at He
+    subst He
+    unfold IsConfEnt propEntryM at Hc; simp only at Hc
+    have Hf : False := by rcases Hc with h | h <;> revert h <;> word
+    exact Hf.elim
 
 end proof
 

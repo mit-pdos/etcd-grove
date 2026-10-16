@@ -181,7 +181,7 @@ theorem raft.tickHeartbeat.wp_proof
     have Hcm := Href.commit_mono
     have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
     have e2 := Hcc (by msg_ne); subst c'
-    icases Herr with (%Herr | ⟨%Hc', -⟩)
+    icases Herr with (%Herr | ⟨%Hc', -⟩ | ⟨%Hc', -⟩)
     · subst Herr
       wp_auto
       iapply HΦ $$ %s'
@@ -196,6 +196,8 @@ theorem raft.tickHeartbeat.wp_proof
            rw [Int.max_eq_left h0] at Ht3; omega,
         Hi (by msg_ne)⟩⟩
     · exfalso; revert Hc'; msg_ne
+    · -- (etcd-io/raft#454) `ErrConfChangeRejected`: a proposal's too
+      exfalso; revert Hc'; first | (intro h; exact h.1.elim) | (intro h; have h1 := h.1; revert h1; msg_ne) | msg_ne
   · rw [decide_eq_false Hhb]
     wp_auto
     iapply HΦ $$ %s1

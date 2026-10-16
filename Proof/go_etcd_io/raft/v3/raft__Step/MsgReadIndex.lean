@@ -199,10 +199,13 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun _ => Hne)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm] as %err %s' %dropped %rej ⟨Hphys, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain rfl : rej = false := LeaderStepResultCR.rej_nonprop (by
+      intro Hc; first | exact Hnp Hc | exact Hnprop Hc | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))) Hres
+    replace Hres := Hres.old
     unfold LeaderStepResultC at Hres
     rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
     obtain ⟨rfl, Hres⟩ := Hres

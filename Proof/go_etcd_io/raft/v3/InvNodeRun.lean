@@ -610,7 +610,9 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         msgIn ml (DFrac.own 1) st ∗
         isMessage γ (absMsg .propose st.msg st.ents) ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
-    {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗ stepErr err }} := by
+    {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗
+        -- (etcd-io/raft#454) or, for a batch with a conf-change entry, `ErrConfChangeRejected`
+        (stepErr err ∨ ⌜∃ e ∈ st.ents, IsConfEnt e⌝) }} := by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hty Hfr ⊢
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Hlc⟩ HΦ
@@ -673,16 +675,16 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       iintro %Hc
       simp [MsgProp, MsgSnap] at Hc
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %_, Herr⟩
-  ihave #Hstep : stepErr err $$ [Herr]
-  · unfold stepErr
-    icases Herr with (%Hnil | ⟨-, #Hpd⟩)
-    · ileft; ipureintro; exact Hnil
-    · iright
+  ihave #Hstep : iprop(stepErr err ∨ ⌜∃ e ∈ ents, IsConfEnt e⌝) $$ [Herr]
+  · icases Herr with (%Hnil | ⟨-, #Hpd⟩ | ⟨%Hce, -⟩)
+    · ileft; unfold stepErr; ileft; ipureintro; exact Hnil
+    · ileft; unfold stepErr; iright
       unfold errProposalDropped
       icombine Hpd ErrPropDropped gives %Heq
       subst Heq
       iframe Hpd
       ipureintro; exact HErrPropDropped
+    · iright; ipureintro; exact Hce.2
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne') (by msg_ne'); subst e1
   have e2 := Hcc (by msg_ne'); subst c'

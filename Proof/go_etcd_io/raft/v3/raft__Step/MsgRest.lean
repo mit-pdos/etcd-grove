@@ -232,11 +232,14 @@ local macro "local_leader" : tactic => `(tactic| (
   wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (by simp [Hty]) Hrole
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+    $$ [Hphys Hm] as %err %s' %dropped %rej ⟨Hphys, %Hres, Herrn⟩
   · iframe Hphys
     rw [if_neg (by rw [Hty]; w32_ne)]
     iframe Hm
     ity_other
+  obtain rfl : rej = false := LeaderStepResultCR.rej_nonprop (by
+    intro Hc; first | exact Hnp Hc | exact Hnprop Hc | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))) Hres
+  replace Hres := Hres.old
   obtain ⟨rfl, Hwf', Hst, Hl, Ht, Hpv, Hg⟩ :=
     leaderStepResult_rest _ _ _ _ _ _ _ _ Hty5 Hrole Hwf Hres
   simp only [Bool.false_eq_true, ↓reduceIte]

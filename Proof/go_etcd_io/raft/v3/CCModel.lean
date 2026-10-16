@@ -217,6 +217,87 @@ theorem propConf_take_zero {joint : Bool} (applied li pci : w64) (es : List Entr
     (cs : List (Option CCMsg)) :
     propConf applied li pci (es.take 0) (cs.take 0) joint = ([], pci) := rfl
 
+/-! ### Whether the loop refused a conf change (raft PR #454, `ErrConfChangeRejected`)
+
+etcd-io/raft#454 makes `stepLeader` return `ErrConfChangeRejected` (after appending and
+broadcasting the batch) when its conf-change loop refused one of the batch's conf changes:
+its `rejectedConfChange` flag, set at every refusal. `propConfRefuses` is whether one
+iteration refuses (at the `pendingConfIndex` it starts at), `propConfRej` the flag after the
+loop, `propConfRejStep` the loop with the flag carried along. -/
+
+def propConfRefuses (joint : Bool) (applied pci : w64) (x : EntryM × Option CCMsg) : Bool :=
+  match x.2 with
+  | none => false
+  | some c => decide (uint.Z applied < uint.Z pci ∨ ccWantsLeave c ≠ joint)
+
+def propConfRejStep (joint : Bool) (applied li : w64) (acc : (List EntryM × w64) × Bool)
+    (x : EntryM × Option CCMsg) : (List EntryM × w64) × Bool :=
+  (propConfStep joint applied li acc.1 x, acc.2 || propConfRefuses joint applied acc.1.2 x)
+
+def propConfRej (applied li pci : w64) (ents : List EntryM) (cs : List (Option CCMsg))
+    (joint : Bool := false) : Bool :=
+  ((ents.zip cs).foldl (propConfRejStep joint applied li) (([], pci), false)).2
+
+theorem foldl_propConfRejStep_fst {joint : Bool} (applied li : w64)
+    (xs : List (EntryM × Option CCMsg)) :
+    ∀ (a : List EntryM × w64) (b : Bool),
+      (xs.foldl (propConfRejStep joint applied li) (a, b)).1 =
+        xs.foldl (propConfStep joint applied li) a := by
+  induction xs with
+  | nil => intro a b; rfl
+  | cons x xs ih => intro a b; exact ih _ _
+
+theorem foldl_propConfRejStep_snd {joint : Bool} (applied li : w64)
+    (xs : List (EntryM × Option CCMsg)) :
+    ∀ (a : List EntryM × w64) (b : Bool),
+      (xs.foldl (propConfRejStep joint applied li) (a, b)).2 = true →
+        b = true ∨ ∃ x ∈ xs, x.2.isSome = true := by
+  induction xs with
+  | nil => intro a b h; exact .inl h
+  | cons x xs ih =>
+    intro a b h
+    rcases ih _ _ h with h1 | ⟨y, hy, hs⟩
+    · simp only [Bool.or_eq_true] at h1
+      rcases h1 with h1 | h1
+      · exact .inl h1
+      · right; refine ⟨x, List.mem_cons_self .., ?_⟩
+        unfold propConfRefuses at h1
+        cases hx : x.2 with
+        | none => rw [hx] at h1; simp at h1
+        | some _ => rfl
+    · exact .inr ⟨y, List.mem_cons_of_mem _ hy, hs⟩
+
+/-- One more iteration of the loop, for the flag. -/
+theorem propConfRej_take_succ (joint : Bool) (applied li pci : w64) (es : List EntryM)
+    (cs : List (Option CCMsg)) (k : Nat) (e : EntryM) (o : Option CCMsg)
+    (He : es[k]? = some e) (Ho : cs[k]? = some o) :
+    propConfRej applied li pci (es.take (k + 1)) (cs.take (k + 1)) joint =
+      (propConfRej applied li pci (es.take k) (cs.take k) joint ||
+        propConfRefuses joint applied (propConf applied li pci (es.take k) (cs.take k) joint).2
+          (e, o)) := by
+  have Hk1 := (List.getElem?_eq_some_iff.mp He).1
+  have Hk2 := (List.getElem?_eq_some_iff.mp Ho).1
+  unfold propConfRej propConf
+  rw [List.take_add_one, List.take_add_one, He, Ho]
+  simp only [Option.toList_some]
+  rw [List.zip_append (by simp only [List.length_take]; omega), List.foldl_append]
+  simp only [List.zip_cons_cons, List.zip_nil_right, List.foldl_cons, List.foldl_nil]
+  rw [← foldl_propConfRejStep_fst applied li _ ([], pci) false]
+  rfl
+
+theorem propConfRej_take_zero {joint : Bool} (applied li pci : w64) (es : List EntryM)
+    (cs : List (Option CCMsg)) :
+    propConfRej applied li pci (es.take 0) (cs.take 0) joint = false := rfl
+
+/-- A refusal is of a conf-change entry of the batch. -/
+theorem propConfRej_conf {joint : Bool} (applied li pci : w64) (es : List EntryM)
+    (cs : List (Option CCMsg)) (Hct : CCTypesOk es cs)
+    (H : propConfRej applied li pci es cs joint = true) : ∃ e ∈ es, IsConfEnt e := by
+  unfold propConfRej at H
+  rcases foldl_propConfRejStep_snd applied li _ _ _ H with h | ⟨x, hx, hs⟩
+  · exact absurd h (by decide)
+  · exact ⟨x.1, (List.of_mem_zip hx).1, cctypes_mem Hct x hx hs⟩
+
 end pure
 
 /-! ### The pure part of `InvConfChangeMsg.lean` (moved here in the raft v3.7 retarget, stage R1)

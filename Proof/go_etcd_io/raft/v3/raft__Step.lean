@@ -646,9 +646,10 @@ theorem raft.Step.wp_proof
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
     · ipureintro; resp_other
-    icases Herr with (%Herr | #Hd)
+    icases Herr with (%Herr | #Hd | ⟨%Hce, #Hd⟩)
     · ileft; ipureintro; exact Herr
-    · iright; iframe Hd; ipureintro; exact Hty
+    · iright; ileft; iframe Hd; ipureintro; exact Hty
+    · iright; iright; iframe Hd; ipureintro; exact ⟨Hty, Hce⟩
   -- every other type: the postcondition is `stepPost`
   simp only [ite_eq_right Hty]
   -- and the entries are read-only: the `by_cases` reduced `"Hents"`'s
@@ -720,6 +721,13 @@ theorem raft.Step.wp_proof
     unfold stepPost
     iframe Hlc
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hfr', %Htm', %Hresp', Herr⟩
+    ihave Herr : (⌜err = interface.nil⌝ ∨
+        (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err) ∨
+        (⌜m.Type' = MsgProp ∧ ∃ e ∈ ents, IsConfEnt e⌝ ∗
+          globalAddr ErrConfChangeRejected ↦□ err) : IProp GF) $$ [Herr]
+    · icases Herr with (%H | H)
+      · ileft; ipureintro; exact H
+      · iright; ileft; iexact H
     iapply HΦ $$ %err %s' %c' %md'
     iframe Hphys Hghost Herr
     ipureintro

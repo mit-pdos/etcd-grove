@@ -123,9 +123,11 @@ theorem RawNode.ProposeConfChange.wp_proof
       (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
-  icases Herr with (%Herr | ⟨-, #Hd⟩)
+  icases Herr with (%Herr | ⟨-, #Hd⟩ | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
-  · iright; iexact Hd
+  · iright; ileft; iexact Hd
+  · -- (etcd-io/raft#454) the change refused, the empty entry appended in its place
+    iright; iright; iexact Hd
 
 end proof
 

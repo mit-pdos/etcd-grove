@@ -152,10 +152,13 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => (Hlrd Hrole Hteq).2)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm] as %err %s' %dropped %rej ⟨Hphys, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain rfl : rej = false := LeaderStepResultCR.rej_nonprop (by
+      intro Hc; first | exact Hnp Hc | exact Hnprop Hc | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))) Hres
+    replace Hres := Hres.old
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
       leader_hbresp_step c id s m ents ctx dropped s' Hrole Hty Hto Hteq Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]

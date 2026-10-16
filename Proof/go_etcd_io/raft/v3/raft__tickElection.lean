@@ -131,7 +131,7 @@ theorem raft.tickElection.wp_proof
   have Hcm := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hc' (by msg_ne); subst c'
-  icases Herr with (%Herr | ⟨%Hc'', -⟩)
+  icases Herr with (%Herr | ⟨%Hc'', -⟩ | ⟨%Hc'', -⟩)
   · subst Herr
     wp_auto
     iapply HΦ $$ %s'
@@ -140,6 +140,8 @@ theorem raft.tickElection.wp_proof
     obtain ⟨Ht1, Ht2, -, Hi, -⟩ := Htm (by msg_ne)
     exact ⟨Hwf', Hcm, Hfr (by msg_ne) (by msg_ne), Ht1, Ht2 rfl, Hi (by msg_ne)⟩
   · exfalso; revert Hc''; msg_ne
+  · -- (etcd-io/raft#454) `ErrConfChangeRejected`: a proposal's too
+    exfalso; revert Hc''; first | (intro h; exact h.1.elim) | (intro h; have h1 := h.1; revert h1; msg_ne) | msg_ne
 
 end proof
 

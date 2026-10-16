@@ -163,10 +163,13 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm] as %err %s' %dropped %rej ⟨Hphys, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain rfl : rej = false := LeaderStepResultCR.rej_nonprop (by
+      intro Hc; first | exact Hnp Hc | exact Hnprop Hc | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))) Hres
+    replace Hres := Hres.old
     obtain ⟨rfl, rfl⟩ := leaderStepResult_app_hb _ _ _ _ _ _ _ (.inl Hty) Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn

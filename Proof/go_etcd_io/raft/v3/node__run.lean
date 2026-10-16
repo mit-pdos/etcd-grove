@@ -250,6 +250,17 @@ theorem node.run.wp_proof
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         ⟨{ propMsgM with From' := id }, [propEntryM d], none, [], []⟩ rfl rfl
         $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, #Hstep⟩
+      -- (etcd-io/raft#454) `Propose`'s one entry is normal: no `ErrConfChangeRejected`
+      ihave #Hstep : stepErr (GF := GF) err $$ [Hstep]
+      · icases Hstep with (#H | %Hce)
+        · iexact H
+        · exfalso
+          obtain ⟨e, He, Hc⟩ := Hce
+          simp only [List.mem_singleton] at He
+          subst He
+          unfold IsConfEnt propEntryM at Hc; simp only at Hc
+          have Hf : False := by rcases Hc with h | h <;> revert h <;> word
+          exact Hf.elim
       ihave %Hrnn := isChan_not_null $$ [Hho]
       · unfold isHandoff
         icases Hho with ⟨$, -⟩

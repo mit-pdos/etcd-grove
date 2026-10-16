@@ -34,7 +34,9 @@ This spec covers the seven types `Step` dispatches to it.
   `false`), and otherwise accepts it and moves `pendingConfIndex` to its index-to-be
   (`propConf`, `CCModel.lean`; `Config.DisableConfChangeValidation` is `false`, `newRaft`'s
   premise); then `if !r.appendEntry(m.Entries...) { return ErrProposalDropped }` and
-  `r.bcastAppend()`. `appendEntry` *writes* `Term`/`Index` into the caller's entries, so
+  `r.bcastAppend()`, then (etcd-io/raft#454) `if rejectedConfChange { return
+  ErrConfChangeRejected }`, the flag set at every refusal of the loop (`propConfRej`,
+  `LeaderProposeResultR`: the batch appended all the same). `appendEntry` *writes* `Term`/`Index` into the caller's entries, so
   the batch is owned (not `↦*□`). Accepted: the log grows by the loop's batch, stamped, the
   self-acknowledgement is queued (`Step.propose`), then `bcastAppend`'s `ReplSends`
   (`Step.sendApps`), `Match` untouched. Rejected (the uncommitted-size budget, which
@@ -273,6 +275,76 @@ def LeaderStepResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     LeaderProposeResult id s ents dropped s' c.joint
   else dropped = false ∧ LeaderNonpropResultC c id s m ents ctx s'
 
+/-! ### `ErrConfChangeRejected` (etcd-io/raft#454)
+
+The PR makes `stepLeader` return `ErrConfChangeRejected` from a `MsgProp` whose batch was
+appended and broadcast but whose conf-change loop refused (replaced by an empty normal entry)
+at least one conf change: `rej`, the loop's `rejectedConfChange` flag (`propConfRej`,
+`CCModel.lean`). A dropped proposal (`ErrProposalDropped`) returns before the flag is read;
+no other type sets it. `LeaderProposeResultR` and `LeaderStepResultCR` are
+`LeaderProposeResult` and `LeaderStepResultC` with the flag, for the same decoded conf
+changes `cs`; `LeaderStepResultCR.old` forgets it. -/
+
+def LeaderProposeResultR (id : w64) (s : NState) (ents : List EntryM)
+    (dropped rej : Bool) (s' : NState) (joint : Bool := false) : Prop :=
+  ∃ cs : List (Option CCMsg), CCTypesOk ents cs ∧
+  rej = (!dropped && propConfRej s.logst.applied (logLast s.logst) s.pci ents cs joint) ∧
+  if dropped then s' = s ∨ s' = { s with pci := (leaderPropConf s ents cs joint).2 }
+  else ∃ (ms : List Msg) (pvs : GMap w64 Progress),
+    s' = { sendMsgs (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }
+             (leaderPropConf s ents cs joint).1) ms with prvals := pvs } ∧
+    ReplSends id (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }
+      (leaderPropConf s ents cs joint).1) ms ∧
+    prvalsMatch pvs = prvalsMatch s.prvals
+
+def LeaderStepResultCR (c : CfgM) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (dropped rej : Bool) (s' : NState) (ctx : List w8 := []) : Prop :=
+  if m.Type' = MsgProp then
+    LeaderProposeResultR id s ents dropped rej s' c.joint
+  else dropped = false ∧ rej = false ∧ LeaderNonpropResultC c id s m ents ctx s'
+
+theorem LeaderProposeResultR.old {id : w64} {s : NState} {ents : List EntryM}
+    {dropped rej : Bool} {s' : NState} {joint : Bool}
+    (H : LeaderProposeResultR id s ents dropped rej s' joint) :
+    LeaderProposeResult id s ents dropped s' joint := by
+  obtain ⟨cs, Hct, -, H⟩ := H
+  exact ⟨cs, Hct, H⟩
+
+theorem LeaderStepResultCR.old {c : CfgM} {id : w64} {s : NState} {m : MessageM}
+    {ents : List EntryM} {dropped rej : Bool} {s' : NState} {ctx : List w8}
+    (H : LeaderStepResultCR c id s m ents dropped rej s' ctx) :
+    LeaderStepResultC c id s m ents dropped s' ctx := by
+  unfold LeaderStepResultCR at H
+  unfold LeaderStepResultC
+  split
+  · rw [if_pos (by assumption)] at H; exact H.old
+  · rw [if_neg (by assumption)] at H; exact ⟨H.1, H.2.2⟩
+
+/-- Only a proposal sets the flag. -/
+theorem LeaderStepResultCR.rej_nonprop {c : CfgM} {id : w64} {s : NState} {m : MessageM}
+    {ents : List EntryM} {dropped rej : Bool} {s' : NState} {ctx : List w8}
+    (Hty : m.Type' ≠ MsgProp) (H : LeaderStepResultCR c id s m ents dropped rej s' ctx) :
+    rej = false := by
+  unfold LeaderStepResultCR at H
+  rw [if_neg Hty] at H
+  exact H.2.1
+
+/-- The flag is set only for a batch that holds a conf-change entry, which was not dropped. -/
+theorem LeaderStepResultCR.rej_conf {c : CfgM} {id : w64} {s : NState} {m : MessageM}
+    {ents : List EntryM} {dropped : Bool} {s' : NState} {ctx : List w8}
+    (H : LeaderStepResultCR c id s m ents dropped true s' ctx) :
+    m.Type' = MsgProp ∧ dropped = false ∧ ∃ e ∈ ents, IsConfEnt e := by
+  unfold LeaderStepResultCR at H
+  by_cases Hty : m.Type' = MsgProp
+  · rw [if_pos Hty] at H
+    obtain ⟨cs, Hct, Hr, -⟩ := H
+    cases dropped
+    · simp only [Bool.not_false, Bool.true_and] at Hr
+      exact ⟨Hty, rfl, propConfRej_conf _ _ _ ents cs Hct Hr.symm⟩
+    · simp at Hr
+  · rw [if_neg Hty] at H
+    exact absurd H.2.1 (by decide)
+
 end results
 
 section spec
@@ -357,10 +429,13 @@ abbrev stepLeader.spec : Prop :=
       -- (2026-10-13) and its conf-change entries' bytes, which decode
       "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) }}
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
-  {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
+  {{ (err : GoInterface) (s' : NState) (dropped rej : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗
-      ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
+      -- (etcd-io/raft#454) `rej`: the conf-change loop refused a conf change of the batch,
+      -- which was appended all the same
+      ⌜LeaderStepResultCR c id s m ents dropped rej s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else if rej then globalAddr ErrConfChangeRejected ↦□ err
        else ⌜err = interface.nil⌝) }}
 
 

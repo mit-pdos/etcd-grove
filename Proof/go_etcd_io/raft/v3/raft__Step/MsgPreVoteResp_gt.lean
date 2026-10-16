@@ -203,11 +203,14 @@ local macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+        $$ [Hphys Hm] as %err %s' %dropped %rej ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys
         isplitl [Hm]
         · rw [ite_eq_right Hnp]; iexact Hm
         · iintro %Hc; exfalso; exact Hnp Hc
+      obtain rfl : rej = false := LeaderStepResultCR.rej_nonprop (by
+        intro Hc; first | exact Hnp Hc | exact Hnprop Hc | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))) Hres
+      replace Hres := Hres.old
       obtain ⟨rfl, rfl⟩ := leaderStepResult_prevoteresp' c _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn

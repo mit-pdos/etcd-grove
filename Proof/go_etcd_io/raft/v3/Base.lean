@@ -226,7 +226,12 @@ def isInitialized : IProp GF :=
     -- (2026-10-13) `errBreak = errors.New("break")`, the sentinel `hasUnappliedConfChanges`'
     -- callback stops `scan` with and then compares against (so `IsNewError`)
     "#ErrBreak" ∷ (∃ eb : GoInterface, (globalAddr errBreak ↦□ eb : IProp GF) ∗
-      ⌜eb ≠ interface.nil ∧ IsNewError eb⌝))
+      ⌜eb ≠ interface.nil ∧ IsNewError eb⌝) ∗
+    -- (etcd-io/raft#454) `ErrConfChangeRejected = errors.New("raft conf change rejected")`,
+    -- which `stepLeader` returns for a proposal whose conf change it refused; only loaded and
+    -- returned (last, so that the positional patterns above are unchanged)
+    "#ErrConfRej" ∷ (∃ ecr : GoInterface, (globalAddr ErrConfChangeRejected ↦□ ecr : IProp GF) ∗
+      ⌜ecr ≠ interface.nil⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

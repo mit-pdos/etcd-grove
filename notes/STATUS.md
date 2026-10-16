@@ -13392,3 +13392,14 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification: etcd-io/raft#454 (branch `pr-verify/raft-454`, not for `lean`)
+
+2026-10-16. `Code/` translated from the fork branch `pr-raft-454-goose-lean` (the PR on
+`raft37-goose-lean`; `etc/goose.py --check` fails here by design). `stepLeader` returns
+`ErrConfChangeRejected` after appending a batch whose conf-change loop refused a change:
+`propConfRej` (`CCModel.lean`), `LeaderStepResultCR` and the `rej` binder
+(`Spec/.../stepLeader.lean`), `isInitialized`'s `ErrConfRej`; `raft.Step.spec` and
+`RawNode.ProposeConfChange.spec` gain the error; `node.run`, `RawNode.Propose` and the server's
+specs are unchanged (a waiting proposal has one normal entry). No new axiom or `sorry`. Report:
+`notes/pr-verify/raft-454.md`.

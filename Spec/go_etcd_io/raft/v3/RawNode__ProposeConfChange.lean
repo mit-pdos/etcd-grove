@@ -123,7 +123,11 @@ abbrev RawNode.ProposeConfChange.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) ∗
-      "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }}
+      -- (etcd-io/raft#454) or `ErrConfChangeRejected`: a leader refused the change (one
+      -- pending, or a change that does not fit the configuration's jointness) and appended an
+      -- empty normal entry in its place
+      "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err ∨
+                globalAddr ErrConfChangeRejected ↦□ err) }}
 
 end spec
 

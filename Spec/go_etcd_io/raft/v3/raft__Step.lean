@@ -491,10 +491,14 @@ abbrev raft.Step.spec : Prop :=
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-      -- only a proposal can be dropped, with `ErrProposalDropped`
+      -- only a proposal can be dropped, with `ErrProposalDropped`; (etcd-io/raft#454) and
+      -- only a proposal with a conf-change entry can fail with `ErrConfChangeRejected` (a
+      -- leader appended it with the refused change replaced by an empty entry)
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) }}
+                 globalAddr ErrProposalDropped ↦□ err) ∨
+                (⌜m.Type' = MsgProp ∧ ∃ e ∈ ents, IsConfEnt e⌝ ∗
+                 globalAddr ErrConfChangeRejected ↦□ err)) }}
 
 /-- The statement on `ownRaftPhys cfg` until 2026-10-14 (stage B7). -/
 abbrev raft.Step.specS : Prop :=
@@ -701,10 +705,14 @@ abbrev raft.Step.specS : Prop :=
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-      -- only a proposal can be dropped, with `ErrProposalDropped`
+      -- only a proposal can be dropped, with `ErrProposalDropped`; (etcd-io/raft#454) and
+      -- only a proposal with a conf-change entry can fail with `ErrConfChangeRejected` (a
+      -- leader appended it with the refused change replaced by an empty entry)
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) }}
+                 globalAddr ErrProposalDropped ↦□ err) ∨
+                (⌜m.Type' = MsgProp ∧ ∃ e ∈ ents, IsConfEnt e⌝ ∗
+                 globalAddr ErrConfChangeRejected ↦□ err)) }}
 
 open Iris.ProofMode in
 theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :

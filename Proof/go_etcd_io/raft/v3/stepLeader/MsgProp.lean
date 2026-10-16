@@ -105,10 +105,11 @@ theorem wp_stepLeader_prop
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
-    {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
+    {{ (err : GoInterface) (s' : NState) (dropped rej : Bool), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
-        ⌜LeaderProposeResult id s ents dropped s' c.joint⌝ ∗
+        ⌜LeaderProposeResultR id s ents dropped rej s' c.joint⌝ ∗
         (if dropped then globalAddr ErrProposalDropped ↦□ err
+         else if rej then globalAddr ErrConfChangeRejected ↦□ err
          else ⌜err = interface.nil⌝) }} := by
   wp_start as ⟨Hphys, Hm, #Hcc⟩
   ihave %Hct := ccEntsOk_types ents cs $$ Hcc
@@ -118,6 +119,7 @@ theorem wp_stepLeader_prop
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
+  icases ErrConfRej with ⟨%ecr, #HECR, %Hecr⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   simp only [Hty, MsgProp]
@@ -164,11 +166,11 @@ theorem wp_stepLeader_prop
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_apply raft.wp_load_leadTransfereeC $$ Hphys as Hphys
     wp_raft_logC
-    iapply HΦ $$ %errPropDropped %s %true
+    iapply HΦ $$ %errPropDropped %s %true %false
     iframe Hphys
     isplitr
     · ipureintro
-      exact ⟨cs, Hct, by simp⟩
+      exact ⟨cs, Hct, by simp, by simp⟩
     simp only [↓reduceIte]
     iexact ErrPropDropped
   rw [decide_eq_true Hlt]
@@ -179,6 +181,9 @@ theorem wp_stepLeader_prop
   -- the loop's state after `n` entries
   let lpc : Nat → List EntryM × w64 := fun n =>
     propConf s.logst.applied (logLast s.logst) s.pci (ents.take n) (cs.take n) c.joint
+  -- (etcd-io/raft#454) the `rejectedConfChange` flag after `n` entries
+  let lrej : Nat → Bool := fun n =>
+    propConfRej s.logst.applied (logLast s.logst) s.pci (ents.take n) (cs.take n) c.joint
   have Hlpc_len : ∀ n, n ≤ ents.length → (lpc n).1.length = n := by
     intro n hn
     simp only [lpc]
@@ -186,14 +191,15 @@ theorem wp_stepLeader_prop
   ihave IH : iprop(∃ (n k : w64) (els : List Loc),
       "Hj" ∷ i_ptr ↦ n ∗
       "Hgi" ∷ gi_ptr ↦ k ∗
+      "Hrej" ∷ rejectedConfChange_ptr ↦ lrej (sint.nat n) ∗
       "Hes" ∷ es0 ↦* els ∗
       "#Hents" ∷ ([∗list] p;e ∈ els;((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n)), entRO p e) ∗
       "HEs" ∷ ml.[raftpb.Message, go!"Entries"] ↦ es0 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with pci := (lpc (sint.nat n)).2 } ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi Hes HEs Hphys]
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi rejectedConfChange Hes HEs Hphys]
   · iexists W64 0, zero_val w64, els0
-    simp only [lpc, show sint.nat (W64 0) = 0 from rfl, propConf_take_zero, List.nil_append,
-      List.drop_zero]
+    simp only [lpc, lrej, show sint.nat (W64 0) = 0 from rfl, propConf_take_zero,
+      propConfRej_take_zero, List.nil_append, List.drop_zero]
     iframe
     iframe Hents
     ipureintro
@@ -230,6 +236,11 @@ theorem wp_stepLeader_prop
     have Hstep := propConf_take_succ c.joint s.logst.applied (logLast s.logst) s.pci ents cs
       (sint.nat n) e o He_lookup Ho_lookup
     have Hnext : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+    have Hrstep : lrej (sint.nat (n + W64 1)) =
+        (lrej (sint.nat n) || propConfRefuses c.joint s.logst.applied (lpc (sint.nat n)).2 (e, o)) := by
+      simp only [lrej, lpc, Hnext]
+      exact propConfRej_take_succ c.joint s.logst.applied (logLast s.logst) s.pci ents cs
+        (sint.nat n) e o He_lookup Ho_lookup
     have Hcur_lookup' : ((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n))[(sint.Z n).toNat]? =
         some e := by rw [show (sint.Z n).toNat = sint.nat n by word]; exact Hcur_lookup
     -- the next state, when the loop keeps entry `n` or overwrites it
@@ -276,7 +287,9 @@ theorem wp_stepLeader_prop
       rw [Hcur']
       have Hpci' : (lpc (sint.nat (n + W64 1))).2 = (lpc (sint.nat n)).2 := by
         simp only [lpc, Hnext, Hstep, propConfStep]
-      rw [Hpci']
+      have Hr' : lrej (sint.nat (n + W64 1)) = lrej (sint.nat n) := by
+        rw [Hrstep]; simp [propConfRefuses]
+      rw [Hpci', Hr']
       iframe
       iframe Hents
       ipureintro
@@ -367,6 +380,8 @@ theorem wp_stepLeader_prop
             (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
           unfold propConfStep
           simp only [Hpend, _root_.true_or, ↓reduceIte]
+        have Hr' : lrej (sint.nat (n + W64 1)) = true := by
+          rw [Hrstep]; unfold propConfRefuses; simp [Hpend, _root_.true_or]
         wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
         wp_apply raft.wp_load_idC $$ Hphys as Hphys
         first
@@ -397,7 +412,7 @@ theorem wp_stepLeader_prop
         wp_for_post
         iframe
         iexists n + W64 1, n, _
-        rw [Hcur', Hpci']
+        rw [Hcur', Hpci', Hr']
         iframe
         iframe Hents'
         ipureintro; word
@@ -418,6 +433,8 @@ theorem wp_stepLeader_prop
                 logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
             unfold propConfStep
             simp only [Hnp, ccWantsLeave, Hjv, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
+          have Hr' : lrej (sint.nat (n + W64 1)) = lrej (sint.nat n) := by
+            rw [Hrstep]; unfold propConfRefuses; simp [Hnp, ccWantsLeave, Hjv, ne_eq, not_true_eq_false, _root_.or_self]
           wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
           icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
           wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
@@ -431,7 +448,7 @@ theorem wp_stepLeader_prop
           wp_for_post
           iframe
           iexists n + W64 1, n, els
-          rw [Hcur', Hpci']
+          rw [Hcur', Hpci', Hr']
           ihave Hphys := ownRaftPhysC_eq c r id _
             { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
             (by rw [Hli']; congr 2; word) $$ Hphys
@@ -445,6 +462,8 @@ theorem wp_stepLeader_prop
               (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
             unfold propConfStep
             simp only [ccWantsLeave, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true, ↓reduceIte]
+          have Hr' : lrej (sint.nat (n + W64 1)) = true := by
+            rw [Hrstep]; unfold propConfRefuses; simp [ccWantsLeave, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true]
           wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
           wp_apply raft.wp_load_idC $$ Hphys as Hphys
           first
@@ -475,7 +494,7 @@ theorem wp_stepLeader_prop
           wp_for_post
           iframe
           iexists n + W64 1, n, _
-          rw [Hcur', Hpci']
+          rw [Hcur', Hpci', Hr']
           iframe
           iframe Hents'
           ipureintro; word
@@ -568,6 +587,8 @@ theorem wp_stepLeader_prop
             (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
           unfold propConfStep
           simp only [Hpend, _root_.true_or, ↓reduceIte]
+        have Hr' : lrej (sint.nat (n + W64 1)) = true := by
+          rw [Hrstep]; unfold propConfRefuses; simp [Hpend, _root_.true_or]
         wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
         wp_apply raft.wp_load_idC $$ Hphys as Hphys
         first
@@ -598,7 +619,7 @@ theorem wp_stepLeader_prop
         wp_for_post
         iframe
         iexists n + W64 1, n, _
-        rw [Hcur', Hpci']
+        rw [Hcur', Hpci', Hr']
         iframe
         iframe Hents'
         ipureintro; word
@@ -621,6 +642,8 @@ theorem wp_stepLeader_prop
                 (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
               unfold propConfStep
               simp only [ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, Bool.true_eq_false, not_false_eq_true, _root_.or_true, ↓reduceIte]
+            have Hr' : lrej (sint.nat (n + W64 1)) = true := by
+              rw [Hrstep]; unfold propConfRefuses; simp [ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, Bool.true_eq_false, not_false_eq_true, _root_.or_true]
             wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
             wp_apply raft.wp_load_idC $$ Hphys as Hphys
             first
@@ -651,7 +674,7 @@ theorem wp_stepLeader_prop
             wp_for_post
             iframe
             iexists n + W64 1, n, _
-            rw [Hcur', Hpci']
+            rw [Hcur', Hpci', Hr']
             iframe
             iframe Hents'
             ipureintro; word
@@ -663,6 +686,8 @@ theorem wp_stepLeader_prop
                   logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
               unfold propConfStep
               simp only [Hnp, ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
+            have Hr' : lrej (sint.nat (n + W64 1)) = lrej (sint.nat n) := by
+              rw [Hrstep]; unfold propConfRefuses; simp [Hnp, ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, not_true_eq_false, _root_.or_self]
             wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
             icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
             wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
@@ -676,7 +701,7 @@ theorem wp_stepLeader_prop
             wp_for_post
             iframe
             iexists n + W64 1, n, els
-            rw [Hcur', Hpci']
+            rw [Hcur', Hpci', Hr']
             ihave Hphys := ownRaftPhysC_eq c r id _
               { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
               (by rw [Hli']; congr 2; word) $$ Hphys
@@ -699,6 +724,8 @@ theorem wp_stepLeader_prop
                   logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
               unfold propConfStep
               simp only [Hnp, ccWantsLeave, Hne, Hjv, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
+            have Hr' : lrej (sint.nat (n + W64 1)) = lrej (sint.nat n) := by
+              rw [Hrstep]; unfold propConfRefuses; simp [Hnp, ccWantsLeave, Hne, Hjv, ne_eq, not_true_eq_false, _root_.or_self]
             wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
             icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
             wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
@@ -712,7 +739,7 @@ theorem wp_stepLeader_prop
             wp_for_post
             iframe
             iexists n + W64 1, n, els
-            rw [Hcur', Hpci']
+            rw [Hcur', Hpci', Hr']
             ihave Hphys := ownRaftPhysC_eq c r id _
               { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
               (by rw [Hli']; congr 2; word) $$ Hphys
@@ -726,6 +753,8 @@ theorem wp_stepLeader_prop
                 (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
               unfold propConfStep
               simp only [ccWantsLeave, Hne, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true, ↓reduceIte]
+            have Hr' : lrej (sint.nat (n + W64 1)) = true := by
+              rw [Hrstep]; unfold propConfRefuses; simp [ccWantsLeave, Hne, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true]
             wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
             wp_apply raft.wp_load_idC $$ Hphys as Hphys
             first
@@ -756,7 +785,7 @@ theorem wp_stepLeader_prop
             wp_for_post
             iframe
             iexists n + W64 1, n, _
-            rw [Hcur', Hpci']
+            rw [Hcur', Hpci', Hr']
             iframe
             iframe Hents'
             ipureintro; word
@@ -767,8 +796,11 @@ theorem wp_stepLeader_prop
       intro A l hl; rw [Hnend, ← hl, List.take_length]
     have Hfin : lpc (sint.nat n) = leaderPropConf s ents cs c.joint := by
       simp only [lpc, leaderPropConf, Htake ents rfl, Htake cs Hcslen]
-    rw [Hnend] at Hfin
-    rw [Hnend, List.drop_length, List.append_nil, Hfin]
+    have Hrfin : lrej (sint.nat n) =
+        propConfRej s.logst.applied (logLast s.logst) s.pci ents cs c.joint := by
+      simp only [lrej, Htake ents rfl, Htake cs Hcslen]
+    rw [Hnend] at Hfin Hrfin
+    rw [Hnend, List.drop_length, List.append_nil, Hfin, Hrfin]
     wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
     have Hlen' : ((leaderPropConf s ents cs c.joint).1.length : Int) < 2^61 := by
       simp only [leaderPropConf]
@@ -782,25 +814,38 @@ theorem wp_stepLeader_prop
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]
     · -- dropped
       wp_auto
-      iapply HΦ $$ %errPropDropped %_ %true
+      iapply HΦ $$ %errPropDropped %_ %true %false
       iframe Hphys
       isplitr
       · ipureintro
-        exact ⟨cs, Hct, by simp⟩
+        exact ⟨cs, Hct, by simp, by simp⟩
       simp only [↓reduceIte]
       iexact ErrPropDropped
     · wp_auto
       wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
-      iapply HΦ $$ %interface.nil %_ %false
-      iframe Hphys
-      isplitr
-      · ipureintro
-        refine ⟨cs, Hct, ?_⟩
+      -- (etcd-io/raft#454) `if rejectedConfChange { return ErrConfChangeRejected }`
+      cases Hrj : propConfRej s.logst.applied (logLast s.logst) s.pci ents cs c.joint
+      · wp_auto
+        iapply HΦ $$ %interface.nil %_ %false %false
+        iframe Hphys
+        isplitr
+        · ipureintro
+          refine ⟨cs, Hct, by simp [Hrj], ?_⟩
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          exact ⟨ms, pvs, rfl, Hms, Hmm⟩
         simp only [Bool.false_eq_true, ↓reduceIte]
-        exact ⟨ms, pvs, rfl, Hms, Hmm⟩
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro; trivial
+        ipureintro; trivial
+      · wp_auto
+        iapply HΦ $$ %ecr %_ %false %true
+        iframe Hphys
+        isplitr
+        · ipureintro
+          refine ⟨cs, Hct, by simp [Hrj], ?_⟩
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          exact ⟨ms, pvs, rfl, Hms, Hmm⟩
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iexact HECR
 
 
 end proof

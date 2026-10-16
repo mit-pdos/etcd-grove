@@ -99,7 +99,7 @@ theorem RawNode.ForgetLeader.wp_proof
       omega
     word
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
-  icases Herr with (%Herr | ⟨%Hc', -⟩)
+  icases Herr with (%Herr | ⟨%Hc', -⟩ | ⟨%Hc', -⟩)
   · iapply HΦ $$ %err
     simp only [named]
     isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
@@ -111,6 +111,8 @@ theorem RawNode.ForgetLeader.wp_proof
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
     ipureintro; exact Herr
   · exfalso; revert Hc'; msg_ne
+  · -- (etcd-io/raft#454) `ErrConfChangeRejected`: a proposal's too
+    exfalso; revert Hc'; first | (intro h; exact h.1.elim) | (intro h; have h1 := h.1; revert h1; msg_ne) | msg_ne
 
 end proof
 
