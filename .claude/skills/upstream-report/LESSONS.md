@@ -67,3 +67,7 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   "the behavior since #6672" unexplained) and proposed cutting the user's limit sweep. Rules: `check.py` checks that
   named paths exist and warns on a PR without permalinks; step 10 rejects edits against the user's critiques;
   `review.md` keeps the sweep and checks manual claims against the example's data.
+- 2026-10-16, etcd-range-sort-none-limit: "Get rid of mentioning RangeStream from this issue and PR entirely." (Review
+  rounds 1-2 had added a PR note on `RangeStream`, which calls the same helper and has a bug of its own.) Rule (step
+  9, after `pr.md`; `review.md` item 7): the issue and PR cover this bug and this change only, with no mention of
+  other features the code serves or of other bugs; the reviewer reports a nearby bug separately, for `issues/`.

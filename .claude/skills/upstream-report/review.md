@@ -40,6 +40,8 @@ Look for, in this order:
 7. **The PR.** Does it explain the root cause, with permalinks? Does it say why the fix belongs in this layer and
    name the alternatives a reviewer would ask about (a client-side fix, changing the documented behavior instead)?
    Is the fix the smallest change, with no comment that restates the code? Is the test as simple as the issue's
-   example?
+   example? The issue and PR cover this bug and this change only: flag any mention of other features the changed
+   code serves or of other bugs, and do not propose adding one. Report a bug you find nearby separately, after
+   your edits, as "Outside these documents: ...".
 8. **Accuracy.** Every factual claim checked against the checkout: test and function names, file paths, quotes
    from documentation, the behavior described. List any that are wrong.

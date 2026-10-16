@@ -16,7 +16,6 @@ Fixes #<issue>
 - Alternatives considered:
   - Have `etcdctl` send `ASCEND` when `--sort-by` is given without `--order`. That fixes `etcdctl` only; other clients sending `NONE` with a limit would still get the wrong keys.
   - Make `NONE` mean no sorting, as `rpc.proto` documents. That would undo #6672, which made a non-key target with no order sort ascending; `TestV3RangeRequest` ("sort ASCEND by default") and `TestCtlV3GetTimeout` (`--sort-by=CREATE`) test that behavior.
-- `IsDefaultOrdering` is unchanged, so [`checkRangeStreamRequest`](https://github.com/etcd-io/etcd/blob/ea8b59433d82e8fc3f1365618740395e0028bd03/server/etcdserver/api/v3rpc/key.go#L169-L180) still accepts a non-key target with `NONE`; with this change, each `RangeStream` chunk of such a request reads the rest of the range. Such a stream is still wrong once it needs a second chunk (the next chunk starts after the last key of a chunk sorted by the target), before and after this change; that is a separate bug.
 - Needs a backport to `release-3.6` and `release-3.5`, where the same condition (`r.SortOrder != NONE`) is in `executeRange` and `applierV3backend.Range` respectively.
 
 This PR was written in part with the assistance of generative AI; I have reviewed and tested every change.

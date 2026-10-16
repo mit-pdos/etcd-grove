@@ -184,6 +184,10 @@ with permalinks at the base (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#
 backports only as far as checked); and, word for word: "This PR was written in part with the assistance of
 generative AI; I have reviewed and tested every change."
 
+The issue and the PR are about this bug and this change only. Other features the changed code serves (`RangeStream`
+calling the same helper), what the change does to them, and other bugs found nearby are not mentioned, not even as
+"a separate bug": a bug found nearby goes to `issues/` as a finding of its own.
+
 ### 10. Review rounds
 
 Before the hand-off, revise the drafts in rounds, at most three:

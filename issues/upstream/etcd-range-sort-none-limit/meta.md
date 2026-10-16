@@ -56,3 +56,5 @@ Round 2: `check.py` clean. Reviewer edits:
   approved the issue; longer).
 
 No third round: round 2's edits were PR wording only.
+
+User review (2026-10-16): no mention of `RangeStream` in the issue or the PR; the PR's `RangeStream` note is gone.
