@@ -1072,6 +1072,7 @@ func TestCommit(t *testing.T) {
 		storage.hardState = &pb.HardState{Term: new(tt.smTerm)}
 
 		sm := newTestRaft(1, 10, 2, storage)
+		sm.raftLog.leaderTerm = tt.smTerm
 		for j := 0; j < len(tt.matches); j++ {
 			id := uint64(j) + 1
 			if id > 1 {
@@ -1156,8 +1157,9 @@ func TestHandleMsgApp(t *testing.T) {
 		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(2)), LogTerm: new(uint64(1)), Index: new(uint64(1)), Commit: new(uint64(4)), Entries: []*pb.Entry{{Index: new(uint64(2)), Term: new(uint64(2))}}}, 2, 2, false},
 
 		// Ensure 3
-		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(1)), LogTerm: new(uint64(1)), Index: new(uint64(1)), Commit: new(uint64(3))}, 2, 1, false},                                                                      // match entry 1, commit up to last new entry 1
-		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(1)), LogTerm: new(uint64(1)), Index: new(uint64(1)), Commit: new(uint64(3)), Entries: []*pb.Entry{{Index: new(uint64(2)), Term: new(uint64(2))}}}, 2, 2, false}, // match entry 1, commit up to last new entry 2
+		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(1)), LogTerm: new(uint64(1)), Index: new(uint64(1)), Commit: new(uint64(3))}, 2, 0, true},                                                                       // can't commit under outdated term
+		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(2)), LogTerm: new(uint64(1)), Index: new(uint64(1)), Commit: new(uint64(3))}, 2, 1, false},                                                                      // match entry 1, commit up to entry 1
+		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(2)), LogTerm: new(uint64(1)), Index: new(uint64(1)), Commit: new(uint64(3)), Entries: []*pb.Entry{{Index: new(uint64(2)), Term: new(uint64(2))}}}, 2, 2, false}, // match entry 1, commit up to last new entry 2
 		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(2)), LogTerm: new(uint64(2)), Index: new(uint64(2)), Commit: new(uint64(3))}, 2, 2, false},                                                                      // match entry 2, commit up to last new entry 2
 		{&pb.Message{Type: pb.MsgApp.Enum(), Term: new(uint64(2)), LogTerm: new(uint64(2)), Index: new(uint64(2)), Commit: new(uint64(4))}, 2, 2, false},                                                                      // commit up to log.last()
 	}
@@ -1181,19 +1183,27 @@ func TestHandleMsgApp(t *testing.T) {
 func TestHandleHeartbeat(t *testing.T) {
 	commit := uint64(2)
 	tests := []struct {
-		m       *pb.Message
-		wCommit uint64
+		m        *pb.Message
+		lastTerm uint64
+		wCommit  uint64
 	}{
-		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 1)}, commit + 1},
-		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit - 1)}, commit}, // do not decrease commit
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 1)}, 2, commit + 1},
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit - 1)}, 2, commit}, // do not decrease commit
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit - 1)}, 1, commit},
+
+		// Do not increase the commit index if the log is not guaranteed to be a
+		// prefix of the leader's log.
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 1)}, 1, commit},
+		// Do not increase the commit index beyond our log size.
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 10)}, 2, commit + 1},
 	}
 
 	for i, tt := range tests {
 		storage := newTestMemoryStorage(withPeers(1, 2))
-		require.NoError(t, storage.Append(index(1).terms(1, 2, 3)))
+		require.NoError(t, storage.Append(index(1).terms(1, 1, tt.lastTerm)))
 		sm := newTestRaft(1, 5, 1, storage)
 		sm.becomeFollower(2, 2)
-		sm.raftLog.commitTo(commit)
+		sm.raftLog.commitTo(sm.raftLog.leaderTerm, commit)
 		sm.handleHeartbeat(tt.m)
 		assert.Equal(t, tt.wCommit, sm.raftLog.committed, "#%d", i)
 		m := sm.readMessages()
@@ -1209,7 +1219,7 @@ func TestHandleHeartbeatResp(t *testing.T) {
 	sm := newTestRaft(1, 5, 1, storage)
 	sm.becomeCandidate()
 	sm.becomeLeader()
-	sm.raftLog.commitTo(sm.raftLog.lastIndex())
+	sm.raftLog.commitTo(sm.raftLog.leaderTerm, sm.raftLog.lastIndex())
 
 	// A heartbeat response from a node that is behind; re-send MsgApp
 	sm.Step(&pb.Message{From: new(uint64(2)), Type: pb.MsgHeartbeatResp.Enum()})
@@ -1244,7 +1254,7 @@ func TestRaftFreesReadOnlyMem(t *testing.T) {
 	sm := newTestRaft(1, 5, 1, newTestMemoryStorage(withPeers(1, 2)))
 	sm.becomeCandidate()
 	sm.becomeLeader()
-	sm.raftLog.commitTo(sm.raftLog.lastIndex())
+	sm.raftLog.commitTo(sm.Term, sm.raftLog.lastIndex())
 
 	reqCtx := []byte("ctx")
 
@@ -2387,7 +2397,10 @@ func TestLeaderIncreaseNext(t *testing.T) {
 
 	for i, tt := range tests {
 		sm := newTestRaft(1, 10, 1, newTestMemoryStorage(withPeers(1, 2)))
-		sm.raftLog.append(previousEnts...)
+		sm.raftLog.append(3, previousEnts...)
+		// The node's term must not be below its log's leader term, or its own
+		// appends as a leader are dropped.
+		sm.becomeFollower(3, None)
 		sm.becomeCandidate()
 		sm.becomeLeader()
 		sm.trk.Progress[2].State = tt.state
@@ -2507,13 +2520,13 @@ func TestRestore(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
-	require.True(t, sm.restore(s))
+	require.True(t, sm.restore(sm.Term, s))
 
 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
 	assert.Equal(t, s.GetMetadata().GetTerm(), mustTerm(sm.raftLog.term(s.GetMetadata().GetIndex())))
 	assert.Equal(t, s.GetMetadata().GetConfState().Voters, sm.trk.VoterNodes())
 
-	require.False(t, sm.restore(s))
+	require.False(t, sm.restore(sm.Term, s))
 	for i := 0; i < sm.randomizedElectionTimeout; i++ {
 		sm.tick()
 	}
@@ -2532,7 +2545,7 @@ func TestRestoreWithLearner(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2), withLearners(3))
 	sm := newTestLearnerRaft(3, 8, 2, storage)
-	assert.True(t, sm.restore(s))
+	assert.True(t, sm.restore(sm.Term, s))
 
 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
 	assert.Equal(t, s.GetMetadata().GetTerm(), mustTerm(sm.raftLog.term(s.GetMetadata().GetIndex())))
@@ -2550,7 +2563,7 @@ func TestRestoreWithLearner(t *testing.T) {
 		assert.True(t, sm.trk.Progress[n].IsLearner)
 	}
 
-	assert.False(t, sm.restore(s))
+	assert.False(t, sm.restore(sm.Term, s))
 }
 
 // TestRestoreWithVotersOutgoing tests if outgoing voter can receive and apply snapshot correctly.
@@ -2565,7 +2578,7 @@ func TestRestoreWithVotersOutgoing(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
-	require.True(t, sm.restore(s))
+	require.True(t, sm.restore(sm.Term, s))
 
 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
 	assert.Equal(t, mustTerm(sm.raftLog.term(s.GetMetadata().GetIndex())), s.GetMetadata().GetTerm())
@@ -2573,7 +2586,7 @@ func TestRestoreWithVotersOutgoing(t *testing.T) {
 	sg := sm.trk.VoterNodes()
 	assert.Equal(t, []uint64{1, 2, 3, 4}, sg)
 
-	require.False(t, sm.restore(s))
+	require.False(t, sm.restore(sm.Term, s))
 
 	// It should not campaign before actually applying data.
 	for i := 0; i < sm.randomizedElectionTimeout; i++ {
@@ -2603,7 +2616,7 @@ func TestRestoreVoterToLearner(t *testing.T) {
 	sm := newTestRaft(3, 10, 1, storage)
 
 	assert.False(t, sm.isLearner)
-	assert.True(t, sm.restore(s))
+	assert.True(t, sm.restore(sm.Term, s))
 }
 
 // TestRestoreLearnerPromotion checks that a learner can become to a follower after
@@ -2621,7 +2634,7 @@ func TestRestoreLearnerPromotion(t *testing.T) {
 	sm := newTestLearnerRaft(3, 10, 1, storage)
 
 	assert.True(t, sm.isLearner)
-	assert.True(t, sm.restore(s))
+	assert.True(t, sm.restore(sm.Term, s))
 	assert.False(t, sm.isLearner)
 }
 
@@ -2640,7 +2653,7 @@ func TestLearnerReceiveSnapshot(t *testing.T) {
 	n1 := newTestLearnerRaft(1, 10, 1, store)
 	n2 := newTestLearnerRaft(2, 10, 1, newTestMemoryStorage(withPeers(1), withLearners(2)))
 
-	n1.restore(s)
+	n1.restore(n1.Term, s)
 	snap := n1.raftLog.nextUnstableSnapshot()
 	store.ApplySnapshot(snap)
 	n1.appliedSnap(snap)
@@ -2662,8 +2675,8 @@ func TestRestoreIgnoreSnapshot(t *testing.T) {
 	commit := uint64(1)
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.raftLog.append(previousEnts...)
-	sm.raftLog.commitTo(commit)
+	sm.raftLog.append(1, previousEnts...)
+	sm.raftLog.commitTo(1, commit)
 
 	s := &pb.Snapshot{
 		Metadata: &pb.SnapshotMetadata{
@@ -2674,12 +2687,12 @@ func TestRestoreIgnoreSnapshot(t *testing.T) {
 	}
 
 	// ignore snapshot
-	assert.False(t, sm.restore(s))
+	assert.False(t, sm.restore(1, s))
 	assert.Equal(t, sm.raftLog.committed, commit)
 
 	// ignore snapshot and fast forward commit
 	s.Metadata.Index = new(commit + 1)
-	assert.False(t, sm.restore(s))
+	assert.False(t, sm.restore(1, s))
 	assert.Equal(t, sm.raftLog.committed, commit+1)
 }
 
@@ -2694,7 +2707,7 @@ func TestProvideSnap(t *testing.T) {
 	}
 	storage := newTestMemoryStorage(withPeers(1))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(s)
+	sm.restore(sm.Term, s)
 
 	sm.becomeCandidate()
 	sm.becomeLeader()
@@ -2720,7 +2733,7 @@ func TestIgnoreProvidingSnap(t *testing.T) {
 	}
 	storage := newTestMemoryStorage(withPeers(1))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(s)
+	sm.restore(sm.Term, s)
 
 	sm.becomeCandidate()
 	sm.becomeLeader()

@@ -626,7 +626,7 @@ func TestFollowerAppendEntries(t *testing.T) {
 		r := newTestRaft(1, 10, 1, storage)
 		r.becomeFollower(2, 2)
 
-		r.Step(&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgApp.Enum(), Term: new(uint64(2)), LogTerm: new(tt.term), Index: new(tt.index), Entries: tt.ents})
+		r.Step(&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgApp.Enum(), Term: new(uint64(10)), LogTerm: new(tt.term), Index: new(tt.index), Entries: tt.ents})
 
 		requireEqualEntries(t, tt.wents, r.raftLog.allEntries(), "#%d", i)
 		requireEqualEntries(t, tt.wunstable, r.raftLog.nextUnstableEnts(), "#%d", i)

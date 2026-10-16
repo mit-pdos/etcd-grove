@@ -775,7 +775,7 @@ func (r *raft) appliedSnap(snap *pb.Snapshot) {
 func (r *raft) maybeCommit() bool {
 	defer traceCommit(r)
 
-	return r.raftLog.maybeCommit(entryID{term: r.Term, index: r.trk.Committed()})
+	return r.raftLog.maybeCommit(r.Term, entryID{term: r.Term, index: r.trk.Committed()})
 }
 
 func (r *raft) reset(term uint64) {
@@ -831,7 +831,7 @@ func (r *raft) appendEntry(es ...*pb.Entry) (accepted bool) {
 	traceReplicate(r, cloned...)
 
 	// use latest "last" index after truncate/append
-	li = r.raftLog.append(cloned...)
+	li = r.raftLog.append(r.Term, cloned...)
 	// The leader needs to self-ack the entries just appended once they have
 	// been durably persisted (since it doesn't send an MsgApp to itself). This
 	// response message will be added to msgsAfterAppend and delivered back to
@@ -967,6 +967,8 @@ func (r *raft) becomeLeader() {
 	// so the preceding log append does not count against the uncommitted log
 	// quota of the new leader. In other words, after the call to appendEntry,
 	// r.uncommittedSize is still 0.
+
+	r.raftLog.leaderTerm = r.Term // the leader's log is consistent with itself
 	r.logger.Infof("%x became leader at term %d", r.id, r.Term)
 }
 
@@ -1786,6 +1788,9 @@ func (r *raft) handleAppendEntries(m *pb.Message) {
 	a := logSliceFromMsgApp(m)
 
 	if a.prev.index < r.raftLog.committed {
+		// TODO(pav-kv): we may still append some entries from this message if they
+		// are consistent with the log. In addition, this message carries a commit
+		// index update that may bump our commit index.
 		r.send(&pb.Message{To: m.From, Type: pb.MsgAppResp.Enum(), Index: new(r.raftLog.committed)})
 		return
 	}
@@ -1825,7 +1830,7 @@ func (r *raft) handleAppendEntries(m *pb.Message) {
 }
 
 func (r *raft) handleHeartbeat(m *pb.Message) {
-	r.raftLog.commitTo(m.GetCommit())
+	r.raftLog.commitTo(m.GetTerm(), m.GetCommit())
 	r.send(&pb.Message{To: m.From, Type: pb.MsgHeartbeatResp.Enum(), Context: m.GetContext()})
 }
 
@@ -1835,9 +1840,10 @@ func (r *raft) handleSnapshot(m *pb.Message) {
 	s := m.GetSnapshot()
 	s = pb.EnsureSnapshot(s)
 	sindex, sterm := s.GetMetadata().GetIndex(), s.GetMetadata().GetTerm()
-	if r.restore(s) {
+	if r.restore(m.GetTerm(), s) {
 		r.logger.Infof("%x [commit: %d] restored snapshot [index: %d, term: %d]",
 			r.id, r.raftLog.committed, sindex, sterm)
+		r.raftLog.leaderTerm = m.GetTerm() // the log is now consistent with the leader
 		r.send(&pb.Message{To: m.From, Type: pb.MsgAppResp.Enum(), Index: new(r.raftLog.lastIndex())})
 	} else {
 		r.logger.Infof("%x [commit: %d] ignored snapshot [index: %d, term: %d]",
@@ -1849,7 +1855,7 @@ func (r *raft) handleSnapshot(m *pb.Message) {
 // restore recovers the state machine from a snapshot. It restores the log and the
 // configuration of state machine. If this method returns false, the snapshot was
 // ignored, either because it was obsolete or because of an error.
-func (r *raft) restore(s *pb.Snapshot) bool {
+func (r *raft) restore(leaderTerm uint64, s *pb.Snapshot) bool {
 	if s.GetMetadata().GetIndex() <= r.raftLog.committed {
 		return false
 	}
@@ -1906,7 +1912,7 @@ func (r *raft) restore(s *pb.Snapshot) bool {
 		last := r.raftLog.lastEntryID()
 		r.logger.Infof("%x [commit: %d, lastindex: %d, lastterm: %d] fast-forwarded commit to snapshot [index: %d, term: %d]",
 			r.id, r.raftLog.committed, last.index, last.term, id.index, id.term)
-		r.raftLog.commitTo(s.GetMetadata().GetIndex())
+		r.raftLog.commitTo(leaderTerm, s.GetMetadata().GetIndex())
 		return false
 	}
 
