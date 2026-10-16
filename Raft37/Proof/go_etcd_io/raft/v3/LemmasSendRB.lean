@@ -85,6 +85,47 @@ theorem wp_Snapshot_GetMetadata_E (p : Loc) (dq : DFrac) (s : SnapshotM) :
     iframe
     iframe Hpb
 
+/-- `cloned[i].Term = new(r.Term)` (`appendEntry`, `raft.go:818`): a fresh cell stored into the
+clone, which raft owns. -/
+theorem entOwn_store_Term (l : Loc) (e : EntryM) :
+    entOwn (GF := GF) l e ⊢
+      ∃ p : Loc, l.[raftpb.Entry, go!"Term"] ↦ p ∗
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Entry, go!"Term"] ↦ p' -∗ cellRO p' v -∗
+          entOwn l { e with Term' := v }) := by
+  iintro H
+  simp only [entOwn]
+  iunfold entPts at H
+  iNamed H
+  iexists pt
+  iframe HT
+  iintro %p' %v HT #cT'
+  iunfold entPts
+  iexists p', pi, pty, ds, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cT' cI cY Hd Hpb
+
+/-- `cloned[i].Index = new(li + 1 + uint64(i))` (`appendEntry`, `raft.go:819`). -/
+theorem entOwn_store_Index (l : Loc) (e : EntryM) :
+    entOwn (GF := GF) l e ⊢
+      ∃ p : Loc, l.[raftpb.Entry, go!"Index"] ↦ p ∗
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Entry, go!"Index"] ↦ p' -∗ cellRO p' v -∗
+          entOwn l { e with Index' := v }) := by
+  iintro H
+  simp only [entOwn]
+  iunfold entPts at H
+  iNamed H
+  iexists pi
+  iframe HI
+  iintro %p' %v HI #cI'
+  iunfold entPts
+  iexists pt, p', pty, ds, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cT cI' cY Hd Hpb
+
 end lemmas
 
 end EtcdGrove
