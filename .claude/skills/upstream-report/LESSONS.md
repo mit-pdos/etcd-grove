@@ -10,3 +10,6 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   step 3: search for the root cause as well as the symptom, read the matches' comments, verify an existing PR
   against the finding's reproductions instead of making a competing branch, and treat the impact, not the root
   cause, as what a security disclosure is about.
+- 2026-10-16, etcd-range-sort-none-limit (my own check before review): the version block was typed in a format
+  `etcd --version` does not print. Rule (step 8): every output in `issue.md` is pasted from a run at the base,
+  binaries built there; test output may be trimmed, not reworded.

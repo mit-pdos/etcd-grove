@@ -107,8 +107,11 @@ behavior. Record the commands and results in `meta.md`.
 
 ### 8. Write the candidates
 
-`issue.md`, in the bug-report form's sections (the form's checkboxes are the user's to tick; leave the version
-fields for them, with the base commit filled in):
+`issue.md`, in the bug-report form's sections (the form's checkboxes are the user's to tick). Every command output in
+it is pasted from a run at the base commit, never typed from memory: build the binaries there (in a detached
+worktree of the base, `go build -ldflags "-X go.etcd.io/etcd/api/v3/version.GitSHA=<short sha>"` in `server/` and
+`etcdctl/`), run the `etcdctl` reproduction against them, and paste their `etcd --version` and `etcdctl version`
+into the version fields. Test output may be trimmed to the failing lines (no log noise), but not reworded.
 
 - **What happened?** — the user-visible behavior first, in etcd's terms (an `etcdctl` command, a client call, a
   server config); then why, briefly, with permalinks to the few lines that matter.

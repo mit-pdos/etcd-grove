@@ -4,7 +4,7 @@
 - **Target**: etcd-io/etcd, `main`; backport to `release-3.6`, `release-3.5`
 - **Branch**: `etcd-range-sort-none-limit` in `~/etcd-fixes/etcd-range-sort-none-limit` (commit 9f21608d3), not pushed
 - **Base**: upstream `main` ea8b59433d82e8fc3f1365618740395e0028bd03 (2026-10-16)
-- **State**: draft
+- **State**: draft (version block and `etcdctl` sequence re-run on binaries built at the base, 2026-10-16)
 - **Upstream issue**: —
 - **PR**: —
 

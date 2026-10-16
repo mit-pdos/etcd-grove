@@ -50,7 +50,10 @@ I found this while formally verifying etcd's range code.
 
 ```console
 $ etcd --version
-etcd Version: 3.8.0-alpha.0 (main, ea8b59433)
+etcd Version: 3.8.0-alpha.0
+Git SHA: ea8b59433
+Go Version: go1.27.2
+Go OS/Arch: linux/amd64
 
 $ etcdctl version
 etcdctl version: 3.8.0-alpha.0
