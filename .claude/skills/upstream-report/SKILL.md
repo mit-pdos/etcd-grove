@@ -90,7 +90,8 @@ test; add an integration or e2e test only if the bug is only visible there. Run 
 failing output — it goes into the issue. A test that passes without the fix does not reproduce the bug: rethink it.
 When the expected behavior rests on a reading of the API that someone could dispute, test a property that needs no
 reading instead: one request against a variant of it (with a limit against without, at one revision against
-another), as the issue's example does (step 8).
+another), as the issue's example does (step 8). The test is the issue's example, as simple as it: the same data and
+requests, no sweep over targets or orders the example does not need. Write the example (step 8) first, then the test.
 
 ### 5. The fix
 
@@ -124,13 +125,11 @@ into the version fields. Test output may be trimmed to the failing lines (no log
 - **What happened?** — the user-visible behavior first, in etcd's terms (an `etcdctl` command, a client call, a
   server config), and nothing about the cause: no function or variable names, no code permalinks, no history of
   how the bug came in. The root cause goes in the PR (and the commit message), not the issue. Choose the example
-  whose output
-  is visibly wrong on its own, without the reader having to accept an expected behavior first: the same request
+  whose output is visibly wrong on its own, without the reader having to accept an expected behavior first: the same request
   varied in one parameter, giving answers that contradict each other (`--limit=1` returns `b` but `--limit=2` and
   no limit start with `c`), beats one answer set against what the docs are said to promise. Then minimize it:
   the fewest commands and keys that still show the bug, every one necessary (three puts, not six, for a bug that
-  needs three keys), and data on which the targets the text names all reproduce. The test may keep a richer setup
-  to cover more cases; the issue then describes the test's setup in words rather than "the keys above". Say what
+  needs three keys), and data on which the targets the text names all reproduce. Say what
   else is affected in one plain sentence ("the other non-key sort targets", "any client that sends ..."), not as a
   list of flags, enum values or client calls.
 - **What did you expect to happen?** — grounded in a source the reader can check: the API's documentation
@@ -138,8 +137,11 @@ into the version fields. Test output may be trimmed to the failing lines (no log
   consistency with a variant of the same request. Before relying on a documented behavior, read the documentation:
   when sources disagree (`rpc.proto` says `NONE` is "no sorting", the server sorts ascending), say so, and ground
   the expectation in what holds under every reading.
-- **How can we reproduce it?** — the minimal steps (`etcdctl` sequence when one exists), then the test from the
-  branch and its failing output.
+- **How can we reproduce it?** — the minimal steps (`etcdctl` sequence when one exists), then a link to the test on
+  the fork's branch (`[TestX](https://github.com/upamanyus/etcd/blob/<slug>/<path>)` and
+  `[upamanyus/etcd:<slug>](https://github.com/upamanyus/etcd/tree/<slug>)`; tentative until the user pushes the
+  branch under that name, which `meta.md` says) and its failing output. Do not describe the test: it is the example
+  above, and the link shows it. Never "the linked branch" without the link.
 - **Anything else we need to know?** — impact and who is affected, and workarounds; no claims about other releases (the
   version fields say what was run; backports are the maintainers' call, and the PR's notes may name them). A side finding the maintainers
   could act on (documentation that contradicts the behavior) goes here as a question to them ("Should the
@@ -152,7 +154,8 @@ change."
 
 ### 9. Hand off
 
-Report to the user: the worktree and branch, the base commit, the three files, the test commands, and a short
+Report to the user: the worktree and branch, the base commit, the three files, the test commands, the command that
+pushes the branch to the fork under the name the issue links (`git -C ~/etcd-fixes/<slug> push origin <slug>`), and a short
 review checklist — the commit message to rewrite, any judgment calls (severity, the fix chosen, duplicates found),
 anything not verified. Set `meta.md`'s state to `draft`.
 

@@ -6,7 +6,7 @@ Fixes #<issue>
 
 **Testing**
 
-- New `TestRangeSortLimit` (`server/etcdserver/txn/range_test.go`): for every sort target and order, a range with limits 1 to 3 returns the first key-values of the same range without a limit. On `main` it fails for every non-key target with `NONE`; with this change it passes.
+- New `TestRangeSortLimit` (`server/etcdserver/txn/range_test.go`): a range sorted by create revision with `SortOrder: NONE` and limit 1 or 2 returns the first key-values of the same range without a limit. On `main` it fails at limit 1; with this change it passes.
 - `go test ./etcdserver/txn/ ./etcdserver/api/v3rpc/` (server); `go test ./integration/clientv3/ -run 'Range|Get|Sort'` and `go test -tags integration ./common/ -run 'TestKVGet$|TestKVGetStream'` (tests).
 - Manually: `etcdctl get a d --sort-by=VERSION --limit=1` now returns the first key of `etcdctl get a d --sort-by=VERSION`.
 

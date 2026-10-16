@@ -30,17 +30,14 @@ The same happens with the other non-key sort targets, and for any client that se
 
 Run the `etcdctl` commands above against a single-member cluster built from `main` (ea8b59433).
 
-As a unit test (`TestRangeSortLimit` in `server/etcdserver/txn/range_test.go` on the linked branch): put `c` once, `b` twice and `a` three times, so that `c` comes first by every target; for each sort target and order, compare a range over `[a, d)` with limits 1 to 3 against the same range without a limit. On `main`, the `NONE` cases with a non-key target fail at limit 1 (output trimmed):
+Unit test: [`TestRangeSortLimit`](https://github.com/upamanyus/etcd/blob/etcd-range-sort-none-limit/server/etcdserver/txn/range_test.go) on branch [`upamanyus/etcd:etcd-range-sort-none-limit`](https://github.com/upamanyus/etcd/tree/etcd-range-sort-none-limit). On `main` it fails (output trimmed):
 
 ```
-    --- FAIL: TestRangeSortLimit/VERSION/NONE (0.00s)
-            	Error:      	Not equal: 
-            	            	expected: []string{"c"}
-            	            	actual  : []string{"b"}
-            	Messages:   	limit 1
-    --- FAIL: TestRangeSortLimit/CREATE/NONE (0.00s)
-    --- FAIL: TestRangeSortLimit/MOD/NONE (0.00s)
-    --- FAIL: TestRangeSortLimit/VALUE/NONE (0.00s)
+--- FAIL: TestRangeSortLimit (0.01s)
+        	Error:      	Not equal: 
+        	            	expected: []string{"c"}
+        	            	actual  : []string{"b"}
+        	Messages:   	limit 1
 ```
 
 ### Anything else we need to know?

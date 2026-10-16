@@ -38,3 +38,10 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
 - 2026-10-16, etcd-range-sort-none-limit: "Make the 'the same happens with' sentence more concise; we don't need to
   list all the command line flags in excruciating detail." Rule (step 8, "What happened"): what else is affected is
   one plain sentence, not a list of flags, enum values or client calls.
+- 2026-10-16, etcd-range-sort-none-limit: "'How can we reproduce it' mentions a linked branch, but I'm not sure what
+  the linked branch is. Insert a tentative link to the fork/branch/commit with the unit test. Don't explain the test
+  in this issue, and make the unit test as simple as the etcdctl example." The test became the example (three puts,
+  CREATE/NONE, limits 0-2), replacing a sweep over every target and order. Rules: step 8 ("How can we reproduce
+  it"): link the test on the fork's branch, tentative until pushed, and do not describe it; step 4: the test is the
+  issue's example, no wider; step 9: hand off the push command. The step-8 rule from the previous critique that let
+  the test keep a richer setup is gone.
