@@ -4,8 +4,8 @@ counterpart of `Proof/go_etcd_io/etcd/client/v3/concurrency/Base.lean`, whose in
 cache's `Base.lean`'s for `clientv3`, the protobuf packages, grpc and zap, it reuses). Its
 standard-library imports (`context`, `errors`, `fmt`, `strings`, `time`) are Perennial's.
 
-The package's facts (`recipesInit`): its four errors `ErrKeyExists`, `ErrWaitMismatch`,
-`ErrTooManyClients`, `ErrNoWatcher` hold fixed non-nil errors (`errors.New`), `ErrKeyExists` one
+The package's facts (`recipesInit`): its five errors `ErrKeyExists`, `ErrWaitMismatch`,
+`ErrTooManyClients`, `ErrNoWatcher`, `ErrWatchClosed` hold fixed non-nil errors (`errors.New`), `ErrKeyExists` one
 as `errors.Is` sees it (`errNewLeaf`: a pointer error, a leaf without an `Is` method). As in the
 cache's `Base.lean`, this is an assumption about package initialization, not proved from
 `initialize'`.
@@ -49,15 +49,16 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The package's facts: its four errors (`ErrKeyExists`, `ErrWaitMismatch`,
-`ErrTooManyClients`, `ErrNoWatcher`) each hold a fixed non-nil error (`errors.New`), for good;
+/-- The package's facts: its five errors (`ErrKeyExists`, `ErrWaitMismatch`,
+`ErrTooManyClients`, `ErrNoWatcher`, `ErrWatchClosed`: the verified fork's, unit W-Q) each hold a fixed non-nil error (`errors.New`), for good;
 `ErrKeyExists`'s is an `errors.New` error as `errors.Is` sees it (`errNewLeaf`; what
 `newUniqueKV`'s `errors.Is(err, ErrKeyExists)` needs). -/
 abbrev recipesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrKeyExists ↦□ GoInterface.ok e ∗ ⌜errNewLeaf e⌝) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrWaitMismatch ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrTooManyClients ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr ErrNoWatcher ↦□ GoInterface.ok e))
+    (∃ e : GoInterfaceOk, globalAddr ErrNoWatcher ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrWatchClosed ↦□ GoInterface.ok e))
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes :=

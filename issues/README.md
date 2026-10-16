@@ -43,8 +43,8 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [leasing-wait-rescind-no-delete](leasing-wait-rescind-no-delete.md) | bug | `leasing-wait-rescind-no-delete` (d3db62afd) | `leasing` (unit 5) |
 | [leasing-stale-entry-after-reset](leasing-stale-entry-after-reset.md) | bug | `leasing-stale-entry-after-reset` (3d0769edc) | `leasing` (unit 5) |
 | [leasing-update-stale](leasing-update-stale.md) | bug | `leasing-update-stale` (d97e455c2) | `leasing` (units 3–5) |
-| [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) | bug | `recipes-closed-watch-channel` (0aa6c6af8) | recipes, 2026-10-11 |
-| [recipes-barrier-wait-closed-watch](recipes-barrier-wait-closed-watch.md) | bug | `recipes-closed-watch-channel` (0aa6c6af8) | recipes, 2026-10-11 |
+| [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) | bug (fixed in the verified fork: `goose-lean` 0df483bee, unit W-Q) | `recipes-closed-watch-channel` (0aa6c6af8) | recipes, 2026-10-11 |
+| [recipes-barrier-wait-closed-watch](recipes-barrier-wait-closed-watch.md) | bug (fixed in the verified fork: `goose-lean` 0df483bee, unit W-Q) | `recipes-closed-watch-channel` (0aa6c6af8) | recipes, 2026-10-11 |
 | [recipes-pqueue-dequeue-order](recipes-pqueue-dequeue-order.md) | documentation | none | recipes (unit 2), 2026-10-11 |
 | [raft-zero-max-size-per-msg](raft-zero-max-size-per-msg.md) | bug | none (etcd-io/raft; the format of the list above) | `raft` |
 | [raft-memorystorage-createsnapshot-bounds](raft-memorystorage-createsnapshot-bounds.md) | documentation (an unstated range; below the compaction boundary a runtime panic, not `ErrCompacted`) | none (etcd-io/raft) | `raft` (`MemoryStorage`), 2026-10-12 |

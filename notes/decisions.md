@@ -6932,6 +6932,52 @@ proved).
   (`kvLeasedCommitTodo`) is now stated in the clients' model (`txnCommitResultTok` from
   `etcdReached lo`), as `kvLeasedPutTodo` was.
 
+## The recipes are verified against the closed-watch fix (unit W-Q, 2026-10-16 · adopted)
+
+**The rule and the precedent.** The verified etcd is upstream main plus the commits that make it
+translatable plus bug fixes only ("No code changes unless a bug"): until now the one fix of
+`cache-ready-after-retry` (`64313a1f8`). The recipes' closed-watch findings
+(`issues/recipes-dequeue-closed-watch.md`, `issues/recipes-barrier-wait-closed-watch.md`) are bugs
+(a reachable nil dereference in `Dequeue`, a false release in `Barrier.Wait` and
+`DoubleBarrier.Enter`), so their fix qualifies. The user decided to fold it in: the fork commit
+`0aa6c6af8` (branch `recipes-closed-watch-channel`) is cherry-picked onto `goose-lean` as
+`0df483bee` (the conflict with the Gooseable rewrite of `waitEvents`' loop resolved by keeping the
+rewrite and adding the fix's lines), the pin `etc/goose.py` names.
+
+**Why not keep the premise.** The recipes' proofs took `isEtcdRangeWatcherOpen` (the range-watch
+contract with the SPSC close predicate `False`) as a premise of the client bundle. The watch slice
+(W-C) proved that etcd's client watcher meets only the closable contract `isEtcdRangeWatcher`
+(close predicate `True`), and the Open variant is false of it: `watch.go` closes the channel when
+the watch's context is done, on `Close()`, on a halting stream error, when the server cancels the
+watch (a compaction past its start revision), on a failed create. It is not a corollary of
+`isClientWatcher V w` under any persistent fact about `w`: what would make it true (a context never
+done, no `Close`, a transport that never fails, a server that never cancels) is about the
+environment's future, not the watcher. *Rejected: a refined premise* (a per-watch promise of no
+cancellation and no close while a recipe waits, or a liveness premise on etcd's compaction): it
+would be a premise on how the client is used and on the server's compaction policy, which the
+code as shipped silently mishandles when it fails; stating it would not gain trust in any result
+over the recipes' behaviour, only move the bug out of the statement. With the fix the premise is
+unnecessary.
+
+**The fix** (`watch.go`, `client.go`): `waitEvents` returns `(*clientv3.Event, error)`; a response
+whose `Err()` is non-nil (a canceled watch: `ErrCompacted`, ...) returns `(nil, err)` before its
+events are read; a channel that closes before the awaited events returns `(nil, ErrWatchClosed)`,
+a new package error. `WaitEvents`/`WaitPrefixEvents` return that pair; their callers already
+propagated `WaitEvents`' error (`Dequeue`: `"", err`; `Barrier.Wait`, `DoubleBarrier.Enter`/`Leave`:
+`err`; `RWMutex.waitOnLastRev`: `false, err`).
+
+**What the proofs now say.** `waitEvents.spec` is over the closable channel: `(ev, nil)` with the
+awaited event (`waitedEvent`) and the consumer token back, or `(nil, err)` with `err ≠ nil` (the
+consumer token not returned: a close consumes it, `spsc_rcv_au`; the callers drop it anyway). The
+error branch reads `wresp.Err()`'s spec, whose precondition `statusErrOk` the element predicate
+carries, and `ErrWatchClosed` from `recipesInit` (a fixed non-nil error, as the four others).
+`WaitEvents`/`WaitPrefixEvents`: `(⌜err = nil⌝ ∗ waitedEvent …) ∨ ⌜err ≠ nil⌝`. The callers' specs
+already had an error disjunct: they take it on a closed or canceled watch; none changed form. The
+bundle `isEtcdRecipesClient` takes `isEtcdRangeWatcher`; `isEtcdRangeWatcherOpen` is deleted. So
+the queue is end to end over etcd's real client watcher (`queue_end_to_end_client`: the watcher
+contract from `isClientWatcher V w` by `isEtcdRangeWatcher_of_watcher`, at `V.R.E = E` and
+`V.pfx = kp`), with no premise about the watch beyond the wire's (`watchConnFacts`).
+
 ## Retargeting raft in a parallel tree
 
 **2026-10-15 · accepted (stage R0, branch `raft-retarget`)**

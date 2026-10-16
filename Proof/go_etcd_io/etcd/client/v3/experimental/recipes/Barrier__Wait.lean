@@ -104,10 +104,20 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
     ipersist HslT
     (try wp_auto)
     wp_apply hWE client key key (R + W64 1) _ [evDelete] evDelete $$ [$Hpkg $Hcc $Hcl $HslT]
-      as %ev %werr ⟨%Hwnil, #Hwev⟩
+      as %ev %werr Hwr
     · ipureintro
       refine ⟨rfl, List.prefix_refl key, ?_⟩
       have := HRle.2; word
+    icases Hwr with (⟨%Hwnil, #Hwev⟩ | %Hwne)
+    rotate_left
+    · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+        cases werr with
+        | nil => exact absurd rfl Hwne
+        | ok e => exact ⟨e, rfl⟩
+      (try wp_auto)
+      iapply HΦ
+      iright
+      ipureintro; exact Hwne
     subst Hwnil
     ihave ⟨%r, #Hr, #Habs, %Hrr⟩ := waitedEvent_key_delete key key (R + W64 1) ev $$ Hwev
     (try wp_auto)

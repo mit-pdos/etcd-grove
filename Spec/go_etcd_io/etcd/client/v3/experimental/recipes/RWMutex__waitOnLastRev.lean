@@ -29,8 +29,8 @@ prefix `bp` under the mutex's `pfx`, knowing etcd has reached `lo`: the get
 `Get(bp, WithLastRev()..., WithMaxModRev(st.rev - 1))` (the key with the prefix `bp` with the
 greatest mod revision below `st.rev`); `(true, nil)` if there is none: at the get's revision
 `R ≥ lo`, no key with the prefix `bp` has a mod revision below `st.rev` (`RWBlockFree`); otherwise
-`WaitEvents` for that key's deletion from `st.rev` on, and `false` (with its error, always `nil`,
-or the get's error). The key is unchanged. -/
+`WaitEvents` for that key's deletion from `st.rev` on, and `false` (with its error: `nil` after the
+delete event, non-nil on a canceled or closed watch), or the get's error. The key is unchanged. -/
 abbrev RWMutex.waitOnLastRev.spec : Prop :=
   ∀ (m s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx bp : GoString)
     (ek : Loc) (st : RemoteKVSt) (lo : w64),

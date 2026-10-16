@@ -1,8 +1,8 @@
 /-
 The results of `client/v3/experimental/recipes`, restated at top level, with the trust base of
-each printed in the build log (`#print axioms`). Every recipes result rests on the client
-bundle's premise that a watch channel is never closed (`isEtcdRecipesClient`, see
-`InvRecipesClient.lean`, the two findings of unit 0). Each unit's results are in a section of
+each printed in the build log (`#print axioms`). The recipes are verified against the
+verified fork's closed-watch fix (unit W-Q: a closed or canceled watch is an error; the client
+bundle `isEtcdRecipesClient` takes the closable watch contract, see `InvRecipesClient.lean`). Each unit's results are in a section of
 their own, in unit order (2: the barrier and the queues; 3: the RWMutex and the double barrier),
 then the priority queue's order (`pqueue_order`), which composes unit 1b's order of
 `newSequentialKV`'s keys with unit 2's least key.
@@ -13,6 +13,8 @@ public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Link
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesQueue
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesSeq
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Vertical
+public import Proof.go_etcd_io.etcd.client.v3.Link
+public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher
 
 @[expose] public section
 
@@ -572,12 +574,17 @@ end pqorder
 * **The client contracts at the server's model** (`recipes_kv_of_server`,
   `recipes_client_of_server`; `KVOfServer.lean`): a real `*kv` over a connection to a gRPC server
   where etcd's `KV` service is registered (`client.etcd_kv_served`) meets `isRecipesKV` in
-  `v3rpc.etcdModelOfServer E`, and a client over it `isEtcdRecipesClient` (the watcher contract a
-  premise).
+  `v3rpc.etcdModelOfServer E`, and a client over it `isEtcdRecipesClient` (the closable watcher
+  contract `isEtcdRangeWatcher` a premise).
 * **The queue end to end** (`queue_end_to_end`; `Vertical.lean`): `NewQueue` on such a client;
   `Enqueue`'s spec; `Dequeue`'s `(v, nil)` an item taken by this call in the server's terms
   (`queueTaken`: sealed logs, `stateAt`, the server's revision token), in order.
   `queue_end_to_end_once`: two claims of one revision are impossible.
+* **The queue end to end over etcd's client watcher** (`queue_end_to_end_client`, unit W-Q):
+  `queue_end_to_end` with the watcher contract discharged for a `*watcher` (`isClientWatcher V w`,
+  unit W-C: `client.isEtcdRangeWatcher_of_watcher` at the linked `watcher.Watch`) over the same
+  server (`V.R.E = E`) and the queue's prefix (`V.pfx = kp`): no premise about the watch beyond
+  the wire's in `isClientWatcher` (`watchConnFacts`).
 -/
 
 section slice
@@ -618,7 +625,7 @@ theorem recipes_client_of_server (cl : Loc) (w : GoInterfaceOk) (api : Loc) (add
         kvObjAt api addr ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w pfx ∗
+        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w pfx ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
@@ -638,7 +645,7 @@ theorem queue_end_to_end (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoSt
         kvObjAt api addr ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w kp ∗
+        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w kp ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
@@ -669,6 +676,63 @@ theorem queue_end_to_end (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoSt
               ⌜err ≠ GoInterface.nil⌝ }}) }} :=
   queue_vertical cl w api addr s E γw γr cid mid kp hkp hAs
 
+open go_etcd_io.etcd.server.v3.etcdserver in
+/-- **The queue end to end over etcd's client watcher** (unit W-Q): `queue_end_to_end` for a client
+whose `Watcher` field is a `*watcher` `w` of etcd's client (`isClientWatcher V w`, what `NewWatcher`
+returns over a connection to the server's `Watch` stream; its premises are the wire's,
+`watchConnFacts V`) over the same server (`V.R.E = E`: the clients' model of the watcher is the
+server's, `V.EM = v3rpc.etcdModelOfServer E`) for the queue's prefix (`V.pfx = kp`). The watcher
+contract is `client.isEtcdRangeWatcher_of_watcher` at the linked `watcher.Watch`: the closable one
+(a closed or canceled watch makes `Dequeue` return an error: the verified fork's closed-watch fix). -/
+theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api : Loc)
+    (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64)
+    (kp : GoString) (hkp : kp ≠ []) (hE : V.R.E = E) (hV : V.pfx = kp)
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗
+        kvObjAt api addr ∗
+        clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
+        clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗
+        client.isClientWatcher V w ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
+          (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
+      (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
+        (Val #kp))
+    {{ (q : Loc), RET #q;
+        (□ ∀ (val : GoString) (lo : w64),
+          {{ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
+            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
+          {{ (err : GoInterface), RET #err;
+              (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
+                etcdReached (EM := v3rpc.etcdModelOfServer E) r ∗
+                keyCreatedAt (EM := v3rpc.etcdModelOfServer E) kp key val (W64 0) r ∗
+                ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r⌝) ∨
+              ⌜err ≠ GoInterface.nil⌝ }}) ∗
+        (□ ∀ (lo : w64),
+          {{ context.isClosedchanInit ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗
+              ⌜0 ≤ sint.Z lo⌝ }}
+            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
+          {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
+              (⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64), queueTaken E kp it r ∗
+                dequeueOrder (EM := v3rpc.etcdModelOfServer E) kp kp modRevLe it r ∗
+                ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
+              ⌜err ≠ GoInterface.nil⌝ }}) }} := by
+  subst hE hV
+  iintro %Φ ⟨#Pr, #Pc, #Ppb, #Pctx, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei,
+    #Hnp⟩ HΦ
+  ihave #Hrw := client.isEtcdRangeWatcher_of_watcher client.v3.watcher.wp_Watch V w $$ []
+  · iframe #
+  iapply (queue_end_to_end cl (client.watcherIfaceOf w) api addr s V.R.E γw γr cid mid V.pfx hkp
+    hAs) $$ [] HΦ
+  iframe #
+
 /-- **Dequeued at most once, in the server's terms** (`queue_vertical_once`). -/
 theorem queue_end_to_end_once (E : apply.AEnv GF) (kp : GoString) (it1 it2 : EtcdKv) (r : w64) :
     queueTaken E kp it1 r ∗ queueTaken E kp it2 r ⊢ (False : IProp GF) :=
@@ -679,6 +743,7 @@ end slice
 #print axioms Perennial.EtcdGrove.recipes.recipes_kv_of_server
 #print axioms Perennial.EtcdGrove.recipes.recipes_client_of_server
 #print axioms Perennial.EtcdGrove.recipes.queue_end_to_end
+#print axioms Perennial.EtcdGrove.recipes.queue_end_to_end_client
 #print axioms Perennial.EtcdGrove.recipes.queue_end_to_end_once
 
 end recipes

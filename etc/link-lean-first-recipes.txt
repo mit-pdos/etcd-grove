@@ -74,8 +74,16 @@ RemoteKV__Put: context_TODO
 newEphemeralKV: Session__Client Session__Lease newKV
 newUniqueEphemeralKV: newEphemeralKV
 newUniqueEphemeralKey: newUniqueEphemeralKV
+# clientv3's `WatchResponse.Err` (client/v3/watch.go) and what it calls (rpctypes, grpc's status),
+# as in etc/link-lean-first-concurrency.txt (unit W-Q: the closed-watch fix calls it).
+status_FromError:
+rpctypes_ErrorDesc: status_FromError
+rpctypes_EtcdError__Error:
+rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
+status_Error:
+WatchResponse__Err: rpctypes_Error status_Error
 # watch.go: waiting for events.
-waitEvents:
+waitEvents: WatchResponse__Err
 WaitEvents: WithRev waitEvents
 WaitPrefixEvents: WithPrefix WithRev waitEvents
 # barrier.go (unit 2: in hypothesis order).

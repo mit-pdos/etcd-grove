@@ -126,8 +126,9 @@ PROJECTS = [
     Project(
         name="etcd",
         # Branch `goose-lean`: upstream main (2026-10), the commits that make it
-        # translatable, and the one bug fix of `cache-ready-after-retry` (64313a1f8); its
-        # two other commits are reverted (no code change unless it fixes a bug). Branch
+        # translatable, and the two bug fixes of `cache-ready-after-retry` (64313a1f8; its
+        # two other commits are reverted: no code change unless it fixes a bug) and
+        # `recipes-closed-watch-channel` (0aa6c6af8, cherry-picked as 0df483bee). Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",

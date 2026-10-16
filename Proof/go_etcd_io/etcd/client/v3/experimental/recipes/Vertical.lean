@@ -15,8 +15,9 @@ at most once, `queue_vertical_once`); the order (`dequeueOrder`) in the model's 
 unfold to the same (`srvEtcdState`).
 
 Premises: `isEtcdRecipesClient_of_kv`'s (the server's read side, the registrations, `kvObjAt`,
-the client's `KV` and `Watcher` fields, the watcher contract `isEtcdRangeWatcherOpen` (unused on
-`Dequeue`'s get path, needed by its wait path: the watch slice's), `sortNamesOk`, `clientErrsIs`,
+the client's `KV` and `Watcher` fields, the closable watcher contract `isEtcdRangeWatcher` (unused on
+`Dequeue`'s get path, needed by its wait path; etcd's client watcher meets it, unit W-Q's
+`queue_end_to_end_client` in `Results.lean`), `sortNamesOk`, `clientErrsIs`,
 `hAs`, the clients' updates `kvWritesOk`: unit W-M3, at the write and the read names, with the
 floor of a certified log, which a client holding `etcdKV` in its invariant has, `kvAnyAu_of_inv`)
 and `kp ≠ []` (`NewQueue`'s).
@@ -124,7 +125,7 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
         kvObjAt api addr ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w kp ∗
+        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w kp ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"

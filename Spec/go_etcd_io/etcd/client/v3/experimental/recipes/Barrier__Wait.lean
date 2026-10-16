@@ -24,11 +24,12 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`b.Wait()`**, knowing etcd has reached `lo ≥ 0`, for a client whose watch channels never
-close (the bundle's premise, `isEtcdRecipesClient`): gets the key at a revision `r0 ≥ lo`; if it
+/-- **`b.Wait()`**, knowing etcd has reached `lo ≥ 0`, for a client with the recipes' contracts
+(`isEtcdRecipesClient`; its watch channels may close): gets the key at a revision `r0 ≥ lo`; if it
 is absent, returns `nil` at once; otherwise waits for a delete of the key from `r0 + 1`
 (`WaitEvents`). `nil` means **released**: the key was absent at some revision `r ≥ lo` etcd has
-reached (at the get's revision, or at the delete event's). Or the get's error. -/
+reached (at the get's revision, or at the delete event's). Or the get's error, or the wait's (a
+canceled or closed watch: never `nil` before the delete event). -/
 abbrev Barrier.Wait.spec : Prop :=
   ∀ (b client : Loc) (key : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗

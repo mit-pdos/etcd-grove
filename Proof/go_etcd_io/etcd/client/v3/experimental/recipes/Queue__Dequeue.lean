@@ -190,9 +190,19 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       ipersist HslT
       (try wp_auto)
       wp_apply hWPE client kp kp R _ [evPut] evPut $$ [$Hpkg $Hcc $Hcl $HslT]
-        as %ev %werr ⟨%Hwnil, #Hwev⟩
+        as %ev %werr Hwr
       · ipureintro
         exact ⟨rfl, List.prefix_refl kp, by omega⟩
+      icases Hwr with (⟨%Hwnil, #Hwev⟩ | %Hwne)
+      rotate_left
+      · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+          cases werr with
+          | nil => exact absurd rfl Hwne
+          | ok e => exact ⟨e, rfl⟩
+        wp_auto
+        iapply HΦ
+        iright
+        ipureintro; exact Hwne
       subst Hwnil
       ihave ⟨%e, %v, %se, #Hev, #Hvkv, #Her, #Hse, %Hp⟩ := waitedEvent_put kp _ R ev $$ Hwev
       obtain ⟨Hvse, Hwfe, Hvk, Hvm, HRe, Hin⟩ := Hp

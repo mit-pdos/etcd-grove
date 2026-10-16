@@ -3970,7 +3970,8 @@ notes). Design: decisions.md, "The client contracts derived: certified floors, t
 - **What the watch slice should do first** (out of the vertical slice's scope since 2026-10-15, continued as the watch slice's units W-W/W-M/W-C, see "The watch slice"; the vertical slice's goal is now the
   client's `Put`/`Range` and adequacy, see the section's head): derive `isEtcdRangeWatcherOpen` for
   the client's `Watcher` over etcd's `Watch` service, the one premise of
-  `isEtcdRecipesClient_of_kv` not derived (the queue's wait path uses it).
+  `isEtcdRecipesClient_of_kv` not derived (the queue's wait path uses it). (Done another way by
+  unit W-Q, 2026-10-16: the recipes take the closable contract, which W-C derived; see "W-Q".)
 
 ### Merge of `origin/lean` (A2, T1 in part) (2026-10-14)
 
@@ -4041,7 +4042,8 @@ built by us since the generic specification's author deferred it), the mvcc watc
 needs (W-M: the watcher returned by `watchStream.Watch`, the start revision in the receive
 guarantee, `Chan`, unique auto-assigned ids), then the client's `client/v3/watch.go` (W-C) up to
 `isEtcdRangeWatcherOpen` at the server's instance, the one underived premise of
-`isEtcdRecipesClient_of_kv`, and the queue's blocking path. A create spends one of the server's
+`isEtcdRecipesClient_of_kv`, and the queue's blocking path. (W-C derived the closable contract
+only; W-Q folded the closed-watch fix in and deleted the Open variant: see "W-Q".) A create spends one of the server's
 watch tokens (mvcc's budget): the client-side derivations take the tokens as a premise.
 
 ### W-S: the server's watch service (2026-10-14)
@@ -4463,7 +4465,9 @@ baseline gains `context.WithCancelValCtx` and `streamKeyFromCtx` (234 axioms, 11
   recipes' contracts all take the Open variant (`isEtcdRecipesClient`; their waits read a closed
   channel as a release, `issues/recipes-dequeue-closed-watch.md`), so `queue_end_to_end` stays as
   it is: the closable contract gives the queue's wait path nothing; its enqueue path
-  (`queue_vertical`) never needed a watcher.
+  (`queue_vertical`) never needed a watcher. (Since unit W-Q, 2026-10-16: the closed-watch fix is
+  folded into the verified fork, the recipes take the closable contract, the Open variant is
+  deleted, and `queue_end_to_end_client` is the queue over the real watcher; see "W-Q".)
 - **New axioms** (trust-boundary leaves): `streamKeyFromCtx` (grpc's metadata, `fmt.Sprintf` of a
   map), `context.WithCancelValCtx` (`context.WithCancel(&valCtx{inctx})`: Perennial specifies
   `WithCancel` of a `*cancelCtx`-chain parent only; `valCtx`'s `Done()` is never closed, so Go's
@@ -10222,6 +10226,10 @@ one". Units 0 to 4; unit 0 (translation, scaffolding, the reproductions), unit 1
 `key.go`, `client.go`, `watch.go`), unit 1b (the three key helpers unit 1 left), unit 2 (the barrier,
 the queue, the priority queue, the revision token) and unit 3 (the RWMutex, the double barrier)
 are done and merged; the package is verified ("The whole package").
+**Since unit W-Q (2026-10-16)** the recipes are verified against the closed-watch fix folded into
+the verified fork (`goose-lean` `0df483bee`) and the bundle takes the closable watch contract:
+the premise that a watch channel is never closed (`isEtcdRangeWatcherOpen`, below) is gone; see
+"W-Q" in "The watch slice".
 
 ### Unit 0: translation and scaffolding (2026-10-11)
 
@@ -10314,6 +10322,7 @@ Files: `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/` (`Base`, `InvReci
   predicate `False`. **The premise**: a watch channel is never closed (no compaction past a
   watched revision, the client not closed while a recipe waits); every recipes result rests on
   it, which the fixed code would not need (the two findings). No `ctx` field (unused).
+  (Since unit W-Q, 2026-10-16: the premise is gone, the recipes verified against the closed-watch fix; see "W-Q" in "The watch slice".)
 - **Puts** (`InvEtcdTxn.lean`, the recipes' addition): `putTxn op` (the one-operation transaction
   `Then(OpPut(...))`), `putResult` (as `deleteResult`, through `runTxn`: no new etcd semantics),
   `isEtcdPutKV` (any `isContext`) and `isEtcdPutKVTodo`. `context.TODO()` specified and proved
@@ -10608,6 +10617,7 @@ verified of 3599, 3712 lines). `Results.lean` restates 33 results with `#print a
   other client rewrites a lock key); `SeqKeysWf`/`SeqKeysBelow`/`PQKeysWf` (the priority queue's
   order: the keys under its prefix are the recipe's, fewer than `10^16` per priority);
   `readyPutsCounted` (the double barrier's count: only `Enter`s write `key/ready`).
+  (Since unit W-Q, 2026-10-16: the premise is gone, the recipes verified against the closed-watch fix; see "W-Q" in "The watch slice".)
 - **Trust base** (the recipes collection): the model's `etcdState` laws, now with
   `etcdState_modrev_persist` (a key-value lives unchanged from its mod revision while present;
   the owner promoted `queue_fifo_before_claim`'s hypothesis `EtcdModRevPersist` to this axiom on

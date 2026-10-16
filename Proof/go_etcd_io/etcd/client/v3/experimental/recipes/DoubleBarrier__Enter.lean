@@ -237,8 +237,23 @@ theorem DoubleBarrier.Enter.wp_proof
     iintro %esl ⟨Hesl, -⟩
     ipersist Hesl
     wp_apply wp_WaitEvents client (key ++ go!"/") (key ++ go!"/ready") r _ [W32 0] (W32 0)
-      $$ [$Hclosed $Hcl $Hesl] as %ev %werr ⟨%Hwnil, #Hev⟩
+      $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
     · ipureintro; exact ⟨rfl, hpr, by word⟩
+    icases Hwr with (⟨%Hwnil, #Hev⟩ | %Hwne)
+    rotate_left
+    · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+        cases werr with
+        | nil => exact absurd rfl Hwne
+        | ok e => exact ⟨e, rfl⟩
+      (try wp_auto)
+      iapply HΦ
+      unfold enterResult
+      iright; iright
+      isplitr
+      · ipureintro; exact Hwne
+      iexists none
+      simp only [dbMyKey]
+      iexists ek; iexact Hmk
     subst Hwnil
     ihave ⟨%e, %v, %se, -, -, #Hre, #Hse, %Hve⟩ := waitedEvent_put _ _ _ _ $$ Hev
     obtain ⟨-, -, Hwk, Hwe⟩ := keyWatchOp_fields (key ++ go!"/ready") r
@@ -283,8 +298,23 @@ theorem DoubleBarrier.Enter.wp_proof
   iintro %esl ⟨Hesl, -⟩
   ipersist Hesl
   wp_apply wp_WaitEvents client (key ++ go!"/") (key ++ go!"/ready") r _ [W32 0] (W32 0)
-    $$ [$Hclosed $Hcl $Hesl] as %ev %werr ⟨%Hwnil, #Hev⟩
+    $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
   · ipureintro; exact ⟨rfl, hpr, by word⟩
+  icases Hwr with (⟨%Hwnil, #Hev⟩ | %Hwne)
+  rotate_left
+  · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+      cases werr with
+      | nil => exact absurd rfl Hwne
+      | ok e => exact ⟨e, rfl⟩
+    (try wp_auto)
+    iapply HΦ
+    unfold enterResult
+    iright; iright
+    isplitr
+    · ipureintro; exact Hwne
+    iexists none
+    simp only [dbMyKey]
+    iexists ek; iexact Hmk
   subst Hwnil
   ihave ⟨%e, %v, %se, -, -, #Hre, #Hse, %Hve⟩ := waitedEvent_put _ _ _ _ $$ Hev
   obtain ⟨-, -, Hwk, Hwe⟩ := keyWatchOp_fields (key ++ go!"/ready") r
