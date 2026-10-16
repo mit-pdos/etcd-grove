@@ -60,23 +60,20 @@ local macro "deliver_step" : tactic =>
       · iapply ownSlice_nil
       · iapply ownSliceCap_nil
     rw [List.nil_append]
-    wp_alloc c as Hc
-    imod msgPtsC_of_struct c
+    -- `wp_auto` allocated the copy (`«$r0_ptr»`, its struct `«$r0»`) and stored it in `c`
+    imod msgPtsC_of_struct «$r0_ptr»
         (⟨zero_val _, pty, pto, pfr, pte, plt, pix, s', pco, pvo, null, prj, prh, cs, slice.nil,
           slice.nil, 0⟩ : raftpb.Message)
         (DFrac.own 1) true els ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ ⊤ rfl
-        $$ [Hc Hs Hcap] with Hmc
-    · iframe Hc Hs Hcap
+        $$ [«$r0» Hs Hcap] with Hmc
+    · simp only [↓reduceIte, snapOpt]
+      iframe «$r0» Hs Hcap
       iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs
-      simp only [↓reduceIte, snapOpt]
-      isplitl []
-      · ipureintro; rfl
       iapply ownSlice_nil
-    wp_auto
     wp_apply context.wp_Background
-    imod stepP_deliverable γn q.st.msg.To' c ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ Hd rfl
+    imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ Hd rfl
       $$ Hmsg Hmlb Hmc Hc1 Htc with Hstep
-    wp_apply +noauto wp_node_Step γn q.st.msg.To' n c $$ [Hstep] as %err -
+    wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» $$ [Hstep] as %err -
     · iframe
       iexact HisNode
     wp_auto
