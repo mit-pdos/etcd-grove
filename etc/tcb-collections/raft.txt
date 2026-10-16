@@ -14,8 +14,6 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
-# `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
 axiom fmt.Errorf.wp_proof

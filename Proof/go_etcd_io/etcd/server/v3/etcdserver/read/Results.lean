@@ -5,7 +5,7 @@ axioms`).
 
 **The chain.** A client calls `LinearizableReadNotify(ctx)` knowing a lower bound `c` of the
 cluster's committed index (`committedAtLeast γr c`). It reads the current notifier `nc` under the
-read lock and deposits `c` in `nc`'s need (`read_deposit`: the read invariant keeps a committed
+read lock and deposits `c` in `nc`'s need (`read_need_deposit`: the read invariant keeps a committed
 bound at least the need). The loop swaps `nc` out under the write lock and freezes its need at `n`
 with a committed bound `n` (`read_swap`), then issues `ReadIndex` at `n`: every read state that
 answers one of its requests has an index at least `n` (`isReadRaft`, `srvReadStateOk`), so the

@@ -428,7 +428,7 @@ keeps a committed lower bound at least the need: the larger of the two bounds), 
 unit T1) the client's result predicate `Q` (a saved predicate at `g`) and deposit are appended to
 the notifier's clients' list; the client gets a lower bound of the need, its position `k` in the
 list and the notifier's waiters' view. -/
-theorem read_deposit (γr : ReadNames) (q : Qp) (nc : Loc) (γn : NeedNames) (c : w64) (g : GName)
+theorem read_need_deposit (γr : ReadNames) (q : Qp) (nc : Loc) (γn : NeedNames) (c : w64) (g : GName)
     (Q : List EntryModel → IProp GF) :
     ⊢ readInv (GF := GF) γr -∗ £ 1 -∗ ghostVar γr.notifier q (nc, γn) -∗ committedAtLeast γr c -∗
       savedPredOwn g DFrac.discard Q -∗ kvDep γr.kv Q

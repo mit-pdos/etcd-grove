@@ -27,13 +27,9 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # Since 2026-10-16 (raft v3.7, stage R6b) the register rests on raft v3.7's trust base
 # (etc/tcb-collections/raft.txt: protobuf-go's nine `proto.*` axioms, `DescribeConfChange`;
 # gogoproto's and `reflect.DeepEqual` are gone), on protobuf-go `proto`'s initializer (a
-# `sorry`, as raft's Init.lean says), and on the two `sorry`s of the register's own that record
-# raft specs its Go code cannot meet (Proof/.../register/Main.lean `RestartNode_weakCS`:
-# `RestartNode`'s `InitialState` premise asks the conf state's `AutoLeave` cell set;
-# Proof/.../register/deliver.lean: `Ready` hands a response out at half while `Node.Step` takes
-# the message whole). Written by hand from `Results.lean`'s `#print axioms` while the server's
-# modules were out of date (R6b ran beside the server's port): confirm with
-# `--check --update` after a full build.
+# `sorry`, as raft's Init.lean says); none of the register's own (the `InitialState` premise of
+# raft's `RestartNode` takes the conf state at any `AutoLeave`, and `deliver` steps the wire's
+# copy of a message, `Ready` handing a response out at half; notes/STATUS.md, "stage R6").
 axiom DescribeConfChange.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
@@ -56,5 +52,3 @@ sorry Perennial.math.initialize'.wp_proof
 sorry Perennial.os.wp_initialize'
 sorry Perennial.strconv.wp_initialize'
 sorry Perennial.time.initialize'.wp_proof
-sorry register.RestartNode_weakCS
-sorry register.deliver.wp_proof

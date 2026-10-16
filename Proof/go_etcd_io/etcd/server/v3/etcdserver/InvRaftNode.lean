@@ -49,7 +49,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
 section countable
 variable [FfiSyntax]
 
-instance ready_countable : Pos.Countable Ready :=
+/-- The server's own (raft's `InvNode.ready_countable` is the same instance; the two Links meet
+in one environment at the trust-base report, so the name differs). -/
+instance srvReady_countable : Pos.Countable Ready :=
   countableOfLeftInverse
     (fun r : Ready => (r.SoftState', r.HardState', r.ReadStates', r.Entries', r.Snapshot',
       r.CommittedEntries', r.Messages', r.MustSync'))
