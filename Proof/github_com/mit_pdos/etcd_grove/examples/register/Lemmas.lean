@@ -34,12 +34,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
--- Raft's ghost logs (`rLog`, `ghostVar γ.reRLog`) are stated at `Protocol/Ghost.lean`'s
--- countability instance of `EntryM`; `InvMemstorage.lean` declares a second one
--- (`entryM_countable`), which instance synthesis prefers here and which makes the two
--- `ghostVar`s differ (an `IntoWand` failure on `ghostVar_agree`). The former takes precedence.
-attribute [local instance high] raftpbEntry_countable
-
 /-! ## The applier's table, pure -/
 
 theorem occStep_mem (L : List (List w8)) (d : List w8) (h : d ∈ L) : occStep L (some d) = L := by

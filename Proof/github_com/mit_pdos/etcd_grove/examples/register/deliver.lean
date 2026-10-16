@@ -7,14 +7,11 @@ raft v3.7 (2026-10-16, stage R6b): each message is a `*pb.Message` the `Ready` h
 append([]*pb.Entry(nil), m.Entries...)` replaces its entries slice by a fresh copy with its
 capacity (`msgPtsC_store_Entries`), and `Node.Step` takes it for good (`stepP_deliverable`).
 
-**A gap between raft's `Ready` and the register's transport (D8, Q3).** A response
-(`MsgAppResp`, `MsgVoteResp`: `RespType`) comes out of `Ready` at half (`readyDq`: raft's
-`acceptReady` still reads its `To`, `issues/raft-ready-messages-read-after-handout.md`), while the
-store to `m.Entries` and `Node.Step`'s `msgIn` (the struct at `1`) need the whole message. The
-in-process transport hands the sender's object to the receiver, which etcd's (marshalling)
-transport never does; so the two steps cannot be verified for a response as the Go code stands,
-and that branch is a `sorry` (below). The fixes are a Go change in `deliver` (step a fresh message
-sharing the cells, which are persistent) or a finer `readyDq` in raft (half of `To` only).
+The message stepped is the wire's copy (`cluster.go`, 2026-10-16): a fresh `pb.Message` sharing
+`m`'s scalar cells (persistent `cellRO`s, read at whatever fraction the `Ready` gave: a response
+comes at half, D8) and its context bytes, with its own entries slice (the receiver may adopt it)
+and no snapshot or responses; owned at `1` (`msgPtsC_of_struct`), it is what `Node.Step` takes
+for good (`stepP_deliverable`), while raft's own object stays as `Ready` handed it out.
 -/
 module
 
@@ -45,20 +42,16 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
 variable [StorageModel GF]
 
-/-- A message that is no response comes out of `Ready` whole. -/
-theorem readyDq_nonresp (st : MsgSt) (h : ¬ RespType st.msg.Type') :
-    readyDq st = DFrac.own 1 := by
-  unfold readyDq; rw [ite_eq_right h]
-
 set_option hygiene false in
-/-- The tail of an iteration that steps the message `q` into its node `n`: the entries slice
-copied (`msgPtsC_store_Entries`), the message made `stepP` (`stepP_deliverable`), `Node.Step`.
-Expects `Hmq : msgOwn q.loc (DFrac.own 1) q.st`, the tick credit `Htc`, the read credit `Hc1`,
-`Hmsg`, `Hmlb`, `HisNode`, and the loop's `Hk1`. -/
+/-- The tail of an iteration that steps the wire's copy of the message `q` into its node `n`:
+`m`'s fields taken apart (`iNamed`), the copy's struct built from its loads and the appended
+entries slice, owned (`msgPtsC_of_struct`), made `stepP` (`stepP_deliverable`), `Node.Step`.
+Expects `Hmq : msgPtsC q.loc _ DFrac.discard false q.st`, the tick credit `Htc`, the read credit
+`Hc1`, `Hmsg`, `Hmlb`, `HisNode`, and the loop's `Hk1`. -/
 local macro "deliver_step" : tactic =>
   `(tactic| (
-    icases msgPtsC_store_Entries q.loc DFrac.discard false q.st $$ Hmq
-      with ⟨%es, %els, HEs, #Hes, #Hents, Hback⟩
+    iunfold msgPtsC at Hmq
+    iNamed Hmq
     wp_auto
     wp_apply wp_slice_append slice.nil ([] : List Loc) es els DFrac.discard $$ [Hes]
       as %s' ⟨Hs, Hcap, -⟩
@@ -67,10 +60,23 @@ local macro "deliver_step" : tactic =>
       · iapply ownSlice_nil
       · iapply ownSliceCap_nil
     rw [List.nil_append]
-    ihave Hmq := Hback $$ %s' %(DFrac.own 1) HEs Hs Hcap
+    wp_alloc c as Hc
+    imod msgPtsC_of_struct c
+        (⟨zero_val _, pty, pto, pfr, pte, plt, pix, s', pco, pvo, null, prj, prh, cs, slice.nil,
+          slice.nil, 0⟩ : raftpb.Message)
+        (DFrac.own 1) true els ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ ⊤ rfl
+        $$ [Hc Hs Hcap] with Hmc
+    · iframe Hc Hs Hcap
+      iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs
+      simp only [↓reduceIte, snapOpt]
+      isplitl []
+      · ipureintro; rfl
+      iapply ownSlice_nil
+    wp_auto
     wp_apply context.wp_Background
-    imod stepP_deliverable γn q.st.msg.To' q.loc q.st Hd rfl $$ Hmsg Hmlb Hmq Hc1 Htc with Hstep
-    wp_apply +noauto wp_node_Step γn q.st.msg.To' n q.loc $$ [Hstep] as %err -
+    imod stepP_deliverable γn q.st.msg.To' c ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ Hd rfl
+      $$ Hmsg Hmlb Hmc Hc1 Htc with Hstep
+    wp_apply +noauto wp_node_Step γn q.st.msg.To' n c $$ [Hstep] as %err -
     · iframe
       iexact HisNode
     wp_auto
@@ -163,12 +169,6 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       subst Hr Hbud
       -- `m.GetType() == pb.MsgTimeoutNow && !tr.take()`
       wp_apply wp_GetType.1 q.loc (readyDq q.st) DFrac.discard false q.st $$ [$Hmq] as Hmq
-      -- **the gap** (file header): a response comes at half; `m.Entries = ...` and `Node.Step`
-      -- need the message whole
-      by_cases Hresp : RespType q.st.msg.Type'
-      · sorry
-      have Hdq : readyDq q.st = DFrac.own 1 := readyDq_nonresp q.st Hresp
-      rw [Hdq]
       -- a `MsgTimeoutNow`: a tick credit from the transfer budget, or dropped
       by_cases Htn : q.st.msg.Type' = W32 14
       · rw [decide_eq_true Htn]

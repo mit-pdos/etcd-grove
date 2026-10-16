@@ -64,8 +64,11 @@ Lean notes: the `InitialState` premise's `WP` is applied to the value
 
 raft v3.7 (2026-10-15, stage R4): `Storage.InitialState` returns two pointers `(hp, cs)`: the hard
 state, possibly `nil` (`hsOpt hp hs`, read-only; `IsEmptyHardState` and `loadState` read it), and
-the conf state, read-only for good with its `AutoLeave` set (`csPts cs □ csm true`, the shape of
-`MemoryStorage.InitialState`'s post: D7, 2026-10-16), beside `ownStorage` given back at once.
+the conf state, read-only for good (`csPts cs □ csm al`, its `AutoLeave` cell set or not: D7's
+`MemoryStorage.InitialState` gives it set, `al = true`; a `Storage` that returns
+`&pb.ConfState{Voters: …}` gives it `nil`, `al = false`; `newRaft` reads it through `ownCSM`,
+`csPts_weaken`, so it asks for neither -- 2026-10-16, stage R6b, the register's storage; until
+then `csPts cs □ csm true`), beside `ownStorage` given back at once.
 `newRaft` reads the conf state (`confchange.Restore`, `assertConfStatesEquivalent`) while the log
 it built holds the storage, so the conf state cannot be lent with a wand back to the storage
 (phase 2's statement, which `MemoryStorage` could not meet: its `InitialState` returns the
@@ -156,8 +159,8 @@ abbrev newRaft.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc), ownStorage (interface.ok si) { σ with ss := ss' } -∗ hsOpt hp hs -∗
-            csPts cs DFrac.discard csm true -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
     (App (Val #(functions newRaft [])) (Val #c))

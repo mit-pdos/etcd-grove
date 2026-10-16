@@ -46,14 +46,8 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
   execution of `initialize'(); Main()` from a fresh state has no stuck thread and no panic.
 
 **Raft v3.7 (2026-10-16, stage R6b).** The statements are the ones above over raft v3.7's
-node specs (pointer messages, getters, `proto.Unmarshal`). Two of raft's specs are not met by
-the register as its Go code stands, each a `sorry` with its reasons at the spot (`#print axioms`
-below shows which results rest on them): `RestartNode`'s `InitialState` premise asks the conf
-state's `AutoLeave` cell set, which `newRaft` never needs (`Main.lean`, `RestartNode_weakCS`:
-`register_Main`, `register_adequate`, `register_cluster_safe`); `Ready` hands a response out at
-half while `Node.Step` takes the message whole, so the in-process transport cannot step a
-`MsgAppResp`/`MsgVoteResp` (`deliver.lean`: `register_deliver` and, through `New`'s `sendSpec`,
-`register_Main`).
+node specs (pointer messages, getters, `proto.Unmarshal`); the transport steps the wire's copy
+of each message (`deliver`). No `sorry` of the register's own.
 -/
 module
 
@@ -128,17 +122,16 @@ theorem register_storage_isStorage (s ms : Loc) (γs : MemStorNames) :
   regStorage_isStorage register.Storage.wp_Snapshot s ms γs
 
 /-- ... and its `InitialState` is a fresh empty hard state and the voters' conf state, read-only
-for good, as `newRaft` reads them (raft v3.7: the shape of `RestartNode.spec`'s premise but for
-the conf state's `AutoLeave` flag, `Main.lean`). -/
+for good, as `RestartNode` asks of its storage (raft v3.7: `RestartNode.spec`'s premise). -/
 theorem register_storage_initialState (s : Loc) (vsl : GoSlice) (voters : List w64)
     (σ : StorState) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register -∗
       s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (regStorIface s) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc), ownStorage (regStorIface s) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (regStorIface s) { σ with ss := ss' } -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (register.regConfState voters) false -∗
+            csPts cs DFrac.discard (register.regConfState voters) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType rStorageTy) go!"InitialState" #s))
              (Val #())) {{ Φ }}) :=

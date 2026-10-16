@@ -14,7 +14,8 @@ B5's `ownRaftGhostR` at `rinit c0`), and with the driver's view of the configura
 (`nodeCfg`, at index `0` and the initial configuration) for `ApplyConfChange` and `Advance`.
 
 raft v3.7 (2026-10-16, stage R5): `NewRawNode`'s premises as they are now (the storage's
-`InitialState` in `newRaft`'s D7 shape, the conf state's record `csm`); **no proposed slices'
+`InitialState` in `newRaft`'s D7 shape, the conf state's record `csm`; 2026-10-16, stage R6b: the
+conf state's `AutoLeave` cell set or not, `csPts cs □ csm al`); **no proposed slices'
 invariant** (D6: an entry's data is its bytes; until then `inv propDataN (propDataInv γ)`, which
 `isNode` kept).
 -/
@@ -78,10 +79,10 @@ abbrev RestartNode.spec : Prop :=
   (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7)
+      -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc), ownStorage (interface.ok si) { σ with ss := ss' } -∗ hsOpt hp hs -∗
-            csPts cs DFrac.discard csm true -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       -- (2026-10-15, stage N) the ghost state in the mode `md` (`NewRawNode`'s `rnInit`; until

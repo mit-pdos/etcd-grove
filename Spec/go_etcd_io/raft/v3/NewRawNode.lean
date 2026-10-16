@@ -11,8 +11,9 @@ synchronous storage writes, and the ghost state of the protocol's initial state,
 (`Spec/newRaft.lean`).
 
 raft v3.7 (2026-10-16, stage R5): the storage's `InitialState` premise is `newRaft`'s (stage R4,
-D7: two pointers, the hard state `hsOpt hp hs` and the conf state `csPts cs □ csm true`,
-`ownStorage` back at once; until then the Goose values `hs`, `cs` and `cs.Voters` lent at `dqv`);
+D7: two pointers, the hard state `hsOpt hp hs` and the conf state `csPts cs □ csm al` -- its
+`AutoLeave` cell set or not, 2026-10-16, stage R6b; `true` until then --, `ownStorage` back at
+once; before the retarget the Goose values `hs`, `cs` and `cs.Voters` lent at `dqv`);
 the conf state is the record `csm`, its voters `csm.Voters'`. `NewRawNode` sets `prevHardSt :=
 r.hardState()`, a fresh read-only hard state (`ownRawNode`'s `Hhard`).
 
@@ -127,10 +128,11 @@ abbrev NewRawNode.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `InitialState` in `newRaft`'s shape (stage R4, D7): the hard state
-      -- `hsOpt hp hs` and the conf state read-only for good, `ownStorage` back at once
+      -- `hsOpt hp hs` and the conf state read-only for good (stage R6b: its `AutoLeave` cell set
+      -- or not, `al`), `ownStorage` back at once
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc), ownStorage (interface.ok si) { σ with ss := ss' } -∗ hsOpt hp hs -∗
-            csPts cs DFrac.discard csm true -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       "Hghost" ∷ rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗

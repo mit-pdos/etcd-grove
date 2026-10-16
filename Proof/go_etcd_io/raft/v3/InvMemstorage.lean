@@ -217,9 +217,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-instance entryM_countable : Pos.Countable EntryM :=
-  countableOfLeftInverse (fun e : EntryM => (e.Term', e.Index', e.Type', e.Data'))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+-- (2026-10-16, stage R6b) `EntryM`'s countability is `Protocol/Ghost.lean`'s
+-- `raftpbEntry_countable`; a second instance here made two `ghostVar`s over `List EntryM` differ
+-- in importers of both.
 
 instance storState_countable : Pos.Countable StorState :=
   .ofInjective (fun σ => Pos.Countable.encode

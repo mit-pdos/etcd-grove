@@ -8,8 +8,7 @@ the registry and instantiates them at it.
 **Raft v3.7 (2026-10-16, stage R6b).** `RestartNode` takes the register's storage under the
 register's `StorageModel` (`regStorage_isStorage`) and its `InitialState` closure
 (`regStorage_initialState`); the conf state it returns is `regConfState clusterIds` (the voters,
-no `AutoLeave`). `RestartNode.spec`'s premise asks that conf state frozen *with its `AutoLeave`
-cell set* (`csPts cs □ csm true`), which the register's cannot be: `RestartNode_weakCS`, below.
+no `AutoLeave`: `al = false`, which `RestartNode.spec` admits since stage R6b).
 -/
 module
 
@@ -265,83 +264,6 @@ theorem nodeConfig_valid (id : w64) (st : Loc) (h : id ∈ clusterIds) :
   unfold ConfigValid
   rcases h with rfl | rfl | rfl <;> simp <;> decide
 
-/-! ## `RestartNode` with the `InitialState` premise `newRaft` uses (raft v3.7, stage R6b)
-
-`RestartNode.spec` (`Spec/go_etcd_io/raft/v3/RestartNode.lean`, through `NewRawNode` and
-`newRaft`) asks the storage's `InitialState` for its conf state frozen read-only *with its
-`AutoLeave` cell set*, `csPts cs □ csm true`: the shape of `MemoryStorage.InitialState`'s post
-(D7: `EnsureConfState` sets the cell before the conf state is frozen). `newRaft`'s proof uses
-only `csPts cs □ csm false` (`csPts_weaken`, `Proof/go_etcd_io/raft/v3/newRaft.lean`: both
-`confchange.Restore` and `ConfState.Equivalent` take `ownCSM`), and `newRaft` does not call
-`EnsureConfState` on it (`raft.go:444-472`; `restore` does, on a snapshot's, `raft.go:1874`);
-raft's `Storage` interface asks no implementation to set `AutoLeave` (`storage.go:52-55`). The
-register's `InitialState` returns `&pb.ConfState{Voters: s.voters}`, whose `AutoLeave` is `nil`
-(`Storage.InitialState.spec`: `csPts cs □ (regConfState voters) false`), so the premise as
-stated cannot be met by a conforming storage that sets no `AutoLeave`.
-
-`RestartNodeW.spec` is `RestartNode.spec` with the premise `newRaft` uses. It holds (raft's
-proof with `csPts_weaken` moved into the premise), but this repository's rules keep the raft
-tree out of stage R6b, so `RestartNode_weakCS` is a `sorry` until `newRaft`'s, `NewRawNode`'s
-and `RestartNode`'s specs state the weaker premise (notes/STATUS.md, stage R6b). -/
-
-/-- See the section header. -/
-abbrev RestartNodeW.spec [StorageModel GF] : Prop :=
-  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
-    (lok si : GoInterfaceOk)
-    (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM),
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.CheckQuorum' = false →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.PreVote' = false →
-  cv.Applied' = W64 0 →
-  σ.prev = entryID.mk (W64 0) (W64 0) →
-  σ.ents = [] →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] →
-  HsEmpty hs →
-  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
-  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
-  csm.VotersOutgoing' = [] →
-  csm.Learners' = [] →
-  csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  γ.reCfg = GMap.listToSet csm.Voters' →
-  cv.ID' ∈ csm.Voters' →
-  (md.isDyn = true → cv.StepDownOnRemoval' = true) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- the `InitialState` premise `newRaft` uses: the conf state frozen, its `AutoLeave`
-      -- cell set or not (`csPts … false`; `RestartNode.spec` asks `true`)
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc), ownStorage (interface.ok si) { σ with ss := ss' } -∗ hsOpt hp hs -∗
-            csPts cs DFrac.discard csm false -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) }}
-    (App (Val #(functions RestartNode [])) (Val #c))
-  {{ (nd : GoInterface), RET #nd;
-      ∃ (γn : NodeNames) (n : Loc),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
-         nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
-        nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
-
-/-- **Raft spec gap (stage R6b; see the section header).** `RestartNode` with the `InitialState`
-premise `newRaft` uses. A `sorry`: raft's own proof, with `csPts_weaken` moved into the premise,
-which the raft tree's specs (`newRaft`, `NewRawNode`, `RestartNode`) do not state yet. -/
-theorem RestartNode_weakCS [StorageModel GF] (_h : RestartNode.spec (GF := GF) (hG := hG)) :
-    RestartNodeW.spec (GF := GF) (hG := hG) := by
-  sorry
-
 section reg
 variable [RegStor GF]
 
@@ -509,8 +431,7 @@ theorem Main.wp_proof
       isplitr
       · ipureintro; exact ⟨Hdyn, rfl⟩
       iexact Hghost
-    -- `RestartNode`, with the `InitialState` premise `newRaft` uses (`RestartNode_weakCS`)
-    wp_apply (RestartNode_weakCS wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
+    wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
       bud _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
       (register.regConfState clusterIds)

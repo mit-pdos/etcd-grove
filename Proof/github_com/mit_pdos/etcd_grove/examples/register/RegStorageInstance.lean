@@ -17,9 +17,8 @@ the registered names.
 Raft v3.7: the contract's `Entries` hands out read-only entry pointers (`entsRO`) and its
 `Snapshot` a fresh owned clone (`ownSnapM`), both `MemoryStorage`'s own results; `InitialState`
 returns two fresh pointers, the hard state `hsOpt hp ⟨0, 0, 0⟩` and the conf state of the voters
-frozen read-only (`csPts cs □ (regConfState voters) false`: its `AutoLeave` is `nil`, so not
-D7's `true` of `MemoryStorage.InitialState`, which `RestartNode.spec` asks -- `Main.lean`,
-`RestartNode_weakCS`).
+frozen read-only (`csPts cs □ (regConfState voters) false`: its `AutoLeave` is `nil`, which
+`RestartNode.spec` admits since stage R6b, `al`).
 -/
 module
 
@@ -194,10 +193,10 @@ theorem regStorage_isStorage
   iframe Hown
   ipureintro; exact Heq
 
-/-- `InitialState`, as `newRaft` reads its storage's: a fresh empty hard state (`hsOpt`) and the
-voters' conf state, read-only for good, the owner's state unchanged. The shape of
-`RestartNode.spec`'s `InitialState` premise but for the conf state's `AutoLeave` flag
-(`csPts cs □ _ false`: the register sets no `AutoLeave`; `Main.lean`, `RestartNode_weakCS`). -/
+/-- `InitialState`, as `RestartNode` asks of its storage (`RestartNode.spec`'s premise, the shape
+of `newRaft`'s): a fresh empty hard state (`hsOpt`) and the voters' conf state, read-only for
+good, its `AutoLeave` cell unset (`al = false`: the register sets none; 2026-10-16, stage R6b,
+raft's specs admit either), the owner's state unchanged. -/
 theorem regStorage_initialState
     (wp_InitialState : register.Storage.InitialState.spec (GF := GF) (hG := hG))
     (s : Loc) (vsl : GoSlice) (voters : List w64) (σ : StorState) :
@@ -205,9 +204,9 @@ theorem regStorage_initialState
       s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (regStorIface s) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc), ownStorage (regStorIface s) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (regStorIface s) { σ with ss := ss' } -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (register.regConfState voters) false -∗
+            csPts cs DFrac.discard (register.regConfState voters) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType rStorageTy) go!"InitialState" #s))
              (Val #())) {{ Φ }}) := by
@@ -215,7 +214,7 @@ theorem regStorage_initialState
   imodintro
   iintro %Φ %ss' Hown HΦ
   wp_apply wp_InitialState s vsl voters $$ [$Hfield $Hv] as %hp %cs ⟨#Hhs, #Hcs⟩
-  iapply HΦ $$ Hown Hhs Hcs
+  iapply HΦ $$ %hp %cs %false Hown Hhs Hcs
 
 end inst
 

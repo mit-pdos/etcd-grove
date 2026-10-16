@@ -2,7 +2,7 @@
 Port of election_proof/proof_newRaft.v.
 
 raft v3.7 (stage R4, 2026-10-16): ported from the old tree's proof. `Storage.InitialState` returns
-the hard state `hsOpt hp hs` and the conf state read-only with its `AutoLeave` set (`csPts cs □
+the hard state `hsOpt hp hs` and the conf state read-only, its `AutoLeave` set or not (2026-10-16, stage R6b: `csPts cs □ csm al`, weakened at once; until then `csPts cs □
 csm true`, D7) beside the storage; `confchange.Restore` and `assertConfStatesEquivalent` read the
 conf state at `□`; `IsEmptyHardState` reads `hsOpt`, and `loadState`, reached only for a non-empty
 hard state, its `hsRO` (a `nil` pointer holds the empty one).
@@ -87,7 +87,7 @@ theorem newRaft.wp_proof
   wp_apply wp_newLogWithSize _ _ _ _ lok Hidx Hss Hpe rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
     as %l %ip ⟨%Hip0, HSto, HLback⟩
   rw [HpSt, Hsto]
-  wp_apply HInit $$ [$HSto] as %hp %cs HSto #Hhsp #Hcs
+  wp_apply HInit $$ [$HSto] as %hp %cs %al HSto #Hhsp #Hcs
   ihave HL := HLback $$ HSto
   wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
