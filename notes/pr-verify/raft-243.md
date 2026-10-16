@@ -145,7 +145,7 @@ were not rebuilt here. Since they rest on raft's specs, they reach the same `sor
 
 The register example (`Proof/github_com/mit_pdos/etcd_grove/examples/register/`) builds a
 `pb.Message` copy literal, which gained the new field (`deliver.lean`). It was rebuilt
-(`...register.Results`) and goes through; 3 of its 15 results now reach the same `sorry`.
+(`...register.Results`) and goes through; 3 of its 15 results reach a `sorry` (2 on `lean`), the third through this one.
 
 ## Trust base
 
