@@ -47,6 +47,7 @@ public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.log
+public import Perennial.GeneratedProof.math
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
