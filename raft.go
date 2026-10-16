@@ -1324,7 +1324,7 @@ func stepLeader(r *raft, m *pb.Message) error {
 			}
 			if cc != nil {
 				alreadyPending := r.pendingConfIndex > r.raftLog.applied
-				alreadyJoint := len(r.trk.Config.Voters[1]) > 0
+				alreadyJoint := len(r.trk.Config.Voters.Outgoing) > 0
 				wantsLeaveJoint := len(cc.AsV2().Changes) == 0
 
 				var failedCheck string
@@ -2141,7 +2141,7 @@ func sendMsgReadIndexResponse(r *raft, m *pb.Message) {
 	// This would allow multiple reads to piggyback on the same message.
 	// Only one voting member, the leader itself, which has committed an entry
 	// of its term: its commit index needs no confirmation.
-	if _, isVoter := r.trk.Voters[0][r.id]; isVoter && r.trk.IsSingleton() {
+	if _, isVoter := r.trk.Voters.Incoming[r.id]; isVoter && r.trk.IsSingleton() {
 		if resp := r.responseToReadIndexReq(m, r.raftLog.committed); resp.GetTo() != None {
 			r.send(resp)
 		}
