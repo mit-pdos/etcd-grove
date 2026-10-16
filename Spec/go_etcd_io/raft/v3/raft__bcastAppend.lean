@@ -36,6 +36,8 @@ model demanded one per peer, which would have made this claim false -- the same 
 `wp_raft__appendEmptyEntry` then, after a Go method that does not exist). -/
 abbrev raft.bcastAppend.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
+  s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
@@ -47,6 +49,7 @@ abbrev raft.bcastAppend.spec : Prop :=
 derived from `raft.bcastAppend.spec` by `raft.bcastAppend.spec_simple`. -/
 abbrev raft.bcastAppend.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
+  s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
@@ -58,10 +61,10 @@ open Iris.ProofMode in
 theorem raft.bcastAppend.spec_simple
     (H : raft.bcastAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s
+  intro cfg r id s Hlead
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s $$ [$Hpkg $Hphys]
+  iapply H _ r id s Hlead $$ [$Hpkg $Hphys]
   inext
   iintro %ms %pvs ⟨Hphys, %H1, %H2⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

@@ -34,10 +34,13 @@ keeps half of its own struct's field; `Proof/github_com/mit_pdos/etcd_grove/exam
 Defs.lean`). A wrong registration is harmless: `ownStorage` then cannot be established for
 that storage (its real names disagree).
 
-`ownStorage` carries the snapshot premise `σ.ss.index' ≠ 0` of `is_Storage_MemoryStorage`
-(the contract's `Snapshot` clause promises a non-empty snapshot, which a bare `MemoryStorage`
-returns only once it has one): a storage is a `Storage` from the moment it holds a snapshot
-(`ApplySnapshot`, `CreateSnapshot`). The conversions (`memOwnStorage_at`/`_intro`,
+`ownStorage` carries the snapshot premise of `is_Storage_MemoryStorage`, `σ.prev.index' ≠ 0 →
+σ.ss.index' ≠ 0` (the contract's `Snapshot` clause promises a non-empty snapshot once the
+storage is compacted, D11; until 2026-10-16, stage R8a, it promised one outright and the
+premise was `σ.ss.index' ≠ 0`): a bare `MemoryStorage` is a `Storage` from `NewMemoryStorage()`
+on (`memOwnStorage_empty`), after `ApplySnapshot` at any index (`memOwnStorage_applied`), and
+after a `CreateSnapshot`/`Compact` pair, which keeps `prev.index ≤ ss.index`. The conversions
+(`memOwnStorage_at`/`_intro`,
 `memAppendRight_at`, `memAppendReceipt_intro`) go between the class's predicates and
 `ownMemoryStorage`/`memAppendTok`/`memAppendedTok` under `memStorReg ms γs`;
 `memStorage_isStorage` is the contract and `memStorage_Append` the application's `Append` in
@@ -66,18 +69,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A `MemoryStorage` with a snapshot meets the contract (raft v3.7, stage R3: the `Snapshot`
-clause's fresh owned clone is the method's own result), with its own hand-out and
-receipt (`memAppendTok`, `memAppendedTok`, `InvMemstorage.lean`). The snapshot premise
-(`ss.index ≠ 0`, until 2026-10-10 a conjunct of `ownMemoryStorage`) is the contract's
-`Snapshot` clause, which promises a non-empty snapshot: a new storage
-(`NewMemoryStorage`) has none, and raft's `maybeSendSnapshot` panics on an empty one.
-It is reached only after a storage query failed, which `ErrCompacted` does only once the
-storage has compacted -- but also after an `ErrUnavailable` for a peer's `Next` past the
-log, which nothing proved here bounds (notes/decisions.md, "Storage: a pending append,
-for node.go"). Both laws keep `ss`. -/
+/-- A `MemoryStorage` with a snapshot once compacted meets the contract (raft v3.7, stage R3:
+the `Snapshot` clause's fresh owned clone is the method's own result), with its own hand-out
+and receipt (`memAppendTok`, `memAppendedTok`, `InvMemstorage.lean`). The snapshot premise
+(`prev.index ≠ 0 → ss.index ≠ 0`; until 2026-10-16, stage R8a, `ss.index ≠ 0`, and until
+2026-10-10 a conjunct of `ownMemoryStorage`) is the contract's `Snapshot` clause, which
+promises a non-empty snapshot once the storage is compacted: a new storage
+(`NewMemoryStorage`) has none and is not compacted; raft's `maybeSendSnapshot`, which panics
+on an empty one, is reached only after `term(pr.Next - 1)` failed with `ErrCompacted`
+(D11, notes/decisions.md: the leader's progress bound `PrvalsOk` rules `ErrUnavailable` out).
+Both laws keep `prev` and `ss`. -/
 theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
-    ⊢ isStorageWith (GF := GF) (fun σ => iprop(ownMemoryStorage ms γs σ ∗ ⌜σ.ss.index' ≠ W64 0⌝))
+    ⊢ isStorageWith (GF := GF)
+        (fun σ => iprop(ownMemoryStorage ms γs σ ∗ ⌜σ.prev.index' ≠ W64 0 → σ.ss.index' ≠ W64 0⌝))
         (memAppendTok ms γs) (memAppendedTok ms γs)
         (interface.mkOk (go.GoType.PointerType MemoryStorage.ty) #ms) := by
   unfold isStorageWith
@@ -149,9 +153,10 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     iframe Hv
     ipureintro
     refine ⟨Hsv.1, ?_, Hsv.2.1, Hsv.2.2⟩
+    intro Hp
     have H := congrArg entryID.index' Hsv.1
     simp only [snapId] at H
-    rw [H]; exact Hss
+    rw [H]; exact Hss Hp
   isplitr
   · imodintro
     iintro %σ %p ⟨Hown, %Hss⟩ %Hpo
@@ -239,10 +244,11 @@ theorem memStorIface_inj (ms1 ms2 : Loc) : memStorIface ms1 = memStorIface ms2 �
   exact go.intoVal_inj h
 
 /-- The storage behind the interface value `st`: a registered `MemoryStorage`, owned at `σ`,
-holding a snapshot (`is_Storage_MemoryStorage`'s premise). -/
+holding a snapshot once compacted (`is_Storage_MemoryStorage`'s premise; 2026-10-16, stage R8a,
+D11). -/
 def memOwnStorage (st : Storage) (σ : StorState) : IProp GF :=
   iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
-    ownMemoryStorage ms γs σ ∗ ⌜σ.ss.index' ≠ W64 0⌝)
+    ownMemoryStorage ms γs σ ∗ ⌜σ.prev.index' ≠ W64 0 → σ.ss.index' ≠ W64 0⌝)
 
 /-- The right to append `p` to the storage `st` at `σ`: the `MemoryStorage`'s, of its names. -/
 def memStorAppendTok (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF :=
@@ -264,7 +270,7 @@ instance memStorageModel : StorageModel GF where
 
 theorem memOwnStorage_at (ms : Loc) (γs : MemStorNames) (σ : StorState) :
     ⊢ memStorReg (GF := GF) ms γs -∗ ownStorage (memStorIface ms) σ -∗
-      ownMemoryStorage ms γs σ ∗ ⌜σ.ss.index' ≠ W64 0⌝ := by
+      ownMemoryStorage ms γs σ ∗ ⌜σ.prev.index' ≠ W64 0 → σ.ss.index' ≠ W64 0⌝ := by
   iintro #Hreg Hown
   ihave Hown : memOwnStorage (memStorIface ms) σ $$ [Hown]
   · iexact Hown
@@ -278,7 +284,7 @@ theorem memOwnStorage_at (ms : Loc) (γs : MemStorNames) (σ : StorState) :
   ipureintro; exact Hss
 
 theorem memOwnStorage_intro (ms : Loc) (γs : MemStorNames) (σ : StorState)
-    (Hss : σ.ss.index' ≠ W64 0) :
+    (Hss : σ.prev.index' ≠ W64 0 → σ.ss.index' ≠ W64 0) :
     ⊢ memStorReg (GF := GF) ms γs -∗ ownMemoryStorage ms γs σ -∗ ownStorage (memStorIface ms) σ := by
   iintro #Hreg Hown
   ihave H : memOwnStorage (memStorIface ms) σ $$ [Hown]
@@ -287,6 +293,21 @@ theorem memOwnStorage_intro (ms : Loc) (γs : MemStorNames) (σ : StorState)
     iframe Hreg Hown
     ipureintro; exact ⟨rfl, Hss⟩
   iexact H
+
+/-- **`NewMemoryStorage()`'s result is a `Storage` at once** (2026-10-16, stage R8a; the gap
+stage R7a found): the fresh storage (`memStorEmpty`, `InvMemstorage.lean`) is not compacted, so
+the premise is vacuous. -/
+theorem memOwnStorage_empty (ms : Loc) (γs : MemStorNames) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ ownMemoryStorage ms γs memStorEmpty -∗
+      ownStorage (memStorIface ms) memStorEmpty :=
+  memOwnStorage_intro ms γs memStorEmpty (fun h => absurd rfl h)
+
+/-- **`ApplySnapshot(sv)`'s result is a `Storage`**, at any index, `0` included: the boundary
+*is* the snapshot (`memStorApplied`: `prev = ss = snapId sv`). -/
+theorem memOwnStorage_applied (ms : Loc) (γs : MemStorNames) (sv : SnapshotM) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ ownMemoryStorage ms γs (memStorApplied sv) -∗
+      ownStorage (memStorIface ms) (memStorApplied sv) :=
+  memOwnStorage_intro ms γs (memStorApplied sv) (fun h => h)
 
 theorem memStorAppendTok_at (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List EntryM) :
     ⊢ memStorReg (GF := GF) ms γs -∗ appendTok (memStorIface ms) σ p -∗ memAppendTok ms γs σ p := by
@@ -469,9 +490,10 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
     iframe Hv
     ipureintro
     refine ⟨Hsv.1, ?_, Hsv.2.1, Hsv.2.2⟩
+    intro Hp
     have H := congrArg entryID.index' Hsv.1
     simp only [snapId] at H
-    rw [H]; exact Hss
+    rw [H]; exact Hss Hp
   isplitr
   · imodintro
     iintro %σ %p Hown %Hpo
@@ -487,7 +509,8 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
   ihave Ht := memStorAppendedTok_at ms γs σ p $$ Hreg Ht
   imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
   ihave Hown := memOwnStorage_intro ms γs (storAbsorb σ1)
-    (show (storAbsorb σ1).ss.index' ≠ W64 0 from Hss) $$ Hreg Hown
+    (show (storAbsorb σ1).prev.index' ≠ W64 0 → (storAbsorb σ1).ss.index' ≠ W64 0 from Hss)
+    $$ Hreg Hown
   imodintro
   iframe Hown
   ipureintro; exact Heq

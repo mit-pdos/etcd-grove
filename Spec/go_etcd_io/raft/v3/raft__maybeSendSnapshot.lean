@@ -66,6 +66,9 @@ abbrev raft.maybeSendSnapshot.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc),
   to ≠ id →
   s.progress !! to = some pr →
+  -- (2026-10-16, stage R8a, D11) the log is compacted, so the storage's snapshot is non-empty
+  -- (`raftLog.snapshot`'s premise); `maybeSendAppend` has it from `term(pr.Next - 1)`'s failure
+  uint.Z s.logst.prev.index' ≠ 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendSnapshot"))
@@ -82,6 +85,7 @@ abbrev raft.maybeSendSnapshot.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc),
   to ≠ id →
   s.progress !! to = some pr →
+  uint.Z s.logst.prev.index' ≠ 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendSnapshot"))
@@ -95,10 +99,10 @@ open Iris.ProofMode in
 theorem raft.maybeSendSnapshot.spec_simple
     (H : raft.maybeSendSnapshot.spec (GF := GF) (hG := hG)) :
     raft.maybeSendSnapshot.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s to pr Hto Hpr
+  intro cfg r id s to pr Hto Hpr Hcompact
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s to pr Hto Hpr $$ [$Hpkg $Hphys]
+  iapply H _ r id s to pr Hto Hpr Hcompact $$ [$Hpkg $Hphys]
   inext
   iintro %b %ms %pvs ⟨Hphys, %H1, %H2⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

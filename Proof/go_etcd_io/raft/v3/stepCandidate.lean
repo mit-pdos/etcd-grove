@@ -150,7 +150,7 @@ theorem stepCandidate.wp_proof
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
-      wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply wp_raft_bcastAppend c r id _ (by rfl) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]

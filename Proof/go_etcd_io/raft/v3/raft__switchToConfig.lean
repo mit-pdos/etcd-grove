@@ -261,7 +261,8 @@ theorem raft.switchToConfig.wp_proof
             · -- a peer: `maybeSendAppend(id, false)`
               rw [decide_eq_false Hii]
               wp_auto
-              wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) $$ [$Hphys]
+              wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) (by exact Hl1)
+                $$ [$Hphys]
                 as %b' %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
               try wp_auto
               icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
@@ -300,7 +301,8 @@ theorem raft.switchToConfig.wp_proof
         · -- a commit: broadcast
           simp only [↓reduceIte]
           wp_auto
-          wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
+          wp_apply wp_raft_bcastAppend c r id _ (by exact Hl1) $$ [$Hphys]
+            as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
           wp_join_done
           iexists ms, pvs2
           simp only

@@ -256,7 +256,7 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro c r id s to sendIfEmpty Hto Hcfg
+  intro c r id s to sendIfEmpty Hto Hcfg Hlead
   wp_start as Hpre
   iNamed Hpre
   -- `r.trk.Progress` is read through the tracker field
@@ -309,9 +309,23 @@ theorem raft.maybeSendAppend.wp_proof
   ihave Hphys := Hlogback $$ Hlog
   cases err with
   | ok eok =>
-    -- the log no longer has `pr.Next - 1`: fall back to a snapshot
+    -- the log no longer has `pr.Next - 1`: fall back to a snapshot. (Stage R8a, D11.) The
+    -- failure is `ErrCompacted`, not `ErrUnavailable`: the leader's progress bound (`PrvalsOk`,
+    -- `1 ≤ pr.Next ≤ lastIndex + 1`) puts `pr.Next - 1` at or below the last index, so `term`'s
+    -- iff leaves `pr.Next - 1 < prev.index`, and the log is compacted (`prev.index ≥ 1`):
+    -- `maybeSendSnapshot`'s premise, under which the storage's snapshot is non-empty.
+    icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok, -, Hphys⟩
+    have Hpok := Hok.lookup Hlead Hpvs
+    have Hcompact : uint.Z s.logst.prev.index' ≠ 0 := by
+      have Hne : GoInterface.ok eok ≠ interface.nil := by intro h; cases h
+      have Hnot := fun h => Hne (Herr.2 h)
+      obtain ⟨h1, h2, -, -⟩ := Hpok
+      have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
+      intro Hz
+      apply Hnot
+      constructor <;> word
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk $$ [$Hphys]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hcompact $$ [$Hphys]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     iapply HΦ
     iframe

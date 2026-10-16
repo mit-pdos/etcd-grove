@@ -28,7 +28,7 @@ clone of the storage's `ss` (`HSnapshot`), related to the log by `StoredSnapOk`.
 theorem raftLog.snapshot.wp_proof
     (wp_proto_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     raftLog.snapshot.spec (GF := GF) (hG := hG) := by
-  intro l ls esu
+  intro l ls esu Hcompact
   wp_start as H
   iNamed H
   iNamed Hlog
@@ -82,7 +82,14 @@ theorem raftLog.snapshot.wp_proof
     · ileft; ipureintro; exact Herr
     iright
     icases Hv with ⟨%sv, Hv, %Hsv⟩
-    obtain ⟨Hid, Hnz, Hal, Hcs⟩ := Hsv
+    obtain ⟨Hid, Hnz', Hal, Hcs⟩ := Hsv
+    -- (stage R8a) the storage is compacted (`LogStoreOk none`: its boundary is the log's), so
+    -- `HSnapshot`'s snapshot is non-empty
+    have Hnz : sv.Metadata'.Index' ≠ W64 0 := by
+      obtain ⟨Hp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
+      apply Hnz'
+      rw [Hp]
+      intro Hz; apply Hcompact; rw [Hz]; rfl
     isplitr
     · ipureintro; exact Herr
     iexists sv

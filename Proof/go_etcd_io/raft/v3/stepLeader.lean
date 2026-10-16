@@ -92,7 +92,7 @@ theorem stepLeader.wp_proof
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
       wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs Hp Hid
-      Hne Hsmall Hnz $$ [Hphys Hm]
+      Hne Hsmall Hnz Hlead $$ [Hphys Hm]
     · iframe
       iframe Hinit Hcc
     inext
@@ -140,7 +140,7 @@ theorem stepLeader.wp_proof
     iexact Hinit
   · iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty $$ [Hphys Hm] HΦ'
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
@@ -154,7 +154,7 @@ theorem stepLeader.wp_proof
   · obtain ⟨Hclen, Hcb⟩ := Hhr Hty
     iapply wp_stepLeader_hbresp c wp_raft_sendAppend wp_raftLog_lastIndex wp_readOnly_recvAck
       wp_readOnly_maybeAdvance wp_raft_responseToReadIndexReq wp_raft_send wp_GetType wp_GetFrom
-      wp_GetContext wp_GetTo r id s ml m ents ctx sn rs _ _ _ Hty
+      wp_GetContext wp_GetTo r id s ml m ents ctx sn rs _ _ _ Hty Hlead
       (Hself (Or.inl Hty)) Hid (Hrdnz (Or.inl Hty)).1 Hclen Hcb $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit

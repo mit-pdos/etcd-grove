@@ -9,10 +9,12 @@ the contract `RestartNode` takes (`regStorage_isStorage`), and its `InitialState
 `newRaft` reads of it (`regStorage_initialState`). The methods raft calls are the
 embedded `MemoryStorage`'s (promoted: the field read, then `MemoryStorage`'s method),
 but for `Snapshot` (`Storage.Snapshot`), which says `ErrSnapshotTemporarilyUnavailable`
-for the empty snapshot of a new storage: the contract's `Snapshot` clause (a non-empty
-snapshot or that error), which a bare new `MemoryStorage` does not meet. The two laws
-are `MemoryStorage`'s (`memStorage_handout`, `memStorage_absorb`), its tokens being of
-the registered names.
+for the empty snapshot of a new storage: the contract's `Snapshot` clause asked a non-empty
+snapshot or that error, which a bare new `MemoryStorage` did not meet until 2026-10-16 (raft
+v3.7 stage R8a, D11: the clause now promises a non-empty snapshot only once the storage is
+compacted, `prev.index ≠ 0 → Index ≠ 0`, which the register's stronger answer meets
+outright). The two laws are `MemoryStorage`'s (`memStorage_handout`, `memStorage_absorb`),
+its tokens being of the registered names.
 
 Raft v3.7: the contract's `Entries` hands out read-only entry pointers (`entsRO`) and its
 `Snapshot` a fresh owned clone (`ownSnapM`), both `MemoryStorage`'s own results; `InitialState`
@@ -22,12 +24,14 @@ frozen read-only (`csPts cs □ (regConfState voters) false`: its `AutoLeave` is
 
 Raft's own instance for a bare `*MemoryStorage` (`memStorageModel`, `memStorage_isStorage`,
 `Proof/go_etcd_io/raft/v3/MemstorageInstance.lean`, 2026-10-16, stage R7a: a registry from the
-storage's pointer to its names, the snapshot premise `ss.index ≠ 0` in `ownStorage`) does not
-serve the register: its `Storage` is its own struct (another interface value, the promoted
-methods behind a field read), its registry is keyed by that struct (its `MemoryStorage` field
-holds the registration's exclusivity), and its `Snapshot` override is what lets it start with no
-snapshot. Everything here is register-specific; the method clauses are proved as raft's are
-(`is_Storage_MemoryStorage`), one `wp_apply` of `MemoryStorage`'s collection each.
+storage's pointer to its names, the snapshot premise `prev.index ≠ 0 → ss.index ≠ 0` in
+`ownStorage`) does not serve the register: its `Storage` is its own struct (another interface
+value, the promoted methods behind a field read), and its registry is keyed by that struct (its
+`MemoryStorage` field holds the registration's exclusivity). (Its `Snapshot` override, which let
+it start with no snapshot under the clause before R8a, is no longer needed for that; the
+register's Go code is unchanged.) Everything here is register-specific; the method clauses are
+proved as raft's are (`is_Storage_MemoryStorage`), one `wp_apply` of `MemoryStorage`'s
+collection each.
 -/
 module
 
@@ -170,7 +174,17 @@ theorem regStorage_isStorage
     wp_apply wp_Snapshot s ms γs σ esu $$ [$Hfield $Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
     iapply HΦ
     ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
-    iframe Hown Hr
+    iframe Hown
+    -- the register's answer is non-empty outright; the clause asks it only once compacted
+    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv⟩)
+    · ileft; ipureintro; exact Herr
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists sv
+    iframe Hv
+    ipureintro
+    exact ⟨Hsv.1, fun _ => Hsv.2.1, Hsv.2.2.1, Hsv.2.2.2⟩
   isplitr
   · imodintro
     iintro %σ %p Hown %Hpo

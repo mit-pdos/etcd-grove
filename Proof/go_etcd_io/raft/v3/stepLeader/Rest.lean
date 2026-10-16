@@ -509,7 +509,8 @@ theorem wp_stepLeader_transfer
         (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool) (Hty : m.Type' = MsgTransferLeader) :
+    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
+    (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
@@ -650,8 +651,8 @@ theorem wp_stepLeader_transfer
       ipureintro
       exact ⟨rfl, Hres0 _⟩
     · -- behind: an append
-      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
-        as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead)
+        $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_
       ihave Hphys := ownRaftPhysC_eq c r id _
         { sendMsgs { s with lt := m.From' } ms with prvals := pvs } (by cases s; simp [sendMsgs])
@@ -700,7 +701,7 @@ theorem wp_stepLeader_hbresp
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
-    (Hty : m.Type' = MsgHeartbeatResp) (Hself : m.From' ≠ id)
+    (Hty : m.Type' = MsgHeartbeatResp) (Hlead : s.role = .leader) (Hself : m.From' ≠ id)
     (Hid : id ∈ c.voters) (Hrd : RdOk c.voters s.rd)
     (Hclen : ctx = [] ∨ 8 ≤ ctx.length)
     (Hcb : ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
@@ -782,8 +783,8 @@ theorem wp_stepLeader_hbresp
     wp_if_destruct
     · -- behind
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
-        as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead)
+        $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       wp_join_done
       iexists ms, pvs
       iframe
@@ -797,8 +798,8 @@ theorem wp_stepLeader_hbresp
     wp_if_destruct
     · -- probing
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
-        as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead)
+        $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       wp_join_done
       iexists ms, pvs
       iframe
@@ -1368,8 +1369,8 @@ theorem wp_stepLeader_appresp
             exact ⟨Or.inl rfl, by simp, fun _ h => absurd h List.not_mem_nil, rfl⟩
           · wp_auto
             wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-            wp_apply wp_raft_sendAppend c r id _ m.From' (Ne.symm Hsame) (by exact Hfcfg) $$ [$Hphys]
-              as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
+            wp_apply wp_raft_sendAppend c r id _ m.From' (Ne.symm Hsame) (by exact Hfcfg)
+              (by exact Hlead) $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
             wp_join_done
             iexists s.logst.committed,
               { s with logst := { s.logst with committed := s.logst.committed } }, [], ms, pvs4
@@ -1405,7 +1406,8 @@ theorem wp_stepLeader_appresp
                 (pendReqs { s with logst := { s.logst with committed := N } }) with
               prvals := pvs3 }
             (by rw [← Hpv]; rfl) $$ Hphys
-          wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
+          wp_apply wp_raft_bcastAppend c r id _ (by exact Hf.2.1.trans Hlead) $$ [$Hphys]
+            as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
           wp_join_done
           iexists N, readRespondAll id
             { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
@@ -1426,7 +1428,8 @@ theorem wp_stepLeader_appresp
               | exact Or.inr ⟨Hsg, rfl, trivial⟩
               | exact Or.inr ⟨Hsg, trivial, trivial⟩
           all_goals simp only [toPState, Hf.1, Hf.2.2]
-        wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
+        wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) $$ [$Hphys]
+          as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
         wp_join_done
         iexists N, releasedState id { s with logst := { s.logst with committed := N } }, hb, ms,
           pvs4
@@ -1444,19 +1447,20 @@ theorem wp_stepLeader_appresp
           | exact Or.inl ⟨Hns, Hhb, trivial⟩
     iNamed HJ
     have Hs2f : s2.progress = s.progress ∧ s2.term = s.term ∧
-        s2.logst = { s.logst with committed := n } := by
+        s2.logst = { s.logst with committed := n } ∧ s2.role = s.role := by
       split at Hs2
-      · obtain ⟨-, rfl⟩ := Hs2; exact ⟨rfl, rfl, rfl⟩
+      · obtain ⟨-, rfl⟩ := Hs2; exact ⟨rfl, rfl, rfl, rfl⟩
       · rcases Hs2 with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩
-        · exact ⟨rfl, rfl, rfl⟩
+        · exact ⟨rfl, rfl, rfl, rfl⟩
         · obtain ⟨o, rd', h⟩ := readRespondAll_eq id
             ({ s with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } } : NState)
             (pendReqs { s with logst := { s.logst with committed := n } })
-          rw [h]; exact ⟨rfl, rfl, rfl⟩
+          rw [h]; exact ⟨rfl, rfl, rfl, rfl⟩
     have Hs2p : s2.progress = s.progress := Hs2f.1
+    have Hs2r : s2.role = s.role := Hs2f.2.2.2
     generalize Hsc : ({ s with logst := { s.logst with committed := n } } : NState) = sc at *
     have Hs2l : s2.term = sc.term ∧ s2.logst = sc.logst := by
-      rw [← Hsc]; exact ⟨Hs2f.2.1, Hs2f.2.2⟩
+      rw [← Hsc]; exact ⟨Hs2f.2.1, Hs2f.2.2.1⟩
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1492,7 +1496,8 @@ theorem wp_stepLeader_appresp
       wp_for IH
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_raft_maybeSendAppend c r id _ m.From' false (Ne.symm Hsame)
-          (by show m.From' ∈ domSet s2.progress; rw [Hs2p]; exact Hfcfg) $$ [$Hphys]
+          (by show m.From' ∈ domSet s2.progress; rw [Hs2p]; exact Hfcfg)
+          (by show s2.role = .leader; rw [Hs2r]; exact Hlead) $$ [$Hphys]
         as %b %ms'' %pvs'' ⟨Hphys, %Hms'', %Hmm''⟩
       have Hms3 : ReplSends id sc (ms' ++ ms'') :=
         replSends_app _ _ _ _ Hms' (by
@@ -1653,8 +1658,8 @@ theorem wp_stepLeader_appresp
       have HM3 : (progressBecomeProbe p2).matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := progressBecomeProbe p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
-        as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead)
+        $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       ihave Hphys := ownRaftPhysC_eq c r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }
@@ -1672,8 +1677,8 @@ theorem wp_stepLeader_appresp
       have HM3 : p2.matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := p2]> pvs2 : GMap w64 Progress) = pvs3
       wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
-        as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead)
+        $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       ihave Hphys := ownRaftPhysC_eq c r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }

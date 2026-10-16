@@ -61,6 +61,9 @@ until the retarget the snapshot came by value with its `ConfState` slices read-o
 The lists are the record's. -/
 abbrev raftLog.snapshot.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (esu : GoInterface),
+  -- (2026-10-16, stage R8a, D11) the log is compacted: `Storage.Snapshot` promises a non-empty
+  -- snapshot only then (`HSnapshot`); with a pending snapshot `LogStoreOk` gives it anyway
+  uint.Z ls.prev.index' ≠ 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "#Hesu" ∷ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"snapshot")) (Val #()))

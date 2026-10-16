@@ -92,11 +92,13 @@ possible -- the log's no-wrap invariant is not inductive, and the part of the lo
 at the clause itself.
 
 `Snapshot` was added on 2026-09-20, by exactly that rule: `raft.maybeSendSnapshot`
-calls it, and `maybeSendSnapshot` is reachable from `bcastAppend` because nothing in
-`ownProgress` bounds a peer's `Next` against the log, so `raftLog.term(pr.Next-1)` may
-legitimately return `ErrCompacted`. Its contract is a disjunction -- the distinguished
-`ErrSnapshotTemporarilyUnavailable`, or a non-empty snapshot -- because every other
-outcome reaches a `panic`.
+calls it, and `maybeSendSnapshot` is reachable from `bcastAppend` once
+`raftLog.term(pr.Next-1)` fails with `ErrCompacted`, i.e. once the storage has
+compacted. Its contract is a disjunction -- the distinguished
+`ErrSnapshotTemporarilyUnavailable`, or the storage's snapshot, non-empty once the
+storage is compacted (`prev.index ≠ 0`) -- because every other outcome reaches a
+`panic`. (Until 2026-10-16, stage R8a, the snapshot was promised non-empty outright,
+which a bare `MemoryStorage` without a snapshot does not meet, notes/decisions.md D11.)
 
 `InitialState` is deliberately **omitted**. Nothing on the election path calls it, and
 an assumption that is not needed is an assumption not worth making: it would be a fresh
@@ -355,8 +357,9 @@ def isStorageWith (P : StorState → IProp GF)
 
      The contract is the *disjunction* `maybeSendSnapshot` is written against: either
      the distinguished, non-fatal `ErrSnapshotTemporarilyUnavailable` -- for which raft
-     has a `return false` -- or success with a **non-empty** snapshot. Both halves are
-     needed, and for the same reason as `FirstIndex`/`Term`: any other error reaches
+     has a `return false` -- or success with the storage's snapshot, **non-empty once
+     the storage is compacted** (`σ.prev.index ≠ 0 → Metadata.Index ≠ 0`). Both halves
+     are needed, and for the same reason as `FirstIndex`/`Term`: any other error reaches
      `panic(err)`, and an empty snapshot on the success path reaches
      `panic("need non-empty snapshot")` (`v3.v:3190-3196`). "Non-empty" is
      `IsEmptySnap`'s test, `Metadata.Index ≠ 0` (`v3.v:2004`).
@@ -378,10 +381,20 @@ def isStorageWith (P : StorState → IProp GF)
      record's conf state the lists `σ.scs` and `AutoLeave` `σ.sal` the storage's state
      records (stage S), so that raft knows which certified snapshot it forwards.
 
-     *Client assumptions* in this clause, as before: the snapshot is non-empty on
-     success (an empty one is a `panic` in raft; raft only asks after a `Term` or
-     `Entries` failed with `ErrCompacted`, i.e. once the storage has compacted, which
-     presupposes a snapshot). -/
+     *Client assumption* in this clause (2026-10-16, stage R8a, D11): **a compacted
+     storage has a snapshot** -- on success the snapshot is non-empty whenever the
+     storage's compaction boundary `σ.prev.index` is not `0`. etcd's `MemoryStorage` has
+     one: it compacts only after `CreateSnapshot` (`Compact` moves `ents[0]` to `ci`, and
+     etcd's server calls it after the snapshot is saved), so `ss.index ≥ prev.index`.
+     An *uncompacted* storage may answer the empty snapshot (a fresh `MemoryStorage`
+     does, `memOwnStorage_empty`), and raft never asks it: `maybeSendSnapshot` runs only
+     after `raftLog.term(pr.Next - 1)` failed, and at an uncompacted storage that
+     failure could only be `ErrUnavailable` (`pr.Next - 1` past the last index), which
+     the leader's progress bound excludes (`PrvalsOk`, `InvRaftPhys.lean`: `1 ≤ Next ≤
+     lastIndex + 1`), so the failure is `ErrCompacted`, which means `prev.index ≥ 1`
+     (`raft.maybeSendAppend`'s proof; `raftLog.snapshot` and `maybeSendSnapshot` take
+     the premise `prev.index ≠ 0`). Until then the clause promised a non-empty snapshot
+     outright, assuming the second kind of failure away. -/
   "#HSnapshot" ∷ (∀ (σ : StorState)
       (esu : GoInterface),
      {{ P σ ∗
@@ -391,7 +404,7 @@ def isStorageWith (P : StorState → IProp GF)
          P σ ∗
          (⌜err = esu⌝ ∨
           (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-           ⌜snapId sv = σ.ss ∧ sv.Metadata'.Index' ≠ W64 0 ∧
+           ⌜snapId sv = σ.ss ∧ (σ.prev.index' ≠ W64 0 → sv.Metadata'.Index' ≠ W64 0) ∧
              sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
              sv.Metadata'.ConfState'.lists = σ.scs⌝)) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
