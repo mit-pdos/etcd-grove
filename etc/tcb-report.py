@@ -118,11 +118,12 @@ def first_para(doc):
     return " ".join(para.split())
 
 
-def spec_file(root, defs):
-    """The Spec file of a linked result: the module of the `….spec` it states."""
+def spec_file(root, defs, at_):
+    """The Spec file of a linked result: the module of the `….spec` it states (the one of
+    the root's own part: `at_(defs, module, name)` resolves a name declared in several)."""
     for d in root["defs"]:
         if d.endswith(".spec") and d in defs:
-            return mod_path(defs[d]["module"])
+            return mod_path(at_(defs, root["module"], d)["module"])
     return mod_path(root["module"])
 
 
@@ -170,13 +171,13 @@ def scan_sources():
     return hits
 
 
-def matches(r, pat, defs):
+def matches(r, pat, defs, at_):
     """Whether root `r` is selected by the regular expression `pat`: searched in its
     name (`T.wp_M`), its module's file and, for a linked result, its spec's file
     (`Spec/<pkg>/T__M.lean`)."""
     keys = [short(r["name"]), mod_path(r["module"])]
     if r["module"] in LINKS:
-        keys.append(spec_file(r, defs))
+        keys.append(spec_file(r, defs, at_))
     return any(re.search(pat, k) for k in keys)
 
 
@@ -193,7 +194,7 @@ def check(path, current, kept, srs, sorries, update):
     base = [x.strip() for x in read(path).splitlines() if x.startswith(("axiom ", "sorry "))]
     added = sorted(set(current) - set(base))
     removed = sorted(set(base) - set(current))
-    synth = [n for n in srs if sorries[n]["synthetic"]]
+    synth = [n for n in srs if any(o["synthetic"] for o in sorries[n])]
     for a in added:
         print(f"tcb: NEW in the trust base: {a}")
     for a in removed:
@@ -208,9 +209,11 @@ def check(path, current, kept, srs, sorries, update):
 
 
 def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users, fw_ax,
-                     defs, per_root):
+                     defs, at_, per_root):
     """What the roots `sel` rest on, in plain text."""
-    names = {r["name"] for r in sel}
+    names = {(r["module"], r["name"]) for r in sel}
+    # a declaration's location(s): one per module declaring it
+    locs = lambda recs: ", ".join(loc(o).strip("`") for o in recs)
     out = []
     w = out.append
     w(f"{len(sel)} of {n_roots} roots match {' '.join(repr(p) for p in pats)}.")
@@ -218,7 +221,7 @@ def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users,
     w(f"{len(clean)} of them reach no `sorry`.")
     w("")
     w(f"This repository's axioms they rest on: {len(sel_ax)}")
-    rows = [(short(n), loc(axioms[n]).strip("`"), len(names & set(users[n]))) for n in sel_ax]
+    rows = [(short(n), locs(axioms[n]), len(names & set(users[n]))) for n in sel_ax]
     rows += [] if rows else [("(none)", "", 0)]
     wa = max(len(x[0]) for x in rows)
     wb = max(len(x[1]) for x in rows)
@@ -226,8 +229,8 @@ def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users,
         w(f"  {a.ljust(wa)}  {l.ljust(wb)}  {f'reached by {k}' if l else ''}".rstrip())
     w("")
     w(f"Unfinished proofs (`sorry`) they reach: {len(sel_sr)}")
-    rows = [(short(n), loc(sorries[n]).strip("`")
-             + (" (elaboration error)" if sorries[n]["synthetic"] else ""),
+    rows = [(short(n), locs(sorries[n])
+             + (" (elaboration error)" if any(o["synthetic"] for o in sorries[n]) else ""),
              len(names & set(users[n]))) for n in sel_sr]
     rows += [] if rows else [("(none)", "", 0)]
     wa = max(len(x[0]) for x in rows)
@@ -246,7 +249,7 @@ def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users,
         w(f"  {'root'.ljust(wa)}  sorry  axioms  statement")
         for r in listed:
             pa = sum(1 for a in r["axioms"] if a in sel_ax)
-            where = spec_file(r, defs) if r["module"] in LINKS else mod_path(r["module"])
+            where = spec_file(r, defs, at_) if r["module"] in LINKS else mod_path(r["module"])
             w(f"  {short(r['name']).ljust(wa)}  {len(r['sorries']):5}  {pa:6}  {where}")
         w("")
     return "\n".join(out)
@@ -265,23 +268,76 @@ def main():
     ap.add_argument("--per-root", action="store_true")
     args = ap.parse_args()
 
+    # Roots are keyed by (module, name): the same name is linked in several module roots
+    # (the raft proof's `Link`, `EtcdDeps`'s and `Raft37`'s all state
+    # `confchange.Changer.wp_apply`), each its tree's own result. Axioms, `sorry`s and
+    # definitions are keyed by name: a name declared in two trees (the trust-boundary axiom
+    # `raftpb.ConfChangeType.String.wp_proof`, the spec `raft.Step.spec`) keeps one record
+    # per module, and `at_(...)` picks the one of a root's own module, else of its part
+    # (`Raft37.*`, `EtcdDeps.*`, the plain `Proof.*`), never across parts. The baseline's
+    # `axiom X` lines are by (short) name, so such an axiom is one line.
     roots, axioms, sorries, defs = {}, {}, {}, {}
     for o in proof_roots.load(args.json, "tcb", args.reuse):
-        {"root": roots, "axiom": axioms, "sorry": sorries, "def": defs}[o["t"]][
-            o["name"]
-        ] = o
-    used = {u for r in roots.values() for u in r["uses"]}
+        if o["t"] == "root":
+            roots[(o["module"], o["name"])] = o
+        else:
+            # one record per declaring module (a module Lean ran in several groups
+            # reports its declarations once per group)
+            recs = {"axiom": axioms, "sorry": sorries, "def": defs}[o["t"]].setdefault(
+                o["name"], []
+            )
+            if all(x["module"] != o["module"] for x in recs):
+                recs.append(o)
+    roots_by_name = collections.defaultdict(list)
+    for r in roots.values():
+        roots_by_name[r["name"]].append(r)
+
+    def part(m):
+        top = m.split(".")[0]
+        return "" if top in ("Proof", "Spec") else top
+
+    def at_(table, module, name):
+        """The record of `name` in `table` as seen from `module`: the one of that module,
+        else of its part, else any (a Perennial axiom has one record)."""
+        recs = table.get(name)
+        if not recs:
+            return None
+        for o in recs:
+            if o["module"] == module:
+                return o
+        for o in recs:
+            if part(o["module"]) == part(module):
+                return o
+        return recs[0]
+
+    def used_by(r, u):
+        """The root `u` (a name in `r["uses"]`) as `r` sees it: in `r`'s own module, else
+        in a module of the same part."""
+        if (r["module"], u) in roots:
+            return roots[(r["module"], u)]
+        same = [o for o in roots_by_name.get(u, []) if part(o["module"]) == part(r["module"])]
+        return same[0] if same else None
+
+    used = {(o["module"], o["name"])
+            for r in roots.values() for u in r["uses"] for o in [used_by(r, u)] if o}
     exported = sorted(
-        (r for n, r in roots.items() if n not in used),
+        (r for k, r in roots.items() if k not in used),
         key=lambda r: (r["module"] not in LINKS, r["module"], short(r["name"])),
     )
-    trusted_defs = sorted({d for r in exported for d in r["defs"] if d in defs})
+    # a definition as the exported root naming it sees it
+    trusted_defs = {}
+    for r in exported:
+        for d in r["defs"]:
+            if d in defs:
+                trusted_defs.setdefault(d, at_(defs, r["module"], d))
+    trusted_defs = dict(sorted(trusted_defs.items()))
 
     def nlines(d):
-        return defs[d]["endLine"] - defs[d]["line"] + 1
+        o = trusted_defs[d]
+        return o["endLine"] - o["line"] + 1
 
     def is_project(n):
-        return n in axioms and axioms[n]["module"].startswith(PROJECT_MODS)
+        return n in axioms and all(o["module"].startswith(PROJECT_MODS) for o in axioms[n])
 
     proj_ax = sorted(n for n in axioms if is_project(n))
     lean_ax = [n for n in LEAN_AX if n in axioms]
@@ -289,12 +345,12 @@ def main():
         n for n in axioms if not is_project(n) and n not in LEAN_AX and n != "sorryAx"
     )
 
-    users = collections.defaultdict(list)  # axiom/sorry -> roots depending on it
-    for r in roots.values():
+    users = collections.defaultdict(list)  # axiom/sorry -> the (module, name) of its roots
+    for k, r in roots.items():
         for a in r["axioms"]:
-            users[a].append(r["name"])
+            users[a].append(k)
         for s in r["sorries"]:
-            users[s].append(r["name"])
+            users[s].append(k)
 
     def entries(axs, srs):
         return sorted([f"axiom {short(n)}" for n in axs] + [f"sorry {short(n)}" for n in srs])
@@ -312,7 +368,7 @@ def main():
     if pats:
         sel = []
         for p in pats:
-            hit = [r for r in roots.values() if matches(r, p, defs)]
+            hit = [r for r in roots.values() if matches(r, p, defs, at_)]
             if not hit:
                 sys.exit(f"tcb: no root matches {p!r}")
             sel += [r for r in hit if r not in sel]
@@ -324,7 +380,7 @@ def main():
             kept = [x for x in coll if not x.startswith(("axiom ", "sorry "))]
             return check(args.collection, current, kept, sel_sr, sorries, args.update)
         text = selection_report(sel, pats, len(roots), sel_ax, sel_sr, axioms, sorries,
-                                users, fw_ax, defs, args.per_root)
+                                users, fw_ax, defs, at_, args.per_root)
         if args.out:
             with open(args.out, "w") as f:
                 f.write(text)
@@ -400,7 +456,7 @@ def main():
         pa = sum(1 for a in r["axioms"] if is_project(a))
         fa = sum(1 for a in r["axioms"] if a in fw_ax)
         where = (
-            f"`{spec_file(r, defs)}`"
+            f"`{spec_file(r, defs, at_)}`"
             if r["module"] in LINKS
             else f"`{mod_path(r['module'])}:{r['line']}`"
         )
@@ -423,8 +479,8 @@ def main():
         "`--defs` lists them.\n"
     )
     by_file = collections.defaultdict(list)
-    for d in trusted_defs:
-        by_file[mod_path(defs[d]["module"])].append(d)
+    for d, o in trusted_defs.items():
+        by_file[mod_path(o["module"])].append(d)
     w("| file | definitions | lines |")
     w("|---|---:|---:|")
     for f in sorted(by_file, key=lambda f: -sum(nlines(d) for d in by_file[f])):
@@ -434,18 +490,19 @@ def main():
         for f in sorted(by_file):
             w(
                 f"- `{f}`: "
-                + ", ".join(f"`{short(d)}` ({defs[d]['line']})" for d in by_file[f])
+                + ", ".join(f"`{short(d)}` ({trusted_defs[d]['line']})" for d in by_file[f])
             )
         w("")
 
     w("## Unfinished proofs\n")
     if not sorries:
         w("None.\n")
-    for n, o in sorted(sorries.items()):
-        kind = " (**elaboration error**)" if o["synthetic"] else ""
+    for n, os_ in sorted(sorries.items()):
+        kind = " (**elaboration error**)" if any(o["synthetic"] for o in os_) else ""
         w(
-            f"- `{short(n)}`{kind}, {loc(o)}: reached by {len(users[n])} roots, "
-            f"including {', '.join(f'`{short(u)}`' for u in sorted(users[n])[:6])}"
+            f"- `{short(n)}`{kind}, {', '.join(loc(o) for o in os_)}: reached by "
+            f"{len(users[n])} roots, "
+            f"including {', '.join(f'`{short(u)}`' for _, u in sorted(users[n])[:6])}"
             f"{', …' if len(users[n]) > 6 else ''}."
         )
     w("")
@@ -459,11 +516,11 @@ def main():
     w("| axiom | where | used by | why (doc comment) |")
     w("|---|---|---:|---|")
     for n in proj_ax:
-        o = axioms[n]
-        doc = first_para(o["doc"]).replace("|", "\\|") or "(no doc comment)"
+        os_ = axioms[n]
+        doc = first_para(os_[0]["doc"]).replace("|", "\\|") or "(no doc comment)"
         if len(doc) > 300:
             doc = doc[:297] + "…"
-        w(f"| `{short(n)}` | {loc(o)} | {len(users[n])} | {doc} |")
+        w(f"| `{short(n)}` | {', '.join(loc(o) for o in os_)} | {len(users[n])} | {doc} |")
     w("")
 
     w("## Perennial's axioms\n")
@@ -474,7 +531,8 @@ def main():
     )
     by_mod = collections.defaultdict(list)
     for n in fw_ax:
-        by_mod[axioms[n]["module"]].append(n)
+        for o in axioms[n]:
+            by_mod[o["module"]].append(n)
     w("| module | axioms |")
     w("|---|---|")
     for m in sorted(by_mod):
