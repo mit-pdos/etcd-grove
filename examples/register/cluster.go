@@ -85,8 +85,8 @@ func (t *transfers) take() bool {
 	return ok
 }
 
-// deliver passes the deliverable messages to their targets among peers, each its own copy
-// (the receiver may adopt the entries slice), and a MsgTimeoutNow only while tr has one
+// deliver passes the deliverable messages to their targets among peers, each as a fresh
+// message (the wire's copy; the receiver may adopt it), and a MsgTimeoutNow only while tr has one
 // left; a message to an unknown node is dropped, as is the error of Step.
 func deliver(peers map[uint64]raft.Node, tr *transfers, ms []*pb.Message) {
 	for _, m := range ms {
@@ -100,8 +100,16 @@ func deliver(peers map[uint64]raft.Node, tr *transfers, ms []*pb.Message) {
 		if m.GetType() == pb.MsgTimeoutNow && !tr.take() {
 			continue
 		}
-		m.Entries = append([]*pb.Entry(nil), m.Entries...)
-		nd.Step(context.Background(), m)
+		// the wire's copy: a fresh message, its scalar cells shared (raft never writes them),
+		// its entries slice its own (the receiver may adopt it), no snapshot or responses (a
+		// deliverable message carries none); stepped instead of raft's own object, which raft
+		// still reads after handing it out (issues/raft-ready-messages-read-after-handout.md)
+		c := &pb.Message{
+			Type: m.Type, To: m.To, From: m.From, Term: m.Term, LogTerm: m.LogTerm,
+			Index: m.Index, Entries: append([]*pb.Entry(nil), m.Entries...), Commit: m.Commit,
+			Vote: m.Vote, Reject: m.Reject, RejectHint: m.RejectHint, Context: m.Context,
+		}
+		nd.Step(context.Background(), c)
 	}
 }
 
