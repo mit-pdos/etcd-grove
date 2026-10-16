@@ -45,6 +45,45 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Retargeting raft to v3.7, stage R5 phase 2: the node-layer specs (2026-10-16, branch `raft-retarget`)
+
+Stage R5 phase 2: the 37 specs of `rawnode.go`/`node.go` ported into
+`Raft37/Spec/go_etcd_io/raft/v3/` (same names), plus three new Lean-first specs the old proof
+inlined in `acceptReady`'s: `needStorageAppendRespMsg` (on `r.raftLog ↦ l ∗ ownRaftLog l ls`, with
+`rd.Snapshot' = null`: returns `decide (ls.uents ≠ [])`), `newStorageAppendRespMsg` (also `r.id
+↦□ id`, `r.Term ↦ t`: returns a fresh `msgIn ml □ ⟨appendAckM id t e, [], none, [], []⟩`, `e` the
+log's `plogLast` when it has unstable entries, `⟨0, 0⟩` otherwise), `newStorageApplyRespMsg`
+(`r.id ↦□ id ∗ entsRO ents ce`: returns `msgIn ml □ ⟨applyAckM id, ce, none, [], []⟩`, `Entries`
+the slice `ents` itself, no capacity since `msgIn` asks it only of a `MsgApp`). They are stated on
+the raft struct's points-tos, which `ownRaftPhysReady` holds open. Each file elaborates (`lake env
+lean`); not yet linked (phase 3, the proofs, follows). The rest is the representation (pointer
+messages `msgIn`/`msgOwn` over `MsgSt`, `entsRO`, `readStatesPts`, `hsOpt`/`hsRO`, `csPts`,
+`propEntryM`/`propMsgM`/`ccEntryM`, `HardStateM`/`ConfStateM` records). The definitions the old
+specs held and phase 1 moved to `InvRawnode` (`NetMsgOk`, `DynCCPre`, ...) are imported.
+
+**Changed beyond the representation:**
+- `RawNode.Propose`, `node.Propose`: new premise `data ≠ []` (D6).
+- `RawNode.ProposeConfChange`: no `#Hreg` (`propRegister`, D6); `entData_cc`/`ccEntsOk_cc` pure,
+  over `ccEntryM`.
+- `RawNode.ReadIndex`, `node.ReadIndex`: `rctx ↦*□ c` replaces `isPropData γ rctx c` (D6).
+- `RestartNode`: no `inv propDataN (propDataInv γ)` premise (D6).
+- `NewRawNode`, `RestartNode`: the `InitialState` premise in `newRaft`'s D7 shape, the conf state
+  a record `csm` (was the value `cs` with `voters` lent at `dqv`).
+- `RawNode.readyWithoutAccept`, `RawNode.Ready`: the messages are handed out as `ms : List QMsg`,
+  each `msgOwn q.loc (readyDq q.st)`: a `MsgAppResp`/`MsgVoteResp`/`MsgPreVoteResp` at half
+  (read-only for the application; D8, `issues/raft-ready-messages-read-after-handout.md`), all
+  others whole; `Habandon` takes them back; new `#Hhard ∷ hsOpt rd.HardState' h`.
+- `RawNode.Step`, `node.Step`/`step`/`stepWithWaitOption`: the message is taken for good
+  (`msgIn`), not lent; `stepArg`'s network branch is `netP` alone (its type `≠ MsgProp` follows
+  from `NetMsgOk`).
+- `RawNode.ApplyConfChange`, `node.ApplyConfChange`: the result `csPts csp 1 cs true` also says
+  the `AutoLeave` cell is set.
+- `RawNode.BasicStatus`: the term and commit are those of `hsRO bs.HardState' h`.
+- `newStorageAppendRespMsg` covers the no-unstable-entries case too (the old inline helper took
+  `ls.uents ≠ []`).
+
+Nothing was missing from the phase 1 predicates.
+
 ## Retargeting raft to v3.7, stage R5 phase 1: the node-layer predicates (2026-10-16, branch `raft-retarget`)
 
 Stage R5 (`notes/decisions.md`, "The node layer over pointer messages", D8), phase 1: the five
