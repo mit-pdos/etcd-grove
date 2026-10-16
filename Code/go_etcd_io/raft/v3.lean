@@ -7759,32 +7759,9 @@ noncomputable def RawNode.Tick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"tick"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn")))))) (Val #()))))))))
 
-/-- TickQuiesced advances the internal logical clock by a single tick without
-    performing any other state machine processing. It allows the caller to avoid
-    periodic heartbeats and elections when all of the peers in a Raft group are
-    known to be at the same state. Expected usage is to periodically invoke Tick
-    or TickQuiesced depending on whether the group is "active" or "quiesced".
-
-    WARNING: Be very careful about using this method as it subverts the Raft
-    state machine. You should probably be using Tick instead.
-
-    DEPRECATED: This method will be removed in a future release.
-
-    go: rawnode.go:78:20 -/
-noncomputable def RawNode.TickQuiesced.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "rn"
-  (Lam BAnon
-  (App (Val exceptionDo)
-  (Let "rn" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RawNode.ty)))) (Var "rn"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn")))))) (Val #(W64 1))))))))))))
-
 /-- Campaign causes this RawNode to transition to candidate state.
 
-    go: rawnode.go:83:20 -/
+    go: rawnode.go:69:20 -/
 noncomputable def RawNode.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -7797,7 +7774,7 @@ noncomputable def RawNode.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Propose proposes data be appended to the raft log.
 
-    go: rawnode.go:90:20 -/
+    go: rawnode.go:76:20 -/
 noncomputable def RawNode.Propose.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "data"
@@ -7815,7 +7792,7 @@ noncomputable def RawNode.Propose.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- ProposeConfChange proposes a config change. See (Node).ProposeConfChange for
     details.
 
-    go: rawnode.go:100:20 -/
+    go: rawnode.go:86:20 -/
 noncomputable def RawNode.ProposeConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "cc"
@@ -7850,7 +7827,7 @@ noncomputable def RawNode.ProposeConfChange.impl [FfiSyntax] [GoGlobalContext] :
     this when it applies a configuration change, except when it decides to reject
     the configuration change, in which case no call must take place.
 
-    go: rawnode.go:111:20 -/
+    go: rawnode.go:97:20 -/
 noncomputable def RawNode.ApplyConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "cc"
@@ -7863,7 +7840,7 @@ noncomputable def RawNode.ApplyConfChange.impl [FfiSyntax] [GoGlobalContext] : v
 
 /-- Step advances the state machine using the given message.
 
-    go: rawnode.go:116:20 -/
+    go: rawnode.go:102:20 -/
 noncomputable def RawNode.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "m"
@@ -7895,7 +7872,7 @@ noncomputable def RawNode.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
     and sending messages. The returned Ready() *must* be handled and subsequently
     passed back via Advance().
 
-    go: rawnode.go:131:20 -/
+    go: rawnode.go:117:20 -/
 noncomputable def RawNode.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -7916,7 +7893,7 @@ noncomputable def RawNode.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- readyWithoutAccept returns a Ready. This is a read-only operation, i.e. there
     is no obligation that the Ready must be handled.
 
-    go: rawnode.go:139:20 -/
+    go: rawnode.go:125:20 -/
 noncomputable def RawNode.readyWithoutAccept.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8055,7 +8032,7 @@ noncomputable def RawNode.readyWithoutAccept.impl [FfiSyntax] [GoGlobalContext] 
 /-- MustSync returns true if the hard state and count of Raft entries indicate
     that a synchronous write to persistent storage is required.
 
-    go: rawnode.go:191:6 -/
+    go: rawnode.go:177:6 -/
 noncomputable def MustSync.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "st"
   (Lam "prevst"
@@ -8067,7 +8044,7 @@ noncomputable def MustSync.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "entsnum")) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "prevst"))) (Val #())))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "prevst"))) (Val #()))))))))))))))
 
-/-- go: rawnode.go:200:6 -/
+/-- go: rawnode.go:186:6 -/
 noncomputable def needStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8081,7 +8058,7 @@ noncomputable def needStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (FuncResolve IsEmptySnap []))) (Val #())) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgsAfterAppend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))))))))
 
-/-- go: rawnode.go:210:6 -/
+/-- go: rawnode.go:196:6 -/
 noncomputable def needStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8098,7 +8075,7 @@ noncomputable def needStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : 
     that should be delivered after the rest of the message is processed. Used
     with AsyncStorageWrites.
 
-    go: rawnode.go:223:6 -/
+    go: rawnode.go:209:6 -/
 noncomputable def newStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8169,7 +8146,7 @@ noncomputable def newStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val :
     (along with those in all prior Ready structs) have been saved to stable
     storage.
 
-    go: rawnode.go:266:6 -/
+    go: rawnode.go:252:6 -/
 noncomputable def newStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8212,7 +8189,7 @@ noncomputable def newStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "m") (Var "$r0"))))))))))))
 
-/-- go: rawnode.go:365:6 -/
+/-- go: rawnode.go:351:6 -/
 noncomputable def needStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rd"
   (App (Val exceptionDo)
@@ -8221,7 +8198,7 @@ noncomputable def needStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef Ready.ty go!"CommittedEntries"))) (Var "rd")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))))
 
-/-- go: rawnode.go:366:6 -/
+/-- go: rawnode.go:352:6 -/
 noncomputable def needStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rd"
   (App (Val exceptionDo)
@@ -8235,7 +8212,7 @@ noncomputable def needStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : v
     also carries a response that should be delivered after the rest of the
     message is processed. Used with AsyncStorageWrites.
 
-    go: rawnode.go:372:6 -/
+    go: rawnode.go:358:6 -/
 noncomputable def newStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8263,7 +8240,7 @@ noncomputable def newStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
     after the committed entries in the current Ready (along with those in all
     prior Ready structs) have been applied to the local state machine.
 
-    go: rawnode.go:387:6 -/
+    go: rawnode.go:373:6 -/
 noncomputable def newStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ents"
@@ -8282,7 +8259,7 @@ noncomputable def newStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : va
     ahead and handle a Ready. Nothing must alter the state of the RawNode between
     this call and the prior call to Ready().
 
-    go: rawnode.go:400:20 -/
+    go: rawnode.go:386:20 -/
 noncomputable def RawNode.acceptReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "rd"
@@ -8426,7 +8403,7 @@ noncomputable def RawNode.acceptReady.impl [FfiSyntax] [GoGlobalContext] : val :
     they are known to be committed but before they have been written locally to
     stable storage.
 
-    go: rawnode.go:443:20 -/
+    go: rawnode.go:429:20 -/
 noncomputable def RawNode.applyUnstableEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8437,7 +8414,7 @@ noncomputable def RawNode.applyUnstableEntries.impl [FfiSyntax] [GoGlobalContext
 
 /-- HasReady called when RawNode user need to check if any Ready pending.
 
-    go: rawnode.go:448:20 -/
+    go: rawnode.go:434:20 -/
 noncomputable def RawNode.HasReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8511,7 +8488,7 @@ noncomputable def RawNode.HasReady.impl [FfiSyntax] [GoGlobalContext] : val :=
     NOTE: Advance must not be called when using AsyncStorageWrites. Response messages from
     the local append and apply threads take its place.
 
-    go: rawnode.go:477:20 -/
+    go: rawnode.go:463:20 -/
 noncomputable def RawNode.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8557,7 +8534,7 @@ noncomputable def RawNode.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Status returns the current status of the given group. This allocates, see
     BasicStatus and WithProgress for allocation-friendlier choices.
 
-    go: rawnode.go:493:20 -/
+    go: rawnode.go:479:20 -/
 noncomputable def RawNode.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8575,7 +8552,7 @@ noncomputable def RawNode.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- BasicStatus returns a BasicStatus. Notably this does not contain the
     Progress map; see WithProgress for an allocation-free way to inspect it.
 
-    go: rawnode.go:500:20 -/
+    go: rawnode.go:486:20 -/
 noncomputable def RawNode.BasicStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8588,7 +8565,7 @@ noncomputable def RawNode.BasicStatus.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- WithProgress is a helper to introspect the Progress for this node and its
     peers.
 
-    go: rawnode.go:516:20 -/
+    go: rawnode.go:502:20 -/
 noncomputable def RawNode.WithProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "visitor"
@@ -8637,7 +8614,7 @@ noncomputable def RawNode.WithProgress.impl [FfiSyntax] [GoGlobalContext] : val 
 
 /-- ReportUnreachable reports the given node is not reachable for the last send.
 
-    go: rawnode.go:529:20 -/
+    go: rawnode.go:515:20 -/
 noncomputable def RawNode.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "id"
@@ -8656,7 +8633,7 @@ noncomputable def RawNode.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] :
 
 /-- ReportSnapshot reports the status of the sent snapshot.
 
-    go: rawnode.go:534:20 -/
+    go: rawnode.go:520:20 -/
 noncomputable def RawNode.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "id"
@@ -8683,7 +8660,7 @@ noncomputable def RawNode.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- TransferLeader tries to transfer leadership to the given transferee.
 
-    go: rawnode.go:541:20 -/
+    go: rawnode.go:527:20 -/
 noncomputable def RawNode.TransferLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "transferee"
@@ -8703,7 +8680,7 @@ noncomputable def RawNode.TransferLeader.impl [FfiSyntax] [GoGlobalContext] : va
 /-- ForgetLeader forgets a follower's current leader, changing it to None.
     See (Node).ForgetLeader for details.
 
-    go: rawnode.go:547:20 -/
+    go: rawnode.go:533:20 -/
 noncomputable def RawNode.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8719,7 +8696,7 @@ noncomputable def RawNode.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val 
     index, any linearizable read requests issued before the read request can be
     processed safely. The read state will have the same rctx attached.
 
-    go: rawnode.go:555:20 -/
+    go: rawnode.go:541:20 -/
 noncomputable def RawNode.ReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "rctx"
@@ -12371,7 +12348,6 @@ class RawNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   ptr_Status_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"Status" RawNode.Status.impl
   ptr_Step_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"Step" RawNode.Step.impl
   ptr_Tick_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"Tick" RawNode.Tick.impl
-  ptr_TickQuiesced_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"TickQuiesced" RawNode.TickQuiesced.impl
   ptr_TransferLeader_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"TransferLeader" RawNode.TransferLeader.impl
   ptr_WithProgress_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"WithProgress" RawNode.WithProgress.impl
   ptr_acceptReady_unfold : MethodUnfold (go.GoType.PointerType RawNode.ty) go!"acceptReady" RawNode.acceptReady.impl
@@ -12406,7 +12382,6 @@ attribute [instance] RawNode.TypeAssumptions.type_repr
   RawNode.TypeAssumptions.ptr_Status_unfold
   RawNode.TypeAssumptions.ptr_Step_unfold
   RawNode.TypeAssumptions.ptr_Tick_unfold
-  RawNode.TypeAssumptions.ptr_TickQuiesced_unfold
   RawNode.TypeAssumptions.ptr_TransferLeader_unfold
   RawNode.TypeAssumptions.ptr_WithProgress_unfold
   RawNode.TypeAssumptions.ptr_acceptReady_unfold
