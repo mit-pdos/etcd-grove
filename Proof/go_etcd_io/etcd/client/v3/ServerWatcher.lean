@@ -6,7 +6,8 @@ unit W-C, 2026-10-15; `notes/STATUS.md`, "W-C"). Lean-first, no Rocq counterpart
 `NewWatchFromWatchClient` return over a stub on a connection to a server serving etcd's `Watch`
 stream) meets the clients' closable range-watch contract (`isEtcdRangeWatcher`,
 `cache/v3/InvEtcdTxn.lean`) at the server's model (`v3rpc.etcdModelOfServer V.R.E`), from
-`watcher.Watch`'s spec. `newWatcher_isEtcdRangeWatcher`: `NewWatcher(c)`'s result does.
+`watcher.Watch`'s spec (linked in `Results.lean`: `client_watcher_rangeWatcher`, and
+`client_newWatcher_rangeWatcher` for `NewWatcher(c)`'s result).
 `srvLogsSmall_of_read`, `watchSrvLink_of_server`: two of the premises (`watchConnFacts`) from the
 server's facts (`isServerRead`, `isWatchServer`).
 -/
@@ -14,7 +15,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.go_etcd_io.etcd.client.v3.NewWatcher
-public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -59,7 +60,12 @@ theorem srvLogsSmall_of_read (R : v3rpc.WSrv GF) (s : Loc) (γr : ReadNames)
     (h : R.γ.st = R.E.γ) :
     isServerRead (GF := GF) s R.E γr ⊢ srvLogsSmall R := by
   iintro #Hsrd
-  ihave #Hsm := storeSmall_of_read s R.E γr $$ Hsrd
+  ihave #Hsm : storeSmall R.E.γ $$ [Hsrd]
+  · iunfold isServerRead at Hsrd
+    icases Hsrd with ⟨%v, Hsrd⟩
+    iunfold srvReadFieldsAt at Hsrd
+    icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
+    iexact Hsm
   unfold srvLogsSmall
   iunfold storeSmall at Hsm
   rw [h]

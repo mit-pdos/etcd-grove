@@ -728,6 +728,467 @@ theorem addWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {L' : List v3rpc.Wat
       · rw [h] at hs; cases hs
 
 
+
+
+/-- The model after a created response `m` (id `X`) answering the pending create at `i`, whose
+substream `h` (the head of `resuming`, `null` if it was closed) is registered (`reg`) or not. -/
+def RunSt.answer (S : RunSt) (m : WatchRespM) (i : Nat) (X : w64) (h : Loc) (reg : Bool) : RunSt :=
+  { S with Dm := S.Dm ++ [m], ansd := S.ansd ++ [i],
+           regs := if m.canceled then S.regs else S.regs ++ [X], pend := none,
+           M := if reg then GMap.insert X h S.M else S.M,
+           l := if h = null then S.l else S.l.set 0 null }
+
+/-- A head entry, set to `null`, is gone (non-null entries distinct). -/
+theorem not_mem_set0 {l : List Loc} {h : Loc} (hh : l.head? = some h) (hn : h ≠ null)
+    (hnd : (l.filter (fun x => decide (x ≠ null))).Nodup) : h ∉ l.set 0 null := by
+  cases l with
+  | nil => simp at hh
+  | cons x xs =>
+    simp at hh; subst hh
+    simp only [List.set_cons_zero, List.mem_cons]
+    rintro (e | e)
+    · exact hn e
+    · rw [List.filter_cons, if_pos (by simpa using hn)] at hnd
+      exact (List.nodup_cons.1 hnd).1 (List.mem_filter.2 ⟨e, by simpa using hn⟩)
+
+theorem mem_set0 {l : List Loc} {x h : Loc} (hh : l.head? = some h) (hx : x ≠ h) (hm : x ∈ l) :
+    x ∈ l.set 0 null := by
+  cases l with
+  | nil => simp at hm
+  | cons y ys =>
+    simp at hh; subst hh
+    simp only [List.set_cons_zero, List.mem_cons] at hm ⊢
+    rcases hm with e | e
+    · exact absurd e hx
+    · exact Or.inr e
+
+theorem mem_of_set0 {l : List Loc} {x : Loc} (hm : x ∈ l.set 0 null) (hx : x ≠ null) : x ∈ l := by
+  cases l with
+  | nil => simp at hm
+  | cons y ys =>
+    simp only [List.set_cons_zero, List.mem_cons] at hm ⊢
+    rcases hm with e | e
+    · exact absurd e hx
+    · exact Or.inr e
+
+theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X : w64} {h : Loc}
+    {reg : Bool} (hg : gOk S U) (hp : S.pend = some i) (hhead : S.l.head? = some h)
+    (hsrc : m.src = none) (hcr : m.created = true) (hid : m.watchId = X)
+    (hX : m.canceled = false → X ∉ S.regs) (hMX : reg = true → S.M !! X = none)
+    (hreg : reg = true → h ≠ null ∧ X ≠ W64 (-1) ∧ m.canceled = false)
+    (hph : h ≠ null → phOk S h (.queued (some i))) :
+    gOk (S.answer m i X h reg) U ∧
+      (∀ ws ph, ws ≠ h → U !! ws = some () → phOk S ws ph → phOk (S.answer m i X h reg) ws ph) ∧
+      (h ≠ null → phOk (S.answer m i X h reg) h (if reg then .reg X else .orphan)) := by
+  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
+  obtain ⟨hi1, ⟨c, hic⟩, hl⟩ := g10 i hp
+  have hilen : i < S.L.length := (List.getElem?_eq_some_iff.1 hic).1
+  -- the new `substreams`
+  have hM1 : ∀ Y w, (S.answer m i X h reg).M !! Y = some w → S.M !! Y = some w ∨ (reg = true ∧ Y = X ∧ w = h) := by
+    intro Y w hY
+    unfold RunSt.answer at hY; simp only at hY
+    split at hY
+    · rename_i hr
+      by_cases e : X = Y
+      · subst e; rw [GMap.lookup_insert] at hY; cases hY; exact Or.inr ⟨hr, rfl, rfl⟩
+      · rw [GMap.lookup_insert_ne _ _ e] at hY; exact Or.inl hY
+    · exact Or.inl hY
+  have hM2 : ∀ Y w, S.M !! Y = some w → (S.answer m i X h reg).M !! Y = some w := by
+    intro Y w hY
+    unfold RunSt.answer; simp only
+    split
+    · rename_i hr
+      have : X ≠ Y := fun e => by subst e; rw [hMX hr] at hY; cases hY
+      rw [GMap.lookup_insert_ne _ _ this]; exact hY
+    · exact hY
+  have hhn : h ≠ null → h ∈ S.l := fun hn => List.mem_of_mem_head? hhead
+  have hl1 : ∀ x, x ≠ null → x ∈ (S.answer m i X h reg).l → x ∈ S.l := by
+    intro x hx hm
+    unfold RunSt.answer at hm; simp only at hm
+    split at hm
+    · exact hm
+    · exact mem_of_set0 hm hx
+  have hl2 : ∀ x, x ≠ h → x ∈ S.l → x ∈ (S.answer m i X h reg).l := by
+    intro x hx hm
+    unfold RunSt.answer; simp only
+    split
+    · exact hm
+    · exact mem_set0 hhead hx hm
+  have hhl : h ≠ null → h ∉ (S.answer m i X h reg).l := by
+    intro hn
+    unfold RunSt.answer; simp only [if_neg hn]
+    exact not_mem_set0 hhead hn g4
+  -- regs grow
+  have hregs : ∀ Y, Y ∈ S.regs → Y ∈ (S.answer m i X h reg).regs := by
+    intro Y hY; unfold RunSt.answer; simp only; split
+    · exact hY
+    · exact List.mem_append_left _ hY
+  have hans : ∀ j, j ∈ S.ansd → j ∈ (S.answer m i X h reg).ansd := fun j hj =>
+    List.mem_append_left _ hj
+  have hlive : ∀ Y, Y ∈ S.regs → ¬ idLive S.Dm Y → ¬ idLive (S.answer m i X h reg).Dm Y := by
+    intro Y hY hn
+    show ¬ idLive (S.Dm ++ [m]) Y
+    rw [idLive_snoc]
+    split
+    · rename_i hc
+      rw [hcr]
+      cases hca : m.canceled
+      · exfalso; rw [hid] at hc; rw [← hc.2] at hY; exact hX hca hY
+      · simp
+    · exact hn
+  refine ⟨⟨?_, ?_, ?_, ?_, g5, g6, g7, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  · intro Y w hY
+    rcases hM1 Y w hY with h1 | ⟨hr, -, e⟩
+    · exact g1 Y w h1
+    · subst e; exact g3 _ (hhn (hreg hr).1) (hreg hr).1
+  · intro Y Z w hY hZ
+    rcases hM1 Y w hY with h1 | ⟨hr, e1, e2⟩ <;> rcases hM1 Z w hZ with h2 | ⟨hr', e3, e4⟩
+    · exact g2 Y Z w h1 h2
+    · subst e4; exact absurd h1 ((hph (hreg hr').1).1 Y)
+    · subst e2; exact absurd h2 ((hph (hreg hr).1).1 Z)
+    · rw [e1, e3]
+  · intro x hx hxn; exact g3 x (hl1 x hxn hx) hxn
+  · unfold RunSt.answer; simp only; split
+    · exact g4
+    · exact g4.sublist (filter_set_null_sublist S.l 0)
+  · intro j c' hj
+    rcases g8 j c' hj with h1 | h1
+    · exact Or.inl (hans j h1)
+    · rw [hp] at h1; cases h1; exact Or.inl (List.mem_append_right _ (by simp))
+  · intro j id hj; exact hregs id (g9 j id hj)
+  · intro j hj; cases hj
+  · intro j hj
+    rcases List.mem_append.1 hj with h1 | h1
+    · exact g11 j h1
+    · simp at h1; subst h1; exact hilen
+  · intro j m' ρ hj hs
+    show ρ.id ≠ W64 (-1) ∧ idLive ((S.Dm ++ [m]).take j) ρ.id
+    rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
+    · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
+    · rw [hsrc] at hs; cases hs
+  · intro m' hm hs hc hca
+    rcases List.mem_append.1 hm with h1 | h1
+    · exact hregs _ (g13 m' h1 hs hc hca)
+    · simp at h1; subst h1
+      show m'.watchId ∈ (if m'.canceled then S.regs else S.regs ++ [X])
+      rw [hca, hid]; simp
+  · intro ws ph hne hU hph'
+    have hwn : ws ≠ null := fun e => by rw [e, g6] at hU; cases hU
+    cases ph with
+    | queued si =>
+      obtain ⟨q1, q2, q3, q4, q5⟩ := hph'
+      refine ⟨fun Y hY => ?_, hl2 ws hne q2, q3, fun j hj => ?_, fun _ _ => rfl⟩
+      · rcases hM1 Y ws hY with h1 | ⟨-, -, e⟩
+        · exact q1 Y h1
+        · exact hne e
+      · obtain ⟨-, h2⟩ := q4 j hj
+        rw [hhead] at h2; cases h2; exact absurd rfl hne
+    | reg Y =>
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph'
+      exact ⟨hM2 Y ws r1, fun hm => r2 (hl1 ws hwn hm), r3, hregs Y r4, r5,
+        fun hCS j hj => hans j (r6 hCS j hj),
+        fun j j' hj hj' hn hn' => r7 j j' hj hj' (fun e => hn (hans j e)) (fun e => hn' (hans j' e))⟩
+    | closedRun Y =>
+      obtain ⟨c1, c2, c3, c4, c5, c6, c7⟩ := hph'
+      exact ⟨hM2 Y ws c1, fun hm => c2 (hl1 ws hwn hm), c3, hregs Y c4, c5, hlive Y c4 c6,
+        fun j hj => hans j (c7 j hj)⟩
+    | orphan =>
+      obtain ⟨o1, o2, o3⟩ := hph'
+      refine ⟨fun Y hY => ?_, fun hm => o2 (hl1 ws hwn hm), o3⟩
+      rcases hM1 Y ws hY with h1 | ⟨-, -, e⟩
+      · exact o1 Y h1
+      · exact hne e
+  · intro hn
+    obtain ⟨q1, q2, q3, -, -⟩ := hph hn
+    by_cases hr : reg = true
+    · rw [if_pos hr]
+      obtain ⟨-, hXn, hca⟩ := hreg hr
+      refine ⟨?_, hhl hn, q3, ?_, hXn, ?_, ?_⟩
+      · show (if reg = true then GMap.insert X h S.M else S.M) !! X = some h
+        rw [if_pos hr]; exact GMap.lookup_insert _ _ _
+      · show X ∈ (if m.canceled = true then S.regs else S.regs ++ [X])
+        rw [hca]; simp
+      · intro _ j hj
+        exact absurd (g9 j X hj) (hX hca)
+      · intro j j' hj; exact absurd (g9 j X hj) (hX hca)
+    · rw [if_neg hr]
+      refine ⟨fun Y hY => ?_, hhl hn, q3⟩
+      rcases hM1 Y h hY with h1 | ⟨hr', -, -⟩
+      · exact q1 Y h1
+      · exact absurd hr' hr
+
+theorem mem_dropNull {l : List Loc} {x : Loc} (hx : x ≠ null) :
+    x ∈ l.dropWhile (fun y => decide (y = null)) ↔ x ∈ l := by
+  induction l with
+  | nil => simp
+  | cons y ys ih =>
+    rw [List.dropWhile_cons]
+    by_cases hy : y = null
+    · simp only [hy, decide_true, ↓reduceIte, List.mem_cons]
+      rw [ih]; constructor
+      · exact Or.inr
+      · rintro (e | e)
+        · exact absurd e hx
+        · exact e
+    · simp [hy]
+
+theorem dropNull_head {l : List Loc} {x : Loc} (h : (l.dropWhile (fun y => decide (y = null))).head? = some x) :
+    x ≠ null := by
+  induction l with
+  | nil => simp at h
+  | cons y ys ih =>
+    rw [List.dropWhile_cons] at h
+    by_cases hy : y = null
+    · simp only [hy, decide_true, ↓reduceIte] at h; exact ih h
+    · simp [hy] at h
+      rw [← h]; exact hy
+
+theorem dropNull_sublist (l : List Loc) : List.Sublist (l.dropWhile (fun y => decide (y = null))) l :=
+  (List.dropWhile_suffix _).sublist
+
+/-- The model after `nextResume` and, for its head, a create sent (`L'`, `pend'`) or not. -/
+def RunSt.resume (S : RunSt) (L' : List WatchReqM) (pend' : Option Nat) : RunSt :=
+  { S with l := S.l.dropWhile (fun y => decide (y = null)), L := L', pend := pend' }
+
+theorem resume_ok {S : RunSt} {U : GMap Loc Unit} {L' : List WatchReqM} {pend' si : Option Nat}
+    (hg : gOk S U) (hp : S.pend = none)
+    (hc : (L' = S.L ∧ pend' = none ∧ si = none) ∨
+      ((∃ c, L' = S.L ++ [.create c]) ∧ pend' = some S.L.length ∧ si = some S.L.length ∧
+        S.l.dropWhile (fun y => decide (y = null)) ≠ [])) :
+    gOk (S.resume L' pend') U ∧
+      (∀ ws ph, U !! ws = some () →
+        (S.l.dropWhile (fun y => decide (y = null))).head? ≠ some ws →
+        phOk S ws ph → phOk (S.resume L' pend') ws ph) ∧
+      (∀ h2, (S.l.dropWhile (fun y => decide (y = null))).head? = some h2 → U !! h2 = some () →
+        (∀ ph, phOk S h2 ph → phOk (S.resume L' pend') h2 (.queued si))) := by
+  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
+  have hpos : ∀ i r, L'[i]? = some r → (i < S.L.length ∧ S.L[i]? = some r) ∨
+      (i = S.L.length ∧ (∃ c, r = .create c) ∧ pend' = some S.L.length) := by
+    intro i r h
+    rcases hc with ⟨rfl, -, -⟩ | ⟨⟨c, rfl⟩, hp', -, -⟩
+    · left; exact ⟨(List.getElem?_eq_some_iff.1 h).1, h⟩
+    · rcases getElem?_snoc_cases h with h | h
+      · left; exact h
+      · right; exact ⟨h.1, ⟨c, h.2⟩, hp'⟩
+  have hlen : S.L.length ≤ L'.length := by
+    rcases hc with ⟨rfl, -, -⟩ | ⟨⟨c, rfl⟩, -, -⟩ <;> simp
+  have hl : ∀ x, x ≠ null → (x ∈ (S.resume L' pend').l ↔ x ∈ S.l) := fun x hx => mem_dropNull hx
+  refine ⟨⟨g1, g2, fun x hx hxn => g3 x ((hl x hxn).1 hx) hxn, ?_, g5, g6, ?_, ?_, ?_, ?_, ?_, g12, g13⟩,
+    ?_, ?_⟩
+  · exact g4.sublist ((dropNull_sublist S.l).filter _)
+  · intro x hx
+    change x ∈ L' at hx
+    obtain ⟨i, hi, hix⟩ := List.getElem_of_mem hx
+    have hxi : L'[i]? = some x := by rw [List.getElem?_eq_getElem hi, hix]
+    rcases hpos i x hxi with ⟨-, h⟩ | ⟨-, ⟨c, rfl⟩, -⟩
+    · exact g7 x (List.mem_of_getElem? h)
+    · left; exact ⟨c, rfl⟩
+  · intro i c h
+    rcases hpos i _ h with ⟨-, h⟩ | ⟨hi, -, hp'⟩
+    · rcases g8 i c h with h' | h'
+      · exact Or.inl h'
+      · rw [hp] at h'; cases h'
+    · right; subst hi; exact hp'
+  · intro i id h
+    rcases hpos i _ h with ⟨-, h⟩ | ⟨-, ⟨c, hc'⟩, -⟩
+    · exact g9 i id h
+    · cases hc'
+  · intro i hi
+    rcases hc with ⟨-, hp', -⟩ | ⟨⟨c, rfl⟩, hp', -, hne⟩
+    · change pend' = some i at hi; rw [hp'] at hi; cases hi
+    · change pend' = some i at hi; rw [hp'] at hi; cases hi
+      refine ⟨fun h => Nat.lt_irrefl _ (g11 _ h), ⟨c, by simp [RunSt.resume]⟩, hne⟩
+  · intro i hi; exact Nat.lt_of_lt_of_le (g11 i hi) hlen
+  · intro ws ph hU hhd hph
+    have hwn : ws ≠ null := fun e => by rw [e, g6] at hU; cases hU
+    cases ph with
+    | queued si' =>
+      obtain ⟨q1, q2, q3, q4, q5⟩ := hph
+      refine ⟨q1, (hl ws hwn).2 q2, q3, fun j hj => ?_, fun _ hh => absurd hh hhd⟩
+      obtain ⟨h1, -⟩ := q4 j hj; rw [hp] at h1; cases h1
+    | reg Y =>
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
+      refine ⟨r1, fun h => r2 ((hl ws hwn).1 h), r3, r4, r5, ?_, ?_⟩
+      · intro hCS i hi
+        rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, ⟨c, hc'⟩, -⟩
+        · exact r6 hCS i h
+        · cases hc'
+      · intro i i' hi hi' hn hn'
+        rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, ⟨c, hc'⟩, -⟩
+        · rcases hpos i' _ hi' with ⟨-, h'⟩ | ⟨-, ⟨c', hc''⟩, -⟩
+          · exact r7 i i' h h' hn hn'
+          · cases hc''
+        · cases hc'
+    | closedRun Y =>
+      obtain ⟨c1, c2, c3, c4, c5, c6, c7⟩ := hph
+      refine ⟨c1, fun h => c2 ((hl ws hwn).1 h), c3, c4, c5, c6, ?_⟩
+      intro i hi
+      rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, ⟨c, hc'⟩, -⟩
+      · exact c7 i h
+      · cases hc'
+    | orphan =>
+      obtain ⟨o1, o2, o3⟩ := hph
+      exact ⟨o1, fun h => o2 ((hl ws hwn).1 h), o3⟩
+  · intro h2 hh hU ph hph
+    have hwn : h2 ≠ null := dropNull_head hh
+    have hm2 : h2 ∈ S.l := (mem_dropNull hwn).1 (List.mem_of_mem_head? hh)
+    cases ph with
+    | queued si' =>
+      obtain ⟨q1, q2, q3, -, -⟩ := hph
+      refine ⟨q1, (hl h2 hwn).2 q2, q3, fun j hj => ?_, fun hs _ => ?_⟩
+      · rcases hc with ⟨-, -, hs⟩ | ⟨-, hp', hs, -⟩
+        · rw [hs] at hj; cases hj
+        · rw [hs] at hj; cases hj; exact ⟨hp', hh⟩
+      · rcases hc with ⟨-, hp', -⟩ | ⟨-, -, hs', -⟩
+        · exact hp'
+        · rw [hs'] at hs; cases hs
+    | reg Y => exact absurd hm2 hph.2.1
+    | closedRun Y => exact absurd hm2 hph.2.1
+    | orphan => exact absurd hm2 hph.2.1
+
+/-- The model after the answer `m` (at the up position `i`) to a cancel of `X`: `cancelSet`
+forgets `X`; the substream registered at `X`, if any (`fw`), joins `closing`. -/
+def RunSt.cancelAns (S : RunSt) (m : WatchRespM) (i : Nat) (X : w64) (fw : Option Loc) : RunSt :=
+  { S with Dm := S.Dm ++ [m], ansd := S.ansd ++ [i], CS := GMap.delete X S.CS,
+           CL := match fw with | some ws => GMap.insert ws () S.CL | none => S.CL }
+
+theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X : w64}
+    {fw : Option Loc} (hg : gOk S U) (hi : S.L[i]? = some (.cancel X)) (hia : i ∉ S.ansd)
+    (hsrc : m.src = none) (hcr : m.created = false) (hid : m.watchId = X)
+    (hfw : fw = S.M !! X) :
+    gOk (S.cancelAns m i X fw) U ∧
+      (∀ ws ph, U !! ws = some () → fw ≠ some ws → phOk S ws ph →
+        phOk (S.cancelAns m i X fw) ws ph) ∧
+      (∀ ws ph, fw = some ws → phOk S ws ph → phOk (S.cancelAns m i X fw) ws (.closedRun X)) := by
+  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
+  have hans : ∀ j, j ∈ S.ansd → j ∈ (S.cancelAns m i X fw).ansd := fun j hj =>
+    List.mem_append_left _ hj
+  have hCL : ∀ ws, fw ≠ some ws → (S.cancelAns m i X fw).CL !! ws = S.CL !! ws := by
+    intro ws hne
+    unfold RunSt.cancelAns; simp only
+    cases hf : fw with
+    | none => rfl
+    | some w =>
+      have : w ≠ ws := fun e => hne (by rw [hf, e])
+      exact GMap.lookup_insert_ne _ _ this
+  have hlive : ∀ Y, Y ≠ X → (idLive (S.cancelAns m i X fw).Dm Y ↔ idLive S.Dm Y) := by
+    intro Y hY
+    show idLive (S.Dm ++ [m]) Y ↔ _
+    rw [idLive_snoc, if_neg (fun h => hY (h.2.symm.trans hid))]
+  refine ⟨⟨g1, g2, g3, g4, ?_, g6, g7, ?_, g9, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  · intro ws h
+    unfold RunSt.cancelAns at h; simp only at h
+    cases hf : fw with
+    | none => rw [hf] at h; exact g5 ws h
+    | some w =>
+      rw [hf] at h
+      by_cases e : w = ws
+      · subst e; rw [hf] at hfw; exact g1 X w hfw.symm
+      · rw [GMap.lookup_insert_ne _ _ e] at h; exact g5 ws h
+  · intro j c hj
+    rcases g8 j c hj with h | h
+    · exact Or.inl (hans j h)
+    · exact Or.inr h
+  · intro j hj
+    obtain ⟨h1, h2, h3⟩ := g10 j hj
+    refine ⟨?_, h2, h3⟩
+    intro h
+    rcases List.mem_append.1 h with h | h
+    · exact h1 h
+    · simp at h; subst h; obtain ⟨c, hc⟩ := h2; rw [hc] at hi; cases hi
+  · intro j hj
+    rcases List.mem_append.1 hj with h | h
+    · exact g11 j h
+    · simp at h; subst h; exact (List.getElem?_eq_some_iff.1 hi).1
+  · intro j m' ρ hj hs
+    show ρ.id ≠ W64 (-1) ∧ idLive ((S.Dm ++ [m]).take j) ρ.id
+    rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
+    · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
+    · rw [hsrc] at hs; cases hs
+  · intro m' hm hs hc hca
+    rcases List.mem_append.1 hm with h | h
+    · exact g13 m' h hs hc hca
+    · simp at h; subst h; rw [hcr] at hc; cases hc
+  · intro ws ph hU hne hph
+    cases ph with
+    | queued si =>
+      obtain ⟨q1, q2, q3, q4, q5⟩ := hph
+      exact ⟨q1, q2, by rw [hCL ws hne]; exact q3, q4, q5⟩
+    | reg Y =>
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
+      have hYX : Y ≠ X := fun e => by subst e; rw [← hfw] at r1; exact hne r1
+      refine ⟨r1, r2, by rw [hCL ws hne]; exact r3, r4, r5, ?_, ?_⟩
+      · intro hCS j hj
+        unfold RunSt.cancelAns at hCS; simp only at hCS
+        rw [GMap.lookup_delete_ne _ (Ne.symm hYX)] at hCS
+        exact hans j (r6 hCS j hj)
+      · intro j j' hj hj' hn hn'
+        exact r7 j j' hj hj' (fun e => hn (hans j e)) (fun e => hn' (hans j' e))
+    | closedRun Y =>
+      obtain ⟨c1, c2, c3, c4, c5, c6, c7⟩ := hph
+      have hYX : Y ≠ X := fun e => by subst e; rw [← hfw] at c1; exact hne c1
+      exact ⟨c1, c2, by rw [hCL ws hne]; exact c3, c4, c5, fun h => c6 ((hlive Y hYX).1 h),
+        fun j hj => hans j (c7 j hj)⟩
+    | orphan =>
+      obtain ⟨o1, o2, o3⟩ := hph
+      exact ⟨o1, o2, by rw [hCL ws hne]; exact o3⟩
+  · intro ws ph hf hph
+    rw [hf] at hfw
+    have hMX := hfw.symm
+    cases ph with
+    | queued si => exact absurd hMX (hph.1 X)
+    | orphan => exact absurd hMX (hph.1 X)
+    | closedRun Y =>
+      have hY : Y = X := g2 Y X ws hph.1 hMX
+      subst hY
+      exact absurd (hph.2.2.2.2.2.2 i hi) hia
+    | reg Y =>
+      have hY : Y = X := g2 Y X ws hph.1 hMX
+      subst hY
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
+      refine ⟨r1, r2, ?_, r4, r5, ?_, ?_⟩
+      · unfold RunSt.cancelAns; simp only [hf]; exact GMap.lookup_insert _ _ _
+      · show ¬ idLive (S.Dm ++ [m]) Y
+        rw [idLive_snoc, if_pos ⟨hsrc, hid⟩, hcr]; simp
+      · intro j hj
+        by_cases e : j = i
+        · subst e; exact List.mem_append_right _ (by simp)
+        · exact hans j (Classical.byContradiction fun hn => e (r7 j i hj hi hn hia))
+
+/-- The model after an mvcc response `m` of a live id. -/
+def RunSt.recvMvcc (S : RunSt) (m : WatchRespM) : RunSt := { S with Dm := S.Dm ++ [m] }
+
+theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.RespM}
+    (hg : gOk S U) (hsrc : m.src = some ρ) (hid : ρ.id ≠ W64 (-1)) (hl : idLive S.Dm ρ.id) :
+    gOk (S.recvMvcc m) U ∧ ∀ ws ph, phOk S ws ph → phOk (S.recvMvcc m) ws ph := by
+  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
+  have hlive : ∀ Y, (idLive (S.recvMvcc m).Dm Y ↔ idLive S.Dm Y) := by
+    intro Y
+    show idLive (S.Dm ++ [m]) Y ↔ _
+    rw [idLive_snoc, if_neg (fun h => by rw [hsrc] at h; cases h.1)]
+  refine ⟨⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, ?_, ?_⟩, ?_⟩
+  · intro j m' ρ' hj hs
+    show ρ'.id ≠ W64 (-1) ∧ idLive ((S.Dm ++ [m]).take j) ρ'.id
+    rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨hj2, hm'⟩
+    · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ' hj' hs
+    · subst hm'
+      rw [hsrc] at hs; cases hs
+      subst hj2
+      rw [List.take_left]; exact ⟨hid, hl⟩
+  · intro m' hm hs hc hca
+    rcases List.mem_append.1 hm with h | h
+    · exact g13 m' h hs hc hca
+    · simp at h; subst h; rw [hsrc] at hs; cases hs
+  · intro ws ph hph
+    cases ph with
+    | closedRun Y =>
+      obtain ⟨c1, c2, c3, c4, c5, c6, c7⟩ := hph
+      exact ⟨c1, c2, c3, c4, c5, fun h => c6 ((hlive Y).1 h), c7⟩
+    | queued si => exact hph
+    | reg Y => exact hph
+    | orphan => exact hph
+
+
 end client
 end EtcdGrove
 end Perennial
