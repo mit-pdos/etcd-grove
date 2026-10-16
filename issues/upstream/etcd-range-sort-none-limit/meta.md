@@ -2,7 +2,7 @@
 
 - **Finding**: `issues/etcd-range-sort-none-limit.md`
 - **Target**: etcd-io/etcd, `main`; backport to `release-3.6`, `release-3.5`
-- **Branch**: `etcd-range-sort-none-limit` in `~/etcd-fixes/etcd-range-sort-none-limit` (commit 40a6c54fd), not pushed.
+- **Branch**: `etcd-range-sort-none-limit` in `~/etcd-fixes/etcd-range-sort-none-limit` (commit 972c22ce2), not pushed.
   `issue.md` links the test at `https://github.com/upamanyus/etcd/blob/etcd-range-sort-none-limit/...`, which
   resolves once the branch is pushed to the fork under that name.
 - **Base**: upstream `main` ea8b59433d82e8fc3f1365618740395e0028bd03 (2026-10-16)

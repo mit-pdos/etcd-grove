@@ -35,7 +35,10 @@ Look for, in this order:
 6. **What the issue must not contain.** Internals (function or variable names, links into the code, how the bug
    came in), claims about other releases, a description of the test (the link shows it), anything about how the bug
    was found beyond its standard last paragraph.
-7. **The PR.** Like etcd's merged fix PRs, it is a few sentences: the root cause and the change with permalinks,
+7. **The PR.** Can you tell from the root-cause sentence alone what is wrong, without opening the code? A sentence
+   that reads as describing correct behavior ("checked the order as sent and kept the limit": shouldn't it?), or a
+   word with two meanings (whose limit, which order), needs a rewrite. Like etcd's merged fix PRs, it is a few
+   sentences: the root cause and the change with permalinks,
    `Fixes #`, one line on testing, the AI disclosure. Flag anything beyond that (notes for the reviewer,
    alternatives, costs, suite lists, backport requests) for deletion, and do not propose adding any. Is the fix
    the right layer and the smallest change, with no comment that restates the code? If not, say so as an edit to

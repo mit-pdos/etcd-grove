@@ -182,7 +182,12 @@ assertion; nothing is reworded.
 (#22596: one). `Title:` the commit subject. Body, and nothing else:
 
 1. the root cause and the change, in one to three sentences, with permalinks at the base
-   (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`) to the lines that matter;
+   (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`) to the lines that matter. Say what each piece
+   of code does in the request's terms and which of them is wrong ("`rangeLimit` treats `NONE` as unsorted and lets
+   mvcc stop reading after `limit + 1` keys"), not a shorthand of its conditions ("checked the order as sent and
+   kept the limit", which a reader takes to describe correct behavior). A word with two meanings in the code (the
+   request's limit and mvcc's read limit; the order sent and the order sorted in) says which it is every time;
+   the same goes for the commit message;
 2. `Fixes #<issue>`;
 3. one line on testing: the new test runs the issue's example, fails on `main` and passes with the change;
 4. word for word: "This PR was written in part with the assistance of generative AI; I have reviewed and tested
