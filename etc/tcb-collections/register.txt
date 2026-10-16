@@ -24,20 +24,37 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # `fmt.Errorf` axiom and `raftpb.ConfChangeType.String.wp_proof`: `confchange.Changer.apply`'s
 # error formats a `ConfChangeType`, which Perennial's `fmt.wp_Errorf` no longer admits
 # (notes/STATUS.md, "Merge: `worktree-raft-rest` into `lean`").
+# Since 2026-10-16 (raft v3.7, stage R6b) the register rests on raft v3.7's trust base
+# (etc/tcb-collections/raft.txt: protobuf-go's nine `proto.*` axioms, `DescribeConfChange`;
+# gogoproto's and `reflect.DeepEqual` are gone), on protobuf-go `proto`'s initializer (a
+# `sorry`, as raft's Init.lean says), and on the two `sorry`s of the register's own that record
+# raft specs its Go code cannot meet (Proof/.../register/Main.lean `RestartNode_weakCS`:
+# `RestartNode`'s `InitialState` premise asks the conf state's `AutoLeave` cell set;
+# Proof/.../register/deliver.lean: `Ready` hands a response out at half while `Node.Step` takes
+# the message whole). Written by hand from `Results.lean`'s `#print axioms` while the server's
+# modules were out of date (R6b ran beside the server's port): confirm with
+# `--check --update` after a full build.
+axiom DescribeConfChange.wp_proof
 axiom fmt.Errorf.wp_proof
-axiom gogoproto.Equal.wp_proof
-axiom raftpb.ConfChange.Marshal.wp_proof
-axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
-axiom raftpb.ConfChangeV2.Marshal.wp_proof
-axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
-axiom reflect.DeepEqual.wp_proof
 sorry Perennial.crypto.rand.initialize'.wp_proof
 sorry Perennial.errors.wp_errorType_init
 sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'
+sorry Perennial.google_golang_org.protobuf.proto.wp_initialize'
 sorry Perennial.log.initialize'.wp_proof
 sorry Perennial.math.big.initialize'.wp_proof
 sorry Perennial.math.initialize'.wp_proof
 sorry Perennial.os.wp_initialize'
 sorry Perennial.strconv.wp_initialize'
 sorry Perennial.time.initialize'.wp_proof
+sorry register.RestartNode_weakCS
+sorry register.deliver.wp_proof
