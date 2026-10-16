@@ -55,7 +55,7 @@ theorem isEtcdRangeWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) 
   iframe #
   ipureintro; exact Hpre
 
-/-- The server's certified logs are small (the read side's `storeSmall`), so `srvLogsSmall`. -/
+/-- The server's sealed logs are small (the read side's `storeSmall`), so `srvLogsSmall`. -/
 theorem srvLogsSmall_of_read (R : v3rpc.WSrv GF) (s : Loc) (γr : ReadNames)
     (h : R.γ.st = R.E.γ) :
     isServerRead (GF := GF) s R.E γr ⊢ srvLogsSmall R := by

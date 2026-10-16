@@ -8,7 +8,8 @@ registered (`etcd_kv_served`'s conclusion) returns a queue whose `Enqueue` and `
 recipes' specs in the server's model (`v3rpc.etcdModelOfServer E`): the composition of
 `queue_NewQueue`/`queue_Enqueue`/`queue_Dequeue` with `isEtcdRecipesClient_of_kv`. `Dequeue`'s
 answer is stated in the server's terms (`queueTaken`): the item it returns was, with its value,
-under `kp` in the state of a certified log (`idxCert`) just before the claim's revision `r` and
+under `kp` in the state of a sealed log (`idxSealed`, unit W-M2b: the clients' model is over
+sealed logs; every certified log is one) just before the claim's revision `r` and
 gone from it at `r`, and the claim holds the server's token of `r` (`revTok`, exclusive: dequeued
 at most once, `queue_vertical_once`); the order (`dequeueOrder`) in the model's terms, which
 unfold to the same (`srvEtcdState`).
@@ -51,22 +52,22 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **A dequeue's claim, in the server's terms**: the token of the claim's revision `r`
-(`revTok`, the server's: exclusive); a certified log in whose state at `r - 1` the item `it`
-(under `kp`) was, under `kp`; and a certified log in whose state at `r` no key-value under `kp`
+(`revTok`, the server's: exclusive); a sealed log in whose state at `r - 1` the item `it`
+(under `kp`) was, under `kp`; and a sealed log in whose state at `r` no key-value under `kp`
 has `it`'s key. -/
 def queueTaken (E : apply.AEnv GF) (kp : GoString) (it : EtcdKv) (r : w64) : IProp GF :=
   iprop(revTok E r ∗
-    (∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+    (∃ log : mvcc.Log, mvcc.idxSealed E.γ.idx log ∗
       ⌜0 ≤ sint.Z (r - W64 1) ∧ sint.Z (r - W64 1) < log.length ∧
         it ∈ txn.underPfx kp (mvcc.stateAt log (sint.Z (r - W64 1)).toNat) ∧ kp <+: it.key⌝) ∗
-    (∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+    (∃ log : mvcc.Log, mvcc.idxSealed E.γ.idx log ∗
       ⌜0 < sint.Z r ∧ sint.Z r < log.length ∧
         ∀ v ∈ txn.underPfx kp (mvcc.stateAt log (sint.Z r).toNat), v.key ≠ it.key⌝))
 
-/-- etcd's state in the server's model is a certified log's. -/
-theorem srvState_cert (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : List EtcdKv) :
+/-- etcd's state in the server's model is a sealed log's. -/
+theorem srvState_sealed (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : List EtcdKv) :
     etcdState (self := v3rpc.etcdModelOfServer E) r pfx s ⊢
-      ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+      ∃ log : mvcc.Log, mvcc.idxSealed E.γ.idx log ∗
         ⌜0 ≤ sint.Z r ∧ sint.Z r < log.length ∧
           s = txn.underPfx pfx (mvcc.stateAt log (sint.Z r).toNat)⌝ := by
   rw [v3rpc.etcdModelOfServer_etcdState]
@@ -87,8 +88,8 @@ theorem queueTaken_of (E : apply.AEnv GF) (kp : GoString) (it : EtcdKv) (r : w64
   iframe Htok
   iunfold revKeyDeleted at Hd
   icases Hd with ⟨%s1, %s1', -, #Hs1', %Hp⟩
-  ihave ⟨%log, #Hl, %Hlp⟩ := srvState_cert E _ kp s $$ Hs
-  ihave ⟨%log', #Hl', %Hlp'⟩ := srvState_cert E _ kp s1' $$ Hs1'
+  ihave ⟨%log, #Hl, %Hlp⟩ := srvState_sealed E _ kp s $$ Hs
+  ihave ⟨%log', #Hl', %Hlp'⟩ := srvState_sealed E _ kp s1' $$ Hs1'
   isplitl []
   · iexists log
     iframe Hl

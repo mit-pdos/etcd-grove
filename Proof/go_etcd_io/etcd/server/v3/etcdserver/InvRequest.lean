@@ -637,6 +637,11 @@ instance idxCert_timeless_req (γ : mvcc.IdxNames) (log : mvcc.Log) :
     Timeless (mvcc.idxCert (GF := GF) γ log) := by
   unfold mvcc.idxCert; infer_instance
 
+/-- mvcc's seal is timeless (a ghost lower bound and a pure fact; unit W-M2b). -/
+instance idxSealed_timeless_req (γ : mvcc.IdxNames) (log : mvcc.Log) :
+    Timeless (mvcc.idxSealed (GF := GF) γ log) := by
+  unfold mvcc.idxSealed; infer_instance
+
 /-- Two logs applied through one index are one. -/
 theorem appliedLogAt_agree (γr : ReadNames) (i : w64) (L L' : mvcc.Log) :
     ⊢ appliedLogAt (GF := GF) γr i L -∗ appliedLogAt γr i L' -∗ ⌜L = L'⌝ := by

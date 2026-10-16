@@ -412,17 +412,19 @@ theorem keyRangeUnder_key_ne {pfx key re : GoString} (h : KeyRangeUnder pfx key 
   exact List.prefix_nil.1 (h [] hin)
 
 /-- **One event of a dispatched response satisfies the contract**: an event of the registered
-range's watch events of revisions `[a, d)` of a certified log (`d` within it, `a` at or above the
-watch's start revision), whose key-value is at `kv`. -/
+range's watch events of revisions `[a, d)` of a sealed log (`d` within it, `a` at or above the
+watch's start revision), whose key-value is at `kv`; the event's revision is reached by S4
+(`srvSealedReached`). -/
 theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (L2 : mvcc.Log) (rg : mvcc.WatchRange) (X : w64)
     (a d : Nat) (ev : mvcc.EvM) (kv : Loc)
     (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn) X rg)
     (hmem : ev ∈ mvcc.watchEvents L2 rg a d) (hd : d ≤ L2.length) (hlo : sint.Z P.rev ≤ (a : Int))
     (hst : V.R.γ.st = V.R.E.γ) (hnd : txn.NoDupKeysPerRev L2) :
-    mvcc.idxCert V.R.γ.st.idx L2 ∗ srvLogsSmall V.R ∗ mvcc.kvPtrFixed kv ev.kv ⊢
+    mvcc.idxSealed V.R.γ.st.idx L2 ∗ srvLogsSmall V.R ∗ srvSealedReached V.R ∗
+      mvcc.kvPtrFixed kv ev.kv ⊢
       rangeWatchEvOk (EM := V.EM) V.pfx P.o P.rev (evModelOf ev kv) := by
-  iintro ⟨#Hc, #Hsm, #Hkv⟩
-  ihave %Hw := v3rpc.idxCert_pure _ L2 $$ Hc
+  iintro ⟨#Hc, #Hsm, #HS4, #Hkv⟩
+  ihave %Hw := v3rpc.sealed_pure _ L2 $$ Hc
   obtain ⟨hwf, hlen⟩ := Hw
   unfold mvcc.watchEvents at hmem
   obtain ⟨hlog, hcov⟩ := List.mem_filter.1 hmem
@@ -449,13 +451,14 @@ theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (L2 : mvcc.Log) (rg : mvcc.WatchRange
     rw [this, h2] at hin0; exact hin0
   have hpk : V.pfx <+: ev.kv.key := hku _ hin
   -- the store's facts at the event's revision
+  have hjr : sint.Z (W64 (j : Int)) < (L2.length : Int) := by rw [hjz]; omega
+  iunfold srvSealedReached at HS4
+  ihave #Hreach := HS4 $$ %L2 %(W64 (j : Int)) Hc %hjr
   iunfold srvLogsSmall at Hsm
   irevert Hc Hsm
   rw [hst]
   iintro #Hc #Hsm
-  have hjr : sint.Z (W64 (j : Int)) < (L2.length : Int) := by rw [hjz]; omega
-  ihave #Hreach := v3rpc.etcdReached_of_cert V.R.E L2 (W64 (j : Int)) hjr $$ Hc
-  ihave ⟨#Hst, %Hwfs⟩ := v3rpc.etcdState_of_cert V.R.E L2 (W64 (j : Int)) V.pfx (by rw [hjz]; omega)
+  ihave ⟨#Hst, %Hwfs⟩ := v3rpc.etcdState_of_sealed V.R.E L2 (W64 (j : Int)) V.pfx (by rw [hjz]; omega)
     hjr $$ [Hsm Hc]
   · iframe #
     unfold storeSmall
@@ -515,14 +518,14 @@ theorem content_cut (L L1 : mvcc.Log) (rg : mvcc.WatchRange) (lo d d1 : Nat)
   cut_step L1 L hcmp rg lo d1 d E evs hcut hflat hdL hne
 
 /-- **A watcher with no filters**: what a client received for it, concatenated, are its range's
-events of revisions `[lo, d)` of a certified log. -/
+events of revisions `[lo, d)` of a sealed log. -/
 theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg : mvcc.WatchRange)
     (fcs : GoSlice) (lo : Nat) :
-    watchRecvCert (GF := GF) γ w rs ∗ mvcc.watcherIs γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ⊢
-      ∃ (L : mvcc.Log) (d : Nat), mvcc.idxCert γ.st.idx L ∗
+    mvcc.watchRecvOk (GF := GF) γ w rs ∗ mvcc.watcherIs γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ⊢
+      ∃ (L : mvcc.Log) (d : Nat), mvcc.idxSealed γ.st.idx L ∗
         ⌜(rs.map mvcc.RespM.evs).flatten = mvcc.watchEvents L rg lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝ := by
   iintro ⟨#Hc, #Hw, #Hfcs⟩
-  unfold watchRecvCert
+  unfold mvcc.watchRecvOk
   icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, %HD, #HDf, -⟩
   unfold mvcc.watcherIs
   icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, %Hlo⟩
@@ -599,9 +602,9 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
     (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn) X rg)
     (hhi : (evsOf Dm w = [] ∧ hi = P.rev - W64 1) ∨
       ∃ e, (evsOf Dm w).getLast? = some e ∧ hi = e.kv.modRev) :
-    srvWatchCert V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
+    srvSealedReached V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
       mvcc.watcherIs V.R.γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ∗
-      (⌜evsOf Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxCert V.R.γ.st.idx L1 ∗
+      (⌜evsOf Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
         ⌜evsOf Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
       sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
     ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
@@ -610,7 +613,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
       ⌜(evsOf (Dm ++ [m]) w = [] ∧ (es.getLast?.map EvModel.rev).getD hi = P.rev - W64 1) ∨
         ∃ e, (evsOf (Dm ++ [m]) w).getLast? = some e ∧
           (es.getLast?.map EvModel.rev).getD hi = e.kv.modRev⌝ ∗
-      (⌜evsOf (Dm ++ [m]) w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxCert V.R.γ.st.idx L1 ∗
+      (⌜evsOf (Dm ++ [m]) w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
         ⌜evsOf (Dm ++ [m]) w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) := by
   iintro ⟨#HS4, #Hsm, #Hnd, #Hrecv, #Hwi, #Hfcs, #Hcut, #Hsl, #Hevs⟩
   ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := evs_eventsAt sl ps ρ.evs hps $$ [Hsl Hevs]
@@ -643,19 +646,17 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
     isplitr
     · ipureintro; exact hhi
     iexact Hcut
-  -- events: the certificate, unfiltered
+  -- events: the sealed log, unfiltered
   have hw := hρw hne
   irevert Hrecv
   rw [hw]
   iintro #Hrecv
-  iunfold srvWatchCert at HS4
-  ihave #Hcert := HS4 $$ %w %rs Hrecv
-  ihave ⟨%L, %d, #HL, %HLd⟩ := recv_unfiltered V.R.γ w rs rg fcs lo $$ [Hcert Hwi Hfcs]
+  ihave ⟨%L, %d, #HL, %HLd⟩ := recv_unfiltered V.R.γ w rs rg fcs lo $$ [Hrecv Hwi Hfcs]
   · iframe #
   obtain ⟨hflat, hdL⟩ := HLd
   rw [evs_after Dm w rs ρ (hfilt hne)] at hflat
   have hflat' : evsOf Dm w ++ ρ.evs = mvcc.watchEvents L rg lo d := hflat
-  ihave %HLw := v3rpc.idxCert_pure _ L $$ HL
+  ihave %HLw := v3rpc.sealed_pure _ L $$ HL
   iunfold srvNoDupKeys at Hnd
   ihave %HLnd := Hnd $$ %L HL
   -- the start revision
@@ -679,7 +680,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
       exact content_cut L L rg lo d 0 (evsOf Dm w) ρ.evs (Or.inl (List.prefix_refl _)) hflat' hdL
         hne (Or.inl HE)
     · ihave %Hc : iprop(⌜L1 <+: L ∨ L <+: L1⌝) $$ []
-      · iapply mvcc.idxCert_prefix
+      · iapply mvcc.idxSealed_prefix
         isplit
         · iexact HL1
         · iexact HL

@@ -88,12 +88,12 @@ abbrev evsSoFar (Dm : List v3rpc.WatchRespM) (w : Loc) : List mvcc.EvM :=
 
 /-- **The dispatch cursor** `hi` of a registered substream (persistent): the last event's revision
 dispatched so far (`rev - 1` if none), the events so far a cut of the watcher's events of a
-certified log. -/
+sealed log. -/
 def cursorOk (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM) (w : Loc)
     (rg : mvcc.WatchRange) (lo : Nat) (hi : w64) : IProp GF :=
   iprop(⌜(evsSoFar Dm w = [] ∧ hi = P.rev - W64 1) ∨
       (∃ e, (evsSoFar Dm w).getLast? = some e ∧ hi = e.kv.modRev)⌝ ∗
-    (⌜evsSoFar Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxCert V.R.γ.st.idx L1 ∗
+    (⌜evsSoFar Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
       ⌜evsSoFar Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝))
 
 instance cursorOk_persistent (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM) (w : Loc)
@@ -425,7 +425,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
     (hfilt : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm ρ.w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ [])))
     (hps : ps.length = ρ.evs.length) (hkvl : kvs.length = ρ.evs.length)
     (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hst : V.R.γ.st = V.R.E.γ) (hhn : h ≠ null) :
-    srvEventIdsAssigned V.R ∗ srvWatchCert V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
+    srvEventIdsAssigned V.R ∗ srvSealedReached V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
       v3rpc.mvccOk γs V.R.γ j m ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
       regFacts V γs P ρ.id w rg fcs lo ∗ sl ↦*□ ps ∗
       ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ∗

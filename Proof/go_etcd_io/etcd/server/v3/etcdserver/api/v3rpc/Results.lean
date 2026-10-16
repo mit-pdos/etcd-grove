@@ -389,8 +389,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 open Iris.ProofMode go_etcd_io.etcd.api.v3 mvcc txn
 
 /-- **The server implements the clients' model of etcd** (`etcdModelOfServer`, every law a
-theorem): its predicates are the server's facts about its certified log (`srvEtcdState`,
-`srvReachedAt`, `srvStep`) and the revisions' tokens the apply thread mints (`revTok`). -/
+theorem): its predicates are the server's facts about its sealed logs (`srvEtcdState`, `srvStep`:
+`idxSealed`, unit W-M2b) and certified logs (`srvReachedAt`: `idxCert`) and the revisions' tokens the apply thread mints (`revTok`). -/
 theorem etcd_model_of_server (E : apply.AEnv GF) :
     ∃ M : EtcdModel GF, M.etcdState = srvEtcdState E ∧ M.etcdReachedAt = srvReachedAt E ∧
       M.etcdRevToken = revTok E ∧ M.EtcdStep = srvStep E :=

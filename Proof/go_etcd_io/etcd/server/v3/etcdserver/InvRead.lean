@@ -16,7 +16,7 @@ revisions (`idxCert`: every read is of a log at least that long, so a read's rev
 committed indices' invariants, `srvAppliedInv`/`srvCommittedInv`; the applied index's waiters
 `applyWait`, a `WaitTime` for `appliedAtLeast γr`, `isWaitTime`; the notifiers `leaderChanged` and
 `firstCommitInTerm`; the `stopping` channel, closed, never sent on: `stopChan`, buffered, 2026-10-13,
-unit 4c), and **the store stays small** (`storeSmall`: every certified log has at most `2 ^ 62`
+unit 4c), and **the store stays small** (`storeSmall`: every sealed log has at most `2 ^ 62`
 changes, `txn.LogSmall`, the sort's premise; a premise, as the apply thread's `rangeOk`/`TxnPre`
 of its entries).
 
@@ -75,11 +75,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The store stays small** (persistent; a premise): every certified log has at most `2 ^ 62`
-changes (`txn.LogSmall`: the sort's premise, `sort.Sort`'s bound and the comparators'
-non-negative values). -/
+/-- **The store stays small** (persistent; a premise): every sealed log (`mvcc.idxSealed`: every
+certified one, `idxCert_sealed`, and the one a writer has sealed and not yet committed, one
+revision more; unit W-M2b) has at most `2 ^ 62` changes (`txn.LogSmall`: the sort's premise,
+`sort.Sort`'s bound and the comparators' non-negative values). -/
 def storeSmall (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(□ ∀ log : mvcc.Log, mvcc.idxCert γ.idx log -∗ ⌜txn.LogSmall log⌝)
+  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed γ.idx log -∗ ⌜txn.LogSmall log⌝)
 
 instance storeSmall_persistent (γ : mvcc.StoreNames) : Persistent (storeSmall (GF := GF) γ) := by
   unfold storeSmall; infer_instance
