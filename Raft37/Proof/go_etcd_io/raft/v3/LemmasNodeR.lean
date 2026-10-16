@@ -8,6 +8,9 @@ Lemmas of the `node` API (`node.go`; raft v3.7 retarget, stage R5 phase 3, group
 * `msgPtsC_nonnull`: a message's pointer is not `nil`.
 * `stepP_split`: `node.Step`'s argument opened: its message (`msgIn`, at `□` from the network,
   at `1` forwarded), of a nonnegative type (for `IsLocalMsg`), and the rest to close it again.
+* `ownCCV2_persist`: a conf change frozen read-only (`node.ApplyConfChange` sends `AsV2`'s fresh
+  one on `confc`, `confcP` holding it at `□`). A predicate lemma that belongs beside
+  `ownCCV2` (`InvPb.lean`), as its instance `ownCCV2_discard_persistent`.
 -/
 module
 
@@ -116,6 +119,27 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iexists st
     iframe Hm Hab
     ipureintro; exact Hty
+
+instance ownCCV2_discard_persistent (p : Loc) (m : CCV2M) :
+    Persistent (ownCCV2 (GF := GF) p DFrac.discard m) := by
+  unfold ownCCV2; infer_instance
+
+/-- A conf change frozen read-only (see the file header). -/
+theorem ownCCV2_persist (p : Loc) (dq : DFrac) (m : CCV2M) :
+    ownCCV2 (GF := GF) p dq m ⊢ |==> ownCCV2 p DFrac.discard m := by
+  iintro H
+  iunfold ownCCV2 at H
+  iNamed H
+  imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
+  imod (typedPointsto_dfractional (GF := GF) _ chs).dfractional_persist _ $$ HCh with #HCh
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hch with #Hch
+  imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HC with #HC
+  imodintro
+  iunfold ownCCV2
+  iexists pt, chs, ls, cs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HT cT HCh Hch Hccs HC Hcs Hpb
 
 end lemmas
 
