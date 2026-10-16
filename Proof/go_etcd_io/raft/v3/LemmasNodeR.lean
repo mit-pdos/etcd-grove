@@ -36,14 +36,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A fresh message setting only scalar fields (see the file header): its struct as
-`&pb.Message{...}` allocates it, the pointer fields given. -/
+`&pb.Message{...}` allocates it, the pointer fields given. (raft#243) `AppliedSnapshotIndex`
+(`pas`, `nil` but in `ReportSnapshot`'s message) is not in the model (`MessageM`): its cell is
+dropped. -/
 theorem msgIn_of_scalar_struct (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj prh : Loc)
-    (m : MessageM) (E : CoPset) :
+    (m : MessageM) (E : CoPset) (pas : Loc := null) :
     (l ↦ ({ state' := zeroValDef, Type' := pty, To' := pto, From' := pfr,
                 Term' := pTerm, LogTerm' := plt, Index' := pix, Entries' := slice.nil,
                 Commit' := pco, Vote' := pvo, Snapshot' := null, Reject' := prj,
                 RejectHint' := prh, Context' := slice.nil, Responses' := slice.nil,
-                unknownFields' := slice.nil, sizeCache' := 0 } : raftpb.Message) ∗
+                AppliedSnapshotIndex' := pas, unknownFields' := slice.nil, sizeCache' := 0 } : raftpb.Message) ∗
       cellRO pty m.Type' ∗ cellRO pto m.To' ∗
       cellRO pfr m.From' ∗ cellRO pTerm m.Term' ∗
       cellRO plt m.LogTerm' ∗ cellRO pix m.Index' ∗
@@ -64,7 +66,7 @@ theorem msgIn_of_scalar_struct (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj 
         Term' := pTerm, LogTerm' := plt, Index' := pix, Entries' := slice.nil,
         Commit' := pco, Vote' := pvo, Snapshot' := null, Reject' := prj,
         RejectHint' := prh, Context' := slice.nil, Responses' := slice.nil,
-        unknownFields' := slice.nil, sizeCache' := 0 }
+        AppliedSnapshotIndex' := pas, unknownFields' := slice.nil, sizeCache' := 0 }
       DFrac.discard true [] ⟨m, [], none, [], []⟩ E rfl
       $$ [Hl Hnilr] with Hmsg
   · iframe Hl Hnile Hnilb Hnilr cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh

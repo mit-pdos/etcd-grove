@@ -217,7 +217,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       { state' := zeroValDef, Type' := pty, To' := «$v0_ptr», From' := null, Term' := null,
         LogTerm' := null, Index' := null, Entries' := slice.nil, Commit' := null, Vote' := null,
         Snapshot' := snap, Reject' := null, RejectHint' := null, Context' := slice.nil,
-        Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
+        Responses' := slice.nil, AppliedSnapshotIndex' := null, unknownFields' := slice.nil, sizeCache' := 0 }
       [] ⟨mm, [], some sv, [], []⟩ ⊤ rfl
       $$ [«$a0» Hsback Hnilr] with Hm
     · iframe «$a0» cTy cTo Hnil Hnilb Hnilr

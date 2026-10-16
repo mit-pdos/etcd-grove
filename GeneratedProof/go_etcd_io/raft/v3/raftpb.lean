@@ -425,6 +425,7 @@ instance Message_typed_pointsto :
     "RejectHint" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"RejectHint" l) v.RejectHint' dq ∗
     "Context" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"Context" l) v.Context' dq ∗
     "Responses" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"Responses" l) v.Responses' dq ∗
+    "AppliedSnapshotIndex" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"AppliedSnapshotIndex" l) v.AppliedSnapshotIndex' dq ∗
     "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"unknownFields" l) v.unknownFields' dq ∗
     "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
@@ -673,6 +674,22 @@ instance Message_access_store_Responses (l : Loc) (v : go_etcd_io.raft.v3.raftpb
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"Responses" l) v.Responses' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"Responses" l) Responses' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Responses' := Responses' } : go_etcd_io.raft.v3.raftpb.Message) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Message_access_load_AppliedSnapshotIndex (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Message) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"AppliedSnapshotIndex" l) v.AppliedSnapshotIndex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"AppliedSnapshotIndex" l) v.AppliedSnapshotIndex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Message_access_store_AppliedSnapshotIndex (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Message) (AppliedSnapshotIndex' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"AppliedSnapshotIndex" l) v.AppliedSnapshotIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"AppliedSnapshotIndex" l) AppliedSnapshotIndex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AppliedSnapshotIndex' := AppliedSnapshotIndex' } : go_etcd_io.raft.v3.raftpb.Message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

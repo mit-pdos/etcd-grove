@@ -30,22 +30,19 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`tracker.Progress.BecomeProbe.impl`, Rocq new/code/go_etcd_io/raft/v3/tracker.v:249;
 progress.go:130):
 
-    if pr.State == StateSnapshot {
-      pendingSnapshot := pr.PendingSnapshot
-      pr.ResetState(StateProbe)
-      pr.Next = max(pr.Match+1, pendingSnapshot+1)
-    } else {
-      pr.ResetState(StateProbe)
-      pr.Next = pr.Match + 1
-    }
+    pr.ResetState(StateProbe)
+    pr.Next = pr.Match + 1
     pr.sentCommit = min(pr.sentCommit, pr.Next-1)
+
+(raft#243: until then, from `StateSnapshot`, `Next = max(Match+1, PendingSnapshot+1)`; the
+statement is unchanged, `progressBecomeProbeNext` is now `Match + 1`.)
 
 One exit, no panic of its own; the one call is `ResetState`
 (`spec_Progress__ResetState.v`, exact), which empties the `Inflights` and clears
-`MsgAppFlowPaused` and `PendingSnapshot`. `Match` is untouched. The `+1`/`-1` are
+`MsgAppFlowPaused`. `Match` is untouched. The `+1`/`-1` are
 `uint64` arithmetic and wrap silently in Go (and as `w64` `+`/`-` in Goose), so they
-are stated that way rather than excluded by a premise: `ownProgress` bounds neither
-`Match` nor `PendingSnapshot`. `min`/`max` are `w64Min`/`w64Max` (`Defs.lean`),
+are stated that way rather than excluded by a premise: `ownProgress` does not bound
+`Match`. `min` is `w64Min` (`Defs.lean`),
 Goose's builtins verbatim. The new record is `progressBecomeProbe p` (`Defs.lean`). -/
 abbrev tracker.Progress.BecomeProbe.spec : Prop :=
   ∀ (pr : Loc) (p : Progress),

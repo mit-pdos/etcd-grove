@@ -1,0 +1,13 @@
+# etcd-io/raft#243 (notes/pr-verify/raft-243.md): the results of the functions the PR changes,
+# and of raft.Step, through which every result over the raft state machine reaches the
+# MsgSnapStatus success arm of stepLeader (a `sorry`, stepLeader/Rest.lean).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-243.txt
+#
+# The baseline below is not written: etc/tcb-report.py needs every root of the worktree built,
+# and only the raft modules were (the report compares `#print axioms` of Results.lean instead).
+roots tracker\.Progress\.wp_(ResetState|BecomeProbe|BecomeSnapshot|BecomeReplicate|OnSnapshotApplied)$
+roots \bwp_stepLeader$
+roots RawNode\.wp_ReportSnapshot$
+roots node\.wp_ReportSnapshot$
+roots raft\.wp_Step$

@@ -79,7 +79,7 @@ theorem RawNode.Propose.wp_proof
   imod cellRO_alloc $$ «$v1» with #cFr
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   imod msgPtsC_of_struct «$a0_ptr» (⟨zero_val _, pty, null, «$v1_ptr», null, null, null,
-      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
+      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, null, slice.nil,
       0⟩ : raftpb.Message) (DFrac.own 1) false [l0]
       ⟨{ (zero_val MessageM) with Type' := W32 2, From' := id }, [propEntryM data], none, [], []⟩
       ⊤ rfl $$ [«$a0» Hsl] with Hm

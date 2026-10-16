@@ -380,7 +380,6 @@ structure Progress where
   next : w64
   sentCommit : w64
   state : PRState
-  pendingSnapshot : w64
   paused : Bool
   infl : Inflights
   learner : Bool
@@ -442,8 +441,7 @@ def inflightsAbs (iv : tracker.Inflights) : Inflights :=
 out. (Until 2026-10-13 also `none` on a learner.) -/
 def progressAbs (pv : tracker.Progress) (i : Inflights) : Option Progress :=
   (prstateOfW64 pv.State').map fun st =>
-    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i,
-      pv.IsLearner'⟩
+    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.MsgAppFlowPaused', i, pv.IsLearner'⟩
 
 /-- What `progressAbs pv i = some p` says, field by field. -/
 theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) :
@@ -453,21 +451,20 @@ theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) 
     pv.Match' = p.matched ∧
     pv.Next' = p.next ∧
     pv.sentCommit' = p.sentCommit ∧
-    pv.PendingSnapshot' = p.pendingSnapshot ∧
     pv.MsgAppFlowPaused' = p.paused ∧
     i = p.infl := by
   unfold progressAbs
-  obtain ⟨m, n, sc, st, ps, pa, inf, l⟩ := p
+  obtain ⟨m, n, sc, st, pa, inf, l⟩ := p
   rw [← prstateOfW64_Some]
   cases hs : prstateOfW64 pv.State' with
   | none => simp
   | some st' =>
     simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
     constructor
-    · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
-      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
-    · rintro ⟨h8, h4, h1, h2, h3, h5, h6, h7⟩
-      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+    · rintro ⟨h1, h2, h3, h4, h6, h7, h8⟩
+      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h6, h7⟩
+    · rintro ⟨h8, h4, h1, h2, h3, h6, h7⟩
+      exact ⟨h1, h2, h3, h4, h6, h7, h8⟩
 
 end abs
 
@@ -506,13 +503,12 @@ The first four were in the spec files, on `tracker.Progress`, until 2026-10-02. 
 
 /-- `ResetState(state)`. -/
 def progressResetState (p : Progress) (st : PRState) : Progress :=
-  { p with paused := false, pendingSnapshot := W64 0, state := st,
-           infl := inflightsReset p.infl }
+  { p with paused := false, state := st, infl := inflightsReset p.infl }
 
-/-- `BecomeProbe()`: the new `Next`, then the whole update. -/
+/-- `BecomeProbe()`: the new `Next`, then the whole update. (raft#243: `Match + 1` in every
+state; until then `max(Match + 1, PendingSnapshot + 1)` from `StateSnapshot`.) -/
 def progressBecomeProbeNext (p : Progress) : w64 :=
-  if p.state = .snapshot then w64Max (p.matched + W64 1) (p.pendingSnapshot + W64 1)
-  else p.matched + W64 1
+  p.matched + W64 1
 
 def progressBecomeProbe (p : Progress) : Progress :=
   { progressResetState p .probe with
@@ -526,7 +522,13 @@ def progressBecomeReplicate (p : Progress) : Progress :=
 /-- `BecomeSnapshot(snapshoti)`. -/
 def progressBecomeSnapshot (p : Progress) (snapshoti : w64) : Progress :=
   { progressResetState p .snapshot with
-      pendingSnapshot := snapshoti, next := snapshoti + W64 1, sentCommit := snapshoti }
+      next := snapshoti + W64 1, sentCommit := snapshoti }
+
+/-- `OnSnapshotApplied(i)` (raft#243): `Match = i`, `Next = Match + 1`. The one method other than
+`MaybeUpdate` that writes `Match` -- and it may lower it, or raise it with no acknowledgment
+from the follower. -/
+def progressOnSnapshotApplied (p : Progress) (i : w64) : Progress :=
+  { p with matched := i, next := i + W64 1 }
 
 /-- `IsPaused()`. -/
 def progressIsPaused (p : Progress) : Bool :=
@@ -630,42 +632,31 @@ theorem logLast_le_of_fields {ls ls' : LogState} (hp : ls'.prev.index' = ls.prev
 /-! ### The leader's progress bound (2026-10-16, stage R8a, D11) -/
 
 /-- A leader's view of a peer (`Progress`) against its log (2026-10-16, stage R8a, D11): `Next` at
-least `1` and at most one past the last index, `Match` and a pending snapshot's index at most the
-last index. -/
+least `1` and at most one past the last index, `Match` at most the last index. (raft#243: the
+pending snapshot's bound went with the field.) -/
 def PrOk (ls : LogState) (p : Progress) : Prop :=
   1 ≤ uint.Z p.next ∧ uint.Z p.next ≤ uint.Z (logLast ls) + 1 ∧
-  uint.Z p.matched ≤ uint.Z (logLast ls) ∧ uint.Z p.pendingSnapshot ≤ uint.Z (logLast ls)
+  uint.Z p.matched ≤ uint.Z (logLast ls)
 
 /-- `PrOk` is monotone in the log's last index: a leader's log only grows. -/
 theorem PrOk.mono {ls ls' : LogState} {p : Progress} (H : PrOk ls p)
     (Hle : uint.Z (logLast ls) ≤ uint.Z (logLast ls')) : PrOk ls' p := by
   unfold PrOk at *; omega
 
-/-- `PrOk` of a value with the same `Next` and `Match` and no larger pending snapshot. -/
+/-- `PrOk` of a value with the same `Next` and `Match`. -/
 theorem PrOk.fields {ls : LogState} {p p' : Progress} (H : PrOk ls p)
-    (hn : p'.next = p.next) (hm : p'.matched = p.matched)
-    (hs : uint.Z p'.pendingSnapshot ≤ uint.Z p.pendingSnapshot) : PrOk ls p' := by
+    (hn : p'.next = p.next) (hm : p'.matched = p.matched) : PrOk ls p' := by
   unfold PrOk at *; rw [hn, hm]; omega
-
-/-- `PrOk` of a value with the same `Next` and `Match` and no pending snapshot. -/
-theorem PrOk.fields0 {ls : LogState} {p p' : Progress} (H : PrOk ls p)
-    (hn : p'.next = p.next) (hm : p'.matched = p.matched)
-    (hs : p'.pendingSnapshot = W64 0) : PrOk ls p' := by
-  unfold PrOk at *; rw [hn, hm, hs]; have := uint_Z_nonneg p.pendingSnapshot; word
 
 /-- The field writes of `stepLeader` that touch none of the three bounded fields. -/
 theorem PrOk.setPaused {ls : LogState} {p : Progress} (H : PrOk ls p) (b : Bool) :
     PrOk ls { p with paused := b } :=
-  H.fields rfl rfl (Int.le_refl _)
+  H.fields rfl rfl
 
 theorem PrOk.setInfl {ls : LogState} {p : Progress} (H : PrOk ls p) (i : Inflights) :
     PrOk ls { p with infl := i } :=
-  H.fields rfl rfl (Int.le_refl _)
+  H.fields rfl rfl
 
-/-- `pr.PendingSnapshot = 0` (`MsgSnapStatus` rejected). -/
-theorem PrOk.clearSnap {ls : LogState} {p : Progress} (H : PrOk ls p) :
-    PrOk ls { p with pendingSnapshot := W64 0 } :=
-  H.fields0 rfl rfl rfl
 
 /-! One lemma per `Progress` method (`tracker/progress.go`), under `PrOk` of the old value and,
 where `Match + 1` or `Next + k` must not wrap, `logLast + 1 < 2^64` (`ownRaftLog`'s `Hnowrap`,
@@ -673,32 +664,32 @@ where `Match + 1` or `Next + k` must not wrap, `logLast + 1 < 2^64` (`ownRaftLog
 
 theorem PrOk.resetState {ls : LogState} {p : Progress} (H : PrOk ls p) (st : PRState) :
     PrOk ls (progressResetState p st) :=
-  H.fields0 rfl rfl rfl
+  H.fields rfl rfl
 
 theorem PrOk.becomeProbe {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
     (H : PrOk ls p) : PrOk ls (progressBecomeProbe p) := by
   have Hnw := Hnw.logLast
-  obtain ⟨h1, h2, h3, h4⟩ := H
+  obtain ⟨h1, h2, h3⟩ := H
   unfold PrOk
   simp only [progressBecomeProbe, progressResetState, progressBecomeProbeNext, w64Max]
-  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  refine ⟨?_, ?_, ?_⟩ <;> word
 
 theorem PrOk.becomeReplicate {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
     (H : PrOk ls p) : PrOk ls (progressBecomeReplicate p) := by
   have Hnw := Hnw.logLast
-  obtain ⟨h1, h2, h3, h4⟩ := H
+  obtain ⟨h1, h2, h3⟩ := H
   unfold PrOk
   simp only [progressBecomeReplicate, progressResetState]
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  refine ⟨?_, ?_, ?_⟩ <;> word
 
 theorem PrOk.becomeSnapshot {ls : LogState} {p : Progress} {i : w64}
     (Hnw : LogNoWrap ls) (H : PrOk ls p) (Hi : uint.Z i ≤ uint.Z (logLast ls)) :
     PrOk ls (progressBecomeSnapshot p i) := by
   have Hnw := Hnw.logLast
-  obtain ⟨h1, h2, h3, h4⟩ := H
+  obtain ⟨h1, h2, h3⟩ := H
   unfold PrOk
   simp only [progressBecomeSnapshot, progressResetState]
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  refine ⟨?_, ?_, ?_⟩ <;> word
 
 /-- `SentEntries(entries, bytes)` of entries from `Next` on, within the log. -/
 theorem PrOk.sentEntries {ls : LogState} {p : Progress} {entries bytes : w64}
@@ -706,23 +697,23 @@ theorem PrOk.sentEntries {ls : LogState} {p : Progress} {entries bytes : w64}
     (Hb : uint.Z p.next + sint.Z entries ≤ uint.Z (logLast ls) + 1) :
     PrOk ls (progressSentEntries p entries bytes) := by
   have Hnw := Hnw.logLast
-  obtain ⟨h1, h2, h3, h4⟩ := H
+  obtain ⟨h1, h2, h3⟩ := H
   have He' : uint.Z entries = sint.Z entries := by word
   unfold PrOk progressSentEntries
-  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_⟩ <;> word
 
 theorem PrOk.sentCommit {ls : LogState} {p : Progress} (H : PrOk ls p) (c : w64) :
     PrOk ls (progressSentCommit p c) :=
-  H.fields rfl rfl (Int.le_refl _)
+  H.fields rfl rfl
 
 /-- `MaybeUpdate(n)` of an index within the log. -/
 theorem PrOk.maybeUpdate {ls : LogState} {p : Progress} {n : w64}
     (H : PrOk ls p) (Hn : uint.Z n ≤ uint.Z (logLast ls)) :
     PrOk ls (progressMaybeUpdate p n) := by
-  obtain ⟨h1, h2, h3, h4⟩ := H
+  obtain ⟨h1, h2, h3⟩ := H
   unfold PrOk progressMaybeUpdate
   simp only [w64Max]
-  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_⟩ <;> word
 
 /-- `MaybeDecrTo(rejected, matchHint)`: both arms (in the probe arm `rejected = Next - 1`, within
 the log by `PrOk` itself). -/
@@ -730,17 +721,17 @@ theorem PrOk.maybeDecrTo {ls : LogState} {p : Progress} {rejected matchHint : w6
     (Hnw : LogNoWrap ls) (H : PrOk ls p) :
     PrOk ls (progressMaybeDecrTo p rejected matchHint).2 := by
   have Hnw := Hnw.logLast
-  obtain ⟨h1, h2, h3, h4⟩ := H
+  obtain ⟨h1, h2, h3⟩ := H
   unfold PrOk progressMaybeDecrTo
   simp only [w64Max, w64Min]
   split
-  · split <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  · split <;> refine ⟨?_, ?_, ?_⟩ <;> word
   · split
     · rename_i Hr
       have Hr' : uint.Z rejected = uint.Z p.next - 1 := by
         rw [← Hr]; word
-      split <;> split <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
-    · refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+      split <;> split <;> refine ⟨?_, ?_, ?_⟩ <;> word
+    · refine ⟨?_, ?_, ?_⟩ <;> word
 
 /-- `unstable.offset`, which `ownRaftLog` pins to the end of the stable part
 (`Hoffset`). -/
@@ -949,24 +940,23 @@ theorem PrvalsOk.lookup {s : NState} (H : PrvalsOk s) (Hl : s.role = .leader) {v
 /-- What `reset`'s `Visit` closure writes into the peer `v`'s `Progress`, with `li` the log's last
 index (`raft.go`'s `reset`: `*pr = Progress{Match: 0, Next: lastIndex+1, ...}; if id == r.id {
 pr.Match = lastIndex }`): `Next = lastIndex + 1`, `Match = 0` (`lastIndex` for the node itself),
-no pending snapshot, `StateProbe` (the zero `Progress`'s state). -/
+`StateProbe` (the zero `Progress`'s state). -/
 def ResetPr (id li v : w64) (p : Progress) : Prop :=
-  p.next = li + W64 1 ∧ p.matched = (if v = id then li else W64 0) ∧
-  p.pendingSnapshot = W64 0 ∧ p.state = .probe
+  p.next = li + W64 1 ∧ p.matched = (if v = id then li else W64 0) ∧ p.state = .probe
 
 /-- `PrOk` of a value `reset`'s closure writes: `Next = lastIndex + 1`, `Match` `0` or `lastIndex`,
 no pending snapshot. -/
 theorem PrOk.of_reset_vals {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
-    (hn : p.next = logLast ls + W64 1) (hm : p.matched = W64 0 ∨ p.matched = logLast ls)
-    (hs : p.pendingSnapshot = W64 0) : PrOk ls p := by
+    (hn : p.next = logLast ls + W64 1) (hm : p.matched = W64 0 ∨ p.matched = logLast ls) :
+    PrOk ls p := by
   have Hnw := Hnw.logLast
-  unfold PrOk; rw [hn, hs]
-  rcases hm with hm | hm <;> rw [hm] <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  unfold PrOk; rw [hn]
+  rcases hm with hm | hm <;> rw [hm] <;> refine ⟨?_, ?_, ?_⟩ <;> word
 
 theorem ResetPr.prOk {id v : w64} {ls : LogState} {p : Progress}
     (Hnw : LogNoWrap ls) (H : ResetPr id (logLast ls) v p) : PrOk ls p := by
-  obtain ⟨h1, h2, h3, -⟩ := H
-  refine PrOk.of_reset_vals Hnw h1 ?_ h3
+  obtain ⟨h1, h2, -⟩ := H
+  refine PrOk.of_reset_vals Hnw h1 ?_
   rw [h2]; split
   · exact .inr rfl
   · exact .inl rfl
@@ -976,9 +966,8 @@ theorem ResetPr.prOk {id v : w64} {ls : LogState} {p : Progress}
 pending snapshot kept) or fresh (`initProgress`: `Match = 0`, `Next = max(LastIndex, 1)`, no
 pending snapshot), `li` the `Changer`'s `LastIndex`. -/
 def PrKeptAt (old : GMap w64 Progress) (li k : w64) (p' : Progress) : Prop :=
-  (∃ p, old !! k = some p ∧ p'.matched = p.matched ∧ p'.next = p.next ∧
-    p'.pendingSnapshot = p.pendingSnapshot) ∨
-  (p'.matched = W64 0 ∧ uint.Z p'.next = max (uint.Z li) 1 ∧ p'.pendingSnapshot = W64 0)
+  (∃ p, old !! k = some p ∧ p'.matched = p.matched ∧ p'.next = p.next) ∨
+  (p'.matched = W64 0 ∧ uint.Z p'.next = max (uint.Z li) 1)
 
 def PrKept (old pvs : GMap w64 Progress) (li : w64) : Prop :=
   ∀ k p', pvs !! k = some p' → PrKeptAt old li k p'
@@ -987,7 +976,7 @@ def PrKept (old pvs : GMap w64 Progress) (li : w64) : Prop :=
 theorem PrKeptAt.matchKept {old : GMap w64 Progress} {li k : w64} {p' : Progress}
     (H : PrKeptAt old li k p') :
     uint.Z p'.matched = 0 ∨ ∃ p, old !! k = some p ∧ p.matched = p'.matched := by
-  rcases H with ⟨p, Hp, hm, -, -⟩ | ⟨hm, -, -⟩
+  rcases H with ⟨p, Hp, hm, -⟩ | ⟨hm, -⟩
   · exact .inr ⟨p, Hp, hm.symm⟩
   · left; rw [hm]; rfl
 
@@ -995,11 +984,11 @@ theorem PrKeptAt.matchKept {old : GMap w64 Progress} {li k : w64} {p' : Progress
 theorem PrKept.prOk {old pvs : GMap w64 Progress} {ls : LogState}
     (H : PrKept old pvs (logLast ls)) (Hold : ∀ v p, old !! v = some p → PrOk ls p)
     (v : w64) (p : Progress) (Hv : pvs !! v = some p) : PrOk ls p := by
-  rcases H v p Hv with ⟨p0, Hp0, hm, hn, hs⟩ | ⟨hm, hn, hs⟩
-  · exact (Hold v p0 Hp0).fields hn hm (by rw [hs]; exact Int.le_refl _)
-  · unfold PrOk; rw [hm, hn, hs]
+  rcases H v p Hv with ⟨p0, Hp0, hm, hn⟩ | ⟨hm, hn⟩
+  · exact (Hold v p0 Hp0).fields hn hm
+  · unfold PrOk; rw [hm, hn]
     have := uint_Z_nonneg (logLast ls)
-    refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+    refine ⟨?_, ?_, ?_⟩ <;> word
 
 end prvals_ok
 

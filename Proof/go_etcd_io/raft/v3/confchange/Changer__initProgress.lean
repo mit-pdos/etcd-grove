@@ -92,7 +92,7 @@ theorem confchange.Changer.initProgress.wp_proof
       iright
       iframe Hinfl
       ipureintro
-      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl⟩
       word
   · -- a learner: `nilAwareAdd(&cfg.Learners, id)`
     wp_auto
@@ -140,7 +140,7 @@ theorem confchange.Changer.initProgress.wp_proof
       iright
       iframe Hinfl
       ipureintro
-      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl⟩
       word
 
 end proof

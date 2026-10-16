@@ -45,67 +45,29 @@ theorem tracker.Progress.BecomeProbe.wp_proof
     tracker.Progress.BecomeProbe.spec (GF := GF) (hG := hG) := by
   intro pr p
   wp_start as Hpr
-  iunfold ownProgress at Hpr
-  icases Hpr with ⟨%pv, Hpr⟩
-  iNamed Hpr
-  have Habs0 := (progressAbs_Some _ _ _).1 Habs
-  obtain ⟨Hl, Hst, Hm, Hn, Hsc, Hps, -⟩ := Habs0
   unfold progressBecomeProbe progressBecomeProbeNext
   wp_auto
-  by_cases Hs : p.state = .snapshot
-  · -- `StateSnapshot`: probe from past the pending snapshot
-    have Hs2 : pv.State' = W64 2 := by rw [Hst, Hs]; rfl
-    rw [decide_eq_true Hs2]
-    wp_auto
-    ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl %Habs
-    rw [show tracker.StateProbe = #(prstateW64 .probe) from rfl]
-    wp_apply wp_Progress_ResetState _ _ .probe $$ [$Hpr] as Hpr
-    iunfold ownProgress at Hpr
-    icases Hpr with ⟨%pv', Hpr⟩
-    iNamed Hpr
-    wp_auto
-    wp_apply wp_max2_uint64
-    wp_apply wp_min2_uint64
-    iapply HΦ
-    unfold ownProgress
-    iexists _
-    simp only [named]
-    iframe Hpv
-    isplitl [Hinfl]
-    · simp only [progressResetState]
-      iexact Hinfl
-    ipureintro
-    have H' := (progressAbs_Some _ _ _).1 Habs
-    apply (progressAbs_Some _ _ _).2
-    simp only [progressResetState, Hs, ite_true] at H' ⊢
-    obtain ⟨h1, h2, h3, -, h5, h6, h8, -⟩ := H'
-    refine ⟨h1, h2, h3, ?_, ?_, h6, h8, trivial⟩ <;> simp only [h3, h5, Hps]
-  · -- any other state: probe from `Match + 1`
-    rw [decide_eq_false (by
-      rw [Hst]; intro Hc; exact Hs (prstateW64_inj _ _ (Hc.trans (by rfl))))]
-    wp_auto
-    ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl %Habs
-    rw [show tracker.StateProbe = #(prstateW64 .probe) from rfl]
-    wp_apply wp_Progress_ResetState _ _ .probe $$ [$Hpr] as Hpr
-    iunfold ownProgress at Hpr
-    icases Hpr with ⟨%pv', Hpr⟩
-    iNamed Hpr
-    wp_auto
-    wp_apply wp_min2_uint64
-    iapply HΦ
-    unfold ownProgress
-    iexists _
-    simp only [named]
-    iframe Hpv
-    isplitl [Hinfl]
-    · simp only [progressResetState]
-      iexact Hinfl
-    ipureintro
-    have H' := (progressAbs_Some _ _ _).1 Habs
-    apply (progressAbs_Some _ _ _).2
-    simp only [progressResetState, Hs, ite_false] at H' ⊢
-    obtain ⟨h1, h2, h3, -, h5, h6, h8, -⟩ := H'
-    refine ⟨h1, h2, h3, ?_, ?_, h6, h8, trivial⟩ <;> simp only [h3, h5]
+  -- (raft#243) one path: `ResetState(StateProbe)`, `Next = Match + 1`
+  rw [show tracker.StateProbe = #(prstateW64 .probe) from rfl]
+  wp_apply wp_Progress_ResetState _ _ .probe $$ [$Hpr] as Hpr
+  iunfold ownProgress at Hpr
+  icases Hpr with ⟨%pv', Hpr⟩
+  iNamed Hpr
+  have H' := (progressAbs_Some _ _ _).1 Habs
+  wp_auto
+  wp_apply wp_min2_uint64
+  iapply HΦ
+  unfold ownProgress
+  iexists _
+  simp only [named]
+  iframe Hpv
+  isplitl [Hinfl]
+  · iexact Hinfl
+  ipureintro
+  apply (progressAbs_Some _ _ _).2
+  simp only [progressResetState] at H' ⊢
+  obtain ⟨h1, h2, h3, -, h5, h6, h7⟩ := H'
+  refine ⟨h1, h2, h3, ?_, ?_, h6, h7⟩ <;> simp only [h3, h5]
 
 end proof
 

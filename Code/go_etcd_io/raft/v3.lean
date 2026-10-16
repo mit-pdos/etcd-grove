@@ -2928,7 +2928,7 @@ noncomputable def IsEmptySnap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sp"))) (Val #()))) (Val #())) (Val #(W64 0))))))))
 
-/-- go: node.go:250:6 -/
+/-- go: node.go:252:6 -/
 noncomputable def setupNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "peers"
@@ -2992,7 +2992,7 @@ noncomputable def setupNode.impl [FfiSyntax] [GoGlobalContext] : val :=
 
     Peers must not be zero length; call RestartNode in that case.
 
-    go: node.go:271:6 -/
+    go: node.go:273:6 -/
 noncomputable def StartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "peers"
@@ -3019,7 +3019,7 @@ noncomputable def StartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the caller has an existing state machine, pass in the last log index that
     has been applied to it; otherwise use zero.
 
-    go: node.go:281:6 -/
+    go: node.go:283:6 -/
 noncomputable def RestartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -3059,7 +3059,7 @@ noncomputable def RestartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType RawNode.ty)))) (Pair (Var "rn") (Var "$r0")))))))))))))))
 
-/-- go: node.go:312:6 -/
+/-- go: node.go:314:6 -/
 noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (App (Val exceptionDo)
@@ -3078,7 +3078,7 @@ noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v10" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))
   (App (Val (GoInstruction (CompositeLiteral node.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"propc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv msgWithResult.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"recvc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"confc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)) (Var "$v2"))), (KeyedElement (some (KeyField go!"confstatec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)) (Var "$v3"))), (KeyedElement (some (KeyField go!"readyc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv Ready.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"advancec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v5"))), (KeyedElement (some (KeyField go!"tickc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v6"))), (KeyedElement (some (KeyField go!"done")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v7"))), (KeyedElement (some (KeyField go!"stop")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v8"))), (KeyedElement (some (KeyField go!"status")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv Status.ty)) (Var "$v9"))), (KeyedElement (some (KeyField go!"rn")) (ElementExpression (go.GoType.PointerType RawNode.ty) (Var "$v10")))])))))))))))))))))
 
-/-- go: node.go:331:16 -/
+/-- go: node.go:333:16 -/
 noncomputable def node.Stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3099,7 +3099,7 @@ noncomputable def node.Stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))])))))))))))
 
-/-- go: node.go:343:16 -/
+/-- go: node.go:345:16 -/
 noncomputable def node.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3379,7 +3379,7 @@ noncomputable def node.run.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Tick increments the internal logical clock for this Node. Election timeouts
     and heartbeat timeouts are in units of ticks.
 
-    go: node.go:458:16 -/
+    go: node.go:460:16 -/
 noncomputable def node.Tick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3401,7 +3401,7 @@ noncomputable def node.Tick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))]))))))))))
 
-/-- go: node.go:467:16 -/
+/-- go: node.go:469:16 -/
 noncomputable def node.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3414,7 +3414,7 @@ noncomputable def node.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))))))
 
-/-- go: node.go:471:16 -/
+/-- go: node.go:473:16 -/
 noncomputable def node.Propose.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3431,7 +3431,7 @@ noncomputable def node.Propose.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v1")))])))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"stepWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))))))))
 
-/-- go: node.go:475:16 -/
+/-- go: node.go:477:16 -/
 noncomputable def node.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3460,7 +3460,7 @@ noncomputable def node.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: node.go:488:6 -/
+/-- go: node.go:490:6 -/
 noncomputable def confChangeToMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -3498,7 +3498,7 @@ noncomputable def confChangeToMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "typ") (Var "$r0"))))))))))))))))))
 
-/-- go: node.go:496:16 -/
+/-- go: node.go:498:16 -/
 noncomputable def node.ProposeConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3532,7 +3532,7 @@ noncomputable def node.ProposeConfChange.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "msg") (Var "$r0")))))))))))))))))))
 
-/-- go: node.go:504:16 -/
+/-- go: node.go:506:16 -/
 noncomputable def node.step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3547,7 +3547,7 @@ noncomputable def node.step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a2" (Val #false)
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"stepWithWaitOption"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
 
-/-- go: node.go:508:16 -/
+/-- go: node.go:510:16 -/
 noncomputable def node.stepWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3565,7 +3565,7 @@ noncomputable def node.stepWait.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Step advances the state machine using msgs. The ctx.Err() will be returned,
     if any.
 
-    go: node.go:514:16 -/
+    go: node.go:516:16 -/
 noncomputable def node.stepWithWaitOption.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3650,7 +3650,7 @@ noncomputable def node.stepWithWaitOption.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: node.go:553:16 -/
+/-- go: node.go:555:16 -/
 noncomputable def node.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3659,7 +3659,7 @@ noncomputable def node.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv Ready.ty) (go.GoType.ChannelType go.ChanDir.recvonly Ready.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv Ready.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"readyc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))))))))
 
-/-- go: node.go:555:16 -/
+/-- go: node.go:557:16 -/
 noncomputable def node.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3677,7 +3677,7 @@ noncomputable def node.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))]))))))))))
 
-/-- go: node.go:562:16 -/
+/-- go: node.go:564:16 -/
 noncomputable def node.ApplyConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "cc"
@@ -3710,7 +3710,7 @@ noncomputable def node.ApplyConfChange.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))]))))))))))))
 
-/-- go: node.go:575:16 -/
+/-- go: node.go:577:16 -/
 noncomputable def node.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3730,7 +3730,7 @@ noncomputable def node.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv Status.ty)))) (Pair (Var "c") (Var "$r0")))))))))))
 
-/-- go: node.go:585:16 -/
+/-- go: node.go:587:16 -/
 noncomputable def node.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "id"
@@ -3751,13 +3751,15 @@ noncomputable def node.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))])))))))))))
 
-/-- go: node.go:592:16 -/
+/-- go: node.go:594:16 -/
 noncomputable def node.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "id"
   (Lam "status"
+  (Lam "appliedSnapshotIndex"
   (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (Var "n"))
+  (Let "appliedSnapshotIndex" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "appliedSnapshotIndex"))
   (Let "status" (App (Val (GoInstruction (GoAlloc SnapshotStatus.ty))) (Var "status"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3770,7 +3772,8 @@ noncomputable def node.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgSnapStatus)) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$v2" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "rej")))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression (go.GoType.PointerType go.bool) (Var "$v2")))]))))))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "appliedSnapshotIndex")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression (go.GoType.PointerType go.bool) (Var "$v2"))), (KeyedElement (some (KeyField go!"AppliedSnapshotIndex")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v3")))])))))))
   (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef node.ty go!"done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
   (Val #()))),
@@ -3778,9 +3781,9 @@ noncomputable def node.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))])))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "rej") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "rej") (Var "$r0")))))))))))))))))
 
-/-- go: node.go:601:16 -/
+/-- go: node.go:608:16 -/
 noncomputable def node.TransferLeadership.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3810,7 +3813,7 @@ noncomputable def node.TransferLeadership.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))]))))))))))))))))
 
-/-- go: node.go:610:16 -/
+/-- go: node.go:617:16 -/
 noncomputable def node.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3823,7 +3826,7 @@ noncomputable def node.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))))))
 
-/-- go: node.go:614:16 -/
+/-- go: node.go:621:16 -/
 noncomputable def node.ReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -5956,7 +5959,7 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))) (Val _root_.Perennial.go_etcd_io.raft.v3.tracker.StateProbe)))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"BecomeReplicate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #())))
-  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))) (Val _root_.Perennial.go_etcd_io.raft.v3.tracker.StateSnapshot))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))) (Val #(W64 1)))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"firstIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #())))) (Val #false))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))) (Val _root_.Perennial.go_etcd_io.raft.v3.tracker.StateSnapshot))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"firstIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #())))) (Val #false))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -6046,17 +6049,30 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"MsgAppFlowPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetReject"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))) (Val #(W64 1)))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #())))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"%x snapshot succeeded, resumed sending replication messages to %x [%s]"))
+  (Let "$a0" (Val #(go!"%x snapshot succeeded, transitioned to StateReplicate for %x [%s]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
   (Let "$sl2" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Debugf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"BecomeProbe"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #()))))
-  (Let "$r0" (Val #(W64 0))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"BecomeReplicate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x snapshot succeeded, resumed probing for %x [%s]"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
+  (Let "$sl2" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Debugf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"BecomeProbe"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #())))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetAppliedSnapshotIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"OnSnapshotApplied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$a0")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x snapshot failed, resumed sending replication messages to %x [%s]"))
@@ -6066,12 +6082,18 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Debugf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"BecomeProbe"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"PendingSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"BecomeProbe"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #()))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))) (Val _root_.Perennial.go_etcd_io.raft.v3.tracker.StateSnapshot)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x ignoring MsgSnapStatus from %x because state is %s, not StateSnapshot"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
+  (Let "$sl2" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.StateType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Debugf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #()))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgUnreachable)))
@@ -6440,7 +6462,7 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- stepCandidate is shared by StateCandidate and StatePreCandidate; the difference is
     whether they respond to MsgVoteResp or MsgPreVoteResp.
 
-    go: raft.go:1665:6 -/
+    go: raft.go:1675:6 -/
 noncomputable def stepCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6559,7 +6581,7 @@ noncomputable def stepCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "myVoteRespType") (Var "$r0")))))))))))))
 
-/-- go: raft.go:1710:6 -/
+/-- go: raft.go:1720:6 -/
 noncomputable def stepFollower.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6748,7 +6770,7 @@ noncomputable def stepFollower.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- logSliceFromMsgApp extracts the appended logSlice from a MsgApp message.
 
-    go: raft.go:1774:6 -/
+    go: raft.go:1784:6 -/
 noncomputable def logSliceFromMsgApp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (App (Val exceptionDo)
@@ -6761,7 +6783,7 @@ noncomputable def logSliceFromMsgApp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetEntries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral logSlice.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"term")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"prev")) (ElementExpression entryID.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v2")))])))))))))
 
-/-- go: raft.go:1783:16 -/
+/-- go: raft.go:1793:16 -/
 noncomputable def raft.handleAppendEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6866,7 +6888,7 @@ noncomputable def raft.handleAppendEntries.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore logSlice.ty))) (Pair (Var "a") (Var "$r0")))))))))))))
 
-/-- go: raft.go:1827:16 -/
+/-- go: raft.go:1837:16 -/
 noncomputable def raft.handleHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6887,7 +6909,7 @@ noncomputable def raft.handleHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"commitTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")))))))))))
 
-/-- go: raft.go:1832:16 -/
+/-- go: raft.go:1842:16 -/
 noncomputable def raft.handleSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6954,7 +6976,7 @@ noncomputable def raft.handleSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
     configuration of state machine. If this method returns false, the snapshot was
     ignored, either because it was obsolete or because of an error.
 
-    go: raft.go:1852:16 -/
+    go: raft.go:1862:16 -/
 noncomputable def raft.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "s"
@@ -7159,7 +7181,7 @@ noncomputable def raft.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- promotable indicates whether state machine can be promoted to leader,
     which is true when its own id is in progress list.
 
-    go: raft.go:1938:16 -/
+    go: raft.go:1948:16 -/
 noncomputable def raft.promotable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7173,7 +7195,7 @@ noncomputable def raft.promotable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))
 
-/-- go: raft.go:1943:16 -/
+/-- go: raft.go:1953:16 -/
 noncomputable def raft.applyConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cc"
@@ -7265,7 +7287,7 @@ noncomputable def raft.applyConfChange.impl [FfiSyntax] [GoGlobalContext] : val 
 
     The inputs usually result from restoring a ConfState or applying a ConfChange.
 
-    go: raft.go:1971:16 -/
+    go: raft.go:1981:16 -/
 noncomputable def raft.switchToConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cfg"
@@ -7381,7 +7403,7 @@ noncomputable def raft.switchToConfig.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (App (App (Val (GoInstruction (FuncResolve traceConfChangeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))))
 
-/-- go: raft.go:2029:16 -/
+/-- go: raft.go:2039:16 -/
 noncomputable def raft.loadState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "state"
@@ -7419,7 +7441,7 @@ noncomputable def raft.loadState.impl [FfiSyntax] [GoGlobalContext] : val :=
     than or equal to the randomized election timeout in
     [electiontimeout, 2 * electiontimeout - 1].
 
-    go: raft.go:2041:16 -/
+    go: raft.go:2051:16 -/
 noncomputable def raft.pastElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7428,7 +7450,7 @@ noncomputable def raft.pastElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"randomizedElectionTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))))))
 
-/-- go: raft.go:2045:16 -/
+/-- go: raft.go:2055:16 -/
 noncomputable def raft.resetRandomizedElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7442,7 +7464,7 @@ noncomputable def raft.resetRandomizedElectionTimeout.impl [FfiSyntax] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"randomizedElectionTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))))
 
-/-- go: raft.go:2049:16 -/
+/-- go: raft.go:2059:16 -/
 noncomputable def raft.sendTimeoutNow.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -7458,7 +7480,7 @@ noncomputable def raft.sendTimeoutNow.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v1")))])))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))))))))
 
-/-- go: raft.go:2053:16 -/
+/-- go: raft.go:2063:16 -/
 noncomputable def raft.abortLeaderTransfer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7473,7 +7495,7 @@ noncomputable def raft.abortLeaderTransfer.impl [FfiSyntax] [GoGlobalContext] : 
 
 /-- committedEntryInCurrentTerm return true if the peer has committed an entry in its term.
 
-    go: raft.go:2058:16 -/
+    go: raft.go:2068:16 -/
 noncomputable def raft.committedEntryInCurrentTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7491,7 +7513,7 @@ noncomputable def raft.committedEntryInCurrentTerm.impl [FfiSyntax] [GoGlobalCon
 /-- responseToReadIndexReq constructs a response for `req`. If `req` comes from the peer
     itself, a blank value will be returned.
 
-    go: raft.go:2066:16 -/
+    go: raft.go:2076:16 -/
 noncomputable def raft.responseToReadIndexReq.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "req"
@@ -7531,7 +7553,7 @@ noncomputable def raft.responseToReadIndexReq.impl [FfiSyntax] [GoGlobalContext]
     Empty payloads are never refused. This is used both for appending an empty
     entry at a new leader's term, as well as leaving a joint configuration.
 
-    go: raft.go:2090:16 -/
+    go: raft.go:2100:16 -/
 noncomputable def raft.increaseUncommittedSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ents"
@@ -7559,7 +7581,7 @@ noncomputable def raft.increaseUncommittedSize.impl [FfiSyntax] [GoGlobalContext
 /-- reduceUncommittedSize accounts for the newly committed entries by decreasing
     the uncommitted entry size limit.
 
-    go: raft.go:2108:16 -/
+    go: raft.go:2118:16 -/
 noncomputable def raft.reduceUncommittedSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "s"
@@ -7576,7 +7598,7 @@ noncomputable def raft.reduceUncommittedSize.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryPayloadSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"uncommittedSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (App (Val (GoInstruction (GoOp GoSub entryPayloadSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryPayloadSize.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"uncommittedSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad entryPayloadSize.ty))) (Var "s"))))))))))))))
 
-/-- go: raft.go:2119:6 -/
+/-- go: raft.go:2129:6 -/
 noncomputable def releasePendingReadIndexMessages.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -7627,7 +7649,7 @@ noncomputable def releasePendingReadIndexMessages.impl [FfiSyntax] [GoGlobalCont
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.go:2138:6 -/
+/-- go: raft.go:2148:6 -/
 noncomputable def sendMsgReadIndexResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8661,8 +8683,10 @@ noncomputable def RawNode.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : va
   (LamV "rn"
   (Lam "id"
   (Lam "status"
+  (Lam "appliedSnapshotIndex"
   (App (Val exceptionDo)
   (Let "rn" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RawNode.ty)))) (Var "rn"))
+  (Let "appliedSnapshotIndex" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "appliedSnapshotIndex"))
   (Let "status" (App (Val (GoInstruction (GoAlloc SnapshotStatus.ty))) (Var "status"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8674,16 +8698,17 @@ noncomputable def RawNode.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgSnapStatus)) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$v2" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "rej")))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression (go.GoType.PointerType go.bool) (Var "$v2")))]))))))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "appliedSnapshotIndex")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression (go.GoType.PointerType go.bool) (Var "$v2"))), (KeyedElement (some (KeyField go!"AppliedSnapshotIndex")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v3")))])))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"Step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (Var "$a0")))
   (App (Val doExecute)
   (Var "$r0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "rej") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "rej") (Var "$r0")))))))))))))))))
 
 /-- TransferLeader tries to transfer leadership to the given transferee.
 
-    go: rawnode.go:541:20 -/
+    go: rawnode.go:546:20 -/
 noncomputable def RawNode.TransferLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "transferee"
@@ -8703,7 +8728,7 @@ noncomputable def RawNode.TransferLeader.impl [FfiSyntax] [GoGlobalContext] : va
 /-- ForgetLeader forgets a follower's current leader, changing it to None.
     See (Node).ForgetLeader for details.
 
-    go: rawnode.go:547:20 -/
+    go: rawnode.go:552:20 -/
 noncomputable def RawNode.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8719,7 +8744,7 @@ noncomputable def RawNode.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val 
     index, any linearizable read requests issued before the read request can be
     processed safely. The read state will have the same rctx attached.
 
-    go: rawnode.go:555:20 -/
+    go: rawnode.go:560:20 -/
 noncomputable def RawNode.ReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "rctx"
@@ -11577,7 +11602,7 @@ attribute [instance] Ready.TypeAssumptions.type_repr
 abbrev Node [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Node.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Advance" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ApplyConfChange" (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)])), (go.InterfaceElem.MethodElem go!"Campaign" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"ForgetLeader" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Propose" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"ProposeConfChange" (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"ReadIndex" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"Ready" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Ready.ty)])), (go.InterfaceElem.MethodElem go!"ReportSnapshot" (go.signature.Signature [go.uint64, SnapshotStatus.ty] false [])), (go.InterfaceElem.MethodElem go!"ReportUnreachable" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [] false [Status.ty])), (go.InterfaceElem.MethodElem go!"Step" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Tick" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"TransferLeadership" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Advance" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ApplyConfChange" (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)])), (go.InterfaceElem.MethodElem go!"Campaign" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"ForgetLeader" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Propose" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"ProposeConfChange" (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"ReadIndex" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"Ready" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Ready.ty)])), (go.InterfaceElem.MethodElem go!"ReportSnapshot" (go.signature.Signature [go.uint64, SnapshotStatus.ty, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"ReportUnreachable" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [] false [Status.ty])), (go.InterfaceElem.MethodElem go!"Step" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Tick" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"TransferLeadership" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.uint64] false []))])
 
 class Node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Node.ty Node.underlying

@@ -28,7 +28,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `Inflights` (whence the `Inflights.reset` postulate):
 
     pr.MsgAppFlowPaused = false
-    pr.PendingSnapshot = 0
     pr.State = state
     pr.Inflights.reset()
 

@@ -1064,7 +1064,7 @@ noncomputable def Snapshot.GetMetadata.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:576:17 -/
+/-- go: raft.pb.go:578:17 -/
 noncomputable def Message.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1072,7 +1072,7 @@ noncomputable def Message.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:595:19 -/
+/-- go: raft.pb.go:597:19 -/
 noncomputable def Message.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1087,7 +1087,7 @@ noncomputable def Message.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:602:19 -/
+/-- go: raft.pb.go:604:19 -/
 noncomputable def Message.GetTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1102,7 +1102,7 @@ noncomputable def Message.GetTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:609:19 -/
+/-- go: raft.pb.go:611:19 -/
 noncomputable def Message.GetFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1117,7 +1117,7 @@ noncomputable def Message.GetFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:616:19 -/
+/-- go: raft.pb.go:618:19 -/
 noncomputable def Message.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1132,7 +1132,7 @@ noncomputable def Message.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:623:19 -/
+/-- go: raft.pb.go:625:19 -/
 noncomputable def Message.GetLogTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1147,7 +1147,7 @@ noncomputable def Message.GetLogTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:630:19 -/
+/-- go: raft.pb.go:632:19 -/
 noncomputable def Message.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1162,7 +1162,7 @@ noncomputable def Message.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:637:19 -/
+/-- go: raft.pb.go:639:19 -/
 noncomputable def Message.GetEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1177,7 +1177,7 @@ noncomputable def Message.GetEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:644:19 -/
+/-- go: raft.pb.go:646:19 -/
 noncomputable def Message.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1192,7 +1192,7 @@ noncomputable def Message.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:651:19 -/
+/-- go: raft.pb.go:653:19 -/
 noncomputable def Message.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1207,7 +1207,7 @@ noncomputable def Message.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:658:19 -/
+/-- go: raft.pb.go:660:19 -/
 noncomputable def Message.GetSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1222,7 +1222,7 @@ noncomputable def Message.GetSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:665:19 -/
+/-- go: raft.pb.go:667:19 -/
 noncomputable def Message.GetReject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1237,7 +1237,7 @@ noncomputable def Message.GetReject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:672:19 -/
+/-- go: raft.pb.go:674:19 -/
 noncomputable def Message.GetRejectHint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1252,7 +1252,7 @@ noncomputable def Message.GetRejectHint.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:679:19 -/
+/-- go: raft.pb.go:681:19 -/
 noncomputable def Message.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1267,7 +1267,7 @@ noncomputable def Message.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:686:19 -/
+/-- go: raft.pb.go:688:19 -/
 noncomputable def Message.GetResponses.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1282,7 +1282,22 @@ noncomputable def Message.GetResponses.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:713:19 -/
+/-- go: raft.pb.go:695:19 -/
+noncomputable def Message.GetAppliedSnapshotIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Message.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Message.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Message.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"AppliedSnapshotIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"AppliedSnapshotIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:722:19 -/
 noncomputable def HardState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1290,7 +1305,7 @@ noncomputable def HardState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:732:21 -/
+/-- go: raft.pb.go:741:21 -/
 noncomputable def HardState.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1305,7 +1320,7 @@ noncomputable def HardState.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:739:21 -/
+/-- go: raft.pb.go:748:21 -/
 noncomputable def HardState.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1320,7 +1335,7 @@ noncomputable def HardState.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:746:21 -/
+/-- go: raft.pb.go:755:21 -/
 noncomputable def HardState.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1335,7 +1350,7 @@ noncomputable def HardState.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:784:19 -/
+/-- go: raft.pb.go:793:19 -/
 noncomputable def ConfState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1343,7 +1358,7 @@ noncomputable def ConfState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:803:21 -/
+/-- go: raft.pb.go:812:21 -/
 noncomputable def ConfState.GetVoters.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1358,7 +1373,7 @@ noncomputable def ConfState.GetVoters.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:810:21 -/
+/-- go: raft.pb.go:819:21 -/
 noncomputable def ConfState.GetLearners.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1373,7 +1388,7 @@ noncomputable def ConfState.GetLearners.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:817:21 -/
+/-- go: raft.pb.go:826:21 -/
 noncomputable def ConfState.GetVotersOutgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1388,7 +1403,7 @@ noncomputable def ConfState.GetVotersOutgoing.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:824:21 -/
+/-- go: raft.pb.go:833:21 -/
 noncomputable def ConfState.GetLearnersNext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1403,7 +1418,7 @@ noncomputable def ConfState.GetLearnersNext.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:831:21 -/
+/-- go: raft.pb.go:840:21 -/
 noncomputable def ConfState.GetAutoLeave.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1418,7 +1433,7 @@ noncomputable def ConfState.GetAutoLeave.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:862:20 -/
+/-- go: raft.pb.go:871:20 -/
 noncomputable def ConfChange.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1426,7 +1441,7 @@ noncomputable def ConfChange.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:881:22 -/
+/-- go: raft.pb.go:890:22 -/
 noncomputable def ConfChange.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1441,7 +1456,7 @@ noncomputable def ConfChange.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:888:22 -/
+/-- go: raft.pb.go:897:22 -/
 noncomputable def ConfChange.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1456,7 +1471,7 @@ noncomputable def ConfChange.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:895:22 -/
+/-- go: raft.pb.go:904:22 -/
 noncomputable def ConfChange.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1471,7 +1486,7 @@ noncomputable def ConfChange.GetContext.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:902:22 -/
+/-- go: raft.pb.go:911:22 -/
 noncomputable def ConfChange.GetId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1486,7 +1501,7 @@ noncomputable def ConfChange.GetId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:930:26 -/
+/-- go: raft.pb.go:939:26 -/
 noncomputable def ConfChangeSingle.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1494,7 +1509,7 @@ noncomputable def ConfChangeSingle.ProtoMessage.impl [FfiSyntax] [GoGlobalContex
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:949:28 -/
+/-- go: raft.pb.go:958:28 -/
 noncomputable def ConfChangeSingle.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1509,7 +1524,7 @@ noncomputable def ConfChangeSingle.GetType.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:956:28 -/
+/-- go: raft.pb.go:965:28 -/
 noncomputable def ConfChangeSingle.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1524,7 +1539,7 @@ noncomputable def ConfChangeSingle.GetNodeId.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:1015:22 -/
+/-- go: raft.pb.go:1024:22 -/
 noncomputable def ConfChangeV2.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1532,7 +1547,7 @@ noncomputable def ConfChangeV2.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:1034:24 -/
+/-- go: raft.pb.go:1043:24 -/
 noncomputable def ConfChangeV2.GetTransition.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1547,7 +1562,7 @@ noncomputable def ConfChangeV2.GetTransition.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:1041:24 -/
+/-- go: raft.pb.go:1050:24 -/
 noncomputable def ConfChangeV2.GetChanges.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1562,7 +1577,7 @@ noncomputable def ConfChangeV2.GetChanges.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:1048:24 -/
+/-- go: raft.pb.go:1057:24 -/
 noncomputable def ConfChangeV2.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -2207,11 +2222,12 @@ structure Message [FfiSyntax] where
   RejectHint' : Loc
   Context' : GoSlice
   Responses' : GoSlice
+  AppliedSnapshotIndex' : Loc
   unknownFields' : GoSlice
   sizeCache' : w32
 
 instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
-  ⟨Message.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Message.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
@@ -2229,6 +2245,7 @@ instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
 (go.field_decl.FieldDecl go!"RejectHint" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"Context" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Responses" (go.GoType.SliceType (go.GoType.PointerType Message.ty))),
+(go.field_decl.FieldDecl go!"AppliedSnapshotIndex" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
@@ -2275,10 +2292,13 @@ class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_Context : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Message)))
   get_Responses : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Responses") #x (Val #(x.Responses'))
   set_Responses : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Responses") (PairV #x #y) (Val #(({ x with Responses' := y } : Message)))
+  get_AppliedSnapshotIndex : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"AppliedSnapshotIndex") #x (Val #(x.AppliedSnapshotIndex'))
+  set_AppliedSnapshotIndex : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"AppliedSnapshotIndex") (PairV #x #y) (Val #(({ x with AppliedSnapshotIndex' := y } : Message)))
   get_unknownFields : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
   set_unknownFields : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Message)))
   get_sizeCache : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Message) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Message)))
+  ptr_GetAppliedSnapshotIndex_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetAppliedSnapshotIndex" Message.GetAppliedSnapshotIndex.impl
   ptr_GetCommit_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetCommit" Message.GetCommit.impl
   ptr_GetContext_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetContext" Message.GetContext.impl
   ptr_GetEntries_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetEntries" Message.GetEntries.impl
@@ -2327,10 +2347,13 @@ attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.set_Context
   Message.TypeAssumptions.get_Responses
   Message.TypeAssumptions.set_Responses
+  Message.TypeAssumptions.get_AppliedSnapshotIndex
+  Message.TypeAssumptions.set_AppliedSnapshotIndex
   Message.TypeAssumptions.get_unknownFields
   Message.TypeAssumptions.set_unknownFields
   Message.TypeAssumptions.get_sizeCache
   Message.TypeAssumptions.set_sizeCache
+  Message.TypeAssumptions.ptr_GetAppliedSnapshotIndex_unfold
   Message.TypeAssumptions.ptr_GetCommit_unfold
   Message.TypeAssumptions.ptr_GetContext_unfold
   Message.TypeAssumptions.ptr_GetEntries_unfold

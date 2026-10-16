@@ -1,6 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.ReportSnapshot(id, status)` (node.go:586), 2026-10-13
+## `node.ReportSnapshot(id, status, appliedSnapshotIndex)` (node.go:594), 2026-10-13
+
+(raft#243: the third argument, carried as the message's `AppliedSnapshotIndex`; the statement
+is unchanged.)
 
 From any goroutine: `pb.Message{Type: MsgSnapStatus, From: id, Reject: status ==
 SnapshotFailure}` onto `recvc` (`netP_local`), which `run` steps as
@@ -28,10 +31,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev node.ReportSnapshot.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64) (st : SnapshotStatus),
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64) (st : SnapshotStatus) (asi : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
-      (Val #st))
+    (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
+      (Val #st)) (Val #asi))
   {{ RET #(); True }}
 
 end spec

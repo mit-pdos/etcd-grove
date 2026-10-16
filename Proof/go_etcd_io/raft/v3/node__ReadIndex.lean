@@ -63,7 +63,7 @@ theorem node.ReadIndex.wp_proof
   wp_auto
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   imod msgPtsC_of_struct «$a1_ptr» (⟨zero_val _, pty, null, null, null, null, null,
-      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
+      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, null, slice.nil,
       0⟩ : raftpb.Message) DFrac.discard false [l0]
       ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩ ⊤
       rfl $$ [«$a1»] with Hm

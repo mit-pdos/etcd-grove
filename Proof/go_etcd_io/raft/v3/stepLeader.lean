@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.stepLeader.Rest
 public import Proof.go_etcd_io.raft.v3.stepLeader.MsgProp
+public import Spec.go_etcd_io.raft.v3.tracker.Progress__OnSnapshotApplied
 
 @[expose] public section
 
@@ -43,6 +44,9 @@ theorem stepLeader.wp_proof
     (wp_Progress_MaybeUpdate : tracker.Progress.MaybeUpdate.spec (GF := GF) (hG := hG))
     (wp_Progress_MaybeDecrTo : tracker.Progress.MaybeDecrTo.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeProbe : tracker.Progress.BecomeProbe.spec (GF := GF) (hG := hG))
+    -- (raft#243) used only in `MsgSnapStatus`'s success arm, a `sorry` (`stepLeader/Rest.lean`)
+    (_wp_Progress_OnSnapshotApplied :
+      tracker.Progress.OnSnapshotApplied.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate :
       tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG))
     (wp_Progress_CanBumpCommit : tracker.Progress.CanBumpCommit.spec (GF := GF) (hG := hG))

@@ -285,7 +285,7 @@ theorem msgPtsC_of_struct (l : Loc) (v : raftpb.Message) (dqe : DFrac) (cap : Bo
   icases typedPointsto_split _ _ _ $$ Hl with Hl
   simp only [TypedPointsto.typedPointstoDef]
   icases Hl with ⟨state, Ty, To, From, Term, LogTerm, Index, Entries, Commit, Vote, Snapshot,
-    Reject, RejectHint, Context, Responses, unknownFields, sizeCache, -⟩
+    Reject, RejectHint, Context, Responses, -, unknownFields, sizeCache, -⟩
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil

@@ -346,9 +346,9 @@ noncomputable def Inflights.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))) (Var "$r0")))))))))))
 
 /-- ResetState moves the Progress into the specified State, resetting MsgAppFlowPaused,
-    PendingSnapshot, and Inflights.
+    and Inflights.
 
-    go: progress.go:121:21 -/
+    go: progress.go:96:21 -/
 noncomputable def Progress.ResetState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "state"
@@ -360,8 +360,6 @@ noncomputable def Progress.ResetState.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W64 0))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad StateType.ty))) (Var "state"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -369,14 +367,11 @@ noncomputable def Progress.ResetState.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore StateType.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"PendingSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"MsgAppFlowPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))))))
 
-/-- BecomeProbe transitions into StateProbe. Next is reset to Match+1 or,
-    optionally and if larger, the index of the pending snapshot.
+/-- BecomeProbe transitions into StateProbe. Next is reset to Match+1.
 
-    go: progress.go:130:21 -/
+    go: progress.go:103:21 -/
 noncomputable def Progress.BecomeProbe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
@@ -386,37 +381,22 @@ noncomputable def Progress.BecomeProbe.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"sentCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val #(W64 1))))
   (App (App (App (Val (GoInstruction (FuncResolve go.min [go.uint64, go.uint64]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"sentCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val StateSnapshot))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"PendingSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))))
-  (Let "pendingSnapshot" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val #(W64 1))))
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "pendingSnapshot")) (Val #(W64 1))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.max [go.uint64, go.uint64]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val StateProbe)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Progress.ty) go!"ResetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "pendingSnapshot") (Var "$r0")))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val #(W64 1))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val StateProbe)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Progress.ty) go!"ResetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$a0"))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Progress.ty) go!"ResetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$a0"))))))))))
 
 /-- BecomeReplicate transitions into StateReplicate, resetting Next to Match+1.
 
-    go: progress.go:146:21 -/
+    go: progress.go:110:21 -/
 noncomputable def Progress.BecomeReplicate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
@@ -433,10 +413,9 @@ noncomputable def Progress.BecomeReplicate.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a0" (Val StateReplicate)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Progress.ty) go!"ResetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$a0"))))))))))
 
-/-- BecomeSnapshot moves the Progress to StateSnapshot with the specified pending
-    snapshot index.
+/-- BecomeSnapshot moves the Progress to StateSnapshot.
 
-    go: progress.go:153:21 -/
+    go: progress.go:116:21 -/
 noncomputable def Progress.BecomeSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "snapshoti"
@@ -447,8 +426,6 @@ noncomputable def Progress.BecomeSnapshot.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doReturn)
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapshoti"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapshoti")) (Val #(W64 1))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapshoti"))
@@ -457,10 +434,29 @@ noncomputable def Progress.BecomeSnapshot.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"PendingSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))
-  (App (Val doExecute)
   (Let "$a0" (Val StateSnapshot)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Progress.ty) go!"ResetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$a0")))))))))))
+
+/-- OnSnapshotApplied updates the Progress state based on the applied snapshot index.
+    This method sets Match to the given index and adjusts Next accordingly.
+
+    go: progress.go:124:21 -/
+noncomputable def Progress.OnSnapshotApplied.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "pr"
+  (Lam "appliedSnapshotIndex"
+  (App (Val exceptionDo)
+  (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Progress.ty)))) (Var "pr"))
+  (Let "appliedSnapshotIndex" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "appliedSnapshotIndex"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "appliedSnapshotIndex"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))))))
 
 /-- SentEntries updates the progress on the given number of consecutive entries
     being sent in a MsgApp, with the given total bytes size, appended at log
@@ -468,7 +464,7 @@ noncomputable def Progress.BecomeSnapshot.impl [FfiSyntax] [GoGlobalContext] : v
 
     Must be used with StateProbe or StateReplicate.
 
-    go: progress.go:165:21 -/
+    go: progress.go:134:21 -/
 noncomputable def Progress.SentEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "entries"
@@ -513,7 +509,7 @@ noncomputable def Progress.SentEntries.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- CanBumpCommit returns true if sending the given commit index can potentially
     advance the follower's commit index.
 
-    go: progress.go:189:21 -/
+    go: progress.go:158:21 -/
 noncomputable def Progress.CanBumpCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "index"
@@ -525,7 +521,7 @@ noncomputable def Progress.CanBumpCommit.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- SentCommit updates the sentCommit.
 
-    go: progress.go:198:21 -/
+    go: progress.go:167:21 -/
 noncomputable def Progress.SentCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "commit"
@@ -543,7 +539,7 @@ noncomputable def Progress.SentCommit.impl [FfiSyntax] [GoGlobalContext] : val :
     index acked by it. The method returns false if the given n index comes from
     an outdated message. Otherwise it updates the progress and returns true.
 
-    go: progress.go:205:21 -/
+    go: progress.go:174:21 -/
 noncomputable def Progress.MaybeUpdate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "n"
@@ -585,7 +581,7 @@ noncomputable def Progress.MaybeUpdate.impl [FfiSyntax] [GoGlobalContext] : val 
     If the rejection is genuine, Next is lowered sensibly, and the Progress is
     cleared for sending log entries.
 
-    go: progress.go:226:21 -/
+    go: progress.go:195:21 -/
 noncomputable def Progress.MaybeDecrTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "rejected"
@@ -650,7 +646,7 @@ noncomputable def Progress.MaybeDecrTo.impl [FfiSyntax] [GoGlobalContext] : val 
     until it has reached a state in which it's able to accept a steady stream of
     log entries again.
 
-    go: progress.go:262:21 -/
+    go: progress.go:231:21 -/
 noncomputable def Progress.IsPaused.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
@@ -670,14 +666,13 @@ noncomputable def Progress.IsPaused.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected state")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))
 
-/-- go: progress.go:275:21 -/
+/-- go: progress.go:244:21 -/
 noncomputable def Progress.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Progress.ty)))) (Var "pr"))
   (Let "buf" (App (Val (GoInstruction (GoAlloc _root_.Perennial.strings.Builder.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.strings.Builder.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -716,15 +711,6 @@ noncomputable def Progress.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprint []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"PendingSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (Val #(W64 0)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) _root_.Perennial.io.Writer.ty))) (Var "buf"))
-  (Let "$a1" (Val #(go!" pendingSnap=%d"))
-  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"PendingSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Progress.ty) go!"IsPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Val #()))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) _root_.Perennial.io.Writer.ty))) (Var "buf"))
@@ -752,7 +738,7 @@ noncomputable def Progress.String.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- String prints the ProgressMap in sorted key order, one Progress per line.
 
-    go: progress.go:303:22 -/
+    go: progress.go:269:22 -/
 noncomputable def ProgressMap.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -1481,21 +1467,19 @@ structure Progress [FfiSyntax] where
   Next' : w64
   sentCommit' : w64
   State' : StateType
-  PendingSnapshot' : w64
   RecentActive' : Bool
   MsgAppFlowPaused' : Bool
   Inflights' : Loc
   IsLearner' : Bool
 
 instance Progress.zero_val [FfiSyntax] : ZeroVal Progress :=
-  ⟨Progress.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Progress.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def Progress.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Match" go.uint64),
 (go.field_decl.FieldDecl go!"Next" go.uint64),
 (go.field_decl.FieldDecl go!"sentCommit" go.uint64),
 (go.field_decl.FieldDecl go!"State" StateType.ty),
-(go.field_decl.FieldDecl go!"PendingSnapshot" go.uint64),
 (go.field_decl.FieldDecl go!"RecentActive" go.bool),
 (go.field_decl.FieldDecl go!"MsgAppFlowPaused" go.bool),
 (go.field_decl.FieldDecl go!"Inflights" (go.GoType.PointerType Inflights.ty)),
@@ -1522,8 +1506,6 @@ class Progress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_sentCommit : ∀ (x : Progress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Progress.underlying go!"sentCommit") (PairV #x #y) (Val #(({ x with sentCommit' := y } : Progress)))
   get_State : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"State") #x (Val #(x.State'))
   set_State : ∀ (x : Progress) (y : StateType), go.IsGoStepPureDetTagged under (StructFieldSet Progress.underlying go!"State") (PairV #x #y) (Val #(({ x with State' := y } : Progress)))
-  get_PendingSnapshot : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"PendingSnapshot") #x (Val #(x.PendingSnapshot'))
-  set_PendingSnapshot : ∀ (x : Progress) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Progress.underlying go!"PendingSnapshot") (PairV #x #y) (Val #(({ x with PendingSnapshot' := y } : Progress)))
   get_RecentActive : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"RecentActive") #x (Val #(x.RecentActive'))
   set_RecentActive : ∀ (x : Progress) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Progress.underlying go!"RecentActive") (PairV #x #y) (Val #(({ x with RecentActive' := y } : Progress)))
   get_MsgAppFlowPaused : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"MsgAppFlowPaused") #x (Val #(x.MsgAppFlowPaused'))
@@ -1539,6 +1521,7 @@ class Progress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   ptr_IsPaused_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"IsPaused" Progress.IsPaused.impl
   ptr_MaybeDecrTo_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"MaybeDecrTo" Progress.MaybeDecrTo.impl
   ptr_MaybeUpdate_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"MaybeUpdate" Progress.MaybeUpdate.impl
+  ptr_OnSnapshotApplied_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"OnSnapshotApplied" Progress.OnSnapshotApplied.impl
   ptr_ResetState_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"ResetState" Progress.ResetState.impl
   ptr_SentCommit_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"SentCommit" Progress.SentCommit.impl
   ptr_SentEntries_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"SentEntries" Progress.SentEntries.impl
@@ -1554,8 +1537,6 @@ attribute [instance] Progress.TypeAssumptions.type_repr
   Progress.TypeAssumptions.set_sentCommit
   Progress.TypeAssumptions.get_State
   Progress.TypeAssumptions.set_State
-  Progress.TypeAssumptions.get_PendingSnapshot
-  Progress.TypeAssumptions.set_PendingSnapshot
   Progress.TypeAssumptions.get_RecentActive
   Progress.TypeAssumptions.set_RecentActive
   Progress.TypeAssumptions.get_MsgAppFlowPaused
@@ -1571,6 +1552,7 @@ attribute [instance] Progress.TypeAssumptions.type_repr
   Progress.TypeAssumptions.ptr_IsPaused_unfold
   Progress.TypeAssumptions.ptr_MaybeDecrTo_unfold
   Progress.TypeAssumptions.ptr_MaybeUpdate_unfold
+  Progress.TypeAssumptions.ptr_OnSnapshotApplied_unfold
   Progress.TypeAssumptions.ptr_ResetState_unfold
   Progress.TypeAssumptions.ptr_SentCommit_unfold
   Progress.TypeAssumptions.ptr_SentEntries_unfold

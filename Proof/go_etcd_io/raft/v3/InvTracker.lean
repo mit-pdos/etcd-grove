@@ -294,8 +294,7 @@ theorem ownProgress_intro (pr : Loc) (pv : tracker.Progress) (p : Progress) :
 (`reset`'s `Visit` closure) or field by field, when the caller wants the record to be
 whatever the value says. -/
 def progressOf (pv : tracker.Progress) (st : PRState) (i : Inflights) : Progress :=
-  ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i,
-    pv.IsLearner'⟩
+  ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.MsgAppFlowPaused', i, pv.IsLearner'⟩
 
 theorem ownProgress_of (pr : Loc) (pv : tracker.Progress) (st : PRState) (i : Inflights)
     (Hst : pv.State' = prstateW64 st) :
@@ -307,7 +306,7 @@ theorem ownProgress_of (pr : Loc) (pv : tracker.Progress) (st : PRState) (i : In
   simp only [named, progressOf]
   iframe Hpv Hinfl
   ipureintro
-  exact (progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  exact (progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- An id set (`map[uint64]struct{}`) that is either `nil` or owned.
 

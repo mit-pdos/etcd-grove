@@ -264,7 +264,7 @@ recently active, `StateProbe` and the other fields zero; its `Inflights` fresh, 
 `IsLearner` whatever was asked (and possibly changed since). -/
 def FreshPr [FfiSyntax] (chg : confchange.Changer) (pv : tracker.Progress) : Prop :=
   pv.Match' = W64 0 ∧ uint.Z pv.Next' = max (uint.Z chg.LastIndex') 1 ∧
-  pv.sentCommit' = W64 0 ∧ pv.State' = W64 0 ∧ pv.PendingSnapshot' = W64 0 ∧
+  pv.sentCommit' = W64 0 ∧ pv.State' = W64 0 ∧
   pv.RecentActive' = true ∧ pv.MsgAppFlowPaused' = false
 
 section defs

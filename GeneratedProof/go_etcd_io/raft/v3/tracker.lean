@@ -219,7 +219,6 @@ instance Progress_typed_pointsto :
     "Next" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) v.Next' dq ∗
     "sentCommit" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"sentCommit" l) v.sentCommit' dq ∗
     "State" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) v.State' dq ∗
-    "PendingSnapshot" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' dq ∗
     "RecentActive" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"RecentActive" l) v.RecentActive' dq ∗
     "MsgAppFlowPaused" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"MsgAppFlowPaused" l) v.MsgAppFlowPaused' dq ∗
     "Inflights" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Inflights" l) v.Inflights' dq ∗
@@ -294,22 +293,6 @@ instance Progress_access_store_State (l : Loc) (v : go_etcd_io.raft.v3.tracker.P
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) v.State' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) State' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with State' := State' } : go_etcd_io.raft.v3.tracker.Progress) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance Progress_access_load_PendingSnapshot (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance Progress_access_store_PendingSnapshot (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (PendingSnapshot' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) PendingSnapshot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PendingSnapshot' := PendingSnapshot' } : go_etcd_io.raft.v3.tracker.Progress) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

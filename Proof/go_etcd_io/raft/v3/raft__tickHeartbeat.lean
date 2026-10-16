@@ -140,7 +140,7 @@ theorem raft.tickHeartbeat.wp_proof
         { state' := zeroValDef, Type' := pty, To' := null, From' := «$v0_ptr», Term' := null,
           LogTerm' := null, Index' := null, Entries' := slice.nil, Commit' := null, Vote' := null,
           Snapshot' := null, Reject' := null, RejectHint' := null, Context' := slice.nil,
-          Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
+          Responses' := slice.nil, AppliedSnapshotIndex' := null, unknownFields' := slice.nil, sizeCache' := 0 }
         DFrac.discard true [] ⟨{ (zero_val MessageM) with Type' := W32 1, From' := id }, [], none, [], []⟩
         ⊤ rfl $$ [«$a0» Hnilr] with Hmsg
     · iframe «$a0» Hnile Hnilb Hnilr cTy cFr

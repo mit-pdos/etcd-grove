@@ -97,7 +97,7 @@ abbrev respStruct (pty pto pte prj : Loc) : raftpb.Message :=
   { state' := zeroValDef, Type' := pty, To' := pto, From' := null,
     Term' := pte, LogTerm' := null, Index' := null, Entries' := slice.nil, Commit' := null,
     Vote' := null, Snapshot' := null, Reject' := prj, RejectHint' := null,
-    Context' := slice.nil, Responses' := slice.nil, unknownFields' := slice.nil,
+    Context' := slice.nil, Responses' := slice.nil, AppliedSnapshotIndex' := null, unknownFields' := slice.nil,
     sizeCache' := 0 }
 
 /-- A response raft builds, `&pb.Message{To: .., Term: .., Type: .., Reject: ..}` (each set

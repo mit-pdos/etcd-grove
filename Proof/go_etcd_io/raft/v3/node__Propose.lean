@@ -63,7 +63,7 @@ theorem node.Propose.wp_proof
   wp_auto
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   imod msgPtsC_of_struct «$a1_ptr» (⟨zero_val _, pty, null, null, null, null, null,
-      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
+      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, null, slice.nil,
       0⟩ : raftpb.Message) (DFrac.own 1) false [l0] ⟨propMsgM, [propEntryM data], none, [], []⟩ ⊤
       rfl $$ [«$a1» Hsl] with Hm
   · iframe «$a1» Hsl Hnilb

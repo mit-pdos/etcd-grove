@@ -134,7 +134,7 @@ local macro "msa_send" : tactic => `(tactic| (
     { state' := zeroValDef, Type' := pty, To' := «$v0_ptr», From' := null, Term' := null,
       LogTerm' := «$v3_ptr», Index' := «$v2_ptr», Entries' := sl_e, Commit' := «$v5_ptr»,
       Vote' := null, Snapshot' := null, Reject' := null, RejectHint' := null,
-      Context' := slice.nil, Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
+      Context' := slice.nil, Responses' := slice.nil, AppliedSnapshotIndex' := null, unknownFields' := slice.nil, sizeCache' := 0 }
     els ⟨⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩, es_e, none, [], []⟩
     ⊤ rfl $$ [«$a0» Hnilr] with Hm
   · iframe «$a0» cTy cTo cIx cLt cCo Hsl Hbig Hnilb Hnilr
@@ -319,7 +319,7 @@ theorem raft.maybeSendAppend.wp_proof
     have Hcompact : uint.Z s.logst.prev.index' ≠ 0 := by
       have Hne : GoInterface.ok eok ≠ interface.nil := by intro h; cases h
       have Hnot := fun h => Hne (Herr.2 h)
-      obtain ⟨h1, h2, -, -⟩ := Hpok
+      obtain ⟨h1, h2, -⟩ := Hpok
       have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
       intro Hz
       apply Hnot

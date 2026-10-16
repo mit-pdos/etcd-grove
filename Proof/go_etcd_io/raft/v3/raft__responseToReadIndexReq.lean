@@ -187,7 +187,7 @@ theorem raft.responseToReadIndexReq.wp_proof
         { state' := zeroValDef, Type' := pty, To' := qfr, From' := null, Term' := null,
           LogTerm' := null, Index' := «$v2_ptr», Entries' := esl, Commit' := null, Vote' := null,
           Snapshot' := null, Reject' := null, RejectHint' := null, Context' := slice.nil,
-          Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 } els ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ ⊤ rfl
+          Responses' := slice.nil, AppliedSnapshotIndex' := null, unknownFields' := slice.nil, sizeCache' := 0 } els ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ ⊤ rfl
         $$ [Hresp Hnilr] with Hresp
       · simp only [readIndexRespMsg]
         iframe Hresp Hesl Hents' Hnilb Hnilr cTyR cFr cIx

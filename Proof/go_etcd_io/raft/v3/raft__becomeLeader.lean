@@ -107,8 +107,8 @@ theorem raft.becomeLeader.wp_proof
   · iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]
     · iexact Hinfl
     ipureintro
-    obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
-    exact (progressAbs_Some _ _ _).2 ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩
+    obtain ⟨h1, h2, h3, h4, h5, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
+    exact (progressAbs_Some _ _ _).2 ⟨h1, h2, h3, h4, h5, h8, h9⟩
   ihave Htrk := Hprback $$ %_ Hpr %rfl
   ihave Hphys := Hback $$ %_ %_ Htrkf Htrk
     %(PrvalsOk.insert (pvs := s1.prvals) Hok1 (fun Hl => (Hok1.lookup Hl Hpv0).becomeReplicate Hnw1))

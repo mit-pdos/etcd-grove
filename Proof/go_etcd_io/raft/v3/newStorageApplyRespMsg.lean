@@ -45,7 +45,7 @@ theorem newStorageApplyRespMsg.wp_proof
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   wp_alloc ml as Hml
   imod msgOwn_of_struct ml (⟨zero_val _, pty, «$v1_ptr», «$v2_ptr», «$v3_ptr», null, null, ents,
-      null, null, null, null, null, slice.nil, slice.nil, slice.nil, 0⟩ : raftpb.Message) els
+      null, null, null, null, null, slice.nil, slice.nil, null, slice.nil, 0⟩ : raftpb.Message) els
       ⟨applyAckM id, ce, none, [], []⟩ ⊤ rfl $$ [Hml] with Hm
   · iframe Hml Hes Hel Hnilb
     simp only [applyAckM, show MsgStorageApplyResp = W32 22 from rfl, snapOpt,

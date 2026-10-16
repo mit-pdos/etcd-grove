@@ -250,19 +250,19 @@ theorem raft.reset.wp_proof
     -- `StateProbe`; `IsLearner` is copied across
     ihave Htrk := Hprback $$ %(progressOf
         { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
-          PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
+          RecentActive' := false, MsgAppFlowPaused' := false,
           Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _) [Hpv Hifl] %Hnolearner
     · iapply ownProgress_of pr
         { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
-          PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
+          RecentActive' := false, MsgAppFlowPaused' := false,
           Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _ rfl $$ Hpv Hifl
     -- the fresh value is within the log: `Next = lastIndex + 1`, `Match = 0` (whatever its window)
     have Hli' : li = logLast s.logst := logLast_unsigned _ _ Hli0
     have Hfresh : ∀ I, PrOk s.logst (progressOf
           { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
-            PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
+            RecentActive' := false, MsgAppFlowPaused' := false,
             Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe I) :=
-      fun I => PrOk.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl) rfl
+      fun I => PrOk.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl)
     ihave Hphys := HI $$ Htrkf [Htrk]
       %(PrvalsOk.insert (pvs := <[i := p]> pvs0) Hok1 (fun _ => Hfresh _))
     · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
@@ -304,7 +304,6 @@ theorem raft.reset.wp_proof
           (by simp only [progressOf]; rw [Habs2.2.2.2.1, ← Option.some.inj Hp2]
               simp only [progressOf]; rw [Hli'])
           (.inr (by simp only [progressOf]; exact Hli2'))
-          (by simp only [progressOf]; rw [Habs2.2.2.2.2.2.1, ← Option.some.inj Hp2]; rfl)
       ihave Hphys := HI $$ Htrkf [Htrk] %(PrvalsOk.insert Hok2 (fun _ => Hown _))
       · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
         rfl
@@ -319,11 +318,10 @@ theorem raft.reset.wp_proof
       · ipureintro
         simp only [GMap.insert_insert]
         refine resetInv_step _ _ _ _ _ _ _ _ Hinv0 Hpvi ?_
-        refine ⟨?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_⟩
         · simp only [progressOf]; rw [Habs2.2.2.2.1, ← Option.some.inj Hp2]
           simp only [progressOf]; rw [Hli']
         · simp only [progressOf, ite_eq_left Hii]; exact Hli2'
-        · simp only [progressOf]; rw [Habs2.2.2.2.2.2.1, ← Option.some.inj Hp2]; rfl
         · simp only [progressOf]; rw [← Option.some.inj Hp2]; rfl
       iintro %tvx %pvsx Hf Ht %Hokx
       ihave Hphys := HI $$ %tvx %pvsx Hf [Ht] %Hokx
@@ -343,7 +341,7 @@ theorem raft.reset.wp_proof
       · ipureintro
         simp only [GMap.insert_insert]
         refine resetInv_step _ _ _ _ _ _ _ _ Hinv0 Hpvi ?_
-        refine ⟨?_, ?_, rfl, rfl⟩
+        refine ⟨?_, ?_, rfl⟩
         · simp only [progressOf]; rw [Hli']
         · simp only [progressOf, ite_eq_right Hii]
       iintro %tvx %pvsx Hf Ht %Hokx

@@ -62,7 +62,7 @@ local macro "deliver_step" : tactic =>
     rw [List.nil_append]
     -- `wp_auto` allocated the copy (`«$r0_ptr»`, its struct `«$r0»`) and stored it in `c`
     imod msgPtsC_of_struct «$r0_ptr»
-        (⟨zero_val _, pty, pto, pfr, pte, plt, pix, s', pco, pvo, null, prj, prh, cs, slice.nil,
+        (⟨zero_val _, pty, pto, pfr, pte, plt, pix, s', pco, pvo, null, prj, prh, cs, slice.nil, null,
           slice.nil, 0⟩ : raftpb.Message)
         (DFrac.own 1) true els ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ ⊤ rfl
         $$ [«$r0» Hs Hcap] with Hmc

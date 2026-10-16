@@ -332,8 +332,8 @@ theorem wp_stepLeader_rest0
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgUnreachable`** (a replicating peer back to probing) and **`MsgSnapStatus`** (a
-snapshotting peer back to probing, paused; on a failure its pending snapshot forgotten
-first), 2026-10-13: `Progress` states, never `Match`. -/
+snapshotting peer back to probing, paused), 2026-10-13: `Progress` states, never `Match`.
+(raft#243: `MsgSnapStatus`'s success arm writes `Match` and is a `sorry`.) -/
 theorem wp_stepLeader_report
     (wp_Progress_BecomeProbe : tracker.Progress.BecomeProbe.spec (GF := GF) (hG := hG))
         (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
@@ -432,17 +432,29 @@ theorem wp_stepLeader_report
         cases h : p.state <;> simp_all [prstateW64]
       simp only [show (prstateW64 p.state = W64 2) = False from eq_false Hne, decide_false]
       wp_auto
+      -- (raft#243) a log line, which reads `pr.State`
       ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs
       ihave Hphys := ownRaftPhys_ins_id c r id s s.prvals m.From' p Hpvs $$ Hphys
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+      ihave Hphys := ownRaftPhys_prvals_self c r id s $$ Hphys
+      icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with
+        ⟨-, -, Hpa, Hpback⟩
+      iNamed Hpa
+      wp_auto
+      ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
+      · iapply ownProgress_intro $$ Hpv Hinfl %Habs
+      ihave Hphys := ownRaftPhys_ins_id c r id s s.prvals m.From' p Hpvs $$ Hphys
+      wp_raft_logC
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
       ipureintro
       exact ⟨rfl, Hres0⟩
     rw [Hsn]
     wp_auto
-    -- a failure first forgets the pending snapshot (`pr.PendingSnapshot = 0`); then
-    -- `BecomeProbe` and a log line, joined
+    -- a failure: `BecomeProbe` and a log line (raft#243: no pending snapshot to forget);
+    -- a success: see the `sorry` below; joined
     wp_join iprop(∃ (p' : Progress), "Hphys" ∷ ownRaftPhysCV c c.voters r id
           { s with prvals := <[m.From' := p']> s.prvals } ∗
         "%Hpm" ∷ ⌜p'.matched = p.matched⌝ ∗ "pr" ∷ pr_ptr ↦ pr ∗ "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
@@ -450,6 +462,13 @@ theorem wp_stepLeader_report
       with [Hpv Hinfl Hpback pr m Hm r] as HR
     · wp_apply wp_GetReject.1 ml _ _ _ _ $$ [$Hm] as Hm
       cases Hrj : m.Reject'
+      · -- (raft#243) a success: `pr.OnSnapshotApplied(m.GetAppliedSnapshotIndex())`, then
+        -- `BecomeReplicate` or `BecomeProbe`. `OnSnapshotApplied` sets `Match` to the reported
+        -- index, which nothing bounds: neither by the follower's acknowledgment (`ackIn`, the
+        -- protocol's `Step.appResp`) nor by the log (`PrOk`). No protocol step lets a local
+        -- report move `Match`, and the join's `p'.matched = p.matched` is false here. Not
+        -- provable as stated: see notes/pr-verify/raft-243.md ("The success arm").
+        sorry
       · wp_auto
         ihave Hpa := ownProgress_intro pr _ p $$ Hpv Hinfl %Habs
         wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
@@ -459,20 +478,6 @@ theorem wp_stepLeader_report
         wp_raft_logC
         wp_join_done
         iexists progressBecomeProbe p
-        iframe
-        ipureintro; rfl
-      · wp_auto
-        ihave Hpa := ownProgress_intro pr _ { p with pendingSnapshot := W64 0 } $$ Hpv Hinfl
-          %(by
-            obtain ⟨H1, H2, H3, H4, H5, -, H7, H8⟩ := Habs'
-            exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, rfl, H7, H8⟩)
-        wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
-        ihave Hphys := Hpback $$ %(progressBecomeProbe { p with pendingSnapshot := W64 0 }) Hpa %(by first | rfl | simp) %(by prok)
-        wp_apply raft.wp_load_idC $$ Hphys as Hphys
-        wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-        wp_raft_logC
-        wp_join_done
-        iexists progressBecomeProbe { p with pendingSnapshot := W64 0 }
         iframe
         ipureintro; rfl
     iNamed HR
@@ -485,8 +490,8 @@ theorem wp_stepLeader_report
     ihave Hphys := Hpback $$ %{ p' with paused := true } [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
     · iapply ownProgress_intro pr _ { p' with paused := true } $$ Hpv Hinfl
       ipureintro
-      obtain ⟨H1, H2, H3, H4, H5, H6, -, H8⟩ := Habs2
-      exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, H8⟩
+      obtain ⟨H1, H2, H3, H4, H5, -, H8⟩ := Habs2
+      exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, rfl, H8⟩
     iapply HΦ $$ %interface.nil %_
     rw [rest_prvals s]
     iframe Hphys
@@ -761,8 +766,8 @@ theorem wp_stepLeader_hbresp
   ihave Hphys := Hpback $$ %{ p with paused := false } [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
   · iapply ownProgress_intro pr _ { p with paused := false } $$ Hpv Hinfl
     ipureintro
-    obtain ⟨H1, H2, H3, H4, H5, H6, -, -⟩ := Habs'
-    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩
+    obtain ⟨H1, H2, H3, H4, H5, -, -⟩ := Habs'
+    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, rfl, rfl⟩
   have Hmm1 : prvalsMatch (<[m.From' := { p with paused := false }]> s.prvals)
       = prvalsMatch s.prvals := prvalsMatch_insert_same _ _ p _ Hpvs rfl
   generalize Hp1 : ({ p with paused := false } : Progress) = p1 at *
@@ -1142,8 +1147,8 @@ theorem wp_stepLeader_appresp
   ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
   · iapply ownProgress_intro pr _ p $$ Hpv Hinfl
     ipureintro
-    obtain ⟨H1, H2, H3, H4, H5, H6, H8, -⟩ := Habs'
-    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, H8, rfl⟩
+    obtain ⟨H1, H2, H3, H4, H5, H8, -⟩ := Habs'
+    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H8, rfl⟩
   have Hmm1 : prvalsMatch (<[m.From' := p]> s.prvals)
       = prvalsMatch s.prvals := prvalsMatch_insert_same _ _ p _ Hpvs rfl
   generalize Hpvs1 : (<[m.From' := p]> s.prvals : GMap w64 Progress) = pvs1 at *
@@ -1246,19 +1251,20 @@ theorem wp_stepLeader_appresp
         wp_apply wp_GetIndex.1 ml _ _ _ _ $$ [$Hm] as Hm
         wp_apply wp_Inflights_FreeLE $$ [$Hinfl] as %i' ⟨Hinfl, -⟩
         have Habs3 : progressAbs pv i' = some { p2 with infl := i' } := by
-          obtain ⟨A1, A2, A3, A4, A5, A6, A8, -⟩ := Habs2
-          exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A6, A8, rfl⟩
+          obtain ⟨A1, A2, A3, A4, A5, A8, -⟩ := Habs2
+          exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A8, rfl⟩
         ihave Hpa := ownProgress_intro pr pv { p2 with infl := i' } $$ Hpv Hinfl %Habs3
         ihave Hphys := Hpback $$ %{ p2 with infl := i' } Hpa %(by first | rfl | simp) %(by prok)
         wp_join_done
         iexists { p2 with infl := i' }
         iframe
         ipureintro; rfl
-      · -- `StateSnapshot`: `pr.Match + 1 >= r.raftLog.firstIndex()`
+      · -- `StateSnapshot`: `pr.Next >= r.raftLog.firstIndex()` (raft#243; until then
+        -- `pr.Match + 1 >= ...`): either way `Match` is untouched
         wp_auto
         simp only [Hst, Hst2, prstateW64]
         wp_auto
-        rw [Hm]
+        try rw [Habs2.2.2.2.1]
         ihave Hpa := ownProgress_intro pr _ p2 $$ Hpv Hinfl %Habs
         ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp) %(by prok)
         ihave Hphys := ownRaftPhys_ins_id c r id s pvs2 m.From' p2 Hpvs2' $$ Hphys

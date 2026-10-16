@@ -27,18 +27,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `pr.BecomeSnapshot(snapshoti)` moves a `Progress` into `StateSnapshot` and records
-the pending snapshot index (`tracker.Progress.BecomeSnapshot.impl`,
+/-- `pr.BecomeSnapshot(snapshoti)` moves a `Progress` into `StateSnapshot` (`tracker.Progress.BecomeSnapshot.impl`,
 `Code/go_etcd_io/raft/v3/tracker.lean`):
 
     pr.ResetState(StateSnapshot)
-    pr.PendingSnapshot = snapshoti
     pr.Next = snapshoti + 1
     pr.sentCommit = snapshoti
 
 Like `BecomeReplicate`, it says nothing about votes, terms or roles, so the model does
 not see it. The new record is `progressBecomeSnapshot p snapshoti` (`Defs.lean`);
-`matched` is untouched (Match discipline, notes/raft-replication-model.md). -/
+`matched` is untouched (Match discipline, notes/raft-replication-model.md). (raft#243: the `PendingSnapshot = snapshoti` write went with the field.) -/
 abbrev tracker.Progress.BecomeSnapshot.spec : Prop :=
   ∀ (pr : Loc) (p : Progress) (snapshoti : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownProgress pr p }}

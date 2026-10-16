@@ -74,6 +74,7 @@ namespace EtcdGrove
 #print axioms tracker.Progress.wp_BecomeProbe
 #print axioms tracker.Progress.wp_BecomeReplicate
 #print axioms tracker.Progress.wp_BecomeSnapshot
+#print axioms tracker.Progress.wp_OnSnapshotApplied
 #print axioms tracker.Progress.wp_CanBumpCommit
 #print axioms tracker.Progress.wp_IsPaused
 #print axioms tracker.Progress.wp_MaybeDecrTo

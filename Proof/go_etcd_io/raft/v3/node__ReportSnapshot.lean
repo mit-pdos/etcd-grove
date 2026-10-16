@@ -27,7 +27,7 @@ built into `msgIn` by `msgIn_of_scalar_struct`; `MsgSnapStatus.Enum()` is a new 
 theorem node.ReportSnapshot.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReportSnapshot.spec (GF := GF) (hG := hG) := by
-  intro γ id n to st
+  intro γ id n to st asi
   wp_start as #Hnode
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -45,6 +45,7 @@ theorem node.ReportSnapshot.wp_proof
   imod cellRO_alloc $$ «$v2» with #cRj
   imod msgIn_of_scalar_struct «$v0_ptr» pty null «$v1_ptr» null null null null null «$v2_ptr» null
       { (zero_val MessageM) with Type' := W32 11, From' := to, Reject' := decide (st = W64 2) } ⊤
+      (pas := «$v3_ptr»)
       $$ [«$v0»] with Hmsg
   · iframe «$v0» cTy cFr cRj
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)

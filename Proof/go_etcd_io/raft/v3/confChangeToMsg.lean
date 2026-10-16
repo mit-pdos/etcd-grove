@@ -71,7 +71,7 @@ theorem confChangeToMsg.wp_proof
   wp_alloc ml as Hml
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   imod msgPtsC_of_struct ml (⟨zero_val _, pty, null, null, null, null, null,
-      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
+      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, null, slice.nil,
       0⟩ : raftpb.Message) (DFrac.own 1) false [l0] ⟨propMsgM, [ccEntryM o bs], none, [], []⟩ ⊤ rfl $$ [Hml Hsl] with Hm
   · iframe Hml Hsl Hnilb
     simp only [propMsgM, show MsgProp = W32 2 from rfl]
