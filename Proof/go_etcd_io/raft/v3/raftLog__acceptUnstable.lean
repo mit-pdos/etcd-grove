@@ -34,7 +34,7 @@ theorem raftLog.acceptUnstable.wp_proof
   iNamed Hlog
   simp only [logHanded] at *
   wp_auto
-  have Hcontig : ∀ (k : Nat) (e : raftpb.Entry), ls.uents[k]? = some e →
+  have Hcontig : ∀ (k : Nat) (e : EntryM), ls.uents[k]? = some e →
       uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
     intro k e Hk
     have Hk' : (ls.sents ++ ls.uents)[ls.sents.length + k]? = some e := by

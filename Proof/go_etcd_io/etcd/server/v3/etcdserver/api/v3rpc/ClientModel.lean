@@ -10,18 +10,30 @@ axioms until V1. `etcdModelOfServer E` instantiates it with the server's facts, 
 whose apply thread's environment is `E` (the store's ghost names `E.γ`, the revisions' tokens
 `E.γrev`):
 
-* `etcdState rev pfx s` (`srvEtcdState`): some certified log (`idxCert`, mvcc's lower bound of the
-  committed log), small (`LogSmall`, the read path's `storeSmall`), has revision `rev`, and its
-  state at `rev` restricted to `pfx` is `s` (`underPfx pfx (stateAt log rev)`). The server's
-  revision of a log is its last index: a read at a log answers `log.length - 1`.
-* `etcdReachedAt r` (`srvReachedAt`): some certified log has revision `r`.
+* `etcdState rev pfx s` (`srvEtcdState`): some sealed log (`idxSealed`, mvcc's lower bound of
+  the index's history with the log's well-formedness: every certified log, `idxCert_sealed`, and
+  the one a writer has sealed before committing it, which the watchers' events are of; unit
+  W-M2b), small (`LogSmall`, the read path's `storeSmall`), has revision `rev`, and its state at
+  `rev` restricted to `pfx` is `s` (`underPfx pfx (stateAt log rev)`). The server's revision of a
+  log is its last index: a read at a log answers `log.length - 1`.
+* `etcdReachedAt r` (`srvReachedAt`, unit W-M3): some log the server certified (`certOk`, at
+  the store's names: the KV model of a committed raft prefix, `kv_cert_read`) has revision `r`.
+  The apply thread certifies an entry's log before applying it, so a watch event's revision is
+  reached when the store notifies it (`evLog`), and a reply's log is certified. Not mvcc's
+  committed log (`idxCert`): that is a floor of every later read, serializable ones included,
+  which a notified revision is not yet (unit W-M2b); a linearizable read's floor comes instead
+  from the client's atomic update, at the committed KV state, which extends every certified log
+  (`client/v3/InvServerKV.lean`, `kvAnyAu`).
 * `etcdRevToken r` (`revTok E r`, `InvRequest.lean`): the token the apply thread minted when the
   KV's log grew to revision `r` (`revAuth_step`), carried by the entry's result to the proposer.
-* `EtcdStep r0 r1 pfx evs` (`srvStep`): some certified small log has revision `r1`, no event under
+* `EtcdStep r0 r1 pfx evs` (`srvStep`): some sealed small log has revision `r1`, no event under
   `pfx` strictly between `r0` and `r1` (`txn.revEvs`: the client's events of a revision's
   changes under the prefix), and `evs` are `r1`'s.
 
-Every law is a theorem (`txn/HistoryLaws.lean`, unit 4 of the txn package, and
+Sealed logs are in prefix order (`idxSealed_prefix`), which is all the laws need of the logs
+(agreement, revision bounds, create and mod revision persistence); none promises a floor for a
+later read (the read specs keep theirs, over `idxCert`). Every law is a theorem
+(`txn/HistoryLaws.lean`, unit 4 of the txn package, and
 `txn/ClientLaws.lean`); `#print axioms etcdModelOfServer` lists none of the clients' former
 axioms (`Results.lean`).
 -/
@@ -42,7 +54,7 @@ namespace v3rpc
 
 open Iris Iris.BI Iris.ProofMode mvcc txn
 
-/-! ## Pure lemmas: two certified logs -/
+/-! ## Pure lemmas: two sealed logs -/
 
 theorem longer_log {L1 L2 : Log} (h : L1 <+: L2 ∨ L2 <+: L1) :
     ∃ L, L1 <+: L ∧ L2 <+: L ∧ (L = L1 ∨ L = L2) := by
@@ -79,10 +91,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-! ## The predicates -/
 
-/-- **A certified small log**: mvcc's certificate of `log` (a lower bound of the committed log)
-and `LogSmall` (at most `2 ^ 62` changes: the read path's `storeSmall`). -/
+/-- **A sealed small log**: mvcc's seal of `log` (`idxSealed`: its history is a lower bound of
+the index's, and it is well formed; every certified log is sealed, `idxCert_sealed`) and
+`LogSmall` (at most `2 ^ 62` changes: the read path's `storeSmall`). -/
 def srvLog (E : apply.AEnv GF) (log : Log) : IProp GF :=
-  iprop(idxCert E.γ.idx log ∗ ⌜LogSmall log⌝)
+  iprop(idxSealed E.γ.idx log ∗ ⌜LogSmall log⌝)
 
 instance srvLog_persistent (E : apply.AEnv GF) (log : Log) : Persistent (srvLog E log) := by
   unfold srvLog; infer_instance
@@ -90,7 +103,7 @@ instance srvLog_persistent (E : apply.AEnv GF) (log : Log) : Persistent (srvLog 
 instance srvLog_timeless (E : apply.AEnv GF) (log : Log) : Timeless (srvLog E log) := by
   unfold srvLog; infer_instance
 
-/-- **etcd's state at `rev` under `pfx`, on the server**: a certified small log has revision
+/-- **etcd's state at `rev` under `pfx`, on the server**: a sealed small log has revision
 `rev`, and `s` is its state at `rev` restricted to `pfx`. -/
 def srvEtcdState (E : apply.AEnv GF) (rev : w64) (pfx : GoString) (s : List EtcdKv) : IProp GF :=
   iprop(∃ log : Log, srvLog E log ∗
@@ -101,9 +114,10 @@ instance srvEtcdState_persistent (E : apply.AEnv GF) (rev : w64) (pfx : GoString
     (s : List EtcdKv) : Persistent (srvEtcdState E rev pfx s) := by
   unfold srvEtcdState; infer_instance
 
-/-- **etcd has reached `r`, on the server**: a certified log has revision `r`. -/
+/-- **etcd has reached `r`, on the server** (unit W-M3): a log the server certified (`certOk`:
+the KV model of a committed raft prefix) has revision `r` (see the file header). -/
 def srvReachedAt (E : apply.AEnv GF) (r : w64) : IProp GF :=
-  iprop(∃ log : Log, idxCert E.γ.idx log ∗ ⌜sint.Z r < log.length⌝)
+  iprop(∃ log : Log, certOk E.γ log ∗ ⌜sint.Z r < log.length⌝)
 
 instance srvReachedAt_persistent (E : apply.AEnv GF) (r : w64) :
     Persistent (srvReachedAt E r) := by
@@ -112,7 +126,7 @@ instance srvReachedAt_persistent (E : apply.AEnv GF) (r : w64) :
 instance srvReachedAt_timeless (E : apply.AEnv GF) (r : w64) : Timeless (srvReachedAt E r) := by
   unfold srvReachedAt; infer_instance
 
-/-- **A step of etcd's history, on the server**: a certified small log has revision `r1` (above
+/-- **A step of etcd's history, on the server**: a sealed small log has revision `r1` (above
 `r0 ≥ 0`), no
 event under `pfx` at a revision strictly between `r0` and `r1`, and `evs` are the events under
 `pfx` at `r1`. -/
@@ -130,13 +144,16 @@ instance srvStep_timeless (E : apply.AEnv GF) (r0 r1 : w64) (pfx : GoString)
     (evs : List EtcdEv) : Timeless (srvStep E r0 r1 pfx evs) := by
   unfold srvStep; infer_instance
 
-/-! ## The certificates' pure facts -/
+/-! ## The seals' and certificates' pure facts -/
+
+/-- A sealed log is well formed and has fewer than `2 ^ 63` revisions. -/
+theorem sealed_pure (γ : IdxNames) (log : Log) :
+    idxSealed (GF := GF) γ log ⊢ ⌜LogWf' log ∧ log.length < 2 ^ 63⌝ :=
+  (idxSealed_pure γ log).trans (pure_mono fun H => ⟨H.1, H.2.1⟩)
 
 theorem idxCert_pure (γ : IdxNames) (log : Log) :
-    idxCert (GF := GF) γ log ⊢ ⌜LogWf' log ∧ log.length < 2 ^ 63⌝ := by
-  unfold idxCert
-  iintro ⟨-, -, %H, -⟩
-  ipureintro; exact ⟨H.1, H.2.1⟩
+    idxCert (GF := GF) γ log ⊢ ⌜LogWf' log ∧ log.length < 2 ^ 63⌝ :=
+  (idxCert_sealed γ log).trans (sealed_pure γ log)
 
 theorem srvLog_two (E : apply.AEnv GF) (L1 L2 : Log) :
     srvLog E L1 ∗ srvLog E L2 ⊢
@@ -144,9 +161,9 @@ theorem srvLog_two (E : apply.AEnv GF) (L1 L2 : Log) :
         (L = L1 ∨ L = L2)⌝ := by
   unfold srvLog
   iintro ⟨⟨#H1, %Hs1⟩, ⟨#H2, %Hs2⟩⟩
-  ihave %Hp := idxCert_prefix E.γ.idx L1 L2 $$ [$H1 $H2]
-  ihave %Hw1 := idxCert_pure E.γ.idx L1 $$ H1
-  ihave %Hw2 := idxCert_pure E.γ.idx L2 $$ H2
+  ihave %Hp := idxSealed_cmp E.γ.idx L1 L2 $$ H1 H2
+  ihave %Hw1 := sealed_pure E.γ.idx L1 $$ H1
+  ihave %Hw2 := sealed_pure E.γ.idx L2 $$ H2
   ipureintro
   obtain ⟨L, h1, h2, hL⟩ := longer_log Hp
   refine ⟨L, h1, h2, ?_⟩
@@ -173,7 +190,7 @@ theorem srvEtcdState_revs (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : Li
         sint.Z v.modRev ≤ sint.Z r ∧ 0 < sint.Z v.version⌝ := by
   unfold srvEtcdState srvLog
   iintro ⟨%L, ⟨#H, %Hs⟩, %h⟩
-  ihave %Hw := idxCert_pure E.γ.idx L $$ H
+  ihave %Hw := sealed_pure E.γ.idx L $$ H
   ipureintro
   obtain ⟨h0, hl, rfl⟩ := h
   intro v hv
@@ -290,8 +307,8 @@ theorem srvStep_delete_present (E : apply.AEnv GF) (r0 a r1 : w64) (pfx : GoStri
         ∃ v ∈ applyEvsState s (cs.take i), v.key = c.kv.key⌝ := by
   unfold srvStep srvEtcdState srvLog
   iintro ⟨⟨%L1, ⟨#H1, %Hs1⟩, %h1⟩, ⟨%L2, ⟨#H2, %Hs2⟩, %h2⟩⟩
-  ihave %Hp := idxCert_prefix E.γ.idx L1 L2 $$ [$H1 $H2]
-  ihave %Hw := idxCert_pure E.γ.idx L1 $$ H1
+  ihave %Hp := idxSealed_cmp E.γ.idx L1 L2 $$ H1 H2
+  ihave %Hw := sealed_pure E.γ.idx L1 $$ H1
   ipureintro
   obtain ⟨L, p1, p2, -⟩ := longer_log Hp
   obtain ⟨h10, h1a, h1b, h1q, rfl⟩ := h1
@@ -337,11 +354,11 @@ theorem etcdModelOfServer_EtcdStep (E : apply.AEnv GF) :
 
 /-! ## What the server's answers give the clients' model -/
 
-/-- **etcd has reached a certified revision**: a certified log's revisions are reached
-(`etcdReached`, the clients' downward-closed form). -/
-theorem etcdReached_of_cert (E : apply.AEnv GF) (log : Log) (r : w64)
+/-- **etcd has reached a certified revision** (unit W-M3): the revisions of a log the server
+certified (`certOk`) are reached (`etcdReached`, the clients' downward-closed form). -/
+theorem etcdReached_of_certOk (E : apply.AEnv GF) (log : Log) (r : w64)
     (h : sint.Z r < log.length) :
-    idxCert E.γ.idx log ⊢ etcdReached (EM := etcdModelOfServer E) r := by
+    certOk E.γ log ⊢ etcdReached (EM := etcdModelOfServer E) r := by
   iintro #H
   unfold etcdReached
   iright
@@ -355,12 +372,12 @@ theorem etcdReached_of_cert (E : apply.AEnv GF) (log : Log) (r : w64)
   iframe H
   ipureintro; exact h
 
-/-- **etcd's state at a certified revision**, with the store's size premise (`storeSmall`, the
-read path's): the state at revision `r` of a certified log, restricted to `pfx`, is etcd's
-state at `r` (persistent), and well formed under `pfx`. -/
-theorem etcdState_of_cert (E : apply.AEnv GF) (log : Log) (r : w64) (pfx : GoString)
+/-- **etcd's state at a sealed revision**, with the store's size premise (`storeSmall`, the read
+path's): the state at revision `r` of a sealed log, restricted to `pfx`, is etcd's state at `r`
+(persistent), and well formed under `pfx`. -/
+theorem etcdState_of_sealed (E : apply.AEnv GF) (log : Log) (r : w64) (pfx : GoString)
     (h0 : 0 ≤ sint.Z r) (h : sint.Z r < log.length) :
-    storeSmall E.γ ∗ idxCert E.γ.idx log ⊢
+    storeSmall E.γ ∗ idxSealed E.γ.idx log ⊢
       □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAt log (sint.Z r).toNat)) ∗
       ⌜EtcdStateWf pfx (underPfx pfx (stateAt log (sint.Z r).toNat))⌝ := by
   iintro ⟨#Hsm, #H⟩
@@ -376,10 +393,19 @@ theorem etcdState_of_cert (E : apply.AEnv GF) (log : Log) (r : w64) (pfx : GoStr
     ipureintro; exact ⟨h0, h, rfl⟩
   · ipureintro; exact underPfx_wf log _ pfx
 
-/-- `etcdState_of_cert` at a log's last revision. -/
-theorem etcdState_of_cert_last (E : apply.AEnv GF) (log : Log) (pfx : GoString)
-    (h2 : 2 ≤ log.length) (h3 : log.length + 3 ≤ 2 ^ 63) :
+/-- **etcd's state at a certified revision** (`etcdState_of_sealed`: a certified log is
+sealed). -/
+theorem etcdState_of_cert (E : apply.AEnv GF) (log : Log) (r : w64) (pfx : GoString)
+    (h0 : 0 ≤ sint.Z r) (h : sint.Z r < log.length) :
     storeSmall E.γ ∗ idxCert E.γ.idx log ⊢
+      □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAt log (sint.Z r).toNat)) ∗
+      ⌜EtcdStateWf pfx (underPfx pfx (stateAt log (sint.Z r).toNat))⌝ :=
+  (sep_mono_right (idxCert_sealed E.γ.idx log)).trans (etcdState_of_sealed E log r pfx h0 h)
+
+/-- `etcdState_of_sealed` at a log's last revision. -/
+theorem etcdState_of_sealed_last (E : apply.AEnv GF) (log : Log) (pfx : GoString)
+    (h2 : 2 ≤ log.length) (h3 : log.length + 3 ≤ 2 ^ 63) :
+    storeSmall E.γ ∗ idxSealed E.γ.idx log ⊢
       □ etcdState (self := etcdModelOfServer E) (W64 ((log.length : Int) - 1)) pfx
           (underPfx pfx (stateAfter log)) ∗
       ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ := by
@@ -387,7 +413,16 @@ theorem etcdState_of_cert_last (E : apply.AEnv GF) (log : Log) (pfx : GoString)
   have hst : stateAt log (sint.Z (W64 ((log.length : Int) - 1))).toNat = stateAfter log := by
     rw [hr, show ((log.length : Int) - 1).toNat = log.length - 1 by omega, stateAt_last]
   rw [← hst]
-  exact etcdState_of_cert E log _ pfx (by omega) (by omega)
+  exact etcdState_of_sealed E log _ pfx (by omega) (by omega)
+
+/-- `etcdState_of_cert` at a log's last revision. -/
+theorem etcdState_of_cert_last (E : apply.AEnv GF) (log : Log) (pfx : GoString)
+    (h2 : 2 ≤ log.length) (h3 : log.length + 3 ≤ 2 ^ 63) :
+    storeSmall E.γ ∗ idxCert E.γ.idx log ⊢
+      □ etcdState (self := etcdModelOfServer E) (W64 ((log.length : Int) - 1)) pfx
+          (underPfx pfx (stateAfter log)) ∗
+      ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ :=
+  (sep_mono_right (idxCert_sealed E.γ.idx log)).trans (etcdState_of_sealed_last E log pfx h2 h3)
 
 /-! ### A put's revision -/
 

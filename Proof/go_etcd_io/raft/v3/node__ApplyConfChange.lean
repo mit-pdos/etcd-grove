@@ -4,6 +4,7 @@ module
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
+public import Proof.go_etcd_io.raft.v3.LemmasNodeR
 
 @[expose] public section
 
@@ -21,6 +22,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- `cc.AsV2()` on `confc` (`confcP`, by the mode; the driver keeps the answer slot's other
+half), then the `*ConfState` from `confstatec` (`confstateP`); `n.done` never fires. (Raft v3.7,
+stage R5: `confc` carries `AsV2`'s pointer: a `ConfChange`'s fresh `ConfChangeV2`
+(`m.asV2`), frozen (`ownCCV2_persist`), or a `ConfChangeV2` itself, read-only already; the
+answer a `*pb.ConfState` owned, `csPts csp 1 cs true`.) -/
 theorem node.ApplyConfChange.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG)) :
@@ -34,17 +40,13 @@ theorem node.ApplyConfChange.wp_proof
     | static => exact .inl rfl
     | dyn dec c0 h0 h1 => exact .inr ⟨dec, c0, h0, h1, rfl⟩
   rcases o with m | m
-  · simp only [ownCCI, ownCCV1]
-    icases Hc with ⟨%v, %Hcv, %Hvm, -⟩
+  · simp only [ownCCI]
+    icases Hc with ⟨%p, %Hcv, Hc⟩
     subst Hcv
-    obtain ⟨Hty, Hnid, -⟩ := Hvm
     wp_auto
-    wp_apply +noauto wp_ConfChange_AsV2 as %v2 ⟨%Hv2, Hch⟩
-    imod ownSlice_persist $$ Hch with #Hch
-    generalize Hccs : [({ Type' := v.Type', NodeId' := v.NodeId' } : raftpb.ConfChangeSingle)] = ccs
-
-    have Hvo : (v2.Transition', ccs) = ccV2Of (.v1 m) := by
-      rw [← Hccs, Hv2.1, Hty, Hnid]; rfl
+    wp_apply +noauto wp_ConfChange_AsV2 p DFrac.discard m $$ [Hc] as %v2 ⟨-, Hch⟩
+    · iexact Hc
+    imod ownCCV2_persist $$ Hch with #Hch
     -- the payload, by the mode; the driver keeps the answer slot's other half
     ihave Hpay : iprop(|==> (confcP γ v2 ∗ (⌜γ.mode = .static⌝ ∨ (⌜γ.mode.isDyn = true⌝ ∗
         dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))) $$ [HR]
@@ -52,11 +54,11 @@ theorem node.ApplyConfChange.wp_proof
       · imodintro
         isplitl []
         · unfold confcP
-          iexists ccs
+          iexists _
           iframe Hch
           ileft
           ipureintro
-          exact ⟨hm, by have H := Hshr hm; rw [← Hvo] at H; exact H⟩
+          exact ⟨hm, Hshr hm⟩
         ileft; ipureintro; exact hm
       · icases HR with (%Hs | ⟨Hcfg, #Hdlb⟩)
         · rw [hm] at Hs; cases Hs
@@ -66,7 +68,7 @@ theorem node.ApplyConfChange.wp_proof
         imodintro
         isplitl [Hcap Hq1]
         · unfold confcP
-          iexists ccs
+          iexists _
           iframe Hch
           iright
           iexists ds, ca, cfg, k, e, cs'
@@ -74,7 +76,7 @@ theorem node.ApplyConfChange.wp_proof
           iframe Hdlb Hcap Hq1
           ipureintro
           refine ⟨by rw [hm]; rfl, fun dec' c0' h0' h1' hm' => ?_⟩
-          rw [Hvo]; exact Hdyn dec' c0' h0' h1' hm'
+          exact Hdyn dec' c0' h0' h1' hm'
         iright
         iframe Hq2
         ipureintro; rw [hm]; rfl
@@ -84,7 +86,7 @@ theorem node.ApplyConfChange.wp_proof
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
-      iexists raftpb.ConfChangeV2, inferInstance, inferInstance, inferInstance, inferInstance,
+      iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
         nv.confc', γ.confc, _
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
@@ -99,7 +101,7 @@ theorem node.ApplyConfChange.wp_proof
       iapply BigAndL.bigAndL_cons.2
       isplit
       · simp only [chan.blockingClausePre]
-        iexists raftpb.ConfState, inferInstance, inferInstance, inferInstance, inferInstance,
+        iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
           nv.confstatec', γ.confstatec
         isplitr
         · ipureintro; rfl
@@ -111,24 +113,26 @@ theorem node.ApplyConfChange.wp_proof
         inext
         iintro %csv Hcs
         wp_auto
-        iapply HΦ
         iunfold confstateP at Hcs
-        icases Hcs with (⟨%Hs, Hcs⟩ | ⟨%Hd, %w, Hcap, Hq, #Hlb, Hok⟩)
+        icases Hcs with ⟨%csm, Hcs, (%Hs | ⟨%Hd, %w, Hcap, Hq, #Hlb, %Hok⟩)⟩
         · icases Hkeep with (%Hs' | ⟨%Hd', -⟩)
-          · iframe
-            ileft
+          · iapply HΦ $$ %csv %csm
             iframe Hcs
+            ileft
             ipureintro; exact Hs
-          · rw [Hs] at Hd'; cases Hd'
+          · rw [Hs.1] at Hd'; cases Hd'
         · icases Hkeep with (%Hs' | ⟨%Hd', Hq'⟩)
           · rw [Hs'] at Hd; cases Hd
           ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hq Hq'
           subst Heq
-          iframe
+          iapply HΦ $$ %csv %csm
+          iframe Hcs
           iright
           isplitr
           · ipureintro; exact Hd
-          iframe Hok
+          isplitl
+          rotate_left
+          · ipureintro; exact Hok
           unfold nodeCfg
           iframe Hcap Hlb
           iexists (k + 1, cs')
@@ -155,14 +159,11 @@ theorem node.ApplyConfChange.wp_proof
       iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
     iapply BigAndL.bigAndL_nil.2
     itrivial
-  · simp only [ownCCI, ownCCV2]
-    icases Hc with ⟨%v, %Hcv, %Htr, #Hch, -⟩
+  · simp only [ownCCI]
+    icases Hc with ⟨%v, %Hcv, #Hch⟩
     subst Hcv
     wp_auto
     wp_apply +noauto wp_ConfChangeV2_AsV2
-    generalize Hccs : m.changes = ccs
-    have Hvo : (v.Transition', ccs) = ccV2Of (.v2 m) := by
-      rw [← Hccs, Htr]; rfl
     -- the payload, by the mode; the driver keeps the answer slot's other half
     ihave Hpay : iprop(|==> (confcP γ v ∗ (⌜γ.mode = .static⌝ ∨ (⌜γ.mode.isDyn = true⌝ ∗
         dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))) $$ [HR]
@@ -170,11 +171,11 @@ theorem node.ApplyConfChange.wp_proof
       · imodintro
         isplitl []
         · unfold confcP
-          iexists ccs
+          iexists _
           iframe Hch
           ileft
           ipureintro
-          exact ⟨hm, by have H := Hshr hm; rw [← Hvo] at H; exact H⟩
+          exact ⟨hm, Hshr hm⟩
         ileft; ipureintro; exact hm
       · icases HR with (%Hs | ⟨Hcfg, #Hdlb⟩)
         · rw [hm] at Hs; cases Hs
@@ -184,7 +185,7 @@ theorem node.ApplyConfChange.wp_proof
         imodintro
         isplitl [Hcap Hq1]
         · unfold confcP
-          iexists ccs
+          iexists _
           iframe Hch
           iright
           iexists ds, ca, cfg, k, e, cs'
@@ -192,7 +193,7 @@ theorem node.ApplyConfChange.wp_proof
           iframe Hdlb Hcap Hq1
           ipureintro
           refine ⟨by rw [hm]; rfl, fun dec' c0' h0' h1' hm' => ?_⟩
-          rw [Hvo]; exact Hdyn dec' c0' h0' h1' hm'
+          exact Hdyn dec' c0' h0' h1' hm'
         iright
         iframe Hq2
         ipureintro; rw [hm]; rfl
@@ -202,7 +203,7 @@ theorem node.ApplyConfChange.wp_proof
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
-      iexists raftpb.ConfChangeV2, inferInstance, inferInstance, inferInstance, inferInstance,
+      iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
         nv.confc', γ.confc, _
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
@@ -217,7 +218,7 @@ theorem node.ApplyConfChange.wp_proof
       iapply BigAndL.bigAndL_cons.2
       isplit
       · simp only [chan.blockingClausePre]
-        iexists raftpb.ConfState, inferInstance, inferInstance, inferInstance, inferInstance,
+        iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
           nv.confstatec', γ.confstatec
         isplitr
         · ipureintro; rfl
@@ -229,24 +230,26 @@ theorem node.ApplyConfChange.wp_proof
         inext
         iintro %csv Hcs
         wp_auto
-        iapply HΦ
         iunfold confstateP at Hcs
-        icases Hcs with (⟨%Hs, Hcs⟩ | ⟨%Hd, %w, Hcap, Hq, #Hlb, Hok⟩)
+        icases Hcs with ⟨%csm, Hcs, (%Hs | ⟨%Hd, %w, Hcap, Hq, #Hlb, %Hok⟩)⟩
         · icases Hkeep with (%Hs' | ⟨%Hd', -⟩)
-          · iframe
-            ileft
+          · iapply HΦ $$ %csv %csm
             iframe Hcs
+            ileft
             ipureintro; exact Hs
-          · rw [Hs] at Hd'; cases Hd'
+          · rw [Hs.1] at Hd'; cases Hd'
         · icases Hkeep with (%Hs' | ⟨%Hd', Hq'⟩)
           · rw [Hs'] at Hd; cases Hd
           ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hq Hq'
           subst Heq
-          iframe
+          iapply HΦ $$ %csv %csm
+          iframe Hcs
           iright
           isplitr
           · ipureintro; exact Hd
-          iframe Hok
+          isplitl
+          rotate_left
+          · ipureintro; exact Hok
           unfold nodeCfg
           iframe Hcap Hlb
           iexists (k + 1, cs')

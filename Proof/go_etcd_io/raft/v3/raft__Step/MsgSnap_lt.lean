@@ -15,6 +15,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.repl_lemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 
@@ -34,9 +35,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (scfg : CSLists) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (sv : SnapshotM) (scfg : CSLists) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -44,8 +48,9 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the incoming term is stale: logged and dropped
     uint.Z m.Term' < uint.Z s.term →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -53,28 +58,31 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCDS c c (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hwf Hlt
-  wp_start as Hphys
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_get _Q
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_true Hlt]
   wp_auto
   -- (checkQuorum || preVote) && (MsgHeartbeat || MsgApp): `checkQuorum` is off; with
   -- pre-vote on, the type test is false
-  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
+  wp_drive _Q
   -- not MsgPreVote, not MsgStorageAppendResp: only the log line
   cases s.prevote
   all_goals
     wp_auto
-    repeat (rw [Hty]; wp_auto)
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_drive _Q
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
     iframe Hphys

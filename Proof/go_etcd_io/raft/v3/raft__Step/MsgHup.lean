@@ -16,7 +16,7 @@ section variable `c` as its second.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.Base
+public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 
@@ -43,7 +43,9 @@ Like the other branch lemmas this is ghost-free: it establishes the `Step` witne
 pure fact, and `raft.Step.wp_proof` turns them into the single `ownRaftGhost_step` of
 the whole development. -/
 theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
+    (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgHup →
     m.Term' = W64 0 →
     -- an election increments the term; `send` panics if that wraps to zero
@@ -51,8 +53,9 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `r.step` matches the role
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -61,14 +64,19 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hterm Hnowrap Hwf
-  wp_start as Hphys
-  iNamed Hphys
+  wp_start as ⟨Hphys, Hm⟩
+  icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_apply PB.GetTerm.1 $$ [$Hm] as Hm
   -- `m.Term = 0` (a local message), so the term preamble is skipped
   rw [decide_eq_true Hterm]
   wp_auto
   -- the type switch selects the `MsgHup` case
+  wp_apply PB.GetType.1 $$ [$Hm] as Hm
   rw [Hty]
   wp_auto
   -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;

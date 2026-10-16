@@ -34,10 +34,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 /-- `MsgBeat`, `MsgAppResp` and `MsgHeartbeatResp` reach no arm of `stepFollower`. -/
-theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c') : c = c' ∧ dropped = false ∧ s' = s := by
+    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c = c' ∧ dropped = false ∧ s' = s := by
   unfold FollowerStepResultC at H
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
@@ -46,11 +46,11 @@ theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w6
       MsgHeartbeatResp, W32] at H <;> exact H
 
 /-- Nor of `stepCandidate`. -/
-theorem candidateStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
+theorem candidateStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
+    (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c') : c = c' ∧ dropped = false ∧ s' = s := by
+    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c = c' ∧ dropped = false ∧ s' = s := by
   unfold CandidateStepResultC at H
   refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
@@ -166,10 +166,10 @@ theorem readAck_step (c : CfgM) (id : w64) (s1 : NState) (Hr : s1.role = .leader
   exact this
 
 /-- `stepLeader` on `MsgBeat`: the heartbeats are `StepC.beat`'s. -/
-theorem leader_beat_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (dropped : Bool) (s' : NState)
+theorem leader_beat_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgBeat) (Hwf : NStateWf s)
-    (H : LeaderStepResultC c id s m ents dropped s') :
+    (H : LeaderStepResultC c id s m ents dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
@@ -193,8 +193,8 @@ theorem leader_beat_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
 /-- `stepLeader` on `MsgHeartbeatResp` (of the current term, to this node):
 `sendAppend`'s messages, no `Match` moved -- `StepC.sendApps`; then (2026-10-13), with a
 context, the read path -- `StepC.readAck`, receiving the message. -/
-theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) (dropped : Bool) (s' : NState)
+theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgHeartbeatResp) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
@@ -256,11 +256,11 @@ private theorem pstate_commit_same (ps : PState) : { ps with commit := ps.commit
   `Progress` values), then `StepC.commit` if `maybeCommit` moved the commit index
   (its premises, judged at the raised `Match` map), then `StepC.sendApps`
   for what was sent after the commit. -/
-theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents0 ents : List raftpb.Entry) (dropped : Bool) (s' : NState)
+theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m : MessageM)
+    (ents0 ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgAppResp) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
-    (H : LeaderStepResultC c id s m ents0 dropped s') :
+    (H : LeaderStepResultC c id s m ents0 dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
       StepCD c id m s recv s') ∧

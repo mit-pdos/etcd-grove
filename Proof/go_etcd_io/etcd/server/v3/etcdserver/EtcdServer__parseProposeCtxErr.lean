@@ -12,7 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
-public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3
+public import GeneratedProof.go_etcd_io.raft.v3
 
 @[expose] public section
 

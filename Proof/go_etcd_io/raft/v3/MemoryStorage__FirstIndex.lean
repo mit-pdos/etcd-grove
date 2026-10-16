@@ -42,11 +42,11 @@ theorem MemoryStorage.FirstIndex.wp_proof
   icases memView_agree γs σ σ0 $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
   iNamed Hfields_inv
   wp_auto
-  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, _, nli, nen, nte, nsn
+    iexists hp, es, dummy, _, nli, nen, nte, nsn
     iframe
-    ipureintro; exact ⟨Hsnap_id, Hdummy⟩
+    ipureintro; exact Hdummy
   wp_apply wp_MemoryStorage_firstIndex ms σ0 Hpb_inv $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
   -- the deferred `ms.Unlock()`
   wp_method_call

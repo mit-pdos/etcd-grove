@@ -10,11 +10,14 @@ hi` are the events of the revisions `[lo, hi)` of `log` whose key the range `r` 
 revision order; `filtered fs evs` keeps the events no filter predicate of `fs` drops.
 
 **The history determines what a watcher was sent.** A watcher's events are stated over a log
-`L` known by a lower bound of the index's history (`monoListLbOwn γ.idx.hist (histOf L)`,
-`evsWf`): `histOf` determines the log (`histOf_prefix_log`), and two lower bounds are
-comparable, so every such statement is about the one log, without any lock. The writer seals
-its pending revision before it notifies (`idxWriter_seal`), so a revision's events go on the
-channels with the lower bound of the log that commits it.
+`L` that is sealed (`idxSealed γ.idx L`, `evsWf`: a lower bound of the index's history, and
+well formed): `histOf` determines the log (`histOf_prefix_log`), and two lower bounds are
+comparable (`idxSealed_prefix`), so every such statement is about the one log, without any
+lock. The writer seals its pending revision before it notifies (`idxWriter_seal`), so a
+revision's events go on the channels with the seal of the log that commits it (not yet its
+commit certificate, `idxCert`: unit W-M2b), and with the store's caller's certificate of that
+log (`certOk`, which `End` takes before it notifies: `evLog`, unit W-M3; for etcd's server, the
+KV model of a committed raft prefix).
 
 **Per watcher** (`WatcherNames`, tied to its pointer by `watcherMeta`, a persistent element of
 the store's ghost map `γ.wmeta`): `evs`, a monotone list of the events delivered (the batches,
@@ -179,14 +182,7 @@ instance watchResponseCountable [FfiSyntax] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
-/-- The ghost names of a stream's channel: the channel's, the consumer's received responses
-(`ghostVar (List RespM)`), the registered watchers (`ghostVar (List Loc)`, half the close
-right's) and their set (a ghost map with persistent elements: `chanReg`). -/
-structure WatchChanNames where
-  ch : ChanNames
-  recv : GName
-  regl : GName
-  reg : GName
+-- `WatchChanNames` (the channel's names): `InvWatchStream.lean` (unit W-M2).
 
 /-- A watcher's ghost names (see the module docstring); `lo` is the first revision it watches. -/
 structure WatcherNames where
@@ -198,9 +194,10 @@ structure WatcherNames where
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
-      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.lo))
+      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.lo))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f⟩, g⟩ ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f'⟩, g'⟩ h
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j⟩, g⟩
+        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j'⟩, g'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -448,16 +445,63 @@ instance watcherMeta_persistent (γ : WsNames) (w : Loc) (γw : WatcherNames) :
     Persistent (watcherMeta (GF := GF) γ w γw) := by
   unfold watcherMeta; infer_instance
 
+/-- Two metas of a watcher agree (moved from `watcher__send.lean`, unit W-M2). -/
+theorem watcherMeta_agree (γ : WsNames) (w : Loc) (γw γw' : WatcherNames) :
+    ⊢ watcherMeta (GF := GF) γ w γw -∗ watcherMeta γ w γw' -∗ ⌜γw = γw'⌝ := by
+  unfold watcherMeta
+  iintro H1 H2
+  iapply ghostMapElem_agree $$ H1 H2
+
 /-- The watcher was cancelled (persistent). -/
 def cancelled (γw : WatcherNames) : IProp GF := dghostVar γw.live DFrac.discard false
 
 instance cancelled_persistent (γw : WatcherNames) : Persistent (cancelled (GF := GF) γw) := by
   unfold cancelled; infer_instance
 
-/-- The events `evs` are the range's of the revisions `[lo, d)` of a log the index's history
-has (persistent; `d` past the log only for an empty range). -/
+/-- **A watched log** (persistent; unit W-M3): sealed (`idxSealed`: the index's history has it,
+and it is well formed) and certified by the store's caller (`certOk`: the writer's `End` takes the
+certificate of the log it commits before it notifies, `certOkNext`, and the store keeps the
+committed log's, `revMuInv`). The certificate is what makes a watch event's revision reached in
+the server's model (`etcdReached`: a certified log is the KV model of a committed raft log). -/
+def evLog (γ : StoreNames) (L : Log) : IProp GF := iprop(idxSealed γ.idx L ∗ certOk γ L)
+
+instance evLog_persistent (γ : StoreNames) (L : Log) : Persistent (evLog (GF := GF) γ L) := by
+  unfold evLog; infer_instance
+
+theorem evLog_sealed (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ idxSealed γ.idx L := by
+  unfold evLog; iintro ⟨#H, -⟩; iexact H
+
+theorem evLog_certOk (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ certOk γ L := by
+  unfold evLog; iintro ⟨-, #H⟩; iexact H
+
+/-- A committed log the caller certified is watched. -/
+theorem evLog_of_cert (γ : StoreNames) (L : Log) :
+    idxCert (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
+  unfold evLog
+  iintro ⟨#Hc, #Hok⟩
+  ihave #Hs := idxCert_sealed _ _ $$ Hc
+  iframe Hs Hok
+
+/-- Two watched logs are in prefix order. -/
+theorem evLog_cmp (γ : StoreNames) (L L' : Log) :
+    ⊢ evLog (GF := GF) γ L -∗ evLog γ L' -∗ ⌜L <+: L' ∨ L' <+: L⌝ := by
+  iintro #H1 #H2
+  ihave #H1' := evLog_sealed γ L $$ H1
+  ihave #H2' := evLog_sealed γ L' $$ H2
+  iapply idxSealed_cmp $$ H1' H2'
+
+/-- The empty log is watched. -/
+theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
+  imod idxSealed_nil (GF := GF) γ.idx with #H
+  imodintro
+  unfold evLog certOk
+  iframe H
+  ileft; ipureintro; simp
+
+/-- The events `evs` are the range's of the revisions `[lo, d)` of a watched log (`evLog`:
+sealed and certified; persistent; `d` past the log only for an empty range). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
-  iprop(∃ L : Log, monoListLbOwn γ.st.idx.hist (histOf L) ∗
+  iprop(∃ L : Log, evLog γ.st L ∗
     ⌜evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝)
 
 instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
@@ -496,7 +540,20 @@ def chanWatcher (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
     evsWf γ r γw.lo evsw d ∗
     ((⌜closed = false⌝ ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true) ∨ cancelled γw))
 
-/-- **The stream channel `ch`'s invariant** (see the module docstring). -/
+/-- **What the channel knows of a watcher registered on it** (persistent; unit W-M2): its fixed
+range's id is one the channel's stream assigned to it (`chanIdAssigned`, made at the
+registration by the stream's callback, `isWatchable`), and not `-1`. -/
+def chanRegFact (γc : WatchChanNames) (w : Loc) : IProp GF :=
+  iprop(∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed w rr fcs ∗ chanIdAssigned γc rr.id w ∗
+    ⌜rr.id ≠ W64 (-1)⌝)
+
+instance chanRegFact_persistent (γc : WatchChanNames) (w : Loc) :
+    Persistent (chanRegFact (GF := GF) γc w) := by
+  unfold chanRegFact; infer_instance
+
+/-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
+registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
+progress fact. -/
 def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
   iprop(∃ (s : ChanState WatchResponse) (sent recv : List RespM) (vs : List WatchResponse)
       (L : List Loc),
@@ -510,6 +567,8 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "Hcl" ∷ (if chanIsClosed s then ghostVar γc.regl (1 : Qp).half L else iprop(True)) ∗
     "Hreg" ∷ ghostMapAuth γc.reg 1 (regMap L) ∗
     "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
+    "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
+    "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
     "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
 
 /-- The consumer's view: it has received `received`. -/
@@ -705,16 +764,18 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   WC w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ cancelled γw)
   C _ := iprop(True)
   F f := iprop(∃ p : EvM → Bool, filterSpec f p)
-  CR ch L := iprop(∃ γc : WatchChanNames, isChan ch γc.ch WatchResponse ∗
+  CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
   T := watchTok γ
   IWF := watcherIs γ
+  OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   IW_pers _ := by infer_instance
   WC_pers _ := by infer_instance
   C_pers _ := by infer_instance
   F_pers _ := by infer_instance
   IWF_pers _ _ _ _ := by infer_instance
+  OC_pers _ _ := by infer_instance
 
 /-! ## The write transaction -/
 

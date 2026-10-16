@@ -4,6 +4,10 @@ Port of `election_proof/proof_raftLog__slice.v`.
 Lean notes: Goose's `min` is stepped into (`wp_func_call; wp_call`) instead of
 Rocq's `func_unfold`. The Rocq `Admitted` (`Hfitsx`, "the log fits in memory") was a
 `sorry` here until 2026-10-08; `extend.spec` no longer needs the bound (see it).
+
+raft v3.7 (stage R3, 2026-10-15): the slices are `[]*pb.Entry`, held as `entsRO`/`entsPts`
+(`InvPbLog.lean`); the argument is unchanged, `extend`'s fresh slice is frozen read-only with
+`entsPts_persist`.
 -/
 module
 
@@ -13,6 +17,7 @@ public import Spec.go_etcd_io.raft.v3.unstable__slice
 public import Spec.go_etcd_io.raft.v3.limitSize
 public import Spec.go_etcd_io.raft.v3.entsSize
 public import Spec.go_etcd_io.raft.v3.extend
+public import Proof.go_etcd_io.raft.v3.LemmasRaftlogR
 
 @[expose] public section
 
@@ -70,7 +75,7 @@ the way:
 - `lo >= unstable.offset`: the result is `limitSize(u.slice(lo, hi))`, re-sliced as
   `ents[0:len:len]`. `u.slice` hands out a read-only sub-slice, `limitSize` a prefix of
   that, and the three-index re-slice is the same pointer and length again -- so the
-  read-only points-to travels through `ownSlice_same_ptr_len` (`InvRaftlog.lean`).
+  read-only points-to travels through `entsPts_same_ptr_len` (`LemmasRaftlogR.lean`).
 - `lo < unstable.offset` and `cut = min(hi, offset)`: `Storage.Entries` hands out the
   stable part, read-only. `cut` needs a case split (the builtin `min` is stepped into).
   Four of the exits return exactly that slice.
@@ -128,7 +133,7 @@ theorem raftLog.slice.wp_proof
   rw [decide_eq_false (by rintro rfl; omega)]
   wp_auto
   iNamed Hlog
-  ihave %Hulen := ownSlice_len $$ Huents
+  ihave %Hulen := entsPts_len $$ Huents
   wp_auto
   wp_if_destruct
   · -- the result lies entirely in the unstable suffix
@@ -140,8 +145,8 @@ theorem raftLog.slice.wp_proof
       as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
     obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
     wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
-    ihave %Hs1len := ownSlice_len $$ Hs1
-    ihave %Hs1wf := ownSlice_wf $$ Hs1
+    ihave %Hs1len := entsPts_len $$ Hs1
+    ihave %Hs1wf := entsPts_wf $$ Hs1
     have Hne0 : es0 ≠ [] := by
       intro h; rw [h] at Hlen0; simp at Hlen0; omega
     have Hn1b := Hn1.2 Hne0
@@ -154,13 +159,13 @@ theorem raftLog.slice.wp_proof
     rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z s1.len ∧
       sint.Z s1.len ≤ sint.Z s1.len ∧ sint.Z s1.len ≤ sint.Z s1.cap by word)]
     wp_auto
-    ihave Hs2 := ownSlice_same_ptr_len s1 (slice.fullSlice s1 raftpb.Entry (W64 0) s1.len s1.len)
+    ihave Hs2 := entsPts_same_ptr_len s1 (slice.fullSlice s1 Loc (W64 0) s1.len s1.len)
       _ _ Hnetake (by simp only [slice.fullSlice, sliceIndexRef]
                       rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0])
       (by simp only [slice.fullSlice]; word) (by simp only [slice.fullSlice]; word) $$ Hs1
     reopen_unstable
-    ihave Hcap := ownSliceCap_empty (V := raftpb.Entry)
-      (slice.fullSlice s1 raftpb.Entry (W64 0) s1.len s1.len) rfl
+    ihave Hcap := ownSliceCap_empty (V := Loc)
+      (slice.fullSlice s1 Loc (W64 0) s1.len s1.len) rfl
       (by simp only [slice.fullSlice]; word)
     iapply HΦ $$ %_ %(es0.take nlim)
     iframe Hs2 Hcap
@@ -198,7 +203,7 @@ theorem raftLog.slice.wp_proof
     wp_func_call
     wp_call
     -- every exit that returns the stable part `ese` alone
-    have Hfin : ∀ (c : w64) (ese : List raftpb.Entry),
+    have Hfin : ∀ (c : w64) (ese : List EntryM),
         uint.Z c ≤ uint.Z lv.unstable'.offset' → uint.Z c ≤ uint.Z hi →
         ese ≠ [] → (ese.length : Int) ≤ uint.Z c - uint.Z lo →
         (∀ e, e ∈ ese → e ∈ σ.ents.take (uint.Z c - uint.Z ls.prev.index' - 1).toNat) →
@@ -227,8 +232,8 @@ theorem raftLog.slice.wp_proof
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
       rw [decide_eq_true (by omega)]
       wp_auto
-      ihave %Hselen := ownSlice_len $$ Hse
-      ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
+      ihave %Hselen := entsPts_len $$ Hse
+      ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
       iapply HΦ $$ %se %ese
       iframe Hse Hcap
       isplitl
@@ -248,10 +253,10 @@ theorem raftLog.slice.wp_proof
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
-      ihave %Hselen := ownSlice_len $$ Hse
+      ihave %Hselen := entsPts_len $$ Hse
       wp_if_destruct
       · -- `hi <= offset`, i.e. `hi = offset`: the result is exactly the stable part
-        ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
+        ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
         iapply HΦ $$ %se %ese
         iframe Hse Hcap
         isplitl
@@ -260,7 +265,7 @@ theorem raftLog.slice.wp_proof
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
       wp_if_destruct
       · -- storage returned fewer entries than asked for: stop there
-        ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
+        ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
         iapply HΦ $$ %se %ese
         iframe Hse Hcap
         isplitl
@@ -271,7 +276,7 @@ theorem raftLog.slice.wp_proof
       wp_apply wp_entsSize $$ [$Hse] as %sz1 -
       wp_if_destruct
       · -- the stable part already reaches `maxSize`
-        ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
+        ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
         iapply HΦ $$ %se %ese
         iframe Hse Hcap
         isplitl
@@ -323,7 +328,7 @@ theorem raftLog.slice.wp_proof
         wp_apply wp_entsSize $$ [$Hs1] as %sz2 -
         wp_if_destruct
         · -- the single unstable entry does not fit
-          ihave Hcap := ownSliceCap_empty (V := raftpb.Entry) se Hcape.symm (by omega)
+          ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
           iapply HΦ $$ %se %ese
           iframe Hse Hcap
           isplitl
@@ -332,7 +337,7 @@ theorem raftLog.slice.wp_proof
           exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
         iapply wp_fupd
         wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
-        ipersist Hsx
+        imod entsPts_persist _ _ _ $$ Hsx with #Hsx
         imodintro
         iapply HΦ $$ %sx %_
         iframe Hsx Hsxcap
@@ -342,7 +347,7 @@ theorem raftLog.slice.wp_proof
         exact Hext
       · iapply wp_fupd
         wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
-        ipersist Hsx
+        imod entsPts_persist _ _ _ $$ Hsx with #Hsx
         imodintro
         iapply HΦ $$ %sx %_
         iframe Hsx Hsxcap

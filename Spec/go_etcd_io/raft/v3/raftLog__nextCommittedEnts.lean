@@ -43,8 +43,8 @@ abbrev raftLog.nextCommittedEnts.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"nextCommittedEnts"))
       (Val #au))
-  {{ (s : GoSlice) (ce : List raftpb.Entry), RET #s;
-      ownRaftLog l ls ∗ s ↦*□ ce ∗ ownSliceCap raftpb.Entry s (DFrac.own 1) ∗
+  {{ (s : GoSlice) (ce : List EntryM), RET #s;
+      ownRaftLog l ls ∗ entsRO s ce ∗ ownSliceCap Loc s (DFrac.own 1) ∗
       ⌜ce <+: logCommittedEnts ls ∧ (ls.snap ≠ none → ce = [])⌝ }}
 
 end spec

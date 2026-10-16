@@ -21,7 +21,7 @@ joint path passes it to `EnterJoint`); `csCfgM` says so.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvApplyConfC
+public import Proof.go_etcd_io.raft.v3.CCApplyC
 
 @[expose] public section
 
@@ -36,25 +36,25 @@ section model
 variable [FfiSyntax]
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeRemoveNode, NodeId: id}`. -/
-abbrev removeNodeCC (id : w64) : raftpb.ConfChangeSingle :=
+abbrev removeNodeCC (id : w64) : ConfChangeSingleM :=
   { Type' := W32 1, NodeId' := id }
 
 /-- `toConfChangeSingle`'s `out`: one `AddNode` per outgoing voter. -/
-def restoreOutCC (vo : List w64) : List raftpb.ConfChangeSingle := vo.map addNodeCC
+def restoreOutCC (vo : List w64) : List ConfChangeSingleM := vo.map addNodeCC
 
 /-- `toConfChangeSingle`'s `in`: one `RemoveNode` per outgoing voter, then one `AddNode` per
 voter, one `AddLearnerNode` per learner, one `AddLearnerNode` per staged learner. -/
-def restoreInCC (vo v l ln : List w64) : List raftpb.ConfChangeSingle :=
+def restoreInCC (vo v l ln : List w64) : List ConfChangeSingleM :=
   vo.map removeNodeCC ++ v.map addNodeCC ++ l.map addLearnerCC ++ ln.map addLearnerCC
 
 /-- One `Simple([c])` per change, in order (`Restore`'s ops chained by `chain`). -/
-def simpleFold : List raftpb.ConfChangeSingle → CCState → Option CCState
+def simpleFold : List ConfChangeSingleM → CCState → Option CCState
   | [], s => some s
   | c :: cs, s => (simpleM [c] s).bind (simpleFold cs)
 
 /-- The changes `Restore` runs as `Simple` ops: the incoming ones when not joint, the
 outgoing ones when joint. -/
-def restoreSimpleOps (vo v l ln : List w64) : List raftpb.ConfChangeSingle :=
+def restoreSimpleOps (vo v l ln : List w64) : List ConfChangeSingleM :=
   if vo = [] then restoreInCC [] v l ln else restoreOutCC vo
 
 /-- `Restore(chg, cs)` on the empty tracker (`cfgState ∅ ∅`), for a `ConfState` with
@@ -85,7 +85,7 @@ def CSWf (vo v l ln : List w64) : Prop :=
   (∀ x, x ∈ ln → x ∈ vo ∧ x ∉ v ∧ x ∉ l) ∧
   (vo = [] → ln = [])
 
-theorem simpleFold_append (l1 l2 : List raftpb.ConfChangeSingle) (s : CCState) :
+theorem simpleFold_append (l1 l2 : List ConfChangeSingleM) (s : CCState) :
     simpleFold (l1 ++ l2) s = (simpleFold l1 s).bind (simpleFold l2) := by
   induction l1 generalizing s with
   | nil => simp [simpleFold]
@@ -96,8 +96,8 @@ theorem simpleFold_append (l1 l2 : List raftpb.ConfChangeSingle) (s : CCState) :
     | some s' => simp [ih]
 
 /-- A prefix of a fold that succeeds succeeds, and the next step from it too. -/
-theorem simpleFold_step (l : List raftpb.ConfChangeSingle) (s s' : CCState) (j : Nat)
-    (c : raftpb.ConfChangeSingle) (Hc : l[j]? = some c) (H : simpleFold l s = some s') :
+theorem simpleFold_step (l : List ConfChangeSingleM) (s s' : CCState) (j : Nat)
+    (c : ConfChangeSingleM) (Hc : l[j]? = some c) (H : simpleFold l s = some s') :
     ∃ sj sj1, simpleFold (l.take j) s = some sj ∧ simpleM [c] sj = some sj1 ∧
       simpleFold (l.take (j + 1)) s = some sj1 := by
   obtain ⟨hj, hcj⟩ := List.getElem?_eq_some_iff.1 Hc
@@ -119,7 +119,7 @@ theorem simpleFold_step (l : List raftpb.ConfChangeSingle) (s s' : CCState) (j :
       rw [ht, simpleFold_append, h1]
       simp [simpleFold, h2]
 
-theorem simpleFold_ok_prefix (l : List raftpb.ConfChangeSingle) (s s' : CCState) (j : Nat)
+theorem simpleFold_ok_prefix (l : List ConfChangeSingleM) (s s' : CCState) (j : Nat)
     (H : simpleFold l s = some s') : ∃ sj, simpleFold (l.take j) s = some sj := by
   have hl : l = l.take j ++ l.drop j := (List.take_append_drop j l).symm
   rw [hl, simpleFold_append] at H

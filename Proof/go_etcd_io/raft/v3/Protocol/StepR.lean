@@ -90,26 +90,26 @@ structure RState where
   /-- the configuration in use, with the learner flags (`confchange`'s state) -/
   cfg : CCState
   /-- ghost: the full log's prefix below `p.base` -/
-  fp : List raftpb.Entry
+  fp : List EntryM
 
 /-- The node's full log, from `base0`: the entry at log index `i` is at position `i - 1`. -/
-def RState.full (r : RState) : List raftpb.Entry := r.fp ++ r.p.log
+def RState.full (r : RState) : List EntryM := r.fp ++ r.p.log
 
 /-- No conf-change entry at the positions `[lo, hi)` of `l` (log indices `(lo, hi]`). -/
-def NoConfIn (l : List raftpb.Entry) (lo hi : Nat) : Prop :=
-  ∀ (k : Nat) (e : raftpb.Entry), lo ≤ k → k < hi → l[k]? = some e → ¬ IsConfEnt e
+def NoConfIn (l : List EntryM) (lo hi : Nat) : Prop :=
+  ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → ¬ IsConfEnt e
 
 /-- `stepLeader`'s conf-change loop at `r`: the batch and the new `pendingConfIndex`. -/
-def propBatch (r : RState) (ents : List raftpb.Entry) (cs : List (Option CCMsg)) :
-    List raftpb.Entry × w64 :=
+def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) :
+    List EntryM × w64 :=
   propConf r.applied (plastIndex r.p) r.pci ents cs (CfgM.joint r.cfg.cfg)
 
 /-- The dynamic model's configurations: the fold of the prefix from `c0` (A3). -/
-def AdmFold (dec : CCDec) (c0 : CCState) (l : List raftpb.Entry) (cs : CCState) : Prop :=
+def AdmFold (dec : CCDec) (c0 : CCState) (l : List EntryM) (cs : CCState) : Prop :=
   cfgFold dec c0 l = some cs
 
 /-- The static model's configurations: voters `V`, not joint (learners free). -/
-def StaticAdm (V : GSet w64) (_ : List raftpb.Entry) (cs : CCState) : Prop :=
+def StaticAdm (V : GSet w64) (_ : List EntryM) (cs : CCState) : Prop :=
   cs.cfg.incoming = V ∧ cs.cfg.outgoing = ∅
 
 end state
@@ -117,7 +117,7 @@ end state
 section model
 variable [FfiSyntax]
 
-variable (Adm : List raftpb.Entry → CCState → Prop) (dec : CCDec) (id : w64)
+variable (Adm : List EntryM → CCState → Prop) (dec : CCDec) (id : w64)
 
 /-- A node's step with reconfiguration (see the file header). The rules shared with `StepC`
 are its rules at `r.cfg.cfg` on `r.p`; their documentation is `Step`'s. -/
@@ -181,7 +181,7 @@ inductive StepR : RState → List Msg → RState → Prop where
   | drain (r : RState) (o' : List Msg) :
       o'.Subperm r.p.outbox →
       StepR r [] { r with p := { r.p with outbox := o' } }
-  | appAccept (m : Msg) (r : RState) (lastnewi : w64) (es' : List raftpb.Entry) :
+  | appAccept (m : Msg) (r : RState) (lastnewi : w64) (es' : List EntryM) :
       m.ty = .app →
       m.dst = id →
       m.src ≠ id →
@@ -282,7 +282,7 @@ inductive StepR : RState → List Msg → RState → Prop where
         p := psendMsgs r.p
           [Msg.mkV .propose id r.p.lead (W64 0) m.reject m.index m.logterm m.commit
              m.rejecthint m.entries [] m.ctx] }
-  | snapRestore (m : Msg) (r : RState) (fp' : List raftpb.Entry) (cs' : CCState) :
+  | snapRestore (m : Msg) (r : RState) (fp' : List EntryM) (cs' : CCState) :
       m.ty = .snap →
       m.dst = id →
       m.src ≠ id →
@@ -331,7 +331,7 @@ inductive StepR : RState → List Msg → RState → Prop where
         src := if m.src = W64 0 then id else m.src
         dst := r.p.lead
         term := W64 0 }] }
-  | readPend (m : Msg) (r : RState) (pm : raftpb.Message) :
+  | readPend (m : Msg) (r : RState) (pm : MessageM) :
       m.ty = .readIndex → r.p.role = .leader → m.src = pm.From' →
       StepR r [m] { r with p :=
         { r.p with rd := { r.p.rd with pend := r.p.rd.pend ++ [(pm, m.entries)] } } }
@@ -366,7 +366,7 @@ inductive StepR : RState → List Msg → RState → Prop where
         ({ r.p with rd := { r.p.rd with
              ro := (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).1 } })
         (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).2) }
-  | readState (m : Msg) (r : RState) (e : raftpb.Entry) :
+  | readState (m : Msg) (r : RState) (e : EntryM) :
       m.ty = .readIndexResp → m.entries = [e] →
       StepR r [m] { r with p :=
         { r.p with rd := { r.p.rd with states := r.p.rd.states ++ [⟨m.index, e.Data'⟩] } } }
@@ -399,7 +399,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [] { r with applied := r.p.base.index', snap := false }
   /-- `ApplyConfChange` of the next conf entry (at position `k`, log index `k + 1`), committed,
   in order: the configuration takes its change, decoded from the entry and its prefix. -/
-  | applyConf (r : RState) (k : Nat) (e : raftpb.Entry) (op : CCOp) (cs' : CCState) :
+  | applyConf (r : RState) (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState) :
       r.snap = false →
       r.cidx ≤ k →
       k < uint.nat r.p.commit →
@@ -424,7 +424,7 @@ end model
 section mono
 variable [FfiSyntax]
 
-theorem StepR.mono {Adm Adm' : List raftpb.Entry → CCState → Prop} {dec : CCDec} {id : w64}
+theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
     (hA : ∀ l cs, Adm l cs → Adm' l cs) {r : RState} {ms : List Msg} {r' : RState}
     (h : StepR Adm dec id r ms r') : StepR Adm' dec id r ms r' := by
   induction h with

@@ -17,6 +17,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.repl_lemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 
@@ -36,9 +37,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -51,9 +55,8 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     uint.Z m.Term' < uint.Z s.term →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents ∗
-        "#Hctx" ∷ m.Context' ↦*□ ctx }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -63,28 +66,28 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hlt
-  wp_start as ⟨Hphys, #Hents, #Hctx⟩
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_get _Q
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_true Hlt]
   wp_auto
-  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
+  wp_drive _Q
   cases Hpv : s.prevote
   · -- not MsgPreVote, not MsgStorageAppendResp: only the log line
     wp_auto
-    rw [Hty]
-    wp_auto
-    rw [Hty]
-    wp_auto
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_drive _Q
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
@@ -94,21 +97,26 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   · -- with pre-vote on, a stale leader message is answered with a bare `MsgAppResp`
     -- at the node's term (2026-10-04)
     wp_auto
-    rw [Hty]
+    wp_drive _Q
+    icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, Hmback⟩
     wp_auto
-    let ack : raftpb.Message :=
-      { Type' := W32 4, To' := m.From', From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
-        Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
-        RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
+    rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
+    haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+    wp_apply _Q.Enum (W32 4)
+    iintro %pty Hpty
+    imod cellRO_alloc $$ Hpty with #cTy
+    wp_auto
+    iclear Hmback HFr
+    let ack : MessageM := ⟨W32 4, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩
+    imod msgOwn_of_scalars «$a0_ptr» _ ack ⊤ $$ [«$a0»] with Hack
+    · iframe «$a0» cTy cFr
+      isplitr; · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+      repeat (isplitr; · iapply cellRO_null)
+      iapply cellRO_null
     have Hok : SendOk id s ack [] [] [absMsgFrom .appResp ack id s.term []] :=
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hfid, rfl⟩)))
-    wp_apply _P.send c r id s ack [] [] _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
-    · isplitr
-      · iapply ownSlice_nil
-      isplitr
-      · iapply ownSlice_nil
-      · iapply send_no_snap
-        exact (by decide : W32 4 ≠ W32 7)
+    wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
+      (fun h => absurd h (by simp only [ack]; w32_ne)) $$ [$Hphys $Hack] as Hphys
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro

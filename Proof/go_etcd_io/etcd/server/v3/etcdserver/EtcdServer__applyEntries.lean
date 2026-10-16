@@ -4,7 +4,7 @@ Proof of `Spec/EtcdServer__applyEntries.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
 
@@ -74,6 +74,7 @@ theorem EtcdServer.applyEntries.wp_proof
     (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG))
     (hStop : EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
+  have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A Hms Hai1 Hok hEok
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, HW, Hka, #Hkb⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl

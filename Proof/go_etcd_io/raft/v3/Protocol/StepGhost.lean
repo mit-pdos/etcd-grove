@@ -349,7 +349,7 @@ theorem ownLogGhost_inv (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
 
 /-- The compacted prefix is determined by the base (`FullOk_unique`), so a committed
 prefix can be read with any compacted prefix that has records. -/
-theorem cprefix_transfer (γ : RaftNames) (fp1 fp2 : List raftpb.Entry) (s : PState) :
+theorem cprefix_transfer (γ : RaftNames) (fp1 fp2 : List EntryM) (s : PState) :
     FullOk s.base fp1 → FullOk s.base fp2 →
     ⊢ logRecs (GF := GF) γ base0 fp1 -∗ logRecs γ base0 fp2 -∗
       isCommitted γ (cprefix fp1 s) -∗ isCommitted γ (cprefix fp2 s) := by
@@ -367,7 +367,7 @@ theorem take_prefix_le {A : Type _} (l : List A) (n m : Nat) :
   rw [this]; exact List.take_prefix _ _
 
 /-- A log that grows past the commit index keeps its committed prefix. -/
-theorem cprefix_app (fp : List raftpb.Entry) (s : PState) (es : List raftpb.Entry) :
+theorem cprefix_app (fp : List EntryM) (s : PState) (es : List EntryM) :
     uint.Z s.commit ≤ ((fp ++ s.log).length : Int) →
     (fp ++ s.log ++ es).take (uint.Z s.commit).toNat = cprefix fp s := by
   intro H
@@ -574,8 +574,8 @@ theorem AcksTerm_insert (s : PState) (acks : GMap (w64 × w64) Unit) (t i : w64)
 /-- The per-acknowledgement invariants of a new acknowledgement, at the node's term: its
 history, and nothing for the vote-time logs (they are of terms up to this one). -/
 theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
-    (F : List raftpb.Entry) (acks : GMap (w64 × w64) Unit)
-    (vlogs : GMap Nat ((w64 × Bool) × List raftpb.Entry)) (i : w64) :
+    (F : List EntryM) (acks : GMap (w64 × w64) Unit)
+    (vlogs : GMap Nat ((w64 × Bool) × List EntryM)) (i : w64) :
     ⊢ hist (GF := GF) γ F s.term i (bnd s kl) -∗
       histsOk γ s kl F acks -∗ vlogsOk γ s acks vlogs -∗
       histsOk γ s kl F (<[(s.term, i) := ()]> acks) ∗
@@ -646,7 +646,7 @@ theorem pleaderEntry_term (s : PState) : (pleaderEntry s).Term' = s.term := rfl
 /-- (Lean helper.) `leadLogOwn` and `campOwn` of a leader, unfolded. -/
 private theorem leadLogOwn_l (γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) :
     s.role = .leader → leadLogOwn (GF := GF) γ s terms =
-      iprop(∃ γt, ∃ (M : GMap w64 (raftpb.Entry × w64)), ∃ l0,
+      iprop(∃ γt, ∃ (M : GMap w64 (EntryM × w64)), ∃ l0,
         ⌜terms !! s.term = some ((γt, s.base), l0)⌝ ∗
         ghostMapAuth γt 1 M ∗
         ([∗map] i ↦ e ∈ M, i ↪[γt]□ e) ∗
@@ -657,7 +657,7 @@ private theorem leadLogOwn_l (γ : RaftNames) (s : PState) (terms : GMap w64 Ter
   unfold leadLogOwn
   rw [H]
 
-private theorem campOwn_l (γ : RaftNames) (id : w64) (s : PState) (F : List raftpb.Entry) :
+private theorem campOwn_l (γ : RaftNames) (id : w64) (s : PState) (F : List EntryM) :
     s.role = .leader → campOwn (GF := GF) γ id s F =
       iprop(∃ F0, isCamp γ id s.term F0 ∗
        ⌜F0 <+: F ∧ plogLastIndexZ base0 F0 < plogLastIndexZ base0 F ∧
@@ -943,7 +943,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
       (<[k := ((s.term + W64 1, false), fp ++ s.log)]> vlogs) $$ []
   · unfold vlogsOk
     iapply (BigSepM.bigSepM_insert_elim
-      (Φ := fun (_ : Nat) (x : (w64 × Bool) × List raftpb.Entry) =>
+      (Φ := fun (_ : Nat) (x : (w64 × Bool) × List EntryM) =>
         iprop(⌜uint.Z x.1.1 ≤ uint.Z (pbecomeCandidate id s).term⌝ ∗ [∗map] k ↦ _u ∈ acks,
           ∀ (_ : uint.Z k.1 < uint.Z x.1.1), hist (GF := GF) γ x.2 k.1 k.2 (vbnd x.1.1 x.1.2)))
       (m := vlogs) (i := k) (x := ((s.term + W64 1, false), fp ++ s.log))) $$ [] []
@@ -1022,7 +1022,7 @@ theorem ownLogGhost_vote (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
       (<[k := ((s.term, kl.isSome), fp ++ s.log)]> vlogs) $$ []
   · unfold vlogsOk
     iapply (BigSepM.bigSepM_insert_elim
-      (Φ := fun (_ : Nat) (x : (w64 × Bool) × List raftpb.Entry) =>
+      (Φ := fun (_ : Nat) (x : (w64 × Bool) × List EntryM) =>
         iprop(⌜uint.Z x.1.1 ≤ uint.Z s.term⌝ ∗ [∗map] k ↦ _u ∈ acks,
           ∀ (_ : uint.Z k.1 < uint.Z x.1.1), hist (GF := GF) γ x.2 k.1 k.2 (vbnd x.1.1 x.1.2)))
       (m := vlogs) (i := k) (x := ((s.term, kl.isSome), fp ++ s.log))) $$ [] Hvlogs_ok
@@ -1064,8 +1064,8 @@ private theorem ite_pos_elim {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] 
   rw [ite_eq_left_iff.mpr (fun hn => absurd h hn)]
 
 /-- (Lean helper.) One entry's record in a log with records, at any base. -/
-private theorem logRecs_lookup_b (γ : RaftNames) (b : entryID) (es : List raftpb.Entry)
-    (k : Nat) (e : raftpb.Entry) :
+private theorem logRecs_lookup_b (γ : RaftNames) (b : entryID) (es : List EntryM)
+    (k : Nat) (e : EntryM) :
     es[k]? = some e → uint.Z b.index' + (k : Int) + 1 < 2 ^ 64 →
     ⊢ logRecs (GF := GF) γ b es -∗
       ∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryR γ e pt := by
@@ -1126,7 +1126,7 @@ theorem snapOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
 
 /-- What a leader's broadcast carries, from what the leader holds. -/
 theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
-    (fp : List raftpb.Entry) :
+    (fp : List EntryM) :
     PlogWfR s.base s.log →
     ReplOk id s m → id ≠ W64 0 →
     -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp`'s I1 at its `Commit`
@@ -1188,7 +1188,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
 
 /-- A full log at its commit index has the history of an acknowledgement there, at any
 term at least the commit fact's. -/
-theorem hist_of_commit (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64) (B : Int) :
+theorem hist_of_commit (γ : RaftNames) (F : List EntryM) (c tm : w64) (B : Int) :
     PlogWf base0 F → uint.Z tm < B →
     ⊢ logRecs (GF := GF) γ base0 F -∗ commitIn γ F c tm -∗ hist γ F tm c B := by
   intro HwF HB
@@ -1217,7 +1217,7 @@ theorem hist_of_commit (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64) (B 
       iexact Hq
 
 /-- An acknowledgement justified by the log, in full-log terms. -/
-theorem ackAgree_full (γ : RaftNames) (b : entryID) (es fp : List raftpb.Entry)
+theorem ackAgree_full (γ : RaftNames) (b : entryID) (es fp : List EntryM)
     (t i : w64) :
     FullOk b fp → uint.Z b.index' ≤ uint.Z i →
     ⊢ ackAgree (GF := GF) γ b es t i -∗
@@ -1292,7 +1292,7 @@ theorem ownLogGhost_ack_agree (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
 (of a term in range) on `[c, L]`, and drops what is past `L` -- where the old log
 disagreed with `Y` at some `k` in `[c, L]` (the cut of `Step.appAccept`, the snapshot
 index of `Step.snapRestore`). -/
-theorem hist_replace (γ : RaftNames) (F F' Y : List raftpb.Entry) (t i T : w64)
+theorem hist_replace (γ : RaftNames) (F F' Y : List EntryM) (t i T : w64)
     (B B' c : Int) (k L : w64) :
     B ≤ B' → uint.Z t ≤ uint.Z T → uint.Z T < B' →
     0 < uint.Z k → c ≤ uint.Z k ∧ uint.Z k ≤ uint.Z L →

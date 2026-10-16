@@ -2,7 +2,9 @@
 
 Lean notes: the Rocq helper `wp_bcast` is inlined in the theorem (it was the whole
 proof). The Rocq `Local Lemma send_msgs_app` is not needed (the state equations are
-closed by `cases s; simp [sendMsgs]`). `ownTracker_cast` is a local helper. -/
+closed by `cases s; simp [sendMsgs]`). `ownTracker_cast` is a local helper. 
+raft v3.7 (stage R4): compiles as ported (imports only).
+-/
 module
 
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
@@ -69,17 +71,21 @@ theorem raft.bcastAppend.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s
+  intro c r id s Hlead
   wp_start as Hphys
   wp_auto
+  -- (stage R8a) the leader's progress bound, carried through the `Visit`
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
   wp_apply wp_ProgressTracker_Visit c _ tv ⟨s.votes, s.progress, s.prvals⟩ _
       (fun _ pvsx => iprop(∃ (ms : List Msg),
         "rp" ∷ r_ptr ↦ r ∗
         "%Hms" ∷ ⌜ReplSends id s ms⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
+        "%Hok" ∷ ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx }⌝ ∗
         "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
             ownTrackerC c tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
+            ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx' }⌝ -∗
             ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvsx' })))
     $$ [$Htrkf $Htrk r Hrest]
   · isplitl [r Hrest]
@@ -90,8 +96,10 @@ theorem raft.bcastAppend.wp_proof
       · ipureintro; intro m Hm; simp at Hm
       isplitr
       · ipureintro; trivial
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := Hrest $$ %tvx %pvsx Hf Ht
+      isplitr
+      · ipureintro; exact Hok0.of_fields rfl rfl rfl
+      iintro %tvx %pvsx Hf Ht %Hok'
+      ihave Hphys := Hrest $$ %tvx %pvsx Hf Ht %(Hok'.of_fields rfl rfl rfl)
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs]) $$ Hphys
     -- the closure
     imodintro
@@ -100,7 +108,7 @@ theorem raft.bcastAppend.wp_proof
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback, HI⟩
     iNamed HI
     ihave Htrk := Hback $$ %p Hpr %rfl
-    ihave Hphys := Hrest $$ Htrkf Htrk
+    ihave Hphys := Hrest $$ Htrkf Htrk %(by rw [GMap.insert_id _ _ _ Hpvi]; exact Hok)
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     by_cases Hii : i = id
@@ -120,17 +128,20 @@ theorem raft.bcastAppend.wp_proof
       · ipureintro; exact Hms
       isplitr
       · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hmm
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
+      isplitr
+      · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hok
+      iintro %tvx %pvsx Hf Ht %Hok'
+      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %Hok'
       · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendAppend _ _ _ _ i Hii (by exact Hicfg) $$ [$Hphys]
+      wp_apply wp_raft_sendAppend _ _ _ _ i Hii (by exact Hicfg) (by exact Hlead) $$ [$Hphys]
         as %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       try wp_auto
+      icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
       ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
       · rfl
@@ -145,14 +156,16 @@ theorem raft.bcastAppend.wp_proof
         exact replSends_app id s ms ms' Hms ((replSends_send_prvals id s ms _ ms').1 Hms')
       isplitr
       · ipureintro; simp only at Hmm'; rw [Hmm', GMap.insert_id _ _ _ Hpvi]; exact Hmm
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
+      isplitr
+      · ipureintro; exact Hok'.of_fields rfl rfl rfl
+      iintro %tvx %pvsx Hf Ht %Hok''
+      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %(Hok''.of_fields rfl rfl rfl)
       · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs, List.append_assoc]) $$ Hphys
   iintro ⟨%tvfin, %pvsfin, Htrkf, Htrk, HI⟩
   iNamed HI
-  ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk
+  ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk %Hok
   wp_auto
   iapply HΦ $$ %ms %pvsfin
   iframe Hphys

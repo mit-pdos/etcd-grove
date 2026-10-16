@@ -73,7 +73,12 @@ theorem unstable.stableTo.wp_proof
   · close_unstable
   open_unstable_again
   icases Hents with #Hents
-  ihave %Hlen := ownSlice_len $$ Hents
+  ihave %Hlen := entsPts_len $$ Hents
+  ihave Hents' := Hents
+  iunfold entsRO at Hents'
+  iunfold entsPts at Hents'
+  icases Hents' with ⟨%ls, #Hls, #Hb⟩
+  ihave %Hlsl := ownSlice_len $$ Hls
   ihave #Hulgv : isLoggerVal uv.logger' $$ [Hlogger]
   · iexact Hlogger
   iunfold isLoggerVal at Hulgv
@@ -111,10 +116,10 @@ theorem unstable.stableTo.wp_proof
   -- the hit: drop the persisted prefix
   have Hnum : sint.Z (id.index' + W64 1 - us.offset) =
       uint.Z id.index' + 1 - uint.Z us.offset := by word
-  ihave %Hwf := ownSlice_wf $$ Hents
+  ihave %Hwf := ownSlice_wf $$ Hls
   rw [ite_eq_left ⟨by word, by word, Hwf.2⟩]
   icases (ownSlice_slice (id.index' + W64 1 - us.offset) uv.entries'.len uv.entries'
-      DFrac.discard us.ents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #Hents2, -⟩
+      DFrac.discard ls ⟨by word, by word, by word⟩).1 $$ Hls with ⟨-, #Hls2, -⟩
   ihave Hents_cap := (ownSliceCap_slice uv.entries' (id.index' + W64 1 - us.offset) _
       ⟨by word, by word, Hwf.2⟩).1 $$ Hents_cap
   wp_auto
@@ -124,7 +129,13 @@ theorem unstable.stableTo.wp_proof
     rw [subslice_def, List.take_of_length_le (by word)]
     congr 1
     word
-  rw [Hsub]
+  ihave #Hents2 : entsRO (slice.slice uv.entries' Loc (id.index' + W64 1 - us.offset)
+      uv.entries'.len) (us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat) $$ [Hls2 Hb]
+  · rw [← Hsub]
+    iunfold entsRO; iunfold entsPts
+    iexists _
+    iframe Hls2
+    iapply entsBig_subslice $$ Hb
   wp_apply wp_unstable_shrinkEntriesArray u
       { us with ents := us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat,
                 offset := id.index' + W64 1,

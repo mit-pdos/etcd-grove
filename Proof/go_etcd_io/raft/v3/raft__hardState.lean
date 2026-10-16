@@ -32,9 +32,18 @@ theorem raft.hardState.wp_proof : raft.hardState.spec (GF := GF) (hG := hG) := b
   wp_auto
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hback $$ Hlog
-  rw [Hlv.1, show ({ Term' := s.term, Vote' := s.vote, Commit' := s.logst.committed } :
-    raftpb.HardState) = hardstateVal (nodeHardstate s) from rfl]
-  iapply HΦ $$ Hphys
+  imod cellRO_alloc $$ «$v0» with #cT
+  imod cellRO_alloc $$ «$v1» with #cV
+  imod cellRO_alloc $$ «$v2» with #cC
+  wp_alloc p as Hp
+  imod hsRO_of_struct p (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0) (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp] with #Hhs
+  · iframe Hp
+    rw [Hlv.1]
+    simp only [hardstateVal, nodeHardstate]
+    iframe cT cV cC
+  wp_auto
+  iapply HΦ
+  iframe Hhs Hphys
 
 end proof
 

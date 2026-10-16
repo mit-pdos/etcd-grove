@@ -70,7 +70,7 @@ def DynCfg.ofFold (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) : DynCfg where
 
 /-- The configurations the dynamic model admits after a prefix: its fold (A3), among the
 prefixes `S` (whose records the refinement takes, see the file header). -/
-def AdmS (dec : CCDec) (c0 : CCState) (S : List raftpb.Entry → Prop) (l : List raftpb.Entry)
+def AdmS (dec : CCDec) (c0 : CCState) (S : List EntryM → Prop) (l : List EntryM)
     (cs : CCState) : Prop :=
   AdmFold dec c0 l cs ∧ S l
 
@@ -78,7 +78,7 @@ theorem toNat_uZ (w : w64) : (uint.Z w).toNat = uint.nat w := by
   have := rUnat_eq w; omega
 
 theorem cfgAt_of_fold {γ : RaftNames} {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0}
-    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) {P : List raftpb.Entry} {s : CCState}
+    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) {P : List EntryM} {s : CCState}
     (h : cfgFold dec c0 P = some s) : CfgAt γ P s.cfg :=
   CfgAt.of_dyn HD (by simp [DynCfg.ofFold, h])
 
@@ -87,7 +87,7 @@ theorem reDyn_of {γ : RaftNames} {D : DynCfg} (HD : γ.dyn = some D) : γ.reDyn
 
 /-- `full_take_eq`'s pure core: two full logs whose records agree (`RecsAgree`) and that have
 the same term at `c` have the same first `c` entries. -/
-theorem full_take_eq_pure (F1 F2 : List raftpb.Entry) (c : w64) (Hw1 : PlogWf base0 F1)
+theorem full_take_eq_pure (F1 F2 : List EntryM) (c : w64) (Hw1 : PlogWf base0 F1)
     (Hw2 : PlogWf base0 F2) (HRA : RecsAgree base0 F1 base0 F2)
     (Hs : (plogTermAt base0 F1 c).isSome) (Heq : plogTermAt base0 F1 c = plogTermAt base0 F2 c) :
     F1.take (uint.Z c).toNat = F2.take (uint.Z c).toNat := by
@@ -127,7 +127,7 @@ theorem full_take_eq_pure (F1 F2 : List raftpb.Entry) (c : w64) (Hw1 : PlogWf ba
 /-- What an `MsgApp` tells its receiver for I1 (`AppKnow`), from the sender's log `fp ++ l` the
 message knows (its previous term, the batch in it, I1 at `Commit`) and log matching with the
 receiver's full log (their records agree). -/
-theorem appKnow_pure (r : RState) (m : Msg) (bL : entryID) (fp l : List raftpb.Entry)
+theorem appKnow_pure (r : RState) (m : Msg) (bL : entryID) (fp l : List EntryM)
     (HwR : PlogWf base0 r.full) (Hpay : AppPayloadOk m)
     (Hprev : plogTermAt bL l m.index = some m.logterm)
     (Hpre : m.entries <+: plogFrom bL l (m.index + W64 1))
@@ -307,10 +307,10 @@ dynamic ghost state, given the messages it consumed with their read credits and 
 the prefixes `S` (see the file header). With the commit invariant's registry half open
 (2026-10-14, stage R: `regsOwn` threaded through, for the commits). -/
 theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
-    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (S : List raftpb.Entry → Prop)
+    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (S : List EntryM → Prop)
     (id : w64) (r : RState) (recv : List Msg) (r' : RState) :
     StepR (AdmS dec c0 S) dec id r recv r' →
-    ⊢ regsOwn γ -∗ (□ ∀ (fp : List raftpb.Entry), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
+    ⊢ regsOwn γ -∗ (□ ∀ (fp : List EntryM), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
       ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗
       ownRaftGhostR γ dec c0 id r ={⊤ \ ↑raftRegN}=∗
       regsOwn γ ∗ ownRaftGhostR γ dec c0 id r' := by
@@ -987,10 +987,10 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
 /-- The dynamic refinement (see `ownRaftGhostR_stepR_in`), at `⊤`, given one later credit
 (2026-10-14, stage R): the commit invariant's registry half opened around the step. -/
 theorem ownRaftGhostR_stepR (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
-    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (S : List raftpb.Entry → Prop)
+    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (S : List EntryM → Prop)
     (id : w64) (r : RState) (recv : List Msg) (r' : RState) :
     StepR (AdmS dec c0 S) dec id r recv r' →
-    ⊢ (□ ∀ (fp : List raftpb.Entry), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
+    ⊢ (□ ∀ (fp : List EntryM), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
       ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
       ownRaftGhostR γ dec c0 id r ={⊤}=∗ ownRaftGhostR γ dec c0 id r' := by
   intro Hstep

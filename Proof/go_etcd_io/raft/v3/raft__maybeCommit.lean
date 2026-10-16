@@ -105,6 +105,7 @@ theorem raft.maybeCommit.wp_proof
   wp_apply wp_raftLog_maybeCommit $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
   ihave Hphys := Hlogback $$ %_ Hlog
     %(by cases b <;> exact LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+    %(by cases b <;> exact fun _ => logLast_le_of_fields rfl rfl rfl)
   wp_apply wp_traceCommit
   iapply HΦ $$ %b %N
   cases b with

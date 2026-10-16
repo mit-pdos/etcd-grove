@@ -12,7 +12,7 @@ usage: etc/verified-code.py [-o REPORT.txt|REPORT.md]... [--markdown] [--functio
                file" tables
   --package    a summary row for the Go packages at or below PREFIX (an import path,
                `<root>:<path>` for a project translated into a module root of its own,
-               `Raft37:go.etcd.io/raft/v3`), and the "by file" tables and --functions only
+               `<root>:go.etcd.io/raft/v3`), and the "by file" tables and --functions only
                of those; may be repeated
   --go-src     where the Go sources are: DIR/<project> for each project of
                `etc/goose.py`, a checkout of its Go repository at the revision pinned
@@ -186,7 +186,7 @@ def project_part_packages():
 def rooted(proj, path):
     """A Go package or module path of project `proj` as this script keys it: as is, or
     `<root>:<path>` for a project translated into a module root of its own (whose paths
-    another project's sources also have: raft v3.7's `Raft37`)."""
+    another project's sources also have; none now, raft v3.7's `Raft37` was one)."""
     root = PROJECTS[proj].root
     return f"{root}:{path}" if root else path
 
@@ -256,14 +256,33 @@ def goose_functions(pkgs):
 def local_proofs(objs):
     """This repository's specs: (project, the Lean name of the function (`T.M`)) ->
     (state, sorry-free), from the linked results of `LINKS`."""
+    # Keyed by (module, name): the same name is linked in several module roots (the raft
+    # proof's `Link`, `EtcdDeps`'s, `Raft37`'s all linked `quorum.JointConfig.wp_IDs`), and each
+    # is its project's own result. A result's `uses` name results by name alone: one is
+    # resolved in its own module, else in a module of the same root (a part's, or the
+    # plain `Proof.*`), never across roots.
     roots, axioms = {}, set()
     for o in objs:
         if o["t"] == "root" and o["module"] in LINKS:
-            roots[o["name"]] = o
+            roots[(o["module"], o["name"])] = o
         elif o["t"] == "axiom":
             axioms.add(o["name"])
+    by_name = {}
+    for (m, n), o in roots.items():
+        by_name.setdefault(n, []).append(o)
+
+    def part(m):
+        top = m.split(".")[0]
+        return "" if top == "Proof" else top
+
+    def used(r, u):
+        if (r["module"], u) in roots:
+            return roots[(r["module"], u)]
+        same = [o for o in by_name.get(u, []) if part(o["module"]) == part(r["module"])]
+        return same[0] if same else None
+
     out = {}
-    for n, r in roots.items():
+    for (_m, n), r in roots.items():
         # `T.wp_M : T.M.spec`
         name = n.removeprefix(NS)
         # A Link with a namespace of its own (`etc/gen-link.py --concurrency`) names its
@@ -277,7 +296,7 @@ def local_proofs(objs):
                 name = ".".join(rest)
         *pre, last = name.split(".")
         fn = ".".join(pre + [last.removeprefix("wp_")])
-        inherited = {s for u in r["uses"] if u in roots for s in roots[u]["sorries"]}
+        inherited = {s for u in r["uses"] if used(r, u) for s in used(r, u)["sorries"]}
         own = set(r["sorries"]) - inherited
         # a spec of another package not among the qualifiers (`leasing.strings.Compare`, an axiom
         # `strings.Compare.wp_proof` outside the Link's namespace)

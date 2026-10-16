@@ -23,12 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.setCommittedIndex(v')` by the writer (the ready handler's `updateCommittedIndex`, on the
-raft loop), with its half of the committed index at `v ≤ v'`: the atomic and the ghost committed
-index move to `v'` (`committedAtLeast γr v'`). -/
+raft loop), with its half of the committed index at `v ≤ v'` and (2026-10-16, stage R7b) a
+committed log `L` reaching `v'`: the atomic and the ghost committed index move to `v'`
+(`committedAtLeast γr v'`). -/
 abbrev EtcdServer.setCommittedIndex.spec : Prop :=
-  ∀ (s : Loc) (γr : ReadNames) (v v' : w64), uint.Z v ≤ uint.Z v' →
+  ∀ (s : Loc) (γr : ReadNames) (v v' : w64) (L : List EntryModel), uint.Z v ≤ uint.Z v' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvCommittedInv s γr ∗ srvCommittedOwn γr v }}
+      srvCommittedInv s γr ∗ srvCommittedOwn γr v ∗
+      -- (2026-10-16, stage R7b) the committed log the new index was read from
+      srvRLogLb γr.raft L ∗ ⌜uint.Z v' ≤ uint.Z γr.raft.ai0 + L.length⌝ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setCommittedIndex")) (Val #v'))
   {{ RET #(); srvCommittedOwn γr v' ∗ committedAtLeast γr v' }}
 

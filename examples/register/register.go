@@ -14,6 +14,7 @@ import (
 
 	"go.etcd.io/raft/v3"
 	pb "go.etcd.io/raft/v3/raftpb"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -59,16 +60,16 @@ func NewStorage(voters []uint64) *Storage {
 // InitialState is a new cluster's: no hard state (the register persists only the log's
 // entries, never a HardState, so the MemoryStorage's is always empty), and the cluster's
 // voters as the configuration.
-func (s *Storage) InitialState() (pb.HardState, pb.ConfState, error) {
-	return pb.HardState{}, pb.ConfState{Voters: s.voters}, nil
+func (s *Storage) InitialState() (*pb.HardState, *pb.ConfState, error) {
+	return &pb.HardState{}, &pb.ConfState{Voters: s.voters}, nil
 }
 
 // Snapshot is the MemoryStorage's, but a storage that has never had one (a new
 // cluster's) says it has none for now, as the Storage interface asks, rather than
 // returning an empty snapshot.
-func (s *Storage) Snapshot() (pb.Snapshot, error) {
+func (s *Storage) Snapshot() (*pb.Snapshot, error) {
 	snap, err := s.MemoryStorage.Snapshot()
-	if err == nil && snap.Metadata.Index == 0 {
+	if err == nil && snap.GetMetadata().GetIndex() == 0 {
 		return snap, raft.ErrSnapshotTemporarilyUnavailable
 	}
 	return snap, err
@@ -93,7 +94,7 @@ type Register struct {
 
 // New starts replica id on a running node and its storage; send delivers the node's
 // messages to the other replicas.
-func New(id uint64, node raft.Node, storage *Storage, send func([]pb.Message)) *Register {
+func New(id uint64, node raft.Node, storage *Storage, send func([]*pb.Message)) *Register {
 	r := &Register{id: id, node: node, storage: storage, applied: make(map[string]bool),
 		waiters: make(map[uint64]chan string), reads: make(map[uint64]chan string)}
 	go r.run(send)
@@ -105,8 +106,8 @@ func New(id uint64, node raft.Node, storage *Storage, send func([]pb.Message)) *
 const maxIndex = 1 << 61
 
 // fits says whether appending es keeps the stored log within maxIndex.
-func fits(es []pb.Entry) bool {
-	return len(es) == 0 || (uint64(len(es)) <= maxIndex && es[0].Index <= maxIndex-uint64(len(es)))
+func fits(es []*pb.Entry) bool {
+	return len(es) == 0 || (uint64(len(es)) <= maxIndex && es[0].GetIndex() <= maxIndex-uint64(len(es)))
 }
 
 // run handles the node's Readys: persist the entries, send the messages, note the read
@@ -115,7 +116,7 @@ func fits(es []pb.Entry) bool {
 // answer the reads whose index is applied, then Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does
 // not happen). The applied index is the number of entries applied: the log starts empty,
 // at index 1, and the register takes no snapshots.
-func (r *Register) run(send func([]pb.Message)) {
+func (r *Register) run(send func([]*pb.Message)) {
 	var pending []raft.ReadState
 	var applied uint64
 	for rd := range r.node.Ready() {
@@ -127,10 +128,10 @@ func (r *Register) run(send func([]pb.Message)) {
 		send(rd.Messages)
 		pending = append(pending, rd.ReadStates...)
 		for _, e := range rd.CommittedEntries {
-			if e.Type == pb.EntryConfChange {
+			if e.GetType() == pb.EntryConfChange {
 				var cc pb.ConfChange
-				cc.Unmarshal(e.Data)
-				r.node.ApplyConfChange(cc)
+				proto.Unmarshal(e.GetData(), &cc)
+				r.node.ApplyConfChange(&cc)
 			}
 			r.apply(e)
 			applied++
@@ -175,20 +176,20 @@ func (r *Register) answer(pending []raft.ReadState, applied uint64) []raft.ReadS
 // proposal retried after an error, or delivered twice) is skipped, so that an operation
 // takes effect once. Operations are told apart by their encoding, which is unique: the
 // replica and a sequence number of its own.
-func (r *Register) apply(e pb.Entry) {
-	if e.Type != pb.EntryNormal {
+func (r *Register) apply(e *pb.Entry) {
+	if e.GetType() != pb.EntryNormal {
 		return
 	}
-	replica, seq, kind, val, ok := decode(e.Data)
+	replica, seq, kind, val, ok := decode(e.GetData())
 	if !ok {
 		return
 	}
 	r.mu.Lock()
-	if r.applied[string(e.Data)] {
+	if r.applied[string(e.GetData())] {
 		r.mu.Unlock()
 		return
 	}
-	r.applied[string(e.Data)] = true
+	r.applied[string(e.GetData())] = true
 	if kind == opPut {
 		r.value = val
 	}
@@ -248,7 +249,7 @@ func (r *Register) TransferLeadership(to uint64) {
 // promised of the outcome: raft drops a change proposed while another one is not yet
 // applied, and RemoveMember proposes it once.
 func (r *Register) RemoveMember(id uint64) {
-	r.node.ProposeConfChange(context.Background(), pb.ConfChange{Type: pb.ConfChangeRemoveNode, NodeId: id})
+	r.node.ProposeConfChange(context.Background(), &pb.ConfChange{Type: pb.ConfChangeRemoveNode.Enum(), NodeId: new(id)})
 }
 
 // Read returns the register's value, by a read index rather than through the log: a

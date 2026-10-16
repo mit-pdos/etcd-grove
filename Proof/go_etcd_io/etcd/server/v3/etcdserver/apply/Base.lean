@@ -7,6 +7,10 @@ instance: the txn package's (`txn/Base.lean`), mvcc's (`storage/mvcc/Base.lean`:
 `etcdserverpb`, `membershippb`, `authpb`), the server's (`etcdserver/Base.lean`: `cindex`,
 `backend`), `etcdserver/errors/Base.lean`, and Perennial's (`context`, `errors`, `sync`, `time`).
 
+Since stage R6 of the raft v3.7 retarget (2026-10-16) it imports raft's `Base`
+(`Proof/go_etcd_io/raft/v3/Base.lean`: the instances of `raft`, `raftpb`, `strconv`, `reflect`,
+protobuf-go's packages, ...), the server's raft being the verified one (D9).
+
 The instances below are `True` (the packages are translated names-only or types-only); until
 2026-10-12 they were in the server's `BaseApply.lean`, which now imports this file: the apply
 package must not import the server's translation (the server's proofs will import the apply
@@ -32,6 +36,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.context
@@ -335,15 +340,9 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api
 
--- raft v3.7's `raftpb` (etcd's own raft dependency; types only)
-namespace go_etcd_io.raft.v3.raftpb
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.raft.v3.raftpb
+-- raft v3.7's `raftpb`: raft's `Base.lean` (imported above) states its instance, since stage R6
+-- of the raft v3.7 retarget (2026-10-16; until then etcd's own raft dependency, types only,
+-- stated here).
 
 -- `server/v3/storage` (names only: `Quota`, `BackendQuota`)
 namespace go_etcd_io.etcd.server.v3.storage

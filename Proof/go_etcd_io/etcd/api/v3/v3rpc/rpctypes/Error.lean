@@ -117,7 +117,7 @@ theorem rpctypes.Error.wp_proof
       ihave ⟨#HE, -⟩ := Hv $$ %ve %rfl
       iunfold errorStringSpec at HE
       wp_apply HE as %str
-      wp_apply HCode as %c
+      wp_apply HCode
       iapply HΦ
       isplitr
       · ipureintro; simp
@@ -127,7 +127,7 @@ theorem rpctypes.Error.wp_proof
       exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
     · wp_auto
       wp_apply HMsg as %msg
-      wp_apply HCode as %c
+      wp_apply HCode
       iapply HΦ
       isplitr
       · ipureintro; simp

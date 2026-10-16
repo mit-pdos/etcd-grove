@@ -77,7 +77,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
   iunfold readMuP at HP
   icases HP with ⟨%nc, %γn, Hpt, Hg⟩
   wp_auto_lc 3
-  imod read_deposit γr _ nc γn c g Q $$ Hinv Hlc1 Hg Hc HsQ HdQ with ⟨Hg, #Hnis, #Hlb, %k, #Hidx⟩
+  imod read_need_deposit γr _ nc γn c g Q $$ Hinv Hlc1 Hg Hc HsQ HdQ with ⟨Hg, #Hnis, #Hlb, %k, #Hidx⟩
   wp_apply sync.RWMutex.wp_RUnlock (readMuAddr r) (readMuP r γr) $$ [Hrl Hpt Hg] as Hrr
   · iframe #; iframe Hrl; iunfold readMuP; iexists nc, γn; iframe Hpt Hg
   wp_join iprop(r_ptr ↦ r ∗ ctx_ptr ↦ GoInterface.ok ctx ∗ nc_ptr ↦ nc ∗

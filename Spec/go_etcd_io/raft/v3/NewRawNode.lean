@@ -10,6 +10,13 @@ synchronous storage writes, and the ghost state of the protocol's initial state,
 `isCommitted γ []`. The premises on the `Config` and the storage are `newRaft`'s
 (`Spec/newRaft.lean`).
 
+raft v3.7 (2026-10-16, stage R5): the storage's `InitialState` premise is `newRaft`'s (stage R4,
+D7: two pointers, the hard state `hsOpt hp hs` and the conf state `csPts cs □ csm al` -- its
+`AutoLeave` cell set or not, 2026-10-16, stage R6b; `true` until then --, `ownStorage` back at
+once; before the retarget the Goose values `hs`, `cs` and `cs.Voters` lent at `dqv`);
+the conf state is the record `csm`, its voters `csm.Voters'`. `NewRawNode` sets `prevHardSt :=
+r.hardState()`, a fresh read-only hard state (`ownRawNode`'s `Hhard`).
+
 Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` and has
 `[AllG GF]`.
 -/
@@ -38,7 +45,7 @@ log, is the protocol's initial state. (Since 2026-10-01 the protocol state has t
 and `initPState`'s is empty: a node starting from a storage that already holds entries
 is not at `initPState`, and `ownRaftGhost_alloc` does not cover it -- its entries would
 need `isEntry`s.) -/
-theorem newRaft_post_init (hs : raftpb.HardState) (s : NState) :
+theorem newRaft_post_init (hs : HardStateM) (s : NState) :
     HsEmpty hs →
     (NStateWf s ∧
      s.term = hs.Term' ∧
@@ -81,8 +88,7 @@ def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :
 abbrev NewRawNode.spec : Prop :=
   ∀ (γ : RaftNames) (md : RNMode) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : raftpb.HardState) (cs : raftpb.ConfState)
-    (voters : List w64) (dqv : DFrac),
+    (hs : HardStateM) (csm : ConfStateM),
   -- the Config, as for `newRaft`
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -107,29 +113,36 @@ abbrev NewRawNode.spec : Prop :=
   σ.pend = [] →
   HsEmpty hs →
   -- the persisted ConfState: voters only, this node among them, and the cluster's
-  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
-  cs.VotersOutgoing'.len = W64 0 →
-  cs.Learners'.len = W64 0 →
-  cs.LearnersNext'.len = W64 0 →
-  cs.AutoLeave' = false →
-  γ.reCfg = GMap.listToSet voters →
-  cv.ID' ∈ voters →
+  -- (2026-10-16, stage R5: the record `csm`, as `newRaft`'s; until then the Goose value `cs`
+  -- and the list `voters` its slice held)
+  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
+  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
+  csm.VotersOutgoing' = [] →
+  csm.Learners' = [] →
+  csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  γ.reCfg = GMap.listToSet csm.Voters' →
+  cv.ID' ∈ csm.Voters' →
   -- (2026-10-14) the dynamic mode with `StepDownOnRemoval` (a removed leader steps down)
   (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- (2026-10-16, stage R5) `InitialState` in `newRaft`'s shape (stage R4, D7): the hard state
+      -- `hsOpt hp hs` and the conf state read-only for good (stage R6b: its `AutoLeave` cell set
+      -- or not, `al`), `ownStorage` back at once
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            cs.Voters' ↦*{dqv} voters -∗
-            Φ (PairV (PairV #hs #cs) #interface.nil)) -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      "Hghost" ∷ rnInit γ md cv.ID' (GMap.listToSet voters) ∗
+      "Hghost" ∷ rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗
       "#Hcommitted" ∷ isCommitted γ [] }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       "Hrn" ∷ ownRawNode γ rn cv.ID'
         { delivered := [], unpersisted := [], steps := [], term := W64 0,
-          storage := interface.ok si, mode := md, cfg := cfgState (GMap.listToSet voters) ∅ } ∗
+          storage := interface.ok si, mode := md,
+          cfg := cfgState (GMap.listToSet csm.Voters') ∅ } ∗
       "%Herr" ∷ ⌜err = interface.nil⌝ }}
 
 end spec

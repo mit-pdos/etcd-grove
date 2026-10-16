@@ -9,10 +9,10 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessages
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__onStop
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.IsEmptySnap
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.IsEmptyHardState
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
+public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.google_golang_org.protobuf.proto.Clone
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal
@@ -54,8 +54,12 @@ theorem raftNode.start.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
+  have wp_IsEmptySnap := wp_IsEmptySnap_nil wp_IsEmptySnap
+  have wp_IsEmptyHardState := wp_hardStateAt_IsEmptyHardState wp_IsEmptyHardState
+  have wp_GetCommit := wp_hardStateAt_GetCommit wp_GetCommit
+  have wp_GetType := wp_entryAt_GetType wp_GetType
   intro E γ r rh L R
-  wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, #HT⟩
+  wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone⟩
   ihave #Hr' := Hr
   iunfold isRaftNode at Hr'
   iNamed Hr'
@@ -124,10 +128,8 @@ theorem raftNode.start.wp_proof
       · iapply is_bag_is_chan $$ Htb
       iapply bag_recv_au γt tc _ _ $$ [$Hlc1 $Hlc2] Htb
       inext
-      iintro %t -
+      iintro %t HT1
       wp_auto
-      ihave HT1 := HT
-      imod HT1
       wp_apply wp_tick E γ r $$ [$Hpkg $Hr $HT1]
       wp_for_post
       iframe
@@ -138,19 +140,19 @@ theorem raftNode.start.wp_proof
     isplit
     · ileft
       simp only [chan.blockingClausePre]
-      iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γ.readyc
+      iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γ.node.readyc
       isplitr
       · ipureintro; rfl
       isplitr
       · unfold isHandshake
         icases Hrc with ⟨$, -⟩
-      iapply handshake_receive_au γ.readyc rc (rnReadyP E γ) iprop(True) _ $$ [$Hlc1 $Hlc2] Hrc []
+      iapply handshake_receive_au γ.node.readyc rc (rnReadyP E γ) iprop(True) _ $$ [$Hlc1 $Hlc2] Hrc []
       · itrivial
       inext
       iintro %rd HP
       iunfold rnLoopTok at Htok
       icases Htok with ⟨%sent, %cums, Hdrv, Hprod, Hauth, %Hcums⟩
-      icases rn_ready_recv E γ L' rd $$ Hdrv HP with ⟨%ce, %es, Hdata, Hbusy⟩
+      imod rn_ready_recv E γ L' rd $$ Henv Hfits Hrsb Hdrv HP with ⟨%ce, %es, Hdata, Hbusy⟩
       iunfold rnReadyData at Hdata
       icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, #Hmsok,
         #Hss, #Hhs, ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil⟩
@@ -164,6 +166,7 @@ theorem raftNode.start.wp_proof
           · itrivial
           iexists _; iframe islead rd rh r
         · iunfold softStateAt at Hss
+          iunfold softStateRO at Hss
           icases Hss with (%Hssn | ⟨%lead, %rs, #Hlead, #Hrs⟩)
           · exact absurd Hssn Hif
           simp only [None']
@@ -247,7 +250,7 @@ theorem raftNode.start.wp_proof
           have h1 := Hrsl.1
           omega
         wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
-        ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => readStateOk (GF := GF) E.γr.raft E.RQ rs)
+        ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => srvReadStateOk (GF := GF) E.γr.raft E.RQ rs)
           Hrs_lookup) $$ Hrsok
         wp_apply_core chan.wp_select_blocking
         -- `r.readStateC <- rs`
@@ -337,10 +340,17 @@ theorem raftNode.start.wp_proof
       ihave #Hapf := ap
       iStructNamed Hapf
       -- (`wp_bind` then `iapply`: `wp_apply` fails silently here, framing the generic `R`)
+      -- the batch's committed log and indices, from `E.C` (`rnEnvOk`)
+      ihave #Henv' := Henv
+      iunfold rnEnvOk at Henv'
+      icases Henv' with ⟨-, -, -, -, -, #HCback, -⟩
+      ihave #HCl := HCback $$ %(L' ++ ce) HC
+      icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
         (Val #ap_ptr)) (Val #rh))
-      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL ce R E.γr) $$ [HR]
+      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr) $$ [HR]
       · iframe HR; iframe #
+        ipureintro; exact HidxOk
       inext
       iintro ⟨HR, #Hclast⟩
       wp_auto

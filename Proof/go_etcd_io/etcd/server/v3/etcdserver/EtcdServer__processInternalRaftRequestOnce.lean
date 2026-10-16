@@ -24,7 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.DispatchLemmas
-public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3
+public import GeneratedProof.go_etcd_io.raft.v3
 
 @[expose] public section
 
@@ -194,6 +194,8 @@ local macro "piro_tail" : tactic => `(tactic| (
     · iframe Hbs
       isplitr
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
+      isplitr
+      · ipureintro; exact Hbsne (by simp [apply.withHeader])
       iunfold srvPropArg
       simp only [↓reduceIte]
       iframe Hpf Hau
@@ -261,12 +263,12 @@ local macro "piro_tail" : tactic => `(tactic| (
           ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
           cases Hbad
         iunfold resultΨ at Hres
-        icases Hres with ⟨%ar, %Hx, HTr, Hri, #HeW⟩
+        icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
         subst Hx
         wp_auto_lc 2
         iunfold entryWit at HeW
         icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
-        obtain ⟨hlk, het, hdecw, hidw⟩ := Hew
+        obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
         have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
         subst hidd
         ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
@@ -274,11 +276,10 @@ local macro "piro_tail" : tactic => `(tactic| (
         ihave #HWits' := HWits
         iunfold srvPropWits at HWits'
         imod HWits' $$ %bs %Qr %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
-        · ipureintro; exact ⟨hlk, het, Hdd⟩
+        · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
         · iapply (lc_split (n := 1) (m := 1)).2; iframe
         ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
-        · iunfold srvRLogLb; iunfold srvRLogLb at HLw
-          iapply monoListLbOwn_le _ (List.take_prefix _ _) $$ HLw
+        · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
         wp_apply HAddEv
         (try wp_auto)
         wp_apply HGDec
@@ -291,11 +292,14 @@ local macro "piro_tail" : tactic => `(tactic| (
         isplitr
         · ipureintro; rfl
         iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
-        iframe Hri HTr
+        iframe HTr
         isplitr
         · ipureintro; exact Hwire
+        iexists lb
+        iframe Hri
         iexists Lw.take mw
         iframe HLt HQr
+        ipureintro; exact hlbw
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- the context done: give up

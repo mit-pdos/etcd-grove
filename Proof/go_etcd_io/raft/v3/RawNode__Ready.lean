@@ -12,6 +12,9 @@ to the application in between): the two halves are proved in
 `RawNode__readyWithoutAccept.lean` and `RawNode__acceptReady.lean`, through the
 intermediate predicate `ownRawNodeReady` (`InvRawnodeReady.lean`), and `Ready`'s proof
 composes their specs.
+
+Raft v3.7 (2026-10-16, stage R5): the same composition; the messages handed out at
+`readyDq` (D8) and the hard state (`hsOpt`) pass through.
 -/
 module
 
@@ -45,13 +48,13 @@ theorem RawNode.Ready.wp_proof
   iNamed H
   wp_auto
   wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
-    as %rd %ce %es %ms %sts H
+    as %rd %ce %es %ms %sts %h H
   iNamed H
   imod ownRawNodeReady_handout γ rn id rs rd ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr⟩
   wp_apply wp_RawNode_acceptReady γ rn id rs rd ce es ms $$ [$Hrn] as %steps H
   iNamed H
-  iapply HΦ $$ %rd %ce %es %ms %sts %steps
-  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_ok Hcr Happ Hrs Hrs_ok
+  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps
+  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hcr Happ Hrs Hrs_ok Hhard
   ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
 
 end proof

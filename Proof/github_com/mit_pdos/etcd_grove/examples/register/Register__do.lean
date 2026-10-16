@@ -1,6 +1,7 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/register/Register__do.lean`. Lean-first (no
-Rocq counterpart).
+Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): `Node.Propose` wants the data frozen and
+non-empty (D6); an encoding is at least 17 bytes.
 -/
 module
 
@@ -37,6 +38,8 @@ theorem Register.do.wp_proof
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
+  ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
   wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
   iNamed HR
@@ -49,7 +52,9 @@ theorem Register.do.wp_proof
   · unfold opAu; iexact Hau
   imod reg_mint γr id ns kind val Ψ ⊤ CoPset.subseteq_top Hns $$ Hinv Hseq Hlc1 Hau
     with ⟨Hseq, #Hmint, Hfresh, %γo, #Hop, #Hsp, Htok⟩
-  generalize Hd : encodeOp id (ns + W64 1) kind val = d
+  have Hdne : encodeOp id (ns + W64 1) kind val ≠ [] := by
+    intro h; have := encodeOp_length id (ns + W64 1) kind val; rw [h] at this; simp at this; omega
+  generalize Hd : encodeOp id (ns + W64 1) kind val = d at Hdne
   wp_apply chan.wp_make2 (V := GoString) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
   ihave Hoc : ownChan γc GoString (.Buffered []) $$ Hoc
@@ -104,7 +109,10 @@ theorem Register.do.wp_proof
         unfold propArg
         simp only [Bool.false_eq_true, ↓reduceIte]
         iexact Hdep) $$ HI with ⟨%fresh, Harg⟩
-  wp_apply wp_node_Propose γp.node id n b d _ fresh $$ [$HisNode $Hb $Harg] as %err Hres
+  ihave #Hbg := nodeCtx_background (GF := GF) bgCd
+  wp_apply wp_node_Propose γp.node id n b d _ fresh context.backgroundCtxVal bgCd
+    $$ [$Hraftinit $HisNode $Hbg $Hb $Harg] as %err ⟨Hres, -⟩
+  · ipureintro; exact Hdne
   ihave #Hdep : deposited γp.node.raft d $$ [Hres]
   · unfold propRes
     icases Hres with ⟨#Hd, -⟩

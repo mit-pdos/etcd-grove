@@ -57,7 +57,7 @@ macro "recv_next" : tactic => `(tactic| (
   wp_for_post
   iframe HΦ HRD HR sws
   iexists _, _
-  iframe Hrt Hprod))
+  iframe Hrt Hprod Hpool))
 
 set_option hygiene false in
 /-- The receive loop's return of `nil`. -/
@@ -84,6 +84,13 @@ theorem v3rpc.srvRecvTok_upAtW (γ : v3rpc.StreamNames) (L : List v3rpc.WatchReq
   iframe H1 H2
   ipureintro
   simp
+
+/-- The answer token of the request received at position `L.length`. -/
+theorem v3rpc.ansPool_mint_snoc (γa : GName) (L : List v3rpc.WatchReqM) (m : v3rpc.WatchReqM) :
+    v3rpc.ansPool (GF := GF) γa L.length ⊢
+      |==> (v3rpc.ansPool γa (L ++ [m]).length ∗ v3rpc.ansTok γa L.length) := by
+  rw [List.length_append, List.length_singleton]
+  exact v3rpc.ansPool_mint γa L.length
 
 /-- `errors.Is(err, target)` of an error the apply package describes (`applyErrIs`) and a
 pointer-leaf target: some boolean. -/
@@ -121,12 +128,12 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) := by
   intro sws r L0 sent0
-  wp_start as ⟨#Hsws, Hrt, Hprod, Hres⟩
+  wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, Hres⟩
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
-    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmu⟩
+    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
+    #Hmu, %Hγoc, #Hsp⟩
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
   icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
@@ -168,7 +175,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   wp_auto
   ihave Hinv : iprop(∃ (L : List v3rpc.WatchReqM) (sent : List Loc),
       "Hrt" ∷ v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) r.γs L ∗
-      "Hprod" ∷ spscProducer r.γctrl sent) $$ [Hrt Hprod]
+      "Hprod" ∷ spscProducer r.γctrl sent ∗
+      "Hpool" ∷ v3rpc.ansPool r.γa L.length) $$ [Hrt Hprod Hpool]
   · iexists L0, sent0; iframe
   wp_for Hinv
   rw [Hsi]
@@ -176,6 +184,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   icases Hrr with (⟨%Herr, %m, Hreq, HUp, Hrt⟩ | ⟨#Heofi, %Hne, Hrt, #Hcl⟩ | ⟨%Hne, #Hse, Hrt⟩)
   · -- a request
     subst Herr
+    imod v3rpc.ansPool_mint_snoc r.γa L m $$ Hpool with ⟨Hpool, Hans⟩
     wp_apply hIs (· = GoInterface.nil) (fun _ => False) GoInterface.nil (GoInterface.ok eofE)
       (fun tii h => by cases h; exact HeofL.1.1) (by intro ii tii h; cases h) $$ [] as %b -
     · iframe #
@@ -194,7 +203,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     rcases m with c | cid | _ | _
     · -- create
       ihave ⟨%Hok, Htok⟩ := Hup $$ HUp
-      obtain ⟨Hpkv, Hfrag, Hfil⟩ := Hok
+      obtain ⟨Hpkv, Hfrag, Hfil, Hwid0⟩ := Hok
       ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L (.create c) $$ Hrt
       icases Hm with ⟨%cr, Hon, Hcr⟩
       iunfold v3rpc.oneofCreate at Hon
@@ -266,7 +275,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           · ipureintro; exact ⟨rfl, rfl⟩
           isplit
           · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-          iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod]
+          iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans]
           · iframe Hprod
             iunfold v3rpc.ctrlP
             iexists m
@@ -274,8 +283,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             isplitr
             · ipureintro; exact ⟨rfl, rfl, rfl⟩
             iunfold v3rpc.ctrlOk
-            iexists L.length, (.create c)
-            iframe Hat
+            iexists L.length, (.create c), r.γo, r.γa
+            iframe Hat Haux Hans
             isplitr
             · ipureintro
               simp [v3rpc.ctrlAnswers, m]
@@ -445,8 +454,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · iframe #
           isplitl
           · iapply BigSepL.bigSepL_nil.2; iempintro
-          ipureintro; exact hsr0
-        icases Hwres with (⟨%Hwe, %Hrng, %Hid, %w, %lo, -, #HIWF, -⟩ | ⟨%Hid, Hwe⟩)
+          ipureintro; exact ⟨hsr0, Hwid0⟩
+        icases Hwres with (⟨%Hwe, %Hrng, %w, %lo, -, #HIWF, #Hia, Hit⟩ | ⟨%Hid, Hwe⟩)
+        have Hid : c.watchId ≠ W64 0 → id' = c.watchId := fun h => absurd Hwid0 h
         · -- registered
           subst Hwe
           wp_auto
@@ -506,7 +516,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             · ipureintro; exact ⟨rfl, rfl⟩
             isplit
             · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod]
+            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans Hit]
             · iframe Hprod
               iunfold v3rpc.ctrlP
               iexists m
@@ -514,8 +524,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               isplitr
               · ipureintro; exact ⟨rfl, rfl, rfl⟩
               iunfold v3rpc.ctrlOk
-              iexists L.length, (.create c)
-              iframe Hat
+              iexists L.length, (.create c), r.γo, r.γa
+              iframe Hat Haux Hans
               isplitr
               · ipureintro
                 exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inr ⟨rfl, hsr0, Hid⟩⟩
@@ -532,7 +542,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                   · simp only [h2, ↓reduceIte]
                     by_cases h3 : es2 = slice.nil <;> simp [h3]
                   · simp only [h1, h2, ↓reduceIte, Hes2.2 h1 h2]
-              iexact HIWF
+              iframe HIWF
+              iframe Hia Hit Hfl
             iintro !> Hprod
             wp_auto
             recv_next
@@ -553,11 +564,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           itrivial
         · -- refused
           ihave ⟨%ei, %Hwei, #Heim⟩ : ∃ ei : GoInterfaceOk, ⌜werr = GoInterface.ok ei⌝ ∗ errMsgOk ei $$ [Hwe]
-          · icases Hwe with (#Hg | ⟨-, #Hg⟩)
-            · icombine Hg HeEWRg gives %Heq
-              iexists eEWR; iframe #; ipureintro; exact Heq
-            · icombine Hg HeDupg gives %Heq
-              iexists eDup; iframe #; ipureintro; exact Heq
+          · icases Hwe with #Hg
+            icombine Hg HeEWRg gives %Heq
+            iexists eEWR; iframe #; ipureintro; exact Heq
           subst Hwei
           wp_auto
           to_params
@@ -591,7 +600,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             · ipureintro; exact ⟨rfl, rfl⟩
             isplit
             · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod]
+            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans]
             · iframe Hprod
               iunfold v3rpc.ctrlP
               iexists m
@@ -599,8 +608,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               isplitr
               · ipureintro; exact ⟨rfl, rfl, rfl⟩
               iunfold v3rpc.ctrlOk
-              iexists L.length, (.create c)
-              iframe Hat
+              iexists L.length, (.create c), r.γo, r.γa
+              iframe Hat Haux Hans
               isplitr
               · ipureintro
                 exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inl ⟨rfl, rfl⟩⟩
@@ -695,7 +704,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; exact ⟨rfl, rfl⟩
         isplit
         · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-        iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod]
+        iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans]
         · iframe Hprod
           iunfold v3rpc.ctrlP
           iexists m
@@ -703,8 +712,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           isplitr
           · ipureintro; exact ⟨rfl, rfl, rfl⟩
           iunfold v3rpc.ctrlOk
-          iexists L.length, (.create c)
-          iframe Hat
+          iexists L.length, (.create c), r.γo, r.γa
+          iframe Hat Haux Hans
           isplitr
           · ipureintro
             simp [v3rpc.ctrlAnswers, m]
@@ -771,7 +780,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           · ipureintro; exact ⟨rfl, rfl⟩
           isplit
           · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-          iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod]
+          iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans]
           · iframe Hprod
             iunfold v3rpc.ctrlP
             iexists m
@@ -779,8 +788,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             isplitr
             · ipureintro; exact ⟨rfl, rfl, rfl⟩
             iunfold v3rpc.ctrlOk
-            iexists L.length, (.cancel cid)
-            iframe Hat
+            iexists L.length, (.cancel cid), r.γo, r.γa
+            iframe Hat Haux Hans
             isplitr
             · ipureintro
               exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
@@ -837,6 +846,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         wp_auto
         recv_next
     · -- progress
+      ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L .progress $$ Hrt
       icases Hm with ⟨%cr, %Hcrn, Hon⟩
       iunfold v3rpc.oneofProgress at Hon
       icases Hon with ⟨%w, %Hu', #Hw⟩
@@ -848,6 +858,15 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         as ⟨Hlk, HP⟩
       · iframe #
       to_params
+      -- the stream's progress fact: this request (unit W-M2)
+      ihave #Hpf : mvcc.progFact r.γo.prog $$ []
+      · iunfold mvcc.progFact
+        iexists (v3rpc.progQ r.γs)
+        iframe Hsp
+        iintro !>
+        iunfold v3rpc.progQ
+        iexists L.length
+        iexact Hat
       wp_apply hRPA r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo $$ [$HR] as %b HR
       · iframe #
       wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)

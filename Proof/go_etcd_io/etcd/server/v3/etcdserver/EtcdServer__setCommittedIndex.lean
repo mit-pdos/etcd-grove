@@ -26,8 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.setCommittedIndex.wp_proof :
     EtcdServer.setCommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro s γr v v' hle
-  wp_start as ⟨#Hinv, Hown⟩
+  intro s γr v v' L hle
+  wp_start as ⟨#Hinv, Hown, #HL, %HvL⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   wp_auto
@@ -39,7 +39,7 @@ theorem EtcdServer.setCommittedIndex.wp_proof :
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, Hv, Hauth⟩
+  icases Hi with ⟨%v0, Hv, Hauth, -⟩
   iexists v0
   iframe Hv
   iintro Hv
@@ -54,7 +54,7 @@ theorem EtcdServer.setCommittedIndex.wp_proof :
   imod monoNat_halves_update γr.committed (uint.nat v0) (uint.nat v') (by word) $$ Hown Hauth
     with ⟨Hown, Hauth, #Hlb⟩
   imod Hclose $$ [Hv Hauth] with -
-  · inext; iexists v'; iframe Hv Hauth
+  · inext; iexists v'; iframe Hv Hauth; iexists L; iframe HL; ipureintro; exact HvL
   imodintro
   wp_auto
   iapply HΦ

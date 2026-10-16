@@ -31,7 +31,7 @@ theorem EtcdServer.LinearizableReadNotify.wp_proof :
   intro s r γr ctx cd c g Q
   wp_start as ⟨#Hr, #HR, #Hctx, #Hc, Hrr, #HsQ, #HdQ⟩
   wp_auto
-  iunfold isRead at HR
+  iunfold isReadNotify at HR
   wp_apply HR $$ [Hrr] as %err Herr
   · iframe #; iframe Hrr
   try wp_auto

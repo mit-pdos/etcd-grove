@@ -5,6 +5,7 @@ counterpart); the request path's unit 3b (2026-10-12).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVRead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
@@ -177,7 +178,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
-      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
+      mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       ((⌜respv = null ∧ errv ≠ GoInterface.nil⌝ ∗ txn.checkErrIs errv) ∨
        (⌜errv = GoInterface.nil⌝ ∗
          txn.txnResponseIs false respv (W64 ((log.length : Int) - 1)) t
@@ -212,7 +213,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
       wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t (some trc) false)
           $$ [Hsr Hnone Hown0]
-        as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, %Hlog, Hres⟩
+        as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, #Hcok, %Hlog, Hres⟩
       · iframe # Hsr Hnone
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
@@ -220,10 +221,11 @@ local macro "txn_tail" : tactic => `(tactic| (
         · ipureintro; exact ⟨Hlgn, hro, Hg⟩
         iintro !> %log' - #Hc'
         iunfold storeSmall at Hsmall
-        iapply Hsmall $$ %log' Hc'
+        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
+        iapply Hsmall $$ %log' Hs'
       iapply HΦ'
       iexists respv, errv, log
-      iframe Hresp Herr Hsr Hlr Hcert
+      iframe Hresp Herr Hsr Hlr Hcert Hcok
       isplitr
       · ipureintro; exact Hlog
       icases Hres with (⟨%H1, #Hce, %t', %te', Hown, %Hteq⟩ | ⟨%H2, Hown, %Hteq, #Hr, Hh⟩ |
@@ -252,10 +254,10 @@ local macro "txn_tail" : tactic => `(tactic| (
         · iexact Hown
         iright; iright; iframe He Hrd Hh
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, Hres, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
-    wp_auto
+    wp_auto_lc 3
     rcases errv with ei | _
     · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
       · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
@@ -278,6 +280,22 @@ local macro "txn_tail" : tactic => `(tactic| (
       · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
         exact absurd rfl Hne
       ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
+      -- the read deposit's result at the log read (unit W-M3, as `Range`'s)
+      ihave HQf : iprop(|={⊤}=> (if txn.txnSerializable t then iprop(True) else
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Qr L)) $$
+          [Hlc1 Hlc2 Hlc3]
+      · cases hso : txn.txnSerializable t
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
+          icases HwO with ⟨%g', #Hw'⟩
+          ihave #Hw'' := readWitAt_mono γr Qr g' logR log Hlog.1 $$ Hw'
+          iapply readWit_fire s E γr Qr g' log $$ Hainv Hkvi Hw'' Hcok
+          iapply (lc_split (n := 2) (m := 1)).2
+          iframe Hlc3
+          iapply (lc_split (n := 1) (m := 1)).2
+          iframe Hlc1 Hlc2
+        · simp only [hso, ↓reduceIte]
+          imodintro; itrivial
+      imod HQf with #HQf
       txn_defer_lg
       txn_warn_rd
       txn_defer
@@ -297,13 +315,15 @@ local macro "txn_tail" : tactic => `(tactic| (
       · ipureintro; exact ⟨by first | rfl | trivial, Hrn'⟩
       iunfold txnReadOk
       iexists log
-      iframe Hcert Hh
+      iframe Hcert Hcok Hh
       isplitr
       · ipureintro
         have := Hlog.1.length_le
         exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
       isplitr
       · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
+      isplitr
+      · iexact HQf
       simp only [txn.srvRunTxn]
       iexact Hr
   · cases serr with
@@ -312,7 +332,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
       · iexact HsE
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, Hres, Hown⟩)
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
@@ -387,7 +407,7 @@ theorem EtcdServer.Txn.wp_proof
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r t Q ot te F
+  intro s E ρ γr c ctx cd r t Q Qr ot te F
   wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets, #HF, Hnp⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
@@ -395,7 +415,7 @@ theorem EtcdServer.Txn.wp_proof
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, -⟩
+    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
   -- the floor (the vertical slice's unit V2), as `Range`'s
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
   have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
@@ -412,10 +432,10 @@ theorem EtcdServer.Txn.wp_proof
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨#HtLe, -⟩
   ihave #HisRead' := HisRead
-  iunfold isRead at HisRead'
+  iunfold isReadNotify at HisRead'
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
+  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
   ihave #Papply : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []
@@ -584,11 +604,11 @@ theorem EtcdServer.Txn.wp_proof
         iapply txnPermit_reqPropOk $$ Hnp
       iexists _; iexact Header
     (try wp_auto)
-    icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, %Lq, #HLq, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
-      obtain ⟨Hstep, Hfl⟩ := Hstep0
+      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+      obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
       have Hk : apply.dispatchKind rq' = .txn := by
         rw [Hwire.2.2.1]
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
@@ -619,13 +639,13 @@ theorem EtcdServer.Txn.wp_proof
       ileft
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
-      isplitl
-      rotate_left
-      · iexists kvStateOf (kvModel ρ.kv Lq); iexact HQq
       iunfold txnAppliedOk
       iexists hm, rq', t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      iframe Hhdr Hcert Hpo HMint Hwit
+      iframe Hhdr Hcert Hpo HMint Hwit Hcok
+      isplitr
+      rotate_left
+      · rw [Hxlb, ← HLlb]; iexact HQq
       ipureintro
       refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl⟩
       have := Hwire.2.2.2 hz
@@ -664,11 +684,10 @@ theorem EtcdServer.Txn.wp_proof
       icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
       icombine Hread Hrd0 gives %Hrdeq
       subst Hrdeq
-      imod saved_pred_alloc (fun _ : List EntryModel => (iprop(True) : IProp GF)) DFrac.discard trivial
-        with ⟨%g, #Hg⟩
-      ihave #Hdep : kvDep (GF := GF) γr.kv (fun _ => iprop(True)) $$ []
-      · iunfold kvDep; iright; ipureintro; rfl
-      wp_apply HisRead' $$ %ctx2 %_ %c %g %(fun _ : List EntryModel => (iprop(True) : IProp GF)) [Hrr]
+      imod saved_pred_alloc Qr DFrac.discard trivial with ⟨%g, #Hg⟩
+      ihave #Hdep : kvDep (GF := GF) γr.kv Qr $$ [Hnp]
+      · simp only [hro, ↓reduceIte]; iexact Hnp
+      wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
         as %rerr ⟨Hrr, #HrE, Hri⟩
       · iframe #; iframe Hrr
       ihave Hrr : srvReadReader s γr $$ [Hrr]
@@ -693,8 +712,12 @@ theorem EtcdServer.Txn.wp_proof
         ipureintro; intro h; cases h
       | nil =>
         ihave #Hri' := Hri $$ %rfl
-        icases Hri' with ⟨#Hri', -⟩
-        imod readIndexOk_logR s E γr c log₀ $$ Hainv Hri' Hc0 with ⟨%logR, #HcR, %HpR, #HrlR⟩
+        icases Hri' with ⟨-, #Hsv⟩
+        imod readServed_logR s E γr c g Qr log₀ $$ Hainv Hsv Hg Hc0
+          with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
+        ihave #HwO : (if txn.txnSerializable t then iprop(True) else
+            ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF) $$ []
+        · rw [hs]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
         have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
         have HFR : F <+: logR := HL0.2.trans HpR
         ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
@@ -705,6 +728,9 @@ theorem EtcdServer.Txn.wp_proof
       have HFR : F <+: log₀ := HL0.2
       generalize log₀ = logR at Hl0 HFR ⊢
       ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
+      · rw [hs]; simp only [↓reduceIte]; itrivial
+      ihave #HwO : (if txn.txnSerializable t then iprop(True) else
+          ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF) $$ []
       · rw [hs]; simp only [↓reduceIte]; itrivial
       txn_tail
 

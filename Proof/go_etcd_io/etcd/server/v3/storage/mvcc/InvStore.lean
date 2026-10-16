@@ -2451,14 +2451,15 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn, Hcrev⟩
 
-/-- **Seal** the write transaction's pending revision (not empty): its history's lower bound
-with the revision committed, persistent. -/
+/-- **Seal** the write transaction's pending revision (not empty): the log with the revision
+committed is sealed (`idxSealed`: its history's lower bound and its well-formedness),
+persistent. -/
 theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) (hne : pend ≠ []) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) :
     storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps false crev Z ==∗
       storeTxnWriteCore tw s γ trace ilog pend chs ps true crev Z ∗
-        monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
+        idxSealed γ.idx (ilog ++ [pend]) := by
   iintro Hc
   iunfold storeTxnWriteCore at Hc
   iNamed Hc
@@ -2551,7 +2552,7 @@ theorem isTxnWriteCore_seal (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : 
     (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
     isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ==∗
       isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps true crev Z ∗
-        monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
+        idxSealed γ.idx (ilog ++ [pend]) := by
   iintro H
   iunfold isTxnWriteCore at H
   iNamed H

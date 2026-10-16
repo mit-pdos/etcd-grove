@@ -72,7 +72,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · ipureintro; word
     isplitr
-    · iapply ownSlice_nil
+    · iapply entsPts_nil
     isplitr
     · iapply ownSliceCap_nil
     isplitr

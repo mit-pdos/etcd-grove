@@ -263,7 +263,8 @@ local macro "range_tail" : tactic => `(tactic| (
         · ipureintro; exact Hvst
         iintro !> %log' - #Hc'
         iunfold storeSmall at Hsmall
-        ihave %Hs := Hsmall $$ %log' Hc'
+        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
+        ihave %Hs := Hsmall $$ %log' Hs'
         ipureintro; intro _; exact Hs
       obtain ⟨Hl1, Hl2, Hl3, rfl⟩ := Hlog
       have htv := Hteq trc rfl rfl
@@ -313,7 +314,7 @@ local macro "range_tail" : tactic => `(tactic| (
       · ipureintro; exact ⟨rfl, Hrn1⟩
       iunfold rangeReadOk
       iexists log
-      iframe Hcert Hres
+      iframe Hcert Hrok Hres
       isplitr
       · ipureintro
         have := Hlog.1.length_le
@@ -405,7 +406,7 @@ theorem EtcdServer.Range.wp_proof
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
+  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
   ihave #Papply : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   ihave #HaInit : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
@@ -519,7 +520,7 @@ theorem EtcdServer.Range.wp_proof
   icases Hau' with ⟨%aui, %Haui, -, #HIRP, -⟩
   iunfold apply.permCheck3 at HIRP
   ihave #HisRead' := HisRead
-  iunfold isRead at HisRead'
+  iunfold isReadNotify at HisRead'
   have Hser : o.base.serializable = ser := by subst Ho; rfl
   cases ser
   · -- linearizable: the read index first

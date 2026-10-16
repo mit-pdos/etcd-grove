@@ -34,18 +34,20 @@ theorem RawNode.BasicStatus.wp_proof
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hlwf, Hlog⟩
   ihave Hphys := Hback $$ Hlog
   wp_auto
-  wp_apply wp_getBasicStatus cf rnv.raft' id s $$ Hphys as Hphys
-  iapply HΦ
+  wp_apply wp_getBasicStatus cf rnv.raft' id s $$ Hphys as %hp ⟨#Hhs, Hphys⟩
+  iapply HΦ $$ %_ %(hardstateVal (nodeHardstate s))
   simp only [named]
   isplitl
-  · iapply ownRawNode_intro γ rn id rs s cf fp rnv sv steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
+  · iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
       Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+  simp only [basicStatusOf]
+  iframe Hhs
   ipureintro
   obtain ⟨-, Hap1, Hap2⟩ := Hlwf
   have := uint_Z_nonneg s.logst.applying
-  refine ⟨rfl, Htrm.symm, ?_, ?_, Hrs_clb⟩ <;>
-    simp only [basicStatusOf, nodeHardstate, hardstateVal] <;> omega
+  refine ⟨trivial, ?_, ?_, ?_, ?_⟩ <;>
+    (try simp only [nodeHardstate, hardstateVal]) <;> (try rw [Htrm]) <;> omega
 
 end proof
 

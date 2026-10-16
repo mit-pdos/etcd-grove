@@ -35,10 +35,14 @@ credits, with the drain of the abstract outbox. It sets `r.readStates` to `nil` 
 `ReadState`s and their facts were handed out by `readyWithoutAccept`), a model step
 (`Step.takeReads`) the node's state hides. `acceptReady` does not read `rd.Messages`,
 which the application may already hold (`ms`, what `readyWithoutAccept` handed out there, is only an index of
-`ownRawNodeReady`, since 2026-10-10). -/
+`ownRawNodeReady`, since 2026-10-10). (2026-10-16, stage R5, D8: it does read the messages to
+others of `msgsAfterAppend`' `To`, which it keeps at half (`ownRaftPhysReady`'s `Hother`); it
+stores `rd.HardState` in `prevHardSt` when not empty; the queued acknowledgements are fresh
+messages (`newStorageAppendRespMsg`, `newStorageApplyRespMsg`), the apply acknowledgement's
+`Entries` the committed entries' slice.) -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List raftpb.Entry) (ms : List raftpb.Message),
+    (ce es : List EntryM) (ms : List QMsg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))

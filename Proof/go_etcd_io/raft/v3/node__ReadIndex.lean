@@ -2,6 +2,9 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.node__ReadIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import Spec.go_etcd_io.raft.v3.node__step
 
 @[expose] public section
@@ -21,30 +24,69 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The one-entry batch `[]pb.Entry{{Data: rctx}}`, read-only, then `step` of the request:
-a message from the network (`netP`) as far as `run` is concerned. -/
+a message from the network (`netP`) as far as `run` is concerned. (Raft v3.7, stage R5: the
+message is `&pb.Message{Type: pb.MsgReadIndex.Enum(), Entries: []*pb.Entry{{Data: rctx}}}`, its
+entry allocated by the slice literal (`wp_slice_literal_ex`), holding the frozen bytes
+`rctx ↦*□ c` (D6), frozen, the entries' slice frozen; the message `msgIn ml □`;
+`MsgReadIndex.Enum()` is a new callee. Stage R7a: any `nodeCtx`, the error `nodeErr`.) -/
 theorem node.ReadIndex.wp_proof
-    (wp_node_step : node.step.spec (GF := GF) (hG := hG)) :
+    (wp_node_step : node.step.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReadIndex.spec (GF := GF) (hG := hG) := by
-  intro γ id n rctx c Qr L0
-  wp_start as ⟨#Hnode, #Hpd, Hfr, #Hau, #HL0, Hcred⟩
+  intro γ id n rctx c Qr L0 ctx cd
+  wp_start as ⟨#Hnode, #Hctx, #Hrctx, Hfr, #Hau, #HL0, Hcred⟩
   -- the deposit (2026-10-14, stage R), before the request leaves for `run`
   imod node_read_deposit γ id n c Qr L0 $$ Hnode Hfr Hau HL0 with ⟨%Lc, %HL0c, #Hrq, #Hrd⟩
   wp_auto
-  wp_apply wp_slice_literal (l := [({ (zero_val raftpb.Entry) with Data' := rctx } :
-    raftpb.Entry)])
+  rw [show raftpb.MsgReadIndex = #((W32 15 : raftpb.MessageType)) from rfl]
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_MessageType_Enum (W32 15) as %pty Hpty
+  wp_apply wp_slice_literal_ex (V := Loc)
+  wp_alloc l0 as Hl0
+  wp_auto
+  iexists [l0]
   isplitr
   · ipureintro; rfl
-  iintro %esl ⟨Hes, Hcap⟩
-  imod ownSlice_persist _ _ _ $$ Hes with #Hes
+  iintro %slp ⟨Hsl, Hsl_cap⟩
+  have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue
+      [KeyedElement (some (KeyField go!"Data")) (ElementExpression go.byte.SliceType #rctx)])] = 1 := rfl
+  simp only [Hsz]
+  imod cellRO_alloc $$ Hpty with #cTy
+  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, rctx, slice.nil, 0⟩ : raftpb.Entry)
+      (propEntryM c) ⊤ rfl $$ [Hl0] with He
+  · iframe Hl0
+    simp only [propEntryM]
+    iframe Hrctx
+    msg_nulls
+  imod entOwn_freeze $$ He with #He
+  imod ownSlice_persist $$ Hsl with #Hsl
+  wp_auto
+  ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
+  imod msgPtsC_of_struct «$a1_ptr» (⟨zero_val _, pty, null, null, null, null, null,
+      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
+      0⟩ : raftpb.Message) DFrac.discard false [l0]
+      ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩ ⊤
+      rfl $$ [«$a1»] with Hm
+  · iframe «$a1» Hsl Hnilb cTy
+    msg_nulls
+    simp only [Bool.false_eq_true, ↓reduceIte, snapOpt]
+    iframe He
+    isplitl []; · iapply entsBig_nil
+    isplitl []; · iempintro
+    isplitl []; · ipureintro; trivial
+    iapply ownSlice_nil
   imod termLB_zero (GF := GF) γ.bud with #Hlb
   imod tickCred_zero (GF := GF) γ.bud with Hz
-  wp_auto
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
-  wp_apply wp_node_step γ id n _ $$ [Hcap Hcred Hz]
-  · iframe Hnode
+  wp_apply wp_node_step γ id n _ ctx cd $$ [Hm Hcred Hz]
+  · iframe Hnode Hctx
     unfold stepP
     ileft
     unfold netP
+    iexists ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩
+    isplitl [Hm]
+    · simp only [msgIn, show needsCap { (zero_val MessageM) with Type' := W32 15 } = false from rfl]
+      iexact Hm
     isplitr
     · ipureintro
       refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ => rfl,
@@ -54,20 +96,18 @@ theorem node.ReadIndex.wp_proof
           simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp] at h
       · exfalso; simp [MsgAppResp] at h
       · exfalso; simp [MsgTransferLeader] at h
-    iexists [({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry)], []
-    iframe Hes Hcap
-    isplitr
-    · iapply ownSlice_nil
     isplitr
     · imodintro
       iintro %ty %Hty
       rw [show mtypeOf (W32 15) = some .readIndex from rfl] at Hty
       cases Hty
       unfold isMessage absMsg absMsgFrom
-      iexists ({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry), c, Lc
+      iexists propEntryM c, c, Lc
       isplitr
       · ipureintro; rfl
-      iframe Hpd Hrq
+      isplitr
+      · ipureintro; rfl
+      iframe Hrq
     isplitr
     · iExactEq Hlb; rfl
     rw [ite_eq_left hR]
@@ -75,9 +115,10 @@ theorem node.ReadIndex.wp_proof
     · iexact Hcred
     rw [ite_eq_right (show (W32 15 : w32) ≠ MsgTimeoutNow by simp [MsgTimeoutNow])]
     iexact Hz
-  iintro %err -
+  iintro %err #Herr
   wp_auto
   iapply HΦ
+  iframe Herr
   iexists Lc
   iframe Hrq Hrd
   ipureintro; exact HL0c

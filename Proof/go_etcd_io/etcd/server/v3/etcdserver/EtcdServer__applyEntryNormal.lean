@@ -5,8 +5,8 @@ module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Lemmas
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
 public import Spec.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
@@ -131,7 +131,7 @@ local macro "trig'" : tactic => `(tactic| (
   rw [hdec] at hd'
   cases hd'
   iunfold resultΨ
-  iexists ar
+  iexists ar, x.log
   isplitr
   · ipureintro; rfl
   isplitl [HTr]
@@ -143,9 +143,9 @@ local macro "trig'" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact Har0
   iexists x, x', out
-  iframe HRes Hcert HMint
+  iframe HRes Hcert HMint Hcx'
   isplitr
-  · ipureintro; exact Hstep0
+  · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl⟩
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -170,7 +170,7 @@ local macro "trig" : tactic => `(tactic| (
   rw [hdec] at hd'
   cases hd'
   iunfold resultΨ
-  iexists ar
+  iexists ar, x.log
   isplitr
   · ipureintro; rfl
   isplitl [HTr]
@@ -182,9 +182,9 @@ local macro "trig" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact Har0
   iexists x, x', out
-  iframe HRes Hcert HMint
+  iframe HRes Hcert HMint Hcx'
   isplitr
-  · ipureintro; exact Hstep0
+  · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl⟩
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -218,6 +218,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
+  have hGI := wp_entryAt_GetIndex hGI
+  have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A
   wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, Hka, #HAm,
     %HkA, %Hvi, %Hpo, Hv3⟩
@@ -236,6 +238,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   icases Hkvi' with ⟨-, -, -, %Hcok⟩
   icases srvApplyKV_idxCert s E ρ.wait x $$ HKV with ⟨HKV, #Hcx⟩
   ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
+  icases kvApplied_log γr.raft γr.kv A x $$ Hka with ⟨Hka, %Hxl⟩
   imod kv_applied_step E γr A m x (kvEntry_len _ _ x m Hok Hlx) $$ Hkvi Hka HAm with ⟨%Hpe, Hka⟩
   obtain ⟨Hpe, Hxch, Hoff⟩ := Hpe
   ihave ⟨Hka, #Hkc⟩ := kvAppliedL_cert _ _ _ _ $$ Hka
@@ -243,9 +246,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   iunfold srvFieldsAt at Hfv
   icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
-  ihave #He' := He
-  iunfold entryAt at He'
-  icases He' with ⟨%Hnn, %pt, %pi, %pty, %d, #Hft, #Hpt, #Hfi, #Hpi, #Hfty, #Hpty, #Hfd, #Hds⟩
+  ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
   ihave #Pnot : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
   · iPkgInit
@@ -554,13 +555,19 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       iunfold isWait at Hwok
       icases Hwok with ⟨%wi, %Hwi, -, #HTrig, -⟩
       subst Hid
-      ihave #HeW : iprop(entryWit ρ rq) $$ []
-      · obtain ⟨jw, hjw, hjw'⟩ := List.getElem_of_mem HmLw
-        iunfold entryWit
-        iexists Lw, jw, m, id, γf
-        iframe HLw Hcl0
+      -- the entry at its position after the applied raft log `A`, whose model the entry met
+      -- (unit W-M3: the proposer's update fired at the state of `x.log`)
+      ihave #HeW : iprop(entryWit ρ rq x.log) $$ []
+      · iunfold entryWit
+        iexists A ++ [m], A.length, m, id, γf
+        simp only [ReqNames.raft, ReqNames.kv, Hrd]
+        iframe HAm Hcl0
         ipureintro
-        exact ⟨by rw [List.getElem?_eq_getElem hjw, hjw'], Htyp, hdec, hid⟩
+        refine ⟨by simp, Htyp, hdec, hid, ?_⟩
+        rw [List.take_left' rfl, Hxl]
+      -- the caller's certificate of the log after (unit W-M3)
+      ihave #Hcx' : iprop(mvcc.certOk E.γ x'.log) $$ []
+      · rw [hl']; iapply kvCert_certOk γr.kv E.γ Hcok $$ Hkc
       cases isns
       · -- not `ErrNoSpace`: hand the result to the waiter
         (try wp_auto)

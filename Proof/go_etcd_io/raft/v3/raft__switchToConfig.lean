@@ -2,6 +2,9 @@
 Port of election_proof/proof_raft__switchToConfig.v; the leader case (2026-10-13,
 reconfiguration stage D) and any configuration with a removed or demoted leader (2026-10-13,
 stage A2) are Lean-first.
+
+raft v3.7 (stage R4): `r.trk.ConfState()` returns a `*pb.ConfState` (`csPts`, owned, handed to
+the caller); the leader's `len(cs.Voters)` opens it for the field load and folds it back.
 -/
 module
 
@@ -63,7 +66,7 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs Hlead Hcand
+  intro c r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
   wp_start as H
   iNamed H
   wp_auto
@@ -78,7 +81,7 @@ theorem raft.switchToConfig.wp_proof
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi $$ Hvotes Hnew
-  ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk
+  ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk %Hpok
   -- from here on the state is `s0`, and `s1` once `r.isLearner` is stored
   generalize Hs0 : ({ s with progress := prs, prvals := pvs } : NState) = s0
   have Hrole0 : s0.role = s.role := by rw [← Hs0]
@@ -93,7 +96,7 @@ theorem raft.switchToConfig.wp_proof
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ConfState $$ [$Htrkf $Htrk]
-    as %cs %xs %os %ls %lns ⟨Htrkf, Htrk, Hcs, Hos, Hls, Hlns, %Hcs0⟩
+    as %cs %xs %os %ls %lns ⟨Htrkf, Htrk, Hcs, %Hcs0⟩
   ihave Hphys := Hback $$ %tv2 Htrkf Htrk
   -- `pr, ok := r.trk.Progress[r.id]`
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -152,11 +155,20 @@ theorem raft.switchToConfig.wp_proof
       wp_apply raft.wp_load_stateC $$ Hphys as Hphys
       rw [Hst]
       wp_auto
-      ihave %Hxlen := ownSlice_len $$ Hcs
+      iNamed Hcs
+      ihave %Hxlen := ownSlice_len $$ Hv
+      wp_auto
+      ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true
+        $$ [HV Hv HL Hl HO Ho HN Hn HA]
+      · iunfold csPts
+        iexists sv, sl, so, sn, pa
+        iframe
+        iframe cA Hpb
+        ipureintro; exact ⟨Hnn, Hal⟩
       -- `len(cs.Voters) == 0` (no incoming voter): nothing more
       wp_if_destruct
       · iapply HΦ $$ %cs %xs %os %ls %lns %s1
-        iframe Hphys Hcs Hos Hls Hlns
+        iframe Hphys Hcs
         ipureintro
         refine ⟨Hcs0, ?_⟩
         have e : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)
@@ -185,14 +197,17 @@ theorem raft.switchToConfig.wp_proof
           wp_auto
           have Hs1c : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
               = s1 := by cases s1; rfl
+          icases ownRaftPhysC_prvals_ok c r id s1 $$ Hphys with ⟨%Hok0, -, Hphys⟩
           icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
           wp_apply wp_ProgressTracker_Visit c _ tv ⟨s1.votes, s1.progress, s1.prvals⟩ _
               (fun _ pvsx => iprop(∃ (ms : List Msg),
                 "rp" ∷ r_ptr ↦ r ∗
                 "%Hms" ∷ ⌜ReplSends id s1 ms⌝ ∗
                 "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s1.prvals⌝ ∗
+                "%Hok" ∷ ⌜PrvalsOk { sendMsgs s1 ms with prvals := pvsx }⌝ ∗
                 "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
                     ownTrackerC c tvx ⟨s1.votes, s1.progress, pvsx'⟩ -∗
+                    ⌜PrvalsOk { sendMsgs s1 ms with prvals := pvsx' }⌝ -∗
                     ownRaftPhysCV c c.voters r id { sendMsgs s1 ms with prvals := pvsx' })))
             $$ [$Htrkf $Htrk r Hrest]
           · isplitl [r Hrest]
@@ -203,8 +218,10 @@ theorem raft.switchToConfig.wp_proof
               · ipureintro; intro m Hm; simp at Hm
               isplitr
               · ipureintro; trivial
-              iintro %tvx %pvsx Hf Ht
-              ihave Hphys := Hrest $$ %tvx %pvsx Hf Ht
+              isplitr
+              · ipureintro; exact Hok0.of_fields rfl rfl rfl
+              iintro %tvx %pvsx Hf Ht %Hok'
+              ihave Hphys := Hrest $$ %tvx %pvsx Hf Ht %(Hok'.of_fields rfl rfl rfl)
               iapply ownRaftPhysC_eq c r id _ _ (by cases s1; simp [sendMsgs]) $$ Hphys
             -- the closure
             imodintro
@@ -213,7 +230,7 @@ theorem raft.switchToConfig.wp_proof
             wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback0, HI⟩
             iNamed HI
             ihave Htrk := Hback0 $$ %p0 Hpr %rfl
-            ihave Hphys := Hrest $$ Htrkf Htrk
+            ihave Hphys := Hrest $$ Htrkf Htrk %(by rw [GMap.insert_id _ _ _ Hpvi]; exact Hok)
             wp_auto
             wp_apply raft.wp_load_idC $$ Hphys as Hphys
             by_cases Hii : i = id
@@ -234,17 +251,21 @@ theorem raft.switchToConfig.wp_proof
               · ipureintro; exact Hms
               isplitr
               · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hmm
-              iintro %tvx %pvsx Hf Ht
-              ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
+              isplitr
+              · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hok
+              iintro %tvx %pvsx Hf Ht %Hok'
+              ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %Hok'
               · iapply ownTracker_cast c tvx ⟨s1.votes, s1.progress, pvsx⟩ _ ?_ $$ Ht
                 rfl
               iapply ownRaftPhysC_eq c r id _ _ (by cases s1; rfl) $$ Hphys
             · -- a peer: `maybeSendAppend(id, false)`
               rw [decide_eq_false Hii]
               wp_auto
-              wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) $$ [$Hphys]
+              wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) (by exact Hl1)
+                $$ [$Hphys]
                 as %b' %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
               try wp_auto
+              icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
               icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1', Htrkf, Htrk, Hrest⟩
               ihave Htrk := ownTracker_cast c tv1' _ ⟨s1.votes, s1.progress, pvs'⟩ ?_ $$ Htrk
               · rfl
@@ -259,15 +280,17 @@ theorem raft.switchToConfig.wp_proof
                 exact replSends_app id s1 ms ms' Hms ((replSends_send_prvals id s1 ms _ ms').1 Hms')
               isplitr
               · ipureintro; simp only at Hmm'; rw [Hmm', GMap.insert_id _ _ _ Hpvi]; exact Hmm
-              iintro %tvx %pvsx Hf Ht
-              ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
+              isplitr
+              · ipureintro; exact Hok'.of_fields rfl rfl rfl
+              iintro %tvx %pvsx Hf Ht %Hok''
+              ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %(Hok''.of_fields rfl rfl rfl)
               · iapply ownTracker_cast c tvx ⟨s1.votes, s1.progress, pvsx⟩ _ ?_ $$ Ht
                 rfl
               iapply ownRaftPhysC_eq c r id _ _
                 (by cases s1; simp [sendMsgs, List.append_assoc]) $$ Hphys
           iintro ⟨%tvfin, %pvsfin, Htrkf, Htrk, HI⟩
           iNamed HI
-          ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk
+          ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk %Hok
           wp_auto
           wp_join_done
           iexists ms, pvsfin
@@ -278,7 +301,8 @@ theorem raft.switchToConfig.wp_proof
         · -- a commit: broadcast
           simp only [↓reduceIte]
           wp_auto
-          wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
+          wp_apply wp_raft_bcastAppend c r id _ (by exact Hl1) $$ [$Hphys]
+            as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
           wp_join_done
           iexists ms, pvs2
           simp only
@@ -336,7 +360,7 @@ theorem raft.switchToConfig.wp_proof
       iNamed HR2
       wp_auto
       iapply HΦ $$ %cs %xs %os %ls %lns %s'
-      iframe Hphys Hcs Hos Hls Hlns
+      iframe Hphys Hcs
       ipureintro
       subst Hs0 Hs1
       refine ⟨Hcs0, ?_⟩
@@ -390,7 +414,7 @@ theorem raft.switchToConfig.wp_proof
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %_
-        iframe Hphys Hcs Hos Hls Hlns
+        iframe Hphys Hcs
         ipureintro
         refine ⟨Hcs0, ?_⟩
         have e : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)
@@ -431,7 +455,7 @@ theorem raft.switchToConfig.wp_proof
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %_
-        iframe Hphys Hcs Hos Hls Hlns
+        iframe Hphys Hcs
         ipureintro
         refine ⟨Hcs0, ?_⟩
         have e : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)

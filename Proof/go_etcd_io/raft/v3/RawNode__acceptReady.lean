@@ -8,28 +8,45 @@ Lean notes: `ready_rnstate`, `ready_nstate` are `readySteps` (only the queue: th
 previous `SoftState`/`HardState` are no longer in `RNState`), `readyNstate`; Rocq's
 `pending.self <$> selfs` is `selfs.map Pending.self`. `needStorageAppendRespMsg`,
 `newStorageAppendRespMsg` and `newStorageApplyRespMsg`, stepped through inline in Rocq,
-get local specs (`wp_*_inline`); the Rocq `wp_if_join`s are `wp_join`s.
+got local specs (`wp_*_inline`) until 2026-10-16 (raft v3.7: specs of their own, so
+`hasNextOrInProgressUnstableEnts`, `IsEmptySnap` and `lastEntryID` are no longer this
+proof's callees); the Rocq `wp_if_join`s are `wp_join`s.
 `to_pstate_ready`, `nstate_rel_ready`, `ready_ce_last`, `selfmsgs`, `selfmsgs_take_S`,
 `self_pending`, `self_pending_own` are `toPState_ready`, `nstateRel_ready`,
 `ready_ce_last`, `selfmsgs`, `selfmsgs_take_succ`, `self_pending`, `self_pending_own`
 (Rocq's `selfabs`, the self-addressed messages' abstractions, went on 2026-10-10: the
 queue records the messages' terms, `selfPending`).
+
+Raft v3.7 (2026-10-16, stage R5, `notes/decisions.md` D8): `rd.HardState` is `nil` or a
+read-only hard state, stored into `prevHardSt` when not empty (`hsRO_of_hsOpt`); each
+`msgsAfterAppend` message's `GetTo` reads its ownership (the self-addressed ones owned in
+`Hself`, a half of the others in `Hother`: the other halves were handed out); the
+self-addressed ones move to `stepsOnAdvance` as `msgIn`s (`self_pending`, `LemmasReadyR`);
+the acknowledgements are built by `newStorageAppendRespMsg`/`newStorageApplyRespMsg`, whose
+specs replace the old inline ones, and own nothing beyond their `msgIn` (no `pendingOwn`: an
+apply acknowledgement is not a `MsgApp`, so no capacity); the last committed entry's index
+is read with `GetIndex` through its read-only pointer (`entsRO_lookup`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.LemmasReadyR
+public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressUnstableEnts
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
-public import Spec.go_etcd_io.raft.v3.IsEmptySnap
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Spec.go_etcd_io.raft.v3.needStorageApplyRespMsg
 public import Spec.go_etcd_io.raft.v3.raftLog__acceptUnstable
 public import Spec.go_etcd_io.raft.v3.entsSize
 public import Spec.go_etcd_io.raft.v3.raftLog__acceptApplying
 public import Spec.go_etcd_io.raft.v3.traceReady
+public import Spec.go_etcd_io.raft.v3.needStorageAppendRespMsg
+public import Spec.go_etcd_io.raft.v3.newStorageAppendRespMsg
+public import Spec.go_etcd_io.raft.v3.newStorageApplyRespMsg
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -39,13 +56,6 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
-/-- `if_pos`/`if_neg` (deprecated in core under those names). -/
-private theorem ite_pos' {α : Sort _} {c : Prop} [Decidable c] (h : c) {a b : α} :
-    (if c then a else b) = a := ite_eq_left_of_eq_true _ _ (eq_true h)
-
-private theorem ite_neg' {α : Sort _} {c : Prop} [Decidable c] (h : ¬c) {a b : α} :
-    (if c then a else b) = b := ite_eq_right_of_eq_false _ _ (eq_false h)
-
 section helpers
 variable [FfiSyntax]
 
@@ -53,7 +63,7 @@ variable [FfiSyntax]
 in progress and the handed-out ones the application's to persist (`logAcceptUnstable`),
 `applying` at the last committed entry handed out (`logAcceptApplying`; `sz` is
 `entsSize` of them), and (2026-10-13) the `ReadState`s handed out (`r.readStates = nil`). -/
-def readyNstate (s : NState) (ce : List raftpb.Entry) (sz : w64) : NState :=
+def readyNstate (s : NState) (ce : List EntryM) (sz : w64) : NState :=
   { s with outbox := [],
            logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz, gh := {},
            rd := { s.rd with states := [] } }
@@ -62,7 +72,7 @@ def readyNstate (s : NState) (ce : List raftpb.Entry) (sz : w64) : NState :=
 from `msgsAfterAppend` (`selfs`, each `selfPending`), an acknowledgement of the log up to
 its last entry if there were unstable entries, and an acknowledgement of the committed
 entries handed out, if any. -/
-def readySteps (s : NState) (selfs : List Pending) (ce : List raftpb.Entry) :
+def readySteps (s : NState) (selfs : List Pending) (ce : List EntryM) :
     List Pending :=
   selfs ++
   (if s.logst.uents = [] then []
@@ -71,7 +81,7 @@ def readySteps (s : NState) (selfs : List Pending) (ce : List raftpb.Entry) :
 
 /-- `Ready` changes nothing the protocol sees but the outbox and (2026-10-13) the
 `ReadState`s. -/
-theorem toPState_ready (s : NState) (ce : List raftpb.Entry) (sz : w64) :
+theorem toPState_ready (s : NState) (ce : List EntryM) (sz : w64) :
     toPState (readyNstate s ce sz) =
       { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } := by
   unfold readyNstate logAcceptApplying logAcceptUnstable toPState
@@ -86,8 +96,8 @@ private theorem prefix_getElem? {α : Type _} {l1 l2 : List α} {i : Nat} {x : �
 
 /-- The last committed entry handed out is the one at `applying + len`, within
 `(applying, committed]`: what `acceptApplying` needs. -/
-theorem ready_ce_last (es ce : List raftpb.Entry) (prev : entryID) (cm apg : w64)
-    (e : raftpb.Entry)
+theorem ready_ce_last (es ce : List EntryM) (prev : entryID) (cm apg : w64)
+    (e : EntryM)
     (Hidx : LogIndicesOk prev es)
     (Hle : uint.Z prev.index' ≤ uint.Z apg ∧ uint.Z apg ≤ uint.Z cm)
     (Hnw : uint.Z cm + 1 < 2 ^ 64)
@@ -112,7 +122,7 @@ theorem ready_ce_last (es ce : List raftpb.Entry) (prev : entryID) (cm apg : w64
 
 /-- `StepsOk` of the acknowledgements `Ready` queues after the self-addressed
 responses. -/
-theorem ready_stepsOk (s' : NState) (t : w64) (last : entryID) (ce : List raftpb.Entry)
+theorem ready_stepsOk (s' : NState) (t : w64) (last : entryID) (ce : List EntryM)
     (u : Prop) [Decidable u]
     (Ht : uint.Z t ≤ uint.Z s'.term)
     (Hl : ¬ u → plogLast s'.logst.prev s'.logst.stored = last)
@@ -143,23 +153,6 @@ theorem stepsOk_selfs (s : NState) (selfs rest : List Pending)
     obtain ⟨⟨pv, t, rfl⟩, Hp⟩ := Hs p List.mem_cons_self
     exact ⟨Hp, IH (fun q Hq => Hs q (List.mem_cons_of_mem _ Hq))⟩
 
-/-- The messages of `msgsAfterAppend` that `acceptReady` keeps to step (`To = id`;
-`readyWithoutAccept` hands out the others, `nonself`). -/
-def selfmsgs (id : w64) (ms : List raftpb.Message) : List raftpb.Message :=
-  ms.filter (fun m => decide (m.To' = id))
-
-theorem selfmsgs_take_succ (id : w64) (ms : List raftpb.Message) (n : Nat)
-    (mm : raftpb.Message) (Hl : ms[n]? = some mm) :
-    selfmsgs id (ms.take (n + 1)) =
-      selfmsgs id (ms.take n) ++ (if mm.To' = id then [mm] else []) := by
-  unfold selfmsgs
-  rw [List.take_add_one, Hl]
-  by_cases h : mm.To' = id <;> simp [List.filter_append, h]
-
-theorem selfmsgs_cons (id : w64) (m : raftpb.Message) (ms : List raftpb.Message) :
-    selfmsgs id (m :: ms) = if m.To' = id then m :: selfmsgs id ms else selfmsgs id ms := by
-  by_cases h : m.To' = id <;> simp [selfmsgs, h]
-
 end helpers
 
 section proof
@@ -169,186 +162,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem nstateRel_ready (s : NState) (ps : PState) (ce : List raftpb.Entry) (sz : w64) :
+theorem nstateRel_ready (s : NState) (ps : PState) (ce : List EntryM) (sz : w64) :
     NStateRel s ps → NStateRel (readyNstate s ce sz)
       { ps with outbox := [], rd := { ps.rd with states := [] } } := by
   intro ⟨Hps, Hwf⟩
   subst Hps
   exact ⟨toPState_ready s ce sz, Hwf⟩
 
-/-- A response type is not a snapshot's. -/
-theorem mtypeOf_resp_ne_snap (m : raftpb.Message)
-    (H : m.Type' = MsgAppResp ∨ m.Type' = MsgVoteResp ∨ m.Type' = MsgPreVoteResp) :
-    mtypeOf m.Type' ≠ some .snap := by
-  rcases H with H | H | H <;> rw [H] <;> decide
-
-/-- The self-addressed messages `acceptReady` queues, as pending steps (2026-10-10): each
-is `AAMsgOk` (`ownRaftPhys`'s `msgsAfterAppend`), and its abstraction, at its entries
--- none: `Entries` is `nil` -- was in the outbox, whose messages are all `isMessage`
-(`ownRaftGhost_outbox`). -/
-theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms : List raftpb.Message)
-    (as_ : List (Option Msg)) (HP : ∀ a ∈ as_, ∀ x, a = some x → x ∈ o)
-    (Hok : ∀ m ∈ ms, AAMsgOk id t m) :
-    ⊢ ([∗list] x ∈ o, isMessage (GF := GF) γ x) -∗
-      ([∗list] _k ↦ m;a ∈ ms;as_, msgAbs (GF := GF) m a) -∗
-      [∗list] _k ↦ m;p ∈ selfmsgs id ms;(selfmsgs id ms).map selfPending,
-        pendingRel (GF := GF) γ id m p := by
-  induction ms generalizing as_ with
-  | nil =>
-    iintro _ _
-    simp only [selfmsgs, List.filter_nil, List.map_nil]
-    iempintro
-  | cons m ms IH =>
-    iintro #Ho H
-    icases (BigSepL2.bigSepL2_cons_inv_left).1 $$ H with ⟨%a, %as', %Has, #Hm, H⟩
-    subst Has
-    rw [selfmsgs_cons]
-    have HP' : ∀ b ∈ as', ∀ x, b = some x → x ∈ o :=
-      fun b Hb => HP b (List.mem_cons_of_mem _ Hb)
-    have Hok' : ∀ m' ∈ ms, AAMsgOk id t m' := fun m' Hm' => Hok m' (List.mem_cons_of_mem _ Hm')
-    by_cases h : m.To' = id
-    · simp only [h, ↓reduceIte, List.map_cons]
-      obtain ⟨Hty, Hfr, Hself⟩ := Hok m List.mem_cons_self
-      obtain ⟨Hnz, Hen, Hcn, Hrj, -⟩ := Hself h
-      isplitr
-      · simp only [pendingRel, selfPending]
-        isplitr
-        · ipureintro
-          refine ⟨⟨Hty, Hfr, h, Hnz, Hen, Hcn, Hrj⟩, ?_⟩
-          simp
-        imodintro
-        iintro %ty %Hty'
-        unfold msgAbs
-        icases Hm with (%Hn | ⟨%ty0, %ents, %ctx0, %Hs, #Hents, #Hctx0⟩ | ⟨%sv, %voters, %Hs, -, -⟩)
-        · rw [Hn.1] at Hty'; cases Hty'
-        · obtain ⟨Hty0, -, rfl⟩ := Hs
-          rw [Hty0] at Hty'
-          cases Hty'
-          ihave %Hl := ownSlice_len _ _ _ $$ Hents
-          have He : ents = [] := by
-            rw [Hen] at Hl
-            exact List.eq_nil_of_length_eq_zero Hl.1
-          subst He
-          ihave %Hlc := ownSlice_len _ _ _ $$ Hctx0
-          have Hc0 : ctx0 = [] := by
-            rw [Hcn] at Hlc
-            exact List.eq_nil_of_length_eq_zero Hlc.1
-          subst Hc0
-          iapply BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
-            (HP _ List.mem_cons_self _ rfl) $$ Ho
-        · exact absurd Hs.1 (mtypeOf_resp_ne_snap m Hty)
-      · iapply IH as' HP' Hok' $$ Ho H
-    · simp only [h, ↓reduceIte]
-      iapply IH as' HP' Hok' $$ Ho H
-
-theorem self_pending_own (id : w64) (ms : List raftpb.Message) :
-    ⊢ [∗list] _k ↦ m;p ∈ selfmsgs id ms;(selfmsgs id ms).map selfPending,
-        pendingOwn (GF := GF) m p := by
-  induction ms with
-  | nil => simp only [selfmsgs, List.filter_nil, List.map_nil]; iempintro
-  | cons m ms IH =>
-    rw [selfmsgs_cons]
-    by_cases h : m.To' = id
-    · simp only [h, ↓reduceIte, List.map_cons]
-      isplitr
-      · simp only [pendingOwn, selfPending]
-        itrivial
-      · iapply IH
-    · simp only [h, ↓reduceIte]
-      iapply IH
-
-/-- `needStorageAppendRespMsg(r, rd)` is `hasNextOrInProgressUnstableEnts() ||
-!IsEmptySnap(rd.Snapshot)`, and the snapshot is empty (Rocq: stepped through inline
-under a `wp_wand`). -/
-private theorem wp_needStorageAppendRespMsg_inline
-    (wp_raftLog_hasNextOrInProgressUnstableEnts :
-      raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG))
-    (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (r : Loc) (l : Loc) (ls : LogState) (rd : Ready)
-    (Hsn : rd.Snapshot' = zero_val raftpb.Snapshot) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls }}
-      (App (App (Val #(functions needStorageAppendRespMsg [])) (Val #r)) (Val #rd))
-    {{ RET #(decide (ls.uents ≠ [])); r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls }} := by
-  wp_start as ⟨Hf, Hlog⟩
-  wp_auto
-  wp_apply wp_raftLog_hasNextOrInProgressUnstableEnts $$ [Hlog] as %bu ⟨Hlog, %Hbu⟩
-  · iframe Hlog
-  subst Hbu
-  by_cases hu : ls.uents ≠ []
-  · rw [decide_eq_true hu]
-    wp_auto
-    iapply HΦ
-    iframe Hf Hlog
-  · rw [decide_eq_false hu]
-    wp_auto
-    wp_apply wp_IsEmptySnap as %be %Hbe
-    subst Hbe
-    rw [Hsn]
-    have H0 : (zero_val raftpb.Snapshot).Metadata'.Index' = W64 0 := rfl
-    rw [decide_eq_true H0, Bool.not_true]
-    iapply HΦ
-    iframe Hf Hlog
-
-/-- `newStorageAppendRespMsg(r, rd)` with unstable entries and no snapshot:
-`appendAckMsg` at the log's last entry (Rocq: stepped through inline). -/
-private theorem wp_newStorageAppendRespMsg_inline
-    (wp_raftLog_hasNextOrInProgressUnstableEnts :
-      raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG))
-    (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
-    (r : Loc) (id t : w64) (l : Loc) (ls : LogState) (rd : Ready)
-    (Hu : ls.uents ≠ []) (Hsn : rd.Snapshot' = zero_val raftpb.Snapshot) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        r.[raft, go!"id"] ↦□ id ∗ r.[raft, go!"Term"] ↦ t ∗
-        r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls }}
-      (App (App (Val #(functions newStorageAppendRespMsg [])) (Val #r)) (Val #rd))
-    {{ RET #(appendAckMsg id t (plogLast ls.prev (ls.sents ++ ls.uents)));
-        r.[raft, go!"id"] ↦□ id ∗ r.[raft, go!"Term"] ↦ t ∗
-        r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls }} := by
-  wp_start as ⟨Hid, Hterm, Hf, Hlog⟩
-  wp_auto
-  wp_apply wp_raftLog_hasNextOrInProgressUnstableEnts $$ [Hlog] as %bu ⟨Hlog, %Hbu⟩
-  · iframe Hlog
-  subst Hbu
-  rw [decide_eq_true Hu]
-  wp_auto
-  wp_apply wp_raftLog_lastEntryID $$ [Hlog] as %e ⟨Hlog, %He⟩
-  · iframe Hlog
-  wp_apply wp_IsEmptySnap as %be %Hbe
-  subst Hbe
-  rw [Hsn]
-  have H0 : (zero_val raftpb.Snapshot).Metadata'.Index' = W64 0 := rfl
-  rw [decide_eq_true H0]
-  wp_auto
-  subst He
-  ispecialize HΦ $$ [Hid Hterm Hf Hlog]
-  · iframe
-  iExactEq HΦ
-  rfl
-
-/-- `newStorageApplyRespMsg(r, ents)` (Rocq: stepped through inline). -/
-private theorem wp_newStorageApplyRespMsg_inline (r : Loc) (id : w64) (sl : GoSlice) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"id"] ↦□ id }}
-      (App (App (Val #(functions newStorageApplyRespMsg [])) (Val #r)) (Val #sl))
-    {{ RET #(applyAckMsg id sl); r.[raft, go!"id"] ↦□ id }} := by
-  wp_start as Hid
-  wp_auto
-  ispecialize HΦ $$ Hid
-  iExactEq HΦ
-  rfl
 
 theorem RawNode.acceptReady.wp_proof
-    (wp_raftLog_hasNextOrInProgressUnstableEnts :
-      raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG))
     (wp_IsEmptyHardState : IsEmptyHardState.spec (GF := GF) (hG := hG))
-    (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_needStorageApplyRespMsg : needStorageApplyRespMsg.spec (GF := GF) (hG := hG))
     (wp_raftLog_acceptUnstable : raftLog.acceptUnstable.spec (GF := GF) (hG := hG))
     (wp_entsSize : entsSize.spec (GF := GF) (hG := hG))
     (wp_raftLog_acceptApplying : raftLog.acceptApplying.spec (GF := GF) (hG := hG))
-    (wp_traceReady : traceReady.spec (GF := GF) (hG := hG)) :
+    (wp_traceReady : traceReady.spec (GF := GF) (hG := hG))
+    (wp_needStorageAppendRespMsg : needStorageAppendRespMsg.spec (GF := GF) (hG := hG))
+    (wp_newStorageAppendRespMsg : newStorageAppendRespMsg.spec (GF := GF) (hG := hG))
+    (wp_newStorageApplyRespMsg : newStorageApplyRespMsg.spec (GF := GF) (hG := hG))
+    (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
+    (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
   intro γ rn id rs rd ce es ms
   wp_start as H
@@ -373,7 +206,8 @@ theorem RawNode.acceptReady.wp_proof
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   simp only [logHanded] at Hwf1 Hwf2 Hwf3 Hidx
   icases Hrdrs with ⟨%sts, #Hrdsts, %Hsts⟩
-  ihave %Hstl := ownSlice_len _ _ _ $$ Hrdsts
+  ihave %Hstl := readStatesPts_len _ _ $$ Hrdsts
+  icases Hrdhard with ⟨%hrd, #Hrdhard⟩
   wp_auto
   -- `if rd.SoftState != nil { rn.prevSoftSt = rd.SoftState }`: either way `prevSoftSt`
   -- points to a read-only `SoftState`
@@ -390,17 +224,26 @@ theorem RawNode.acceptReady.wp_proof
     iexists rd.SoftState', v
     iframe Hv
     iexact Hrn
-  -- `if !IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`: no spec
-  -- constrains `prevHardSt`
-  wp_apply wp_IsEmptyHardState
+  -- `if !IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`: either way
+  -- `prevHardSt` points to a read-only hard state
+  wp_apply wp_IsEmptyHardState $$ [$Hrdhard]
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
-      ∃ ph, rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph })
-    with [Hrn rn rd] as ⟨rn, rd, %ph, Hrn⟩
+      ∃ (ph : Loc) (hph : HardStateM),
+        rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph } ∗ hsRO ph hph)
+    with [Hrn rn rd] as ⟨rn, rd, %ph, %hph, Hrn, #Hph⟩
+  · iframe rn rd
+    iexists rnv.prevHardSt', hprev
+    iframe Hhard
+    iexact Hrn
+  · iframe rn rd
+    iexists rd.HardState', hrd
+    iframe Hrn
+    iapply hsRO_of_hsOpt _ _ Hif $$ Hrdhard
   -- `if len(rd.ReadStates) != 0 { rn.raft.readStates = nil }`: either way the node has no
   -- `ReadState` left
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
       rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph } ∗
-      ∃ rs', rnv.raft'.[raft, go!"readStates"] ↦ rs' ∗ rs' ↦*□ ([] : List ReadState) ∗
+      ∃ rs', rnv.raft'.[raft, go!"readStates"] ↦ rs' ∗ readStatesPts rs' [] ∗
         ownSliceCap ReadState rs' (DFrac.own 1))
     with [rn rd Hrn Hf_readStates HreadStates_cap]
     as ⟨rn, rd, Hrn, %rs', Hf_readStates, #HreadStates', HreadStates_cap'⟩
@@ -409,7 +252,7 @@ theorem RawNode.acceptReady.wp_proof
          iexists slice.nil
          iframe Hf_readStates
          isplitr
-         · iapply ownSlice_nil
+         · iapply readStatesPts_nil
          · iapply ownSliceCap_nil
          done)
       | (have He : s.rd.states = [] := by
@@ -430,7 +273,7 @@ theorem RawNode.acceptReady.wp_proof
          iexists slice.nil
          iframe Hf_readStates
          isplitr
-         · iapply ownSlice_nil
+         · iapply readStatesPts_nil
          · iapply ownSliceCap_nil
          done)
       | (have He : s.rd.states = [] := by
@@ -454,38 +297,56 @@ theorem RawNode.acceptReady.wp_proof
   wp_auto
   rw [Hs0']
   wp_auto
-  -- `for _, m := range r.msgsAfterAppend { if m.To == r.id {
-  -- rn.stepsOnAdvance = append(rn.stepsOnAdvance, m) } }`
-  ihave IH : iprop(∃ (n : w64) (stl : GoSlice) (mv : raftpb.Message),
+  -- `for _, m := range r.msgsAfterAppend { if m.GetTo() == r.id {
+  -- rn.stepsOnAdvance = append(rn.stepsOnAdvance, m) } }`: each `GetTo` reads the message
+  -- through what the node keeps of it (`Hself`: whole; `Hother`: a half)
+  ihave IH : iprop(∃ (n : w64) (stl : GoSlice) (mv : Loc),
       "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mv ∗
       "Hrn" ∷ rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl } ∗
-      "Hsteps" ∷ stl ↦* selfmsgs id (ms2.take (sint.nat n)) ∗
-      "Hsteps_cap" ∷ ownSliceCap raftpb.Message stl (DFrac.own 1) ∗
-      "HmsgsAA" ∷ sl2 ↦* ms2 ∗
+      "Hsteps" ∷ stl ↦* (selfmsgs id (ms2.take (sint.nat n))).map QMsg.loc ∗
+      "Hsteps_cap" ∷ ownSliceCap Loc stl (DFrac.own 1) ∗
+      "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
+      "Hself" ∷ ([∗list] q ∈ ms2, selfOwn id q) ∗
+      "Hother" ∷ ([∗list] q ∈ ms2, otherHalf id q) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms2.length : Int)⌝)
-    $$ [i m Hrn Hsteps Hsteps_cap HmsgsAA]
-  · iexists W64 0, rnv.stepsOnAdvance', zero_val raftpb.Message
+    $$ [i m Hrn Hsteps Hsteps_cap HmsgsAA Hself Hother]
+  · iexists W64 0, rnv.stepsOnAdvance', null
     have H0 : sint.nat (W64 0) = 0 := rfl
     rw [H0, List.take_zero]
-    simp only [selfmsgs, List.filter_nil, named]
-    iframe i m Hsteps Hsteps_cap HmsgsAA
+    simp only [selfmsgs, List.filter_nil, List.map_nil, named]
+    iframe i m Hsteps Hsteps_cap HmsgsAA Hself Hother
     isplitl [Hrn]
     · rw [Hasync]
       iexact Hrn
     · ipureintro; word
   wp_for IH
   ihave %Hl3 := ownSlice_len _ _ _ $$ HmsgsAA
+  simp only [List.length_map] at Hl3
   wp_if_destruct
-  · list_elem ms2 (sint.nat n) as mm
-    rw [ite_pos' (show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl2.len from ⟨Hn.1, Hif⟩)]
-    wp_apply wp_load_slice_index sl2 (sint.Z n) ms2 (DFrac.own 1) mm Hn.1 $$ [HmsgsAA]
-      with HmsgsAA
+  · have Hlt : sint.Z n < sint.Z sl2.len := by simpa using Hif
+    list_elem ms2 (sint.nat n) as mm
+    have Hmml : (ms2.map QMsg.loc)[sint.nat n]? = some mm.loc := by
+      rw [List.getElem?_map, Hmm_lookup]; rfl
+    rw [ite_pos' (show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl2.len from ⟨Hn.1, Hlt⟩)]
+    wp_apply wp_load_slice_index sl2 (sint.Z n) (ms2.map QMsg.loc) (DFrac.own 1) mm.loc Hn.1
+      $$ [HmsgsAA] with HmsgsAA
     · iframe
       ipureintro
-      exact Hmm_lookup
+      exact Hmml
     have HnS : sint.nat (n + W64 1) = sint.nat n + 1 := by word
-    wp_if_destruct
-    · -- to oneself: queued to step on `Advance`
+    by_cases hs : mm.st.msg.To' = id
+    · have hsq : isSelfQ id mm = true := decide_eq_true hs
+      icases bigSepL_acc_same (fun q => selfOwn (GF := GF) id q) ms2 _ mm Hmm_lookup $$ Hself
+        with ⟨Hmm, Hself⟩
+      ihave Hmm : qOwn mm $$ [Hmm]
+      · unfold selfOwn; simp only [hsq, ↓reduceIte]; iexact Hmm
+      wp_apply (wp_Message_GetTo.1 mm.loc (DFrac.own 1) DFrac.discard false mm.st) $$ [$Hmm]
+        as Hmm
+      ihave Hself := Hself $$ [Hmm]
+      · unfold selfOwn; simp only [hsq, ↓reduceIte]; iexact Hmm
+      rw [hs]
+      wp_auto
+      -- to oneself: queued to step on `Advance`
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %stl1 ⟨Hsl1, -⟩
@@ -493,40 +354,57 @@ theorem RawNode.acceptReady.wp_proof
       wp_apply wp_slice_append $$ [$Hsteps $Hsteps_cap $Hsl1] as %stl' ⟨Hsteps, Hsteps_cap, -⟩
       wp_for_post
       iframe
-      iexists n + W64 1, stl', mm
-      -- (`wp_if_destruct` substituted `id := mm.To'`)
-      rw [HnS, selfmsgs_take_succ _ _ _ _ Hmm_lookup, ite_pos' rfl]
+      iexists n + W64 1, stl', mm.loc
+      rw [HnS, selfmsgs_take_succ _ _ _ _ Hmm_lookup, ite_pos' hs, List.map_append,
+        List.map_cons, List.map_nil]
       iframe
       ipureintro; word
-    · wp_for_post
+    · have hsq : isSelfQ id mm = false := decide_eq_false hs
+      icases bigSepL_acc_same (fun q => otherHalf (GF := GF) id q) ms2 _ mm Hmm_lookup $$ Hother
+        with ⟨Hmm, Hother⟩
+      ihave Hmm : msgOwn mm.loc (DFrac.own (1 : Qp).half) mm.st $$ [Hmm]
+      · unfold otherHalf; simp only [hsq, Bool.false_eq_true, ↓reduceIte]; iexact Hmm
+      wp_apply (wp_Message_GetTo.1 mm.loc (DFrac.own (1 : Qp).half) DFrac.discard false mm.st)
+        $$ [$Hmm] as Hmm
+      ihave Hother := Hother $$ [Hmm]
+      · unfold otherHalf; simp only [hsq, Bool.false_eq_true, ↓reduceIte]; iexact Hmm
+      wp_if_destruct
+      · exact absurd rfl hs
+      wp_for_post
       iframe
-      iexists n + W64 1, stl, mm
-      rw [HnS, selfmsgs_take_succ _ _ _ _ Hmm_lookup, ite_neg' Hif, List.append_nil]
+      iexists n + W64 1, stl, mm.loc
+      rw [HnS, selfmsgs_take_succ _ _ _ _ Hmm_lookup, ite_neg' hs, List.append_nil]
       iframe
       ipureintro; word
-  rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
-  -- `needStorageAppendRespMsg(r, rd)`: the snapshot is empty
-  wp_apply wp_needStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
-    wp_IsEmptySnap rnv.raft' s.log (logHanded s.logst) _ Hrdz $$ [$Hf_raftLog $Hlog] as ⟨Hf_raftLog, Hlog⟩
+  have Hn2 : sint.nat n = ms2.length := by
+    have : ¬ sint.Z n < sint.Z sl2.len := by simpa using Hif
+    word
+  rw [show ms2.take (sint.nat n) = ms2 from List.take_of_length_le (by omega)]
+  -- `needStorageAppendRespMsg(r, rd)`: the snapshot is `nil`
+  wp_apply (wp_needStorageAppendRespMsg rnv.raft' s.log (logHanded s.logst) rd Hrdz)
+    $$ [$Hf_raftLog $Hlog] as ⟨Hf_raftLog, Hlog⟩
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
       ownRaftLog s.log (logHanded s.logst) ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
-      rnv.raft'.[raft, go!"id"] ↦□ id ∗ rnv.raft'.[raft, go!"Term"] ↦ s.term ∗
-      ∃ stl', rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl' } ∗
-        stl' ↦* (selfmsgs id ms2 ++
-          (if s.logst.uents = [] then []
-           else [appendAckMsg id s.term (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))])) ∗
-        ownSliceCap raftpb.Message stl' (DFrac.own 1))
-    with [rn rd Hlog Hf_raftLog Hf_id Hf_Term Hrn Hsteps Hsteps_cap]
-    as ⟨rn, rd, Hlog, Hf_raftLog, Hf_id, Hf_Term, %stl3, Hrn, Hsteps, Hsteps_cap⟩
+      rnv.raft'.[raft, go!"Term"] ↦ s.term ∗
+      ∃ (stl' : GoSlice) (acks : List Loc),
+        rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl' } ∗
+        stl' ↦* ((selfmsgs id ms2).map QMsg.loc ++ acks) ∗
+        ownSliceCap Loc stl' (DFrac.own 1) ∗
+        pendList γ id acks (if s.logst.uents = [] then []
+           else [Pending.appendAck s.term (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))]))
+    with [rn rd Hlog Hf_raftLog Hf_Term Hrn Hsteps Hsteps_cap]
+    as ⟨rn, rd, Hlog, Hf_raftLog, Hf_Term, %stl3, %acks1, Hrn, Hsteps, Hsteps_cap, Hpa⟩
   · -- no unstable entries: nothing to acknowledge
-    iframe rn rd Hlog Hf_raftLog Hf_id Hf_Term
-    iexists stl
-    rw [ite_pos' Hif, List.append_nil]
+    have Hu : s.logst.uents = [] := by first | exact Hif | simpa using Hif
+    iframe rn rd Hlog Hf_raftLog Hf_Term
+    iexists stl, []
+    rw [ite_pos' Hu, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
+    iapply pendList_nil
   · -- `newStorageAppendRespMsg(r, rd)`
-    wp_apply wp_newStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
-      wp_IsEmptySnap wp_raftLog_lastEntryID rnv.raft' id s.term s.log (logHanded s.logst) _ Hif Hrdz
-      $$ [$Hf_id $Hf_Term $Hf_raftLog $Hlog] as ⟨Hf_id, Hf_Term, Hf_raftLog, Hlog⟩
+    have Hu : s.logst.uents ≠ [] := by first | exact Hif | exact of_decide_eq_true Hif | simpa using Hif
+    wp_apply (wp_newStorageAppendRespMsg rnv.raft' id s.term s.log (logHanded s.logst) rd Hrdz)
+      $$ [$Hf_id $Hf_Term $Hf_raftLog $Hlog] as %ml ⟨Hml, Hf_Term, Hf_raftLog, Hlog⟩
     wp_apply wp_slice_literal
     try (isplitr; (ipureintro; rfl))
     iintro %stl1 ⟨Hsl1, -⟩
@@ -534,30 +412,36 @@ theorem RawNode.acceptReady.wp_proof
     wp_apply wp_slice_append $$ [$Hsteps $Hsteps_cap $Hsl1] as %stl' ⟨Hsteps, Hsteps_cap, -⟩
     isplitr
     · ipureintro; rfl
-    iframe rn rd Hlog Hf_raftLog Hf_id Hf_Term
-    iexists stl'
-    rw [ite_neg' Hif]
+    iframe rn rd Hlog Hf_raftLog Hf_Term
+    iexists stl', [ml]
+    rw [ite_neg' Hu]
     iframe Hrn Hsteps Hsteps_cap
+    iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
+        pendingRel γ id st p))).2
+    iexists _
+    iframe Hml
+    unfold pendingRel
+    isplitr
+    · ipureintro
+      show _ = _
+      simp only [Hu, not_false_eq_true, ↓reduceIte]
+    · itrivial
   -- `if needStorageApplyRespMsg(rd) { ... newStorageApplyRespMsg(r, rd.CommittedEntries) ... }`
-  ihave %Hcel := ownSlice_len _ _ _ $$ Hce
+  ihave %Hcel := entsPts_len _ _ _ $$ Hce
   wp_apply wp_needStorageApplyRespMsg
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
-      rnv.raft'.[raft, go!"id"] ↦□ id ∗
-      ∃ stl', rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl' } ∗
-        stl' ↦* (selfmsgs id ms2 ++
-          (if s.logst.uents = [] then []
-           else [appendAckMsg id s.term (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))]) ++
-          (if ce = [] then [] else [applyAckMsg id rd.CommittedEntries'])) ∗
-        ownSliceCap raftpb.Message stl' (DFrac.own 1) ∗
-        (if ce = [] then iprop(True)
-         else ownSliceCap raftpb.Entry rd.CommittedEntries' (DFrac.own 1)))
-    with [rn rd Hf_id Hrn Hsteps Hsteps_cap Hce_cap]
-    as ⟨rn, rd, Hf_id, %stl4, Hrn, Hsteps, Hsteps_cap, Hcecap⟩
+      ∃ (stl' : GoSlice) (acks : List Loc),
+        rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl' } ∗
+        stl' ↦* ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks) ∗
+        ownSliceCap Loc stl' (DFrac.own 1) ∗
+        pendList γ id acks (if ce = [] then [] else [Pending.applyAck ce]))
+    with [rn rd Hrn Hsteps Hsteps_cap]
+    as ⟨rn, rd, %stl4, %acks2, Hrn, Hsteps, Hsteps_cap, Hpc⟩
   · -- committed entries: `newStorageApplyRespMsg(r, rd.CommittedEntries)`
     have Hce0 : ce ≠ [] := by
       intro Hc; subst Hc; simp at Hcel; word
-    wp_apply wp_newStorageApplyRespMsg_inline rnv.raft' id rd.CommittedEntries' $$ [$Hf_id]
-      as Hf_id
+    wp_apply (wp_newStorageApplyRespMsg rnv.raft' id rd.CommittedEntries' ce) $$ [$Hf_id $Hce]
+      as %ml Hml
     wp_apply wp_slice_literal
     try (isplitr; (ipureintro; rfl))
     iintro %stl1 ⟨Hsl1, -⟩
@@ -565,20 +449,29 @@ theorem RawNode.acceptReady.wp_proof
     wp_apply wp_slice_append $$ [$Hsteps $Hsteps_cap $Hsl1] as %stl' ⟨Hsteps, Hsteps_cap, -⟩
     isplitr
     · ipureintro; rfl
-    iframe rn rd Hf_id
-    iexists stl'
-    rw [ite_neg' Hce0, ite_neg' Hce0, List.append_assoc]
-    iframe Hrn Hsteps Hsteps_cap Hce_cap
+    iframe rn rd
+    iexists stl', [ml]
+    rw [ite_neg' Hce0]
+    iframe Hrn Hsteps Hsteps_cap
+    iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
+        pendingRel γ id st p))).2
+    iexists _
+    iframe Hml
+    unfold pendingRel
+    isplitr
+    · ipureintro; rfl
+    · itrivial
   · have Hce0 : ce = [] := by
       apply List.eq_nil_of_length_eq_zero; word
-    iframe rn rd Hf_id
-    iexists stl3
-    rw [ite_pos' Hce0, ite_pos' Hce0, List.append_nil]
+    iframe rn rd
+    iexists stl3, []
+    rw [ite_pos' Hce0, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
+    iapply pendList_nil
   wp_apply wp_raftLog_acceptUnstable _ _ Hunp Hsnap $$ [Hlog] as Hlog
   · iframe Hlog
-  -- `if len(rd.CommittedEntries) > 0 { ... acceptApplying(index, entsSize(ents),
-  -- applyUnstableEntries()) }`
+  -- `if len(rd.CommittedEntries) > 0 { ... acceptApplying(ents[len(ents)-1].GetIndex(),
+  -- entsSize(ents), applyUnstableEntries()) }`
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
       rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 } ∗
       rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
@@ -593,16 +486,16 @@ theorem RawNode.acceptReady.wp_proof
       | some e => exact ⟨e, rfl⟩
     obtain ⟨ce0, Hce0'⟩ := List.getLast?_eq_some_iff.1 He
     have Hlen0' : ce.length = ce0.length + 1 := by rw [Hce0']; simp
-    rw [ite_pos' (show 0 ≤ sint.Z (rd.CommittedEntries'.len - W64 1) ∧
-      sint.Z (rd.CommittedEntries'.len - W64 1) < sint.Z rd.CommittedEntries'.len by word)]
     have Hlk : ce[(sint.Z (rd.CommittedEntries'.len - W64 1)).toNat]? = some e := by
       have Hi : (sint.Z (rd.CommittedEntries'.len - W64 1)).toNat = ce0.length := by word
       rw [Hi, Hce0']; simp
-    icases ownSlice_elem_acc (sint.Z (rd.CommittedEntries'.len - W64 1)) e rd.CommittedEntries'
-      DFrac.discard ce (by word) Hlk $$ Hce with ⟨He', -⟩
-    -- the `Index` field load goes through the read-only element: split it into fields
-    iStructNamed He'
-    wp_auto
+    icases entsRO_lookup rd.CommittedEntries' ce _ e Hlk $$ Hce with ⟨%els, %le, #Hels, #Hle, %Hl⟩
+    rw [ite_pos' (show 0 ≤ sint.Z (rd.CommittedEntries'.len - W64 1) ∧
+      sint.Z (rd.CommittedEntries'.len - W64 1) < sint.Z rd.CommittedEntries'.len by word)]
+    wp_apply wp_load_slice_index rd.CommittedEntries' (sint.Z (rd.CommittedEntries'.len - W64 1))
+      els DFrac.discard le (by word) $$ [Hels] with -
+    · iframe Hels; ipureintro; exact Hl.1
+    wp_apply (wp_Entry_GetIndex.1 le DFrac.discard e) $$ [$Hle] as -
     wp_apply wp_entsSize rd.CommittedEntries' ce DFrac.discard $$ [$Hce] as %sz' -
     wp_method_call
     wp_call
@@ -639,31 +532,28 @@ theorem RawNode.acceptReady.wp_proof
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0
   wp_apply wp_traceReady
+  -- the self-addressed responses, as the queue's first pending steps (before the raft struct
+  -- is closed: `Hself` is about `ms2`)
+  have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
+  ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok $$ Hout Hself
   -- the raft struct, closed with empty queues
-  ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List raftpb.Message)
-    %([] : List raftpb.Message) %([] : List Msg)
+  ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
+    %([] : List QMsg) %([] : List Msg)
     %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({} : NGhost)
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] [] [] [] Hlog
-  · iapply ownSlice_nil
+    [] [] [] [] [] [] Hlog
+  · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
-  · iapply ownSlice_nil
+  · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · iapply outboxRel_nil
   · ipureintro; intro _ h; cases h
   · ipureintro; intro _ h; cases h
   · ipureintro; exact Nat.zero_le _
   · ipureintro; intro h; cases h
-  iunfold outboxRel at Houtbox
-  icases Houtbox with ⟨%as1, %as2, %Hperm, #Hb1, #Hb2⟩
-  have Hin_out : ∀ a ∈ as1 ++ as2, ∀ x, a = some x → x ∈ s.outbox := by
-    intro a Ha x Hx
-    subst Hx
-    apply Hperm.mem_iff.2
-    simp only [absList, ← List.filterMap_append]
-    exact List.mem_filterMap.2 ⟨some x, Ha, rfl⟩
+  · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable]; exact Int.le_refl _
   -- the node after `Ready`
   have Hlf := logAcceptApplying_fields (logAcceptUnstable s.logst) ce sz
   have Hlogst : (readyNstate s ce sz).logst = logAcceptApplying (logAcceptUnstable s.logst) ce sz :=
@@ -690,8 +580,8 @@ theorem RawNode.acceptReady.wp_proof
       obtain ⟨-, -, Ha, Hi⟩ := Hce_ok e He
       rw [Ha, List.length_append, Hdlen]
       word
-  have Hstok' :
-      StepsOk (readyNstate s ce sz) (readySteps s ((selfmsgs id ms2).map selfPending) ce) := by
+  have Hstok' : StepsOk (readyNstate s ce sz)
+      (readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce) := by
     unfold readySteps
     rw [List.append_assoc]
     refine stepsOk_selfs _ _ _ (fun p Hp => ?_) ?_
@@ -736,58 +626,30 @@ theorem RawNode.acceptReady.wp_proof
   ihave #Hstrecs' := storedRecs_eq γ _ (readyNstate s ce sz).logst.prev _
     (readyNstate s ce sz).logst.stored (by rw [Hlogst, Hlf.2.2.2.2.1]; rfl)
     (by rw [Hlogst, Hlf.2.2.2.2.2]; rfl) $$ Hlr
-  iapply HΦ $$ %(readySteps s ((selfmsgs id ms2).map selfPending) ce)
+  -- the queue: the self-addressed responses, then the acknowledgements
+  ihave Hpend : pendList γ id ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks2)
+      (readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
+    $$ [Hps Hpa Hpc]
+  · unfold readySteps
+    iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
+        pendingRel γ id st p))) $$ [Hps Hpa] [Hpc]
+    · iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
+        pendingRel γ id st p))) $$ Hps Hpa
+    · iexact Hpc
+  iapply HΦ $$ %(readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
   simp only [named]
   iapply ownRawNode_intro γ rn id
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
-              steps := readySteps s ((selfmsgs id ms2).map selfPending) ce,
+              steps := readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
               outlb := 0, unst := false }
     (readyNstate s ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
-    v _
+    v hph _
     Hwf Hin Hal Hasync Hdlen'
     (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
     (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
     (by rw [Hlogst, Hlf.1]; exact Hrs_clb)
-    $$ Hrn Hphys Hghost Hsdrf Hpsp Hsteps Hsteps_cap [] [Hcecap] Hcommitted Hstrecs'
-  · -- the pending steps' messages
-    simp only [readySteps]
-    iapply BigSepL2.bigSepL2_app_wand $$ [] []
-    · iapply BigSepL2.bigSepL2_app_wand $$ [] []
-      · iapply self_pending γ id s.term s.outbox ms2 as2
-          (fun a Ha => Hin_out a (List.mem_append_right _ Ha)) HmsgsAA_ok $$ Hout Hb2
-      · by_cases hu : s.logst.uents = []
-        · rw [ite_pos' hu, ite_pos' hu]; iempintro
-        · rw [ite_neg' hu, ite_neg' hu]
-          iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)).2
-          simp only [pendingRel]
-          ipureintro; trivial
-    · by_cases hc : ce = []
-      · rw [ite_pos' hc, ite_pos' hc]; iempintro
-      · rw [ite_neg' hc, ite_neg' hc]
-        iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)).2
-        simp only [pendingRel]
-        iexists rd.CommittedEntries'
-        isplitr
-        · ipureintro; rfl
-        · iexact Hce
-  · -- what they own: the committed entries' capacity
-    simp only [readySteps]
-    iapply BigSepL2.bigSepL2_app_wand $$ [] [Hcecap]
-    · iapply BigSepL2.bigSepL2_app_wand $$ [] []
-      · iapply self_pending_own id ms2
-      · by_cases hu : s.logst.uents = []
-        · rw [ite_pos' hu, ite_pos' hu]; iempintro
-        · rw [ite_neg' hu, ite_neg' hu]
-          iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingOwn (GF := GF) m p)).2
-          simp only [pendingOwn]
-          itrivial
-    · by_cases hc : ce = []
-      · simp only [hc, ↓reduceIte]; iempintro
-      · simp only [hc, ↓reduceIte]
-        iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ m p => pendingOwn (GF := GF) m p)).2
-        simp only [pendingOwn, applyAckMsg]
-        iexact Hcecap
+    $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs'
 
 end proof
 

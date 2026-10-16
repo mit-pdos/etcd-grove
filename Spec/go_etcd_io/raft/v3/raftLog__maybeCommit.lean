@@ -4,7 +4,7 @@ Lean notes: `bool_decide` is `decide`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section

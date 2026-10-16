@@ -1,6 +1,7 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom Client.Endpoints.wp_proof
 axiom Client.getToken.wp_proof
+axiom DescribeConfChange.wp_proof
 axiom EtcdServer.Alarm.wp_proof
 axiom EtcdServer.Cleanup.wp_proof
 axiom EtcdServer.IsLearner.wp_proof
@@ -86,6 +87,7 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
+axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -97,7 +99,6 @@ axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
-axiom gogoproto.Equal.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
@@ -145,17 +146,21 @@ axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Clone.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
 axiom proto.Marshal.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
+axiom proto.SizeEntry.wp_proof
 axiom proto.Unmarshal.wp_proof
-axiom raftpb.ConfChange.Marshal.wp_proof
-axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
-axiom raftpb.ConfChangeV2.Marshal.wp_proof
-axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
 axiom rand.Int63n.wp_proof
-axiom reflect.DeepEqual.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
@@ -174,6 +179,7 @@ axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom streamKeyFromCtx.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
@@ -227,6 +233,7 @@ sorry Perennial.errors.wp_errorType_init
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_into_val_typed
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_typed_pointsto
 sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'
+sorry Perennial.google_golang_org.protobuf.proto.wp_initialize'
 sorry Perennial.log.initialize'.wp_proof
 sorry Perennial.math.big.initialize'.wp_proof
 sorry Perennial.math.initialize'.wp_proof

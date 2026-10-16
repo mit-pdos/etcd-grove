@@ -37,7 +37,8 @@ resource `E.RD` (`AuthInfoFromCtx`):
   ρ.kv rq Qr`: the request has no KV write, `Qr` trivial; or, since 2026-10-15 (unit T2), it is a
   plain write, a put, a delete or a transaction, with its client's update over the whole state,
   `Qr L` the client's `□ Q` at the state of `L`'s model): `□ Qr L` of the committed log `L` before
-  the entry the result is of;
+  the entry the result is of, whose model is the log `lb` the entry met (unit W-M3: the result's
+  `y.log`, so the update's state is the write's);
 * failure: no result, an error the gRPC layer can take (`applyErrIs`: in an error tree, a safe map
   key, with a message; 2026-10-12, unit 3a), and the proposal, if made, deposited (`srvMaybeDeposited`: it may
   still be applied: the request limit, the auth store's error, the marshal's error, the size
@@ -58,7 +59,8 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-          resultIsW E ρ.rd rq' F res ∗ ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ □ Qr L) ∨
+          ∃ lb : mvcc.Log, resultIsW E ρ.rd rq' F res lb ∗
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜kvModel ρ.kv L = lb⌝ ∗ □ Qr L) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 end spec

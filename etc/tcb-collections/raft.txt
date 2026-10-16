@@ -1,6 +1,12 @@
-# The Raft proof: every linked result of Proof/go_etcd_io/raft/v3/Link.lean (raft's
-# functions and the standard-library callees they are linked with) and the protocol
-# results of Proof/go_etcd_io/raft/v3/Results.lean.
+# The Raft proof (raft v3.7 plus the read-index fix): every linked result of
+# Proof/go_etcd_io/raft/v3/Link.lean and the results of its Results.lean. Since stage R6 of the
+# raft v3.7 retarget (2026-10-16, notes/raft-retarget-plan.md) the retargeted proof, ported into
+# the parallel tree Raft37/ stage by stage (R0: quorum, tracker, slices.Sort; R1: raftpb and the
+# nine protobuf-go axioms, proto.*, the trust boundary; R2: confchange, with fmt.Errorf and
+# raftpb.ConfChangeType.String restated for v3.7; R3: the log layer; R4: raft.go, adding
+# DescribeConfChange, a log formatter; R5: the node layer, no new axiom). The old tree's
+# gogoproto axioms (gogoproto.Equal, reflect.DeepEqual, the Marshal/Unmarshal of ConfChange(V2))
+# went with it.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/raft.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/raft.txt --check    against the lines below
@@ -8,16 +14,20 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
+# Since 2026-10-16 (stage R7c) also on etcd-grove's trust-boundary `context.ErrDone` axiom: the
+# node API's `ctx.Done()` case returns `ctx.Err()`, named (`Canceled`/`DeadlineExceeded`) for the
+# server's contract.
 roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
-# Since 2026-10-15 (the merge with `lean`, Perennial `a54e1999f`) also on etcd-grove's
-# `fmt.Errorf` axiom and `raftpb.ConfChangeType.String.wp_proof`: `confchange.Changer.apply`'s
-# error formats a `ConfChangeType`, which Perennial's `fmt.wp_Errorf` no longer admits
-# (notes/STATUS.md, "Merge: `worktree-raft-rest` into `lean`").
+axiom DescribeConfChange.wp_proof
+axiom context.ErrDone.wp_proof
 axiom fmt.Errorf.wp_proof
-axiom gogoproto.Equal.wp_proof
-axiom raftpb.ConfChange.Marshal.wp_proof
-axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
-axiom raftpb.ConfChangeV2.Marshal.wp_proof
-axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
-axiom reflect.DeepEqual.wp_proof

@@ -17,10 +17,14 @@ Lean notes: `log_offset`, `log_end`, `next_unstable`, `log_accept_unstable`,
 `stable_ok` are `StableHit`, `StableOk`. stdpp's `list.last` is `List.getLast?`.
 `to_pstate_log_stable_to`, `to_pstate_log_applied_to`, `own_tracker_autoleave` are
 `toPState_logStableTo`, `toPState_logAppliedTo`, `ownTracker_autoleave`.
+
+raft v3.7 (stage R3 of the retarget, 2026-10-15): the log-level part only (the sections on the
+log's state and `ownRaftLog_handout`), the entries `EntryM`; the tracker lemma comes with the raft
+layer (R4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvRaftlog
 
 @[expose] public section
 
@@ -33,11 +37,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-def MsgStorageApplyResp : w32 := W32 22
-def LocalAppendThread : w64 := W64 18446744073709551615
-def LocalApplyThread : w64 := W64 18446744073709551614
-
-/-! ## The log, as `Ready` and `Advance` see it -/
+-- `MsgStorageApplyResp`, `LocalAppendThread`, `LocalApplyThread` are in `SpecResults.lean`
+-- (stage R1).
 
 section readylog
 variable [FfiSyntax]
@@ -55,14 +56,14 @@ def logAcceptUnstable (ls : LogState) : LogState :=
 
 /-- The committed entries not yet handed out for applying: `(applying, committed]` --
 what `nextCommittedEnts(true)` slices, before `maxSize` cuts it short. -/
-def logCommittedEnts (ls : LogState) : List raftpb.Entry :=
+def logCommittedEnts (ls : LogState) : List EntryM :=
   (plogFrom ls.prev (ls.sents ++ ls.uents) (ls.applying + W64 1)).take
     (uint.Z ls.committed - uint.Z ls.applying).toNat
 
 /-- `acceptApplying` after a `Ready` that handed out `ce`: `applying` moves to `ce`'s
 last index and the applying budget grows by `sz` (`entsSize(ce)`, whose value no spec
 pins); nothing changes for an empty `ce`, which `acceptReady` does not accept. -/
-def logAcceptApplying (ls : LogState) (ce : List raftpb.Entry) (sz : w64) : LogState :=
+def logAcceptApplying (ls : LogState) (ce : List EntryM) (sz : w64) : LogState :=
   match ce.getLast? with
   | some e => { ls with applying := e.Index', apsize := ls.apsize + sz }
   | none => ls
@@ -121,7 +122,7 @@ def StableOk (ls : LogState) (id : entryID) : Prop :=
 `RawNode` predicate (`InvRawnode.lean`) states its facts on. Both functions branch, so
 `proj_simps` does not apply. -/
 
-theorem logAcceptApplying_fields (ls : LogState) (ce : List raftpb.Entry) (sz : w64) :
+theorem logAcceptApplying_fields (ls : LogState) (ce : List EntryM) (sz : w64) :
     (logAcceptApplying ls ce sz).committed = ls.committed ∧
     (logAcceptApplying ls ce sz).inprogress = ls.inprogress ∧
     (logAcceptApplying ls ce sz).unpersisted = ls.unpersisted ∧
@@ -131,7 +132,7 @@ theorem logAcceptApplying_fields (ls : LogState) (ce : List raftpb.Entry) (sz : 
   unfold logAcceptApplying; split <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- Neither changes the storage (2026-10-10). -/
-theorem logAcceptApplying_storage (ls : LogState) (ce : List raftpb.Entry) (sz : w64) :
+theorem logAcceptApplying_storage (ls : LogState) (ce : List EntryM) (sz : w64) :
     (logAcceptApplying ls ce sz).storage = ls.storage := by
   unfold logAcceptApplying; split <;> rfl
 
@@ -139,10 +140,28 @@ theorem logStableTo_storage (ls : LogState) (id : entryID) :
     (logStableTo ls id).storage = ls.storage := by
   unfold logStableTo; split <;> rfl
 
-theorem logAcceptApplying_applying (ls : LogState) (ce : List raftpb.Entry) (sz : w64)
-    (e : raftpb.Entry) (He : ce.getLast? = some e) :
+theorem logAcceptApplying_applying (ls : LogState) (ce : List EntryM) (sz : w64)
+    (e : EntryM) (He : ce.getLast? = some e) :
     (logAcceptApplying ls ce sz).applying = e.Index' := by
   unfold logAcceptApplying; rw [He]
+
+/-- A `Ready`'s acceptance keeps the last index (2026-10-16, stage R8a): what `ownRaftPhysC_view`'s
+close asks of a leader. -/
+theorem logLast_acceptUnstable (ls : LogState) : logLast (logAcceptUnstable ls) = logLast ls := rfl
+
+theorem logLast_acceptApplying (ls : LogState) (ce : List EntryM) (sz : w64) :
+    logLast (logAcceptApplying ls ce sz) = logLast ls := by
+  unfold logAcceptApplying; split <;> rfl
+
+/-- `stableTo` keeps the last index (2026-10-16, stage R8a): what `ownRaftPhysC_log_at` asks of a
+leader. -/
+theorem logLast_stableTo (ls : LogState) (id : entryID) :
+    logLast (logStableTo ls id) = logLast ls := by
+  unfold logStableTo
+  split
+  · simp only [logLast, List.length_append, List.length_take, List.length_drop]
+    congr 1; push_cast; omega
+  · rfl
 
 theorem logStableTo_fields (ls : LogState) (id : entryID) :
     (logStableTo ls id).applying = ls.applying ∧
@@ -162,12 +181,12 @@ theorem logStableTo_fields (ls : LogState) (id : entryID) :
 makes all of it in progress, and once the application appends what was handed out the
 storage holds exactly the log (`storApp` cuts the storage at the first handed-out
 index, which the indices put right after the in-progress prefix). -/
-theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List raftpb.Entry)
+theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List EntryM)
     (ipo : Int)
     (Hidx : LogIndicesOk prev (sents ++ uents))
     (Hsp : σ.prev = prev)
     (Hipo : 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (st : List raftpb.Entry)
+    (st : List EntryM)
     (H : LogPersistOk σ sents uents ipo [] st) :
     LogPersistOk σ sents uents (uents.length : Int) (uents.drop ipo.toNat)
       (sents ++ uents) := by
@@ -213,7 +232,7 @@ in-progress part of the suffix is what is left of it (`max ipo k - k`), the stor
 unchanged. The `k` entries are in progress (`k ≤ ipo`) or (2026-10-10) the storage
 holds exactly the log up to them (`Hst`); either way, once the suffix is empty, the
 stable part is what the storage holds (the second conjunct, `LogStoreOk`'s). -/
-theorem persist_stable (σ : StorState) (sents uents stored : List raftpb.Entry)
+theorem persist_stable (σ : StorState) (sents uents stored : List EntryM)
     (ipo k : Int)
     (Hk : 0 ≤ k ∧ k ≤ (uents.length : Int) ∧ 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
     (H : LogPersistOk σ sents uents ipo [] stored)
@@ -263,45 +282,7 @@ theorem toPState_logAppliedTo (s : NState) (index size : w64) :
 
 end readylog
 
-section tracker
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable (cfg : GSet w64)
-
-/-- The tracker's configuration is not a joint one on its way out (`ownTracker`'s
-`Hautoleave`), read without consuming the tracker: `raft.appliedTo`'s auto-leave branch
-is dead. -/
-theorem ownTracker_autoleave (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ⌜tv.Config'.AutoLeave' = false⌝ ∗
-      ownTracker cfg tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  isplitr
-  · ipureintro; exact Hautoleave
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-
-end tracker
-
-
-
-/-! ## The storage's hand-out, ahead of `acceptUnstable` (2026-10-10)
-
-`logHanded ls` is the log at `ls` (nothing unpersisted) once the storage has handed out the
-entries a `Ready` hands out (`nextUnstable ls`): they are recorded as unpersisted and as
-what the storage holds once appended, while `offsetInProgress` has not moved yet.
-`ownRaftLog_handout` takes the log there, with the storage's ghost hand-out law, which
-gives the application the right to append; `acceptUnstable` then moves `offsetInProgress`
-(to `logAcceptUnstable ls`). `node.go` needs the two apart: the application receives the
-right with the `Ready` (`readyc <- rd`, in the channel's atomic update), and `run` calls
-`acceptReady` only afterwards. -/
+-- (`ownTracker_autoleave`, on the tracker, comes with the raft layer, stage R4.)
 
 section handed
 variable [FfiSyntax]
@@ -311,12 +292,12 @@ def logHanded (ls : LogState) : LogState :=
 
 /-- The persistence invariant after the hand-out: the batch handed out continues the
 in-progress prefix the storage holds (`persist_accept`, which this follows). -/
-theorem persist_handed (prev : entryID) (σ : StorState) (sents uents : List raftpb.Entry)
+theorem persist_handed (prev : entryID) (σ : StorState) (sents uents : List EntryM)
     (ipo : Int)
     (Hidx : LogIndicesOk prev (sents ++ uents))
     (Hsp : σ.prev = prev)
     (Hipo : 0 ≤ ipo ∧ ipo ≤ (uents.length : Int))
-    (st : List raftpb.Entry)
+    (st : List EntryM)
     (H : LogPersistOk σ sents uents ipo [] st) :
     LogPersistOk σ sents uents ipo (uents.drop ipo.toNat) (sents ++ uents) := by
   obtain ⟨-, -, H3, H4⟩ := persist_accept prev σ sents uents ipo Hidx Hsp Hipo st H
@@ -341,7 +322,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
       ownRaftLog l (logHanded ls) ∗ appendRight ls.storage (nextUnstable ls) := by
   iintro Hlog
   iNamed Hlog
-  have Hcontig : ∀ (k : Nat) (e : raftpb.Entry), ls.uents[k]? = some e →
+  have Hcontig : ∀ (k : Nat) (e : EntryM), ls.uents[k]? = some e →
       uint.Z e.Index' = uint.Z lv.unstable'.offset' + (k : Int) := by
     intro k e Hk
     have Hk' : (ls.sents ++ ls.uents)[ls.sents.length + k]? = some e := by

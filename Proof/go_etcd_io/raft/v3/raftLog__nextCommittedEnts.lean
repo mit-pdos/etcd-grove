@@ -50,7 +50,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     iapply HΦ
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    isplitr; · iapply ownSlice_nil
+    isplitr; · iapply entsPts_nil
     isplitr; · iapply ownSliceCap_nil
     ipureintro; exact ⟨List.nil_prefix, fun _ => rfl⟩
   have Hroom : uint.Z ls.apsize < uint.Z ls.apmax := Hpaused Hpz
@@ -70,7 +70,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     wp_auto
     iapply HΦ
     iframe Hlog
-    isplitr; · iapply ownSlice_nil
+    isplitr; · iapply entsPts_nil
     isplitr; · iapply ownSliceCap_nil
     ipureintro; exact ⟨List.nil_prefix, fun _ => rfl⟩
   | none =>
@@ -93,7 +93,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     · -- nothing to apply
       iapply HΦ
       iframe Hlog
-      isplitr; · iapply ownSlice_nil
+      isplitr; · iapply entsPts_nil
       isplitr; · iapply ownSliceCap_nil
       ipureintro; exact ⟨List.nil_prefix, fun H => absurd rfl H⟩
     -- `maxSize := l.maxApplyingEntsSize - l.applyingEntsSize`: positive

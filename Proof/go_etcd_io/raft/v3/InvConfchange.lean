@@ -137,7 +137,7 @@ def makeLearnerM (id : w64) (s : CCState) : CCState :=
 /-- One change of `Changer.apply`'s loop: `NodeId = 0` is skipped; `AddNode` (`0`),
 `AddLearnerNode` (`3`), `RemoveNode` (`1`) and `UpdateNode` (`2`, nothing) by type; any
 other type is the error "unexpected conf type". -/
-def applyOne (cc : raftpb.ConfChangeSingle) (s : CCState) : Option CCState :=
+def applyOne (cc : ConfChangeSingleM) (s : CCState) : Option CCState :=
   if cc.NodeId' = W64 0 then some s
   else if cc.Type' = W32 0 then some (makeVoterM cc.NodeId' s)
   else if cc.Type' = W32 3 then some (makeLearnerM cc.NodeId' s)
@@ -146,13 +146,13 @@ def applyOne (cc : raftpb.ConfChangeSingle) (s : CCState) : Option CCState :=
   else none
 
 /-- The changes one after the other; the first error stops it. -/
-def applyAll : List raftpb.ConfChangeSingle → CCState → Option CCState
+def applyAll : List ConfChangeSingleM → CCState → Option CCState
   | [], s => some s
   | cc :: ccs, s => (applyOne cc s).bind (applyAll ccs)
 
 /-- `Changer.apply(ccs)`: the changes, then the error "removed all voters" if no incoming
 voter is left. -/
-def applyM (ccs : List raftpb.ConfChangeSingle) (s : CCState) : Option CCState :=
+def applyM (ccs : List ConfChangeSingleM) (s : CCState) : Option CCState :=
   (applyAll ccs s).bind fun s' => if s'.cfg.incoming = ∅ then none else some s'
 
 /-- `symdiff(l, r)`: the size of the symmetric difference. -/
@@ -166,7 +166,7 @@ def SymdiffTooBig (l r : GSet w64) : Prop := 1 < sint.Z (W64 (symdiffN l r : Int
 `AutoLeave` off), the error "can't apply simple config change in joint config", `apply`,
 the error "more than one voter changed without entering joint config" (against the
 tracker's own incoming voters), `checkAndReturn`. -/
-def simpleM (ccs : List raftpb.ConfChangeSingle) (s : CCState) : Option CCState :=
+def simpleM (ccs : List ConfChangeSingleM) (s : CCState) : Option CCState :=
   if ¬ CfgInv (clearAutoLeave s) then none
   else if s.cfg.outgoing ≠ ∅ then none
   else match applyM ccs (clearAutoLeave s) with
@@ -176,7 +176,7 @@ def simpleM (ccs : List raftpb.ConfChangeSingle) (s : CCState) : Option CCState 
 /-- `Changer.EnterJoint(autoLeave, ccs)`: `checkAndCopy`, the errors "config is already
 joint" and "can't make a zero-voter config joint", the outgoing voters a copy of the
 incoming ones, `apply`, `AutoLeave` set, `checkAndReturn`. -/
-def enterJointM (autoLeave : Bool) (ccs : List raftpb.ConfChangeSingle) (s : CCState) :
+def enterJointM (autoLeave : Bool) (ccs : List ConfChangeSingleM) (s : CCState) :
     Option CCState :=
   if ¬ CfgInv (clearAutoLeave s) then none
   else if s.cfg.outgoing ≠ ∅ then none
@@ -207,7 +207,7 @@ def leaveJointM (s : CCState) : Option CCState :=
 
 end model
 
-theorem applyAll_append [FfiSyntax] (l1 l2 : List raftpb.ConfChangeSingle) (s : CCState) :
+theorem applyAll_append [FfiSyntax] (l1 l2 : List ConfChangeSingleM) (s : CCState) :
     applyAll (l1 ++ l2) s = (applyAll l1 s).bind (applyAll l2) := by
   induction l1 generalizing s with
   | nil => simp [applyAll]
@@ -217,8 +217,8 @@ theorem applyAll_append [FfiSyntax] (l1 l2 : List raftpb.ConfChangeSingle) (s : 
     | none => rfl
     | some s' => simp [ih]
 
-theorem applyAll_snoc [FfiSyntax] (l : List raftpb.ConfChangeSingle)
-    (x : raftpb.ConfChangeSingle) (s : CCState) :
+theorem applyAll_snoc [FfiSyntax] (l : List ConfChangeSingleM)
+    (x : ConfChangeSingleM) (s : CCState) :
     applyAll (l ++ [x]) s = (applyAll l s).bind (applyOne x) := by
   induction l generalizing s with
   | nil => simp [applyAll]
@@ -248,11 +248,11 @@ def ConfigSimple [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
   ConfigVotersOnly cfg v ∧ cfg.AutoLeave' = false
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeId: id}`. -/
-abbrev addNodeCC [FfiSyntax] (id : w64) : raftpb.ConfChangeSingle :=
+abbrev addNodeCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 0, NodeId' := id }
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddLearnerNode, NodeId: id}` (2026-10-13). -/
-abbrev addLearnerCC [FfiSyntax] (id : w64) : raftpb.ConfChangeSingle :=
+abbrev addLearnerCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 3, NodeId' := id }
 
 /-- The model of a progress map's values: each id's `IsLearner`. -/

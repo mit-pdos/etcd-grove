@@ -69,7 +69,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) := by
   intro p R st γs Up Dn ci cd
-  wp_start as ⟨#HWS, #Hstream, #Hspec, #Hup, Hrt, Hst, Hslot⟩
+  wp_start as ⟨#HWS, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, Hslot⟩
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
   icases HWS' with ⟨%Hnn, #Plg, #Pcid, #Pmid, #Pmrb, #Psg, #Pwa, #Pag, #Hsrv⟩
@@ -81,9 +81,12 @@ theorem v3rpc.watchServer.Watch.wp_proof
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply hNWS R.wsl R.E.s R.γ $$ [] as %wsp ⟨%γo, %ch, %γc, #Hwstream, #Hwch, #Hch, #Hchinv, Hopen,
-    Hcons⟩
+  wp_apply hNWS R.wsl R.E.s R.γ (v3rpc.progQ γs) $$ [] as %wsp ⟨%γo, %ch, %γc, #Hwstream, #Hwch,
+    #Hch, #Hchinv, Hopen, Hcons, %Hγoc, #Hsp⟩
   · iframe #
+  -- the run's answer tokens, and the stream's auxiliary name (the watch slice's unit W-C)
+  imod v3rpc.ansPool_alloc (GF := GF) with ⟨%γa, HPool⟩
+  imod v3rpc.streamAux_set γs (v3rpc.auxOf γo γa) $$ HAux with #HauxIs
   wp_apply chan.wp_make2 (V := Loc) (W64 16) as %ctrl %γch ⟨#Hctrl, %Hcap, Hoc⟩
   · ipureintro; decide
   wp_apply (wp_map_make1 (K := w64) (V := Bool) go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool)
@@ -135,7 +138,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") (v3rpc.swsF sws_ptr go!"wg") $$ wg
     with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   imod sync.join.init (v3rpc.swsF sws_ptr go!"wg") γwg $$ [$HisWg $Hctr $Hwaiters] with Hadd
-  let r : v3rpc.WRun GF := ⟨R, st, γs, Up, Dn, ci, cd, wsp, γo, ch, γc, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
+  let r : v3rpc.WRun GF := ⟨R, st, γs, Up, Dn, ci, cd, wsp, γo, γa, ch, γc, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
   ihave #Hsws : v3rpc.swsIs sws_ptr r $$ []
   · iunfold v3rpc.swsIs
     iframe #
@@ -143,7 +146,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
     · ipureintro; exact ⟨Hswsn, Hnn.2⟩
     have hP : v3rpc.ctrlP r = P' := by funext k l; rfl
     rw [hP]
-    iexact Hspsc
+    iframe Hspsc
+    ipureintro; exact Hγoc
   iunfold v3rpc.watchRunSlot at Hslot
   icases Hslot with ⟨Hrres, Hsres⟩
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)
@@ -182,8 +186,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
     with ⟨%γerr, #HspscE, HprodE, HconsE⟩
   · iright; iexact Hoe
   ipersist errc
-  wp_apply wp_fork $$ [Hrt Hprod Hrres HprodE]
-  · wp_apply hRecv sws_ptr r [] [] $$ [$Hrt $Hprod $Hrres] as %rerr ⟨%Hrerr, %sent', Hprod⟩
+  wp_apply wp_fork $$ [Hrt Hprod HPool Hrres HprodE]
+  · wp_apply hRecv sws_ptr r [] [] $$ [$Hrt $Hprod $HPool $Hrres] as %rerr ⟨%Hrerr, %sent', Hprod⟩
     · iframe #
     rcases rerr with ei | _
     · have Hty : context.isTypedErr (GoInterface.ok ei) := by

@@ -4,6 +4,8 @@ Port of election_proof/proof_pbEntryID.v.
 module
 
 public import Spec.go_etcd_io.raft.v3.pbEntryID
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 
@@ -21,21 +23,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem pbEntryID.wp_proof : pbEntryID.spec (GF := GF) (hG := hG) := by
+theorem pbEntryID.wp_proof
+    (wp_Entry_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
+    pbEntryID.spec (GF := GF) (hG := hG) := by
   intro p dq e
-  wp_start as H
-  iNamed H
-  -- Lean: `wp_load` does not find the field `Access` instance of a struct points-to
-  -- at a variable fraction `dq` (it does at `DFrac.own 1`), so split the struct into
-  -- its fields and put it back together at the end.
-  icases typedPointsto_not_null_dup _ _ _ $$ He with ⟨He, %Hnn⟩
-  iStructNamed He
+  wp_start as He
   wp_auto
+  wp_apply wp_Entry_GetTerm.1 p dq e $$ [$He] as He
+  wp_apply wp_Entry_GetIndex.1 p dq e $$ [$He] as He
   unfold entId
-  iapply HΦ
-  iapply typedPointsto_combine _ _ _ Hnn
-  simp only [TypedPointsto.typedPointstoDef]
-  iframe
+  iapply HΦ $$ He
 
 end proof
 

@@ -4,8 +4,10 @@ the request path's unit 4b, 2026-10-13): from the server's persistent views (the
 `isServerReq s E ρ`, the reader's `isServerRead s E γr`) and the specs of its nine methods, the
 server value `s` meets the contract the read loop is verified over, with the caller's resource
 `LR := srvReadLR s` (the logger's reader slot and the two notifiers' reader slots) and the id
-resource `NR := idCred ρ.ids 1` (one id of the generator's budget). Lean-first (no Rocq
-counterpart).
+resource `NR := idCred ρ.ids 1` (one id of the generator's budget); and (2026-10-16, stage R7b)
+the id's context's fresh token and read credit, minted by the server from the id
+(`srvRdFresh_mint`, the mint `srvRdFreshInv` in `srvMintInv`), which is why the proposer's names
+`ρ` and the reader's `γr` must agree (`ρ.rd = γr`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -51,7 +53,7 @@ theorem isReadServer_of_server
     (hRT : EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG))
     (hAI : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
-    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
@@ -61,7 +63,9 @@ theorem isReadServer_of_server
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨#Hgenf, #Hgen, -, -, -, -, -, -, -, #Het, #Htm, -, -, #Hdonef, #Hdone, -, -, -, -, -, -,
-    -, -, %Hcfg⟩
+    #Hm, -, %Hcfg⟩
+  iunfold srvMintInv at Hm
+  icases Hm with ⟨-, #Hrf⟩
   iunfold isServerRead at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
@@ -158,13 +162,18 @@ theorem isReadServer_of_server
     iunfold waitBcast at Hch
     iunfold bcastChan
     iframe Hch HQ
-  -- `NextRequestID()`
+  -- `NextRequestID()`: the id mints its context's token and a read credit
   isplitr
   · iintro !> %Φ !> Hcred HΦ
-    wp_apply hNR s v.gen ρ.ids $$ [Hcred] as %id -
+    iapply wp_fupd
+    wp_apply hNR s v.gen ρ.ids $$ [Hcred] as %id Hfresh
     · iframe #; iframe Hcred
+    imod srvRdFresh_mint ρ.raft ρ.ids v.gen (srvFloorFact E) id $$ Hgen Hrf Hfresh
+      with ⟨Hfr, Hcr⟩
+    imodintro
     iapply HΦ
-    itrivial
+    rw [show ρ.raft = γr.raft by subst hρ; rfl]
+    iframe Hfr Hcr
   -- `RequestTimeout()`
   · iintro !> %Φ !> - HΦ
     wp_apply hRT s v.electionTicks v.tickMs $$ [] as %d -

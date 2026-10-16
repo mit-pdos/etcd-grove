@@ -62,7 +62,7 @@ theorem step_eq (c : CfgM) (id : w64) (ps : PState) (recv : List Msg)
 /-- `HandleAppResult` refines `StepC.appStale` / `StepC.appAccept` / `StepC.appReject` at
 `ps`. -/
 theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (s' : NState) :
+    (m : MessageM) (ents : List EntryM) (s' : NState) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
@@ -111,7 +111,7 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
 
 /-- `heartbeatResult` refines `StepC.heartbeat` at `ps`. -/
 theorem step_handle_heartbeat (c : CfgM) (id : w64) (ps : PState) (t : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8) :
+    (m : MessageM) (ents : List EntryM) (ctx : List w8) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
@@ -133,7 +133,7 @@ theorem step_handle_heartbeat (c : CfgM) (id : w64) (ps : PState) (t : NState)
 
 /-- The term preamble's step-down for a message only a leader sends. -/
 theorem step_higher_term_leader (c : CfgM) (id : w64) (ps : PState) (ty : MsgType)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8 := []) :
+    (m : MessageM) (ents : List EntryM) (ctx : List w8 := []) :
     fromLeader ty = true →
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
@@ -174,8 +174,8 @@ theorem adopt_candidate (s : NState) (src : w64) (pvs : GMap w64 Progress)
 
 /-! ## Well-formedness is preserved by the handlers -/
 
-theorem nstateWf_handle_app (id : w64) (t : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (s' : NState) :
+theorem nstateWf_handle_app (id : w64) (t : NState) (m : MessageM)
+    (ents : List EntryM) (s' : NState) :
     NStateWf t → HandleAppResult id t m ents s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleAppResult at Hres
@@ -183,8 +183,8 @@ theorem nstateWf_handle_app (id : w64) (t : NState) (m : raftpb.Message)
     exact Hwf
 
 /-- `handleAppendEntries` keeps the term and `NetFrame`'s fields (2026-10-09). -/
-theorem frame_handle_app (id : w64) (t : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (s' : NState) :
+theorem frame_handle_app (id : w64) (t : NState) (m : MessageM)
+    (ents : List EntryM) (s' : NState) :
     HandleAppResult id t m ents s' → NetFrame t s' ∧ s'.term = t.term := by
   intro Hres
   unfold HandleAppResult at Hres
@@ -195,8 +195,8 @@ theorem frame_handle_app (id : w64) (t : NState) (m : raftpb.Message)
   · exact ⟨NetFrame.refl _, rfl⟩
 
 /-- `handleAppendEntries` keeps what `rOf` reads beyond `toPState` (stage B7). -/
-theorem rframe_handle_app (id : w64) (t : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (s' : NState) (H : HandleAppResult id t m ents s') :
+theorem rframe_handle_app (id : w64) (t : NState) (m : MessageM)
+    (ents : List EntryM) (s' : NState) (H : HandleAppResult id t m ents s') :
     RFrame t s' := by
   unfold HandleAppResult at H
   rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
@@ -206,7 +206,7 @@ theorem rframe_handle_app (id : w64) (t : NState) (m : raftpb.Message)
 
 /-- A `MsgApp` branch's frame and term step: the adoption `s → t` (at most a step-down
 to the message's term), then the handler. -/
-theorem app_frame {id : w64} {m : raftpb.Message} {ents : List raftpb.Entry}
+theorem app_frame {id : w64} {m : MessageM} {ents : List EntryM}
     {s t s' : NState} (Happ : m.Type' = MsgApp) (Hres : HandleAppResult id t m ents s')
     (Hft : NetFrame s t) (H1 : uint.Z s.term ≤ uint.Z t.term)
     (H2 : uint.Z t.term ≤ max (uint.Z s.term) (uint.Z m.Term')) :
@@ -217,17 +217,17 @@ theorem app_frame {id : w64} {m : raftpb.Message} {ents : List raftpb.Entry}
   · rw [Happ] at h; exact absurd h (by w32_ne)
   · rw [Happ] at h; exact absurd h (by w32_ne)
 
-theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : raftpb.Message)
+theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : MessageM)
     (cl : List w8 := []) :
     NStateWf t → NStateWf (heartbeatResult id t m cl) := by
   intro Hwf; exact Hwf
 
 /-! ## Taking the `stepX` results apart, by type -/
 
-theorem followerStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
+theorem followerStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgApp →
-    FollowerStepResultC c scfg id s m ents sv dropped s' c' →
+    FollowerStepResultC c scfg id s m ents sv dropped s' c' cl →
     c = c' ∧ dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s' := by
   intro Hty H
   unfold FollowerStepResultC at H
@@ -236,8 +236,8 @@ theorem followerStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
-theorem followerStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+theorem followerStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (cl : List w8) :
     m.Type' = MsgHeartbeat →
     FollowerStepResultC c scfg id s m ents sv dropped s' c' cl →
@@ -249,11 +249,11 @@ theorem followerStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
-theorem candidateStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
+theorem candidateStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
+    (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState) :
     m.Type' = MsgApp →
-    CandidateStepResultC c scfg id s m ents sv dropped s' c' →
+    CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
     c = c' ∧ dropped = false ∧
     ∃ pvs, HandleAppResult id { becomeFollower s s.term m.From' with prvals := pvs }
       m ents s' := by
@@ -265,7 +265,7 @@ theorem candidateStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w6
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem candidateStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
+    (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState) (cl : List w8) :
     m.Type' = MsgHeartbeat →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
@@ -279,10 +279,10 @@ theorem candidateStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (i
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 /-- A leader ignores a `MsgApp` or `MsgHeartbeat` of its own term. -/
-theorem leaderStepResult_app_hb (c : CfgM) (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (dropped : Bool) (s' : NState) :
+theorem leaderStepResult_app_hb (c : CfgM) {ctx : List w8} (id : w64) (s : NState)
+    (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat →
-    LeaderStepResultC c id s m ents dropped s' →
+    LeaderStepResultC c id s m ents dropped s' ctx →
     dropped = false ∧ s' = s := by
   intro Hty H
   have Hnp : m.Type' ≠ MsgProp := by rcases Hty with h | h <;> rw [h] <;> w32_ne
@@ -306,7 +306,7 @@ theorem leaderStepResult_app_hb (c : CfgM) (id : w64) (s : NState)
 `absSnap`. -/
 
 theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) (s' : NState) :
+    (m : MessageM) (sv : SnapshotM) (voters : CSLists) (s' : NState) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
@@ -350,14 +350,14 @@ theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
                  isLearner := il } =
         { toPState t with
             base := snapId sv
-            log := ([] : List raftpb.Entry)
+            log := ([] : List EntryM)
             commit := (snapId sv).index' } := by
       simp [toPState, Hrl, logRestore, snapTrip]
     rw [Hs, Ht]
     simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
 
 theorem step_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) :
+    (m : MessageM) (sv : SnapshotM) (voters : CSLists) :
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
     m.From' ≠ id →
@@ -369,7 +369,7 @@ theorem step_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
 
 /-- `step_handle_snap`'s two exits that keep the configuration, as `StepCF` steps. -/
 theorem stepCF_handle_snap_keep (c : CfgM) (id : w64) (ps : PState) (t : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) (s' : NState) :
+    (m : MessageM) (sv : SnapshotM) (voters : CSLists) (s' : NState) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
@@ -409,8 +409,8 @@ variable [GoGlobalContext] [GoSemanticsFunctions]
 the obsolete and fast-forward exits are frame steps at `c`; a restore is `StepR.snapRestore`,
 the node at the configuration `cn` the `ConfState` denotes. `t` is the state `handleSnapshot`
 ran on: the sender adopted as leader (`padoptLeader`), the log untouched. -/
-theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : CSLists) (s' : NState) :
+theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : MessageM)
+    (sv : SnapshotM) (voters : CSLists) (s' : NState) :
     toPState t = padoptLeader (toPState s) m.From' →
     t.logst = s.logst →
     s.role ≠ .leader →
@@ -460,7 +460,7 @@ theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : raft
                    isLearner := il } =
           { toPState t with
               base := snapId sv
-              log := ([] : List raftpb.Entry)
+              log := ([] : List EntryM)
               commit := (snapId sv).index' } := by
         simp [toPState, Hrl, logRestore, snapTrip]
       rw [Hs, Ht]
@@ -489,7 +489,7 @@ end snapCDS
 
 /-- `step_higher_term_snap` as a `StepCF` step (2026-10-14, stage B8). -/
 theorem stepCF_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) :
+    (m : MessageM) (sv : SnapshotM) (voters : CSLists) :
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
     m.From' ≠ id →
@@ -500,23 +500,23 @@ theorem stepCF_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
   simp only [absSnap, absSnapFrom, fromLeader, ↓reduceIte]
 
 /-- The configuration after `handleSnapshot`: the old one or the snapshot's. -/
-theorem snapCfgOk_cases {c : CfgM} {s : NState} {sv : raftpb.Snapshot} {scfg : CSLists}
+theorem snapCfgOk_cases {c : CfgM} {s : NState} {sv : SnapshotM} {scfg : CSLists}
     {c' : CfgM} (h : SnapCfgOk c s sv scfg c') : c' = c ∨ c' = snapCfg sv scfg := by
   rcases h with ⟨-, h⟩ | ⟨-, h⟩
   · exact .inr h
   · exact .inl h
 
-theorem nstateWf_handle_snap (id : w64) (t : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (s' : NState) {voters : CSLists} :
+theorem nstateWf_handle_snap (id : w64) (t : NState) (m : MessageM)
+    (sv : SnapshotM) (s' : NState) {voters : CSLists} :
     NStateWf t → HandleSnapResult id t m sv voters s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleSnapResult at Hres
   rcases Hres with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, _, rfl⟩ <;> exact Hwf
 
-theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
+theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgSnap →
-    FollowerStepResultC c scfg id s m ents sv dropped s' c' →
+    FollowerStepResultC c scfg id s m ents sv dropped s' c' cl →
     SnapCfgOk c s sv scfg c' ∧
     dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s' := by
   intro Hty H
@@ -529,11 +529,11 @@ theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w6
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
-theorem candidateStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
+theorem candidateStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
+    (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState) :
     m.Type' = MsgSnap →
-    CandidateStepResultC c scfg id s m ents sv dropped s' c' →
+    CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
     SnapCfgOk c s sv scfg c' ∧
     dropped = false ∧
     ∃ pvs, HandleSnapResult id { becomeFollower s s.term m.From' with prvals := pvs }

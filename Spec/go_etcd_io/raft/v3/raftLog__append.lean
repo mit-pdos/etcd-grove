@@ -11,7 +11,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
@@ -68,7 +68,7 @@ over read-only with its capacity (`Spec/unstable__truncateAndAppend.lean`).
 `appendEntry`'s batch continues the log, so for it `logAdopts` is `false`
 (`logTruncateAppend_cont`). -/
 abbrev raftLog.append.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (ents : List raftpb.Entry) (es : GoSlice) (dq : DFrac),
+  ∀ (l : Loc) (ls : LogState) (ents : List EntryM) (es : GoSlice) (dq : DFrac),
   (∀ e0, ents[0]? = some e0 →
      (uint.Z ls.committed < uint.Z e0.Index' ∧
       uint.Z e0.Index' ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
@@ -77,14 +77,14 @@ abbrev raftLog.append.spec : Prop :=
         uint.Z e.Index' = uint.Z e0.Index' + (k : Int)) ∧
      uint.Z e0.Index' + (ents.length : Int) < 2^64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "Hes" ∷ es ↦*{dq} ents ∗
+      "Hes" ∷ entsPts es dq ents ∗
       "Hadopt" ∷ (if logAdopts ls ents
-                  then iprop(⌜dq = DFrac.discard⌝ ∗ ownSliceCap raftpb.Entry es (DFrac.own 1))
+                  then iprop(⌜dq = DFrac.discard⌝ ∗ ownSliceCap Loc es (DFrac.own 1))
                   else iprop(True)) }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"append")) (Val #es))
   {{ (li : w64), RET #li;
       ownRaftLog l (logTruncateAppend ls ents) ∗
-      (if logAdopts ls ents then iprop(True) else iprop(es ↦*{dq} ents)) ∗
+      (if logAdopts ls ents then iprop(True) else iprop(entsPts es dq ents)) ∗
       ⌜(logTruncateAppend ls ents).sents ++ (logTruncateAppend ls ents).uents
           = plogTruncateAppend ls.prev (ls.sents ++ ls.uents) ents ∧
         uint.Z li = uint.Z ls.prev.index'

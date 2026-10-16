@@ -6,16 +6,16 @@ mod revision (`client.go`) and the events awaited (`watch.go`): the vocabulary o
 
 **The client** (`isEtcdRecipesClient client pfx`, persistent): the mutex's client
 (`isEtcdMutexClient`: gets, transactions and deletes on its `KV` field, range watches on its
-`Watcher`) with three changes: its `KV` contracts are at `context.TODO()`, which the recipes pass
+`Watcher`) with two changes: its `KV` contracts are at `context.TODO()`, which the recipes pass
 to every `KV` call (`isEtcdKVTodo`, ..., `InvEtcdTxn.lean`: `TODO()`'s context is never done, so
 it is not an `isContext`); its `KV` also answers puts (`isEtcdPutKVTodo`, a put as the
-one-operation transaction `Then(OpPut(...))`); and its `Watcher` is taken **under the premise
-that a watch channel is never closed** (`isEtcdRangeWatcherOpen`). No `ctx` field: the recipes
-never call `client.Ctx()`.
-The recipes as shipped need that premise: on a closed channel `waitEvents` returns `nil` and
-`WaitEvents` `(nil, nil)` (`notes/issues/recipes-dequeue-closed-watch.md`,
-`recipes-barrier-wait-closed-watch.md`), so every recipes result holds only while no compaction
-passes a watched revision and the client is not closed; the fixed code would not need it.
+one-operation transaction `Then(OpPut(...))`). Its `Watcher` is the mutex's: range watches whose
+channel may close at any time (`isEtcdRangeWatcher`, the contract etcd's client watcher meets:
+`isEtcdRangeWatcher_of_watcher`). No `ctx` field: the recipes never call `client.Ctx()`.
+The recipes are verified against the verified fork's closed-watch fix (unit W-Q): on a canceled
+response or a closed channel `waitEvents` returns an error, so `WaitEvents`/`WaitPrefixEvents`
+return `(nil, err)` and their callers that error (as shipped they returned `(nil, nil)`:
+`issues/recipes-dequeue-closed-watch.md`, `recipes-barrier-wait-closed-watch.md`).
 
 **Keys.** A `RemoteKV` is the record `RemoteKVSt` (the `KV` it talks to, the key, its create
 revision, its value) behind an exclusive points-to (`ownRemoteKV`); `Delete` sets `kv` to nil.
@@ -97,14 +97,13 @@ instance isRecipesKV_persistent (kv : GoInterface) (pfx : GoString) :
 
 /-- **The client, as the recipes use it** (persistent; see the module docstring): for the
 prefix `pfx`, gets, transactions, deletes and puts through its `KV` at `context.TODO()`
-(`isRecipesKV`), and range watches (a key, a sub-prefix) through its `Watcher` **under the
-premise that the watch channel is never closed** (`isEtcdRangeWatcherOpen`: the recipes as
-shipped are wrong on a closed channel, see the module docstring). The trust boundary about the
-client (definitions, as `isEtcdMutexClient`). -/
+(`isRecipesKV`), and range watches (a key, a sub-prefix) through its `Watcher`, whose channel
+may close (`isEtcdRangeWatcher`). The trust boundary about the client (definitions, as
+`isEtcdMutexClient`). -/
 def isEtcdRecipesClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv w : GoInterfaceOk),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ clientWatcherAddr client ↦□ GoInterface.ok w ∗
-    isRecipesKV (GoInterface.ok kv) pfx ∗ isEtcdRangeWatcherOpen w pfx)
+    isRecipesKV (GoInterface.ok kv) pfx ∗ isEtcdRangeWatcher w pfx)
 
 instance isEtcdRecipesClient_persistent (client : Loc) (pfx : GoString) :
     Persistent (isEtcdRecipesClient (GF := GF) client pfx) := by

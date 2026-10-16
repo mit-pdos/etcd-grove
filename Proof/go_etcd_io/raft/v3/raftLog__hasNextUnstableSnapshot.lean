@@ -29,7 +29,7 @@ theorem raftLog.hasNextUnstableSnapshot.wp_proof
   iNamed Hlog
   wp_auto
   lend_unstable
-  wp_apply wp_unstable_nextSnapshot _ (unstableOf lv ls) $$ [$Hun] as %p ⟨Hun, %Hp⟩
+  wp_apply wp_unstable_nextSnapshot _ (unstableOf lv ls) $$ [$Hun] as %p ⟨Hun, %Hp, -⟩
   reopen_unstable
   iapply HΦ
   isplitl

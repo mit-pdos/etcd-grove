@@ -80,6 +80,17 @@ Lean notes: Rocq's `app_resp_accepted`, `proposed`, `leader_propose_result`,
 `LeaderProposeResult`, `LeaderNonpropResult` and `LeaderStepResult` (the Prop-valued
 ones UpperCamel); `if decide (P) then … else …` is `if P then … else …`; Rocq's `imap`
 is `List.mapIdx`, `dom` is `domSet`, `Forall P ms` is `∀ m ∈ ms, P m`.
+
+raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), taken as `Step` passes it
+(`msgIn ml dqe`: the struct and its `Entries` capacity owned, the entry pointers at `1` for a
+`MsgProp` -- the conf-change loop replaces a refused entry's slot with a fresh `&pb.Entry{Type:
+EntryNormal}` -- and read-only otherwise) and not given back: a `MsgReadIndex` is frozen and kept
+(the pending slice, the read-only queue), the rest is dropped. `appendEntry` no longer writes the
+batch but appends stamped clones, which hold the same records (D6: an entry's `Data'` is its
+bytes; `Spec/raft__appendEntry.lean`), so `LeaderProposeResult` is the old one; the post's
+`(⌜MsgProp⌝ -∗ ∃ ents', m.Entries' ↦* ents')` is gone. (Phase 2 of R4 had the log grow by
+copies `ents'` whose `Data` slices were fresh, `EntsDataCopy`, and the data bytes a premise
+`"Hdata"`; D6 removed both.)
 -/
 module
 
@@ -115,7 +126,7 @@ def ReleaseHbs (id : w64) (s : NState) (hb : List Msg) : Prop :=
 the stamped batch (`stamp`, the term and the indices after the last), and the
 self-acknowledgement at the new last index is queued -- `Step.propose`'s state, under
 `NStateRel`. -/
-def proposed (id : w64) (s : NState) (ents : List raftpb.Entry) : NState :=
+def proposed (id : w64) (s : NState) (ents : List EntryM) : NState :=
   let s1 :=
     { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
   sendMsgs s1 [selfAck id s1]
@@ -123,8 +134,8 @@ def proposed (id : w64) (s : NState) (ents : List raftpb.Entry) : NState :=
 /-- `stepLeader`'s conf-change loop at `s` (2026-10-13): the batch it leaves and
 `pendingConfIndex` (`propConf`, `CCModel.lean`), for the decoded conf changes `cs`; `joint`
 (2026-10-14, reconfiguration stage A3) is whether the configuration in use is joint. -/
-def leaderPropConf (s : NState) (ents : List raftpb.Entry) (cs : List (Option CCMsg))
-    (joint : Bool := false) : List raftpb.Entry × w64 :=
+def leaderPropConf (s : NState) (ents : List EntryM) (cs : List (Option CCMsg))
+    (joint : Bool := false) : List EntryM × w64 :=
   propConf s.logst.applied (logLast s.logst) s.pci ents cs joint
 
 /-- `MsgProp` at the leader: dropped -- unchanged (a leader transfer in progress, before
@@ -133,8 +144,10 @@ refused the batch) -- or the loop's batch appended and then `bcastAppend`'s send
 at the appended state, with no `Match` moved; for some decoded conf changes `cs` of the
 batch (2026-10-13; until then the batch was appended as proposed). `joint` (2026-10-14,
 reconfiguration stage A3): whether the configuration in use is joint, which decides which conf
-changes the loop refuses (`propConf`); `false` at a simple configuration. -/
-def LeaderProposeResult (id : w64) (s : NState) (ents : List raftpb.Entry)
+changes the loop refuses (`propConf`); `false` at a simple configuration. (2026-10-15, stage
+R4) What is appended is `appendEntry`'s clones of the loop's batch, which hold the same records
+(D6). -/
+def LeaderProposeResult (id : w64) (s : NState) (ents : List EntryM)
     (dropped : Bool) (s' : NState) (joint : Bool := false) : Prop :=
   ∃ cs : List (Option CCMsg), CCTypesOk ents cs ∧
   if dropped then s' = s ∨ s' = { s with pci := (leaderPropConf s ents cs joint).2 }
@@ -210,8 +223,8 @@ read-index request (2026-10-12) is pending until an entry of the term is committ
 `sendMsgReadIndexResponse`'s (`SendRIResult`: since 2026-10-14 answered at once at a
 configuration whose only voter is the leader itself). (Until 2026-10-14 also
 `LeaderNonpropResult`, at a simple configuration.) -/
-def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) (s' : NState) : Prop :=
+def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8) (s' : NState) : Prop :=
   ((m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
     m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
     m.Type' = MsgReadIndexResp) ∧
@@ -254,8 +267,8 @@ def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
 returned `ErrProposalDropped` (as in `FollowerStepResult`, `Spec/stepFollower.lean`); only a
 `MsgProp` can be. The conf-change loop is judged at `c.joint`. (Until 2026-10-14 also
 `LeaderStepResult`, at a simple configuration.) -/
-def LeaderStepResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (dropped : Bool) (s' : NState) (ctx : List w8 := []) : Prop :=
+def LeaderStepResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (dropped : Bool) (s' : NState) (ctx : List w8 := []) : Prop :=
   if m.Type' = MsgProp then
     LeaderProposeResult id s ents dropped s' c.joint
   else dropped = false ∧ LeaderNonpropResultC c id s m ents ctx s'
@@ -277,14 +290,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   An accepting `MsgAppResp` may come from the node itself (`appendEntry`'s
   self-acknowledgement): the code guards every send to `m.From` by `r.id != m.From`
   there;
-- `Hctx`: a `MsgHeartbeatResp`'s `Context` holds `ctx` (for any other type the wand is
-  trivial), empty or at least eight bytes (`recvAck`'s `Uint64`), a position sent
+- `Hctx`: a `MsgHeartbeatResp`'s `Context` holds `ctx` (stage R4: the message's state, `"Hm"`),
+  empty or at least eight bytes (`recvAck`'s `Uint64`), a position sent
   (`maybeAdvance`'s bound); `Hrents`: a `MsgReadIndex`'s entries;
 - `MsgProp`: a non-empty batch (`Panicf` otherwise) of fewer than `2^61` entries
   (`appendEntry`'s no-wrap bound), `Hents`: the batch at full ownership, since the
   conf-change loop writes refused entries and `appendEntry` stamps it in place, and (since
   2026-10-13) `Hcc`: each conf-change entry's bytes, which decode (`Unmarshal`'s
-  `panic`). The batch comes back, changed, in the postcondition.
+  `panic`). The batch comes back, changed, in the postcondition. (Stage R4: the batch is the
+  message's (`"Hm"`, entry pointers at `1`: the loop replaces refused entries' slots);
+  `appendEntry` clones it; nothing comes back.)
 
 At any configuration since 2026-10-14 (reconfiguration stage A3): the struct at `c`
 (`ownRaftPhysCV c c.voters`); the read path's confirmation is the joint quorum index of the
@@ -298,8 +313,8 @@ the pinned raft has the fix of `issues/raft-readindex-singleton-stale.md`: the s
 single voter. (Until 2026-10-14 also `stepLeader.specS`, at a simple configuration; no
 caller.) -/
 abbrev stepLeader.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
    m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
    m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
@@ -329,23 +344,24 @@ abbrev stepLeader.spec : Prop :=
    (ctx = [] ∨ 8 ≤ ctx.length) ∧
    (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
                  ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))) →
+  -- (2026-10-16, stage R8a, D11) an accepted `MsgAppResp` acknowledges an index within the
+  -- leader's log, so `MaybeUpdate` keeps the leader's progress bound (`PrvalsOk`): `Step` has it
+  -- from the message's ghost witness (`ackIn`, `ownRaftGhost_ackIn_le`)
+  (m.Type' = MsgAppResp → m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hctx" ∷ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ m.Context' ↦*□ ctx) ∗
+      -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
+      -- `MsgProp`, read-only otherwise
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (2026-10-13) and its conf-change entries' bytes, which decode
-      "Hents" ∷ (⌜m.Type' = MsgProp⌝ -∗
-                 m.Entries' ↦* ents ∗ ∃ cs, ccEntsOk ents cs) ∗
-      "Hrents" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ m.Entries' ↦*□ ents) }}
-    (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
+      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) }}
+    (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗
       ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
-       else ⌜err = interface.nil⌝) ∗
-      -- the batch, changed (refused conf changes overwritten, stamped) -- or untouched,
-      -- when a leader transfer in progress dropped it before the loop (2026-10-13: until
-      -- then stated exactly; no caller used it)
-      (⌜m.Type' = MsgProp⌝ -∗ ∃ ents' : List raftpb.Entry, m.Entries' ↦* ents') }}
+       else ⌜err = interface.nil⌝) }}
 
 
 end spec

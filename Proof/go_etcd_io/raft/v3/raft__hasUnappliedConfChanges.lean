@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.raft__hasUnappliedConfChanges
 public import Spec.go_etcd_io.raft.v3.raftLog__scan
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 
 @[expose] public section
 
@@ -79,12 +80,14 @@ local macro "read_field" : tactic => `(tactic| (
 
 Lean notes: `wp_apply raft.wp_load_raftLogC` does not find the first loads of
 `r.raftLog` in this function, so `read_field` binds the load with `wp_bind` and
-`iapply`s the lemma. The `ents[i].Type` field loads go through a *fractional* element
-points-to, which the generated `AccessStrict` instances do not reach, so the element is
-split with `iStructNamed` and recombined with `typedPointsto_combine`. The range
+`iapply`s the lemma. (Raft v3.7, stage R4: the callback gets a `[]*pb.Entry` (`entsPts`); each
+`ents[i].GetType()` loads the pointer, `wp_load_slice_index`, and calls R1's getter on the
+entry's `entRO`, `entsBig_lookup`; until then the `ents[i].Type` field loads went through a
+fractional element points-to split with `iStructNamed`.) The range
 construct's counter and the body's `i` share a Go name; the body's is renamed `ibp`. -/
 theorem raft.hasUnappliedConfChanges.wp_proof
-    (wp_raftLog_scan : raftLog.scan.spec (GF := GF) (hG := hG)) :
+    (wp_raftLog_scan : raftLog.scan.spec (GF := GF) (hG := hG))
+    (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG)) :
     raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG) := by
   intro c r id s Hsn
   wp_start as Hphys
@@ -158,12 +161,15 @@ theorem raft.hasUnappliedConfChanges.wp_proof
     -- name; rename the body's
     rename_i ibp
     irename: (ibp ↦ (_ : w64)) => ib
-    ihave %Hslen := ownSlice_len _ _ _ $$ Hes
+    iunfold entsPts at Hes
+    icases Hes with ⟨%ls, Hsl, #Hbig⟩
+    ihave %Hslen := ownSlice_len $$ Hsl
+    ihave %Hbl := entsBig_length $$ Hbig
     ihave IH : iprop(∃ (k m : w64), "i" ∷ i_ptr ↦ k ∗ "ib" ∷ ibp ↦ m ∗
-        "Hes" ∷ sl ↦*{dq} es ∗ "Hf" ∷ found_ptr ↦ false ∗
+        "Hsl" ∷ sl ↦*{dq} ls ∗ "Hf" ∷ found_ptr ↦ false ∗
         "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (es.length : Int)⌝ ∗
         "%Hnc" ∷ ⌜∀ e ∈ es.take (sint.Z k).toNat, ¬ IsConfEnt e⌝)
-      $$ [i ib Hes Hf]
+      $$ [i ib Hsl Hf]
     · iexists W64 0, zero_val w64
       iframe
       ipureintro
@@ -174,72 +180,55 @@ theorem raft.hasUnappliedConfChanges.wp_proof
     · have Hlt : sint.Z k < sint.Z sl.len := by
         first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
       list_elem es (sint.nat k) as e
+      ihave ⟨%l, %Hl, #He⟩ := entsBig_lookup ls es (sint.nat k) e He_lookup $$ Hbig
       -- the range construct's own read of `ents[j]`
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-      wp_apply wp_load_slice_index sl (sint.Z k) es dq e (by word) $$ [Hes] with Hes
+      wp_apply wp_load_slice_index sl (sint.Z k) ls dq l (by word) $$ [Hsl] with Hsl
       · iframe
         ipureintro
-        exact He_lookup
-      -- the two `ents[i].Type` reads load a *field*, so lend the element out rather than
-      -- using `wp_load_slice_index`
-      icases ownSlice_elem_acc (sint.Z k) e sl dq es (by word) He_lookup $$ Hes
-        with ⟨Hel, Hesback⟩
-      icases typedPointsto_not_null_dup _ _ _ $$ Hel with ⟨Hel, %Hel_nn⟩
-      iStructNamed Hel
-      have Hset : es.set (sint.Z k).toNat e = es := by
-        have Hl : es[(sint.Z k).toNat]? = some e := He_lookup
-        obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 Hl
-        exact List.set_getElem_self h
+        exact Hl
       have Hmem : e ∈ es := List.mem_of_getElem? He_lookup
       have HinL : e ∈ unappliedEnts s.logst := (Hpre.subset (List.mem_append_right _ Hmem))
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-      wp_auto
+      wp_apply wp_load_slice_index sl (sint.Z k) ls dq l (by word) $$ [Hsl] with Hsl
+      · iframe
+        ipureintro
+        exact Hl
+      wp_apply wp_Entry_GetType.1 l DFrac.discard e $$ [$He] with -
       by_cases H1 : e.Type' = W32 1
       · -- `EntryConfChange`: found
-        rw [decide_eq_true (by rw [H1])]
+        rw [decide_eq_true H1]
         wp_auto
-        ihave Hel : sliceIndexRef raftpb.Entry (sint.Z k) sl ↦{dq} e $$ [Term Index Type' Data]
-        · iapply typedPointsto_combine _ _ _ Hel_nn
-          simp only [TypedPointsto.typedPointstoDef]
-          iframe
-        ihave Hes := Hesback $$ %e Hel
-        rw [Hset]
         wp_for_post
         iapply HΨ
-        iframe
+        isplitl [Hsl]
+        · iunfold entsPts; iexists ls; iframe Hsl Hbig
         iright
         iframe
         ipureintro
         exact ⟨Hebnz, rfl, e, HinL, Or.inl H1⟩
-      rw [decide_eq_false (by intro h; apply H1; rw [h])]
+      rw [decide_eq_false H1]
       wp_auto
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-      wp_auto
+      wp_apply wp_load_slice_index sl (sint.Z k) ls dq l (by word) $$ [Hsl] with Hsl
+      · iframe
+        ipureintro
+        exact Hl
+      wp_apply wp_Entry_GetType.1 l DFrac.discard e $$ [$He] with -
       by_cases H2 : e.Type' = W32 2
       · -- `EntryConfChangeV2`: found
-        rw [decide_eq_true (by rw [H2])]
+        rw [decide_eq_true H2]
         wp_auto
-        ihave Hel : sliceIndexRef raftpb.Entry (sint.Z k) sl ↦{dq} e $$ [Term Index Type' Data]
-        · iapply typedPointsto_combine _ _ _ Hel_nn
-          simp only [TypedPointsto.typedPointstoDef]
-          iframe
-        ihave Hes := Hesback $$ %e Hel
-        rw [Hset]
         wp_for_post
         iapply HΨ
-        iframe
+        isplitl [Hsl]
+        · iunfold entsPts; iexists ls; iframe Hsl Hbig
         iright
         iframe
         ipureintro
         exact ⟨Hebnz, rfl, e, HinL, Or.inr H2⟩
-      rw [decide_eq_false (by intro h; apply H2; rw [h])]
+      rw [decide_eq_false H2]
       wp_auto
-      ihave Hel : sliceIndexRef raftpb.Entry (sint.Z k) sl ↦{dq} e $$ [Term Index Type' Data]
-      · iapply typedPointsto_combine _ _ _ Hel_nn
-        simp only [TypedPointsto.typedPointstoDef]
-        iframe
-      ihave Hes := Hesback $$ %e Hel
-      rw [Hset]
       wp_for_post
       iframe
       iexists k + W64 1, k
@@ -261,7 +250,8 @@ theorem raft.hasUnappliedConfChanges.wp_proof
         | exact Hif
         | exact fun h => Hif (congrArg (fun b : Bool => (#b : val)) (decide_eq_true h))
       iapply HΨ
-      iframe
+      isplitl [Hsl]
+      · iunfold entsPts; iexists ls; iframe Hsl Hbig
       ileft
       iframe
       ipureintro

@@ -324,7 +324,7 @@ theorem reg_mint_read (γr : RegNames) (id ns : w64) (E : CoPset)
 
 /-- A deposited read context with a minted key is the one minted there (2026-10-13; since
 2026-10-14, stage R, through its fresh token, which raft's read registry keeps). -/
-theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List raftpb.Entry)
+theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List EntryM)
     (k : w64 × w64) (E : CoPset) (HE1 : ↑regN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑regN)
     (Hk : opKey c = some k) :
     ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ readReq γr.raft c Lc -∗
@@ -376,30 +376,8 @@ theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List raftpb.Entr
   imodintro
   ipureintro; rfl
 
-/-- The register's log is raft's committed log (the client's half of `rLog` and the log
-half's quarter agree, 2026-10-14, stage R). -/
-theorem reg_log_committed (γr : RegNames) (L : List raftpb.Entry) (E : CoPset)
-    (HE : ↑raftLogN ⊆ E) :
-    ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L ={E}=∗
-      rLog γr.raft L ∗ isCommitted γr.raft L := by
-  iintro #Hcinv HrL
-  ihave #Hli := raftCommitInv_log γr.raft $$ Hcinv
-  unfold raftLogInv raftLogInvBody logRest
-  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
-  iunfold rLog at HrL
-  ihave %HLeq := ghostVar_agree γr.raft.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
-  subst HLeq
-  ihave #HPc := ownCommitted_lb γr.raft _ $$ HP
-  imod Hclose $$ [HP Htbl Hwt Hq1] with -
-  · inext
-    iexists P
-    iframe HP Hj Htbl Hwt Hds Hq1
-  imodintro
-  unfold rLog
-  iframe HrL HPc
-
 /-- Every committed log is a prefix of the register's log (the global one). -/
-theorem reg_log_prefix (γr : RegNames) (L l : List raftpb.Entry) (E : CoPset)
+theorem reg_log_prefix (γr : RegNames) (L l : List EntryM) (E : CoPset)
     (HE : ↑raftLogN ⊆ E) :
     ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L -∗ isCommitted γr.raft l ={E}=∗
       rLog γr.raft L ∗ ⌜l <+: L⌝ := by
@@ -434,7 +412,7 @@ theorem regLb_current (γr : RegNames) (x : List w8) (E : CoPset)
   ihave %Hxeq := ghostVar_agree γr.val (regFold (firstOcc ods)) (1 : Qp).half x (1 : Qp).half
     $$ Hv Hx
   have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑regN := raftLogN_of HE2
-  imod reg_log_committed γr L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
+  imod rLog_committed γr.raft L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
   imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
   · inext
     iexists L, ods, M, F, S, Mi, O
@@ -563,7 +541,7 @@ theorem reg_propAu (γr : RegNames) (d : List w8) (γp : GName × GName) :
     imodintro
     iempintro
   · -- commit: the log grows by `e`, holding `d`
-    iintro %e ⟨HrL, #He⟩
+    iintro %e ⟨HrL, #He, -⟩
     imod Hclose2 with -
     ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [some d], entDataIs γr.raft e o) $$ []
     · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2
@@ -678,7 +656,7 @@ theorem reg_noopAu (γr : RegNames) :
       ipureintro; exact ⟨Hok, Hodm⟩
     imodintro
     iempintro
-  · iintro %e ⟨HrL, #He⟩
+  · iintro %e ⟨HrL, #He, -⟩
     imod Hclose2 with -
     ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [none], entDataIs γr.raft e o) $$ []
     · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2
@@ -747,7 +725,7 @@ position `m`, the ticket buys the result of the client's update at the value aft
 history before it and `d`, under two laters (the invariant it was stored in; the saved
 predicate naming it). -/
 theorem reg_collect (γr : RegNames) (d : List w8) (γp : GName × GName) (Ψ : List w8 → IProp GF)
-    (l : List raftpb.Entry) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
+    (l : List EntryM) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
     (HE1 : ↑regN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑regN) :
     ods[m]? = some (some d) → d ∉ firstOcc (ods.take m) →
     ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ d ↪[γr.ops]□ γp -∗
@@ -852,8 +830,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The data of the last entry of a committed log. -/
-theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.Entry)
-    (e : raftpb.Entry) (E : CoPset) (HE : ↑raftN ⊆ E) :
+theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List EntryM)
+    (e : EntryM) (E : CoPset) (HE : ↑raftN ⊆ E) :
     ⊢ isNode γ id n -∗ isCommitted γ.raft (l ++ [e]) ={E}=∗ ∃ o, entDataIs (GF := GF) γ.raft e o := by
   iintro #Hnode #Hc
   imod node_committed_data γ id n (l ++ [e]) E HE $$ Hnode Hc with ⟨%ods, #Hl⟩
@@ -863,18 +841,10 @@ theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.E
   iexists o
   iexact Ho
 
-/-- A recorded slice holds its bytes, at the node. -/
-theorem node_propData_heap (γ : NodeNames) (id : w64) (n : Loc) (sl : GoSlice) (bs : List w8)
-    (E : CoPset) (HE : ↑propDataN ⊆ E) :
-    ⊢ isNode γ id n -∗ isPropData (GF := GF) γ.raft sl bs ={E}=∗ sl ↦*□ bs := by
-  iintro #Hnode #Hpd
-  ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
-  iapply propData_heap γ.raft sl bs E HE $$ Hpdi Hpd
-
 /-- An entry of a type other than `EntryConfChange` is no conf-change entry, in the cluster: its
 conf-change entries are all of that type (`RegCC`). -/
 theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
-    (e : raftpb.Entry) (o : Option (List w8)) :
+    (e : EntryM) (o : Option (List w8)) :
     ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜e.Type' ≠ W32 1 → ¬ IsConfEnt e⌝ := by
   iintro He
   cases o with
@@ -884,11 +854,11 @@ theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC
     ipureintro
     intro _ hc
     unfold IsConfEnt at hc
-    rw [Hd.2] at hc
+    rw [Hd.2.2] at hc
     rcases hc with h | h <;> revert h <;> word
   | none =>
     unfold entDataIs
-    icases He with (%Hz | ⟨%Hty, %bs, -, %Hdec⟩)
+    icases He with (%Hz | %Hcc)
     · ipureintro
       intro _ hc
       unfold IsConfEnt at hc
@@ -896,30 +866,88 @@ theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC
       rcases hc with h | h <;> revert h <;> word
     · ipureintro
       intro hn _
-      exact hn (H.2.1 _ _ Hdec.2).1
+      exact hn (H.2.1 _ _ Hcc.2.2).1
 
-/-- A conf-change entry of the cluster carries `op` (`RegCC`): its bytes, recorded, decode to a
-`ConfChange` whose change is `op`. -/
+/-- A conf-change entry of the cluster carries `op` (`RegCC`): its bytes decode to a `ConfChange`
+whose change is `op` (raft v3.7, stage R6b: pure, over the record's bytes, D6; until then the
+entry's slice was read through the proposed slices' invariant). -/
 theorem regCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
-    (e : raftpb.Entry) (o : Option (List w8)) (Hty : e.Type' = W32 1) :
-    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ∃ (bs : List w8) (m : CCV1M),
-      isPropData γn.raft e.Data' bs ∗ ⌜ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op⌝ := by
+    (e : EntryM) (o : Option (List w8)) (Hty : e.Type' = W32 1) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗
+      ⌜∃ m : CCV1M, ccDecodeV1 e.Data' = some m ∧ ccV2Of (.v1 m) = op⌝ := by
   iintro He
   cases o with
   | some d =>
     unfold entDataIs
     icases He with ⟨%Hd, -⟩
-    exfalso; rw [Hd.2] at Hty; revert Hty; word
+    exfalso; rw [Hd.2.2] at Hty; revert Hty; word
   | none =>
     unfold entDataIs
-    icases He with (%Hz | ⟨%Hty', %bs, #Hpd, %Hdec⟩)
+    icases He with (%Hz | %Hcc)
     · exfalso; rw [Hz.1] at Hty; revert Hty; word
-    · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hdec.2
-      iexists bs, m
-      iframe Hpd
-      ipureintro; exact ⟨Hm, Hop⟩
+    · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hcc.2.2
+      ipureintro; exact ⟨m, Hm, Hop⟩
 
 end confs
+
+/-! ## Raft's read states, at the register (raft v3.7, 2026-10-16, stage R6b)
+
+The register's own view of a `Ready`'s read states (`rsOk`). What the register needed of
+`InvPb.lean`'s message predicates moved to raft's shared files on 2026-10-16 (stage R7a):
+`msgPtsC_persist_els`, `msgPtsC_store_Entries`, `msgPtsC_fields_acc`, `entsPts_elim`
+(`InvPbMsg.lean`), `csPts_of_struct_ro`, `ownCCV1_persistent`, `ownCCV1_persist`
+(`InvPb.lean`). -/
+
+section pb
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The `ReadState` values of a `Ready`'s read states (`readStatesPts`'s big separating
+conjunction), each `rsOk`. -/
+theorem rsOk_of_readStates (γ : RaftNames) :
+    ∀ (vs : List ReadState) (sts : List ReadStateM),
+    ([∗list] v;st ∈ vs;sts, ⌜v.Index' = st.Index'⌝ ∗ v.RequestCtx' ↦*□ st.RequestCtx') ∗
+      ([∗list] st ∈ sts, readStateOk (GF := GF) γ st) ⊢ [∗list] v ∈ vs, rsOk γ v
+  | [], _ => by
+    iintro ⟨-, -⟩
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ v => rsOk (GF := GF) γ v)).2; iempintro
+  | v :: vs, [] => by
+    iintro ⟨Hb, -⟩
+    ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+    simp at Hl
+  | v :: vs, st :: sts => by
+    iintro ⟨Hb, #Hok⟩
+    icases (BigSepL2.bigSepL2_cons).1 $$ Hb with ⟨⟨%Hi, #Hc⟩, #Hb'⟩
+    icases (BigSepL.bigSepL_cons).1 $$ Hok with ⟨#Hok1, #Hok'⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ v => rsOk (GF := GF) γ v)).2
+    isplitl []
+    · unfold rsOk
+      iexists st.RequestCtx'
+      iframe Hc
+      rw [Hi]
+      iexact Hok1
+    · ihave H := rsOk_of_readStates γ vs sts $$ [Hb' Hok']
+      · iframe Hb' Hok'
+      iexact H
+
+/-- The `ReadState` values a `Ready` hands out (`readStatesPts`, persistent), each `rsOk`: what
+`run` appends to its pending read states and `answer` takes. -/
+theorem readStatesPts_rsOk (γ : RaftNames) (rs : GoSlice) (sts : List ReadStateM) :
+    readStatesPts (GF := GF) rs sts ∗ ([∗list] st ∈ sts, readStateOk γ st) ⊢
+      ∃ vs : List ReadState, rs ↦*□ vs ∗ [∗list] v ∈ vs, rsOk γ v := by
+  iintro ⟨H, #Hok⟩
+  iunfold readStatesPts at H
+  icases H with ⟨%vs, #Hs, #Hb⟩
+  iexists vs
+  iframe Hs
+  ihave H := rsOk_of_readStates γ vs sts $$ [Hb Hok]
+  · iframe Hb Hok
+  iexact H
+
+end pb
 
 end EtcdGrove
 end Perennial

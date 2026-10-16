@@ -61,6 +61,21 @@ Lean notes: the `InitialState` premise's `WP` is applied to the value
 `Φ (#hs, #cs, #interface.nil)%V` is `Φ (PairV (PairV #hs #cs) #interface.nil)`.
 `HsEmpty` gets a `Decidable` instance so that `committedAfter` can branch on it
 (Rocq's `bool_decide`).
+
+raft v3.7 (2026-10-15, stage R4): `Storage.InitialState` returns two pointers `(hp, cs)`: the hard
+state, possibly `nil` (`hsOpt hp hs`, read-only; `IsEmptyHardState` and `loadState` read it), and
+the conf state, read-only for good (`csPts cs □ csm al`, its `AutoLeave` cell set or not: D7's
+`MemoryStorage.InitialState` gives it set, `al = true`; a `Storage` that returns
+`&pb.ConfState{Voters: …}` gives it `nil`, `al = false`; `newRaft` reads it through `ownCSM`,
+`csPts_weaken`, so it asks for neither -- 2026-10-16, stage R6b, the register's storage; until
+then `csPts cs □ csm true`), beside `ownStorage` given back at once.
+`newRaft` reads the conf state (`confchange.Restore`, `assertConfStatesEquivalent`) while the log
+it built holds the storage, so the conf state cannot be lent with a wand back to the storage
+(phase 2's statement, which `MemoryStorage` could not meet: its `InitialState` returns the
+storage's own conf-state pointer). The conf state is the record `csm : ConfStateM` (until the retarget the
+Goose value `cs` and the list `voters` its `Voters` slice held, lent at `dqv`): the voters are
+`csm.Voters'`, the scope voters-only as before (`csm`'s other lists empty, `AutoLeave` off), and the
+tracked ids `GMap.listToSet csm.Voters'`.
 -/
 module
 
@@ -79,15 +94,15 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section defs
 variable [FfiSyntax]
 
-def HsEmpty (hs : raftpb.HardState) : Prop :=
+def HsEmpty (hs : HardStateM) : Prop :=
   hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0
 
-instance HsEmpty.decidable (hs : raftpb.HardState) : Decidable (HsEmpty hs) := by
+instance HsEmpty.decidable (hs : HardStateM) : Decidable (HsEmpty hs) := by
   unfold HsEmpty; infer_instance
 
 /-- `raftLog.committed` after `newRaft`'s `loadState` (skipped for an empty
 `HardState`). -/
-def committedAfter (prev : entryID) (hs : raftpb.HardState) : w64 :=
+def committedAfter (prev : entryID) (hs : HardStateM) : w64 :=
   if HsEmpty hs then prev.index' else hs.Commit'
 
 end defs
@@ -103,8 +118,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : raftpb.HardState) (cs : raftpb.ConfState)
-    (voters : List w64) (dqv : DFrac),
+    (hs : HardStateM) (csm : ConfStateM),
   -- the Config
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -137,21 +151,21 @@ abbrev newRaft.spec : Prop :=
    uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
      uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
   -- the persisted ConfState: voters only
-  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
-  cs.VotersOutgoing'.len = W64 0 →
-  cs.Learners'.len = W64 0 →
-  cs.LearnersNext'.len = W64 0 →
-  cs.AutoLeave' = false →
+  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' → (csm.Voters'.length : Int) ≤ 2 ^ 62 →
+  csm.VotersOutgoing' = [] →
+  csm.Learners' = [] →
+  csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            cs.Voters' ↦*{dqv} voters -∗
-            Φ (PairV (PairV #hs #cs) #interface.nil)) -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
     (App (Val #(functions newRaft [])) (Val #c))
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
-      ownRaftPhys (GMap.listToSet voters) r cv.ID' s ∗
+      ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
       -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
       c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
       ⌜NStateWf s ∧
@@ -177,7 +191,7 @@ abbrev newRaft.spec : Prop :=
         s.rd.states = [] ∧ s.rd.pend = [] ∧
         -- (2026-10-14, reconfiguration stage B7 part 2, for a dynamic `NewRawNode`) the
         -- `Config`'s `StepDownOnRemoval`, and the voters tracked, no learner
-        s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = GMap.listToSet voters⌝ }}
+        s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = GMap.listToSet csm.Voters'⌝ }}
 
 end spec
 

@@ -1,6 +1,7 @@
 /-
-The trust boundary: gogoproto's generated `ConfChangeType.String` (not translated); see the spec
-for the reading of `raft.pb.go` it encodes.
+The trust boundary: protoc-gen-go's generated `ConfChangeType.String` (names-only in the raft v3.7
+translation); the old proof's axiom restated (2026-10-15, raft v3.7 retarget, stage R2). See the
+spec for the reading of `raft.pb.go` it encodes.
 -/
 module
 

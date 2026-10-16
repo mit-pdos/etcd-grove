@@ -26,7 +26,9 @@ and member ids, the logger, the request budget).
 (the gRPC stream, the mvcc watch stream `wsp` with its channel, the control stream `ctrl` (an SPSC
 channel from the receive loop to the send loop, `ctrlP`: each control response answers a request),
 the three maps, `closec` (a broadcast channel)), and the lock `mu` (a `sync.RWMutex` guarding the
-maps, `swsMu`: `prevKV` and `fragment` empty, the restrictions' consequence).
+maps, `swsMu`: `prevKV` and `fragment` empty, the restrictions' consequence); unit W-M2: the
+mvcc stream's id map and progress fact are its channel's, the progress fact the stream's
+progress request (`progQ`).
 -/
 module
 
@@ -327,6 +329,7 @@ theorem upOk_watchUp (γ : mvcc.WsNames) : ⊢ upOk (GF := GF) γ (watchUp γ) :
 
 /-- **One run's values**: the watch server's, the gRPC stream (`st`, its names, the contents, the
 run's context), the mvcc watch stream (`wsp`, its ghost names, its channel and names), the
+answer tokens' map (`γa`, published with `γo` in the stream's auxiliary name), the
 control stream (`ctrl`, its SPSC names), the three maps, `closec` and its names. -/
 structure WRun (GF : BundledGFunctors) where
   srv : WSrv GF
@@ -338,6 +341,8 @@ structure WRun (GF : BundledGFunctors) where
   cd : context.ContextDesc (IProp GF)
   wsp : Loc
   γo : mvcc.WsStreamNames
+  /-- the answer tokens' ghost map (the watch slice's unit W-C: `ansTok`, `ansPool`) -/
+  γa : GName
   ch : Loc
   γc : mvcc.WatchChanNames
   ctrl : Loc
@@ -383,16 +388,13 @@ instance swsMu_fractional (pm vm fm : Loc) : Fractional (swsMu (GF := GF) pm vm 
       · iapply ((ownMap_fractional' (GF := GF) fm FM).fractional q1 q2).2; iframe
       ipureintro; exact Hn
 
-/-- **A control response** `l` on the control stream (persistent): a response holding a model
-`m` with the server's header ids, no ghost source, answering a request of the stream
-(`ctrlOk`). -/
+/-- **A control response** `l` on the control stream: a response holding a model `m` with the
+server's header ids, no ghost source, answering a request of the stream (`ctrlOk`, with the
+request's answer token: not persistent). -/
 def ctrlP (r : WRun GF) (_k : Int) (l : Loc) : IProp GF :=
   iprop(∃ m : WatchRespM, watchRespMsg l m ∗
     ⌜m.hdr.clusterId = r.srv.cid ∧ m.hdr.memberId = r.srv.mid ∧ m.src = none⌝ ∗
       ctrlOk r.γs r.srv.γ m)
-
-instance ctrlP_persistent (r : WRun GF) (k : Int) (l : Loc) : Persistent (ctrlP r k l) := by
-  unfold ctrlP; infer_instance
 
 /-- **The run's `serverWatchStream` `sws`** (persistent; see the file header). -/
 def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
@@ -414,6 +416,7 @@ def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
     watchSrvOk r.srv.s r.srv.E r.srv.γ r.srv.wsl ∗
     srvStreamIs r.st r.γs pbWatchRequest pbWatchResponse r.Up r.Dn r.ci r.cd ∗
     watchStreamSpec r.γs r.srv.γ r.srv.cid r.srv.mid r.Dn ∗
+    streamAuxIs r.γs (auxOf r.γo r.γa) ∗
     upOk r.srv.γ r.Up ∗
     mvcc.isWatchStream r.wsp (wsIface r.srv.wsl) (wParams r.srv) r.γo ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"ch" r.wsp ↦□ r.ch ∗
@@ -421,7 +424,9 @@ def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
     inv mvcc.watchN (mvcc.watchChanInv r.srv.γ r.ch r.γc) ∗
     isSpsc r.γctrl r.ctrl (ctrlP r) (fun _ => iprop(True)) ∗
     ownBroadcastChan r.cc r.γcc iprop(True) .Unknown ∗
-    sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm))
+    sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm) ∗
+    ⌜r.γo.ids = r.γc.ids ∧ r.γo.prog = r.γc.prog⌝ ∗
+    savedPropOwn r.γo.prog DFrac.discard (progQ r.γs))
 
 instance swsIs_persistent (sws : Loc) (r : WRun GF) : Persistent (swsIs sws r) := by
   unfold swsIs; infer_instance

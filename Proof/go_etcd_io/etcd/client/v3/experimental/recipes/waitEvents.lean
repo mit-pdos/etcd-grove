@@ -5,6 +5,7 @@ counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.waitEvents
+public import Spec.go_etcd_io.etcd.client.v3.WatchResponse__Err
 
 @[expose] public section
 
@@ -24,17 +25,22 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-theorem waitEvents.wp_proof : waitEvents.spec (GF := GF) (hG := hG) := by
+theorem waitEvents.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
+    waitEvents.spec (GF := GF) (hG := hG) := by
   intro wc γ pfx o rev rcv sl ts typ
   wp_start as ⟨#Hwc, Hcons, #Hsl, %Hlast⟩
+  ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
+  · iPkgInit
+  ihave Hri : (recipesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hri with ⟨-, -, -, -, ⟨%eW, #HeW⟩⟩
   have Hts : ts ≠ [] := by intro h; rw [h] at Hlast; simp at Hlast
   ihave %Htl := ownSlice_len $$ Hsl
   wp_auto
-  ihave IH : iprop(∃ (rcv' : List go_etcd_io.etcd.client.v3.WatchResponse)
-      (v : go_etcd_io.etcd.client.v3.WatchResponse) (i : w64),
-      "Hcons" ∷ spscConsumer γ.spsc rcv' ∗ "wresp" ∷ wresp_ptr ↦ v ∗ "i" ∷ i_ptr ↦ i ∗
-      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i < (ts.length : Int)⌝) $$ [Hcons wresp i]
-  · iexists rcv, _, W64 0
+  ihave IH : iprop(∃ (rcv' : List go_etcd_io.etcd.client.v3.WatchResponse) (i : w64),
+      "Hcons" ∷ spscConsumer γ.spsc rcv' ∗ "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i < (ts.length : Int)⌝) $$ [Hcons i]
+  · iexists rcv, W64 0
     simp only [named]
     iframe
     ipureintro
@@ -47,17 +53,34 @@ theorem waitEvents.wp_proof : waitEvents.spec (GF := GF) (hG := hG) := by
       simp; omega
   wp_for IH
   wp_bind (App (Val (chan.receive _)) _)
-  wp_apply wp_spsc_receive γ.spsc wc (rangeWatchElem γ pfx o rev) (fun _ => iprop(False)) rcv'
+  wp_apply wp_spsc_receive γ.spsc wc (rangeWatchElem γ pfx o rev) (fun _ => iprop(True)) rcv'
     $$ [$Hwc $Hcons] as %v' %ok H
   cases ok
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨HF, -⟩
-    iexfalso
-    iexact HF
+  · -- the channel closed first: `ErrWatchClosed`
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases H with ⟨-, %Hv⟩
+    wp_auto
+    wp_for_post
+    (try wp_auto)
+    iapply HΦ
+    iright
+    ipureintro
+    exact ⟨(by intro h; cases h), rfl⟩
   simp only [↓reduceIte]
   icases H with ⟨HP, Hcons⟩
   iunfold rangeWatchElem at HP
-  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, -⟩
+  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, #Hse⟩
+  wp_auto
+  wp_apply wp_Err wresp_ptr v' (DFrac.own 1) $$ [$wresp $Hse $Hcv] as %werr ⟨wresp, %Herr, -⟩
+  obtain ⟨e, rfl⟩ | rfl : (∃ e, werr = GoInterface.ok e) ∨ werr = GoInterface.nil := by
+    cases werr <;> simp
+  · -- a canceled response, or one with an error: its error, before its events are read
+    wp_auto
+    wp_for_post
+    iapply HΦ
+    iright
+    ipureintro
+    exact ⟨(by intro h; cases h), rfl⟩
   iunfold rangeWatchRespOk at Hok
   icases Hok with ⟨-, #Hok⟩
   iunfold eventsAt at Hevs
@@ -104,6 +127,9 @@ theorem waitEvents.wp_proof : waitEvents.spec (GF := GF) (hG := hG) := by
         wp_for_post
         wp_for_post
         iapply HΦ
+        ileft
+        isplitr
+        · ipureintro; rfl
         isplitl []
         · unfold waitedEvent
           iexists e
@@ -138,7 +164,7 @@ theorem waitEvents.wp_proof : waitEvents.spec (GF := GF) (hG := hG) := by
     (try wp_auto)
     wp_for_post
     iframe
-    iexists rcv' ++ [v'], v', i
+    iexists rcv' ++ [v'], i
     simp only [named]
     iframe
     ipureintro; exact Hi

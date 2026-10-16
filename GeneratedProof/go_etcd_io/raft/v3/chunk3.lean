@@ -12,6 +12,7 @@ public import GeneratedProof.go_etcd_io.raft.v3.confchange
 public import GeneratedProof.go_etcd_io.raft.v3.quorum
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_etcd_io.raft.v3.tracker
+public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
@@ -262,7 +263,7 @@ instance BasicStatus_access_load_HardState (l : Loc) (v : go_etcd_io.raft.v3.Bas
  by
   solve_pointsto_access_struct
 
-instance BasicStatus_access_store_HardState (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (HardState' : go_etcd_io.raft.v3.raftpb.HardState) :
+instance BasicStatus_access_store_HardState (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (HardState' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"HardState" l) HardState' (DFrac.own 1))

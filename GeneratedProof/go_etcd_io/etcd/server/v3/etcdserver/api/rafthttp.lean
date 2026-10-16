@@ -4,7 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
-public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

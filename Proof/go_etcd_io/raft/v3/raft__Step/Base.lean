@@ -109,24 +109,24 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- Off a `MsgSnap`, `stepFollower` leaves the configuration. -/
 theorem FollowerStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
-    {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
+    {m : MessageM} {ents : List EntryM} {sv : SnapshotM} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
   have := H.1; rwa [ite_eq_right h] at this
 
 /-- Off a `MsgSnap`, `stepCandidate` leaves the configuration. -/
 theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
-    {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
+    {m : MessageM} {ents : List EntryM} {sv : SnapshotM} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
   have := H.1; rwa [ite_eq_right h] at this
 
 end cfg_eq
 
-example [FfiSyntax] (m : raftpb.Message)
+example [FfiSyntax] (m : MessageM)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) :
     m.Type' ≠ MsgSnap := by nonsnap Hty
-example [FfiSyntax] (m : raftpb.Message) (Hty : m.Type' = MsgHeartbeat) :
+example [FfiSyntax] (m : MessageM) (Hty : m.Type' = MsgHeartbeat) :
     m.Type' ≠ MsgSnap := by nonsnap Hty
 
 section base
@@ -164,7 +164,7 @@ lemma below ends in. `s` is the state the step starts from, `c` its configuratio
 `c` but after a `MsgSnap`; the ghost state in the mode `md`, afterwards in `md'`, the step in
 the mode's model, `GMode.StepOut`). -/
 def stepPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (Φ : val → IProp GF) : IProp GF :=
+    (m : MessageM) (Φ : val → IProp GF) : IProp GF :=
   -- (2026-10-14, stage R) the later credit of `raft.Step`'s precondition, for the branch's
   -- ghost step (`ghost_step_md`: the commit invariant's registry half opened around it)
   iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
@@ -181,7 +181,7 @@ def stepPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
 
 /-- What the dynamic mode's update needs of a step from `s` to `s'` (`DynHyp`), given the
 invariant: from `raft.Step`'s premises (`GMode.Pre.dynHyp`). -/
-def DynHypFor (md : GMode) (m : raftpb.Message) (s s' : NState) : Prop :=
+def DynHypFor (md : GMode) (m : MessageM) (s s' : NState) : Prop :=
   ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
     RInv dec c0 (rOf s g) → DynHyp m s s' g
 
@@ -190,7 +190,7 @@ namespace StepProof
 /-- The frame and the term step of a branch that keeps the term and the log's fields
 `NetFrame` and `TermStep` are about (each `rfl` for a state built by record updates
 that do not touch them). -/
-theorem keep_frame {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.term)
+theorem keep_frame {m : MessageM} {s s' : NState} (ht : s'.term = s.term)
     (ha : s'.logst.applying = s.logst.applying) (hs : s'.logst.snap = s.logst.snap)
     (hu : s'.logst.unpersisted = s.logst.unpersisted)
     (hi : s'.logst.inprogress = s.logst.inprogress)
@@ -202,7 +202,7 @@ theorem keep_frame {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.term)
   ⟨⟨ha, hs, hu, hp, hst, hsg, hpv, hg⟩, TermStep.of_term ht (fun _ => by rw [hi]; exact Int.le_refl _)⟩
 
 /-- The same, for a branch that keeps the whole log. -/
-theorem keep_frame_logst {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.term)
+theorem keep_frame_logst {m : MessageM} {s s' : NState} (ht : s'.term = s.term)
     (hl : s'.logst = s.logst) (hpv : s'.prevote = s.prevote := by rfl)
     (hg : s'.gh = s.gh := by rfl) :
     NetFrame s s' ∧ TermStep m s s' := by
@@ -211,7 +211,7 @@ theorem keep_frame_logst {m : raftpb.Message} {s s' : NState} (ht : s'.term = s.
 
 /-- The same, for a branch that steps down to the message's term (`becomeFollower`) and
 keeps the rest. -/
-theorem stepdown_frame {m : raftpb.Message} {s s' : NState} (hup : m.Type' ≠ MsgHup)
+theorem stepdown_frame {m : MessageM} {s s' : NState} (hup : m.Type' ≠ MsgHup)
     (Hle : uint.Z s.term ≤ uint.Z s'.term) (ht : s'.term = m.Term')
     (ha : s'.logst.applying = s.logst.applying) (hs : s'.logst.snap = s.logst.snap)
     (hu : s'.logst.unpersisted = s.logst.unpersisted)
@@ -226,7 +226,7 @@ theorem stepdown_frame {m : raftpb.Message} {s s' : NState} (hup : m.Type' ≠ M
 
 /-- The same, with the stepped-down state named (`s1`) and the branch's end state built
 from it without touching its term or log. -/
-theorem stepdown_frame' {m : raftpb.Message} {s s1 s' : NState} {l : w64}
+theorem stepdown_frame' {m : MessageM} {s s1 s' : NState} {l : w64}
     {pvs : GMap w64 Progress} (hup : m.Type' ≠ MsgHup) (Hgt : uint.Z s.term < uint.Z m.Term')
     (Hs1 : s1 = { becomeFollower s m.Term' l with prvals := pvs })
     (ht : s'.term = s1.term) (hl : s'.logst = s1.logst)
@@ -268,8 +268,8 @@ theorem ghost_rdOk (γ : RaftNames) (id : w64) (s : NState) (Hr : s.role = .lead
 
 /-- A heartbeat response's context, at the leader of its term (2026-10-13): empty, or eight
 bytes holding a position the queue reaches -- what `recvAck`/`maybeAdvance` need. -/
-theorem ghost_hbResp_ctx (γ : RaftNames) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) (Hr : s.role = .leader) (Hto : m.To' = id)
+theorem ghost_hbResp_ctx (γ : RaftNames) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8) (Hr : s.role = .leader) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) {md : Bool} :
     ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md -∗ isMessage γ (absMsg .heartbeatResp m ents ctx) -∗
       ⌜(ctx = [] ∨ 8 ≤ ctx.length) ∧
@@ -322,7 +322,7 @@ theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
 /-- The one ghost update of a branch, in the mode `md`: `recv` is the incoming message, some
 number of times, and that message is `isMessage`; its read credit when it is a read-index
 request (`Hcr`). -/
-theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : raftpb.Message)
+theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (s s' : NState) (a : Msg) (recv : List Msg) (n : Nat)
     (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepCD c id m s recv s') (Hdh : DynHypFor md m s s')
     (Hn : rdCount recv ≤ n) :
@@ -349,7 +349,7 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : r
   iframe
 
 /-- The same, for a branch that receives nothing. -/
-theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : raftpb.Message)
+theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (s s' : NState) (Hstep : StepCD c id m s [] s') (Hdh : DynHypFor md m s s') :
     ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
@@ -369,7 +369,7 @@ theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : 
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
-    (s s' : NState) (m : raftpb.Message) (a : Msg) (recv : List Msg) (err : GoInterface)
+    (s s' : NState) (m : MessageM) (a : Msg) (recv : List Msg) (err : GoInterface)
     (Φ : val → IProp GF)
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id m s recv s')
@@ -399,7 +399,7 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
 
 /-- The same, for a branch that consumed nothing. -/
 theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
-    (s s' : NState) (m : raftpb.Message) (err : GoInterface) (Φ : val → IProp GF)
+    (s s' : NState) (m : MessageM) (err : GoInterface) (Φ : val → IProp GF)
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s')
     (Hstep : StepCD c id m s [] s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')

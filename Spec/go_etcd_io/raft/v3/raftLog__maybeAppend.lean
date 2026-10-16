@@ -5,7 +5,7 @@ Lean notes:
 * `plog_wf`, `plog_matches`, `plog_find_conflict`, `plog_maybe_append`,
   `plog_commit_to` are `PlogWf`, `PlogMatches`, `plogFindConflict`, `plogMaybeAppend`,
   `plogCommitTo` (`Plog.lean`). `Forall (λ e, …) ents` is `∀ e ∈ ents, …`;
-  `own_slice_cap raftpb.Entry.t s (DfracOwn 1)` is `ownSliceCap raftpb.Entry s
+  `own_slice_cap EntryM.t s (DfracOwn 1)` is `ownSliceCap Loc s
   (DFrac.own 1)`; `(#lastnewi, #ok)` is `PairV #lastnewi #ok`;
   `if decide (…) then committed else lni` is kept as `if … then … else …`.
 * The reference `raftLog__maybeAppendⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:546` is to
@@ -13,7 +13,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
@@ -76,15 +76,15 @@ returned: `append` may adopt `a.entries[ci-offset:]` as `u.entries`
 slack. So the caller must own that slack (for a `MsgApp` handed to `Step`, the
 message's `Entries` buffer). -/
 abbrev raftLog.maybeAppend.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (a : logSlice) (ents : List raftpb.Entry) (committed : w64),
+  ∀ (l : Loc) (ls : LogState) (a : logSlice) (ents : List EntryM) (committed : w64),
   PlogWf a.prev' ents →
   uint.Z a.prev'.index' + (ents.length : Int) + 1 < 2 ^ 64 →
   (PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' →
    plogFindConflict ls.prev (ls.sents ++ ls.uents) ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev (ls.sents ++ ls.uents) ents)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "#Hents" ∷ a.entries' ↦*□ ents ∗
-      "Hcap" ∷ ownSliceCap raftpb.Entry a.entries' (DFrac.own 1) }}
+      "#Hents" ∷ entsRO a.entries' ents ∗
+      "Hcap" ∷ ownSliceCap Loc a.entries' (DFrac.own 1) }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"maybeAppend"))
       (Val #a)) (Val #committed))
   {{ (lastnewi : w64) (ok : Bool) (ls' : LogState), RET (PairV #lastnewi #ok);

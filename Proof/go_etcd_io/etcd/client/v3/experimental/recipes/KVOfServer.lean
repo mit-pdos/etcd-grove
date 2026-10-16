@@ -6,8 +6,10 @@
 where etcd's `Range`, `Put`, `DeleteRange` and `Txn` are registered (`etcd_kv_served`'s
 conclusion) meets `isRecipesKV` in the server's model (`v3rpc.etcdModelOfServer E`), from the four
 contracts of `client/v3/ServerKV{Get,Put,Txn}.lean`. `isEtcdRecipesClient_of_kv`: a client whose
-`KV` field is that `*kv` and whose `Watcher` meets the watcher contract (a premise: the watch
-slice's) meets `isEtcdRecipesClient`.
+`KV` field is that `*kv` and whose `Watcher` meets the closable watcher contract
+(`isEtcdRangeWatcher`, a premise here; etcd's client watcher meets it,
+`isEtcdRangeWatcher_of_watcher`, which `queue_end_to_end_client` uses) meets
+`isEtcdRecipesClient`.
 
 Premises beyond the registrations and the server's read side: a prefix other than `[]`
 (`isEtcdKVTodo_of_kv`'s), `sortNamesOk` (`grpc`'s status names of the sort enums, for a get with a
@@ -59,7 +61,7 @@ theorem isRecipesKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
       isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩
   iunfold EtcdGrove.client.kvWritesOk at Hnp
-  icases Hnp with ⟨#Hany, #Hlp, #Hlc⟩
+  icases Hnp with ⟨#Hany, #Hanyr, #Hlp, #Hlc⟩
   unfold isRecipesKV
   simp only
   isplitl []
@@ -76,7 +78,8 @@ theorem isRecipesKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
 
 /-- **A client over a real `*kv` meets the recipes' client contract** (`isEtcdRecipesClient`) at
 the server's model: its `KV` field the `*kv` (`isRecipesKV_of_kv`), its `Watcher` field a watcher
-meeting the watcher contract (`isEtcdRangeWatcherOpen`, a premise: no watcher is derived yet). -/
+meeting the watcher contract (`isEtcdRangeWatcher`, whose channel may close: a premise here,
+discharged for etcd's client watcher by `isEtcdRangeWatcher_of_watcher`). -/
 theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoString)
     (s : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
     (hpfx : pfx ≠ [])
@@ -85,7 +88,7 @@ theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (ad
         kvObjAt api addr ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w pfx ∗
+        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w pfx ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗

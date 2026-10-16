@@ -26,9 +26,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.RequestProgressAll.wp_proof :
     mvcc.watchStream.RequestProgressAll.spec (GF := GF) (hG := hG) := by
   intro ws wa P γ
-  wp_start as ⟨Hws, HPR⟩
+  wp_start as ⟨Hws, #Hpf, HPR⟩
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
+  irevert Hpf; rw [Hγc.2]; iintro #Hpf
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -39,7 +40,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
   iunfold mvcc.watchStreamInv at HR
   iNamed HR
   wp_auto
-  wp_apply HprogAll $$ [$Hwm $Hws $HPR] as %b ⟨Hwm, HPR⟩
+  wp_apply HprogAll $$ [$Hwm $Hws $Hpf $HPR] as %b ⟨Hwm, HPR⟩
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
   · inext
     iunfold mvcc.watchStreamInv

@@ -7,6 +7,12 @@ macros `msa_fetch`/`msa_tail`/`msa_send`, which work on hypotheses of fixed name
 arm `wp_auto` already decides `len(ents) == 0` on the zero slice, so that arm splits on
 `sendIfEmpty` itself and then calls `msa_send`. `msa_app_facts` is inlined
 (`app_payload_from_log`). The `MsgApp` send is `wp_send_app`.
+
+raft v3.7 (stage R4): `ents` is a `[]*pb.Entry` of read-only entries (`entsRO`, R3's
+`raftLog.entries`; the full-window arm's zero slice by `entsPts_nil`). `wp_send_app` is gone: the
+message `&pb.Message{To: new(to), Type: MsgApp.Enum(), Index: new(prevIndex), LogTerm:
+new(prevTerm), Entries: ents, Commit: new(r.raftLog.committed)}` is built owned in `msa_send`
+(`msgOwn_of_struct`, sharing `ents`' pointers) and handed to `send`.
 -/
 module
 
@@ -20,6 +26,8 @@ public import Spec.go_etcd_io.raft.v3.raftLog__entries
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raft__maybeSendSnapshot
 public import Spec.go_etcd_io.raft.v3.payloadsSize
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 
@@ -54,34 +62,6 @@ entries are fetched only when the window has room, so a non-empty `ents` in
 `StateReplicate` means the window was not full -- and nothing between the test and
 `SentEntries` touches the window, which `NState.prvals` records. -/
 
-/-- `r.send(pb.Message{To: to, Type: pb.MsgApp, Index: .., LogTerm: .., Entries: ..,
-Commit: ..})`: `SendOk`'s second clause. -/
-private theorem wp_send_app (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (dst idx lt cm : w64) (sl : GoSlice)
-    (es : List raftpb.Entry) (Hdst : dst ≠ id) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        sl ↦*□ es }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send"))
-        (Val #({ Type' := W32 3, To' := dst, From' := 0, Term' := 0,
-                 LogTerm' := lt, Index' := idx, Entries' := sl,
-                 Commit' := cm, Vote' := 0, Snapshot' := null, Reject' := false,
-                 RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil } :
-                raftpb.Message)))
-    {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s
-          [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]) }} := by
-  iintro %Φ ⟨#Hpkg, Hphys, #Hes⟩ HΦ
-  wp_apply wp_raft_send c r id s _ es [] [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]
-      (Or.inl rfl)
-      (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hdst, rfl⟩)) $$ [$Hphys] as Hphys
-  · isplitr
-    · iexact Hes
-    isplitr
-    · iapply ownSlice_nil
-    · iapply send_no_snap
-      exact (by decide : W32 3 ≠ W32 7)
-  iapply HΦ
-  iexact Hphys
-
 set_option hygiene false in
 /-- One arm's fetch of `ents := r.raftLog.entries(pr.Next, r.maxMsgSize)`, after giving
 `pr` back. -/
@@ -99,29 +79,84 @@ local macro "msa_fetch" : tactic => `(tactic| (
   ihave Hphys := Hlogback $$ Hlog
   try wp_auto))
 
+/-- The leader's progress bound after `SentEntries` (2026-10-16, stage R8a, D11): the entries sent
+are a prefix of the log from `Next` on (`Hpre`), so `Next + |ents| ≤ lastIndex + 1`
+(`plogFrom_prefix_bound`). -/
+private theorem sentEntries_ok (s : NState) (p : Progress) (sl_e : GoSlice) (es_e : List EntryM)
+    (psz : w64) (Hok : s.role = .leader → PrOk s.logst p) (Hnw : LogNoWrap s.logst)
+    (Hlen : es_e.length = sint.nat sl_e.len ∧ 0 ≤ sint.Z sl_e.len)
+    (Hlo : uint.Z s.logst.prev.index' + 1 ≤ uint.Z p.next)
+    (Hpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next) :
+    s.role = .leader → PrOk s.logst (progressSentEntries p sl_e.len psz) := by
+  intro Hl
+  have Hp := Hok Hl
+  have Hlz := Hnw.logLast_Z
+  have Hn2 := Hp.2.1
+  have Hb := plogFrom_prefix_bound s.logst.prev (s.logst.sents ++ s.logst.uents) es_e p.next Hpre
+    Hlo (by unfold plogLastIndexZ; rw [List.length_append]; push_cast; omega)
+  unfold plogLastIndexZ at Hb
+  rw [List.length_append] at Hb
+  have He : (es_e.length : Int) = sint.Z sl_e.len := by
+    rw [Hlen.1]; word
+  push_cast at Hb
+  refine Hp.sentEntries Hnw Hlen.2 ?_
+  omega
+
 set_option hygiene false in
 /-- The message goes out: `r.send(MsgApp)`, `pr.SentEntries`, `pr.SentCommit`,
 `return true`. -/
 local macro "msa_send" : tactic => `(tactic| (
   -- the literal reads `r.raftLog.committed` through the log's record
+  rw [show raftpb.MsgApp = #((W32 3 : raftpb.MessageType)) from rfl]
+  wp_apply wp_MessageType_Enum (W32 3)
+  iintro %pty Hpty
+  imod cellRO_alloc $$ Hpty with #cTy
+  imod cellRO_alloc $$ «$v0» with #cTo
+  wp_auto
+  imod cellRO_alloc $$ «$v2» with #cIx
+  imod cellRO_alloc $$ «$v3» with #cLt
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lvc, Hl, %Hlvc, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
-  wp_apply wp_send_app wp_raft_send c r id s _ _ _ _ _ es_e Hto $$ [Hphys]
-    as Hphys
-  · iframe # ∗
-  wp_apply wp_payloadsSize $$ [] as %psz ⟨-, -⟩
+  imod cellRO_alloc $$ «$v5» with #cCo
+  ihave Hents2 : entsPts (GF := GF) sl_e DFrac.discard es_e $$ Hents
+  iunfold entsPts at Hents2
+  icases Hents2 with ⟨%els, #Hsl, #Hbig⟩
+  ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnilb with #Hnilb
+  ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod msgOwn_of_struct «$a0_ptr»
+    { state' := zeroValDef, Type' := pty, To' := «$v0_ptr», From' := null, Term' := null,
+      LogTerm' := «$v3_ptr», Index' := «$v2_ptr», Entries' := sl_e, Commit' := «$v5_ptr»,
+      Vote' := null, Snapshot' := null, Reject' := null, RejectHint' := null,
+      Context' := slice.nil, Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
+    els ⟨⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩, es_e, none, [], []⟩
+    ⊤ rfl $$ [«$a0» Hnilr] with Hm
+  · iframe «$a0» cTy cTo cIx cLt cCo Hsl Hbig Hnilb Hnilr
+    simp only [snapOpt]
+    msg_nulls
+    try itrivial
+  wp_apply wp_raft_send c r id s «$a0_ptr»
+      ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
+      [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
+      (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, rfl⟩))
+      (fun h => absurd h (by simp [MsgSnap])) $$ [Hphys Hm] as Hphys
+  · iframe
+  wp_apply wp_payloadsSize sl_e es_e DFrac.discard $$ [] as %psz ⟨-, -⟩
   · iframe # ∗
   -- `pr.SentEntries(...)`: `send` changed only the outbox, so `pr` is still at `p`
-  icases ownRaftPhysC_pr_upd c r id _ to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhysC_pr_upd c r id _ to pr p $$ Hphys %Hlk %Hpvs with ⟨%Hok, %Hnw, Hpa, Hpback⟩
   have Hwin2 : p.state = .replicate → 0 < sint.Z sl_e.len → inflightsFull p.infl = false :=
-    fun H1 H2 => Hwin H1 (fun Heq => by rw [Heq] at Hlen; simp at Hlen; omega)
+    fun H1 H2 => Hwin H1 (fun Heq => by rw [Heq] at Hlen; obtain ⟨Hl1, -⟩ := Hlen; simp only [List.length_nil] at Hl1; word)
   wp_apply wp_Progress_SentEntries pr p _ _ Hnosnap Hwin2 $$ [Hpa] as Hpa
   · iframe
   ihave Hphys := Hpback $$ %_ Hpa %(progressSentEntries_learner _ _ _)
+    %(sentEntries_ok s p sl_e es_e psz Hok Hnw Hlen Hlo Hpkgpre)
   -- `pr.SentCommit(r.raftLog.committed)`: the argument first, then `pr` once more, at
   -- the value `SentEntries` left
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -131,10 +166,10 @@ local macro "msa_send" : tactic => `(tactic| (
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   icases ownRaftPhysC_pr_upd c r id _ to pr (progressSentEntries p sl_e.len psz)
-    $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨Hpa, Hpback⟩
+    $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨%Hok2, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [Hpa] as Hpa
   · iframe
-  ihave Hphys := Hpback $$ %_ Hpa %rfl
+  ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok2 Hl).sentCommit _)
   iapply HΦ $$ %true
     %([Msg.mk MsgType.app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0)
         es_e] : List Msg)
@@ -168,7 +203,7 @@ set_option hygiene false in
 /-- Everything after the `||`'s three arms (Rocq's one `;`-chained script), from the
 hypotheses `Hents : sl_e ↦*□ es_e`, `Hphys`, `Hwin`, `Hpkgin`, `Hpkgpre`. -/
 local macro "msa_tail" : tactic => `(tactic| (
-  ihave %Hlen := slice_len_Z _ _ _ $$ Hents
+  ihave %Hlen := entsPts_len _ _ _ $$ Hents
   -- `if len(ents) == 0 && !sendIfEmpty { return false }`
   wp_if_destruct
   · cases sendIfEmpty
@@ -217,9 +252,11 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_raftLog_entries : raftLog.entries.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_raft_maybeSendSnapshot : raft.maybeSendSnapshot.spec (GF := GF) (hG := hG))
-    (wp_payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)) :
+    (wp_payloadsSize : payloadsSize.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s to sendIfEmpty Hto Hcfg
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  intro c r id s to sendIfEmpty Hto Hcfg Hlead
   wp_start as Hpre
   iNamed Hpre
   -- `r.trk.Progress` is read through the tracker field
@@ -272,9 +309,23 @@ theorem raft.maybeSendAppend.wp_proof
   ihave Hphys := Hlogback $$ Hlog
   cases err with
   | ok eok =>
-    -- the log no longer has `pr.Next - 1`: fall back to a snapshot
+    -- the log no longer has `pr.Next - 1`: fall back to a snapshot. (Stage R8a, D11.) The
+    -- failure is `ErrCompacted`, not `ErrUnavailable`: the leader's progress bound (`PrvalsOk`,
+    -- `1 ≤ pr.Next ≤ lastIndex + 1`) puts `pr.Next - 1` at or below the last index, so `term`'s
+    -- iff leaves `pr.Next - 1 < prev.index`, and the log is compacted (`prev.index ≥ 1`):
+    -- `maybeSendSnapshot`'s premise, under which the storage's snapshot is non-empty.
+    icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok, -, Hphys⟩
+    have Hpok := Hok.lookup Hlead Hpvs
+    have Hcompact : uint.Z s.logst.prev.index' ≠ 0 := by
+      have Hne : GoInterface.ok eok ≠ interface.nil := by intro h; cases h
+      have Hnot := fun h => Hne (Herr.2 h)
+      obtain ⟨h1, h2, -, -⟩ := Hpok
+      have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
+      intro Hz
+      apply Hnot
+      constructor <;> word
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk $$ [$Hphys]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hcompact $$ [$Hphys]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     iapply HΦ
     iframe
@@ -323,17 +374,17 @@ theorem raft.maybeSendAppend.wp_proof
         ipureintro
         exact ⟨fun _ h => (nomatch h), rfl⟩
       · wp_auto
-        ihave #Hents : (zero_val GoSlice : GoSlice) ↦*□ ([] : List raftpb.Entry) $$ []
-        · iapply ownSlice_nil
+        ihave #Hents : entsRO (GF := GF) (zero_val GoSlice : GoSlice) ([] : List EntryM) $$ []
+        · iapply entsPts_nil
         generalize (zero_val GoSlice : GoSlice) = sl_e
-        generalize Hes : ([] : List raftpb.Entry) = es_e
+        generalize Hes : ([] : List EntryM) = es_e
         have Hwin : p.state = .replicate → es_e ≠ [] → inflightsFull p.infl = false :=
           fun _ Hne => absurd Hes.symm Hne
         have Hpkgin : ∀ e ∈ es_e, e ∈ (toPState s).log := by
           subst Hes; intro e He; cases He
         have Hpkgpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next := by
           subst Hes; exact List.nil_prefix
-        ihave %Hlen := slice_len_Z _ _ _ $$ Hents
+        ihave %Hlen := entsPts_len _ _ _ $$ Hents
         msa_send
   · -- not in `StateReplicate`: the first disjunct is true, fetch `ents`
     have Hnrep : p.state ≠ .replicate := by

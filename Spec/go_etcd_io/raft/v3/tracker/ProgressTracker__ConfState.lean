@@ -7,7 +7,7 @@ Lean notes: the type of Rocq's untyped binder `tv` is written out
 module
 
 public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -21,7 +21,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -29,6 +29,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `Voters: p.Voters[0].Slice()`, `VotersOutgoing: p.Voters[1].Slice()`, `Learners:
 quorum.MajorityConfig(p.Learners).Slice()`, `LearnersNext: ...`, `AutoLeave: p.AutoLeave`):
 each list a permutation of its set (really sorted).
+
+Raft v3.7 (`notes/raft-retarget-plan.md`): the result is a `*pb.ConfState`, a fresh
+`&pb.ConfState{...}` whose `AutoLeave` is a fresh `new(p.AutoLeave)`; since stage R1 the caller
+gets it as an owned conf state (`csPts`, `InvPb.lean`: the four lists, the `AutoLeave` cell, set,
+the hidden fields' invariant; stage R0 gave the struct, the cell and the slices apart). Until the
+retarget the result was the `ConfState` value, with `cs.AutoLeave' = c.autoLeave`.
 
 At any configuration since 2026-10-13 (reconfiguration stage A1; `ownTrackerC`): the four sets
 of `c` and its `AutoLeave`. The statement at a simple configuration (`ownTracker cfg`: the
@@ -41,12 +47,11 @@ abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
       ownTrackerC c tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ConfState"))
       (Val #()))
-  {{ (cs : raftpb.ConfState) (xs os ls lns : List w64), RET #cs;
+  {{ (csl : Loc) (xs os ls lns : List w64), RET #csl;
       trk ↦ tv ∗ ownTrackerC c tv t ∗
-      cs.Voters' ↦* xs ∗ cs.VotersOutgoing' ↦* os ∗ cs.Learners' ↦* ls ∗
-      cs.LearnersNext' ↦* lns ∗
+      csPts csl (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
       ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
-        lns ≡ₚ elements c.learnersNext ∧ cs.AutoLeave' = c.autoLeave⌝ }}
+        lns ≡ₚ elements c.learnersNext⌝ }}
 
 open Iris.ProofMode in
 /-- The statement until 2026-10-13, at a simple configuration (`ownTracker`). -/
@@ -57,30 +62,25 @@ theorem tracker.ProgressTracker.ConfState.spec_simple
       ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ConfState"))
       (Val #()))
-  {{ (cs : raftpb.ConfState) (xs ls : List w64), RET #cs;
+  {{ (csl : Loc) (xs ls : List w64), RET #csl;
       trk ↦ tv ∗ ownTracker cfg tv t ∗
-      cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
-      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet t.prs \ cfg) ∧
-        cs.VotersOutgoing'.len = W64 0 ∧
-        cs.LearnersNext'.len = W64 0 ∧
-        cs.AutoLeave' = false⌝ }} := by
+      csPts csl (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet t.prs \ cfg)⌝ }} := by
   iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
   ihave Hown := ownTracker_toC _ _ _ $$ Hown
   iapply H _ trk tv t $$ [$Hpkg $Htrk $Hown]
   inext
-  iintro %cs %xs %os %ls %lns ⟨Htrk, Hown, Hxs, Hos, Hls, Hlns, %Hp⟩
+  iintro %csl %xs %os %ls %lns ⟨Htrk, Hown, Hcs, %Hp⟩
   icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
-  obtain ⟨H0, H1, H2, H3, H4⟩ := Hp
+  obtain ⟨H0, H1, H2, H3⟩ := Hp
   obtain rfl := perm_elements_empty os H1
   obtain rfl := perm_elements_empty lns H3
-  ihave %Hl1 := ownSlice_len $$ Hos
-  ihave %Hl3 := ownSlice_len $$ Hlns
   iapply HΦ
-  iframe Htrk Hown Hxs Hls
+  iframe Htrk Hown
+  isplitl [Hcs]
+  · simp only [CfgM.simple]; iexact Hcs
   ipureintro
-  refine ⟨H0, H2, ?_, ?_, H4⟩
-  · simp at Hl1; word
-  · simp at Hl3; word
+  exact ⟨H0, H2⟩
 
 end spec
 

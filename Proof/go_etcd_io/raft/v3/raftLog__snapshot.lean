@@ -4,6 +4,7 @@ Port of election_proof/proof_raftLog__snapshot.v.
 module
 
 public import Spec.go_etcd_io.raft.v3.raftLog__snapshot
+public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
 
 @[expose] public section
 
@@ -20,11 +21,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-/-- Two exits: a pending snapshot is returned by value -- it is the log's base
-(`LogStoreOk`), with `ownSnap`'s voters; otherwise `Storage.Snapshot`, which returns
-the storage's `ss` (`HSnapshot`), related to the log by `StoredSnapOk`. -/
-theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) := by
-  intro l ls esu
+/-- Two exits: a pending snapshot is cloned (`proto.Clone`, `log.go:295`, the trust boundary)
+from the log's read-only copy: `pendKsn`'s, whose id is the pending `sid` -- it is the log's base
+(`LogStoreOk`) and one the node may send; otherwise `Storage.Snapshot`, which returns a fresh
+clone of the storage's `ss` (`HSnapshot`), related to the log by `StoredSnapOk`. -/
+theorem raftLog.snapshot.wp_proof
+    (wp_proto_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    raftLog.snapshot.spec (GF := GF) (hG := hG) := by
+  intro l ls esu Hcompact
   wp_start as H
   iNamed H
   iNamed Hlog
@@ -38,31 +42,30 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
   cases Hsn : ls.snap with
   | some sid =>
     -- the pending snapshot, read through `l.unstable.snapshot`
-    ihave Hus := (ownSnap_Some _ sid).1 $$ Husnap
-    icases Hus with ⟨%sv0, #Hsv0, %Hmeta, -⟩
     ihave #Hp2 := Hpksn
     iunfold pendKsn at Hp2
-    icases Hp2 $$ %sid %rfl with ⟨%sv, %voters, #Hsv, %Hsid, #Hvoters, %Hk⟩
-    icombine Hsv0 Hsv gives %Hsveq
-    subst Hsveq
-    ihave %Hnn := typedPointsto_not_null $$ Hsv
+    icases Hp2 $$ %sid %rfl with ⟨%sv, #Hsv, %Hsid, %Hk⟩
+    ihave %Hnn := (show ownSnapM (GF := GF) lv.unstable'.snapshot' DFrac.discard sv ⊢
+      ⌜lv.unstable'.snapshot' ≠ null⌝ by iintro H; iNamed H; ipureintro; exact Hnn) $$ Hsv
     rw [decide_eq_false Hnn]
     wp_auto
+    wp_apply wp_proto_CloneSnapshot.1 lv.unstable'.snapshot' DFrac.discard sv $$ [$Hsv]
+      as %p' ⟨-, Hc⟩
     iapply HΦ
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
     iright
     isplitr
-    · ipureintro
-      obtain ⟨Hi, Ht⟩ := Hmeta
-      obtain ⟨Hp, -, Hsid⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
-      subst Hp
-      rw [Hi, Ht]
-      refine ⟨rfl, ?_, Happlied.1, plogTermAt_base _ _⟩
-      intro Hz; rw [Hz] at Hsid; simp at Hsid
-    · iexists voters
-      iframe Hvoters
-      ipureintro; exact Hk
+    · ipureintro; rfl
+    iexists sv
+    iframe Hc
+    ipureintro
+    obtain ⟨Hp, -, Hsid0⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
+    subst Hp
+    rw [← Hsid] at Hsid0 Happlied ⊢
+    simp only [snapId] at Hsid0 Happlied ⊢
+    refine ⟨?_, Happlied.1, plogTermAt_base _ _, Hk⟩
+    intro Hz; rw [Hz] at Hsid0; simp at Hsid0
   | none =>
     -- `l.unstable.snapshot` is `null`: the `Storage`'s
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap
@@ -78,21 +81,28 @@ theorem raftLog.snapshot.wp_proof : raftLog.snapshot.spec (GF := GF) (hG := hG) 
     icases Herr with (%Herr | ⟨%Herr, Hv⟩)
     · ileft; ipureintro; exact Herr
     iright
-    obtain ⟨rfl, Hid, Hnz, Hal⟩ := Herr
+    icases Hv with ⟨%sv, Hv, %Hsv⟩
+    obtain ⟨Hid, Hnz', Hal, Hcs⟩ := Hsv
+    -- (stage R8a) the storage is compacted (`LogStoreOk none`: its boundary is the log's), so
+    -- `HSnapshot`'s snapshot is non-empty
+    have Hnz : sv.Metadata'.Index' ≠ W64 0 := by
+      obtain ⟨Hp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
+      apply Hnz'
+      rw [Hp]
+      intro Hz; apply Hcompact; rw [Hz]; rfl
     isplitr
-    · ipureintro
-      rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
-      · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
-      · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
-        exact ⟨rfl, Hnz, Hle, Ht⟩
-    iexists σ.scs
+    · ipureintro; exact Herr
+    iexists sv
     iframe Hv
     ipureintro
     have Hss : σ.ss.index' ≠ W64 0 := by
       rw [← Hid]; simp only [snapId]; exact Hnz
     have Hk := Hsksn Hss
-    rw [← Hid, ← Hal] at Hk
-    exact Hk
+    rw [← Hid, ← Hal, ← Hcs] at Hk
+    rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
+    · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
+    · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
+      exact ⟨Hnz, Hle, Ht, Hk⟩
 
 end proof
 

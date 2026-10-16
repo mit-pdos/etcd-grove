@@ -4,12 +4,12 @@ Lean-first (no Rocq counterpart).
 
 Under the lock, a new sequence number mints the read's context and its fresh token for raft's
 read registry (`reg_mint_read`), and the read waits on a handoff channel in `reads`
-(`readsOwn`); `Node.ReadIndex` takes the context's slice (registered, `node_read_register`),
-the token, the read's persistent update (trivial: `reg_readAu`), the committed log of the
-caller's lower bound and the read credit, and deposits the update at a committed log `Lc`
-extending it (2026-10-14, stage R); the applier answers with a read index of the context and the
-value after a committed log at least that long (`readAns`, `Register.answer`), which extends
-`Lc` (`readOk_prefix`) and so the caller's log.
+(`readsOwn`); `Node.ReadIndex` takes the context's bytes (its slice read-only, D6), the token,
+the read's persistent update (trivial: `reg_readAu`), the committed log of the caller's lower
+bound and the read credit, and deposits the update at a committed log `Lc` extending it
+(2026-10-14, stage R); the applier answers with a read index of the context and the value after
+a committed log at least that long (`readAns`, `Register.answer`), which extends `Lc`
+(`readOk_prefix`) and so the caller's log.
 -/
 module
 
@@ -100,18 +100,18 @@ theorem Register.Read.wp_proof
     unfold readWaiterOk
     iexists cx, γh
     iframe Hmint Hho Hprod
-  -- `ReadIndex`, with the context's slice registered, its fresh token and the read's
-  -- (trivial) persistent update, at the committed log of the caller's lower bound
+  -- `ReadIndex`, with the context's bytes read-only, its fresh token and the read's (trivial)
+  -- persistent update, at the committed log of the caller's lower bound
   wp_apply context.wp_Background
   wp_apply wp_encode id (ns + W64 1) (W8 3) [] (by simp) as %b ⟨Hb, -⟩
   rw [show (W8 3 : w8) = opReadB from rfl, Hc]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
-  imod node_read_register γp.node id n b cx ⊤ CoPset.subseteq_top $$ HisNode Hb with #Hpd
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hrau := reg_readAu γr $$ Hinv
-  wp_apply wp_node_ReadIndex γp.node id n b cx (fun _ => iprop(True)) l0
-    $$ [$Hraftinit $HisNode $Hpd Hrf Hrdc] as %err ⟨%Lc, %Hl0Lc, #Hrq, -⟩
+  ihave #Hbg := nodeCtx_background (GF := GF) bgCd
+  wp_apply wp_node_ReadIndex γp.node id n b cx (fun _ => iprop(True)) l0 context.backgroundCtxVal
+    bgCd $$ [$Hraftinit $HisNode $Hbg $Hb Hrf Hrdc] as %err ⟨⟨%Lc, %Hl0Lc, #Hrq, -⟩, -⟩
   · rw [Hraft]; iframe Hrf Hrdc Hrau Hl0
   -- the answer: a read index of the context, and the value after a committed log at least
   -- that long, which extends the log of the deposit (`readOk_prefix`) and so `l0`

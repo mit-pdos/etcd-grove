@@ -29,7 +29,7 @@ theorem raftLog.hasNextUnstableEnts.wp_proof
   wp_auto
   wp_apply wp_raftLog_nextUnstableEnts l ls $$ [Hlog] as %s ⟨Hlog, #Hs⟩
   · iexact Hlog
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hs
+  ihave %Hlen := entsPts_len _ _ _ $$ Hs
   iapply HΦ
   iframe Hlog
   ipureintro

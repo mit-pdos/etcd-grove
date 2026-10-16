@@ -61,24 +61,49 @@ instance reflect_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.reflect :=
 instance reflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.reflect :=
   build_get_is_pkg_init_wf
 
-/-- gogoproto's `proto`, names-only (`raftpb`'s `ConfChangeV2.LeaveJoint` calls `proto.Equal`,
-the axiom `Spec/github_com/gogo/protobuf/proto/Equal.lean`). -/
-instance gogoproto_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.github_com.gogo.protobuf.proto :=
+/-- protobuf-go's packages, names-only (raft v3.7's `raftpb` is protobuf-go v2: its messages
+hold `protoimpl`'s state, `raft` and `raftpb` call `proto.Clone`/`Marshal`/`Unmarshal`/
+`Size`/`Equal`), as the etcd project's `cache/v3/Base.lean` declares them. -/
+instance protobuf_pragma_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
   define_is_pkg_init iprop(True)
-instance gogoproto_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.gogo.protobuf.proto :=
+instance protobuf_pragma_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
+  build_get_is_pkg_init_wf
+instance protobuf_impl_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.impl :=
+  define_is_pkg_init iprop(True)
+instance protobuf_impl_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.internal.impl :=
+  build_get_is_pkg_init_wf
+instance protoimpl_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
+  define_is_pkg_init iprop(True)
+instance protoimpl_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
+  build_get_is_pkg_init_wf
+instance protoreflect_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  define_is_pkg_init iprop(True)
+instance protoreflect_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  build_get_is_pkg_init_wf
+instance proto_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
+  define_is_pkg_init iprop(True)
+instance proto_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
+  build_get_is_pkg_init_wf
+
+/-- (before `raftpb`, whose `confchange.go` imports it in raft v3.7) -/
+instance strconv_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
+  define_is_pkg_init iprop(True)
+instance strconv_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
   build_get_is_pkg_init_wf
 
 instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
   define_is_pkg_init iprop(True)
 instance raftpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  build_get_is_pkg_init_wf
-
-instance strconv_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
-  define_is_pkg_init iprop(True)
-instance strconv_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
   build_get_is_pkg_init_wf
 
 instance quorum_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.quorum :=
@@ -172,9 +197,24 @@ def isInitialized : IProp GF :=
     -- the global RNG: the pointer, and the mutex behind it
     "#globalRand" ∷ (globalAddr globalRand ↦□ globalRand' : IProp GF) ∗
     "#HglobalRand" ∷ isLockedRand globalRand' ∗
-    -- `emptyState = pb.HardState{}` (`node.go`), which `IsEmptyHardState` compares
-    -- against; nothing but the initializer writes it
-    "#emptyState" ∷ (globalAddr emptyState ↦□ (⟨W64 0, W64 0, W64 0⟩ : raftpb.HardState) : IProp GF) ∗
+    -- `emptyState = &pb.HardState{}` (`node.go`; raft v3.7: a pointer, to a message whose
+    -- fields are all nil), which `IsEmptyHardState` compares against and `bootstrap`
+    -- installs as `prevHardSt`; nothing writes it or through it (stage R0: read-only, the
+    -- representation the redesign settles, `notes/raft-retarget-plan.md`).
+    -- (Stage R4 phase 3) As the read-only hard state `hsRO es ⟨0, 0, 0⟩` of `InvPb.lean`,
+    -- unfolded (this file is below `InvPb`): non-`nil`, its three cells `nil` (frozen), its
+    -- hidden fields in the `protobuf` invariant (`pbMsg raftpb.HardState es []`), as
+    -- `isHardStateEqual`'s getters need; `emptyState_hsRO` (`LemmasMiscR.lean`) folds it.
+    -- (Until phase 3: `es ↦□ zero_val raftpb.HardState`, which no proof used and which the
+    -- invariant's owned hidden fields exclude.)
+    "#emptyState" ∷ (∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ ⌜es ≠ null⌝ ∗
+      (es.[raftpb.HardState, go!"Term"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Vote"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Commit"] ↦□ null : IProp GF) ∗
+      inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
+          (sc : w32) (us : GoSlice),
+        es.[raftpb.HardState, go!"state"] ↦ st ∗ es.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
+          es.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))) ∗
     -- the tables behind `IsLocalMsg` and `IsResponseMsg` (`util.go`), read by
     -- `RawNode.Step`; nothing but the initializer writes them, and their contents do
     -- not matter to the specs (2026-10-09)

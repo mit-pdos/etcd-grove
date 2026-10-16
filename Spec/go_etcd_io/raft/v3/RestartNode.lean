@@ -12,6 +12,12 @@ state), which `isNode` keeps with the commit invariant. Since 2026-10-15 (stage 
 mode (`md`, `NewRawNode`'s `rnInit`: statically `ownRaftGhost` at the initial state, dynamically
 B5's `ownRaftGhostR` at `rinit c0`), and with the driver's view of the configuration
 (`nodeCfg`, at index `0` and the initial configuration) for `ApplyConfChange` and `Advance`.
+
+raft v3.7 (2026-10-16, stage R5): `NewRawNode`'s premises as they are now (the storage's
+`InitialState` in `newRaft`'s D7 shape, the conf state's record `csm`; 2026-10-16, stage R6b: the
+conf state's `AutoLeave` cell set or not, `csPts cs □ csm al`); **no proposed slices'
+invariant** (D6: an entry's data is its bytes; until then `inv propDataN (propDataInv γ)`, which
+`isNode` kept).
 -/
 module
 
@@ -39,8 +45,7 @@ abbrev RestartNode.spec : Prop :=
   ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : raftpb.HardState) (cs : raftpb.ConfState)
-    (voters : List w64) (dqv : DFrac),
+    (hs : HardStateM) (csm : ConfStateM),
   -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -61,29 +66,30 @@ abbrev RestartNode.spec : Prop :=
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   σ.pend = [] →
   HsEmpty hs →
-  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
-  cs.VotersOutgoing'.len = W64 0 →
-  cs.Learners'.len = W64 0 →
-  cs.LearnersNext'.len = W64 0 →
-  cs.AutoLeave' = false →
-  γ.reCfg = GMap.listToSet voters →
-  cv.ID' ∈ voters →
+  -- (2026-10-16, stage R5) the conf state's record `csm`, as `NewRawNode`'s
+  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
+  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
+  csm.VotersOutgoing' = [] →
+  csm.Learners' = [] →
+  csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  γ.reCfg = GMap.listToSet csm.Voters' →
+  cv.ID' ∈ csm.Voters' →
   -- (2026-10-15, stage N) the dynamic mode with `StepDownOnRemoval` (`NewRawNode`'s)
   (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            cs.Voters' ↦*{dqv} voters -∗
-            Φ (PairV (PairV #hs #cs) #interface.nil)) -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       -- (2026-10-15, stage N) the ghost state in the mode `md` (`NewRawNode`'s `rnInit`; until
       -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
-      rnInit γ md cv.ID' (GMap.listToSet voters) ∗ isCommitted γ [] ∗
+      rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
       -- the cluster's term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
-      -- the cluster's proposed slices (2026-10-10, `propDataInv_alloc`)
-      inv propDataN (propDataInv γ) }}
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
       ∃ (γn : NodeNames) (n : Loc),
@@ -91,7 +97,7 @@ abbrev RestartNode.spec : Prop :=
          nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
         -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
-        nodeCfg γn 0 (cfgState (GMap.listToSet voters) ∅) }}
+        nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
 
 end spec
 

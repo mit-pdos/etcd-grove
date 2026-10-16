@@ -1,11 +1,16 @@
 /-
 Port of `election_proof/proof_raft__sendHeartbeat.v`.
+
+raft v3.7 (stage R4): the heartbeat is `&pb.Message{To: new(to), Type: MsgHeartbeat.Enum(),
+Commit: new(commit), Context: ctx}`, built owned (`msgOwn_lit`, `LemmasSendR.lean`).
 -/
 module
 
 public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__SentCommit
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 
@@ -30,7 +35,8 @@ outbox, so `pr` is still at `p` for `SentCommit`, which writes only `sentCommit`
 (`prvalsMatch_insert_same`). -/
 theorem raft.sendHeartbeat.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
-    (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG)) :
+    (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
   intro c r id s to ctx cl Hto Hcfg
   wp_start as H
@@ -62,23 +68,27 @@ theorem raft.sendHeartbeat.wp_proof
   ihave Hphys := Hlogback $$ Hlog
   wp_apply wp_min2_uint64
   let cm := w64Min p.matched lv.committed'
-  let hb : raftpb.Message :=
-    { Type' := W32 8, To' := to, From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
-      Entries' := slice.nil, Commit' := cm, Vote' := 0, Snapshot' := null, Reject' := false,
-      RejectHint' := 0, Context' := ctx, Responses' := slice.nil }
-  have Hok : SendOk id s hb [] cl
+  rw [show raftpb.MsgHeartbeat = #((W32 8 : raftpb.MessageType)) from rfl]
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_MessageType_Enum (W32 8)
+  iintro %pty Hpty
+  imod cellRO_alloc $$ Hpty with #cTy
+  imod cellRO_alloc $$ «$v0» with #cTo
+  wp_auto
+  imod cellRO_alloc $$ «$v2» with #cCo
+  imod msgOwn_lit «$a0_ptr» _ ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ cl ⊤ $$ [«$a0»] with Hm
+  · iframe «$a0» cTy cTo cCo Hctx
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    msg_nulls
+  have Hok : SendOk id s ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ [] cl
       [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl] :=
     Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, rfl⟩)
-  wp_apply wp_raft_send c r id s hb [] cl _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
-  · isplitr
-    · iapply ownSlice_nil
-    isplitr
-    · iexact Hctx
-    · iapply send_no_snap
-      exact (by decide : W32 8 ≠ W32 7)
-  icases ownRaftPhysC_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) Hok
+    (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hm] as Hphys
+  icases ownRaftPhysC_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨%Hok, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa
-  ihave Hphys := Hpback $$ %_ Hpa %rfl
+  ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok Hl).sentCommit _)
   iapply HΦ $$ %cm %_
   iframe Hphys
   obtain ⟨Hlv1, -⟩ := Hlv

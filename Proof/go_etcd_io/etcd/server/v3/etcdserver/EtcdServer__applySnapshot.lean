@@ -5,7 +5,7 @@ counterpart); the request path's unit 4b (2026-10-13).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 
 @[expose] public section
 
@@ -38,7 +38,7 @@ theorem EtcdServer.applySnapshot.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hIES $$ [$Hrpkg]
+  wp_apply (wp_IsEmptySnap_nil hIES) $$ [$Hrpkg]
   (try wp_auto)
   iapply HΦ
   itrivial

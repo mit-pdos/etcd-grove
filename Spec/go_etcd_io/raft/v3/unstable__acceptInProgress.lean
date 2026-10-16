@@ -34,7 +34,7 @@ is `offset + len - 1`, so `offsetInProgress` becomes `offset + len`;
 `snapshotInProgress` is not tracked. -/
 abbrev unstable.acceptInProgress.spec : Prop :=
   ∀ (u : Loc) (us : UnstableSt),
-  (∀ (k : Nat) (e : raftpb.Entry), us.ents[k]? = some e →
+  (∀ (k : Nat) (e : EntryM), us.ents[k]? = some e →
      uint.Z e.Index' = uint.Z us.offset + (k : Int)) →
   uint.Z us.offset + (us.ents.length : Int) < 2^64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

@@ -26,12 +26,16 @@ nothing stored (the dummy entry at index `0`), no snapshot and nothing pending
 (`memStorEmpty`), under fresh ghost names. Its snapshot is empty, which
 `isStorage`'s `Snapshot` clause excludes (`MemstorageInstance.lean`). Since 2026-10-12
 also the rest of the storage (`memStorMeta`), at the empty hard state and snapshot, for
-`InitialState`, `SetHardState`, `ApplySnapshot` and `CreateSnapshot`. -/
+`InitialState` and `SetHardState`.
+
+raft v3.7 (stage R3, 2026-10-15): `ents: []*pb.Entry{{}}`, a fresh dummy entry (frozen, as every
+stored entry is, `entRO`), `ms.snapshot = EnsureSnapshot(nil)` a fresh zero snapshot the storage
+owns, and no hard state (`hardState` is `nil`, the zero record). -/
 abbrev NewMemoryStorage.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions NewMemoryStorage [])) (Val #()))
   {{ (ms : Loc) (γs : MemStorNames), RET #ms; ownMemoryStorage ms γs memStorEmpty ∗
-      memStorMeta ms γs (zero_val raftpb.HardState) (zero_val raftpb.Snapshot) }}
+      memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) }}
 
 end spec
 

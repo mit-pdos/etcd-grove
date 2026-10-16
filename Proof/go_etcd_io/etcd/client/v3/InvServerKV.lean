@@ -11,11 +11,15 @@ meets them at that instance (`ServerKVPut.lean`, `ServerKVGet.lean`, `ServerKVTx
 share:
 
 * `kvIfaceOf api`: the `clientv3.KV` interface value of the `*kv` `api`; its methods are `kv`'s.
-* **The floor of a revision the caller knows etcd has reached** (`floor_of_reached`): in the
-  server's model `etcdReached lo` is a certified log of revision `lo` at least (or `lo ≤ 0`, when
-  the server's first certificate, `NewStore`'s two revisions, will do). The caller hands it to the
-  request (`etcdPutSpec`'s `∃ F`, ...): every answer's log extends it, so its revision is at least
-  `lo` (linearizability).
+* **The floor of a revision the caller knows etcd has reached** (unit W-M3): in the server's
+  model `etcdReached lo` is a log the server certified (`certOk`: the KV model of a committed raft
+  prefix) longer than `lo` (`certOk_of_reached`). The caller's update (`kvAnyAu`, from `etcdKV` in
+  its own invariant with the state's revision as a monotone counter, `kvAnyAu_of_inv`) turns it
+  into a result at the state the request linearizes at, at least that log (`kv_client_floor`):
+  a write's at the state of the log it met, a linearizable read's at the state of the log read,
+  so the answer's revision is at least `lo` (linearizability). The specs' mvcc floor `F` (a
+  committed log every answer's log extends, the serializable reads' guarantee) is the read side's
+  first certificate (`floor0_of_read`).
 * **`context.TODO()`** (`todo_ctx`): a quiet context (`ctxQuiet`: `Err()` is `nil`, the
   `emptyCtx`'s, from Perennial's model of `context`) and `ctxErrClient` at a descriptor whose
   closed flag is `false` for good (`todoCd`), given that `errors.As` can take
@@ -155,13 +159,33 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Any operation's update, with no result** (persistent): what a client that does not track
-etcd's abstract state hands the server's specs (`kvOpAu op` with `Q` trivial, for every
-operation). It has it from `etcdKV` in an invariant of its own (`kvAnyAu_of_inv`). -/
-def kvAnyAu (γ : ReadNames) : IProp GF :=
-  iprop(□ ∀ op : KVOp, kvOpAu γ.kv op (fun _ => iprop(True)))
+/-- **A step never lowers the state's revision** (a step commits one revision or none). -/
+theorem commit_rev (σ : KVState) (cs : List mvcc.Change) : σ.rev ≤ (σ.commit cs).rev := by
+  unfold KVState.commit; split <;> simp
 
-instance kvAnyAu_persistent (γ : ReadNames) : Persistent (kvAnyAu (GF := GF) γ) := by
+theorem kvOpStep_rev (op : KVOp) (σ : KVState) : σ.rev ≤ (kvOpStep op σ).rev := by
+  cases op <;> simp only [kvOpStep] <;> (try split) <;> (first | exact Nat.le_refl _ | exact commit_rev _ _)
+
+/-- **Any operation's update, with the floor of a certified log** (persistent; 2026-10-15, unit
+T2; unit W-M3: the floor): what a client that does not track etcd's abstract state hands the
+server's specs. For every operation and every log `l` the server certified (`certOk`: the KV
+model of a committed raft prefix; `etcdReached`'s logs), the client gets, now, an update whose
+result is that the state it linearized at is at least `l` (`l.length ≤ σ.rev + 1`): the committed
+KV state extends every certified log, and the state only grows. It has it from `etcdKV` in an
+invariant of its own, with the state's revision as a monotone counter (`kvAnyAu_of_inv`). -/
+def kvAnyAu (E : apply.AEnv GF) (γ : ReadNames) : IProp GF :=
+  iprop(□ ∀ (op : KVOp) (l : mvcc.Log), mvcc.certOk E.γ l ={⊤}=∗
+    kvOpAu γ.kv op (fun σ => iprop(⌜l.length ≤ σ.rev + 1⌝)))
+
+/-- A range's update is a read update (a range does not step the state). -/
+theorem kvOpAu_range (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
+    kvOpAu γk (.range o) Q ⊢ kvReadAu γk Q := by
+  have h : kvOpStep (KVOp.range o) = fun σ => σ := by funext σ; rfl
+  unfold kvOpAu kvReadAu
+  rw [h]
+
+instance kvAnyAu_persistent (E : apply.AEnv GF) (γ : ReadNames) :
+    Persistent (kvAnyAu (GF := GF) E γ) := by
   unfold kvAnyAu; infer_instance
 
 /-- The namespace of a client's invariant holding `etcdKV`. -/
@@ -173,21 +197,72 @@ theorem kvClientN_mask : (↑kvClientN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kv
   exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩,
     fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩
 
-/-- **`kvAnyAu` from `etcdKV` in an invariant**: every update opens the invariant, hands the
-state over and takes the stepped state back. -/
-theorem kvAnyAu_of_inv (γ : ReadNames) :
-    inv kvClientN iprop(∃ σ : KVState, etcdKV γ.kv σ) ⊢ kvAnyAu (GF := GF) γ := by
+/-- **A client's invariant holding the abstract state** (unit W-M3: with its revision as a
+monotone counter at `γm`, so a revision the client saw is a lower bound of every later state). -/
+def kvClientInv (γ : ReadNames) (γm : GName) : IProp GF :=
+  inv kvClientN iprop(∃ σ : KVState, etcdKV γ.kv σ ∗ monoNatAuthOwn γm 1 σ.rev)
+
+instance kvClientInv_persistent (γ : ReadNames) (γm : GName) :
+    Persistent (kvClientInv (GF := GF) γ γm) := by
+  unfold kvClientInv; infer_instance
+
+/-- **A client's invariant, allocated** from `etcdKV`. -/
+theorem kvClientInv_alloc (γ : ReadNames) (σ : KVState) (Em : CoPset) :
+    etcdKV (GF := GF) γ.kv σ ⊢ |={Em}=> ∃ γm : GName, kvClientInv γ γm := by
+  iintro Hσ
+  imod (mono_nat_own_alloc (GF := GF) σ.rev) with ⟨%γm, Hm, -⟩
+  imod inv_alloc kvClientN Em (iprop(∃ σ : KVState, etcdKV γ.kv σ ∗ monoNatAuthOwn γm 1 σ.rev))
+    $$ [Hσ Hm] with #Hinv
+  · inext; iexists σ; iframe Hσ Hm
+  imodintro
+  iexists γm
+  iunfold kvClientInv
+  iexact Hinv
+
+/-- **The floor of a certified log, in the client's counter**: the client's state (in its
+invariant) is the committed one, at least the certified log (`kv_cert_floor`); its revision is a
+lower bound from now on. -/
+theorem kv_client_floor (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) (l : mvcc.Log) :
+    ⊢ srvKVInvs (GF := GF) E γ -∗ kvClientInv γ γm -∗ mvcc.certOk E.γ l ={⊤}=∗
+      ∃ n : Nat, monoNatLbOwn γm n ∗ ⌜l.length ≤ n + 1⌝ := by
+  iintro #Hinvs #Hinv #Hc
+  iunfold srvKVInvs at Hinvs
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  iunfold kvClientInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, Hσ, Hm⟩
+  unfold kvClientN
+  imod kv_cert_floor γ.raft γ.kv E.γ Hcok "kv_client" (by decide) (by decide) (by decide) l σ
+    $$ HkI HcI HrI Hc Hσ with ⟨Hσ, %Hle⟩
+  ihave #Hlb := monoNatLbOwn_get γm 1 σ.rev $$ Hm
+  imod Hclose $$ [Hσ Hm] with -
+  · inext; iexists σ; iframe Hσ Hm
+  imodintro
+  iexists σ.rev
+  iframe Hlb
+  ipureintro; exact Hle
+
+/-- **`kvAnyAu` from `etcdKV` in the client's invariant** (`kvClientInv`): the floor first
+(`kv_client_floor`), then every update opens the invariant, hands the state over, takes the
+stepped state back and moves the counter (`kvOpStep_rev`); the counter's lower bound gives the
+floor at the state the update fires at. -/
+theorem kvAnyAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
+    srvKVInvs E γ ∗ kvClientInv γ γm ⊢ kvAnyAu (GF := GF) E γ := by
   have Hm := kvClientN_mask
-  iintro #Hinv
+  iintro ⟨#Hinvs, #Hinv⟩
   iunfold kvAnyAu
-  iintro !> %op
+  iintro !> %op %l #Hc
+  imod kv_client_floor E γ γm l $$ Hinvs Hinv Hc with ⟨%n, #Hlb, %Hn⟩
+  imodintro
   iunfold kvOpAu
   iunfold kvAu
   iintro !>
   iauintro
   unfold atomic_acc
+  iunfold kvClientInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, Hσ⟩
+  icases Hi with ⟨%σ, Hσ, Hmn⟩
+  ihave %Hv := monoNatLbOwn_valid γm 1 σ.rev n $$ Hmn Hlb
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -196,17 +271,20 @@ theorem kvAnyAu_of_inv (γ : ReadNames) :
   isplit
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ] with -
-    · inext; iexists σ; iexact Hσ
+    imod Hclose $$ [Hσ Hmn] with -
+    · inext; iexists σ; iframe Hσ Hmn
     imodintro
     itrivial
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ] with -
-    · inext; iexists (kvOpStep op σ); iexact Hσ
+    imod (mono_nat_own_update (GF := GF) (γ := γm) (kvOpStep op σ).rev (kvOpStep_rev op σ))
+      $$ Hmn with ⟨Hmn, -⟩
+    imod Hclose $$ [Hσ Hmn] with -
+    · inext; iexists (kvOpStep op σ); iframe Hσ Hmn
     imodintro
     iintro !>
-    itrivial
+    ipureintro
+    omega
 
 end anyAu
 
@@ -217,33 +295,49 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **The floor of a revision etcd has reached** (see the file header): in the server's model,
-`etcdReached lo` gives a certified log `F` longer than `lo`, of `NewStore`'s two revisions at least
-(for `lo ≤ 0`, the server's first certificate). -/
-theorem floor_of_reached (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (lo : w64) :
-    isServerRead s E γr ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo ⊢
-      ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗ ⌜sint.Z lo < F.length ∧ 2 ≤ F.length⌝ := by
-  iintro ⟨#Hsrd, #Hr⟩
+/-- **A certified log for a revision etcd has reached** (unit W-M3; see the file header): in the
+server's model `etcdReached lo` is a log the server certified (`certOk`) longer than `lo`, or
+`lo ≤ 0`, when `NewStore`'s two revisions (certified for free: `certOk`'s first case) will do. -/
+theorem certOk_of_reached (E : apply.AEnv GF) (lo : w64) :
+    etcdReached (EM := v3rpc.etcdModelOfServer E) lo ⊢
+      ∃ l : mvcc.Log, mvcc.certOk E.γ l ∗ ⌜sint.Z lo < l.length⌝ := by
+  iintro #Hr
+  unfold etcdReached
+  icases Hr with (%Hle | ⟨%r', %Hle, #Hat⟩)
+  · iexists [[], []]
+    isplitl
+    · unfold mvcc.certOk; ileft; ipureintro; simp
+    · ipureintro; simp; omega
+  · rw [v3rpc.etcdModelOfServer_etcdReachedAt]
+    iunfold v3rpc.srvReachedAt at Hat
+    icases Hat with ⟨%l, #Hc, %Hlt⟩
+    iexists l
+    iframe Hc
+    ipureintro; omega
+
+/-- **The read side's first certificate** (`isServerRead`'s: `NewStore`'s two revisions, a
+committed log every request may take as its floor `F`; unit W-M3: the clients' floors come from
+their updates, `kvAnyAu`, so the specs' mvcc floor is this one). -/
+theorem floor0_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗ ⌜2 ≤ F.length⌝ := by
+  iintro #Hsrd
   iunfold isServerRead at Hsrd
   icases Hsrd with ⟨%v, Hsrd⟩
   iunfold srvReadFieldsAt at Hsrd
   icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%F0, #HF0, %HF02⟩, -⟩
-  unfold etcdReached
-  icases Hr with (%Hle | ⟨%r', %Hle, #Hat⟩)
-  · iexists F0
-    iframe HF0
-    ipureintro; omega
-  · rw [v3rpc.etcdModelOfServer_etcdReachedAt]
-    iunfold v3rpc.srvReachedAt at Hat
-    icases Hat with ⟨%F, #HF, %Hlt⟩
-    ihave %Hp := mvcc.idxCert_prefix E.γ.idx F F0 $$ [$HF $HF0]
-    rcases Hp with h | h
-    · iexists F0
-      iframe HF0
-      ipureintro; have := h.length_le; omega
-    · iexists F
-      iframe HF
-      ipureintro; have := h.length_le; omega
+  iexists F0
+  iframe HF0
+  ipureintro; exact HF02
+
+/-- The server's KV invariants, of the read side (`isServerRead`'s). -/
+theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
+  iintro #Hsrd
+  iunfold isServerRead at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAt at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hk, -⟩
+  iexact Hk
 
 /-- The store's size premise of the read path (`storeSmall`, the server's). -/
 theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -271,7 +365,7 @@ theorem rangeReply_etcdState (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
   iintro ⟨#Hsm, #H⟩
   iunfold rangeReplyOk at H
   simp only [hser, Bool.false_eq_true, ↓reduceIte]
-  icases H with ⟨%l, #Hcert, %Hl, -, #HQ⟩
+  icases H with ⟨%l, #Hcert, -, %Hl, -, #HQ⟩
   obtain ⟨hlen, hlen', -⟩ := Hl
   ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E l pfx hlen hlen' $$ [$Hsm $Hcert]
   iexists kvStateOf l

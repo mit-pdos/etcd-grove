@@ -1,8 +1,13 @@
-/- Lean-first (no Rocq counterpart), 2026-10-13. -/
+/- Port of election_proof/proof_raft__sendTimeoutNow.v.
+
+raft v3.7 (stage R4): the message `&pb.Message{To: new(to), Type: pb.MsgTimeoutNow.Enum()}` is
+built owned (`msgOwn_lit0`, `LemmasSendR.lean`) and handed to `send`. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Spec.go_etcd_io.raft.v3.raft__send
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 
@@ -20,27 +25,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `send`'s clause for an undescribed type: `Term = 0`, not to oneself, nothing queued
-abstractly. -/
 theorem raft.sendTimeoutNow.wp_proof
-    (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
+    (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendTimeoutNow.spec (GF := GF) (hG := hG) := by
   intro c r id s to Hto
   wp_start as Hphys
   wp_auto
-  let tn : raftpb.Message :=
-    { Type' := W32 14, To' := to, From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
-      Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
-      RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-  have Hok : SendOk id s tn [] [] [] :=
-    Or.inr (Or.inr (Or.inl (Or.inr ⟨rfl, rfl, Hto, rfl⟩)))
-  wp_apply wp_raft_send c r id s tn [] [] [] (Or.inl rfl) Hok $$ [$Hphys] as Hphys
-  · isplitr
-    · iapply ownSlice_nil
+  rw [show raftpb.MsgTimeoutNow = #((W32 14 : raftpb.MessageType)) from rfl]
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_MessageType_Enum (W32 14)
+  iintro %pty Hpty
+  imod cellRO_alloc $$ Hpty with #cTy
+  imod cellRO_alloc $$ «$v0» with #cTo
+  wp_auto
+  imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
+  · iframe «$a0» cTy cTo
     isplitr
-    · iapply ownSlice_nil
-    · iapply send_no_snap
-      exact (by decide : W32 14 ≠ W32 7)
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+    msg_nulls
+  have Hok : SendOk id s ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ [] [] [] :=
+    Or.inr (Or.inr (Or.inl (Or.inr ⟨rfl, rfl, Hto, rfl⟩)))
+  wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none [] [] [] (Or.inl rfl) Hok
+    (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hm] as Hphys
   ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
   iapply HΦ
   iexact Hphys

@@ -13,6 +13,7 @@ heartbeats then carry the context of the queue with the request (`hbCtx_recvAck`
 -/
 module
 
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
 public import Spec.go_etcd_io.raft.v3.readOnly__addRequest
 public import Spec.go_etcd_io.raft.v3.readOnly__recvAck
@@ -90,11 +91,11 @@ theorem sendMsgReadIndexResponse.wp_proof
     (wp_readOnly_addRequest : readOnly.addRequest.spec (GF := GF) (hG := hG))
     (wp_readOnly_recvAck : readOnly.recvAck.spec (GF := GF) (hG := hG))
     (wp_readOnly_heartbeatCtx : readOnly.heartbeatCtx.spec (GF := GF) (hG := hG))
-    (wp_raft_bcastHeartbeat : raft.bcastHeartbeat.spec (GF := GF) (hG := hG)) :
+    (wp_raft_bcastHeartbeat : raft.bcastHeartbeat.spec (GF := GF) (hG := hG))
+    (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) := by
-  intro c r id s m ents Hlead Hne
-  wp_start as Hpre
-  iNamed Hpre
+  intro c r id s ml m ents sn ctx rs Hlead Hne
+  wp_start as ⟨Hphys, #Hm⟩
   wp_auto
   -- `_, isVoter := r.trk.Voters[0][r.id]`
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -136,14 +137,13 @@ theorem sendMsgReadIndexResponse.wp_proof
         cases ents with
         | nil => exact absurd rfl Hne
         | cons e es => exact ⟨e, es, rfl⟩
-      wp_apply wp_raft_responseToReadIndexReq c r id s m s.logst.committed e es
-        $$ [$Hphys $Hents] as %resp Hpost
+      wp_apply wp_raft_responseToReadIndexReq c r id s ml m s.logst.committed e es sn ctx rs
+        $$ [$Hphys $Hm] as %resp Hpost
       by_cases Hloc : m.From' = W64 0 ∨ m.From' = id
       · -- a local request: a `ReadState`
         rw [ite_eq_left_of_eq_true _ _ (eq_true Hloc)]
-        icases Hpost with ⟨Hphys, %Hto⟩
-        rw [Hto, decide_eq_true rfl]
-        wp_auto
+        icases Hpost with ⟨Hphys, Hresp⟩
+        wp_apply wp_Message_GetTo.1 resp (DFrac.own 1) DFrac.discard false _ $$ [$Hresp] as Hresp
         iapply HΦ
         iframe Hphys
         ipureintro
@@ -154,27 +154,19 @@ theorem sendMsgReadIndexResponse.wp_proof
         rfl
       · -- a forwarded one: the response
         rw [ite_eq_right_of_eq_false _ _ (eq_false Hloc)]
-        icases Hpost with ⟨Hphys, %Hresp⟩
-        subst Hresp
-        wp_auto
+        icases Hpost with ⟨Hphys, Hresp⟩
+        wp_apply wp_Message_GetTo.1 resp (DFrac.own 1) DFrac.discard false _ $$ [$Hresp] as Hresp
         rw [decide_eq_false (fun h => Hloc (Or.inl h))]
         wp_auto
-        wp_apply wp_raft_send c r id s (readIndexRespMsg m s.logst.committed) (e :: es) []
+        wp_apply wp_raft_send c r id s resp (readIndexRespMsg m s.logst.committed) (e :: es) none
+            [] []
             [absMsgFrom .readIndexResp (readIndexRespMsg m s.logst.committed) id s.term
               (e :: es) []]
             (Or.inl rfl)
             (Or.inr (Or.inl ⟨.readIndexResp, Or.inr (Or.inr (Or.inl rfl)), rfl, rfl,
               fun h => Hloc (Or.inr h), rfl⟩))
-          $$ [$Hphys]
-        · simp only [named]
-          rw [show (readIndexRespMsg m s.logst.committed).Entries' = m.Entries' from rfl,
-            show (readIndexRespMsg m s.logst.committed).Context' = slice.nil from rfl]
-          isplitr
-          · iexact Hents
-          isplitr
-          · iapply ownSlice_nil
-          iapply send_no_snap (readIndexRespMsg m s.logst.committed)
-          simp [readIndexRespMsg, MsgSnap]
+            (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
+          $$ [$Hphys $Hresp]
         iintro Hphys
         wp_auto
         iapply HΦ
@@ -209,7 +201,7 @@ theorem sendMsgReadIndexResponse.wp_proof
       ihave Hphys := Hlogback $$ Hlog
       icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
       wp_auto
-      wp_apply wp_readOnly_addRequest $$ [$Hro $Hents] as Hro
+      wp_apply wp_readOnly_addRequest $$ [$Hro $Hm] as Hro
       ihave Hphys := Hback $$ %ro %_ Hrof Hro
       -- `recvAck(r.id, heartbeatCtx())`: the queue is not empty
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -257,7 +249,7 @@ theorem sendMsgReadIndexResponse.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
     wp_auto
-    wp_apply wp_readOnly_addRequest $$ [$Hro $Hents] as Hro
+    wp_apply wp_readOnly_addRequest $$ [$Hro $Hm] as Hro
     ihave Hphys := Hback $$ %ro %_ Hrof Hro
     -- `recvAck(r.id, heartbeatCtx())`: the queue is not empty
     wp_apply raft.wp_load_idC $$ Hphys as Hphys

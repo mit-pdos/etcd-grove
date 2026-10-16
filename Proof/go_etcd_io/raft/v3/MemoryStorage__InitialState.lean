@@ -2,8 +2,15 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
+public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetConfState
+public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import Proof.go_etcd_io.raft.v3.LemmasConfState
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -19,34 +26,76 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem MemoryStorage.InitialState.wp_proof :
+theorem MemoryStorage.InitialState.wp_proof
+    (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (wp_GetConfState : raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG))
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     MemoryStorage.InitialState.spec (GF := GF) (hG := hG) := by
-  intro ms γs hs snap
-  wp_start as Hmeta
+  intro ms γs σ hs
+  wp_start as ⟨Hms, Hmeta⟩
   iunfold memStorMeta at Hmeta
-  icases Hmeta with ⟨%n, %voters, Hmeta⟩
+  icases Hmeta with ⟨%n, %hp, Hmeta⟩
   iNamed Hmeta
+  iunfold ownMemoryStorage at Hms
+  icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
+  iunfold memSnapOwn at Hsn
+  icases Hsn with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
+  have Hcs : sv.Metadata'.ConfState' = storCS σ :=
+    confState_eq_storCS _ σ Hsnap_id.2.1 Hsnap_id.2.2
   wp_auto
-  -- a nested field load through a half points-to: split the snapshot, then its metadata
-  icases typedPointsto_not_null_dup _ _ _ $$ Hsnapshot with ⟨Hsnapshot, %Hs_nn⟩
-  iStructNamedSuffix Hsnapshot "_s"
-  icases typedPointsto_not_null_dup _ _ _ $$ Metadata_s with ⟨Metadata_s, %Hm_nn⟩
-  iStructNamedSuffix Metadata_s "_m"
-  wp_auto
-  iapply HΦ
-  ihave Metadata_s : (ms.[MemoryStorage, go!"snapshot"]).[raftpb.Snapshot, go!"Metadata"]
-      ↦{DFrac.own (1 : Qp).half} snap.Metadata' $$ [ConfState_m Index_m Term_m]
-  · iapply typedPointsto_combine _ _ _ Hm_nn
-    simp only [TypedPointsto.typedPointstoDef]
-    iframe
-  ihave Hsnapshot : ms.[MemoryStorage, go!"snapshot"] ↦{DFrac.own (1 : Qp).half} snap
-      $$ [Data_s Metadata_s]
-  · iapply typedPointsto_combine _ _ _ Hs_nn
-    simp only [TypedPointsto.typedPointstoDef]
-    iframe
-  unfold memStorMeta
-  iexists _, voters
-  iframe # ∗
+  wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
+  · iframe Hsnap
+  wp_apply wp_GetConfState pm (DFrac.own 1) sv.Metadata' $$ [Hm] as %pc ⟨Hc, Hcback⟩
+  · iframe Hm
+  icases csOptA_nn _ _ _ $$ Hc with ⟨Hc, %Hnull⟩
+  rcases Hnull with Hnull | Hnn
+  · -- no conf state: `EnsureConfState` makes a fresh one, frozen; the storage is as it was
+    obtain ⟨Hpc, Hc0⟩ := Hnull
+    subst Hpc
+    ihave Hm := Hcback $$ Hc
+    ihave Hsnap := Hmback $$ Hm
+    iapply wp_fupd
+    wp_apply wp_EnsureConfState.2 as %r Hr
+    imod csPts_persist _ _ _ _ $$ Hr with #Hr
+    imodintro
+    iapply HΦ
+    iframe Hhs
+    isplitl [HhardState Hcs_initialState]
+    · unfold memStorMeta
+      iexists _, hp
+      iframe # ∗
+    rw [← Hcs, Hc0]
+    iframe Hr
+    unfold ownMemoryStorage memSnapOwn
+    iframe # ∗
+    isplitl
+    · iexists sp, sv
+      iframe
+      ipureintro; exact Hsnap_id
+    ipureintro; exact Hbounded
+  · -- the storage's conf state: `EnsureConfState` sets its `AutoLeave` in place; then frozen,
+    -- the storage's snapshot holding it read-only (`csOptA`'s third case)
+    wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc sv.Metadata'.ConfState' Hnn
+      $$ [Hc] as #Hr
+    · iexact Hc
+    ihave Hm := Hcback $$ []
+    · iunfold csOptA; iright; iright; iexact Hr
+    ihave Hsnap := Hmback $$ Hm
+    iapply HΦ
+    iframe Hhs
+    isplitl [HhardState Hcs_initialState]
+    · unfold memStorMeta
+      iexists _, hp
+      iframe # ∗
+    rw [← Hcs]
+    iframe Hr
+    unfold ownMemoryStorage memSnapOwn
+    iframe # ∗
+    isplitl
+    · iexists sp, sv
+      iframe
+      ipureintro; exact Hsnap_id
+    ipureintro; exact Hbounded
 
 end proof
 

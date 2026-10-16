@@ -1,10 +1,11 @@
 /-
 A done context's `Err()`: Go's contract of `context.Context.Err` (the trust boundary).
-Lean-first (no Rocq counterpart).
+Lean-first (no Rocq counterpart). Stated over Perennial's context model alone (2026-10-16, stage
+R7c: raft's `node.stepWithWaitOption` takes it as a callee too, so it imports nothing of the
+server).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Proof.context
 
 @[expose] public section

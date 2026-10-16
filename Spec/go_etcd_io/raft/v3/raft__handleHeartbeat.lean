@@ -24,6 +24,12 @@ leader (`lead := m.From`, `becomeFollower`) is the caller's business
 (`stepFollower`/`stepCandidate`); this function does not do it.
 
 Lean notes: Rocq's `heartbeat_result` is `heartbeatResult`.
+
+raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`) read through its getters, at any
+fraction (`msgPtsC ml dq dqe cap`, given back: `stepFollower`/`stepCandidate` pass their `msgIn`);
+the response `&pb.Message{To: m.From, ..., Context: m.GetContext()}` shares `m`'s `From` cell and
+`Context` slice, both read-only (`cellRO`, `↦*□`), and is the caller's no longer (`send`). The
+context's list `cl` is the message state's `ctx`.
 -/
 module
 
@@ -50,7 +56,7 @@ variable [FfiSyntax]
 /-- The state after `handleHeartbeat`: `committed` moved by `commitTo`, and the
 `HeartbeatResp` queued. Named because `stepFollower` and `stepCandidate` state their
 `MsgHeartbeat` results with it. -/
-def heartbeatResult (id : w64) (s : NState) (m : raftpb.Message) (cl : List w8 := []) :
+def heartbeatResult (id : w64) (s : NState) (m : MessageM) (cl : List w8 := []) :
     NState :=
   sendMsgs
     { s with logst :=
@@ -68,39 +74,44 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev raft.handleHeartbeat.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (cl : List w8),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq dqe : DFrac) (cap : Bool)
+    (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hctx" ∷ m.Context' ↦*□ cl }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #m))
-  {{ RET #(); ownRaftPhysCV c c.voters r id (heartbeatResult id s m cl) }}
+      "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #ml))
+  {{ RET #(); ownRaftPhysCV c c.voters r id (heartbeatResult id s m cl) ∗
+      msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.handleHeartbeat.spec` by `raft.handleHeartbeat.spec_simple`. -/
 abbrev raft.handleHeartbeat.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (cl : List w8),
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq dqe : DFrac) (cap : Bool)
+    (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "#Hctx" ∷ m.Context' ↦*□ cl }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #m))
-  {{ RET #(); ownRaftPhys cfg r id (heartbeatResult id s m cl) }}
+      "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #ml))
+  {{ RET #(); ownRaftPhys cfg r id (heartbeatResult id s m cl) ∗
+      msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
 
 open Iris.ProofMode in
 theorem raft.handleHeartbeat.spec_simple
     (H : raft.handleHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s m cl Hc Hfrom
-  iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
+  intro cfg r id s ml dq dqe cap m ents sn cl rs Hc Hfrom
+  iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s m cl Hc Hfrom $$ [$Hpkg $Hphys $Hctx]
+  iapply H _ r id s ml dq dqe cap m ents sn cl rs Hc Hfrom $$ [$Hpkg $Hphys $Hm]
   inext
-  iintro Hphys
-  iapply HΦ $$ [Hphys]
-  iapply ownRaftPhysC_toS $$ Hphys
+  iintro ⟨Hphys, Hm⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys Hm
 
 end spec
 

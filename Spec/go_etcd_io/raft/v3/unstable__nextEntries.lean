@@ -40,7 +40,7 @@ abbrev unstable.nextEntries.spec : Prop :=
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"nextEntries")) (Val #()))
   {{ (s : GoSlice), RET #s;
       ownUnstable u us ∗
-      s ↦*□ us.ents.drop (uint.Z us.inprogress - uint.Z us.offset).toNat }}
+      entsRO s (us.ents.drop (uint.Z us.inprogress - uint.Z us.offset).toNat) }}
 
 end spec
 

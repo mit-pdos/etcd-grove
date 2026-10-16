@@ -12,7 +12,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -73,18 +73,18 @@ The new state is an update of the old: the suffix and `offset` as above, and
 `offsetInProgress` by arm (`truncOffsetInProgress`); the snapshot is unchanged. (Until
 2026-10-08 the new Goose value was existential, with these fields pinned.) -/
 abbrev unstable.truncateAndAppend.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableSt) (ents : List raftpb.Entry)
-    (e0 : raftpb.Entry) (es : GoSlice) (dq : DFrac),
+  ∀ (u : Loc) (us : UnstableSt) (ents : List EntryM)
+    (e0 : EntryM) (es : GoSlice) (dq : DFrac),
   ents[0]? = some e0 →
   uint.Z e0.Index' ≤ uint.Z us.offset + (us.ents.length : Int) →
   uint.Z us.offset + (us.ents.length : Int) < 2 ^ 64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us ∗
-      "Hes" ∷ es ↦*{dq} ents ∗
+      "Hes" ∷ entsPts es dq ents ∗
       "Hadopt" ∷ (if uint.Z e0.Index' ≤ uint.Z us.offset ∧
                      uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)
                   then iprop(⌜dq = DFrac.discard⌝ ∗
-                             ownSliceCap raftpb.Entry es (DFrac.own 1))
+                             ownSliceCap Loc es (DFrac.own 1))
                   else True) }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"truncateAndAppend"))
       (Val #es))
@@ -96,7 +96,7 @@ abbrev unstable.truncateAndAppend.spec : Prop :=
         inprogress := truncOffsetInProgress us e0.Index' } ∗
       (if uint.Z e0.Index' ≤ uint.Z us.offset ∧
           uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)
-       then True else es ↦*{dq} ents) }}
+       then True else entsPts es dq ents) }}
 
 end spec
 

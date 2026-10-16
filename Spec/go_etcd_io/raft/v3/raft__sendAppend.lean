@@ -34,6 +34,8 @@ abbrev raft.sendAppend.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64),
   to ≠ id →
   to ∈ domSet s.progress →
+  -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
+  s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))
@@ -48,6 +50,7 @@ abbrev raft.sendAppend.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (to : w64),
   to ≠ id →
   to ∈ domSet s.progress →
+  s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))
@@ -60,10 +63,10 @@ open Iris.ProofMode in
 theorem raft.sendAppend.spec_simple
     (H : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.sendAppend.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s to Hto Hdom
+  intro cfg r id s to Hto Hdom Hlead
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s to Hto Hdom $$ [$Hpkg $Hphys]
+  iapply H _ r id s to Hto Hdom Hlead $$ [$Hpkg $Hphys]
   inext
   iintro %ms %pvs ⟨Hphys, %H1, %H2⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

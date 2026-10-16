@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
-"""Generate Proof/go_etcd_io/raft/v3/Link.lean from the Rocq link structure.
+"""Generate a package's Link.lean: every proof instantiated with its callees' results.
 
-Each Rocq collection <fn> has spec_<fn>.v (`Module Type NAME.`), postulates_<fn>.v
-(`Include CALLEE.` for each callee, in order) and link_<fn>.v (the functor applied to
-the callees' results). In Lean the result of <fn> is its `wp_proof` applied to the
-callees' results, in the postulates' order:
+The result of a function <fn> is its `wp_proof` applied to the callees' results, in the
+order of the `wp_proof`'s hypotheses:
 
     theorem <T>.wp_<M> : <T>.<M>.spec (GF := GF) (hG := hG) := <T>.<M>.wp_proof <callees>
 
-Functions with no Rocq counterpart (Lean-first: the `confchange` package, translated
-and proved here on 2026-10-08) are listed in etc/link-lean-first.txt, one per line as
-`<fn>: <callee> <callee> ...` (the callees in the order of the `wp_proof`'s
-hypotheses), and linked the same way; a Rocq-side function listed there has its
-callees overridden (a Rocq `Axiom` proved here).
+The functions and their callees are listed in a mode's etc/link-lean-first-<mode>.txt, one
+per line as `<fn>: <callee> <callee> ...`. (Until stage R6 of the raft v3.7 retarget,
+2026-10-16, the raft Link was generated from the Rocq link structure of branch `main`,
+spec_<fn>.v/postulates_<fn>.v, with etc/link-lean-first.txt for the Lean-first functions;
+the retargeted raft proof is Lean-first throughout.)
 
 The Spec/Proof files of a function are found by its name: `Spec/<pkg>/<fn>.lean`, or
 `Spec/<pkg>/<f>.lean` for a name `<last component of pkg>_<f>` (tracker_NewInflights:
 Spec/go_etcd_io/raft/v3/tracker/NewInflights.lean).
 
-usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
+usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cache > Proof/go_etcd_io/etcd/cache/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
@@ -38,15 +36,15 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
-       etc/gen-link.py --raft37 > Raft37/Proof/go_etcd_io/raft/v3/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
 Lean-first: they are read from etc/link-lean-first-cache.txt alone, with no Rocq side.
 `--server` likewise links the proofs of etcd's server (the consistent index and the apply
-thread, `Proof/go_etcd_io/etcd/server/v3/etcdserver/`), from etc/link-lean-first-server.txt;
-its specs are also looked up in `EtcdDeps/Spec/` (etcd's own raft dependency, raft v3.7, whose
-Go path is the fork's).
+thread, `Proof/go_etcd_io/etcd/server/v3/etcdserver/`), from etc/link-lean-first-server.txt
+(raft's functions it calls, the raftpb getters, `IsEmptySnap`, ..., are `@` callees since stage
+R6 of the raft v3.7 retarget, linked in raft's `Link.lean`; before, `EtcdDeps/Spec/`'s, etcd's own
+raft dependency names-only).
 `--concurrency` links the proofs of `client/v3/concurrency` (`Session`) and of the clientv3
 functions they and the next recipes use, from etc/link-lean-first-concurrency.txt, under the
 concurrency package's assumptions. Its results are in the namespace `concurrency`, a clientv3
@@ -86,7 +84,7 @@ are `@` callees, linked in their `Link.lean`s.
 `--v3rpc` links the proofs of etcd's gRPC KV service (`server/v3/etcdserver/api/v3rpc`: the
 handlers, the request checks, the response header, `togRPCError`) and of the trust-boundary
 functions they call, from etc/link-lean-first-v3rpc.txt, under the package's assumptions (which
-include the server's: its Link reaches `EtcdDeps`); as `--apply`, its results are in a namespace
+include the server's); as `--apply`, its results are in a namespace
 of their own (`v3rpc`), and the server's, the txn package's and the interval tree's functions are
 `@` callees, linked in their `Link.lean`s.
 `--read` links the proofs of etcd's linearizable read loop (`server/v3/etcdserver/read`:
@@ -107,7 +105,7 @@ instead of each defining the same result.
 **Reuse** (2026-10-12): a callee whose result a Link this one imports already defines, under the
 same name, is imported, not redefined: two Links defining one theorem cannot be imported
 together (the trust report runs Lean on the roots a group of parts reaches together: the
-server's Link, which reaches `EtcdDeps`, with the apply package's, which imports mvcc's). The
+server's Link with the apply package's, which imports mvcc's). The
 Links searched are those of the `@` callees' packages and those a mode declares it imports
 (`REUSES`: the server's imports mvcc's, which defines encoding/binary's and zap's `Error` too).
 `--skip-unproved` (after the mode) leaves out the listed functions with no proof file yet (no
@@ -116,19 +114,22 @@ in the header: a package proved in units links what is done, from the full list.
 The clients' modes (`--cache`, `--concurrency`, `--leasing`, `--recipes`) state their links over
 the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class of
 `cache/v3/EtcdModel.lean`, which the server instantiates; the vertical slice's unit V1).
-`--raft37` links the raft v3.7 proofs ported so far into the parallel tree `Raft37/` (the
-retarget of the raft proof, `notes/raft-retarget-plan.md`), from etc/link-lean-first-raft37.txt:
-its specs are looked up in `Raft37/Spec/` only (the old raft's, in `Spec/`, have the same Go
-paths), its results are named as the old raft's Link names them.
+`--raft` links the Raft proof (raft v3.7 plus the read-index fix, `Code/go_etcd_io/raft/`;
+`notes/raft-retarget-plan.md`) and the trust-boundary axioms of protobuf-go's `proto` it rests
+on, from etc/link-lean-first-raft.txt (the mode was `--raft37`, into the parallel tree `Raft37/`,
+until stage R6 swapped the trees).
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
 """
-import glob
 import os
 import re
 import sys
 import textwrap
+
+# The v3rpc package's assumptions (the server's model, `v3rpc.etcdModelOfServer`), which the
+# client's watch specs take besides the client's (the watch slice's unit W-C).
+SRV_ASSUMPTIONS = "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions"
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
 # are stated under, a description for the header, the module roots holding their specs).
@@ -143,7 +144,7 @@ LEAN_FIRST = {
                  "go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
                  "go_etcd_io.etcd.server.v3.etcdserver.Assumptions",
                  "The etcd server's proofs (the consistent index and the apply thread)",
-                 ["", "EtcdDeps"]),
+                 [""]),
     "--concurrency": ("link-lean-first-concurrency.txt",
                       "go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3",
                       "go_etcd_io.etcd.client.v3.concurrency.Assumptions",
@@ -183,13 +184,13 @@ LEAN_FIRST = {
                 "The server's `apply` package's proofs (etcd's `server/v3/etcdserver/apply`) and the "
                 "functions they call", [""]),
     # the gRPC KV service (etcd's server/v3/etcdserver/api/v3rpc), over the server's request
-    # path; its assumptions include the server's (whose Link reaches EtcdDeps)
+    # path; its assumptions include the server's
     "--v3rpc": ("link-lean-first-v3rpc.txt",
                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc go_etcd_io.etcd.server.v3.etcdserver "
                 "go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3",
                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions",
                 "The gRPC KV service's proofs (etcd's `server/v3/etcdserver/api/v3rpc`) and the "
-                "functions they call", ["", "EtcdDeps"]),
+                "functions they call", [""]),
     # the client's KV path over gRPC (unit C1, the client meets the server)
     "--client": ("link-lean-first-client.txt", "go_etcd_io.etcd.client.v3 go_etcd_io.etcd.api.v3",
                  "go_etcd_io.etcd.client.v3.Assumptions",
@@ -217,11 +218,11 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.register go_etcd_io.raft.v3",
                    "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
                    "The register example's proofs (`examples/register`)", [""]),
-    # raft v3.7 plus the read-index fix, the parallel tree the raft proof is ported into
-    # (project raft37 of etc/goose.py): its specs are Raft37/Spec's alone
-    "--raft37": ("link-lean-first-raft37.txt", "go_etcd_io.raft.v3",
-                 "go_etcd_io.raft.v3.Assumptions",
-                 "The raft v3.7 proofs ported so far (the parallel tree `Raft37/`)", ["Raft37"]),
+    # the Raft proof (raft v3.7 plus the read-index fix, project raft of etc/goose.py) and the
+    # trust boundary of protobuf-go it rests on (Spec/google_golang_org/protobuf/proto/, stage R1)
+    "--raft": ("link-lean-first-raft.txt", "go_etcd_io.raft.v3",
+               "go_etcd_io.raft.v3.Assumptions",
+               "The Raft proof (raft v3.7 plus the read-index fix)", [""]),
     # porcupine (third_party/porcupine), the linearizability checker of etcd's robustness tests
     "--porcupine": ("link-lean-first-porcupine.txt", "github_com.anishathalye.porcupine",
                     "github_com.anishathalye.porcupine.Assumptions",
@@ -254,7 +255,9 @@ EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3r
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}
-mode = LEAN_FIRST.get(sys.argv[1])
+mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
+if mode is None:
+    sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
 em = "variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else ""
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
@@ -263,7 +266,7 @@ root = os.path.normpath(os.path.join(here, ".."))
 # function name -> the module path below Spec/ and Proof/ (`go_etcd_io.raft.v3.tracker.NewInflights`)
 # (a bare `<fn>` shared by two packages, as `Error` of `rpctypes` and `status`, is
 # ambiguous: such a function is named `<last component of pkg>_<fn>` only)
-# (`prefix`: the module root of a spec outside `Spec/`, as `EtcdDeps.`)
+# (`prefix`: the module root of a spec outside `Spec/`, a part's; none now)
 where, prefix, ambiguous = {}, {}, set()
 for mroot in (mode[4] if cache else [""]):
     spec_dir = os.path.join(root, mroot, "Spec")
@@ -274,9 +277,9 @@ for mroot in (mode[4] if cache else [""]):
                 *pkg, stem = rel.split(os.sep)
                 qual = pkg[-1] + "_" + stem
                 if qual in where and where[qual] == ".".join(pkg + [stem]) and prefix[qual] == "":
-                    # the same Go function in a later root (the server's `EtcdDeps`: etcd's
-                    # raft v3.7, whose Go path is the verified raft's; no module imports both):
-                    # the later root's spec is the one this mode links
+                    # the same Go function in a later root (a part's, as the server's
+                    # `EtcdDeps` was, etcd's raft v3.7 under the verified raft's Go path): the
+                    # later root's spec is the one this mode links
                     prefix[qual] = prefix[stem] = mroot + "."
                     continue
                 assert qual not in where, f"two specs for {qual}"
@@ -297,28 +300,14 @@ def proof_module(fn):
     return f"{prefix[fn]}Proof.{where[fn]}"
 
 fns, callees, external, pending = [], {}, set(), set()
-if not cache:
-    rocq = sys.argv[1]
-    fns = sorted(os.path.basename(f)[5:-2] for f in glob.glob(os.path.join(rocq, "spec_*.v")))
-    modtype = {}
-    for fn in fns:
-        m = re.search(r"Module Type (\w+)\.", open(os.path.join(rocq, f"spec_{fn}.v")).read())
-        modtype[m.group(1)] = fn
-    for fn in fns:
-        src = open(os.path.join(rocq, f"postulates_{fn}.v")).read()
-        callees[fn] = [modtype[n] for n in re.findall(r"Include (\w+)\.", src)]
-
-# Lean-first functions: no spec_/postulates_ files; `etc/link-lean-first.txt`
-# (`etc/link-lean-first-cache.txt` for the cache)
-with open(os.path.join(here, mode[0] if cache else "link-lean-first.txt")) as f:
+# the mode's functions and their callees (`etc/link-lean-first-<mode>.txt`)
+with open(os.path.join(here, mode[0])) as f:
     for line in f:
         line = line.split("#")[0].strip()
         if not line:
             continue
         fn, _, cs = line.partition(":")
         fn = fn.strip()
-        # a Rocq-side function may be listed to override its postulates (a Rocq
-        # `Axiom` proved here from callees the Rocq does not have)
         if fn not in callees:
             fns.append(fn)
         if cs.strip() == "@":
@@ -459,8 +448,11 @@ hand.
                if fn not in external and fn not in pending and fn not in reused)
     out.extend(f"public import {m}" for m in EXTRA_IMPORTS.get(sys.argv[1], []))
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
-    out.extend(sorted({"public import " + external_link(fn) for fn in external}
-                       | {f"public import {mod}" for mod in reused.values()}))
+    # an `@` callee whose package has no `Link.lean` of its own is linked by one of the other
+    # imported Links (raft's links protobuf-go's `proto` axioms, which the register names)
+    out.extend(sorted({"public import " + external_link(fn) for fn in external
+                       if os.path.exists(os.path.join(root, *external_link(fn).split(".")) + ".lean")}
+                      | {f"public import {mod}" for mod in reused.values()}))
     out.append(f"""
 @[expose] public section
 
@@ -506,6 +498,9 @@ variable [package_sem : {assumptions}]
         # mvcc's index specs use the btree through the cache's interface (its assumptions), and
         # so does every result that links one of them
         allg += " [go_etcd_io.etcd.cache.v3.Assumptions]" if fn in cache_assumptions else ""
+        # the client's watch specs are stated at the server's model (the watch slice's unit W-C:
+        # `v3rpc.etcdModelOfServer`), under the v3rpc package's assumptions too
+        allg += f" [{SRV_ASSUMPTIONS}]" if fn in srv_assumptions else ""
         # ... or, stated over any raft storage model, that (the register's transport)
         if "[RegStor GF]" not in src and "[StorageModel GF]" in src:
             allg += " [StorageModel GF]"
@@ -540,6 +535,17 @@ variable [package_sem : {assumptions}]
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
                 or any(c in cache_assumptions for c in callees[fn])):
             cache_assumptions.add(fn)
+
+    # the results whose specs take the v3rpc package's assumptions besides the mode's (the
+    # client's watch specs, at the server's model), and every result linking one of them
+    srv_assumptions = set()
+    if assumptions != SRV_ASSUMPTIONS:
+        for fn in order:
+            if fn in reused or fn in external:
+                continue
+            if (f"variable [srv_sem : {SRV_ASSUMPTIONS}]" in open(spec_file(fn)).read()
+                    or any(c in srv_assumptions for c in callees[fn])):
+                srv_assumptions.add(fn)
 
     # the results that reach a pending function, and the pending functions themselves: emitted
     # last, with the pending specs as hypotheses
@@ -587,60 +593,3 @@ include {names}
     out.append((f"end {nsd}\n" if nsd else "") + "end EtcdGrove\nend Perennial")
     print("\n".join(out))
     sys.exit(0)
-
-out = []
-out.append("""/-
-Port of `election_proof/election.v` and the `link_*.v` files (857d09190): every proof
-instantiated with its callees' results, in the order of its `postulates_*.v`.
-Generated by `etc/gen-link.py` -- do not edit by hand.
-
-`#print axioms` on a result is its trust base: an `axiom` is the trust boundary (the
-`Proof/<fn>.lean` of a function outside the scope), `sorryAx` is unfinished work.
--/""")
-out.append("module")
-out.append("")
-for fn in fns:
-    if fn not in external:
-        out.append(f"public import {proof_module(fn)}")
-# `@` callees (etcd-grove's `fmt.Errorf` axiom): linked in their own package's `Link.lean`
-out.extend(sorted({"public import " + external_link(fn) for fn in external}))
-out.append("""
-@[expose] public section
-
-noncomputable section
-
-namespace Perennial
-namespace EtcdGrove
-
-open Iris Iris.BI go_etcd_io.raft.v3
-""")
-
-VARS = """variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-{heap}
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-"""
-
-
-def emit(fn):
-    args = " ".join(result(c) for c in callees[fn])
-    body = f"{spec[fn]}.wp_proof" + (f" {args}" if args else "")
-    return (f"theorem {result(fn)} :\n    {spec[fn]}.spec (GF := GF) (hG := hG) :=\n"
-            f"  {body}\n")
-
-
-generic = [fn for fn in order if fn not in haslc and fn not in external]
-special = [fn for fn in order if fn in haslc and fn not in external]
-assert all(c not in haslc for fn in generic for c in callees[fn])
-out.append("section links\n" + VARS.format(
-    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]"))
-out.extend(emit(fn) for fn in generic)
-out.append("end links\n")
-out.append("""/-! The specs stated at `HeapGS HasLC.hasLC GF`: the ghost state holds an
-invariant (`raftCommitInv`), whose world is the heap's only at `.hasLC`. -/""")
-out.append("section links_hasLC\n" + VARS.format(
-    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]"))
-out.extend(emit(fn) for fn in special)
-out.append("end links_hasLC\n\nend EtcdGrove\nend Perennial")
-print("\n".join(out))

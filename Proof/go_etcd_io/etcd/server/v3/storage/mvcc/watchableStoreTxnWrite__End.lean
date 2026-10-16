@@ -105,7 +105,10 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   rw [if_pos hws]
   icases Hpop with ⟨-, Hwf⟩
   iunfold mvcc.evsWf at Hwf
-  icases Hwf with ⟨%L, #Hlb, %Hf⟩
+  icases Hwf with ⟨%L, #Hs, %Hf⟩
+  ihave #Hs' := mvcc.evLog_sealed _ _ $$ Hs
+  iunfold mvcc.idxSealed at Hs'
+  icases Hs' with ⟨#Hlb, -⟩
   ihave %hp := mono_list_auth_lb_valid _ _ _ _ $$ Hauth Hlb
   ipureintro
   intro _ _ _
@@ -471,7 +474,15 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   ihave Hcw : mvcc.isTxnWriteCore mw st γ.st trace ilog pend puts deletes putSize chs ps false $$
     [Hmw Hcore Htrc]
   · iunfold mvcc.isTxnWriteCore; iexists stw, ranges; iframe
-  imod mvcc.isTxnWriteCore_seal _ _ _ _ _ _ _ _ _ _ hne $$ Hcw with ⟨Hcw, #Hlb⟩
+  imod mvcc.isTxnWriteCore_seal _ _ _ _ _ _ _ _ _ _ hne $$ Hcw with ⟨Hcw, #Hsl⟩
+  -- the caller's certificate of the log after (unit W-M3): the events carry it
+  ihave #Hok : mvcc.certOk γ.st (ilog ++ [pend]) $$ []
+  · iunfold mvcc.certOkNext at HokN
+    icases HokN with (%Hn | #H)
+    · exact absurd Hn hne
+    · iexact H
+  ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
+  · iunfold mvcc.evLog; iframe Hsl Hok
   wp_apply (hNotify s st γ σ ilog pend esl (DFrac.own 1) done evd) $$
     [$Hws0 $HP $Hlb $Hesl $Hdone] as ⟨Hesl, %σ', HP, %Hσ'⟩
   · ipureintro

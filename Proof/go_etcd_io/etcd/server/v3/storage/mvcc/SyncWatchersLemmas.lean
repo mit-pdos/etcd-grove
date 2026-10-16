@@ -626,18 +626,16 @@ theorem sw_bigSepM_step {V : Type} {Φ Ψ : Loc → V → IProp GF} (m : GMap Lo
   rw [h2] at hk; cases hk
 
 /-- A watcher's delivered events extended with the range's events of a certified log from where
-they stopped. -/
+they stopped (the caller's certificate of it, `certOk`, with it: unit W-M3). -/
 theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List EvM) (m D : Nat)
     (C : Log) (hm : m ≤ D) (hD : D ≤ C.length) (hlo : lo ≤ m) :
-    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ⊢
+    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ⊢
       evsWf γ r lo (evsw ++ watchEvents C r m D) D := by
-  iintro ⟨Hwf, #HC⟩
+  iintro ⟨Hwf, #HC, #HokC⟩
   iunfold evsWf at Hwf
   icases Hwf with ⟨%L, #HlbL, %HL⟩
-  iunfold idxCert at HC
-  icases HC with ⟨#HlbC, -, -, -⟩
-  ihave %Hcmp := mono_list_lb_valid _ _ _ $$ HlbC HlbL
-  have hcmp := histOf_cmp_log Hcmp
+  ihave #HlbC := evLog_of_cert _ _ $$ [$HC $HokC]
+  ihave %hcmp := evLog_cmp _ _ _ $$ HlbC HlbL
   iunfold evsWf
   iexists C
   iframe HlbC

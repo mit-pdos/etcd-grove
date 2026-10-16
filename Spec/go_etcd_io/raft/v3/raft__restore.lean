@@ -36,12 +36,22 @@ restore the node is at the configuration the `ConfState` denotes (`snapCfg sv cl
 
 Lean notes: Rocq's `snap_scope` and `restore_result` are `SnapScope` and
 `RestoreResult` (Prop-valued definitions).
+
+raft v3.7 (2026-10-15, stage R4): `s` is a `*pb.Snapshot` (`sp`), owned with its metadata set
+(`ownSnapE sp 1 sv`, as `handleSnapshot`'s `EnsureSnapshot` leaves it; `EnsureConfState` may
+write a nil field, which reads the same) and given back, the record unchanged (D7: once past the
+early exits, its conf state frozen read-only with its `AutoLeave` set, `csOptA`'s third case,
+which `ownSnapE` admits); `raftLog.restore` clones it (R3). The lists `cl` are the snapshot record's (`cl = sv.Metadata'.ConfState'.lists`;
+until the retarget the caller's read-only slices, `ownCSL`). The `section results` (`SnapScope`,
+`CSLists.Has`, `snapCfg`, `RestoreResult`, `restoreCfg`) moved verbatim to
+`Proof/.../SpecResults.lean` in R1.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Proof.go_etcd_io.raft.v3.Plog
 public import Proof.go_etcd_io.raft.v3.InvRestore
+public import Proof.go_etcd_io.raft.v3.SpecResults
 
 @[expose] public section
 
@@ -51,55 +61,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
-
-section results
-variable [FfiSyntax]
-
-/-- The scope for a snapshot's `ConfState`; see the file header. -/
-def SnapScope (sv : raftpb.Snapshot) (cl : CSLists) : Prop :=
-  let cs := sv.Metadata'.ConfState'
-  CSWf cl.outgoing cl.voters cl.learners cl.learnersNext ∧
-  cl.voters.Nodup ∧ cl.learners.Nodup ∧ cl.outgoing.Nodup ∧ cl.learnersNext.Nodup ∧
-  (cl.voters.length + cl.learners.length + cl.outgoing.length + cl.learnersNext.length : Int)
-    ≤ 2 ^ 62 ∧
-  (cl.outgoing = [] → cs.AutoLeave' = false) ∧
-  uint.Z sv.Metadata'.Index' < 2^61
-
-/-- `id` is in one of the sets `restore`'s `found` search reads: an incoming voter, a learner or
-an outgoing voter (2026-10-14, reconfiguration stage B8; a staged learner is an outgoing voter,
-`CSWf`). -/
-def CSLists.Has (cl : CSLists) (id : w64) : Prop :=
-  id ∈ cl.voters ∨ id ∈ cl.learners ∨ id ∈ cl.outgoing
-
-/-- The configuration a snapshot's `ConfState` denotes (2026-10-14, reconfiguration stage B8). -/
-abbrev snapCfg (sv : raftpb.Snapshot) (cl : CSLists) : CfgM :=
-  csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext sv.Metadata'.ConfState'.AutoLeave'
-
-/-- The three exits of `restore`; see the file header. -/
-def RestoreResult (s : NState) (sv : raftpb.Snapshot) (cl : CSLists) (b : Bool) (s' : NState) :
-    Prop :=
-  let ls := s.logst
-  let es := ls.sents ++ ls.uents
-  let sid := snapId sv
-  (uint.Z sid.index' ≤ uint.Z ls.committed ∧
-   b = false ∧ s' = s)
-  ∨
-  (uint.Z ls.committed < uint.Z sid.index' ∧
-   PlogMatches ls.prev es sid ∧ b = false ∧
-   s' = { s with logst := { ls with committed := sid.index' } })
-  ∨
-  (uint.Z ls.committed < uint.Z sid.index' ∧
-   ¬ PlogMatches ls.prev es sid ∧ b = true ∧
-   ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs,
-                               logst := logRestore ls (snapTrip sv cl), isLearner := il })
-
-/-- The configuration the node is at after `restore` (2026-10-14, reconfiguration stage A3; the
-snapshot's any `ConfState`'s since B8): the snapshot's when it restored (`b`), the one it was
-at otherwise. -/
-def restoreCfg (c : CfgM) (sv : raftpb.Snapshot) (cl : CSLists) (b : Bool) : CfgM :=
-  if b then snapCfg sv cl else c
-
-end results
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -116,17 +77,19 @@ the configuration it denotes, otherwise still at `c` (`restoreCfg`). (Until B8 t
 was non-joint with the voters `cfg`, `SnapScope cfg sv voters learners`, and a statement
 `specS` with the node's own voters; `specS` had no caller and is gone.) -/
 abbrev raft.restore.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sv : raftpb.Snapshot) (cl : CSLists),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (sv : SnapshotM) (cl : CSLists),
   s.role = .follower →
   s.votes = ∅ →
+  cl = sv.Metadata'.ConfState'.lists →
   cl.Has id →
   SnapScope sv cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' cl }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sv))
+      "Hsnap" ∷ ownSnapE sp (DFrac.own 1) sv }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sp))
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗
+      ownSnapE sp (DFrac.own 1) sv ∗
       ⌜RestoreResult s sv cl b s'⌝ }}
 
 end spec

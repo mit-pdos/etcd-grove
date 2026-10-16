@@ -1,1 +1,3 @@
+# raft v3.7.0 plus the single-voter read-index fix (etc/goose.py, project raft37): every
+# function, as for etcd-raft's translation (Code/go_etcd_io/raft/v3.toml).
 trust_proofgen = true

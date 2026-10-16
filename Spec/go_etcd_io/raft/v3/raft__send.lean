@@ -29,6 +29,16 @@ node put it in its outbox. Legality is established once, by `Step`, against
 Lean notes: Rocq's `send_ok` is `SendOk` (a Prop-valued definition). The Rocq
 clause-selection recipes are kept as written; in Lean they are `Or.inl`/`Or.inr` and
 the anonymous constructor.
+
+raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), owned (`msgOwn ml 1`: a message
+the caller built, or a forwarded one frozen by `msgIn_to_msgOwn`), read through its getters;
+`send` writes `m.From = new(r.id)` and `m.Term = new(r.Term)` and queues the pointer, which the
+outbox then owns (`outboxRel`'s `msgQ`). `SendOk` is the old statement over the record's scalars
+(`MessageM`) with "`Entries`/`Context` `nil`" as `ents = []`/`ctx = []`; the `MsgSnap` clause's
+`"Hsnap"` (the snapshot behind `m.Snapshot` and its voters, read through the heap) is now the pure
+premise `SnapOut`: the message holds a snapshot `sv` (`sn = some sv`) and `out` is its
+abstraction, at the lists of its `ConfState` (`sv.Metadata'.ConfState'.lists`, which `msgAbs`
+uses for a queued `MsgSnap`).
 -/
 module
 
@@ -91,7 +101,7 @@ clause per shape a caller builds:
 abstract message carries.
 Until 2026-10-01 `MsgAppResp`, `MsgSnap` and `MsgHeartbeatResp` were under (c),
 invisible to the model. -/
-def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry)
+def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (out : List Msg) : Prop :=
   (∃ ty,
      (m.Type' = MsgVote ∨ m.Type' = MsgVoteResp ∨
@@ -100,7 +110,7 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
      m.Term' ≠ W64 0 ∧
      (m.Type' = MsgVote ∨ m.Type' = MsgPreVote → m.To' ≠ id) ∧
      (m.To' = id →
-        m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧
+        ents = [] ∧ ctx = [] ∧
         uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 1 else 0)) ∧
      (s.prevote = false → uint.Z m.Term' ≤ uint.Z s.term ∧ m.Type' ≠ MsgPreVoteResp) ∧
      out = [absMsgFrom ty m id m.Term' ents ctx])
@@ -126,7 +136,7 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧
    (m.To' = id →
-      m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧ s.term ≠ W64 0 ∧
+      ents = [] ∧ ctx = [] ∧ s.term ≠ W64 0 ∧
       m.Reject' = false) ∧
    out = [absMsgFrom .appResp m id s.term ents ctx])
   ∨
@@ -159,13 +169,22 @@ F3).
 
 **`ents`.** `m.Entries ↦*□ ents` is a precondition: it is what `ownRaftPhys` keeps for
 the queued message (`outboxRel`, `InvRaftPhys.lean`). For a message built without
-`Entries` the field is `slice.nil` and `ents = []` (`ownSlice_nil`).
+`Entries` the field is `slice.nil` and `ents = []` (`ownSlice_nil`). (Stage R4: the message's
+state, `msgOwn ml 1 ⟨m, ents, sn, ctx, rs⟩`, ties `ents` and `ctx` to the heap.)
 
 **`"Hsnap"`** (2026-10-03): for a `MsgSnap`, the snapshot `sv` that `m.Snapshot` points
 to and its `ConfState.Voters` list `voters`, both read-only, and `out` is the
 abstraction at those -- what `ownRaftPhys` keeps for the queued message (`msgAbs`).
 Every other caller discharges it from its message type (`send_no_snap`,
-`InvRaftPhys.lean`). -/
+`InvRaftPhys.lean`). (Stage R4: the pure premise `SnapOut` below; a caller of another type
+discharges it by its message type.) -/
+
+/-- The `MsgSnap` premise of `send` (stage R4): the message holds a snapshot `sv` and `out` is
+its abstraction, at the lists of its `ConfState` (what `msgAbs` uses for a queued `MsgSnap`). -/
+def SnapOut (id : w64) (s : NState) (m : MessageM) (sn : Option SnapshotM)
+    (out : List Msg) : Prop :=
+  m.Type' = MsgSnap →
+    ∃ sv, sn = some sv ∧ out = [absSnapFrom m id s.term sv sv.Metadata'.ConfState'.lists]
 
 end send_ok
 
@@ -186,8 +205,9 @@ unchanged after (`NState.prvals`), and holds `ents` (read-only) across it.
 From 2026-09-21 to 2026-09-22 this was stated on a variant predicate, `own_raft_bare`;
 see notes/decisions.md ("Three layers") and notes/false-statements.md, 2026-09-21. -/
 abbrev raft.send.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) (out : List Msg),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (out : List Msg),
   -- `From` unset, or already the node's own (`RawNode.Propose` stamps `From: r.id`
   -- before `Step`; a follower forwards that proposal as it is). Either way the queued
   -- message has `From = id`.
@@ -196,45 +216,36 @@ abbrev raft.send.spec : Prop :=
   -- transferee
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
+  SnapOut id s m sn out →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hents" ∷ m.Entries' ↦*□ ents ∗
-      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
-      "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-                    ∃ (sv : raftpb.Snapshot) (voters : CSLists),
-                      ⌜out = [absSnapFrom m id s.term sv voters]⌝ ∗
-                      m.Snapshot' ↦□ sv ∗
-                      ownCSL sv.Metadata'.ConfState' voters) }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
+      "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.send.spec` by `raft.send.spec_simple`. -/
 abbrev raft.send.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) (out : List Msg),
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (out : List Msg),
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
+  SnapOut id s m sn out →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "#Hents" ∷ m.Entries' ↦*□ ents ∗
-      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
-      "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-                    ∃ (sv : raftpb.Snapshot) (voters : CSLists),
-                      ⌜out = [absSnapFrom m id s.term sv voters]⌝ ∗
-                      m.Snapshot' ↦□ sv ∗
-                      ownCSL sv.Metadata'.ConfState' voters) }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
+      "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhys cfg r id (sendMsgs s out) }}
 
 open Iris.ProofMode in
 theorem raft.send.spec_simple
     (H : raft.send.spec (GF := GF) (hG := hG)) :
     raft.send.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents ctx out Hfrom Hok
-  iintro %Φ ⟨#Hpkg, Hphys, #Hents, #Hctx, #Hsnap⟩ HΦ
+  intro cfg r id s ml m ents sn ctx rs out Hfrom Hok Hsn
+  iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   ihave Hphys := ownRaftPhys_toC _ _ _ _ $$ Hphys
-  iapply H _ r id s m ents ctx out Hfrom Hok $$ [$Hpkg $Hphys $Hents $Hctx $Hsnap]
+  iapply H _ r id s ml m ents sn ctx rs out Hfrom Hok Hsn $$ [$Hpkg $Hphys $Hm]
   inext
   iintro Hphys
   icases ownRaftPhysC_simple_toPhys _ _ _ _ _ $$ Hphys with ⟨Hphys, -⟩

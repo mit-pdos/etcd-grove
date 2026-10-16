@@ -278,6 +278,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       wp_apply (hSend γ key γw r fcs stw.ch (1 : Qp).half (1 : Qp).half evsw (sint.nat stw.minRev) _ ps
           b.evs (DFrac.own 1)) $$ [Hchf Hl HevS Hsl] as %ok ⟨Hchf, Hl, Hsl, HevS⟩
       · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB
+        isplitr
+        · ileft; ipureintro; rfl
         ipureintro
         refine ⟨Hlen, rfl, fun _ => rfl, ?_, ?_⟩
         · intro ev hev; have := (hevs ev hev).2; simp only; rw [hrev]; omega

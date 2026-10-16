@@ -6795,6 +6795,189 @@ proved).
 
 ---
 
+## The client's watch over the stream: per-stream answer and id tokens, run's dispatch cursor, premises for what the server does not yet state (unit W-C, 2026-10-15 · adopted)
+
+- **A created response is the head's**: the client sends one create at a time (only the head of
+  `resuming`), and the server answers each request at most once: `recvLoop` mints an exclusive
+  answer token per received request (`ansTok`, from a pool named in the stream's auxiliary name)
+  and hands it with the control response. `run` keeps the tokens of the answered positions, so a
+  `Created` answers the one unanswered create. *Rejected:* a monotone "answered position" in the
+  response model (a ghost field of `WatchRespM` and a send-order invariant in `sendLoop`: more
+  W-S surgery for the same fact).
+- **The stream's auxiliary name** (`StreamNames.aux`, `streamAuxTok`/`streamAuxIs`): the handler
+  allocates its per-stream ghost state (the mvcc stream's names `γo`, the answer pool `γa`) after
+  the stream specification is fixed, and publishes them once; the specification can then name
+  them (`ctrlOk`'s `∃ γo γa, streamAuxIs γs (auxOf γo γa)`), and agreement makes every response's
+  names the same. A new field of `StreamNames` and one premise of `grpcStreamMethodOk`: the
+  stream interceptors' contracts are unchanged.
+- **An announced id is new** (`idTok`, an exclusive token per id `watchStream.Watch` assigns,
+  beside the persistent `idAssigned`): without it a second `Created` with an id `run` already
+  registered (and whose substream the server's `Canceled` made it close) would let `run` send on
+  a closed channel in the model; with `idLive` (an mvcc response's id is live after the responses
+  before it: the send loop's `ids`) no response reaches a closed substream.
+- **`run` dispatches with the contract's facts already established** (`recvElem`): each response
+  sent to a substream carries `rangeWatchRespOk` relative to `run`'s dispatch cursor `γhi`, a mono
+  list `run` extends at each successful send; the substream publishes it on `outc` with the
+  contract's own cursor `γ.cur`. A failed send (the substream stopped: the select took `donec`)
+  leaves `γhi` as it was, and later sends to it carry the stopped goroutine's exit flag instead
+  (`γx`, published by `donec`), so the cursor never has to account for an undelivered response.
+- **What the server does not state is a named premise** (S2 `srvProgressAllAnswers`, S3
+  `srvEventIdsAssigned`, S4 `srvWatchCert`), each a fact of etcd's server that needs the mvcc
+  channel invariant to name stream-level facts (S2, S3) or the commit point moved (S4); and
+  `srvNoDupKeys` (no revision writes a key twice), which etcd's server does not guarantee
+  (`issues/etcd-txn-check-intervals-sibling.md`). *Rejected:* weakening the clients' contract
+  (it is fixed: the cache and the recipes rest on it).
+- **The reconnection is excluded, not proved** (`noRetryableStreamErr`): `watch.go`'s resume can
+  send on a closed channel (`issues/etcd-watch-resume-closing-substream.md`), so no proof of
+  `run` covers it; the premise names the transport's codes `run` retries on.
+
+## The watch client's server facts in the mvcc channel invariant (unit W-M2, 2026-10-16 · adopted)
+
+- **Registration-time facts live in the channel's invariant**, the only thing `sendLoop` (which
+  never takes `ws.mu`) can open, and they must be there before the first response for the
+  watcher, which `notify` may send before `watchStream.Watch` returns. So `watchableStore.watch`
+  takes a **registration callback** (`∀ w, ⌜w ≠ null⌝ -∗ |==> chanIdAssigned γc id w ∗ Back w`,
+  the caller's `Back` returned): the store applies it as it adds `w` to the channel's registered
+  list and keeps `chanRegFact γc w` (the watcher's fixed id assigned to it, not `-1`) for every
+  registered watcher; the stream's caller supplies it from its id map's authority (the map is the
+  channel's: `γo.ids = γc.ids`). *Rejected:* per-registration id tokens in `chanWatcher` (the same
+  fact, more surgery in every lemma over `chanWatcher`); an explicit id (`watchStream.Watch` with
+  `id ≠ 0`) — it can be a reused one (`issues/etcd-watch-id-reuse-stale-events.md`), whose
+  watcher cannot be inserted; the stream's spec covers auto ids, the only ids the server under
+  `watchReqOk` uses.
+- **The progress fact is a saved proposition fixed at the channel's creation** (`prog`,
+  `progFact g := ∃ Q, savedPropOwn g □ Q ∗ □ Q`): mvcc cannot name the gRPC stream's request
+  queue, so the handler chooses what a response of id `-1` means (`NewWatchStream`'s `Q`, the
+  server's `progQ γs := ∃ i, upAtW γs i .progress`), `recvLoop` provides it at
+  `RequestProgressAll`, the channel invariant keeps it with every response of id `-1` sent, and
+  `sendLoop` gets `Q` back by agreement (under a later, stripped because `progQ` is timeless).
+  *Rejected:* an `IProp`-valued field of `WatchChanNames` (a parameter of every predicate over the
+  channel's names, for no gain).
+- **S4 stays a premise: a certificate issued at the seal is unsound for the server proof's
+  reads.** The planned fix (an `idxCert` over a sealed-log mono list, so a watch event's revision
+  is certified at the notify) would make every certificate a floor that `store.Read` no longer
+  meets: `watchableStoreTxnWrite.End` notifies before `storeTxnWrite.End` bumps `currentRev`, and
+  a read (`s.mu.RLock`, `revMu.RLock`, not the watchable store's lock) in between answers the
+  previous revision. The clients' contracts allow it (serializable gets get no floor), but the
+  server proof's `store.Read` (`log₀ <+: log`) and `rangeReplyOk` (`F <+: log`, serializable reads
+  included) do not. Fixing it needs committed certificates for `store.Read` and its callers, no
+  floor for serializable range replies, and a linearizable-read argument that a floor sealed
+  before the request is committed when the read is served (the apply wait): the user's call.
+
+## Sealed logs for the watch path, the clients' model over sealed logs (unit W-M2b, 2026-10-16 · adopted)
+
+- **The watch path carries a seal, not a certificate.** `mvcc.idxSealed γ log` is `idxCert`
+  without the committed log's lower bound (and the events' count): the history's lower bound and
+  the log's well-formedness, both available at the seal (`idxWriter_seal`, from `IdxWf`). Two
+  sealed logs are in prefix order through the history alone (`histOf_cmp_log`), which is all the
+  watch facts and the clients' model's laws need. *Rejected:* a certificate issued at the seal
+  (W-M2: every certificate is a read floor that `store.Read` does not meet in the gap between
+  `notify` and `storeTxnWrite.End`'s commit); `idxSealed ∗ idxLogAuth ⊢ log <+: ilog` (false in
+  the gap; the writer has `histOf_prefix_shape_log`).
+- **Reads keep `idxCert`.** `idxCert` means committed; `store.Read`'s `log₀ <+: log`,
+  `rangeReplyOk`'s `F <+: log` and every floor stay. The model's `etcdState` and `EtcdStep` are
+  over sealed logs (`srvLog`): their laws are about one log's content and are not floors, and the
+  read path reaches them through `idxCert_sealed` (`etcdState_of_cert` a corollary).
+- **`etcdReachedAt` stays over certified logs** (superseded by unit W-M3: over `certOk`, with the
+  floors from the clients' updates), against the brief's design: `etcdReached lo` is
+  the floor of a later read (`floor_of_reached` into `rangeReplyOk`), so over sealed logs it
+  would need the floor the W-M2 failure is about. What a watch event's `etcdReached e.rev` needs
+  is therefore the narrowed premise `srvSealedReached` (a sealed log's revisions are reached),
+  false in the gap as S4 was, now confined to reachedness. Its discharge is W-M2's server-side
+  redesign (committed certificates for reads, no floor for serializable replies, a
+  linearizable-read argument through the apply wait).
+- **The size and no-duplicate premises move to sealed logs** (`storeSmall`, `srvLogsSmall`,
+  `srvNoDupKeys`): their justifications (the store's size; a transaction's writes per revision)
+  do not depend on the revision being committed.
+
+## `etcdReached` as a committed KV certificate; floors from the committed state (unit W-M3, 2026-10-16 · adopted)
+
+- **`etcdReached r` is a certified log's revision**: `srvReachedAt E r := ∃ log, certOk E.γ log ∗
+  ⌜sint.Z r < log.length⌝`, where `certOk` (mvcc's caller's certificate, unit T1) is, for the
+  server, the KV model of a committed raft prefix (`kvCertInv`, `kv_cert_read`). The apply thread
+  mints it for an entry's log before applying the entry, and `watchableStoreTxnWrite.End` takes it
+  (`certOkNext`) before it notifies, so a watch event can carry it (`mvcc.evLog`: `idxSealed` and
+  `certOk`), and S4 (`rangeWatchEvOk`'s `etcdReached e.rev`) is a theorem (`ev_ok`).
+- **Why not mvcc's certificate (`idxCert`) as the floor.** `idxCert` means committed in mvcc:
+  every later read's log extends it (`store.Read`'s `log₀ <+: log`), serializable reads included.
+  A notified revision is not yet committed in mvcc (etcd takes `revMu` only in
+  `storeTxnWrite.End`, after `notify`), so a certificate at the seal (W-M2) or `etcdReached` over
+  sealed logs (W-M2b) made a serializable read's floor false. The clients' model never asked a
+  floor of serializable reads (`kvGetResult`: `serializable = false → lo ≤ r`), and the
+  linearizable floor is a raft fact: a linearizable read linearizes at the committed KV state,
+  which extends every log the server certified. So the floor moves from mvcc to the clients'
+  atomic updates (T1/T2), and the specs' mvcc floor `F <+: log` stays as an mvcc fact for a caller
+  that holds an `idxCert F` (in the derivations, the read side's first certificate).
+- **The floor mechanism: a monotone counter in the client's invariant**, not a snapshot in the KV
+  ghost state. A client holding `etcdKV` keeps it with `monoNatAuthOwn γm 1 σ.rev`
+  (`kvClientInv`); at a request, opening its invariant and the server's (`kvInv`, `kvCertInv`,
+  `srvRaftLogInv`), `etcdKV σ` agrees with the committed log's state, which extends the certified
+  log (`kv_cert_floor`), so the counter's lower bound is at least the certified log's last
+  revision (`kv_client_floor`); at the firing, the counter is at least that bound (every update
+  moves it up, `kvOpStep_rev`), so the update's result is the floor (`kvAnyAu E γ`). *Rejected*:
+  the brief's snapshot authority inside `etcdKV` (a mono list of the state's log in halves with
+  `kvInv`, lower bounds minted with each certificate in `kvCertInv`): it changes `etcdKV`, `kvInv`,
+  `KVNames`, `kvInv_alloc` and every firing of T1/T2 (`kv_prop_au`, `kv_noop_au`, `kv_fire_reads`,
+  `kv_read_compose`) for what a client's own invariant gives without touching them; (a) the
+  snapshot in `kvAu`'s atomic precondition (the same churn in every update's statement); (b) a raft
+  index argument (`committedAtLeast` from `srvRLogLb`): the server's committed index lags raft's,
+  so a certified log's raft prefix gives no `committedAtLeast`.
+- **The update's state is the write's** (needed for the writes' floors): the proposer's witness is
+  collected at the occurrence the reply is of, and the result now names the log the entry met
+  (`resultIsW`, `appliedOk`, `entryWit` take `lb`; the apply thread builds `entryWit` at the entry's
+  position after its applied raft log), so `EtcdServer.Put`/`DeleteRange`/`Txn` give `□ Q (kvStateOf
+  x.log)`, T2's "refinement for the next unit". A read-only `Txn` takes a read deposit as `Range`
+  (the same read loop): its linearizable floor is its read update's result at the state read.
+- **A writing transaction with a lease** has no update (T3), so its premise
+  (`kvLeasedCommitTodo`) is now stated in the clients' model (`txnCommitResultTok` from
+  `etcdReached lo`), as `kvLeasedPutTodo` was.
+
+## The recipes are verified against the closed-watch fix (unit W-Q, 2026-10-16 · adopted)
+
+**The rule and the precedent.** The verified etcd is upstream main plus the commits that make it
+translatable plus bug fixes only ("No code changes unless a bug"): until now the one fix of
+`cache-ready-after-retry` (`64313a1f8`). The recipes' closed-watch findings
+(`issues/recipes-dequeue-closed-watch.md`, `issues/recipes-barrier-wait-closed-watch.md`) are bugs
+(a reachable nil dereference in `Dequeue`, a false release in `Barrier.Wait` and
+`DoubleBarrier.Enter`), so their fix qualifies. The user decided to fold it in: the fork commit
+`0aa6c6af8` (branch `recipes-closed-watch-channel`) is cherry-picked onto `goose-lean` as
+`0df483bee` (the conflict with the Gooseable rewrite of `waitEvents`' loop resolved by keeping the
+rewrite and adding the fix's lines), the pin `etc/goose.py` names.
+
+**Why not keep the premise.** The recipes' proofs took `isEtcdRangeWatcherOpen` (the range-watch
+contract with the SPSC close predicate `False`) as a premise of the client bundle. The watch slice
+(W-C) proved that etcd's client watcher meets only the closable contract `isEtcdRangeWatcher`
+(close predicate `True`), and the Open variant is false of it: `watch.go` closes the channel when
+the watch's context is done, on `Close()`, on a halting stream error, when the server cancels the
+watch (a compaction past its start revision), on a failed create. It is not a corollary of
+`isClientWatcher V w` under any persistent fact about `w`: what would make it true (a context never
+done, no `Close`, a transport that never fails, a server that never cancels) is about the
+environment's future, not the watcher. *Rejected: a refined premise* (a per-watch promise of no
+cancellation and no close while a recipe waits, or a liveness premise on etcd's compaction): it
+would be a premise on how the client is used and on the server's compaction policy, which the
+code as shipped silently mishandles when it fails; stating it would not gain trust in any result
+over the recipes' behaviour, only move the bug out of the statement. With the fix the premise is
+unnecessary.
+
+**The fix** (`watch.go`, `client.go`): `waitEvents` returns `(*clientv3.Event, error)`; a response
+whose `Err()` is non-nil (a canceled watch: `ErrCompacted`, ...) returns `(nil, err)` before its
+events are read; a channel that closes before the awaited events returns `(nil, ErrWatchClosed)`,
+a new package error. `WaitEvents`/`WaitPrefixEvents` return that pair; their callers already
+propagated `WaitEvents`' error (`Dequeue`: `"", err`; `Barrier.Wait`, `DoubleBarrier.Enter`/`Leave`:
+`err`; `RWMutex.waitOnLastRev`: `false, err`).
+
+**What the proofs now say.** `waitEvents.spec` is over the closable channel: `(ev, nil)` with the
+awaited event (`waitedEvent`) and the consumer token back, or `(nil, err)` with `err ≠ nil` (the
+consumer token not returned: a close consumes it, `spsc_rcv_au`; the callers drop it anyway). The
+error branch reads `wresp.Err()`'s spec, whose precondition `statusErrOk` the element predicate
+carries, and `ErrWatchClosed` from `recipesInit` (a fixed non-nil error, as the four others).
+`WaitEvents`/`WaitPrefixEvents`: `(⌜err = nil⌝ ∗ waitedEvent …) ∨ ⌜err ≠ nil⌝`. The callers' specs
+already had an error disjunct: they take it on a closed or canceled watch; none changed form. The
+bundle `isEtcdRecipesClient` takes `isEtcdRangeWatcher`; `isEtcdRangeWatcherOpen` is deleted. So
+the queue is end to end over etcd's real client watcher (`queue_end_to_end_client`: the watcher
+contract from `isClientWatcher V w` by `isEtcdRangeWatcher_of_watcher`, at `V.R.E = E` and
+`V.pfx = kp`), with no premise about the watch beyond the wire's (`watchConnFacts`).
+
 ## Retargeting raft in a parallel tree
 
 **2026-10-15 · accepted (stage R0, branch `raft-retarget`)**
@@ -6831,3 +7014,563 @@ proved).
   `PbModel.lean`'s `EntryM`, `MessageM`, `ConfChangeSingleM` keep the old field names, so the model
   ports by a type rename; porting `quorum`/`tracker` needed it because their shared definitions
   import the model. The names and the rest of the design are for the review of the plan.
+
+---
+
+## The protobuf runtime as raft's trust boundary
+
+**2026-10-15 · accepted (stage R1 of the raft v3.7 retarget, branch `raft-retarget`)**
+
+In raft v3.7 the raftpb messages are protobuf-go v2 structs: pointer fields read through
+generated getters, plus three fields of protobuf's runtime (`state`, `sizeCache`,
+`unknownFields`); marshalling, sizing, cloning and comparing go through
+`google.golang.org/protobuf/proto` (names-only in the translation). The proof's boundary is
+drawn there:
+
+- **Translated and proved**: everything raftpb's own Go code does: the 40 getters, the four
+  `Enum()`s, `Ensure*` (`raftpb/util.go`), the conf-change codec (`AsV1`/`AsV2`, `EnterJoint`,
+  `LeaveJoint`, `MarshalConfChange`) and `ConfState.Equivalent`. None of it needs the runtime's
+  internals: the getters read the pointer fields, the rest calls `proto.*`.
+- **Axioms: exactly the `proto.*` calls raft makes, one spec per message type it makes them at**
+  (nine: `Clone` of an `Entry`, `Snapshot`, `ConfState`; `Size` of an `Entry`; `Marshal` and
+  `Unmarshal` of a `ConfChange`, `ConfChangeV2`; `Equal` of two `ConfState`s), stated over the
+  `InvPb.lean` predicates (`Spec/google_golang_org/protobuf/proto/`), each justified in its
+  docstring against protobuf-go v1.36.11 (`proto/merge.go`, `size.go`, `encode.go`, `decode.go`,
+  `equal.go` and `internal/impl`): a clone is a fresh deep copy and only reads the source; a
+  size is some non-negative `int` (no spec fixes one: `entsSize`/`limitSize` leave sizes
+  unspecified, and proto2 presence makes the exact size depend on which fields are set); marshal
+  cannot fail on proto2 `raft.proto` (no `required`, no `string`, a fraction excluding concurrent
+  writers) and its output decodes back (the round trip is the postcondition, no pure encoder is
+  claimed); unmarshal resets the message, never panics, copies the bytes out; `Equal` is record
+  equality under the premises below. One spec per type, not a generic `proto.Message` spec: a
+  generic one would need a reflective model of messages that nothing here uses. *Rejected*:
+  translating protobuf's runtime (reflection, `unsafe`, atomics: Goose translates none of it).
+- **The hidden fields are an invariant, not a field of the predicates** (Q4): `pbMsg T l uf`, one
+  per object, persistent, made once at allocation (`pbMsg_alloc` from the fresh struct's zero
+  fields) and taken only by the axioms. Because `proto.Size` (and `Marshal`) store the size cache
+  atomically into the message (`internal/impl/encode.go:118-129`), on log entries that the
+  unstable log, `MemoryStorage`, `MsgApp`s and `Ready` share read-only (`entsSize`, `limitSize`):
+  a read-only entry fact (`entRO`, D2) holding `sizeCache` would contradict that write, and a
+  fraction of it would not allow it. Inside an invariant the write is the runtime's business and
+  every holder's fact stays persistent. *Rejected*: ignoring the hidden fields (the atomic store
+  would be outside the model, i.e. a heap write the model says does not happen); owning them with
+  the struct (makes every log entry fact non-persistent for a field verified code never reads).
+- **What it replaces.** The old proof (gogoproto, `40f8be7`) had: the generated
+  `raftpb.ConfChange{,V2}.{Marshal,Unmarshal}` as axioms, now `proto.{Marshal,Unmarshal}ConfChange{,V2}`
+  (stating the same codec, `ccDecodeV1`/`V2` of `CCModel.lean`); `reflect.DeepEqual` on two
+  `ConfState` values (`Equivalent`; "`ConfState.Equivalent`: `reflect.DeepEqual` is the axiom"
+  above), now `proto.EqualConfState`, and with it the nil-versus-empty bookkeeping goes
+  (`proto.Equal` treats them alike, so `wp_slice_append_nil_empty` is not needed);
+  `gogoproto.Equal` (in `LeaveJoint`) with no replacement, since v3.7's `LeaveJoint` tests the
+  getters; and the generated `Entry.Size`/`sovRaft`, translated and proved before, now the
+  `proto.SizeEntry` axiom. The new `Clone` axioms have no old counterpart (gogoproto values were
+  copied by value). The old axioms stay in the baseline until the swap (R6).
+- **Unknown fields bear on `Equal`'s statement.** `proto.Equal` compares unknown fields, so
+  `EqualConfState` could not honestly say "equal configurations give `true`" for conf states
+  that carry some; it is stated for two conf states with none, which `csPts` records
+  (`pbMsg raftpb.ConfState p []`), and with both `AutoLeave`s set (as `Equivalent` makes them;
+  an unset optional `bool` is unpopulated, not `false`, to `Equal`). The restriction is a real
+  one in the code: a `ConfState` with an unknown field (written by a newer raftpb) is "not
+  equivalent" to the same configuration and `raft.restore`/`newRaft` panic
+  (`issues/raft-confstate-unknown-fields-panic.md`, reproduced); the later `restore`/`newRaft`
+  specs inherit it as a premise. Other messages' predicates keep their unknown fields
+  existential (`entPts`, `msgPts`, ...): no axiom there compares them.
+
+---
+
+## The log layer over read-only entries: the storage contract of raft v3.7
+
+**2026-10-15 · accepted (stage R3 of the raft v3.7 retarget, branch `raft-retarget`)**
+
+Raft v3.7's log layer (`log.go`, `log_unstable.go`, `storage.go`, the size helpers) holds
+`[]*pb.Entry` slices whose entries several holders share (the unstable log, `MemoryStorage`, the
+slices `slice`/`Entries` hand out, `MsgApp`s, `Ready`), and `*pb.Snapshot`/`*pb.HardState`/
+`*pb.ConfState` pointers. The decisions D2, D4 and Q6 of `notes/raft-retarget-plan.md`, as built:
+
+- **An entry slice is its pointers plus a persistent fact per entry** (D2): `entsPts s dq es :=
+  ∃ ls : List Loc, s ↦*{dq} ls ∗ [∗list] l;e ∈ ls;es, entRO l e` (`InvPbLog.lean`), `entsRO` at
+  `□`. It replaces the old `s ↦*{dq} es` of gogoproto values one for one, so every predicate kept
+  its shape (`ownUnstable`'s and `ownRaftLog`'s unstable suffix, `memstorageFields`' entries with
+  the dummy, `scanClosure`'s pages, the specs' results) and every pure statement (`List EntryM`)
+  its text; the slice reasoning (capacities, sub-slices, `append`, the adoption of a message's
+  backing array in `truncateAndAppend`) is the old one on `List Loc`, and the big-sep, persistent,
+  goes along with take/drop/append for free. The pointer list is existential: no spec names a
+  location. *Rejected*: the `List Loc` in the records (a physical detail in pure state, against
+  "Predicate indices"); a non-persistent per-entry fraction (raft never writes an appended entry,
+  and `proto.Size` writes only the hidden size cache, `pbMsg`'s).
+- **Snapshots are owned and cloned at every boundary** (D4), and the log's own copy is frozen:
+  `unstable.restore` stores `proto.Clone(s)`, which nothing writes after (`nextSnapshot` and
+  `raftLog.snapshot` clone it again), so `ownSnap`/`pendKsn` hold it as `ownSnapM p □ sv`
+  (persistent, as the old `p ↦□ sv`). Every snapshot a spec returns is a fresh clone at full
+  ownership (`raftLog.snapshot`, `unstable.nextSnapshot`, `MemoryStorage.Snapshot`/
+  `CreateSnapshot`); every snapshot a spec takes is read at a fraction and given back
+  (`raftLog.restore`, `unstable.restore`), except `MemoryStorage.ApplySnapshot`'s, taken at `1`
+  because `EnsureSnapshot` writes its nil fields (Q5) and given back.
+- **The storage contract models `MemoryStorage`** (Q6): `Entries` hands out the storage's own entry
+  pointers, read-only and for good (`entsRO`, `cap = len` as before); `Snapshot` a fresh clone,
+  owned, its id, conf-state lists and `AutoLeave` the storage's state's; `Append` keeps the
+  caller's pointers, so it takes them as `entsPts` (each entry `entRO`). `InitialState` stays out
+  of `isStorage` (as before): `MemoryStorage.InitialState` is specified for its single call at
+  construction, on `ownMemoryStorage` and the application's `memStorMeta` together; it returns the
+  storage's own hard-state pointer (`hsOpt`: `nil` until the first `SetHardState`) and lends its
+  conf state at full ownership with its `AutoLeave` set, with a wand back.
+- **`MemoryStorage`'s snapshot is the owner's, not the lock's.** In v3.7 `Snapshot()` writes the
+  field (`ms.snapshot = EnsureSnapshot(ms.snapshot)`, `storage.go:212`) and `InitialState`, unlocked,
+  reads it and may write its conf state's `AutoLeave` (132); `CreateSnapshot` writes the object's
+  metadata in place (255-261). All four callers hold `ownMemoryStorage` (raft through
+  `isStorage`'s `Snapshot`; the application for `ApplySnapshot`/`CreateSnapshot`, which need the
+  owner's view anyway, and for `InitialState` at construction), so the field and the object went
+  into `ownMemoryStorage` (`memSnapOwn`), and `memStorMeta` keeps half of `hardState` and the
+  unlocked counter only. *Rejected*: halves of the snapshot between the lock and `memStorMeta` (the
+  old design): `Snapshot()`'s store needs the whole field under the lock, without `memStorMeta`.
+- **`EnsureSnapshot` returns its metadata set** (`ownSnapE`; stage R1's post was `ownSnapM`, whose
+  metadata may be `nil`): `CreateSnapshot` writes `ms.snapshot.Metadata.Index` right after it.
+
+**What the old contract promised that the new one does not**: the snapshot `Storage.Snapshot`
+returned came with the storage's `ConfState` slices read-only for good (`ownCSL`), which raft put in
+a `MsgSnap` and the message abstraction read; now the caller owns a fresh clone (strictly more
+for the caller, but a `MsgSnap` holds its own copy, which R4's message predicates take into
+account). `Append` copied the entry values (only the slice was lent); now the storage keeps the
+pointers, so the entries must be frozen (`entRO`) before they are appended -- true of every batch
+raft hands out (a `Ready`'s entries are the log's). `CreateSnapshot` read `cs`'s slices and kept
+them; it now clones `*cs` (read at any fraction, given back) but keeps the caller's `data` slice,
+whose bytes it now owns (`data ↦* bs`, full: the stored snapshot holds them; the old spec tracked
+no data bytes). **The reverse**: `InitialState` now needs the owner's `ownMemoryStorage` besides
+`memStorMeta` (it touches the owner's snapshot), and its spec is for construction only; the
+snapshots and hard states are pointers with nil cases (`hsOpt`, `nil` from `CreateSnapshot`'s
+error path, `nextSnapshot`'s `nil`).
+
+## `raft.go` over pointer messages: the outbox owned, `Step` takes the message (stage R4 of the raft v3.7 retarget)
+
+**2026-10-15 · proposed (stage R4, branch `raft-retarget`)**
+
+Raft v3.7's `raft.go` builds every message as `&pb.Message{...}` with `new(x)` cells and `.Enum()`,
+reads every field through a getter, writes into the message it is stepping (`stepFollower` sets
+`m.To` and forwards `m`; `send` sets `From`/`Term`; `stepLeader` replaces slots of a proposal's
+`Entries`), shares cells and slices between a request and its response (`To: m.From`, `Context:
+m.GetContext()`, `Entries: req.GetEntries()`), clones a proposal's entries before stamping them
+(`appendEntry`), and returns and takes `*pb.HardState`/`*pb.ConfState`/`*pb.Snapshot`. The
+decisions D3 and D4 of `notes/raft-retarget-plan.md`, and Q2/Q3, as they are built for the raft
+layer (`InvRaftPhys`, `InvMisc`, the `raft.go` specs):
+
+- **The outbox holds owned messages** (D3, Q2): `ownRaftPhys`'s `r.msgs`/`r.msgsAfterAppend`
+  are `List Loc` slices (capacities owned, as before) and `outboxRel o msgs msgsAA` is the old
+  text with `msgAbs m a` replaced by `msgQ l a := ∃ st, msgOwn l 1 st ∗ ⌜msgAbs st a⌝`, where
+  `msgAbs (st : MsgSt) (a : Option Msg) : Prop` is the old relation made pure (`mtypeOf = none ∧
+  a = none`; `ty ≠ .snap ∧ a = some (absMsg ty st.msg st.ents st.ctx)`; `ty = .snap ∧ st.snap =
+  some sv ∧ a = some (absSnap st.msg sv sv.Metadata'.ConfState'.lists)`: a queued `MsgSnap`
+  carries its snapshot, as before). `outboxRel` is **no longer persistent**; the lemmas on it
+  (`outboxRel_nil`, `_perm`, `send`'s append) are restated. `AAMsgOk id t (st : MsgSt)` and
+  `OutTermOk pv t (m : MessageM)` are the old statements with `m.Entries' = slice.nil` as
+  `st.ents = []` and `m.Context' = slice.nil` as `st.ctx = []`. No capacity is held for a queued
+  message's `Entries` (`maybeSendAppend`'s slice is a prefix of the log's, whose slack is
+  frozen): the application re-decodes what it receives. *Rejected*: fractions until
+  `acceptReady` (Q2 chose the read-only `Ready` view, R5).
+- **`Step` takes the message for good** (Q3), as a received message: `msgIn ml dqe st`, the
+  struct at `1`, the `Entries` slice's elements at `dqe` (`1` for a `MsgProp`, whose slots
+  `stepLeader` replaces; `□` otherwise) **and the slice's capacity at `1`** (a `MsgApp`'s array
+  is adopted by `unstable.truncateAndAppend`, as in the old `Hents_cap`), the snapshot at `1`
+  (`handleSnapshot`'s `EnsureSnapshot` and `restore`'s `EnsureConfState` write its nil fields,
+  Q5). `msgIn` is `InvPb.lean`'s `msgPts` with the capacity conjunct (one definition
+  `msgPtsC l dq dqe cap st` of which `msgPts` is `cap = false`, so the field lemmas are shared).
+  The spec quantifies the pointer and the record's parts apart -- `(ml : Loc) (m : MessageM)
+  (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc)`, premise
+  `msgIn ml dqe ⟨m, ents, sn, ctx, rs⟩` -- so that every pure premise and every abstraction
+  (`m.Type' = ...`, `absMsg ty m ents ctx`) keeps its text. The `MsgSnap` premise is `sn = some
+  sv` with the old `"#Hsnap"` facts on `sv` (`SnapScope sv cl` with `cl =
+  sv.Metadata'.ConfState'.lists` where `ownCSL` tied the lists to the slices). Nothing of the
+  message is given back; `stepLeader`'s `(⌜MsgProp⌝ -∗ ∃ ents', m.Entries' ↦* ents')` goes. The
+  callee specs (`stepLeader`/`stepCandidate`/`stepFollower`, `handle*`) take the parts of
+  `msgIn` they read, as the old ones took the slices: a forwarded message (`stepFollower`'s
+  `MsgProp`/`MsgReadIndex`/`MsgTransferLeader`) is frozen to `msgOwn ml 1` and queued.
+- **`send` takes `msgOwn ml 1 ⟨m, ents, sn, ctx, rs⟩`** and queues it: `SendOk id s m ents ctx out`
+  is the old statement over `MessageM` (`ents = []`/`ctx = []` for `slice.nil`); the `MsgSnap`
+  clause's `"#Hsnap"` becomes `⌜sn = some sv ∧ out = [absSnapFrom m id s.term sv
+  sv.Metadata'.ConfState'.lists]⌝`. The cells `send` writes (`From`, `Term`) are fresh (`new`);
+  the ones it reads are shared with the request that caused the message (`cellRO`, persistent).
+- **Snapshots** (D4): `maybeSendSnapshot` puts `raftLog.snapshot`'s fresh clone (R3, owned at `1`)
+  in the message; `restore` takes `ownSnapE sp 1 sv` (metadata set, as `handleSnapshot`'s
+  `EnsureSnapshot` leaves it) and gives it back, the record unchanged (`EnsureConfState` may set
+  a nil `AutoLeave` cell to `false`, which reads the same); `raftLog.restore` (R3) clones it. A
+  snapshot whose metadata or conf state is nil is refused by `restore`'s first checks (index `0`,
+  no id found), which the specs need not say.
+- **Hard states** (D4): `hardState()` returns a fresh `hsRO p (hsOfSt (nodeHardstate s))`
+  (`nodeHardstate` and `HardSt` move from the old `InvRawnode` to `InvRaftPhys`; `hardstateVal`
+  becomes `HardSt → HardStateM`); `loadState` takes `hsRO`; `IsEmptyHardState`/`isHardStateEqual`/
+  `MustSync` take `hsOpt`/`hsRO` pointers.
+- **Conf states**: `applyConfChange` and `switchToConfig` return the tracker's fresh `csPts cs 1
+  (ConfStateM.mk xs ls os lns c'.cfg.autoLeave) true` (R0's `ProgressTracker.ConfState` post);
+  `newRaft`'s `InitialState` closure returns `(hp cs : Loc)` with `hsOpt hp hs`, `csPts cs 1 c
+  true` and a wand back to `ownStorage` (the shape of R3's `MemoryStorage.InitialState`; the lists
+  `c`'s replace `voters`), `newRaft` returning `cs` through the wand before it returns; `restore`
+  reads the snapshot's conf state in place (`confchange.Restore` at a fraction, R2).
+- **`appendEntry`** takes `entsPts es dq ents` at any fraction and gives it back unchanged: the
+  log gets fresh clones, stamped then frozen (`entOwn_freeze`); the post's log state is the old
+  `logAppend s.logst (ents.mapIdx (stamp ...))`.
+- **The read-index queues hold frozen messages**: `pendingReadIndexMessages` (`ownRaftMisc`) and
+  `readOnly`'s requests (`ownReadreq`) hold `msgOwn l □ st` (persistent, as the old `#Hpri_ents`
+  and `ownReadreq`), with `st.msg`/`st.ents` the record's pair (Q8: `RdState.pend : List
+  (MessageM × List EntryM)`) and `st.snap`/`st.ctx`/`st.resps` existential: nothing writes a
+  stored request (`responseToReadIndexReq` reads `From` and shares `Entries`). The slice
+  `pendingReadIndexMessages` itself is owned with its capacity, as before.
+- **Shared definitions**: `InvConfChangeMsg` keeps `ccEntOk`/`ccEntsOk`/`CCData`/`ccEntryType`/
+  `enterJointOf` over `EntryM` (`ownCCV1/V2/I` are R1's, `InvPb.lean`; `ccEntry`/`ccPropMsg`, the
+  value builders of `ProposeConfChange`, are R5's); `InvRaftpb` is gone (`SortedW64` moved to
+  `InvPb` in R1, `confStateDeepEq` with `reflect.DeepEqual`); `InvApplyConf(C)` port by the
+  rename; `InvBig`, `Init` copy.
+
+**D6 (2026-10-15, after phase 2): an entry's data is its bytes.** `EntryM.Data' : List w8` (it was
+the Go slice `GoSlice`, D1's field-for-field rename). Why: v3.7's `appendEntry` clones each proposed
+entry (`proto.Clone`, a fresh `Data` slice holding the same bytes) and appends the clones, so the
+log's records would differ from the proposal's in their slice, while the model's propose step
+appends the proposal's entries verbatim; and the ghost state already keys a proposal's deposit by
+its bytes (`deposited γ d`, `d ↪[γ.reProps]□ γq`), the slice map `isPropData γ sl d` only recording
+which bytes a slice holds. With bytes in the record a clone *is* its original, the propose step and
+its 19k lines of model proofs stay, `isPropData`/`γ.reSl` go (`entDataIs` says `e.Data' = d`), a
+conf-change entry decodes by its record alone (`ccEntOk` pure, `decOfData`'s `data` parameter
+gone), and a `ReadState`'s context is bytes (`ReadStateM`, the model's; etcd matches read states by
+`bytes.Equal`, so this is the right identity). Physically `entPts` holds `l.Data ↦{dq} ds ∗ ds ↦*□
+e.Data'`: an entry's bytes are read-only from the moment it is built (raft never writes them; the
+proposer's data must be frozen, which R5's `Propose` takes as its premise). Consequences: a
+leader's own empty entry and a client proposal of empty bytes are the same record, so a proposal's
+data must be non-empty (`entDataIs (some d)`: `d ≠ []`; a premise of `Propose`); `payloadSize`
+returns the bytes' length. *Rejected*: the model's propose step admitting data copies
+(`EntsDataCopy`), which changes the step rule every model theorem inverts and needs the clone's
+slice registered in `isPropData` from inside `appendEntry`.
+
+**D7 (2026-10-16, after phase 3): a snapshot's conf state may be frozen once its `AutoLeave` is
+set.** `smPts`'s nested conf state becomes `csOptA pc dq c := ⌜pc = null ∧ c = zero⌝ ∨ csPts pc dq c
+false ∨ csPts pc DFrac.discard c true`: nil, owned at the snapshot's fraction, or read-only for
+good with its `AutoLeave` cell set. Why: `MemoryStorage.InitialState` returns the storage's own
+conf-state pointer (`storage.go:132`), and `newRaft` uses it (`confchange.Restore`,
+`assertConfStatesEquivalent`) while it also reads the log, which holds the storage (`ownRaftLog`'s
+`HStorage`); so R3's lending of the conf state with a wand back to the storage cannot be met.
+Nothing writes a snapshot's conf state in place once `EnsureConfState` has set its `AutoLeave`:
+`EnsureConfState` writes only a nil `AutoLeave` (`raftpb/util.go`), `EnsureSnapshotMetadata` only
+calls it, `CreateSnapshot` replaces the `ConfState` pointer with a clone (`storage.go:259`),
+`ApplySnapshot` replaces the snapshot. So `InitialState` freezes the storage's conf state and
+returns it persistent (`csPts cs □ (storCS σ) true`) beside `ownMemoryStorage` (no wand), and
+`newRaft`'s `InitialState` premise returns `hsOpt hp hs ∗ csPts cs □ c true ∗ ownStorage`
+at once. `EnsureConfState.spec` is generalized to `{{ csPts p dq c al ∗ ⌜dq ≠ DFrac.own 1 → al =
+true⌝ }} … {{ csPts p dq c true }}` (no write when the cell is set; the old statement is the
+instance `dq = 1`); `ownSnapM`/`ownSnapE`/`smPts` keep their signatures, so the log layer and the
+`proto.*` axioms' statements do not change; proofs that destructure a nested conf state
+(`Ensure*`, `SnapshotMetadata.GetConfState`, the `MemoryStorage` methods, `raft.restore`) gain the
+third case. *Rejected*: a second fraction parameter on `ownSnapM` (every snapshot predicate and
+spec changes); fractions lent by the storage (the storage would have to record a loan forever).
+
+## The node layer over pointer messages: `Ready` hands the messages out, the pending steps owned (stage R5 of the raft v3.7 retarget)
+
+**2026-10-16 · proposed (stage R5, branch `raft-retarget`)**
+
+Raft v3.7's `rawnode.go`/`node.go` (`bootstrap.go` stays out of scope, as before: `Bootstrap` and
+`StartNode` were never proved) differ from the old source in the representation only: `Ready`'s
+`HardState`/`Snapshot` are nil-or-pointer (`hardState()` fresh, `nil` when unchanged; the
+snapshot `nil` in scope), its `Entries`/`CommittedEntries` are `[]*pb.Entry`, its `Messages`
+`[]*pb.Message` (aliasing `r.msgs`, extended by the `msgsAfterAppend` messages to others),
+`prevHardSt` and `stepsOnAdvance` hold pointers, `acceptReady` aliases `rd.HardState` into
+`prevHardSt`, the channels carry `*pb.Message`/`*pb.ConfChangeV2`/`*pb.ConfState`, `Propose` and
+`confChangeToMsg` build their one-entry batch as a slice literal, `node.Step(nil)` is an error,
+`node.ApplyConfChange` returns `nil` if `done` fires (unreachable: `done` never fires in scope).
+
+- **D8, Q2 revised: `readyWithoutAccept` hands the messages out; abandoning gives them back.**
+  R4 made the outbox owned (`msgOwn l 1`), and R0's Q2 proposed a read-only `Ready` view with the
+  transfer at `acceptReady`. That cannot work for `node.go`: `run` sends the `Ready` on `readyc`
+  *before* `acceptReady` runs, and the application may use the messages (etcd rewrites a
+  `MsgSnap`'s snapshot) as soon as it receives them; the resource sent on the channel (`readyP`)
+  must therefore carry full ownership, which only `readyWithoutAccept` can provide. So
+  `readyWithoutAccept`'s post hands out `rd.Messages' ↦* mls ∗ [∗list] l;st ∈ mls;ms, msgOwn l 1
+  st` with `isRaftMsg γ st` (pure `msgAbs` plus `isMessage`), `ownRaftPhysReady` keeps the
+  queues' slices with the pure outbox relation and the `msgOwn`s of the self-addressed
+  `msgsAfterAppend` messages only (those `acceptReady` moves to `stepsOnAdvance`), and the
+  abandon wand (`Habandon`, `ownRawNodeReady_abandon`) takes the handed-out messages back to
+  rebuild `outboxRel`. `acceptReady` with the messages handed out nils both queues as before.
+- **The pending steps are owned messages**: `stepsOnAdvance` holds `[∗list] l;p ∈ steps;rs.steps,
+  msgIn l DFrac.discard (pendSt id p) ∗ pendingRel γ id p` with `pendSt` the message record of a
+  `Pending` (`.self`: existential `st` with `SelfMsgOk id st.msg`, `st.ents = []`, `st.ctx = []`,
+  `st.snap = none`; `.appendAck t e`: `⟨appendAckM id t e, [], none, [], []⟩`; `.applyAck ce`:
+  `⟨applyAckM id, ce, none, [], []⟩`), since `Advance` steps each with `raft.Step` (`msgIn`, Q3)
+  and nils the slot. `pendingOwn` (the apply ack's `Entries` capacity) is inside `msgIn`: the
+  committed entries' slice capacity comes from R3's `nextCommittedEnts`, as before.
+  `newStorageAppendRespMsg`, `newStorageApplyRespMsg` and `needStorageAppendRespMsg` get specs of
+  their own (Lean-first; the old proof inlined them).
+- **`Ready`'s fields**: `rd.HardState'` is `hsOpt rd.HardState' h` (`nil` when unchanged, else
+  `hardState()`'s fresh `hsRO`, which `acceptReady` stores in `prevHardSt` and the application
+  may give to `MemoryStorage.SetHardState`, R3: the `Ready` hands it out, `readyData` includes
+  it); `rd.Snapshot' = null` replaces `= zero_val` (scope: no pending snapshot); `Entries`/
+  `CommittedEntries` are `entsRO` (R3's `nextUnstableEnts`/`nextCommittedEnts`); `ReadStates` as
+  R4's `readStatesPts` (persistent), `readStateOk γ (st : ReadStateM)` over bytes (D6:
+  `readOk γ st.RequestCtx' st.Index'`, no `isPropData`); `SoftState` as before (`↦□`).
+  `prevHardSt` is a `Loc` with `hsRO` (never `nil`: `NewRawNode` sets it; `Bootstrap`'s
+  `emptyState` is `hsRO` too, R4's `isInitialized`).
+- **The node's channels** carry pointers: `propP γ pm` is `msgIn pm.m' 1 ⟨propMsgM,
+  [⟨0, 0, 0, d⟩], none, [], []⟩ ∗ entData γ ⟨0,0,0,d⟩ ∗ …` (D6: the data bytes, `d ≠ []`, frozen
+  inside the entry; no `propDataInv`, which is gone with `isPropData`) or `fwdP γ pm.m'`
+  (`msgIn ml 1 st`, `st.msg.Type' = MsgProp`, `isMessage` of its abstraction); `netP γ id ml`
+  is `∃ st, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st.msg⌝ ∗ …` (the old facts over `st`);
+  `confcP γ (v : Loc)` holds `ownCCV2 v DFrac.discard ccm` (R1) with the old mode facts;
+  `confstateP γ (cs : Loc)` holds the fresh `csPts cs 1 c true` that `applyConfChange` returns
+  (R4), with `confstateOk`/`confstateS` over `ConfStateM` lists (pure) — `node.ApplyConfChange`
+  returns that pointer (its `nil` case needs `done`, which never fires). `readyP`/`readyData`
+  as D8 says, with the hard state. `run` writes `m.From = new(r.id)` into a proposal from
+  `propc` (the struct at `1`).
+- **`RawNode.Propose`/`ReadIndex`/`confChangeToMsg`** build the entry in a slice literal
+  (`wp_slice_literal_ex`, R3) from frozen data (`data_sl ↦*□ d`, the premise as before; D6's
+  `d ≠ []` for a proposal), then `raft.Step` with `msgIn ml 1 …`; `confChangeToMsg` returns
+  `msgIn ml 1 ⟨propMsgM, [ccEntryM o bs], none, [], []⟩` with `CCData o bs` (`ccEntryM o bs :=
+  ⟨0, 0, ccEntryType o, bs⟩`, `propMsgM := {zero with Type' := MsgProp}`: R4 dropped the value
+  builders `ccEntry`/`ccPropMsg`, which return here as records).
+- **`NewRawNode`/`RestartNode`**: the storage's `InitialState` premise in R4's D7 shape
+  (`hsOpt hp hs ∗ csPts cs □ c true ∗ ownStorage` at once); `prevHardSt := r.hardState()`.
+- **What stays**: `RNState` (`delivered unpersisted : List EntryM`, by the rename), `Pending`
+  (`applyAck (ents : List EntryM)`), `StepsOk`/`PendingOk`/`ApplyAckOk`, `RNMode`, the budget
+  and tick machinery (`InvNode`), the run loop's invariants (`InvNodeRun`: `staleOk`, `freshOk`,
+  `runHead`/`runMid` over the new `Ready` fields), `isNode`'s channel protocols, the ghost
+  mode plumbing, `ownRawNode`'s pure facts, every spec's pure statement.
+
+## The swap: one raft tree, the server over raft's own predicates (stage R6 of the raft v3.7 retarget)
+
+**2026-10-16 · adopted (stage R6, branch `raft-retarget`)**
+
+R5 took `Raft37/` past the old tree (257 of 327 functions against 251 of 323; `Results.lean`'s
+`#print axioms` cover every result the old `Results.lean` printed). R6 makes it *the* raft tree.
+Three trees named raft's Go path until now: the verified fork (`Code/go_etcd_io/raft/`, gogoproto
+messages, 118 commits behind etcd's dependency), `EtcdDeps/` (etcd's dependency, raft v3.7.0,
+types and names only, for the server's translation) and `Raft37/` (raft v3.7.0 plus the
+single-voter read-index fix, everything translated). After the swap there is one.
+
+- **D9: the server's raft is the verified one.** `EtcdDeps/` was a names-only translation of
+  raft v3.7.0 so that the server could be translated at all; its 15 proofs (the raftpb getters
+  the apply thread reads, `IsEmptySnap`, `IsEmptyHardState`, `isHardStateEqual`) restated what
+  the Raft proof could not yet say about pointer messages. Now it can: the server's translation
+  imports the full translation (`Code.go_etcd_io.raft.v3`, the same Go source but for the
+  read-index fix, `issues/raft-readindex-singleton-stale.md`), its proofs link raft's own
+  getter specs, and `EtcdDeps/` goes. The one difference from etcd's `go.mod`, the fix, is
+  recorded here: the server is verified against raft v3.7.0 *with* the fix, which is what
+  `ReadIndex`'s contract (`isRaftNodeIfc`'s read-index clause) needs to be true at all.
+- **The server keeps its models, raft provides the points-tos.** The server describes the
+  raft objects it reads with `entryAt e m` (`EntryModel`), `msgAt m to ty`, `hardStateAt p hs`
+  (`HardStateModel`): field-level, persistent, written before the Raft proof had pointer
+  messages. They are the same shape as raft's `entPts`/`msgPtsC`/`hsRO` (one `cellRO` per
+  optional field, the data bytes read-only) minus the hidden-field invariant `pbMsg`, which the
+  server cannot produce from nothing. So they become definitions over raft's: `entryAt e m :=
+  entRO e m.toM`, `hardStateAt p hs := hsOpt p m.toM`, `msgAt m to ty := ∃ st, msgOwn m □ st ∗
+  ⌜st.msg.To' = to ∧ st.msg.Type' = ty⌝` (the exact forms are the server files'). The server's
+  own models stay: its ghost logs, `rnReadyP`, the request path's `InvRequest` (55 uses) and the
+  exported `Results` are stated over `EntryModel`, and nothing is gained by renaming their fields.
+  The point of defining the predicates over raft's is R7: `isRaftNodeIfc` discharged from
+  `node.Ready`/`Advance`/`ReadIndex`'s specs hands raft's `entsRO`, `hsOpt`, `msgOwn` straight
+  through.
+- **The register is ported, not patched (R6b).** `examples/register` is this repository's Go
+  code on raft's `Node` API, written for value messages (`send func([]pb.Message)`,
+  `cc.Unmarshal(e.Data)`, `pb.ConfChange{...}` by value). Raft v3.7's API is pointers and
+  getters, and `proto.Unmarshal`; the Go changes (ours to make: it is the example, not etcd), its
+  `go.mod` moves to the fork's `raft37-goose-lean`, the translation is regenerated, and its
+  6,000 lines of proofs (including the whole-program adequacy) are redone over the new node
+  specs (`Ready` hands out owned pointer messages, D8; `Propose` wants non-empty frozen data,
+  D6). Until R6b lands the branch is red at the register only; R6a and R6b merge together.
+- **`isRaftNodeIfc` from the node specs is R7, not R6.** The plan's R6 row listed it; it is a
+  proof-design task of its own (the server's `rnReadyP`, `committedAtLeast`, `E.RQ` against
+  raft's `ownRawNodeReady` and the protocol's read-index results), independent of the swap.
+- **Tooling: one project, no parts.** `etc/goose.py`'s project `etcd-raft` (the fork) goes and
+  `raft37` becomes project `raft` in the root (`root=""`, `go.etcd.io/raft/v3=`); the etcd
+  project loses its `EtcdDeps` part and maps `go.etcd.io/raft/v3` to the root. `etc/gen-link.py`
+  loses the Rocq mode (every raft function is Lean-first now: `--raft` from
+  `etc/link-lean-first-raft.txt`, the old `--raft37`); the server's and v3rpc's spec lookups no
+  longer reach a second root. `etc/proof_roots.py`/`tcb-report.py`/`verified-code.py` are
+  generic over parts and need no change; collection `raft37.txt` becomes `raft.txt`. The old
+  tree's private trust boundary goes with it: `gogoproto.Equal`, `reflect.DeepEqual`, the
+  gogoproto `Marshal`/`Unmarshal` axioms (protobuf-go's `proto.*` axioms replace them, R1).
+
+## The server's raft contract discharged: the contract layer over raft's protocol (stage R7 of the raft v3.7 retarget)
+
+**2026-10-16 · adopted (stage R7, branch `raft-retarget`)**
+
+After R6 the server's raft is the verified one, but what the server assumes of it is still a
+premise of its results: `isRaftNodeIfc` (`Ready`, `Advance`, `Tick`, `Stop`, `ReadIndex`),
+`raftPropose` (`Propose`), `isRNMemStor` (the storage's `Append`), stated over the server's own
+ghost log `srvRLog` and its atomic updates (`InvRequest.lean`, "Raft's committed log, at the
+server"; `InvRaftNode.lean`). R7 proves them from raft's node and storage specs. The server's
+contract was written (2026-10-12/14) as a copy of raft's protocol interface in the server's
+terms, and the copy is nearly exact: `srvRLog`/`rLog` (the client's half of the committed log),
+`srvRLogLb`/`isCommitted`, `srvRaftLogInv`/`raftCommitInv`, `srvPropFresh`/`propFresh`,
+`srvIsProp`/`isProp`, `srvPropAu`/`propAu`, `srvNoopAu`/`noopAu`, `srvPropWits`/`prop_collect`,
+`srvReadAu`/`readAu`, `srvReadWit`/`readWit` with `read_collect`; `EntryModel` is `EntryM` field
+for field (`EntryModel.toM`). So the pattern is D9's again.
+
+- **D10: the server's contract layer is defined over raft's protocol predicates; the three
+  contracts become theorems.** `ServerRaftNames` gains raft's names (`raft : RaftNames`) and the
+  log the server's view starts after (`pre : List EntryM`, with `ai0 = pre.length`: raft's
+  `rLog` is the full committed log from index 1, the server's the entries after its start index;
+  today the composition starts at `[]`, since raft's `RestartNode` takes an empty storage). Then
+  `srvRLog γ L := rLog γ.raft (γ.pre ++ L.map toM)`, `srvRLogLb γ L := isCommitted γ.raft (γ.pre
+  ++ L.map toM)`, `srvRaftN := raftN` (the server's updates are fired by raft at `⊤ ∖ raftN`),
+  `srvRaftLogInv γ := raftCommitInv γ.raft ∗ isCommitted γ.raft γ.pre ∗ ⌜…⌝`, the fresh tokens,
+  deposits and handles raft's (`rdFresh`, `deposited`, `isProp`, `isRead`); `srvPropAu`,
+  `srvNoopAu`, `srvReadAu` keep their statements (the server's KV invariant builds them) and
+  conversion lemmas turn them into raft's `propAu`/`noopAu`/`readAu` of the shifted predicate
+  (`fun Lm => Q (ofM (Lm.drop |pre|))`, trivial when `pre` is not a prefix of `Lm`, which never
+  happens); `srvPropWits` and `srvReadWit` are theorems (`node_collect`, `node_read_collect`,
+  `£ 2` for the two laters). `RNNames` gains the node's names (`node : NodeNames`, its `id`, its
+  pointer, static mode) and `rnDrv`/`rnBusy`/`rnReadyP`/`rnAppendRight`/`rnAppendReceipt` are
+  `nodeDriver`/`nodeDriverBusy` (with `nodeCfg`)/`readyP γ.node`/`memAppendTok`-based;
+  `rnReadyData` keeps the server's shape and `rn_ready_recv` becomes a fancy update that derives
+  it (messages persisted, `E.C` from the committed log). `E` stays a parameter: the discharge
+  takes `rnEnvOk E γ` (persistent, in `isRaftNode`): `E.T = tickCred γ.node.bud 1`, `E.M m` the
+  persistent part of a handed-out message (`msgOwn m □ st ∗ isRaftMsg ∗ termLB`), `E.RQ id n Qr`
+  raft's read registration of `beBytes id` (`isRead` and `readReq` at a log of length `≥ n`),
+  and `□ (∀ L, srvRLogLb L ={⊤}=∗ □ E.C L)`, which the server's composition proves from its KV
+  invariant (`srvC`'s workload facts are the KV invariant's, not raft's). *Rejected:* a bridge
+  invariant holding `srvRLog` beside `rLog` (the server's updates must run at raft's commit
+  step, under raft's mask, so they must be raft's updates); making `EntryModel` an abbreviation
+  of `EntryM` (280 uses; the conversion is one function).
+- **Four gaps on raft's side, closed in R7a.** (1) `readyData` says nothing of `rd.SoftState`,
+  which the server reads: it gains `softStateRO rd.SoftState'` (nil, or `Lead`/`RaftState`
+  read-only; `prevSoftSt` a read-only pointer). (2) `node.Propose`, `node.ReadIndex` and the
+  `step*` chain are specified for `context.Background()` only; the server passes a context with
+  a timeout: they take `nodeCtx ctx cd` (`Done()` nil, or Perennial's `context.isContext`), and
+  say what the error is (`nil`, raft's `ErrStopped`, the context's). (3) The committed entries'
+  indices: raft's protocol knows them (`cq_full`: `PlogWf base0 G`, entry `k` has index `k + 1`)
+  but neither `isCommitted` nor the updates expose it, and the server's `srvIdxOk` needs it in
+  the update (`srvPropAu`'s after-clause): `propAu`/`noopAu` gain `⌜uint.Z e.Index' = L.length +
+  1⌝` in their after-clause (the firing step has `cq_full`), and `isCommitted_wf` states it for
+  a committed log. (4) `rLog_committed` (the register's `reg_log_committed`) and the
+  `MemoryStorage` instance of `StorageModel` (the register's `RegStorageInstance`) move into
+  raft's tree, shared.
+- **Two budgets the server did not pay, now paid where the premise belongs.** Raft's `Tick`
+  spends a term-budget credit and `ReadIndex` a read credit, both from finite budgets (`< 2^64 -
+  1`); the server's `start` took `□ |==> E.T` (a free tick), its `ReadIndex` no credit, and
+  neither can be derived (`□ |==> tickCred 1` contradicts the budget invariant). The tick's credit
+  comes with the tick: the ticker's channel payload is `E.T` (`isRNTicker E`; `time.Ticker` is a
+  trust-boundary contract, and "fewer than `2^64 - 1` ticks in a run" is its premise). The read's
+  credit comes with the request: `isRaftNodeIfc`'s `ReadIndex` clause, `raftNode.ReadIndex`,
+  `isReadRaft` and the read loop take `rnReadCred` (`rdCred γ.node.raft 1`) per `ReadIndex`, paid
+  by the request that wakes the loop (`readwaitc`'s payload, from `LinearizableReadNotify`'s
+  caller: the premise moves to the gRPC layer, "fewer than `2^64 - 1` linearizable reads in a
+  run"). The clause also takes the fresh-context token raft needs (`rdFresh γ.raft (beBytes
+  id)`, minted by the server from the id generator's `idFresh`) and the context's bytes
+  read-only (`sl ↦*□ beBytes id`: raft keeps them in the entry).
+- **One premise stays, one is new.** `Stop` stays a premise: raft's model never stops (`run`'s
+  stop case is vacuous, `done` never closes) and `node.Stop` has no spec; modelling stop touches
+  `node.run` and every `<-n.done` case, a stage of its own (the user's decision, 2026-10-16).
+  New: `Append`'s index bound. Raft's `MemoryStorage.Append` needs the appended entries' last
+  index `≤ 2^61` (its arithmetic, and the storage contract's `Hbounded`), which raft's node layer
+  cannot establish for the unstable entries it hands out (`|uents| < 2^63` only); the register
+  checks it in Go (`fits`), etcd does not. So `isRaftNode` gains `rnLogFits γ` (persistent, a
+  trust-boundary premise on the run: every `Ready`'s entries fit), recorded in `notes/STATUS.md`.
+- **The committed index and the log.** `isRaftNodeIfc`'s `ReadIndex` takes `committedAtLeast
+  E.γr n` and raft's needs a committed log of length `≥ n`: `srvCommittedInv` (the committed
+  index's invariant) gains the log prefix the index was read from (`∃ L, srvRLogLb L ∗ ⌜v ≤ ai0 +
+  |L|⌝`; its writer, the ready handler's `updateCommittedIndex`, has it from `srvC`).
+- **Mode.** The node is in raft's static mode: the server's conf changes go through
+  `EtcdServer.applyConfChange`, a trust-boundary spec (R6), so `Advance`'s dynamic-mode premise
+  is vacuous.
+- **Carried out (2026-10-16, R7a/R7b; `notes/STATUS.md`).** Three deviations from the plan
+  above. (i) The read credit comes with the request *id*, not the request: `requestCurrentIndex`
+  retries `ReadIndex` on a timer, unboundedly in the model, so a per-request credit cannot pay
+  for the retries; each call has a fresh id, and the id budget (`2^48`) is below raft's
+  (`2^64 - 2`), so the server's mint of read contexts (`srvRdFreshInv`) hands out raft's fresh
+  token and credit with every `NextRequestID`: no new premise at the gRPC layer. (ii) The updates'
+  after-clauses are the new entry's facts only (`srvPropAu`, `srvNoopAu`: raft gives the appended
+  entry's index, not the whole log's), and `srvIdxOk`'s `2^64` bound on the delivered log is a run
+  premise (`rnLogFits`, beside `Append`'s `2^61`). (iii) Two error-value facts stay premises
+  (`rnCtxErrOk`, `rnPropErrOk`): raft's `nodeErr`/`propErr` do not name a context's `Err()` nor
+  `Propose`'s result error; R7c retired them on raft's side the same day (`notes/STATUS.md`,
+  "stage R7c"): `ctxErr` through this repository's `context.ErrDone` spec, `stepErr` through the
+  proposal handoff.
+
+## The server's start over raft's `RestartNode`: what etcd's bootstrap needs of the model (stage R8 of the raft v3.7 retarget)
+
+**2026-10-16 · adopted (stage R8a first, then R8b; branch `raft-retarget`)**
+
+After R7 the server's raft contract is proved from raft's node specs, but the *composition* of the
+server's start with raft's `RestartNode` (the register does it in `Main`) is still open: R7a found
+that a bare `MemoryStorage` without a snapshot is not an `ownStorage`. Reading etcd's
+`bootstrapRaft` (`server/etcdserver/bootstrap.go`) shows the gap is wider: **none of etcd's three
+start paths is raft's `RestartNode` as verified.** (1) A new cluster (no WAL, `NewCluster`) calls
+`StartNode(c, peers)` with the member ids: raft's `Bootstrap` appends one conf-change entry per
+member at term 1, marks them committed and applies them; neither was ever proved, and the
+protocol's initial state has an empty log. (2) A member joining an existing cluster (no WAL) calls
+`RestartNode` on a fresh `MemoryStorage`: the storage is empty, as raft's premise asks, but so is
+its conf state, while raft's spec wants the voters known at start with this node among them (the
+node learns its configuration from the leader's first snapshot, which the server's apply loop is
+proved under a no-snapshot contract). (3) A restart from a WAL calls `RestartNode` on a storage
+holding the WAL's snapshot, hard state and entries: crash recovery, which the model does not have.
+(The comment in raft's `ApplySnapshot` about etcd applying a conf-state-only snapshot at index 0
+describes no path of etcd's server.)
+
+Under all three sits R7a's storage gap: a bare `MemoryStorage` has an empty snapshot until the
+server's first `CreateSnapshot`, and raft's storage contract (`isStorageWith`'s `Snapshot` clause)
+promises a non-empty one because `maybeSendSnapshot` panics on an empty snapshot. Real etcd is safe
+because that path is reached only after a `term(pr.Next - 1)` failed: `ErrCompacted` only once the
+storage has compacted (etcd compacts only after `CreateSnapshot`), `ErrUnavailable` only when a
+peer's `Next` runs past the leader's log, which never happens. The proof does not know the second:
+`raftLog.term`'s spec says so ("nothing in `ownProgress` bounds a peer's `Next` against the log").
+The register sidestepped it with its own `Storage` wrapper (`Snapshot` answers
+`ErrSnapshotTemporarilyUnavailable` while empty), which etcd does not have.
+
+- **Decision (the user's, 2026-10-16): route A then B.** R8a admits the bare `MemoryStorage`
+  without a snapshot as a `Storage` by proving the leader's progress bound; R8b models the new
+  cluster's start (`StartNode`/`Bootstrap`: the cluster's initial log in the protocol), the one
+  etcd start path the model can reach, and composes the server's start with it. The join path
+  (an empty configuration installed by the first snapshot, and the server applying a received
+  snapshot) and the restart from a WAL (crash recovery) stay out of scope. *Rejected:* a run premise
+  on the server's side ("the leader never asks for a snapshot while uncompacted"): it cannot be
+  stated as a resource the storage contract's `Snapshot` clause could consume, since the clause's
+  postcondition is what fails; a conf-state-only snapshot at index 0 as the composition's storage:
+  it composes with no etcd function.
+- **D11: the leader's progress is within its log, and an uncompacted storage may have no
+  snapshot.** Three parts, two sides.
+  - *The physical invariant* (`Defs.lean`, `InvRaftPhys.lean`): `PrOk ls p` -- `1 ≤ p.next ≤
+    logLast ls + 1`, `p.matched ≤ logLast ls`, `p.pendingSnapshot ≤ logLast ls` -- for every
+    tracked peer of a leader (`PrvalsOk s`), a pure conjunct of the sealed `ownRaftPhys`, carried
+    through its interface (`ownRaftPhys_intro`'s premise; a projection; an obligation on the
+    lemmas that rebuild the struct at a changed role, progress or log). Established by `reset`
+    (`Next = lastIndex + 1`, `Match = 0`, the node's own `lastIndex`: `raft.reset.spec` now
+    states the values), kept by every progress update of `stepLeader` and the replication path
+    (`MaybeDecrTo`, `BecomeProbe`, `BecomeReplicate`, `BecomeSnapshot` at an index at most the
+    commit index, `SentEntries` of entries from `Next` on, `switchToConfig`'s fresh `Progress` at
+    `max(lastIndex, 1)`), by a leader's log growing only (`appendEntry`), vacuous elsewhere (a
+    follower's log may shrink, its progress is reset on winning). The one update that needs a fact
+    from outside the node is `MaybeUpdate(m.Index)` on an accepted `MsgAppResp`: the ghost side.
+  - *The ghost witness* (`Protocol/`): `ackIn γ t i` (`Ghost.lean`) -- `i` is `0` or at most the
+    last index of a prefix of the term-`t` leader's log (`leadPrefix`) -- carried by an accepting
+    `MsgAppResp` beside `isAcked` (`isMessage`, `GhostState.lean`), supplied where such a message is
+    sent: `handleAppendEntries`' `lastnewi` from the `MsgApp`'s own `leadPrefix`, the leader's
+    self-acknowledgement from its log, `handleSnapshot`'s replies from the `MsgSnap`'s `leadPrefix`
+    (a restore or fast-forward) or by leader completeness (a stale snapshot acknowledges the commit
+    index). At the leader (`ownRaftGhost_ackIn_le`, `Refinement.lean`): the witness names its own
+    term log (`leadLogOwn`: every index in the term log is at most the last index, the campaign
+    log a prefix of the log), so `i ≤ plastIndex`. `raft.Step`'s proof turns it into the pure
+    premise `stepLeader` takes for `MaybeUpdate`.
+  - *The storage contract* (R8a's second phase, after the two above): `isStorageWith`'s `Snapshot`
+    clause promises a non-empty snapshot only once the storage is compacted (`σ.prev.index ≠ 0 →
+    Index ≠ 0`); `memOwnStorage`'s premise weakens to the same implication, so `NewMemoryStorage()`
+    is an `ownStorage` and so is `ApplySnapshot`'s result at any index; `raftLog.term` says which
+    error is which (`ErrCompacted` below the boundary, `ErrUnavailable` past the last index);
+    `raftLog.snapshot` and `maybeSendSnapshot` take the premise that the log is compacted, which
+    `maybeSendAppend` establishes from the bound (`1 ≤ Next ≤ lastIndex + 1` leaves `ErrCompacted`
+    as the only failure of `term(Next - 1)`, and that means `prev.index ≥ 1`). The register's
+    `Storage` still meets the clause.
+- **Carried out (2026-10-16, R8a; `notes/STATUS.md`, "stage R8a").** As designed, with four
+  details. (i) `raftLog.term`'s spec needed no "which error" clause: its iff already negates the
+  range, and the bound rules out the past-the-end side, so the error branch of `maybeSendAppend`
+  gets `prev.index ≠ 0` from it directly. (ii) The bound is conditional on the role, so
+  `maybeSendAppend`, `sendAppend` and `bcastAppend` take `s.role = .leader` (true at every
+  caller) and, dually, `handleAppendEntries` and `stepFollower`'s `MsgApp` case take `s.role ≠
+  .leader` (a follower's `maybeAppend` may truncate the log, which the bound forbids a leader).
+  (iii) The stale replies (`appStale`, `snapStale`: the follower acknowledges its commit index)
+  are proved by leader completeness (`commitIn_ackIn`), with `votesTbl` reached by opening the
+  log invariant, so those three ghost steps became fancy updates at their callers' mask. (iv)
+  `reset`'s spec now states the progress values its `Visit` closure writes (`ResetPr`), and the
+  `confchange` package's `FreshPr` already stated `Next = max(LastIndex, 1)`. The R8b design
+  study (2026-10-16) found one more blocker of the real composition, independent of R8b: etcd's
+  `raftConfig` sets `CheckQuorum: true` and `PreVote` (on by default), both required `false` by
+  `NewRawNode.spec`; `MsgCheckQuorum` and pre-vote are out of the model's scope.
+- **R8b (planned; its design is written before its proofs):** the cluster's initial log. The
+  protocol's initial state becomes the bootstrap log (`n` conf-change entries at term 1, committed,
+  the same on every member), the ghost allocation at that log, the certification of the initial
+  committed prefix by its presence on every node from the start, `newRaft` with an empty conf
+  state, `Bootstrap` and `StartNode` proved; then the server's composition on the new-cluster path
+  (`bootstrapRaftFromCluster` with the member ids, `pre = []`, the conf changes delivered first),
+  with `newRaftNode` and `bootstrappedRaft.newRaftNode` translated with their bodies.

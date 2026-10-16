@@ -67,8 +67,9 @@ stated beyond the put's `lease`: nothing about liveness.
 as the one-operation transaction `Then(OpPut(...))`, as a delete is `deleteTxn`), the contracts at
 `context.TODO()` (`isEtcdKVTodo`, `isEtcdTxnKVTodo`, `isEtcdDeleteKVTodo`, `isEtcdPutKVTodo`:
 `TODO()`'s context is not an `isContext`; the get's response also has its `More` flag,
-`getRespMore`), and the range watch under the premise that its channel is never closed
-(`isEtcdRangeWatcherOpen`).
+`getRespMore`). Their range watches are `isEtcdRangeWatcher`'s, whose channel may close (unit
+W-Q, 2026-10-16: the recipes are verified against the closed-watch fix, so no premise that the
+channel stays open).
 -/
 module
 
@@ -1101,35 +1102,6 @@ def isEtcdRangeWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
 instance isEtcdRangeWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdRangeWatcher (GF := GF) w pfx) := by
   unfold isEtcdRangeWatcher; infer_instance
-
-/-- **The client's range watch, under the premise that its channel is never closed**
-(`client/v3/experimental/recipes`' bundle): `isEtcdRangeWatcher` with the SPSC channel's close
-predicate `False`, so that a receive always yields a response (`spsc_rcv_au`: a close would give
-`False`). A premise, not a fact: etcd's client closes a watch channel when the client is closed
-or when etcd cancels the watch (a compaction past the watched revision), and the recipes as
-shipped are wrong then (`notes/issues/recipes-dequeue-closed-watch.md`,
-`recipes-barrier-wait-closed-watch.md`: on a close `waitEvents` returns `nil`, so
-`WaitEvents`/`WaitPrefixEvents` return `(nil, nil)`, `Queue.Dequeue` dereferences it and
-panics, `Barrier.Wait` reports a release while the barrier is held). Every recipes result is
-under this premise (no compaction past a watched revision, the client not closed while a recipe
-waits), which the fixed code (returning the canceled response's error) would not need. -/
-def isEtcdRangeWatcherOpen (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
-  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
-      (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
-        ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
-          0 ≤ sint.Z rev ∧
-          KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ }}
-      (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
-        (Val #key)) (Val #sl))
-    {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
-        isSpsc γ.spsc ch (rangeWatchElem γ pfx (opWatchModel key gs) rev) (fun _ => iprop(False)) ∗
-          spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-          monoListIdxOwn γ.cur 0 (rev - W64 1) }})
-
-instance isEtcdRangeWatcherOpen_persistent (w : GoInterfaceOk) (pfx : GoString) :
-    Persistent (isEtcdRangeWatcherOpen (GF := GF) w pfx) := by
-  unfold isEtcdRangeWatcherOpen; infer_instance
 
 /-! ## Leases -/
 

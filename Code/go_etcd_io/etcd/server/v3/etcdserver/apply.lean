@@ -6,7 +6,7 @@ public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.pkg.v3.pbutil
 public import Code.go_etcd_io.etcd.pkg.v3.wait
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.membership
-public import EtcdDeps.Code.go_etcd_io.raft.v3.raftpb
+public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.sync
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil
 public import Code.go_etcd_io.etcd.server.v3.auth

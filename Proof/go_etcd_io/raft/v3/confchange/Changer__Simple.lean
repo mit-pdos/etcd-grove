@@ -37,8 +37,8 @@ theorem confchange.Changer.Simple.wp_proof
     (wp_confchange_symdiff : confchange.symdiff.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.Simple.spec (GF := GF) (hG := hG) := by
-  intro p chg c prs pvs ccs l dq dqs dqc dqm dqp Hmi
-  wp_start as ⟨Hp, Hccs, Htc⟩
+  intro p chg c prs pvs ccs ls l dq dqs dqc dqm dqp Hmi
+  wp_start as ⟨Hp, Hccs, #Hcl, Htc⟩
   wp_auto
   wp_method_call
   wp_call
@@ -91,7 +91,7 @@ theorem confchange.Changer.Simple.wp_proof
   ihave Hnew := ownNewPr_copies (GF := GF) chg pvs
   ihave Hw := ownWork_intro chg pvs cfg_ptr trk (clearAutoLeave { cfg := c, prs := flagsOf pvs })
     cfg' prs' pvs rfl $$ cfg Hc' Htrk Hcopies Hnew
-  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs l _ _ Hmi $$ [$c $Hccs $Hw]
+  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi $$ [$c $Hccs $Hcl $Hw]
     as %err2 ⟨c, Hccs, Hres⟩
   rcases Happ : applyM l (clearAutoLeave { cfg := c, prs := flagsOf pvs }) with _ | s1
   · -- `apply` fails

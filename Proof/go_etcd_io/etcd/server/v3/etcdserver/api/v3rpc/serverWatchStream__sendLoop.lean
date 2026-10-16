@@ -58,30 +58,112 @@ instance v3rpc.pendSl_persistent (r : v3rpc.WRun GF) (rcv : List mvcc.RespM) (P 
     (sl : GoSlice) : Persistent (v3rpc.pendSl r rcv P sl) := by
   unfold v3rpc.pendSl; infer_instance
 
-/-- **What the send loop knows of the responses it received** (persistent): each is `respOk`, and
-the responses received for its watcher up to it are `watchRecvOk`. -/
-def v3rpc.rcvOk (γ : mvcc.WsNames) (rcv : List mvcc.RespM) : IProp GF :=
+/-- **What the send loop knows of the responses it received** (persistent): each is `respOk`, the
+responses received for its watcher up to it are `watchRecvOk`, and what it says of the stream
+(`mvccExtra`, unit W-M2). -/
+def v3rpc.rcvOk (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM) : IProp GF :=
   iprop(□ ∀ (n : Nat) (x : mvcc.RespM), ⌜rcv[n]? = some x⌝ -∗
-    mvcc.respOk x ∗ mvcc.watchRecvOk γ x.w ((rcv.take (n + 1)).filter (fun y => decide (y.w = x.w))))
+    mvcc.respOk x ∗ mvcc.watchRecvOk γ x.w ((rcv.take (n + 1)).filter (fun y => decide (y.w = x.w))) ∗
+    v3rpc.mvccExtra γs x)
 
-instance v3rpc.rcvOk_persistent (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
-    Persistent (v3rpc.rcvOk (GF := GF) γ rcv) := by
+instance v3rpc.rcvOk_persistent (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
+    Persistent (v3rpc.rcvOk (GF := GF) γs γ rcv) := by
   unfold v3rpc.rcvOk; infer_instance
 
 /-- **The send loop's state** of the mvcc responses `rcv` received with the responses `D` sent:
 `WatchSendModel`'s invariant (`SendInv`) over the indices `S` sent and `pend` buffered, the ids
 announced `IM` (the map `ids`), the mvcc responses sent being those of `S` in order, the buffered
-responses (the map `pending`, `PM`). -/
+responses (the map `pending`, `PM`); an id other than `-1` is announced exactly when it is live
+after the responses sent (`idLive`, the watch slice's unit W-C). -/
 def v3rpc.sendSt (r : v3rpc.WRun GF) (idsL pendL : Loc) (rcv : List mvcc.RespM)
     (D : List v3rpc.WatchRespM) : IProp GF :=
   iprop(∃ (S : List Nat) (pend : w64 → List Nat) (IM : GMap w64 Unit) (PM : GMap w64 GoSlice),
     ⌜v3rpc.SendInv rcv S pend (fun X => (IM !! X).isSome) none ∧
       D.filterMap v3rpc.WatchRespM.src = S.filterMap (fun m => rcv[m]?) ∧
-      ∀ X, PM !! X = none → pend X = []⌝ ∗
+      (∀ X, PM !! X = none → pend X = []) ∧
+      ∀ X, X ≠ W64 (-1) → ((IM !! X).isSome = true ↔ v3rpc.idLive D X)⌝ ∗
     ownMap idsL (DFrac.own 1) IM ∗ ownMap pendL (DFrac.own 1) PM ∗
     ([∗map] _X ↦ sl ∈ PM, ownSliceCap Loc sl (DFrac.own 1)) ∗
     ([∗map] X ↦ sl ∈ PM, v3rpc.pendSl r rcv (pend X) sl) ∗
-    v3rpc.rcvOk r.srv.γ rcv)
+    v3rpc.rcvOk r.γs r.srv.γ rcv)
+
+/-! ## Live ids (the watch slice's unit W-C) -/
+
+/-- An mvcc response sent leaves every id's liveness as it was. -/
+theorem v3rpc.idLive_snoc_src (D : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM)
+    (h : m.src ≠ none) (X : w64) : v3rpc.idLive (D ++ [m]) X ↔ v3rpc.idLive D X := by
+  unfold v3rpc.idLive
+  simp [List.filter_append, h]
+
+/-- A control response sent decides its own id's liveness. -/
+theorem v3rpc.idLive_snoc_ctrl (D : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM)
+    (h : m.src = none) (X : w64) :
+    v3rpc.idLive (D ++ [m]) X ↔
+      (if m.watchId = X then (m.created && !m.canceled) = true else v3rpc.idLive D X) := by
+  unfold v3rpc.idLive
+  by_cases hx : m.watchId = X
+  · simp [List.filter_append, h, hx]
+  · simp [List.filter_append, h, hx]
+
+/-- The announced ids after a created response for `X` is sent (`ids[X]` set): live. -/
+theorem v3rpc.idsLive_created (D : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM)
+    (IM : GMap w64 Unit) (X : w64) (hsrc : m.src = none) (hX : m.watchId = X)
+    (hL : ∀ Y, Y ≠ W64 (-1) → ((IM !! Y).isSome = true ↔ v3rpc.idLive D Y))
+    (hok : X ≠ W64 (-1) → (m.created && !m.canceled) = true) :
+    ∀ Y, Y ≠ W64 (-1) → (((<[X := ()]> IM) !! Y).isSome = true ↔ v3rpc.idLive (D ++ [m]) Y) := by
+  intro Y hY
+  rw [v3rpc.idLive_snoc_ctrl _ _ hsrc]
+  by_cases h : Y = X
+  · subst h; simp [GMap.lookup_insert, hX, hok hY]
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)]
+    simp only [hX, Ne.symm h, ↓reduceIte]
+    exact hL Y hY
+
+/-- The announced ids after a canceled response for `X ≠ -1` is sent (`ids[X]` deleted). -/
+theorem v3rpc.idsLive_canceled (D : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM)
+    (IM : GMap w64 Unit) (X : w64) (hsrc : m.src = none) (hX : m.watchId = X)
+    (hc : m.canceled = true)
+    (hL : ∀ Y, Y ≠ W64 (-1) → ((IM !! Y).isSome = true ↔ v3rpc.idLive D Y)) :
+    ∀ Y, Y ≠ W64 (-1) →
+      (((GMap.delete X IM) !! Y).isSome = true ↔ v3rpc.idLive (D ++ [m]) Y) := by
+  intro Y hY
+  rw [v3rpc.idLive_snoc_ctrl _ _ hsrc]
+  by_cases h : Y = X
+  · subst h; simp [GMap.lookup_delete, hX, hc]
+  · rw [GMap.lookup_delete_ne _ (Ne.symm h)]
+    simp only [hX, Ne.symm h, ↓reduceIte]
+    exact hL Y hY
+
+/-- The announced ids after a control response for `-1` is sent: as they were. -/
+theorem v3rpc.idsLive_neg1 (D : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM)
+    (IM : GMap w64 Unit) (hsrc : m.src = none) (hX : m.watchId = W64 (-1))
+    (hL : ∀ Y, Y ≠ W64 (-1) → ((IM !! Y).isSome = true ↔ v3rpc.idLive D Y)) :
+    ∀ Y, Y ≠ W64 (-1) → ((IM !! Y).isSome = true ↔ v3rpc.idLive (D ++ [m]) Y) := by
+  intro Y hY
+  rw [v3rpc.idLive_snoc_ctrl _ _ hsrc]
+  have : m.watchId ≠ Y := by rw [hX]; exact Ne.symm hY
+  simp only [this, ↓reduceIte]
+  exact hL Y hY
+
+/-- The announced ids after an mvcc response is sent: as they were. -/
+theorem v3rpc.idsLive_src (D : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM)
+    (IM : GMap w64 Unit) (hsrc : m.src ≠ none)
+    (hL : ∀ Y, Y ≠ W64 (-1) → ((IM !! Y).isSome = true ↔ v3rpc.idLive D Y)) :
+    ∀ Y, Y ≠ W64 (-1) → ((IM !! Y).isSome = true ↔ v3rpc.idLive (D ++ [m]) Y) := by
+  intro Y hY
+  rw [v3rpc.idLive_snoc_src _ _ hsrc]
+  exact hL Y hY
+
+/-- A pending index of `X` names a response of id `X`. -/
+theorem v3rpc.pend_id {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+    {ids : w64 → Bool} {ex : Option w64} (hI : v3rpc.SendInv rcv S pend ids ex) {X : w64}
+    {n : Nat} {t : List Nat} (hp : pend X = n :: t) {x : mvcc.RespM} (hx : rcv[n]? = some x) :
+    x.id = X := by
+  have hs := hI.split X
+  have hm : n ∈ v3rpc.idxOf rcv X := by rw [hs, hp]; simp
+  obtain ⟨-, hid⟩ := v3rpc.mem_idxOf hm
+  obtain ⟨y, hy, hyX⟩ := v3rpc.idOf_eq_id hid
+  rw [hx] at hy; cases hy; exact hyX
 
 /-- A watcher's fixed fields determine its id (`mvcc.watcherFixed_agree`'s, without the mvcc
 package's assumptions). -/
@@ -93,8 +175,8 @@ theorem v3rpc.watcherFixed_id (w : Loc) (r r' : mvcc.WatchRange) (fcs fcs' : GoS
   ipureintro; exact Hi
 
 /-- A watcher's responses with events carry one id (`respOk`'s, through `watcherFixed_agree`). -/
-theorem v3rpc.rcvOk_same (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
-    v3rpc.rcvOk (GF := GF) γ rcv ⊢ ⌜∀ (m1 m2 : Nat) (x1 x2 : mvcc.RespM), rcv[m1]? = some x1 →
+theorem v3rpc.rcvOk_same (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
+    v3rpc.rcvOk (GF := GF) γs γ rcv ⊢ ⌜∀ (m1 m2 : Nat) (x1 x2 : mvcc.RespM), rcv[m1]? = some x1 →
       rcv[m2]? = some x2 → x1.w = x2.w → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id⌝ := by
   refine (forall_intro fun m1 => ?_).trans pure_forall.2
   refine (forall_intro fun m2 => ?_).trans pure_forall.2
@@ -121,11 +203,13 @@ theorem v3rpc.rcvOk_same (γ : mvcc.WsNames) (rcv : List mvcc.RespM) :
     exact absurd ⟨a, b, c, d, e⟩ h
 
 /-- A receipt: the response's facts (`watch_recv_au`'s) extend `rcvOk`. -/
-theorem v3rpc.rcvOk_snoc (γ : mvcc.WsNames) (rcv : List mvcc.RespM) (r : mvcc.RespM) :
-    v3rpc.rcvOk (GF := GF) γ rcv ∗ mvcc.respOk r ∗
-      mvcc.watchRecvOk γ r.w ((rcv ++ [r]).filter (fun x => decide (x.w = r.w))) ⊢
-      v3rpc.rcvOk γ (rcv ++ [r]) := by
-  iintro ⟨#H, #Ho, #Hw⟩
+theorem v3rpc.rcvOk_snoc (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : List mvcc.RespM)
+    (r : mvcc.RespM) :
+    v3rpc.rcvOk (GF := GF) γs γ rcv ∗ mvcc.respOk r ∗
+      mvcc.watchRecvOk γ r.w ((rcv ++ [r]).filter (fun x => decide (x.w = r.w))) ∗
+      v3rpc.mvccExtra γs r ⊢
+      v3rpc.rcvOk γs γ (rcv ++ [r]) := by
+  iintro ⟨#H, #Ho, #Hw, #Hx⟩
   iunfold v3rpc.rcvOk at H
   iunfold v3rpc.rcvOk
   iintro !> %n %x %hx
@@ -142,7 +226,56 @@ theorem v3rpc.rcvOk_snoc (γ : mvcc.WsNames) (rcv : List mvcc.RespM) (r : mvcc.R
     simp at hx
     subst hx
     rw [show rcv.length + 1 = (rcv ++ [r]).length by simp, List.take_length]
-    iframe Ho Hw
+    iframe Ho Hw Hx
+
+/-- **What a received response says of the stream** (unit W-M2): with the stream's auxiliary
+name and its progress fact `progQ` saved at the mvcc stream's `prog` (the channel's), a response
+received on the mvcc channel with its registration fact (`chanRegFact`: its watcher's id, one the
+stream assigned) and, for id `-1`, the channel's progress fact, is `mvccExtra` (a later away: the
+saved propositions agree a step later; `progQ` is timeless). -/
+theorem v3rpc.mvccExtra_of_recv (γs : v3rpc.StreamNames) (γo : mvcc.WsStreamNames) (γa : GName)
+    (γc : mvcc.WatchChanNames) (x : mvcc.RespM) (h : γo.ids = γc.ids ∧ γo.prog = γc.prog) :
+    streamAuxIs γs (v3rpc.auxOf γo γa) ∗ savedPropOwn γo.prog DFrac.discard (v3rpc.progQ γs) ∗
+      mvcc.respOk x ∗ mvcc.chanRegFact γc x.w ∗ (⌜x.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ⊢
+      ◇ v3rpc.mvccExtra γs x := by
+  iintro ⟨#Haux, #Hsp, #Hok, #Hrf, #Hpf⟩
+  ihave #HI : □ (⌜x.evs ≠ []⌝ -∗ ∃ (γo' : mvcc.WsStreamNames) (γa' : GName),
+      streamAuxIs γs (v3rpc.auxOf γo' γa') ∗ mvcc.idAssigned γo' x.id x.w) $$ []
+  · iintro !> %hne
+    iexists γo, γa
+    iframe Haux
+    iunfold mvcc.respOk at Hok
+    icases Hok with ⟨-, %rr, %fcs, #Hf, %Hid⟩
+    iunfold mvcc.chanRegFact at Hrf
+    icases Hrf with ⟨%rr', %fcs', #Hf', #Hida, -⟩
+    ihave %Hag := v3rpc.watcherFixed_id x.w rr rr' fcs fcs' $$ [$Hf $Hf']
+    unfold mvcc.idAssigned
+    iunfold mvcc.chanIdAssigned at Hida
+    rw [h.1, Hid hne, Hag]
+    iexact Hida
+  by_cases hx : x.id = W64 (-1)
+  · ihave #Hp := Hpf $$ %hx
+    iunfold mvcc.progFact at Hp
+    icases Hp with ⟨%Q, #HQs, #HQ⟩
+    irevert Hsp; rw [h.2]; iintro #Hsp
+    ihave Heq := saved_prop_agree γc.prog _ _ Q (v3rpc.progQ γs) $$ HQs Hsp
+    ihave Hl : ▷ v3rpc.progQ γs $$ [Heq]
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨H1, -⟩
+      iapply H1
+      iexact HQ
+    imod Hl with #Hq
+    imodintro
+    iunfold v3rpc.mvccExtra
+    iframe HI
+    iintro !> -
+    iexact Hq
+  · imodintro
+    iunfold v3rpc.mvccExtra
+    iframe HI
+    iintro !> %h'
+    exact absurd h' hx
 
 /-- Buffered responses read the same after a receipt. -/
 theorem v3rpc.pendSl_snoc (r : v3rpc.WRun GF) (rcv : List mvcc.RespM) (x : mvcc.RespM)
@@ -454,7 +587,7 @@ flushed in order (`send_claim_flush`), `pending[X]` deleted. -/
 local macro "ctrl_created" X:term : tactic => `(tactic| (
   iunfold v3rpc.sendSt at HS
   icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
-  obtain ⟨hI, hD, hPM⟩ := HSI
+  obtain ⟨hI, hD, hPM, hL⟩ := HSI
   wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty idsL IM $X ()) $$ HIM
     as HIM
   have hids : (fun Y => ((<[$X := ()]> IM) !! Y).isSome) =
@@ -464,6 +597,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     · simp [h, Ne.symm h]
   have hI1 := v3rpc.sendInv_created $X hI
   rw [← hids] at hI1
+  have hL1 := v3rpc.idsLive_created D m IM $X Hm.2.2 hX hL hok
   (try wp_auto)
   wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
     (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty)) pendL PM $X
@@ -490,7 +624,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
   ihave %Hlsl := ownSlice_len _ _ _ $$ Hls
   have HlenP : (pend $X).length = xs.length := by
     have := congrArg List.length Hxs.2.1; simpa using this
-  ihave %Hsame := v3rpc.rcvOk_same _ _ $$ Hrok
+  ihave %Hsame := v3rpc.rcvOk_same _ _ _ $$ Hrok
   ihave #Hrok' := Hrok
   iunfold v3rpc.rcvOk at Hrok'
   ihave HF : iprop(∃ (j : w64) (vv : Loc) (D' : List v3rpc.WatchRespM),
@@ -501,11 +635,13 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
           (v3rpc.upd pend $X ((pend $X).drop (sint.Z j).toNat))
           (fun Y => ((<[$X := ()]> IM) !! Y).isSome) (some $X) ∧
         D'.filterMap v3rpc.WatchRespM.src =
-          (S ++ (pend $X).take (sint.Z j).toNat).filterMap (fun n => rcv[n]?)⌝) $$ [i v Hst]
+          (S ++ (pend $X).take (sint.Z j).toNat).filterMap (fun n => rcv[n]?) ∧
+        ∀ Y, Y ≠ W64 (-1) → (((<[$X := ()]> IM) !! Y).isSome = true ↔ v3rpc.idLive D' Y)⌝)
+        $$ [i v Hst]
   · iexists W64 0, _, _
     iframe
     ipureintro
-    refine ⟨by decide, by simp, ?_, ?_⟩
+    refine ⟨by decide, by simp, ?_, ?_, hL1⟩
     · simp only [show sint.Z (W64 0) = 0 from rfl, Int.toNat_zero, List.take_zero, List.append_nil,
         List.drop_zero, v3rpc.upd_self]
       exact hI1
@@ -513,7 +649,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
         List.filterMap_append, Hm.2.2, List.filterMap_cons_none, List.filterMap_nil]
       exact hD
   wp_for HF
-  obtain ⟨Hj0, HjP, hIk, hDk⟩ := Hj
+  obtain ⟨Hj0, HjP, hIk, hDk, hLk⟩ := Hj
   wp_if_destruct
   · have Hif' : sint.Z j < sint.Z ((PM !! $X).getD (zero_val GoSlice)).len := by
       first
@@ -562,15 +698,20 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
       iunfold v3rpc.mvccOk
       iexists xp.1, ((rcv.take (n + 1)).filter (fun y => decide (y.w = xp.1.w))), D'
       isplitr
-      · ipureintro; exact ⟨rfl, hxpF.2.2, rfl, v3rpc.take_filter_getLast rcv hrn⟩
+      · ipureintro
+        exact ⟨rfl, hxpF.2.2, rfl, v3rpc.take_filter_getLast rcv hrn,
+          fun hn => (hLk _ hn).1 (by rw [v3rpc.pend_id hIk hpk hrn]; simp [GMap.lookup_insert])⟩
       isplitr
       · iunfold v3rpc.downLbW
         ihave #Hlb' := Hlb
         iunfold v3rpc.downLb at Hlb'
         iexact Hlb'
+      ihave ⟨-, #HwN, #HxN⟩ := Hrok' $$ %n %xp.1 %hrn
       isplitr
-      · ihave ⟨-, #Hw⟩ := Hrok' $$ %n %xp.1 %hrn
-        iexact Hw
+      · iexact HwN
+      isplitr
+      rotate_left
+      · iexact HxN
       ipureintro
       intro hev
       obtain ⟨-, hc⟩ := v3rpc.send_claim_flush hIk hpk hrn hev Hsame
@@ -595,7 +736,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     have hk1 : (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1 := by rw [hj1]; omega
     rw [hk1, List.take_add_one, hn]
     simp only [Option.toList_some]
-    refine ⟨by omega, by omega, ?_, ?_⟩
+    refine ⟨by omega, by omega, ?_, ?_, v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hLk⟩
     · have := v3rpc.sendInv_flush hIk hpk
       rw [v3rpc.upd_upd] at this
       rw [← List.append_assoc]
@@ -628,7 +769,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     · iframe Hcaps Hpsl
     iframe HIM HPM Hcaps Hpsl' Hrok
     ipureintro
-    refine ⟨?_, hDk, ?_⟩
+    refine ⟨?_, hDk, ?_, hLk⟩
     · have := v3rpc.sendInv_flush_done' hIk (by simp)
       rw [v3rpc.upd_upd] at this
       exact this
@@ -670,8 +811,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
-    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmug⟩
+    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
+    #Hmug, %Hγoc, #Hsp⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
   icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars⟩
@@ -738,7 +879,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     iframe Hids Hpend
     isplitr
     · ipureintro
-      refine ⟨v3rpc.sendInv_nil _, rfl, fun _ _ => rfl⟩
+      refine ⟨v3rpc.sendInv_nil _, rfl, fun _ _ => rfl, fun X _ => by simp [v3rpc.idLive, GMap.lookup_empty]⟩
     isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
     isplitr
@@ -771,11 +912,14 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       wp_auto
       send_return
     simp only [mvcc.watchRecvResult, ↓reduceIte]
-    icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW⟩
+    icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP⟩
+    -- what the response says of the stream (unit W-M2)
+    imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x Hγoc $$ [$Haux $Hsp $HrO $HrF $HrP]
+      with #HrX
     iunfold v3rpc.sendSt at HS
     icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
-    obtain ⟨hI, hD, hPM⟩ := HSI
-    ihave #Hrok2 := v3rpc.rcvOk_snoc _ _ _ $$ [$Hrok $HrO $HrW]
+    obtain ⟨hI, hD, hPM, hL⟩ := HSI
+    ihave #Hrok2 := v3rpc.rcvOk_snoc _ _ _ _ $$ [$Hrok $HrO $HrW $HrX]
     ihave #HrI' := HrI
     iunfold mvcc.respIs at HrI'
     icases HrI' with ⟨%HwvI, %ps, #Hps, %Hpsl, #Hevs⟩
@@ -919,7 +1063,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
         (try rw [Hsi])
         (try wp_auto)
         ihave ⟨Hst, #Hlb⟩ := v3rpc.srvSendTok_lb _ _ $$ Hst
-        ihave %Hsame := v3rpc.rcvOk_same _ _ $$ Hrok2
+        ihave %Hsame := v3rpc.rcvOk_same _ _ _ $$ Hrok2
         ihave HDn : r.Dn D.length (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
         · iunfold v3rpc.watchStreamSpec at Hspec
           icases Hspec $$ %D.length %(v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩)
@@ -933,7 +1077,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           iexists x, ((rcv ++ [x]).filter (fun y => decide (y.w = x.w))), D
           isplitr
           · ipureintro
-            refine ⟨rfl, HwvI.2.1, rfl, ?_⟩
+            refine ⟨rfl, HwvI.2.1, rfl, ?_, fun hn => (hL _ hn).1 (hd.resolve_right hn)⟩
             simp [List.filter_append]
           isplitr
           · iunfold v3rpc.downLbW
@@ -942,6 +1086,9 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
             iexact Hlb'
           isplitr
           · iexact HrW
+          isplitr
+          rotate_left
+          · iexact HrX
           ipureintro
           intro hev
           have hc := v3rpc.send_claim_direct hI hd hev Hsame
@@ -997,7 +1144,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
             ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
             iframe HIM HPM Hcaps Hpsl2 Hrok2
             ipureintro
-            refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM⟩
+            refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
+              v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
             rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
             simp [v3rpc.mvccResp]
           · (try wp_auto)
@@ -1030,7 +1178,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
             ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
             iframe HIM HPM Hcaps Hpsl2 Hrok2
             ipureintro
-            refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM⟩
+            refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
+              v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
             rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
             simp [v3rpc.mvccResp]
         · simp only [hl, decide_false, ↓reduceIte]
@@ -1061,7 +1210,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
           iframe HIM HPM Hcaps Hpsl2 Hrok2
           ipureintro
-          refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM⟩
+          refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
+              v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
           rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
           simp [v3rpc.mvccResp])
     · have hX1 : x.id ≠ W64 (-1) := fun h => hd (Or.inr h)
@@ -1145,7 +1295,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       · iframe Hcaps Hcap' Hpsl2 Hnew
       iframe HIM HPM Hcaps Hpsl3 Hrok2
       ipureintro
-      refine ⟨v3rpc.sendInv_recv_pend hI (by simpa using hd), ?_, ?_⟩
+      refine ⟨v3rpc.sendInv_recv_pend hI (by simpa using hd), ?_, ?_, hL⟩
       · rw [v3rpc.filterMap_snoc_bound _ _ _ hI.bound]; exact hD
       · intro Y hY
         by_cases h : Y = x.id
@@ -1175,12 +1325,14 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     simp only [↓reduceIte]
     icases Hres with ⟨HP, Hcons⟩
     iunfold v3rpc.ctrlP at HP
-    icases HP with ⟨%m, #Hmsg, %Hm, #Hco⟩
+    icases HP with ⟨%m, #Hmsg, %Hm, Hco⟩
+    iunfold v3rpc.ctrlOk at Hco
+    icases Hco with ⟨%ireq, %req, %γo, %γa, #Hauxc, #Hupat, %Hans, Hcw, Hat⟩
     wp_auto
     wp_apply time.wp_Now as %tm -
     rw [Hsi]
     wp_auto
-    ihave HDn : r.Dn D.length m $$ []
+    ihave HDn : r.Dn D.length m $$ [Hcw Hat]
     · iunfold v3rpc.watchStreamSpec at Hspec
       icases Hspec $$ %D.length %m with ⟨-, Hb⟩
       iapply Hb
@@ -1188,8 +1340,12 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       isplitr
       · ipureintro; exact ⟨Hm.1, Hm.2.1⟩
       ileft
-      iframe Hco
-      ipureintro; exact Hm.2.2
+      isplitr
+      · ipureintro; exact Hm.2.2
+      iunfold v3rpc.ctrlOk
+      iexists ireq, req, γo, γa
+      iframe Hauxc Hupat Hcw Hat
+      ipureintro; exact Hans
     wp_bind (App (Val #(methods si.ty go!"Send" si.v)) (Val #cl))
     iapply HSend $$ [Hst HDn]
     · iframe Hst HDn Hmsg
@@ -1200,9 +1356,6 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       iunfold v3rpc.watchRespMsg at Hmsg'
       icases Hmsg' with ⟨%Hln, %hh, %esl, %eps, #HfH, #Hhdr, #HfId, #HfCr, #HfCa, #HfCR, #HfRe, #HfFr,
         #HfEv, #Heps, %Hepsl, #Hevs⟩
-      ihave #Hco' := Hco
-      iunfold v3rpc.ctrlOk at Hco'
-      icases Hco' with ⟨%ireq, %req, #Hupat, %Hans, -⟩
       have Hcc : m.canceled = true → m.created = true → m.watchId = W64 (-1) := by
         intro h1 h2
         unfold v3rpc.ctrlAnswers at Hans
@@ -1225,13 +1378,16 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       case false.true =>
         wp_auto
         ctrl_assert
+        have hX : m.watchId = m.watchId := rfl
+        have hok : m.watchId ≠ W64 (-1) → (m.created && !m.canceled) = true :=
+          fun _ => by simp [hca, hcr]
         ctrl_created m.watchId
       case true.false =>
         wp_auto
         ctrl_assert
         iunfold v3rpc.sendSt at HS
         icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
-        obtain ⟨hI, hD, hPM⟩ := HSI
+        obtain ⟨hI, hD, hPM, hL⟩ := HSI
         have hD' : (D ++ [m]).filterMap v3rpc.WatchRespM.src = S.filterMap (fun n => rcv[n]?) := by
           rw [List.filterMap_append, hD]; simp [Hm.2.2]
         by_cases hw : m.watchId = W64 (-1)
@@ -1249,7 +1405,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           iexists S, pend, IM, PM
           iframe HIM HPM Hcaps Hpsl Hrok
           ipureintro
-          exact ⟨hI, hD', hPM⟩
+          exact ⟨hI, hD', hPM, v3rpc.idsLive_neg1 _ _ _ Hm.2.2 hw hL⟩
         · simp only [hw, decide_false, Bool.not_false, ↓reduceIte]
           wp_auto
           wp_apply (wp_mapDelete idsL IM m.watchId go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
@@ -1263,7 +1419,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           iexists S, pend, (GMap.delete m.watchId IM), PM
           iframe HIM HPM Hcaps Hpsl Hrok
           ipureintro
-          refine ⟨?_, hD', hPM⟩
+          refine ⟨?_, hD', hPM, v3rpc.idsLive_canceled _ _ _ _ Hm.2.2 rfl hca hL⟩
           have hids : (fun Y => ((GMap.delete m.watchId IM) !! Y).isSome) =
               v3rpc.upd (fun Y => (IM !! Y).isSome) m.watchId false := by
             funext Y; unfold v3rpc.upd; by_cases h : Y = m.watchId
@@ -1272,6 +1428,9 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           rw [hids]
           exact v3rpc.sendInv_cancel m.watchId hI
       case true.true =>
+        have hX : m.watchId = W64 (-1) := Hcc hca hcr
+        have hok : W64 (-1) ≠ W64 (-1) → (m.created && !m.canceled) = true :=
+          fun h => absurd rfl h
         rw [Hcc hca hcr]
         wp_auto
         ctrl_assert

@@ -282,8 +282,9 @@ theorem leasingKV.acquire.wp_proof
         wp_for_post
         iframe
       · wp_auto
-        wp_apply HCode as %c
+        wp_apply HCode
         (try wp_auto)
+        generalize statusCode (GoInterface.ok e) = c
         by_cases hc : c = W32 14
         · subst hc
           simp only

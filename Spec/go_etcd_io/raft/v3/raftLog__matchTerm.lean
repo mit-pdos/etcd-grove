@@ -6,7 +6,7 @@ Lean notes: `raft.entryID.t` is `entryID`; `plog_matches`/`plog_term_at` are
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section

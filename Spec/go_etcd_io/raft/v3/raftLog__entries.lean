@@ -6,7 +6,7 @@ reached through `InvRaftPhys`, as in Rocq).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -47,8 +47,8 @@ abbrev raftLog.entries.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"entries")) (Val #i))
       (Val #maxSize))
-  {{ (s : GoSlice) (es : List raftpb.Entry), RET (PairV #s #interface.nil);
-      ownRaftLog l ls ∗ s ↦*□ es ∗
+  {{ (s : GoSlice) (es : List EntryM), RET (PairV #s #interface.nil);
+      ownRaftLog l ls ∗ entsRO s es ∗
       -- every entry returned is an entry of the log, and they are the log's from `i` on,
       -- cut short by `maxSize` (`raftLog.slice`)
       ⌜(∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧

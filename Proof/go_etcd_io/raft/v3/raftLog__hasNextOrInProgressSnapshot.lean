@@ -29,7 +29,8 @@ theorem raftLog.hasNextOrInProgressSnapshot.wp_proof :
   | some sid =>
     ihave Hus := (ownSnap_Some _ sid).1 $$ Husnap
     icases Hus with ⟨%sv, #Hsv, -⟩
-    ihave %Hnn := typedPointsto_not_null $$ Hsv
+    iunfold ownSnapM at Hsv
+    icases Hsv with ⟨%ds, %pm, %uf, %Hnn, -⟩
     rw [decide_eq_false Hnn]
     iapply HΦ
     isplitl

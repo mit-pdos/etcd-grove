@@ -37,7 +37,7 @@ theorem EtcdServer.getCommittedIndex.wp_proof : EtcdServer.getCommittedIndex.spe
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, Hv, Hauth⟩
+  icases Hi with ⟨%v0, Hv, Hauth, #Hlog⟩
   iexists v0
   iframe Hv
   iintro Hv
@@ -57,7 +57,7 @@ theorem EtcdServer.getCommittedIndex.wp_proof : EtcdServer.getCommittedIndex.spe
       unfold uint.nat at h2
       exact (BitVec.eq_of_toNat_eq h2).symm
   imod Hclose $$ [Hv Hauth] with -
-  · inext; iexists v0; iframe Hv Hauth
+  · inext; iexists v0; iframe Hv Hauth Hlog
   imodintro
   wp_auto
   iapply HΦ

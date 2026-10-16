@@ -23,10 +23,20 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- **The gRPC status code of an error** (opaque): what `status.FromError(err).Code()` returns.
+grpc's `FromError` reads the status embedded in the error value (`GRPCStatus()`, or `Unknown` for
+an error that has none, `OK` for `nil`), so the code is a function of the error; nothing more is
+said of it. (The watch slice's unit W-C: `isHaltErr` compares it; a premise names the codes the
+client's watch must not see, `client.noRetryableStreamErr`.) -/
+opaque statusCode [FfiSyntax] : GoInterface → w32
+
 /-- `status.FromError(err)` of an error grpc's `status` accepts (`statusErrOk`: `nil`, or a leaf
 error whose `Error()` and `GRPCStatus()` (if it has one) return; it calls both, and `errors.As`)
-returns some `*Status` `s` and a boolean, `true` for `nil`; `s.Code()` and `s.Message()` return
-(some code, some string: grpc's `*Status` methods accept a `nil` receiver).
+returns some `*Status` `s` and a boolean, `true` for `nil`; `s.Code()` returns the error's code
+(`statusCode err`) and `s.Message()` some string (grpc's `*Status` methods accept a `nil`
+receiver). (2026-10-15, the watch slice's unit W-C) The code was any code, which is weaker than
+grpc: the status is embedded in the error value, so the code is a function of the error; it is
+now `statusCode err`, an opaque function (a refinement grpc meets).
 
 (2026-10-14, unit P3a) It had no premise, which is false: for an `err` whose `Error()` or
 `GRPCStatus()` panics, `FromError` panics; nothing said the result's `Message()` returns either
@@ -37,7 +47,7 @@ abbrev status.FromError.spec : Prop :=
     (App (Val (@! google_golang_org.grpc.status.FromError)) (Val #err))
   {{ (s : Loc) (ok : Bool), RET (PairV #s #ok);
       ⌜err = GoInterface.nil → ok = true⌝ ∗
-      □ (∀ Φ : val → IProp GF, ▷ (∀ c : w32, Φ #c) -∗
+      □ (∀ Φ : val → IProp GF, ▷ Φ #(statusCode err) -∗
         WP (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Code"))
           (Val #())) {{ Φ }}) ∗
       □ (∀ Φ : val → IProp GF, ▷ (∀ msg : GoString, Φ #msg) -∗

@@ -128,26 +128,9 @@ end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 -- etcdserver/errors: its own `errors/Base.lean` (imported above; the server txn package needs it
 -- without the apply thread's translation).
 
-namespace go_etcd_io.raft.v3
-
-/-- raft v3.7's package facts (2026-10-12, for the raft wrapper's `IsEmptyHardState`): its
-`emptyState` holds for good a pointer to a `HardState` with every field absent
-(`emptyState = &pb.HardState{}`). -/
-def raftInit : IProp GF :=
-  iprop(∃ e : Loc, globalAddr emptyState ↦□ e ∗ ⌜e ≠ null⌝ ∗
-    structFieldRef raftpb.HardState go!"Term" e ↦□ (null : Loc) ∗
-    structFieldRef raftpb.HardState go!"Vote" e ↦□ (null : Loc) ∗
-    structFieldRef raftpb.HardState go!"Commit" e ↦□ (null : Loc))
-
-instance raftInit_persistent : Persistent (raftInit (GF := GF)) := by
-  unfold raftInit; infer_instance
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
-  define_is_pkg_init raftInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.raft.v3
+-- raft v3.7 (`go_etcd_io.raft.v3`): raft's `Base.lean` states its instance (`isInitialized`,
+-- with `emptyState`), imported through the apply package's `Base`, since stage R6 of the raft
+-- v3.7 retarget (2026-10-16; until then `raftInit` here, the names-only dependency's).
 
 namespace go_etcd_io.etcd.pkg.v3.contention
 
@@ -191,16 +174,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
 -- `strconv` (Perennial's translation, names only: `FormatBool`, the request path's metrics
--- labels, and `FormatUint`, the read loop's trace field; no variable read). Raft's `Base.lean` states the same instance for raft's proofs,
--- which no module imports with the server's.
-namespace strconv
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
-  build_get_is_pkg_init_wf
-
-end strconv
+-- labels, and `FormatUint`, the read loop's trace field; no variable read): raft's `Base.lean`
+-- states its instance (imported through the apply package's `Base`, stage R6).
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.read
 
@@ -264,10 +239,12 @@ namespace go_etcd_io.etcd.server.v3.etcdserver
 `parseProposeCtxErr`) hold `errors.New` errors (`EtcdGrove.errVarLeaf`): `etcdserver/errors`'
 `ErrTooManyRequests` (the request limit), `ErrRequestTooLarge` (`MaxRequestBytes`),
 `ErrStopped` (the server stopped while a proposal waited), `ErrCanceled`, `ErrTimeout`,
-`ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` (a proposal's context done), and
-`auth.ErrAuthOldRevision` (`doSerialize`'s stale token). An assumption about those packages'
-initialization (each `var X = errors.New(...)`), stated here rather than in their packages'
-facts, as the apply package's `applyErrVars`. And (2026-10-12, the request path's unit 3b) a
+`ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` (a proposal's context done),
+`auth.ErrAuthOldRevision` (`doSerialize`'s stale token), and raft's `ErrProposalDropped` (the
+result raft's `node.Propose` answers a dropped proposal with, `stepErr`; 2026-10-16, stage R7c).
+An assumption about those packages' initialization (each `var X = errors.New(...)`), stated here
+rather than in their packages' facts, as the apply package's `applyErrVars`. And (2026-10-12,
+the request path's unit 3b) a
 method-set fact: `*errors.errorString` (the dynamic type of an `errors.New` error and, in
 Perennial's model, of a `fmt.Errorf` error: `mvcc.errorfIs`) has no `Is`, `As` or `Unwrap`
 method (`EtcdGrove.errLeaf`), as Go's `errors` package defines it (its only method is
@@ -283,6 +260,7 @@ abbrev srvErrVars : IProp GF :=
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision ∗
+    EtcdGrove.errVarLeaf go_etcd_io.raft.v3.ErrProposalDropped ∗
     ⌜∀ x : Loc, EtcdGrove.errLeaf
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩⌝)
 

@@ -76,6 +76,9 @@ noncomputable def ErrTooManyClients [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def ErrNoWatcher [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/experimental/recipes.ErrNoWatcher"
 
+noncomputable def ErrWatchClosed [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3/experimental/recipes.ErrWatchClosed"
+
 noncomputable def NewBarrier [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/experimental/recipes.NewBarrier"
 
@@ -254,7 +257,7 @@ noncomputable def Barrier.Wait.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- deleteRevKey deletes a key by revision, returning false if key is missing
 
-    go: client.go:33:6 -/
+    go: client.go:34:6 -/
 noncomputable def deleteRevKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kv"
   (Lam "key"
@@ -309,7 +312,7 @@ noncomputable def deleteRevKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty))) (Pair (Var "cmp") (Var "$r0"))))))))))))))
 
-/-- go: client.go:45:6 -/
+/-- go: client.go:46:6 -/
 noncomputable def claimFirstKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kv"
   (Lam "kvs"
@@ -1848,10 +1851,13 @@ noncomputable def WaitEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "wc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wc"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wc"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty)))) (Var "evs"))
-  (App (App (App (Val (GoInstruction (FuncResolve waitEvents []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (App (Val (GoInstruction (FuncResolve waitEvents []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wc")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Val UntypedNil)))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrNoWatcher))) (Val #())))))
@@ -1903,10 +1909,13 @@ noncomputable def WaitPrefixEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "wc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wc"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wc"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty)))) (Var "evs"))
-  (App (App (App (Val (GoInstruction (FuncResolve waitEvents []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (App (Val (GoInstruction (FuncResolve waitEvents []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wc")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Val UntypedNil)))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrNoWatcher))) (Val #())))))
@@ -1925,7 +1934,10 @@ noncomputable def WaitPrefixEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))))))))
 
-/-- go: watch.go:45:6 -/
+/-- waitEvents returns an error if the watch is canceled or its channel is
+    closed (client closed, context canceled) before the events are observed.
+
+    go: watch.go:47:6 -/
 noncomputable def waitEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wc"
   (Lam "evs"
@@ -1937,11 +1949,11 @@ noncomputable def waitEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty)))) (Val UntypedNil)))))
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrWatchClosed))) (Val #())))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wc"))
-  (Let "wresp" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Val #())))
   (App (App (Val (chan.forRange _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Var "$range"))
   (Lam "$key"
+  (Let "wresp" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Var "$key"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty go!"Events"))) (Var "wresp")))
   (Let "events" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Val #())))
@@ -1958,7 +1970,7 @@ noncomputable def waitEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty)))) (Var "evs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty)]))) (Val #())) (Var "$a0"))))))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1971,8 +1983,16 @@ noncomputable def waitEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Pair (Var "ev") (Var "$value"))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Pair (Var "events") (Var "$r0")))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty) go!"Err"))) (Var "wresp")) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Pair (Var "wresp") (Var "$key"))))))))))))
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))
 
@@ -1983,6 +2003,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2006,8 +2027,13 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"no watcher channel"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"watch channel closed"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNoWatcher))) (Val #())) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrWatchClosed))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNoWatcher))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTooManyClients))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2037,7 +2063,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrTooManyClients go.error)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ErrNoWatcher go.error)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ErrNoWatcher go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrWatchClosed go.error)) (Val #()))))))))
 
 structure Barrier [FfiSyntax] where
   mk ::

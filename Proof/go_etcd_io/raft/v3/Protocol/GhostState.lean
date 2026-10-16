@@ -14,7 +14,7 @@ Lean notes:
   (the name `Model.lean` uses). Rocq's `Notation term_rec`/`prop_rec` are the
   `abbrev`s `TermRec`/`PropRec`, left-nested as in Rocq (`((γt, b), l0)`,
   `((γq, γk), e0)`), so `.1.1`/`.1.2`/`.2` read as in Rocq. The vote-time log data
-  `(T, d, F)` is `((T, d), F) : (w64 × Bool) × List raftpb.Entry` for the same reason.
+  `(T, d, F)` is `((T, d), F) : (w64 × Bool) × List EntryM` for the same reason.
 * `DfracDiscarded` is `DFrac.discard`; the half `1/2` is `(1 : Qp).half`.
 * Rocq's section has `invGS Σ` throughout; here `[InvGS GF]` is a section variable only
   from `raftCommitInv` on (the definitions before it do not use invariants, and an
@@ -53,10 +53,10 @@ variable {md : Bool}
 /-- The read context `c` was deposited when the global committed log was `Lc` (2026-10-14,
 stage R: `read_deposit`; until then `Lc` was a committed log the client knew when it created
 the context). The registry element also names the read's result predicate (`isRead`). -/
-def readReq (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) : IProp GF :=
-  iprop(∃ γq : GName, c ↪[γ.reReads]□ ((γq, Lc) : GName × List raftpb.Entry) ∗ isCommitted γ Lc)
+def readReq (γ : RaftNames) (c : List w8) (Lc : List EntryM) : IProp GF :=
+  iprop(∃ γq : GName, c ↪[γ.reReads]□ ((γq, Lc) : GName × List EntryM) ∗ isCommitted γ Lc)
 
-instance readReq_persistent (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) :
+instance readReq_persistent (γ : RaftNames) (c : List w8) (Lc : List EntryM) :
     Persistent (readReq (GF := GF) γ c Lc) := by
   unfold readReq; infer_instance
 
@@ -86,7 +86,7 @@ def doomed (γ : RaftNames) (T t' : w64) (U : GSet w64) : IProp GF :=
     (∀ (u : w64), ∀ (_ : u ∈ U), ∃ (t'' i'' : w64),
       ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked γ u t'' i'') ∗
     dynOn γ iprop(∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat),
-      ∃ (tw nw : w64) (Gw : List raftpb.Entry) (aw : w64) (cw : CfgM) (qw : GSet w64),
+      ∃ (tw nw : w64) (Gw : List EntryM) (aw : w64) (cw : CfgM) (qw : GSet w64),
         ⌜WitOk G k tw nw Gw aw (uint.Z t' + 1) ∧ (uint.Z T < uint.Z tw → ∀ x, x ∈ qw → x ∈ U)⌝ ∗
         cqAt γ tw nw Gw aw cw qw))
 
@@ -115,7 +115,7 @@ instance rqRecOk_persistent (γ : RaftNames) (T : w64) (r : RqRec) :
     Persistent (rqRecOk (GF := GF) γ T r) := by
   unfold rqRecOk; split <;> infer_instance
 
-instance readReq_timeless (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) :
+instance readReq_timeless (γ : RaftNames) (c : List w8) (Lc : List EntryM) :
     Timeless (readReq (GF := GF) γ c Lc) := by
   unfold readReq; infer_instance
 instance readOk_timeless (γ : RaftNames) (c : List w8) (i : w64) :
@@ -154,14 +154,14 @@ campaign), its records, and the candidate's `commitIn` of `k` at a term below `T
 commit fact that justifies `k` and the witnesses of the conf entries below `k` (the paper's
 repair 3). A vote request carries it (`isMessage`), and so does every vote cast for the
 candidate (`voteJust`): the winners' are found through their votes. -/
-def campDyn (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) : IProp GF :=
+def campDyn (γ : RaftNames) (c T : w64) (F : List EntryM) : IProp GF :=
   iprop(∃ (k tm : w64), ⌜uint.Z tm < uint.Z T ∧ ConfI1 F (uint.Z k).toNat ∧ PlogWf base0 F⌝ ∗
     isCampK γ c T F k ∗ logRecs γ base0 F ∗ commitIn γ F k tm)
 
-instance campDyn_persistent (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+instance campDyn_persistent (γ : RaftNames) (c T : w64) (F : List EntryM) :
     Persistent (campDyn (GF := GF) γ c T F) := by
   unfold campDyn; infer_instance
-instance campDyn_timeless (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+instance campDyn_timeless (γ : RaftNames) (c T : w64) (F : List EntryM) :
     Timeless (campDyn (GF := GF) γ c T F) := by
   unfold campDyn; infer_instance
 
@@ -173,7 +173,7 @@ a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the c
 and its campaign record is of its full log at the commit index. The dynamic refinement
 (`RefinementDyn.lean`) supplies it from `RInv`. -/
 def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
-  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List raftpb.Entry) (a : w64),
+  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List EntryM) (a : w64),
     ⌜FullOk s.base fpR ∧ ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
       uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
       (s.role = .leader → confCount ((fpR ++ s.log).drop (uint.Z a).toNat) ≤ 1) ∧
@@ -220,8 +220,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          dynOn γ iprop(⌜ConfI1 (fp ++ l) (uint.Z m.commit).toNat⌝)) ∗
       ⌜m.src ≠ W64 0⌝)
   | .appResp =>
+      -- an acceptance: the acknowledgement, and (2026-10-16, stage R8a, D11) its index within
+      -- the term's leader's log, for the leader's `MaybeUpdate` (`ownRaftGhost_ackIn_le`)
       if m.reject then iprop(True)
-      else isAcked γ m.src m.term m.index
+      else iprop(isAcked γ m.src m.term m.index ∗ ackIn γ m.term m.index)
   | .heartbeat =>
       iprop(isLeader γ m.src m.term ∗
       (∃ Fl, leadFull γ m.term Fl ∗ commitIn γ Fl m.commit m.term ∗
@@ -259,9 +261,9 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       iprop(⌜m.ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
         ⌜m.ctx = u64Le q ∧ HbAckOk m.src (uint.nat q) recs⌝ ∗ rqLb γ m.dst m.term recs)
   | .readIndex =>
-      iprop(∃ e c Lc, ⌜m.entries = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc)
+      iprop(∃ e c Lc, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc)
   | .readIndexResp =>
-      iprop(∃ e c, ⌜m.entries = [e]⌝ ∗ isPropData γ e.Data' c ∗ readOk γ c m.index)
+      iprop(∃ e c, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readOk γ c m.index)
   | _ => iprop(True)
 
 instance isMessage_persistent (γ : RaftNames) (m : Msg) :
@@ -271,6 +273,14 @@ instance isMessage_persistent (γ : RaftNames) (m : Msg) :
 instance isMessage_timeless (γ : RaftNames) (m : Msg) :
     Timeless (isMessage (GF := GF) γ m) := by
   unfold isMessage; split <;> (try split) <;> infer_instance
+
+/-- An accepting `MsgAppResp` acknowledges an index within the leader's log (stage R8a, D11). -/
+theorem isMessage_appResp_ackIn (γ : RaftNames) (m : Msg) :
+    m.ty = .appResp → m.reject = false →
+    ⊢ isMessage (GF := GF) γ m -∗ ackIn γ m.term m.index := by
+  intro Hty Hrej
+  unfold isMessage; rw [Hty]; simp only [Hrej, Bool.false_eq_true, ↓reduceIte]
+  iintro ⟨-, #H⟩; iexact H
 
 /-- The message types that carry nothing. -/
 def MsgFree (ty : MsgType) : Bool :=
@@ -354,7 +364,7 @@ instance leaderWit_timeless (γ : RaftNames) (id : w64) (s : PState) :
 /-- The terms a node has allocated a term log for: ones it has left behind, or the
 current one if it is leader in it. -/
 /- What a node's term map holds: `isTermLog`'s triple. -/
-abbrev TermRec := (GName × entryID) × List raftpb.Entry
+abbrev TermRec := (GName × entryID) × List EntryM
 
 def TermsOk (terms : GMap w64 TermRec) (s : PState) : Prop :=
   ∀ t, (terms !! t).isSome →
@@ -367,7 +377,7 @@ created since (`leadFrags`). -/
 def leadLogOwn (_γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) : IProp GF :=
   match s.role with
   | .leader =>
-      iprop(∃ γt, ∃ (M : GMap w64 (raftpb.Entry × w64)), ∃ l0,
+      iprop(∃ γt, ∃ (M : GMap w64 (EntryM × w64)), ∃ l0,
         ⌜terms !! s.term = some ((γt, s.base), l0)⌝ ∗
         ghostMapAuth γt 1 M ∗
         ([∗map] i ↦ e ∈ M, i ↪[γt]□ e) ∗
@@ -461,14 +471,14 @@ instance klOk_timeless (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64
 
 /-- No term in a node's full log is above its own; a candidate has none of its own term
 either. -/
-def TermsLe (s : PState) (F : List raftpb.Entry) : Prop :=
+def TermsLe (s : PState) (F : List EntryM) : Prop :=
   ∀ (j x : w64), plogTermAt base0 F j = some x →
     uint.Z x ≤ uint.Z s.term ∧
     (s.role = .candidate → uint.Z x < uint.Z s.term)
 
 /-- A candidate's full log is its campaign record; a leader's extends it, by at least the
 leader's entry, and ends in an entry of its term. -/
-def campOwn (γ : RaftNames) (id : w64) (s : PState) (F : List raftpb.Entry) : IProp GF :=
+def campOwn (γ : RaftNames) (id : w64) (s : PState) (F : List EntryM) : IProp GF :=
   match s.role with
   | .candidate => isCamp γ id s.term F
   | .leader => iprop(∃ F0, isCamp γ id s.term F0 ∗
@@ -477,10 +487,10 @@ def campOwn (γ : RaftNames) (id : w64) (s : PState) (F : List raftpb.Entry) : I
   | .follower => iprop(True)
 
 instance campOwn_persistent (γ : RaftNames) (id : w64) (s : PState)
-    (F : List raftpb.Entry) : Persistent (campOwn (GF := GF) γ id s F) := by
+    (F : List EntryM) : Persistent (campOwn (GF := GF) γ id s F) := by
   unfold campOwn; split <;> infer_instance
 instance campOwn_timeless (γ : RaftNames) (id : w64) (s : PState)
-    (F : List raftpb.Entry) : Timeless (campOwn (GF := GF) γ id s F) := by
+    (F : List EntryM) : Timeless (campOwn (GF := GF) γ id s F) := by
   unfold campOwn; split <;> infer_instance
 
 /-- Node `v`'s `k`-th vote-time log: it voted in `T` with full log `F`, knowing the leader
@@ -488,36 +498,36 @@ of `T` iff `d` (so its histories then are bounded by `vbnd T d`). -/
 def vbnd (T : w64) (d : Bool) : Int := uint.Z T + (if d then 1 else 0)
 
 def isVlog (γ : RaftNames) (v : w64) (k : Nat) (T : w64) (d : Bool)
-    (F : List raftpb.Entry) : IProp GF :=
+    (F : List EntryM) : IProp GF :=
   iprop(∃ γl, ⌜γ.reVlogs !! v = some γl⌝ ∗
-    k ↪[γl]□ (((T, d), F) : (w64 × Bool) × List raftpb.Entry))
+    k ↪[γl]□ (((T, d), F) : (w64 × Bool) × List EntryM))
 
 instance isVlog_persistent (γ : RaftNames) (v : w64) (k : Nat) (T : w64) (d : Bool)
-    (F : List raftpb.Entry) : Persistent (isVlog (GF := GF) γ v k T d F) := by
+    (F : List EntryM) : Persistent (isVlog (GF := GF) γ v k T d F) := by
   unfold isVlog; infer_instance
 instance isVlog_timeless (γ : RaftNames) (v : w64) (k : Nat) (T : w64) (d : Bool)
-    (F : List raftpb.Entry) : Timeless (isVlog (GF := GF) γ v k T d F) := by
+    (F : List EntryM) : Timeless (isVlog (GF := GF) γ v k T d F) := by
   unfold isVlog; infer_instance
 
 /-- A vote-time log has the history of every acknowledgement of an earlier term (all of
 them were made before the vote: a node acknowledges only at its own term). -/
 def vlogsOk (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit)
-    (vlogs : GMap Nat ((w64 × Bool) × List raftpb.Entry)) : IProp GF :=
+    (vlogs : GMap Nat ((w64 × Bool) × List EntryM)) : IProp GF :=
   iprop([∗map] x ∈ vlogs, ⌜uint.Z x.1.1 ≤ uint.Z s.term⌝ ∗
     [∗map] k ↦ _u ∈ acks, ∀ (_ : uint.Z k.1 < uint.Z x.1.1),
       hist γ x.2 k.1 k.2 (vbnd x.1.1 x.1.2))
 
 instance vlogsOk_persistent (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit)
-    (vlogs : GMap Nat ((w64 × Bool) × List raftpb.Entry)) :
+    (vlogs : GMap Nat ((w64 × Bool) × List EntryM)) :
     Persistent (vlogsOk (GF := GF) γ s acks vlogs) := by
   unfold vlogsOk; infer_instance
 
-def histsOk (γ : RaftNames) (s : PState) (kl : Option w64) (F : List raftpb.Entry)
+def histsOk (γ : RaftNames) (s : PState) (kl : Option w64) (F : List EntryM)
     (acks : GMap (w64 × w64) Unit) : IProp GF :=
   iprop([∗map] k ↦ _u ∈ acks, hist γ F k.1 k.2 (bnd s kl))
 
 instance histsOk_persistent (γ : RaftNames) (s : PState) (kl : Option w64)
-    (F : List raftpb.Entry) (acks : GMap (w64 × w64) Unit) :
+    (F : List EntryM) (acks : GMap (w64 × w64) Unit) :
     Persistent (histsOk (GF := GF) γ s kl F acks) := by
   unfold histsOk; infer_instance
 
@@ -530,22 +540,22 @@ history, and `F` has the history (`hist`) of every acknowledgement of an earlier
 before it (2026-10-05). With `ackEv` this replaces the voter's own ghost maps in Leader
 Completeness (`ev_pair`): an acknowledgement of an earlier term than the vote's is
 before it in the history, which is in term order. -/
-def voteEv (γ : RaftNames) (v T : w64) (d : Bool) (F : List raftpb.Entry) : IProp GF :=
+def voteEv (γ : RaftNames) (v T : w64) (d : Bool) (F : List EntryM) : IProp GF :=
   iprop(∃ γe L0, ⌜γ.reEvs !! v = some γe⌝ ∗ monoListLbOwn γe (L0 ++ [Aev.vote T d F]) ∗
     ∀ (t i : w64), ∀ (_ : Aev.ack t i ∈ L0 ∧ uint.Z t < uint.Z T), hist γ F t i (vbnd T d))
 
 instance voteEv_persistent (γ : RaftNames) (v T : w64) (d : Bool)
-    (F : List raftpb.Entry) : Persistent (voteEv (GF := GF) γ v T d F) := by
+    (F : List EntryM) : Persistent (voteEv (GF := GF) γ v T d F) := by
   unfold voteEv; infer_instance
 
 /-- (Lean addition: Rocq's instance search unfolds `vote_ev` for `vote_just_timeless`.) -/
 instance voteEv_timeless (γ : RaftNames) (v T : w64) (d : Bool)
-    (F : List raftpb.Entry) : Timeless (voteEv (GF := GF) γ v T d F) := by
+    (F : List EntryM) : Timeless (voteEv (GF := GF) γ v T d F) := by
   unfold voteEv; infer_instance
 
 /-- The pure part of `ev_pair`: an acknowledgement of an earlier term than a vote, in a
 sorted history comparable with the history up to the vote, is before the vote. -/
-private theorem ev_pair_pure (L0 La : List Aev) (t i T : w64) (d : Bool) (F : List raftpb.Entry) :
+private theorem ev_pair_pure (L0 La : List Aev) (t i T : w64) (d : Bool) (F : List EntryM) :
     uint.Z t < uint.Z T → Aev.ack t i ∈ La → EvSorted La →
     (La <+: L0 ++ [Aev.vote T d F] ∨ L0 ++ [Aev.vote T d F] <+: La) →
     Aev.ack t i ∈ L0 := by
@@ -563,7 +573,7 @@ private theorem ev_pair_pure (L0 La : List Aev) (t i T : w64) (d : Bool) (F : Li
           simpa [show L0.length + 1 + p - (L0.length + 1) = p by omega] using Hp)
       simp only [aevTerm] at this; omega
 
-theorem ev_pair (γ : RaftNames) (v t i T : w64) (d : Bool) (F : List raftpb.Entry) :
+theorem ev_pair (γ : RaftNames) (v t i T : w64) (d : Bool) (F : List EntryM) :
     uint.Z t < uint.Z T →
     ⊢ ackEv (GF := GF) γ v t i -∗ voteEv γ v T d F -∗ hist γ F t i (vbnd T d) := by
   intro HtT
@@ -648,7 +658,7 @@ theorem ownEvs_ack (γ : RaftNames) (id T : w64) (acks : GMap (w64 × w64) Unit)
     iexact Hlb
 
 theorem ownEvs_vote (γ : RaftNames) (id T T' : w64) (acks : GMap (w64 × w64) Unit)
-    (d : Bool) (F : List raftpb.Entry) :
+    (d : Bool) (F : List EntryM) :
     uint.Z T ≤ uint.Z T' →
     ⊢ ownEvs (GF := GF) γ id T acks -∗
       ([∗map] k ↦ _u ∈ acks, ∀ (_ : uint.Z k.1 < uint.Z T'), hist γ F k.1 k.2 (vbnd T' d)) ==∗
@@ -756,19 +766,30 @@ theorem votesTbl_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap 
   isplitl [Ha]; · iexact Ha
   iexact Hf
 
-def committedJust (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+def committedJust (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(⌜l = []⌝ ∨ ∃ t n G ldr, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝ ∗
     -- (2026-10-12, read-index) the leader of `t` whose commit extended the log to `n`,
     -- and its commit lower bound for `t`
     isLeader γ ldr t ∗ cmtLb γ ldr t n)
 
-instance committedJust_timeless (γ : RaftNames) (l : List raftpb.Entry) :
+instance committedJust_timeless (γ : RaftNames) (l : List EntryM) :
     Timeless (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
 
-instance committedJust_persistent (γ : RaftNames) (l : List raftpb.Entry) :
+instance committedJust_persistent (γ : RaftNames) (l : List EntryM) :
     Persistent (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
+
+/-- A justified committed log is well-formed from `base0`: entry `k` has index `k + 1`
+(`cq_full`; 2026-10-16, stage R7). -/
+theorem committedJust_wf (γ : RaftNames) (l : List EntryM) :
+    ⊢ committedJust (GF := GF) γ l -∗ ⌜PlogWf base0 l⌝ := by
+  unfold committedJust
+  iintro #H
+  icases H with (%H0 | ⟨%t, %n, %G, %ldr, #Hcq, %HlG, -, -⟩)
+  · ipureintro; subst H0; intro k e Hk; simp at Hk
+  · icases cq_full γ t n G $$ Hcq with ⟨%Hwf, -⟩
+    ipureintro; subst HlG; exact PlogWf_take _ _ _ Hwf
 
 def raftN : Namespace := nroot .@ "raft_commit"
 
@@ -834,20 +855,20 @@ abbrev rlq : Qp := (1 : Qp).half.half
 theorem rlq_add : rlq + rlq = (1 : Qp).half := Qp.half_add_half _
 
 /-- The client's half of the full committed log. -/
-def rLog (γ : RaftNames) (L : List raftpb.Entry) : IProp GF :=
+def rLog (γ : RaftNames) (L : List EntryM) : IProp GF :=
   ghostVar γ.reRLog (1 : Qp).half L
 
-instance rLog_timeless (γ : RaftNames) (L : List raftpb.Entry) : Timeless (rLog (GF := GF) γ L) := by
+instance rLog_timeless (γ : RaftNames) (L : List EntryM) : Timeless (rLog (GF := GF) γ L) := by
   unfold rLog; infer_instance
 
 /-- The data of a log's entries (persistent). -/
-def entsData (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+def entsData (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(∃ ods : List (Option (List w8)), [∗list] e;o ∈ l;ods, entDataIs γ e o)
 
-instance entsData_persistent (γ : RaftNames) (l : List raftpb.Entry) :
+instance entsData_persistent (γ : RaftNames) (l : List EntryM) :
     Persistent (entsData (GF := GF) γ l) := by
   unfold entsData; infer_instance
-instance entsData_timeless (γ : RaftNames) (l : List raftpb.Entry) :
+instance entsData_timeless (γ : RaftNames) (l : List EntryM) :
     Timeless (entsData (GF := GF) γ l) := by
   unfold entsData; infer_instance
 
@@ -871,34 +892,34 @@ instance rdFresh_timeless (γ : RaftNames) (c : List w8) :
 
 /-- The client's handle on its deposited proposal: the slot of `d`, with result `Q`. -/
 def isProp (γ : RaftNames) (d : List w8) (γq : GName)
-    (Q : List raftpb.Entry → IProp GF) : IProp GF :=
+    (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(d ↪[γ.reProps]□ γq ∗ savedPredOwn γq DFrac.discard Q)
 
 instance isProp_persistent (γ : RaftNames) (d : List w8) (γq : GName)
-    (Q : List raftpb.Entry → IProp GF) : Persistent (isProp γ d γq Q) := by
+    (Q : List EntryM → IProp GF) : Persistent (isProp γ d γq Q) := by
   unfold isProp; infer_instance
 
 theorem isProp_deposited (γ : RaftNames) (d : List w8) (γq : GName)
-    (Q : List raftpb.Entry → IProp GF) : ⊢ isProp (GF := GF) γ d γq Q -∗ deposited γ d := by
+    (Q : List EntryM → IProp GF) : ⊢ isProp (GF := GF) γ d γq Q -∗ deposited γ d := by
   unfold isProp deposited
   iintro ⟨#H, -⟩
   iexists γq; iexact H
 
 /-- The client's handle on its deposited read: the update's result predicate. -/
-def isRead (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF) : IProp GF :=
-  iprop(∃ (γq : GName) (Lc : List raftpb.Entry),
-    c ↪[γ.reReads]□ ((γq, Lc) : GName × List raftpb.Entry) ∗ savedPredOwn γq DFrac.discard Qr)
+def isRead (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) : IProp GF :=
+  iprop(∃ (γq : GName) (Lc : List EntryM),
+    c ↪[γ.reReads]□ ((γq, Lc) : GName × List EntryM) ∗ savedPredOwn γq DFrac.discard Qr)
 
-instance isRead_persistent (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF) :
+instance isRead_persistent (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) :
     Persistent (isRead γ c Qr) := by
   unfold isRead; infer_instance
 
 /-- The read witness: the handle and a read index `i` for the context. -/
-def readWit (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF) (i : w64) :
+def readWit (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) (i : w64) :
     IProp GF :=
   iprop(isRead γ c Qr ∗ readOk γ c i)
 
-instance readWit_persistent (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF)
+instance readWit_persistent (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF)
     (i : w64) : Persistent (readWit γ c Qr i) := by
   unfold readWit; infer_instance
 
@@ -907,38 +928,41 @@ variable [InvGS GF]
 
 /-- A read's update (see the section header): persistent, the log unchanged, a persistent
 result. -/
-def readAu (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (L : List raftpb.Entry), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+def readAu (γ : RaftNames) (Qr : List EntryM → IProp GF) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
               <{ rLog γ L, COMM □ Qr L }>)
 
-instance readAu_persistent (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF) :
+instance readAu_persistent (γ : RaftNames) (Qr : List EntryM → IProp GF) :
     Persistent (readAu (GF := GF) γ Qr) := by
   unfold readAu; infer_instance
 
 /-- A proposal's update (see the section header): persistent; raft chooses the entry `e` (a
-normal entry whose proposed slice holds `d`, `entDataIs`); fired at every committed
-occurrence, with the log before it. -/
-def propAu (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (L : List raftpb.Entry), rLog γ L }> @ ⊤ \ ↑raftN, ∅
-              <{ ∀∀ (e : raftpb.Entry), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d),
+normal entry holding the bytes `d`, `entDataIs`); fired at every committed
+occurrence, with the log before it. The entry's index is its position in the committed log
+(entry `k` has index `k + 1`; 2026-10-16, stage R7, for the server's contract). -/
+def propAu (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
+                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
                  COMM □ Q L }>)
 
-instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF) :
+instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
     Persistent (propAu (GF := GF) γ d Q) := by
   unfold propAu; infer_instance
 
 /-- The standing update for raft's own entries (see the section header): the client gives it
 at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
 def noopAu (γ : RaftNames) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (L : List raftpb.Entry), rLog γ L }> @ ⊤ \ ↑raftN, ∅
-              <{ ∀∀ (e : raftpb.Entry), rLog γ (L ++ [e]) ∗ entDataIs γ e none, COMM True }>)
+  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗
+                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝, COMM True }>)
 
 instance noopAu_persistent (γ : RaftNames) : Persistent (noopAu (GF := GF) γ) := by
   unfold noopAu; infer_instance
 
 /-- Firing a read's update: the invariant's half at `l` agrees with the client's, both
 unchanged. -/
-theorem readAu_fire (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF) (l : List raftpb.Entry) :
+theorem readAu_fire (γ : RaftNames) (Qr : List EntryM → IProp GF) (l : List EntryM) :
     ⊢ readAu γ Qr -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
       ghostVar γ.reRLog (1 : Qp).half l ∗ □ Qr l := by
   iintro #Hau Hv
@@ -957,10 +981,11 @@ theorem readAu_fire (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF) (l : 
   imodintro
   iframe Hv HQ
 
-/-- Firing a proposal's update at an entry `e` holding its data: the raft half of the client's
-log, at `l`, moves to `l ++ [e]` with the client's half, and the result at `l` comes out. -/
-theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF)
-    (l : List raftpb.Entry) (e : raftpb.Entry) :
+/-- Firing a proposal's update at an entry `e` holding its data, at the next index: the raft
+half of the client's log, at `l`, moves to `l ++ [e]` with the client's half, and the result
+at `l` comes out. -/
+theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
+    (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
     ⊢ propAu γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ □ Q l := by
   iintro #Hau #He Hv
@@ -978,11 +1003,13 @@ theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IP
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with HQ
   · iframe HcL He
+    ipureintro; exact Hidx
   imodintro
   iframe Hv HQ
 
-/-- Firing the standing update at an entry `e` of raft's own. -/
-theorem noopAu_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry) :
+/-- Firing the standing update at an entry `e` of raft's own, at the next index. -/
+theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
+    (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
     ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) := by
   iintro #Hau #He Hv
@@ -1000,47 +1027,48 @@ theorem noopAu_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry) 
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with -
   · iframe HcL He
+    ipureintro; exact Hidx
   imodintro
   iexact Hv
 
 /-- A proposal slot, for the committed log `l`: the result predicate (tied to `γq`), the
 update, and its results at every occurrence of `d` in `l` (with the log before it). -/
-def propSlot (γ : RaftNames) (d : List w8) (γq : GName) (l : List raftpb.Entry) : IProp GF :=
-  iprop(∃ Q : List raftpb.Entry → IProp GF, savedPredOwn γq DFrac.discard Q ∗ propAu γ d Q ∗
-    □ (∀ (m : Nat) (e : raftpb.Entry), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
+def propSlot (γ : RaftNames) (d : List w8) (γq : GName) (l : List EntryM) : IProp GF :=
+  iprop(∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ propAu γ d Q ∗
+    □ (∀ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
          □ Q (l.take m)))
 
 instance propSlot_persistent (γ : RaftNames) (d : List w8) (γq : GName)
-    (l : List raftpb.Entry) : Persistent (propSlot (GF := GF) γ d γq l) := by
+    (l : List EntryM) : Persistent (propSlot (GF := GF) γ d γq l) := by
   unfold propSlot; infer_instance
 
 /-- The proposal registry, for the committed log `l` (each slot with its data's fresh
 token). -/
-def propsOwn (γ : RaftNames) (l : List raftpb.Entry) (R : GMap (List w8) GName) : IProp GF :=
+def propsOwn (γ : RaftNames) (l : List EntryM) (R : GMap (List w8) GName) : IProp GF :=
   iprop(ghostMapAuth γ.reProps 1 R ∗ [∗map] d ↦ γq ∈ R, propSlot γ d γq l ∗ propFresh γ d)
 
 /-- A read slot, for the committed log `l`: the result predicate (tied to `r.1`), the update,
 the deposit's log `r.2` (a prefix of `l`), and the results so far: `□ Qr` of every prefix of
 `l` at least `r.2` long, i.e. of every log the update was fired at. -/
-def readSlot (γ : RaftNames) (r : GName × List raftpb.Entry) (l : List raftpb.Entry) :
+def readSlot (γ : RaftNames) (r : GName × List EntryM) (l : List EntryM) :
     IProp GF :=
-  iprop(∃ Qr : List raftpb.Entry → IProp GF, savedPredOwn r.1 DFrac.discard Qr ∗ readAu γ Qr ∗
+  iprop(∃ Qr : List EntryM → IProp GF, savedPredOwn r.1 DFrac.discard Qr ∗ readAu γ Qr ∗
     ⌜r.2 <+: l⌝ ∗
     □ (∀ (n : Nat), ⌜r.2.length ≤ n ∧ n ≤ l.length⌝ -∗ □ Qr (l.take n)))
 
-instance readSlot_persistent (γ : RaftNames) (r : GName × List raftpb.Entry)
-    (l : List raftpb.Entry) : Persistent (readSlot (GF := GF) γ r l) := by
+instance readSlot_persistent (γ : RaftNames) (r : GName × List EntryM)
+    (l : List EntryM) : Persistent (readSlot (GF := GF) γ r l) := by
   unfold readSlot; infer_instance
 
 /-- The read registry, for the committed log `l` (each slot with its context's fresh
 token). -/
-def readsReg (γ : RaftNames) (l : List raftpb.Entry)
-    (RR : GMap (List w8) (GName × List raftpb.Entry)) : IProp GF :=
+def readsReg (γ : RaftNames) (l : List EntryM)
+    (RR : GMap (List w8) (GName × List EntryM)) : IProp GF :=
   iprop(ghostMapAuth γ.reReads 1 RR ∗ [∗map] c ↦ r ∈ RR, readSlot γ r l ∗ rdFresh γ c)
 
 /-- The registries at the committed log `l`, with the standing update. -/
-def regsAt (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
-  iprop(∃ (R : GMap (List w8) GName) (RR : GMap (List w8) (GName × List raftpb.Entry)),
+def regsAt (γ : RaftNames) (l : List EntryM) : IProp GF :=
+  iprop(∃ (R : GMap (List w8) GName) (RR : GMap (List w8) (GName × List EntryM)),
     propsOwn γ l R ∗ readsReg γ l RR ∗ noopAu γ)
 
 /-- The registry half's contents: its quarter of `reRLog` at the committed log, and the
@@ -1059,10 +1087,10 @@ instance winTbl_timeless (γ : RaftNames) : Timeless (winTbl (GF := GF) γ) := b
 
 /-- The log half's remaining contents at the committed log `l`: its entries' data and the
 half's quarter of `reRLog`. -/
-def logRest (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+def logRest (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(entsData γ l ∗ ghostVar γ.reRLog rlq l)
 
-instance logRest_timeless (γ : RaftNames) (l : List raftpb.Entry) :
+instance logRest_timeless (γ : RaftNames) (l : List EntryM) :
     Timeless (logRest (GF := GF) γ l) := by
   unfold logRest; infer_instance
 
@@ -1094,7 +1122,7 @@ theorem raftCommitInv_reg (γ : RaftNames) : raftCommitInv (GF := GF) γ ⊢ raf
 
 /-- A node's committed prefix: the first `commit` entries of its full log `fp ++ log` (the
 entries at indices `1 .. commit`). -/
-def cprefix (fp : List raftpb.Entry) (s : PState) : List raftpb.Entry :=
+def cprefix (fp : List EntryM) (s : PState) : List EntryM :=
   (fp ++ s.log).take (uint.Z s.commit).toNat
 
 /-! ### The commit lower bounds of the terms a node led (2026-10-12, read-index)
@@ -1412,10 +1440,10 @@ theorem HbAckOk_w64Max (v x y : w64) (recs : List RqRec) :
 theorem HbAckOk_zero (v : w64) (recs : List RqRec) : HbAckOk v 0 recs :=
   ⟨Nat.zero_le _, fun r hr => by simp at hr⟩
 
-/-- What a confirmed request's answer needs (2026-10-13): its entry, a proposed slice whose
-context `c` the index reads (`readOk`). -/
+/-- What a confirmed request's answer needs (2026-10-13): its entry, whose bytes `c` (the
+context) the index reads (`readOk`). -/
 def respFacts (γ : RaftNames) (q : ReadReq) : IProp GF :=
-  iprop(∃ e c, ⌜q.ents = [e]⌝ ∗ isPropData γ e.Data' c ∗ readOk γ c q.index)
+  iprop(∃ e c, ⌜q.ents = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readOk γ c q.index)
 
 instance respFacts_persistent (γ : RaftNames) (q : ReadReq) :
     Persistent (respFacts (GF := GF) γ q) := by
@@ -1430,12 +1458,13 @@ theorem rdCount_append (a b : List Msg) : rdCount (a ++ b) = rdCount a + rdCount
 theorem rdCount_singleton (m : Msg) : rdCount [m] = if m.ty = .readIndex then 1 else 0 := by
   unfold rdCount; by_cases h : m.ty = .readIndex <;> simp [h]
 
-/-- A `ReadState` handed out (2026-10-13): its context is a slice proposed holding `c`,
-and its index is at least the log `c` was created knowing (`readOk`). -/
-def readStateOk (γ : RaftNames) (st : ReadState) : IProp GF :=
-  iprop(∃ c, isPropData γ st.RequestCtx' c ∗ readOk γ c st.Index')
+/-- A `ReadState` handed out (2026-10-13): its context holds the bytes `c` (D6: the context
+is its bytes; until then a slice proposed holding `c`), and its index is at least the log `c`
+was created knowing (`readOk`). -/
+def readStateOk (γ : RaftNames) (st : ReadStateM) : IProp GF :=
+  iprop(∃ c, ⌜st.RequestCtx' = c⌝ ∗ readOk γ c st.Index')
 
-instance readStateOk_persistent (γ : RaftNames) (st : ReadState) :
+instance readStateOk_persistent (γ : RaftNames) (st : ReadStateM) :
     Persistent (readStateOk (GF := GF) γ st) := by
   unfold readStateOk; infer_instance
 
@@ -1447,7 +1476,7 @@ def rdLead (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) : IProp GF :=
       ⌜recs.length = uint.nat s.rd.ro.confirmed + s.rd.ro.pending.length⌝ ∗
       ([∗list] k ↦ q ∈ s.rd.ro.pending, ∃ r e,
          ⌜recs[uint.nat s.rd.ro.confirmed + k]? = some r ∧ q.index = r.1.2 ∧ q.ents = [e]⌝ ∗
-         isPropData γ e.Data' r.1.1) ∗
+         ⌜e.Data' = r.1.1⌝) ∗
       ⌜∀ v a, s.rd.ro.acks !! v = some a → HbAckOk v (uint.nat a) recs⌝ ∗
       rdCred γ recs.length)
   | _ => iprop(⌜s.rd.ro = ⟨[], ∅, W64 0⟩⌝)
@@ -1467,7 +1496,7 @@ def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
     ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
     ⌜LcmOk rqm s⌝ ∗ rdLead γ s rqm ∗
     ([∗list] st ∈ s.rd.states, readStateOk γ st) ∗
-    ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ∗
+    ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
     rdCred γ (s.rd.pend.length + rdCount s.outbox) ∗
     rdCredInv γ)
 
@@ -1627,13 +1656,13 @@ theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
 /-- A step that changes only the outbox and the read state, not the read-only object:
 `ReadState`s added, pending requests added (each with its facts and a credit), and
 messages sent with as many credits as they hold read-index requests. -/
-theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List ReadState)
-    (ps : List (raftpb.Message × List raftpb.Entry)) (ms : List Msg) :
+theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List ReadStateM)
+    (ps : List (MessageM × List EntryM)) (ms : List Msg) :
     s'.role = s.role → s'.term = s.term → s'.rd.ro = s.rd.ro →
     s'.rd.states = s.rd.states ++ sts → s'.rd.pend = s.rd.pend ++ ps →
     s'.outbox = s.outbox ++ ms →
     ⊢ rdOwn (GF := GF) γ id s -∗ ([∗list] st ∈ sts, readStateOk γ st) -∗
-      ([∗list] p ∈ ps, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) -∗
+      ([∗list] p ∈ ps, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗
       rdCred γ (ps.length + rdCount ms) -∗
       rdOwn γ id s' := by
   intro Hr Ht Hro Hst Hpd Hout
@@ -1657,8 +1686,8 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
     iframe Hst0 Hsts
   isplitr
   · rw [Hpd]
-    iapply (BigSepL.bigSepL_append (Φ := fun _ (p : raftpb.Message × List raftpb.Entry) => iprop(∃ e c Lc, ⌜p.2 = [e]⌝ ∗
-      isPropData (GF := GF) γ e.Data' c ∗ readReq γ c Lc))).2
+    iapply (BigSepL.bigSepL_append (Φ := fun _ (p : MessageM × List EntryM) => iprop(∃ e c Lc, ⌜p.2 = [e]⌝ ∗
+      ⌜e.Data' = c⌝ ∗ readReq γ c Lc))).2
     iframe Hpd0 Hps
   isplitl [Hcr Hcr']
   · rw [Hpd, Hout, List.length_append, rdCount_append,
@@ -1696,7 +1725,7 @@ theorem rdOwn_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg)
 theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
     rdOwn (GF := GF) γ id s ⊢
       rdOwn γ id { s with rd := { s.rd with pend := [] } } ∗
-      ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ∗
+      ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
       rdCred γ s.rd.pend.length := by
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
@@ -1833,8 +1862,8 @@ def LeadAcksOk (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
 
 def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :=
   iprop(∃ γm, ∃ (terms : GMap w64 TermRec), ∃ γa, ∃ (acks : GMap (w64 × w64) Unit),
-    ∃ (fp : List raftpb.Entry), ∃ γc, ∃ (camps : GMap w64 (List raftpb.Entry × w64)), ∃ γl,
-    ∃ (vlogs : GMap Nat ((w64 × Bool) × List raftpb.Entry)), ∃ γw,
+    ∃ (fp : List EntryM), ∃ γc, ∃ (camps : GMap w64 (List EntryM × w64)), ∃ γl,
+    ∃ (vlogs : GMap Nat ((w64 × Bool) × List EntryM)), ∃ γw,
     ∃ (wins : GMap w64 (GSet w64)),
     "%Htname"  ∷ ⌜γ.reTerms !! id = some γm⌝ ∗
     "Hterms"   ∷ ghostMapAuth γm 1 terms ∗

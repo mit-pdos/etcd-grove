@@ -28,7 +28,12 @@ theorem unstable.shrinkEntriesArray.wp_proof :
   iNamed H
   open_unstable
   icases Hents with #Hents
-  ihave %Hlen := ownSlice_len $$ Hents
+  ihave %Hlen := entsPts_len $$ Hents
+  ihave Hents' := Hents
+  iunfold entsRO at Hents'
+  iunfold entsPts at Hents'
+  icases Hents' with ⟨%ls, #Hls, #Hb⟩
+  ihave %Hlsl := ownSlice_len $$ Hls
   wp_auto
   by_cases He : us.ents = []
   · -- empty: `nil`
@@ -36,7 +41,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
     · iapply HΦ
       iapply ownUnstable_intro $$ Hu
       · iapply ownSliceCap_nil
-      · rw [He]; iapply ownSlice_nil
+      · rw [He]; iapply entsPts_nil
       · iexact Hsnap
       · iexact Hpksn
       · iexact Hlogger
@@ -46,21 +51,25 @@ theorem unstable.shrinkEntriesArray.wp_proof :
     · exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
     wp_if_destruct
     · -- copy into an array of exactly the right size
-      wp_apply wp_slice_make2 (V := raftpb.Entry) as %sl ⟨Hsl, Hsl_cap⟩
+      wp_apply wp_slice_make2 (V := Loc) as %sl ⟨Hsl, Hsl_cap⟩
       · ipureintro; word
-      wp_apply +noauto wp_slice_copy $$ [$Hsl $Hents] as %n ⟨%Hn, Hsl, -⟩
-      have Hcp : (us.ents.take (List.replicate (sint.nat uv.entries'.len)
-            (zero_val raftpb.Entry)).length ++
-          (List.replicate (sint.nat uv.entries'.len) (zero_val raftpb.Entry)).drop us.ents.length) =
-          us.ents := by
-        rw [List.length_replicate, List.take_of_length_le (by rw [Hlen.1]; exact Nat.le_refl _),
-          List.drop_of_length_le (by rw [List.length_replicate, Hlen.1]; exact Nat.le_refl _), List.append_nil]
+      wp_apply +noauto wp_slice_copy $$ [$Hsl $Hls] as %n ⟨%Hn, Hsl, -⟩
+      have Hcp : (ls.take (List.replicate (sint.nat uv.entries'.len)
+            (zero_val Loc)).length ++
+          (List.replicate (sint.nat uv.entries'.len) (zero_val Loc)).drop ls.length) =
+          ls := by
+        rw [List.length_replicate, List.take_of_length_le (by rw [Hlsl.1]; exact Nat.le_refl _),
+          List.drop_of_length_le (by rw [List.length_replicate, Hlsl.1]; exact Nat.le_refl _), List.append_nil]
       rw [Hcp]
       ipersist Hsl
       wp_auto
       iapply HΦ
-      iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hpksn Hlogger
-      ipureintro; exact ⟨rfl, rfl⟩
+      iapply ownUnstable_intro $$ Hu Hsl_cap
+      · iunfold entsRO; iunfold entsPts; iexists ls; iframe Hsl Hb
+      · iexact Hsnap
+      · iexact Hpksn
+      · iexact Hlogger
+      · ipureintro; exact ⟨rfl, rfl⟩
     · iapply HΦ
       close_unstable
 

@@ -45,8 +45,13 @@ theorem unstable.slice.wp_proof
     $$ [$Hun] as Hun
   open_unstable
   ihave #Hents := Hents
-  ihave %Hlen := ownSlice_len $$ Hents
-  ihave %Hwf := ownSlice_wf $$ Hents
+  ihave %Hlen := entsPts_len $$ Hents
+  ihave Hents' := Hents
+  iunfold entsRO at Hents'
+  iunfold entsPts at Hents'
+  icases Hents' with ⟨%ls, #Hls, #Hb⟩
+  ihave %Hwf := ownSlice_wf $$ Hls
+  ihave %Hbl := entsBig_length $$ Hb
   wp_auto
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
   obtain ⟨-, Hwf⟩ := Hwf
@@ -63,23 +68,29 @@ theorem unstable.slice.wp_proof
   have Hsublen : (subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) us.ents).length
       = sint.nat (hi - us.offset) - sint.nat (lo - us.offset) :=
     subslice_length _ _ _ (by word)
-  have Hne : subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) us.ents ≠ [] := by
-    intro Hc; rw [Hc] at Hsublen; simp only [List.length_nil] at Hsublen; word
-  have Hcap : sint.Z (slice.fullSlice uv.entries' raftpb.Entry (lo - us.offset) (hi - us.offset)
-      (hi - us.offset)).len ≤ sint.Z (slice.fullSlice uv.entries' raftpb.Entry (lo - us.offset)
+  have Hsublen' : (subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) ls).length
+      = sint.nat (hi - us.offset) - sint.nat (lo - us.offset) :=
+    subslice_length _ _ _ (by rw [Hbl]; word)
+  have Hne : subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) ls ≠ [] := by
+    intro Hc; rw [Hc] at Hsublen'; simp only [List.length_nil] at Hsublen'; word
+  have Hcap : sint.Z (slice.fullSlice uv.entries' Loc (lo - us.offset) (hi - us.offset)
+      (hi - us.offset)).len ≤ sint.Z (slice.fullSlice uv.entries' Loc (lo - us.offset)
       (hi - us.offset) (hi - us.offset)).cap := by
     simp only [slice.fullSlice]; omega
   ihave ⟨-, #H2, -⟩ := (ownSlice_slice (lo - us.offset) (hi - us.offset) _ _ _
-    ⟨by omega, by omega, by omega⟩).1 $$ Hents
+    ⟨by omega, by omega, by omega⟩).1 $$ Hls
   ihave Hs := ownSlice_same_ptr_len
-    (slice.slice uv.entries' raftpb.Entry (lo - us.offset) (hi - us.offset))
-    (slice.fullSlice uv.entries' raftpb.Entry (lo - us.offset) (hi - us.offset) (hi - us.offset))
+    (slice.slice uv.entries' Loc (lo - us.offset) (hi - us.offset))
+    (slice.fullSlice uv.entries' Loc (lo - us.offset) (hi - us.offset) (hi - us.offset))
     _ _ Hne rfl rfl Hcap $$ H2
   iapply HΦ
   isplitl [Hu Hents_cap]
   · close_unstable
   isplitr
-  · iexact Hs
+  · iunfold entsRO; iunfold entsPts
+    iexists _
+    iframe Hs
+    iapply entsBig_subslice $$ Hb
   ipureintro
   refine ⟨?_, ?_, rfl, ?_⟩
   · rw [Hsublen]; word

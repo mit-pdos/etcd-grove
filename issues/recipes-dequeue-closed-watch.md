@@ -6,6 +6,9 @@ links:
 
 # clientv3/experimental/recipes: Queue.Dequeue panics when its watch closes
 
+**Status**: fixed in the verified fork: `goose-lean` `0df483bee` (the cherry-pick of `0aa6c6af8`, branch
+`recipes-closed-watch-channel`; unit W-Q, 2026-10-16); not yet upstream.
+
 ## Summary
 
 `Queue.Dequeue` and `PriorityQueue.Dequeue` (`client/v3/experimental/recipes`) block on an empty queue by watching the queue's prefix. If that watch channel closes before a `PUT` arrives (the client is closed, or etcd cancels the watch because its start revision was compacted), `Dequeue` dereferences a nil event and panics with `invalid memory address or nil pointer dereference`, instead of returning an error. I found this while formally verifying the recipes package.
@@ -94,3 +97,17 @@ No existing test encodes the old behaviour; the suite passes unchanged with the 
 Branch `recipes-closed-watch-channel` (one commit, with the tests; it also fixes [recipes-barrier-wait-closed-watch](recipes-barrier-wait-closed-watch.md), which has the same cause). `waitEvents` returns the watch response's `Err()` when the watch is canceled (`ErrCompacted`, for instance), and a new `ErrWatchClosed` (`client.go`) when the channel closes without the events. `WaitEvents` and `WaitPrefixEvents` return that error, and the callers, which already check it, propagate it. After the fix, the client-close case returns `watch channel closed` and the compaction case `etcdserver: mvcc: required revision has been compacted`.
 
 The commit is one commit off `main` (f061acd09), as the other fix branches are.
+
+## How the proof handles it
+
+Until unit W-Q (2026-10-16) the recipes' proofs took the premise that a watch channel never closes
+(`isEtcdRangeWatcherOpen`, now deleted), which etcd's client does not meet. Since W-Q the verified
+code is the fork with the fix (`goose-lean` `0df483bee`): `waitEvents.spec`
+(`Spec/go_etcd_io/etcd/client/v3/experimental/recipes/waitEvents.lean`) is over the closable watch
+channel and returns `(ev, nil)` with the awaited event or `(nil, err)` with `err ≠ nil` (a canceled
+response's `Err()`, or `ErrWatchClosed`); `WaitEvents.spec`/`WaitPrefixEvents.spec` pass it on, and
+`Queue.Dequeue`/`PriorityQueue.Dequeue` take the error branch of their specs (`⌜err ≠ nil⌝`). The
+client bundle (`isEtcdRecipesClient`) takes the closable contract `isEtcdRangeWatcher`, which etcd's
+client watcher meets (`isEtcdRangeWatcher_of_watcher`), so `queue_end_to_end_client`
+(`Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Results.lean`) has no premise about the
+watch channel.

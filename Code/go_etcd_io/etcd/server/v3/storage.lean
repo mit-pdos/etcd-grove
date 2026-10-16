@@ -4,7 +4,7 @@ module
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
 public import Code.go_etcd_io.etcd.server.v3.storage.schema
-public import EtcdDeps.Code.go_etcd_io.raft.v3.raftpb
+public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.sync
 public import Code.google_golang_org.protobuf.proto
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.cindex

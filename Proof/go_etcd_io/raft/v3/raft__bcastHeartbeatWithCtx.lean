@@ -3,6 +3,8 @@ Port of election_proof/proof_raft__bcastHeartbeatWithCtx.v.
 
 Lean notes: the Rocq helper `wp_bcast_hb` is inlined in the theorem (it was the whole
 proof). The Rocq `Local Lemma heartbeat_ok_intro` is a private theorem.
+
+raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 
@@ -57,6 +59,8 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
   wp_start as Hphys
   iNamed Hphys
   wp_auto
+  -- (stage R8a) the leader's progress bound, carried through the `Visit`
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
   wp_apply wp_ProgressTracker_Visit c _ tv ⟨s.votes, s.progress, s.prvals⟩ _
       (fun _ pvsx => iprop(∃ (ms : List Msg),
@@ -64,8 +68,10 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         "cp" ∷ ctx_ptr ↦ ctx ∗
         "%Hms" ∷ ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
+        "%Hok" ∷ ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx }⌝ ∗
         "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
             ownTrackerC c tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
+            ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx' }⌝ -∗
             ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvsx' })))
     $$ [$Htrkf $Htrk r ctx Hrest]
   · isplitl [r ctx Hrest]
@@ -76,8 +82,10 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       · ipureintro; simp
       isplitr
       · ipureintro; trivial
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := Hrest $$ %tvx %pvsx Hf Ht
+      isplitr
+      · ipureintro; exact Hok0.of_fields rfl rfl rfl
+      iintro %tvx %pvsx Hf Ht %Hok'
+      ihave Hphys := Hrest $$ %tvx %pvsx Hf Ht %(Hok'.of_fields rfl rfl rfl)
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs]) $$ Hphys
     -- the closure
     imodintro
@@ -86,7 +94,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback, HI⟩
     iNamed HI
     ihave Htrk := Hback $$ %p Hpr %rfl
-    ihave Hphys := Hrest $$ Htrkf Htrk
+    ihave Hphys := Hrest $$ Htrkf Htrk %(by rw [GMap.insert_id _ _ _ Hpvi]; exact Hok)
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     have Hmi : prvalsMatch (<[i := p]> pvs0) = prvalsMatch s.prvals := by
@@ -108,8 +116,10 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       · ipureintro; exact Hms
       isplitr
       · ipureintro; exact Hmi
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
+      isplitr
+      · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hok
+      iintro %tvx %pvsx Hf Ht %Hok'
+      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %Hok'
       · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
@@ -120,6 +130,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
       · iexact Hctx
       try wp_auto
+      icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
       ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
       · rfl
@@ -142,14 +153,16 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
           exact Hc2
       isplitr
       · ipureintro; simp only at Hmm'; rw [Hmm', Hmi]
-      iintro %tvx %pvsx Hf Ht
-      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
+      isplitr
+      · ipureintro; exact Hok'.of_fields rfl rfl rfl
+      iintro %tvx %pvsx Hf Ht %Hok''
+      ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %(Hok''.of_fields rfl rfl rfl)
       · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs, List.append_assoc]) $$ Hphys
   iintro ⟨%tvfin, %pvsfin, Htrkf, Htrk, HI⟩
   iNamed HI
-  ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf [Htrk]
+  ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf [Htrk] %Hok
   · iapply ownTracker_cast c tvfin _ _ ?_ $$ Htrk
     rfl
   wp_auto

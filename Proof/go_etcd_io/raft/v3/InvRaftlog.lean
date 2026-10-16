@@ -60,6 +60,21 @@ indices `prev.index+1 ...`, and:
   is set, the log starts at the snapshot's id with no stable part, and the `Storage` is
   shadowed (`LogStoreOk`).
 
+### raft v3.7 (stage R3 of the retarget, 2026-10-15)
+
+The shapes are the old ones with the entries' element type changed (`notes/raft-retarget-plan.md`,
+D2; `notes/decisions.md`, "The log layer over read-only entries: the storage contract of raft
+v3.7"): `unstable.entries` is a `[]*pb.Entry`, held as `entsRO uv.entries' us.ents`
+(`InvPbLog.lean`: the pointers `↦*□` and each pointer a persistent `entRO` log entry, where the
+old proof had `uv.entries' ↦*□ us.ents` of gogoproto values) with its capacity `ownSliceCap Loc`
+owned as before; `LogState`, `UnstableSt` keep their `List EntryM` and every pure fact. The
+pending snapshot (`unstable.snapshot`) is a fresh clone (`unstable.restore`, `log_unstable.go:196`)
+that nothing writes after -- `nextSnapshot` and `raftLog.snapshot` clone it again
+(`log_unstable.go:114`, `log.go:295`) -- so the log holds it read-only, `ownSnapM p □ sv`
+(`ownSnap`, `pendKsn`, persistent as before; until the retarget `p ↦□ sv` of a value with its
+`ConfState` slices `ownCSL`). Since an entry is read-only once appended and a page `slice`
+returns is the caller's for good, the "page out" shapes need no wand.
+
 ### Scope assumptions written into the predicate
 
 None since 2026-10-13. (Until then: no configuration change is ever requested,
@@ -102,10 +117,12 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvStorage
 public import Proof.go_etcd_io.raft.v3.InvLogger
+public import Proof.go_etcd_io.raft.v3.SpecResults
 
 @[expose] public section
 
 set_option autoImplicit false
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -118,8 +135,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 state `NState` contains one. -/
 
 /-- The log's entries are numbered consecutively from `prev.index + 1`. -/
-def LogIndicesOk [FfiSyntax] (prev : entryID) (ents : List raftpb.Entry) : Prop :=
-  ∀ (k : Nat) (e : raftpb.Entry), ents[k]? = some e →
+def LogIndicesOk [FfiSyntax] (prev : entryID) (ents : List EntryM) : Prop :=
+  ∀ (k : Nat) (e : EntryM), ents[k]? = some e →
     uint.Z e.Index' = uint.Z prev.index' + ((k + 1 : Nat) : Int)
 
 def EntryNormal : w32 := W32 0
@@ -135,7 +152,7 @@ suffix's entries `ents`, which start at index `offset`; `inprogress`
 (`u.offsetInProgress`), below which they have been handed to the application; and the
 pending snapshot's id `snap` (`ownSnap`). -/
 structure UnstableSt [FfiSyntax] where
-  ents : List raftpb.Entry
+  ents : List EntryM
   offset : w64
   inprogress : w64
   snap : Option entryID
@@ -209,9 +226,8 @@ def ownSnapDef (p : Loc) (snap : Option entryID) : IProp GF :=
   match snap with
   | none => iprop(⌜p = null⌝)
   | some sid =>
-      iprop(∃ (sv : raftpb.Snapshot), p ↦□ sv ∗
-        ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ ∗
-        ∃ (voters : CSLists), ownCSL sv.Metadata'.ConfState' voters)
+      iprop(∃ (sv : SnapshotM), ownSnapM p DFrac.discard sv ∗
+        ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝)
 
 /-- Sealed: unfolded, a `none`/`some` instance reduces to its body, and the re-seal
 lemmas (`ownRaftLog_intro`) can then no longer infer `snap` from the hypothesis.
@@ -227,9 +243,8 @@ theorem ownSnap_None (p : Loc) : ownSnap (GF := GF) p none ⊣⊢ ⌜p = null⌝
 
 theorem ownSnap_Some (p : Loc) (sid : entryID) :
     ownSnap (GF := GF) p (some sid) ⊣⊢
-    ∃ (sv : raftpb.Snapshot), p ↦□ sv ∗
-      ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ ∗
-      ∃ (voters : CSLists), ownCSL sv.Metadata'.ConfState' voters := by
+    ∃ (sv : SnapshotM), ownSnapM p DFrac.discard sv ∗
+      ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ := by
   rw [ownSnap_unseal]; exact .rfl
 
 /-- The case split on a record's `snap` field that leaves the goal alone (`cases Hs :
@@ -246,9 +261,8 @@ theorem ownSnap_of_eq_none {p : Loc} {snap : Option entryID} (Hs : snap = none) 
 theorem ownSnap_of_eq_some {p : Loc} {snap : Option entryID} {sid : entryID}
     (Hs : snap = some sid) :
     ownSnap (GF := GF) p snap ⊢
-    ∃ (sv : raftpb.Snapshot), p ↦□ sv ∗
-      ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ ∗
-      ∃ (voters : CSLists), ownCSL sv.Metadata'.ConfState' voters := by
+    ∃ (sv : SnapshotM), ownSnapM p DFrac.discard sv ∗
+      ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ := by
   subst Hs; exact (ownSnap_Some p sid).1
 
 instance ownSnap_pers (p : Loc) (snap : Option entryID) :
@@ -272,8 +286,9 @@ theorem initKsn_zero (σ : StorState) (h : uint.Z σ.ss.index' = 0) : initKsn σ
 of them (`K`, the log's `ksn`) -- what `raftLog.snapshot` returns of it, the snapshot `p`
 points to with the lists behind its `ConfState`, is in `K`. -/
 def pendKsn (p : Loc) (snap : Option entryID) (K : List SnapTrip) : IProp GF :=
-  iprop(□ ∀ (sid : entryID), ⌜snap = some sid⌝ -∗ ∃ (sv : raftpb.Snapshot) (cl : CSLists),
-    p ↦□ sv ∗ ⌜snapId sv = sid⌝ ∗ ownCSL sv.Metadata'.ConfState' cl ∗ ⌜snapTrip sv cl ∈ K⌝)
+  iprop(□ ∀ (sid : entryID), ⌜snap = some sid⌝ -∗ ∃ (sv : SnapshotM),
+    ownSnapM p DFrac.discard sv ∗ ⌜snapId sv = sid⌝ ∗
+    ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝)
 
 instance pendKsn_pers (p : Loc) (snap : Option entryID) (K : List SnapTrip) :
     Persistent (pendKsn (GF := GF) p snap K) := by
@@ -313,8 +328,8 @@ the raw `u ↦ uv ∗ uv.entries ↦* uents`.) -/
 def ownUnstable (u : Loc) (us : UnstableSt) : IProp GF :=
   iprop(∃ (uv : unstable),
   "Hu" ∷ u ↦ uv ∗
-  "Hents_cap" ∷ ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
-  "Hents" ∷ uv.entries' ↦*□ us.ents ∗
+  "Hents_cap" ∷ ownSliceCap Loc uv.entries' (DFrac.own 1) ∗
+  "Hents" ∷ entsRO uv.entries' us.ents ∗
   "#Hsnap" ∷ ownSnap uv.snapshot' us.snap ∗
   -- (2026-10-15, stage S)
   "#Hpksn" ∷ pendKsn uv.snapshot' us.snap us.ksn ∗
@@ -326,10 +341,10 @@ def ownUnstable (u : Loc) (us : UnstableSt) : IProp GF :=
 that `iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger` fixes the value, the
 entries and the snapshot from the hypotheses and leaves the two `offset`s as the
 goal. -/
-theorem ownUnstable_intro (u : Loc) (uv : unstable) (ents : List raftpb.Entry)
+theorem ownUnstable_intro (u : Loc) (uv : unstable) (ents : List EntryM)
     (off ip : w64) (snap : Option entryID) (K : List SnapTrip) :
-    ⊢ (u ↦ uv : IProp GF) -∗ ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) -∗
-      uv.entries' ↦*□ ents -∗ ownSnap uv.snapshot' snap -∗ pendKsn uv.snapshot' snap K -∗
+    ⊢ (u ↦ uv : IProp GF) -∗ ownSliceCap Loc uv.entries' (DFrac.own 1) -∗
+      entsRO uv.entries' ents -∗ ownSnap uv.snapshot' snap -∗ pendKsn uv.snapshot' snap K -∗
       isLoggerVal uv.logger' -∗
       ⌜uv.offset' = off ∧ uv.offsetInProgress' = ip⌝ -∗
       ownUnstable u ⟨ents, off, ip, snap, K⟩ := by
@@ -349,7 +364,7 @@ stated in, and `us` stays a variable (CLAUDE.md, "Records"). -/
 theorem ownUnstable_open (u : Loc) (us : UnstableSt) :
     ⊢ ownUnstable u us -∗ ∃ (uv : unstable),
       (u ↦ { uv with offset' := us.offset, offsetInProgress' := us.inprogress } : IProp GF) ∗
-      ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗ uv.entries' ↦*□ us.ents ∗
+      ownSliceCap Loc uv.entries' (DFrac.own 1) ∗ entsRO uv.entries' us.ents ∗
       ownSnap uv.snapshot' us.snap ∗ pendKsn uv.snapshot' us.snap us.ksn ∗
       isLoggerVal uv.logger' := by
   iintro Hun
@@ -376,7 +391,7 @@ pending. The storage holds `σ.ents` after `σ.prev` (`ownStorage`).
   becomes the storage's boundary, and `appendEntry`'s no-wrap argument needs it
   meanwhile. -/
 def LogStoreOk (snap : Option entryID) (σ : StorState)
-    (prev : entryID) (sents uents : List raftpb.Entry) : Prop :=
+    (prev : entryID) (sents uents : List EntryM) : Prop :=
   match snap with
   | none => σ.prev = prev ∧ sents <+: σ.ents ∧ (uents = [] → sents = σ.ents)
   | some sid => prev = sid ∧ sents = [] ∧
@@ -394,14 +409,14 @@ This is how `maybeSendSnapshot`'s `MsgSnap` gets `SnapOk`'s commit bound and log
 empty), and preserved because the storage never changes in scope, `committed` only
 grows, and an `append` only rewrites entries above `committed`
 (`plogTermAt_truncateAppend_below`). -/
-def StoredSnapOk (σ : StorState) (cm : w64) (prev : entryID) (es : List raftpb.Entry) :
+def StoredSnapOk (σ : StorState) (cm : w64) (prev : entryID) (es : List EntryM) :
     Prop :=
   uint.Z σ.ss.index' = 0 ∨
   (uint.Z σ.ss.index' ≤ uint.Z cm ∧ plogTermAt prev es σ.ss.index' = some σ.ss.term')
 
 omit [GoGlobalContext] in
 theorem StoredSnapOk_commit (σ : StorState) (cm cm' : w64) (prev : entryID)
-    (es : List raftpb.Entry) (Hle : uint.Z cm ≤ uint.Z cm') (H : StoredSnapOk σ cm prev es) :
+    (es : List EntryM) (Hle : uint.Z cm ≤ uint.Z cm') (H : StoredSnapOk σ cm prev es) :
     StoredSnapOk σ cm' prev es := by
   rcases H with H | ⟨H1, H2⟩
   · exact .inl H
@@ -409,8 +424,8 @@ theorem StoredSnapOk_commit (σ : StorState) (cm cm' : w64) (prev : entryID)
 
 omit [GoGlobalContext] in
 /-- An `append` keeps the log's terms below the batch. -/
-theorem plogTermAt_truncateAppend_below (b : entryID) (es ents : List raftpb.Entry)
-    (e0 : raftpb.Entry) (i t : w64) (H0 : ents[0]? = some e0)
+theorem plogTermAt_truncateAppend_below (b : entryID) (es ents : List EntryM)
+    (e0 : EntryM) (i t : w64) (H0 : ents[0]? = some e0)
     (Hlt : uint.Z i < uint.Z e0.Index') (Ht : plogTermAt b es i = some t) :
     plogTermAt b (plogTruncateAppend b es ents) i = some t := by
   cases ents with
@@ -456,7 +471,7 @@ storage then holds is the ghost `LogState.stored`: a truncating `MsgApp` lowers
 `Advance` steps next may move them stable because they agree with the log
 (`StableOk`, `InvReadylog.lean`). -/
 def LogPersistOk (σ : StorState)
-    (sents uents : List raftpb.Entry) (ipo : Int) (pend stored : List raftpb.Entry) : Prop :=
+    (sents uents : List EntryM) (ipo : Int) (pend stored : List EntryM) : Prop :=
   (sents ++ uents.take ipo.toNat) <+: storApp σ pend ∧
   (ipo.toNat = uents.length → sents ++ uents = storApp σ pend) ∧
   (uents = [] → pend = []) ∧
@@ -514,8 +529,8 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
                  = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1⌝ ∗
-  "Huents" ∷ lv.unstable'.entries' ↦*□ ls.uents ∗
-  "Huents_cap" ∷ ownSliceCap raftpb.Entry lv.unstable'.entries' (DFrac.own 1) ∗
+  "Huents" ∷ entsRO lv.unstable'.entries' ls.uents ∗
+  "Huents_cap" ∷ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) ∗
   "%Happlied" ∷ ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
                   uint.Z ls.applied ≤ uint.Z ls.committed⌝ ∗
   "%Hpapplied" ∷ ⌜ls.snap = none → uint.Z ls.prev.index' ≤ uint.Z ls.applied⌝ ∗
@@ -556,7 +571,7 @@ fix `ls` to the state the hypotheses were opened at before the goal's (new) stat
 seen. (Until 2026-10-09 it took the state as eleven field variables and the storage as
 three.) -/
 theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState)
-    (snap : Option entryID) (uents : List raftpb.Entry) (ls : LogState) {K : List SnapTrip} :
+    (snap : Option entryID) (uents : List EntryM) (ls : LogState) {K : List SnapTrip} :
     lv.storage' = st →
     lv.committed' = ls.committed →
     lv.applied' = ls.applied →
@@ -591,8 +606,8 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       ownStorage st σ -∗
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
-      lv.unstable'.entries' ↦*□ uents -∗
-      ownSliceCap raftpb.Entry lv.unstable'.entries' (DFrac.own 1) -∗
+      entsRO lv.unstable'.entries' uents -∗
+      ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
       isLoggerVal lv.unstable'.logger' -∗
       ownRaftLog l ls := by
@@ -770,8 +785,8 @@ omit [GoGlobalContext] in
 `unstable.offset` is an entry of the *visible* stable part `sents` (`isStorage`'s
 `HEntries` bounds it by `hi`; `Hstored` makes the prefix below `hi` a prefix of
 `sents`). -/
-theorem stored_take_visible (prev : entryID) (sents stored : List raftpb.Entry) (hi : w64)
-    (e : raftpb.Entry) (Hpre : sents <+: stored)
+theorem stored_take_visible (prev : entryID) (sents stored : List EntryM) (hi : w64)
+    (e : EntryM) (Hpre : sents <+: stored)
     (Hhi : uint.Z hi ≤ uint.Z prev.index' + (sents.length : Int) + 1)
     (He : e ∈ stored.take (uint.Z hi - uint.Z prev.index' - 1).toNat) : e ∈ sents := by
   obtain ⟨k, rfl⟩ := Hpre
@@ -825,7 +840,7 @@ below `ents[0].Index` is kept, then `ents`. When the batch starts inside the sta
 the storage keeps the shadowed tail (`ownRaftLog`'s `σ.ents`). Otherwise `sents`
 is unchanged and the unstable suffix is cut at `ents[0].Index` and extended.
 `Spec/raftLog__append.lean` relates it to `plogTruncateAppend`. -/
-def logTruncateAppend (ls : LogState) (ents : List raftpb.Entry) : LogState :=
+def logTruncateAppend (ls : LogState) (ents : List EntryM) : LogState :=
   match ents with
   | [] => ls
   | e0 :: _ =>
@@ -839,7 +854,7 @@ def logTruncateAppend (ls : LogState) (ents : List raftpb.Entry) : LogState :=
 slice as `u.entries`: the batch starts at or below `u.offset` and does not simply
 continue the suffix (with an empty suffix and `ents[0].Index = u.offset` the first arm,
 `append`, wins). -/
-def logAdopts (ls : LogState) (ents : List raftpb.Entry) : Bool :=
+def logAdopts (ls : LogState) (ents : List EntryM) : Bool :=
   match ents with
   | [] => false
   | e0 :: _ =>
@@ -849,7 +864,7 @@ def logAdopts (ls : LogState) (ents : List raftpb.Entry) : Bool :=
 
 omit [GoGlobalContext] in
 /-- A batch that continues the log is a plain `logAppend`. -/
-theorem logTruncateAppend_cont (ls : LogState) (ents : List raftpb.Entry)
+theorem logTruncateAppend_cont (ls : LogState) (ents : List EntryM)
     (H : ∀ e0, ents[0]? = some e0 →
       uint.Z e0.Index' = uint.Z ls.prev.index' + (ls.sents.length : Int)
         + (ls.uents.length : Int) + 1) :
@@ -866,10 +881,19 @@ theorem logTruncateAppend_cont (ls : LogState) (ents : List raftpb.Entry)
     · simp only [decide_eq_false_iff_not]; omega
 
 /-- Read a slice's length as an `Int`, without consuming the slice. -/
-theorem slice_len_Z (s : GoSlice) (vs : List raftpb.Entry) (dq : DFrac) :
+theorem slice_len_Z {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (s : GoSlice)
+    (vs : List V) (dq : DFrac) :
     ⊢ s ↦*{dq} vs -∗ (⌜(vs.length : Int) = sint.Z s.len⌝ : IProp GF) := by
   iintro H
   icases ownSlice_len s dq vs $$ H with ⟨%H1, %H2⟩
+  ipureintro
+  rw [H1]; word
+
+/-- An entry slice's length as an `Int`, without consuming the slice. -/
+theorem ents_len_Z (s : GoSlice) (es : List EntryM) (dq : DFrac) :
+    ⊢ entsPts s dq es -∗ (⌜(es.length : Int) = sint.Z s.len⌝ : IProp GF) := by
+  iintro H
+  icases entsPts_len s dq es $$ H with ⟨%H1, %H2⟩
   ipureintro
   rw [H1]; word
 
@@ -885,22 +909,15 @@ caller's state `I acc`, it returns `nil` and `I (acc ++ es)`, or (since 2026-10-
 the scan with a non-`nil` error `err` and `B err` -- `errBreak` in
 `hasUnappliedConfChanges`. (Until 2026-10-13 the closure had to return `nil`, with an
 invariant `I` and a fact `P` of every entry instead of the pages' positions.) -/
-def scanClosure (f : GoFunc) (L : List raftpb.Entry) (I : List raftpb.Entry → IProp GF)
+def scanClosure (f : GoFunc) (L : List EntryM) (I : List EntryM → IProp GF)
     (B : GoInterface → IProp GF) : IProp GF :=
-  iprop(∀ (s : GoSlice) (acc es : List raftpb.Entry) (dq : DFrac),
-    {{ s ↦*{dq} es ∗ ⌜es ≠ [] ∧ acc ++ es <+: L⌝ ∗ I acc }}
+  iprop(∀ (s : GoSlice) (acc es : List EntryM) (dq : DFrac),
+    {{ entsPts s dq es ∗ ⌜es ≠ [] ∧ acc ++ es <+: L⌝ ∗ I acc }}
       (App (Val #f) (Val #s))
-    {{ (err : GoInterface), RET #err; s ↦*{dq} es ∗
+    {{ (err : GoInterface), RET #err; entsPts s dq es ∗
         ((⌜err = interface.nil⌝ ∗ I (acc ++ es)) ∨ (⌜err ≠ interface.nil⌝ ∗ B err)) }})
 
-/-- The entries `scan lo hi` pages through: the log's at `[lo, hi)`. -/
-def scanRange (ls : LogState) (lo hi : w64) : List raftpb.Entry :=
-  (plogFrom ls.prev (ls.sents ++ ls.uents) lo).take (uint.Z hi - uint.Z lo).toNat
-
-/-- The committed entries not applied yet (2026-10-13): the log's at
-`(applied, committed]`, which `hasUnappliedConfChanges` scans. -/
-def unappliedEnts (ls : LogState) : List raftpb.Entry :=
-  scanRange ls (ls.applied + W64 1) (ls.committed + W64 1)
+/-! `scanRange` and `unappliedEnts` are in `SpecResults.lean` (moved there in stage R1). -/
 
 /-- Two slice values with the same pointer and length own the same elements.
 `unstable.slice` and `raftLog.slice` return three-index slices (`s[lo:hi:hi]`) whose
@@ -958,8 +975,8 @@ theorem ownUnstable_reopen (l : Loc) (lv : raftLog) (us : UnstableSt) :
     ⊢ (∀ uv, l.[raftLog, go!"unstable"] ↦ uv -∗ (l ↦ { lv with unstable' := uv } : IProp GF)) -∗
       ownUnstable l.[raftLog, go!"unstable"] us -∗
       ∃ uv, l ↦ { lv with unstable' := uv } ∗
-        ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
-        uv.entries' ↦*□ us.ents ∗ ownSnap uv.snapshot' us.snap ∗
+        ownSliceCap Loc uv.entries' (DFrac.own 1) ∗
+        entsRO uv.entries' us.ents ∗ ownSnap uv.snapshot' us.snap ∗
         pendKsn uv.snapshot' us.snap us.ksn ∗ isLoggerVal uv.logger' ∗
         ⌜uv.offset' = us.offset⌝ ∗ ⌜uv.offsetInProgress' = us.inprogress⌝ := by
   iintro Hlback Hun
@@ -979,8 +996,8 @@ record.) -/
 theorem raftLog_lend_unstable (l : Loc) (lv : raftLog) (ls : LogState) :
     lv.unstable'.offsetInProgress' = ls.inprogress →
     ⊢ (l ↦ lv : IProp GF) -∗
-      ownSliceCap raftpb.Entry lv.unstable'.entries' (DFrac.own 1) -∗
-      lv.unstable'.entries' ↦*□ ls.uents -∗
+      ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
+      entsRO lv.unstable'.entries' ls.uents -∗
       ownSnap lv.unstable'.snapshot' ls.snap -∗
       pendKsn lv.unstable'.snapshot' ls.snap ls.ksn -∗
       isLoggerVal lv.unstable'.logger' -∗
@@ -1002,8 +1019,8 @@ theorem ownUnstable_return (l : Loc) (lv : raftLog) (ls : LogState) :
     ⊢ (∀ uv, l.[raftLog, go!"unstable"] ↦ uv -∗ (l ↦ { lv with unstable' := uv } : IProp GF)) -∗
       ownUnstable l.[raftLog, go!"unstable"] (unstableOf lv ls) -∗
       ∃ uv, l ↦ { lv with unstable' := uv } ∗
-        ownSliceCap raftpb.Entry uv.entries' (DFrac.own 1) ∗
-        uv.entries' ↦*□ ls.uents ∗ ownSnap uv.snapshot' ls.snap ∗
+        ownSliceCap Loc uv.entries' (DFrac.own 1) ∗
+        entsRO uv.entries' ls.uents ∗ ownSnap uv.snapshot' ls.snap ∗
         pendKsn uv.snapshot' ls.snap ls.ksn ∗ isLoggerVal uv.logger' ∗
         ⌜uv.offset' = lv.unstable'.offset'⌝ ∗ ⌜uv.offsetInProgress' = ls.inprogress⌝ :=
   ownUnstable_reopen l lv (unstableOf lv ls)

@@ -20,27 +20,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `stepWithWaitOption(ctx, m, true)`, for `Propose`'s message. -/
+/-- `stepWithWaitOption(ctx, m, true)`, for `Propose`'s message. (Raft v3.7, stage R5: the
+message `msgIn ml 1` with its entry `propEntryM data`. Stage R7a: any `nodeCtx`, the error
+`propErr`.) -/
 theorem node.stepWait.wp_proof
     (wp_node_stepWithWaitOption : node.stepWithWaitOption.spec (GF := GF) (hG := hG)) :
     node.stepWait.spec (GF := GF) (hG := hG) := by
-  intro γ id n data_sl esl data
-  wp_start as ⟨#Hnode, Hes, Hcap, #Hdata, #Hent⟩
+  intro γ id n ml data ctx cd
+  wp_start as ⟨#Hnode, #Hctx, Hm, #Hent⟩
   wp_auto
-  wp_apply wp_node_stepWithWaitOption γ id n (propMsg esl) true $$ [Hes Hcap]
-  · iframe Hnode
+  wp_apply wp_node_stepWithWaitOption γ id n ml true ctx cd $$ [Hm]
+  · iframe Hnode Hctx
     unfold stepArg
     iright
     ileft
     isplitr
     · ipureintro; rfl
-    iexists data_sl, esl, data
-    iframe Hes Hcap Hdata Hent
-    ipureintro; rfl
-  iintro %err -
+    iexists data
+    iframe Hm Hent
+  iintro %err #Herr
   wp_auto
   iapply HΦ
-  itrivial
+  simp only [↓reduceIte]
+  iexact Herr
 
 end proof
 

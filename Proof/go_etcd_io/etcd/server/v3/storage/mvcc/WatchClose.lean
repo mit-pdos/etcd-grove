@@ -69,15 +69,15 @@ theorem chanWatchers_close (γ : WsNames) (γc : WatchChanNames) (b : Bool) (sen
 
 /-- **The stream's close of its channel** (`isWatchStream`'s `Hclose`, for the store's
 `storeWatchParams`). -/
-theorem wp_watch_close (s st : Loc) (γ : WsNames) (ch : Loc) (L : List Loc) :
-    {{ (storeWatchParams (GF := GF) s st γ).CR ch L ∗
+theorem wp_watch_close (s st : Loc) (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (L : List Loc) :
+    {{ (storeWatchParams (GF := GF) s st γ).CR ch γc L ∗
         □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ (storeWatchParams (GF := GF) s st γ).WC w) }}
       (App (Val #(functions go.close
         [go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty])) (Val #ch))
     {{ RET #(); True }} := by
   wp_start_folded as ⟨HCR, #HWC⟩
   simp only [storeWatchParams]
-  icases HCR with ⟨%γc, #Hch, #Hinv, Hregl0⟩
+  icases HCR with ⟨#Hch, #Hinv, Hregl0⟩
   iapply (chan.wp_close (V := WatchResponse) ch γc.ch) $$ Hch
   iintro -
   unfold closeAu

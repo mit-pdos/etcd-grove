@@ -97,7 +97,7 @@ inductive MsgType where
   | preVote | preVoteResp | readIndex | readIndexResp
   deriving DecidableEq, Inhabited
 
-/-- Every field of a `raftpb.Message` the protocol reads. `entries` is the list behind
+/-- Every field of a `MessageM` the protocol reads. `entries` is the list behind
 `Message.Entries`; see `absMsg` (`Defs.lean`) for why the abstraction of a physical
 message needs that list as an argument.
 
@@ -122,7 +122,7 @@ structure Msg [FfiSyntax] where
   /-- `RejectHint` -/
   rejecthint : w64
   /-- `Entries` -/
-  entries : List raftpb.Entry
+  entries : List EntryM
   /-- a `snap`'s `ConfState.Voters`; `[]` otherwise -/
   voters : List w64
   /-- `Context` (2026-10-12, for read-index): the bytes `Message.Context` holds; `[]`
@@ -138,7 +138,7 @@ nothing that reduces, injects or rewrites a message has to unfold anything by ha
 (added 2026-10-02 with the `voters` field, so that no user of the ten-field `Msg.mk`
 changed). -/
 @[reducible] def Msg.mk (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
-    (es : List raftpb.Entry) : Msg :=
+    (es : List EntryM) : Msg :=
   Msg.mkV t0 fr to0 tm rj ix lt cm rh es [] []
 
 /-- A message with no payload: every replication field zero. -/
@@ -160,7 +160,7 @@ sees them. -/
 structure ReadReq [FfiSyntax] where
   index : w64
   src : w64
-  ents : List raftpb.Entry
+  ents : List EntryM
 
 /-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
 `acks`: each voter's acknowledged *position* -- the largest context (as a number) the
@@ -175,13 +175,13 @@ structure ReadOnly [FfiSyntax] where
   acks : GMap w64 w64
   confirmed : w64
 
-/-- The physical read-index state (2026-10-12): `r.readStates` (as the Goose values),
+/-- The physical read-index state (2026-10-12): `r.readStates` (as `ReadStateM`s, D6),
 `r.readOnly` (as `ReadOnly`), and `r.pendingReadIndexMessages`, each with the entries
 its slice holds. -/
 structure RdState [FfiSyntax] where
-  states : List ReadState := []
+  states : List ReadStateM := []
   ro : ReadOnly := ⟨[], ∅, W64 0⟩
-  pend : List (raftpb.Message × List raftpb.Entry) := []
+  pend : List (MessageM × List EntryM) := []
 
 /-- The read state with a fresh read-only object, what `reset` installs (and a non-leader's,
 in the protocol reading). -/
@@ -275,7 +275,7 @@ def readonlyArrive (r : ReadOnly) (id : w64) (q : ReadReq) : ReadOnly :=
 /-- `releasePendingReadIndexMessages` on the read-only object: each pending request
 arrives, read at the commit index `c`, in order. -/
 def readonlyRelease (r : ReadOnly) (id c : w64)
-    (pend : List (raftpb.Message × List raftpb.Entry)) : ReadOnly :=
+    (pend : List (MessageM × List EntryM)) : ReadOnly :=
   pend.foldl (fun r p => readonlyArrive r id ⟨c, p.1.From', p.2⟩) r
 
 /-- An acknowledgement of a position `q`: the larger of the old ack and `q`. -/
@@ -294,7 +294,7 @@ theorem hbCtx_ok (r : ReadOnly) : HbCtxOk r (hbCtx r) := by
   · right; exact ⟨_, rfl, readonlyPosition_le r⟩
 
 theorem readonlyRelease_append (r : ReadOnly) (id c : w64)
-    (l1 l2 : List (raftpb.Message × List raftpb.Entry)) :
+    (l1 l2 : List (MessageM × List EntryM)) :
     readonlyRelease r id c (l1 ++ l2) = readonlyRelease (readonlyRelease r id c l1) id c l2 := by
   unfold readonlyRelease; exact List.foldl_append
 
@@ -314,7 +314,7 @@ theorem readonlyArrive_eq (r : ReadOnly) (id : w64) (q : ReadReq) :
     List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
 
 theorem readonlyRelease_shape (r : ReadOnly) (id c : w64)
-    (l : List (raftpb.Message × List raftpb.Entry)) :
+    (l : List (MessageM × List EntryM)) :
     (readonlyRelease r id c l).confirmed = r.confirmed ∧
     (readonlyRelease r id c l).pending.length = r.pending.length + l.length := by
   induction l generalizing r with
@@ -331,7 +331,7 @@ theorem readonlyRelease_shape (r : ReadOnly) (id c : w64)
 
 /-- A heartbeat a release sent after `k` of the pending requests is allowed after all of
 them. -/
-theorem HbCtxOk_release (r : ReadOnly) (id c : w64) (l : List (raftpb.Message × List raftpb.Entry))
+theorem HbCtxOk_release (r : ReadOnly) (id c : w64) (l : List (MessageM × List EntryM))
     (k : Nat) :
     HbCtxOk (readonlyRelease r id c l) (hbCtx (readonlyRelease r id c (l.take k))) := by
   have h := hbCtx_ok (readonlyRelease r id c (l.take k))
@@ -378,7 +378,7 @@ structure PState [FfiSyntax] where
   /-- the log's compaction boundary -/
   base : entryID
   /-- the entries after `base` -/
-  log : List raftpb.Entry
+  log : List EntryM
   /-- `raftLog.committed` -/
   commit : w64
   /-- `Progress.Match` per voter, leaders only -/
@@ -509,16 +509,16 @@ nothing else about an entry changes (its `Type` and `Data` are the proposal's). 
 An entry stamped at term `t` and index `i`: what a proposed (unstamped) entry `e0`
 becomes in the log (`stamp` is the same at `i = li + 1 + k`). And the list position of
 index `i` in a full log (from `base0`). -/
-def stampAt (e0 : raftpb.Entry) (t i : w64) : raftpb.Entry :=
+def stampAt (e0 : EntryM) (t i : w64) : EntryM :=
   { e0 with Term' := t, Index' := i }
 
 def pos (i : w64) : Nat := (uint.Z i - 1).toNat
 
-def stamp (tm li : w64) (k : Nat) (e : raftpb.Entry) : raftpb.Entry :=
+def stamp (tm li : w64) (k : Nat) (e : EntryM) : EntryM :=
   { e with Term' := tm, Index' := li + W64 1 + W64 k }
 
 /-- Index arithmetic for stamped entries. -/
-theorem plogLastIndexZ_nonneg (b : entryID) (es : List raftpb.Entry) :
+theorem plogLastIndexZ_nonneg (b : entryID) (es : List EntryM) :
     0 ≤ plogLastIndexZ b es := by
   unfold plogLastIndexZ; have := uint_Z_nonneg b.index'; omega
 
@@ -567,8 +567,8 @@ theorem prefix_lookup_Some {A : Type _} {l1 l2 : List A} {k : Nat} {e : A}
 
 /-- A prefix of a well-formed, no-wrap log from `i + 1` on is a batch `AppPayloadOk`
 accepts at `(t, i)`. -/
-theorem app_payload_from_log (b : entryID) (L : List raftpb.Entry) (t i : w64)
-    (es : List raftpb.Entry) :
+theorem app_payload_from_log (b : entryID) (L : List EntryM) (t i : w64)
+    (es : List EntryM) :
     PlogWf b L →
     uint.Z b.index' + (L.length : Int) + 1 < 2 ^ 64 →
     (uint.Z b.index' ≤ uint.Z i ∧ uint.Z i ≤ plogLastIndexZ b L) →
@@ -591,18 +591,18 @@ theorem app_payload_from_log (b : entryID) (L : List raftpb.Entry) (t i : w64)
   omega
 
 /-- The entry at index `i` of a log, if it is in the stored suffix. -/
-def plogEntryAt (b : entryID) (es : List raftpb.Entry) (i : w64) : Option raftpb.Entry :=
+def plogEntryAt (b : entryID) (es : List EntryM) (i : w64) : Option EntryM :=
   if uint.Z i ≤ uint.Z b.index' then none
   else es[(uint.Z i - uint.Z b.index' - 1).toNat]?
 
 /-- `plogFindConflict` returns the index of the first entry that does not match, all
 before it matching. -/
-theorem plogFindConflict_some (b : entryID) (es ents : List raftpb.Entry) :
+theorem plogFindConflict_some (b : entryID) (es ents : List EntryM) :
     plogFindConflict b es ents ≠ W64 0 →
-    ∃ (d : Nat) (e : raftpb.Entry), ents[d]? = some e ∧
+    ∃ (d : Nat) (e : EntryM), ents[d]? = some e ∧
       e.Index' = plogFindConflict b es ents ∧
       ¬ PlogMatches b es (entId e) ∧
-      (∀ (j : Nat) (e' : raftpb.Entry), j < d → ents[j]? = some e' →
+      (∀ (j : Nat) (e' : EntryM), j < d → ents[j]? = some e' →
         PlogMatches b es (entId e')) := by
   induction ents with
   | nil => intro h; exact absurd rfl h
@@ -624,10 +624,10 @@ theorem plogFindConflict_some (b : entryID) (es ents : List raftpb.Entry) :
       exact ⟨0, a, rfl, rfl, Ha, fun j _ Hj _ => absurd Hj (Nat.not_lt_zero _)⟩
 
 /-- ... and `0` when every entry matches, provided no entry has index `0`. -/
-theorem plogFindConflict_zero (b : entryID) (es ents : List raftpb.Entry) :
-    (∀ (k : Nat) (e : raftpb.Entry), ents[k]? = some e → e.Index' ≠ W64 0) →
+theorem plogFindConflict_zero (b : entryID) (es ents : List EntryM) :
+    (∀ (k : Nat) (e : EntryM), ents[k]? = some e → e.Index' ≠ W64 0) →
     plogFindConflict b es ents = W64 0 →
-    ∀ (k : Nat) (e : raftpb.Entry), ents[k]? = some e → PlogMatches b es (entId e) := by
+    ∀ (k : Nat) (e : EntryM), ents[k]? = some e → PlogMatches b es (entId e) := by
   induction ents with
   | nil => intro _ _ k e Hk; simp at Hk
   | cons a ents IH =>
@@ -643,8 +643,8 @@ theorem plogFindConflict_zero (b : entryID) (es ents : List raftpb.Entry) :
       exact absurd Hci (Hnz 0 a rfl)
 
 /-- The entries of a well-formed batch after `prev` have nonzero indices. -/
-theorem batch_index_nz (prev : entryID) (ents : List raftpb.Entry) (Hwf : PlogWf prev ents) :
-    ∀ (k : Nat) (e : raftpb.Entry), ents[k]? = some e → e.Index' ≠ W64 0 := by
+theorem batch_index_nz (prev : entryID) (ents : List EntryM) (Hwf : PlogWf prev ents) :
+    ∀ (k : Nat) (e : EntryM), ents[k]? = some e → e.Index' ≠ W64 0 := by
   intro k e Hk Hz
   have := Hwf _ _ Hk
   rw [Hz] at this
@@ -654,10 +654,10 @@ theorem batch_index_nz (prev : entryID) (ents : List raftpb.Entry) (Hwf : PlogWf
 
 /-- The conflicting entry `ents[d]` of `plogFindConflict_some`, after a matched `prev`,
 is at most one past the log's end. -/
-theorem conflict_end (b : entryID) (es : List raftpb.Entry) (prev : entryID)
-    (ents : List raftpb.Entry) (d : Nat) (e : raftpb.Entry)
+theorem conflict_end (b : entryID) (es : List EntryM) (prev : entryID)
+    (ents : List EntryM) (d : Nat) (e : EntryM)
     (Hwf : PlogWf prev ents) (Hm : PlogMatches b es prev) (Hd : ents[d]? = some e)
-    (Hbefore : ∀ (j : Nat) (e' : raftpb.Entry), j < d → ents[j]? = some e' →
+    (Hbefore : ∀ (j : Nat) (e' : EntryM), j < d → ents[j]? = some e' →
         PlogMatches b es (entId e')) :
     uint.Z e.Index' ≤ plogLastIndexZ b es + 1 := by
   have Hed := Hwf _ _ Hd
@@ -678,8 +678,8 @@ theorem conflict_end (b : entryID) (es : List raftpb.Entry) (prev : entryID)
 /-- After `plogMaybeAppend` of a well-formed, non-wrapping batch, the log reaches
 `lastnewi`: the batch's entries are all there (no conflict), or the log was cut at the
 first conflict and the rest of the batch appended. -/
-theorem plogMaybeAppend_last (b : entryID) (es : List raftpb.Entry) (prev : entryID)
-    (ents : List raftpb.Entry) (lastnewi : w64) (es' : List raftpb.Entry) :
+theorem plogMaybeAppend_last (b : entryID) (es : List EntryM) (prev : entryID)
+    (ents : List EntryM) (lastnewi : w64) (es' : List EntryM) :
     PlogWf prev ents →
     uint.Z prev.index' + (ents.length : Int) + 1 < 2 ^ 64 →
     plogMaybeAppend b es prev ents = some (lastnewi, es') →
@@ -733,12 +733,12 @@ can name has that index. This is `PlogWf` minus the entries past `2^64 - 1`, whi
 only `Step.win` can create (its stamped entry wraps when `lastIndex() = 2^64 - 1`; the
 rule has no no-wrap premise, and the code's `Hnowrap` is not in `PState`).
 `plogTermAt` never reaches those positions, so nothing below needs more. -/
-def PlogWfR (b : entryID) (es : List raftpb.Entry) : Prop :=
-  ∀ (k : Nat) (e : raftpb.Entry), es[k]? = some e →
+def PlogWfR (b : entryID) (es : List EntryM) : Prop :=
+  ∀ (k : Nat) (e : EntryM), es[k]? = some e →
     uint.Z b.index' + (k : Int) + 1 < 2 ^ 64 →
     uint.Z e.Index' = uint.Z b.index' + (k : Int) + 1
 
-theorem PlogWf_wfR (b : entryID) (es : List raftpb.Entry) : PlogWf b es → PlogWfR b es := by
+theorem PlogWf_wfR (b : entryID) (es : List EntryM) : PlogWf b es → PlogWfR b es := by
   intro H k e Hk _
   have := H k e Hk
   push_cast at this; omega
@@ -748,7 +748,7 @@ predecessor is. -/
 def pidx (b : entryID) (k : Nat) : w64 :=
   W64 (uint.Z b.index' + (k : Int))
 
-theorem plogTermAt_app_l (b : entryID) (es es2 : List raftpb.Entry) (j : w64) :
+theorem plogTermAt_app_l (b : entryID) (es es2 : List EntryM) (j : w64) :
     uint.Z j ≤ plogLastIndexZ b es →
     plogTermAt b (es ++ es2) j = plogTermAt b es j := by
   unfold plogTermAt plogLastIndexZ
@@ -757,10 +757,10 @@ theorem plogTermAt_app_l (b : entryID) (es es2 : List raftpb.Entry) (j : w64) :
   split; · rfl
   rw [List.getElem?_append_left (by omega)]
 
-theorem plogTermAt_app_r (b : entryID) (es es2 : List raftpb.Entry) (j : w64) :
+theorem plogTermAt_app_r (b : entryID) (es es2 : List EntryM) (j : w64) :
     plogLastIndexZ b es < uint.Z j →
     plogTermAt b (es ++ es2) j =
-      (fun e : raftpb.Entry => e.Term') <$>
+      (fun e : EntryM => e.Term') <$>
         es2[(uint.Z j - plogLastIndexZ b es - 1).toNat]? := by
   unfold plogTermAt plogLastIndexZ
   intro Hj
@@ -771,7 +771,7 @@ theorem plogTermAt_app_r (b : entryID) (es es2 : List raftpb.Entry) (j : w64) :
   congr 2
   omega
 
-theorem plogTermAt_take (b : entryID) (es : List raftpb.Entry) (n : Nat) (j : w64) :
+theorem plogTermAt_take (b : entryID) (es : List EntryM) (n : Nat) (j : w64) :
     uint.Z j ≤ uint.Z b.index' + (n : Int) →
     plogTermAt b (es.take n) j = plogTermAt b es j := by
   unfold plogTermAt
@@ -780,7 +780,7 @@ theorem plogTermAt_take (b : entryID) (es : List raftpb.Entry) (n : Nat) (j : w6
   split; · rfl
   rw [List.getElem?_take, ite_eq_left (by omega)]
 
-theorem plogTermAt_in_range (b : entryID) (es : List raftpb.Entry) (j : w64) :
+theorem plogTermAt_in_range (b : entryID) (es : List EntryM) (j : w64) :
     (uint.Z b.index' ≤ uint.Z j ∧ uint.Z j ≤ plogLastIndexZ b es) →
     (plogTermAt b es j).isSome := by
   intro Hj
@@ -792,7 +792,7 @@ theorem plogTermAt_in_range (b : entryID) (es : List raftpb.Entry) (j : w64) :
 
 /-- Above the base, a term is an entry's, and (in range) the entry is at the right
 index. -/
-theorem plogTermAt_some_entry (b : entryID) (es : List raftpb.Entry) (j t : w64) :
+theorem plogTermAt_some_entry (b : entryID) (es : List EntryM) (j t : w64) :
     PlogWfR b es → plogTermAt b es j = some t →
     uint.Z b.index' < uint.Z j →
     ∃ e, es[(uint.Z j - uint.Z b.index' - 1).toNat]? = some e ∧
@@ -812,7 +812,7 @@ theorem plogTermAt_some_entry (b : entryID) (es : List raftpb.Entry) (j t : w64)
     apply uint_Z_inj.mp
     omega
 
-theorem plogEntryAt_lookup (b : entryID) (es : List raftpb.Entry) (j : w64) :
+theorem plogEntryAt_lookup (b : entryID) (es : List EntryM) (j : w64) :
     uint.Z b.index' < uint.Z j →
     plogEntryAt b es j = es[(uint.Z j - uint.Z b.index' - 1).toNat]? := by
   intro Hj
@@ -820,7 +820,7 @@ theorem plogEntryAt_lookup (b : entryID) (es : List raftpb.Entry) (j : w64) :
   rw [ite_eq_right (by omega)]
 
 /-- The last entry's term, in range. -/
-theorem plogTermAt_last_r (b : entryID) (es : List raftpb.Entry) :
+theorem plogTermAt_last_r (b : entryID) (es : List EntryM) :
     PlogWfR b es → plogLastIndexZ b es < 2 ^ 64 →
     plogTermAt b es (W64 (plogLastIndexZ b es)) = some (plogLast b es).term' := by
   intro Hwf Hlt
@@ -850,9 +850,9 @@ theorem plogTermAt_last_r (b : entryID) (es : List raftpb.Entry) :
 /-- What two logs' records give: entries at the same (term, index) are the same entry
 and have the same predecessor term. `logRecs_agree` derives it from the ghost
 state. -/
-def RecsAgree (b1 : entryID) (es1 : List raftpb.Entry) (b2 : entryID)
-    (es2 : List raftpb.Entry) : Prop :=
-  ∀ (k1 k2 : Nat) (e1 e2 : raftpb.Entry), es1[k1]? = some e1 → es2[k2]? = some e2 →
+def RecsAgree (b1 : entryID) (es1 : List EntryM) (b2 : entryID)
+    (es2 : List EntryM) : Prop :=
+  ∀ (k1 k2 : Nat) (e1 e2 : EntryM), es1[k1]? = some e1 → es2[k2]? = some e2 →
     uint.Z b1.index' + (k1 : Int) + 1 < 2 ^ 64 →
     uint.Z b2.index' + (k2 : Int) + 1 < 2 ^ 64 →
     e1.Term' = e2.Term' →
@@ -861,8 +861,8 @@ def RecsAgree (b1 : entryID) (es1 : List raftpb.Entry) (b2 : entryID)
 
 /-- Log matching, pure: two logs with the same term at `i` have the same terms all the
 way down to the higher of their bases. -/
-theorem plog_match_down (b1 : entryID) (es1 : List raftpb.Entry) (b2 : entryID)
-    (es2 : List raftpb.Entry) (i : w64) :
+theorem plog_match_down (b1 : entryID) (es1 : List EntryM) (b2 : entryID)
+    (es2 : List EntryM) (i : w64) :
     PlogWfR b1 es1 → PlogWfR b2 es2 → RecsAgree b1 es1 b2 es2 →
     (plogTermAt b1 es1 i).isSome →
     plogTermAt b1 es1 i = plogTermAt b2 es2 i →
@@ -913,8 +913,8 @@ theorem plog_match_down (b1 : entryID) (es1 : List raftpb.Entry) (b2 : entryID)
 /-- A batch `ents` after `prev`, taken from a log `l` (a prefix of `l`'s entries after
 `prev`, which `l` has), agrees with `l` in terms on `[prev.index, prev.index +
 |ents|]`. -/
-theorem plog_prefix_batch (bL : entryID) (l : List raftpb.Entry) (prev : entryID)
-    (ents : List raftpb.Entry) :
+theorem plog_prefix_batch (bL : entryID) (l : List EntryM) (prev : entryID)
+    (ents : List EntryM) :
     uint.Z prev.index' + (ents.length : Int) + 1 < 2 ^ 64 →
     plogTermAt bL l prev.index' = some prev.term' →
     ents <+: plogFrom bL l (prev.index' + W64 1) →
@@ -941,17 +941,17 @@ theorem plog_prefix_batch (bL : entryID) (l : List raftpb.Entry) (prev : entryID
 /-- `plogMaybeAppend`, taken apart: the previous entry matched, the new last index is
 the batch's, and either nothing changed (every entry matched) or the log was cut at
 the first conflicting entry `ents[d]` and the batch from `d` on appended. -/
-theorem plogMaybeAppend_inv (b : entryID) (es : List raftpb.Entry) (prev : entryID)
-    (ents : List raftpb.Entry) (lastnewi : w64) (es' : List raftpb.Entry) :
+theorem plogMaybeAppend_inv (b : entryID) (es : List EntryM) (prev : entryID)
+    (ents : List EntryM) (lastnewi : w64) (es' : List EntryM) :
     PlogWf prev ents →
     uint.Z prev.index' + (ents.length : Int) + 1 < 2 ^ 64 →
     plogMaybeAppend b es prev ents = some (lastnewi, es') →
     PlogMatches b es prev ∧
     uint.Z lastnewi = uint.Z prev.index' + (ents.length : Int) ∧
-    ( (es' = es ∧ ∀ (k : Nat) (e : raftpb.Entry), ents[k]? = some e →
+    ( (es' = es ∧ ∀ (k : Nat) (e : EntryM), ents[k]? = some e →
           PlogMatches b es (entId e))
-    ∨ (∃ (d : Nat) (e : raftpb.Entry), ents[d]? = some e ∧ ¬ PlogMatches b es (entId e) ∧
-         (∀ (k : Nat) (e' : raftpb.Entry), k < d → ents[k]? = some e' →
+    ∨ (∃ (d : Nat) (e : EntryM), ents[d]? = some e ∧ ¬ PlogMatches b es (entId e) ∧
+         (∀ (k : Nat) (e' : EntryM), k < d → ents[k]? = some e' →
             PlogMatches b es (entId e')) ∧
          uint.Z e.Index' = uint.Z prev.index' + (d : Int) + 1 ∧
          uint.Z e.Index' ≤ plogLastIndexZ b es + 1 ∧
@@ -982,7 +982,7 @@ theorem plogMaybeAppend_inv (b : entryID) (es : List raftpb.Entry) (prev : entry
     rfl
 
 /-- The batch's entries, by index. -/
-theorem batch_lookup (prev : entryID) (ents : List raftpb.Entry) (j : w64) :
+theorem batch_lookup (prev : entryID) (ents : List EntryM) (j : w64) :
     PlogWf prev ents →
     (uint.Z prev.index' < uint.Z j ∧
       uint.Z j ≤ uint.Z prev.index' + (ents.length : Int)) →
@@ -998,8 +998,8 @@ theorem batch_lookup (prev : entryID) (ents : List raftpb.Entry) (j : w64) :
 
 /-- After `plogMaybeAppend`, the log has the batch's terms on `[prev.index, prev.index
 + |ents|]`. -/
-theorem plogMaybeAppend_batch (b : entryID) (es : List raftpb.Entry) (prev : entryID)
-    (ents : List raftpb.Entry) (lastnewi : w64) (es' : List raftpb.Entry) :
+theorem plogMaybeAppend_batch (b : entryID) (es : List EntryM) (prev : entryID)
+    (ents : List EntryM) (lastnewi : w64) (es' : List EntryM) :
     PlogWf prev ents →
     uint.Z prev.index' + (ents.length : Int) + 1 < 2 ^ 64 →
     plogMaybeAppend b es prev ents = some (lastnewi, es') →
@@ -1010,7 +1010,7 @@ theorem plogMaybeAppend_batch (b : entryID) (es : List raftpb.Entry) (prev : ent
   obtain ⟨Hm, _, Hcase⟩ := plogMaybeAppend_inv _ _ _ _ _ _ Hwf Hnw Happ
   have ⟨Hb, Hl⟩ := plogTermAt_some_range _ _ _ _ Hm
   -- below the conflict (or everywhere, without one), the old log has the batch's terms
-  have Hold : ∀ (d : Nat), (∀ (k : Nat) (e' : raftpb.Entry), k < d → ents[k]? = some e' →
+  have Hold : ∀ (d : Nat), (∀ (k : Nat) (e' : EntryM), k < d → ents[k]? = some e' →
         PlogMatches b es (entId e')) →
       uint.Z j ≤ uint.Z prev.index' + (d : Int) →
       plogTermAt b es j = plogTermAt prev ents j := by
@@ -1045,8 +1045,8 @@ theorem plogMaybeAppend_batch (b : entryID) (es : List raftpb.Entry) (prev : ent
       rfl
 
 /-- Below the cut the log is unchanged. -/
-theorem plog_cut_keep (b : entryID) (es : List raftpb.Entry) (ci : Int)
-    (ents2 : List raftpb.Entry) (j : w64) :
+theorem plog_cut_keep (b : entryID) (es : List EntryM) (ci : Int)
+    (ents2 : List EntryM) (j : w64) :
     (uint.Z b.index' < ci ∧ ci ≤ plogLastIndexZ b es + 1) →
     uint.Z j < ci →
     plogTermAt b (es.take (ci - uint.Z b.index' - 1).toNat ++ ents2) j = plogTermAt b es j := by
@@ -1056,8 +1056,8 @@ theorem plog_cut_keep (b : entryID) (es : List raftpb.Entry) (ci : Int)
   · rw [plogTermAt_take]; omega
   · unfold plogLastIndexZ; rw [List.length_take]; omega
 
-theorem plog_cut_last (b : entryID) (es : List raftpb.Entry) (ci : Int)
-    (ents2 : List raftpb.Entry) :
+theorem plog_cut_last (b : entryID) (es : List EntryM) (ci : Int)
+    (ents2 : List EntryM) :
     (uint.Z b.index' < ci ∧ ci ≤ plogLastIndexZ b es + 1) →
     plogLastIndexZ b (es.take (ci - uint.Z b.index' - 1).toNat ++ ents2)
       = ci - 1 + (ents2.length : Int) := by
@@ -1068,8 +1068,8 @@ theorem plog_cut_last (b : entryID) (es : List raftpb.Entry) (ci : Int)
 
 /-- `plogMaybeAppend` keeps the log well-formed (in range), and the new log reaches
 `lastnewi` -- exactly, when it was cut. -/
-theorem plogMaybeAppend_wfR (b : entryID) (es : List raftpb.Entry) (prev : entryID)
-    (ents : List raftpb.Entry) (lastnewi : w64) (es' : List raftpb.Entry) :
+theorem plogMaybeAppend_wfR (b : entryID) (es : List EntryM) (prev : entryID)
+    (ents : List EntryM) (lastnewi : w64) (es' : List EntryM) :
     PlogWfR b es →
     PlogWf prev ents →
     uint.Z prev.index' + (ents.length : Int) + 1 < 2 ^ 64 →
@@ -1106,16 +1106,26 @@ already puts every entry of a full log at a `w64` index: nothing in it has wrapp
 
 def base0 : entryID := entryID.mk (W64 0) (W64 0)
 
-def FullOk (b : entryID) (fp : List raftpb.Entry) : Prop :=
+def FullOk (b : entryID) (fp : List EntryM) : Prop :=
   (fp.length : Int) = uint.Z b.index' ∧
   PlogWf base0 fp ∧ plogLast base0 fp = b
 
 theorem base0_index : uint.Z (base0 : entryID).index' = 0 := rfl
 
+/-- Entry `k` of a committed log (well-formed from `base0`: `isCommitted_wf`, `Facts.lean`) has
+index `k + 1` (2026-10-16, stage R7: named for the server's contract). -/
+theorem isCommitted_index (L : List EntryM) (k : Nat) (e : EntryM) :
+    PlogWf base0 L → L[k]? = some e → uint.Z e.Index' = (k : Int) + 1 := by
+  intro Hwf Hk
+  have := Hwf k e Hk
+  rw [base0_index] at this
+  push_cast at this
+  omega
+
 theorem FullOk_base0 : FullOk base0 [] :=
   ⟨rfl, fun _ _ h => by simp at h, rfl⟩
 
-theorem full_term_at (b : entryID) (fp es : List raftpb.Entry) (j : w64) :
+theorem full_term_at (b : entryID) (fp es : List EntryM) (j : w64) :
     FullOk b fp → uint.Z b.index' ≤ uint.Z j →
     plogTermAt base0 (fp ++ es) j = plogTermAt b es j := by
   intro ⟨Hlen, _, Hlast⟩ Hj
@@ -1151,14 +1161,14 @@ theorem full_term_at (b : entryID) (fp es : List raftpb.Entry) (j : w64) :
     congr 2
     omega
 
-theorem full_term_at_le (b : entryID) (fp es : List raftpb.Entry) (j : w64) :
+theorem full_term_at_le (b : entryID) (fp es : List EntryM) (j : w64) :
     FullOk b fp → uint.Z j ≤ uint.Z b.index' →
     plogTermAt base0 (fp ++ es) j = plogTermAt base0 fp j := by
   intro ⟨Hlen, _, _⟩ Hj
   apply plogTermAt_app_l
   unfold plogLastIndexZ; rw [base0_index]; omega
 
-theorem full_last (b : entryID) (fp es : List raftpb.Entry) :
+theorem full_last (b : entryID) (fp es : List EntryM) :
     FullOk b fp → plogLast base0 (fp ++ es) = plogLast b es := by
   intro ⟨_, _, Hlast⟩
   unfold plogLast at *
@@ -1167,17 +1177,17 @@ theorem full_last (b : entryID) (fp es : List raftpb.Entry) :
   | some _ => rfl
   | none => simp only [Option.none_or]; exact Hlast
 
-theorem full_last_index (b : entryID) (fp es : List raftpb.Entry) :
+theorem full_last_index (b : entryID) (fp es : List EntryM) :
     FullOk b fp → plogLastIndexZ base0 (fp ++ es) = plogLastIndexZ b es := by
   intro ⟨Hlen, _, _⟩
   unfold plogLastIndexZ; rw [base0_index, List.length_append]; push_cast; omega
 
-theorem full_up_to_date (b : entryID) (fp es : List raftpb.Entry) (x : entryID) :
+theorem full_up_to_date (b : entryID) (fp es : List EntryM) (x : entryID) :
     FullOk b fp → plogUpToDate base0 (fp ++ es) x = plogUpToDate b es x := by
   intro H
   unfold plogUpToDate; rw [full_last _ _ _ H]
 
-theorem full_wf (b : entryID) (fp es : List raftpb.Entry) :
+theorem full_wf (b : entryID) (fp es : List EntryM) :
     FullOk b fp → PlogWf b es → PlogWf base0 (fp ++ es) := by
   intro ⟨Hlen, Hwf, _⟩ Hwfe
   rw [PlogWf_app]
@@ -1186,7 +1196,7 @@ theorem full_wf (b : entryID) (fp es : List raftpb.Entry) :
   rw [base0_index]; omega
 
 /-- In range, `PlogWfR` is `PlogWf`. -/
-theorem PlogWfR_wf (b : entryID) (es : List raftpb.Entry) :
+theorem PlogWfR_wf (b : entryID) (es : List EntryM) :
     PlogWfR b es → plogLastIndexZ b es < 2 ^ 64 → PlogWf b es := by
   intro Hwf Hr k e Hk
   have Hlt := (List.getElem?_eq_some_iff.mp Hk).1
@@ -1195,7 +1205,7 @@ theorem PlogWfR_wf (b : entryID) (es : List raftpb.Entry) :
   push_cast; omega
 
 /-- ... and a `PlogWf` log is in range. -/
-theorem PlogWf_range (b : entryID) (es : List raftpb.Entry) :
+theorem PlogWf_range (b : entryID) (es : List EntryM) :
     PlogWf b es → plogLastIndexZ b es < 2 ^ 64 := by
   intro Hwf
   unfold plogLastIndexZ
@@ -1207,7 +1217,7 @@ theorem PlogWf_range (b : entryID) (es : List raftpb.Entry) :
 
 /-- The prefix of a full log up to `i`, as the compacted prefix of the log with base
 `(t, i)`. -/
-theorem FullOk_take (F : List raftpb.Entry) (t i : w64) :
+theorem FullOk_take (F : List EntryM) (t i : w64) :
     PlogWf base0 F → plogTermAt base0 F i = some t →
     FullOk (entryID.mk t i) (F.take (uint.Z i).toNat) := by
   intro Hwf Ht
@@ -1246,14 +1256,14 @@ theorem FullOk_take (F : List raftpb.Entry) (t i : w64) :
         apply uint_Z_inj.mp
         push_cast at this; omega
 
-theorem plogTermAt_take_full (F : List raftpb.Entry) (n : Nat) (j : w64) :
+theorem plogTermAt_take_full (F : List EntryM) (n : Nat) (j : w64) :
     uint.Z j ≤ (n : Int) → plogTermAt base0 (F.take n) j = plogTermAt base0 F j := by
   intro Hj
   apply plogTermAt_take
   rw [base0_index]; omega
 
 /-- A full log is defined everywhere up to its end. -/
-theorem full_term_at_some (F : List raftpb.Entry) (j k : w64) :
+theorem full_term_at_some (F : List EntryM) (j k : w64) :
     (plogTermAt base0 F k).isSome → uint.Z j ≤ uint.Z k →
     (plogTermAt base0 F j).isSome := by
   intro Hs Hjk
@@ -1265,7 +1275,7 @@ theorem full_term_at_some (F : List raftpb.Entry) (j k : w64) :
   omega
 
 /-- Prefixes keep the terms they have. -/
-theorem plogTermAt_prefix (b : entryID) (F0 F : List raftpb.Entry) (j : w64) :
+theorem plogTermAt_prefix (b : entryID) (F0 F : List EntryM) (j : w64) :
     F0 <+: F → (plogTermAt b F0 j).isSome →
     plogTermAt b F j = plogTermAt b F0 j := by
   intro ⟨F', HF⟩ Hs
@@ -1276,14 +1286,14 @@ theorem plogTermAt_prefix (b : entryID) (F0 F : List raftpb.Entry) (j : w64) :
 
 /-- The pure side of a campaign record (`isCamp`, 2026-10-03): a well-formed full log
 all of whose terms are below the campaign's. -/
-def CampOk (T : w64) (F : List raftpb.Entry) : Prop :=
+def CampOk (T : w64) (F : List EntryM) : Prop :=
   PlogWf base0 F ∧
   ∀ (j x : w64), plogTermAt base0 F j = some x → uint.Z x < uint.Z T
 
 /-- What an entry's record says of its predecessor term `pt` (`isEntryR`): the entry,
 at index `k`, is past the leader's campaign log `F0`; it follows `F0`'s last entry or
 one of its own term; `pt ≤ T`. -/
-def PtOk (F0 : List raftpb.Entry) (T : w64) (k : Int) (pt : w64) : Prop :=
+def PtOk (F0 : List EntryM) (T : w64) (k : Int) (pt : w64) : Prop :=
   plogLastIndexZ base0 F0 < k ∧ uint.Z pt ≤ uint.Z T ∧
   (k = plogLastIndexZ base0 F0 + 1 → pt = (plogLast base0 F0).term') ∧
   (plogLastIndexZ base0 F0 + 1 < k → pt = T)
@@ -1405,10 +1415,10 @@ def LeaderMatchOk (s : PState) (mt : GMap w64 w64) : Prop :=
 /-- The empty entry a new leader appends (`pb.Entry{Data: nil}`, the zero `Entry`),
 stamped at the leader's term and the log's next index; the protocol reading of
 `leaderEntry` (`Defs.lean`). -/
-def pleaderEntry (s : PState) : raftpb.Entry :=
-  stamp s.term (plastIndex s) 0 (zero_val raftpb.Entry)
+def pleaderEntry (s : PState) : EntryM :=
+  stamp s.term (plastIndex s) 0 (zero_val EntryM)
 
-def pappend (s : PState) (es : List raftpb.Entry) : PState :=
+def pappend (s : PState) (es : List EntryM) : PState :=
   { s with log := s.log ++ es }
 
 /-- A candidate that has just won: `becomeLeader` up to its `send`. -/
@@ -1689,7 +1699,7 @@ inductive Step : PState → List Msg → PState → Prop where
   `let ci := plogFindConflict … in ci = W64 0 ∨ …`, inlined) is what makes
   `maybeAppend`'s `Panicf` dead; `app_no_conflict_below_commit` is the protocol
   fact. -/
-  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List raftpb.Entry) :
+  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List EntryM) :
       m.ty = .app →
       m.dst = id →
       m.src ≠ id →
@@ -1789,7 +1799,7 @@ inductive Step : PState → List Msg → PState → Prop where
 
   The third premise: the stamped indices do not wrap (`appendEntry`'s `Hsmall` and the
   log's own bound give it). Rocq's `let s' := pappend s (imap …) in` is inlined. -/
-  | propose (m : Msg) (s : PState) (ents : List raftpb.Entry) :
+  | propose (m : Msg) (s : PState) (ents : List EntryM) :
       m.ty = .propose →
       PropRepl m.entries ents →
       s.role = .leader →
@@ -1881,7 +1891,7 @@ inductive Step : PState → List Msg → PState → Prop where
         dst := s.lead
         term := W64 0 }])
   /-- `stepLeader`'s `MsgReadIndex` before an entry of the term is committed: pending. -/
-  | readPend (m : Msg) (s : PState) (pm : raftpb.Message) :
+  | readPend (m : Msg) (s : PState) (pm : MessageM) :
       m.ty = .readIndex → s.role = .leader → m.src = pm.From' →
       Step s [m] ({ s with rd := { s.rd with pend := s.rd.pend ++ [(pm, m.entries)] } })
   /-- `sendMsgReadIndexResponse`: the request queued at the commit index, which is at an
@@ -1922,7 +1932,7 @@ inductive Step : PState → List Msg → PState → Prop where
              ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
         (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2)
   /-- `stepFollower`'s `MsgReadIndexResp`: a `ReadState`. -/
-  | readState (m : Msg) (s : PState) (e : raftpb.Entry) :
+  | readState (m : Msg) (s : PState) (e : EntryM) :
       m.ty = .readIndexResp → m.entries = [e] →
       Step s [m] ({ s with rd := { s.rd with states := s.rd.states ++ [⟨m.index, e.Data'⟩] } })
 

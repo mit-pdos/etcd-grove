@@ -1,5 +1,7 @@
 /-
-Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__apply.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__apply.lean`. Lean-first (no Rocq
+counterpart). (2026-10-15, raft v3.7 retarget, stage R2: each change a `*pb.ConfChangeSingle`
+read through `GetNodeId`/`GetType`.)
 -/
 module
 
@@ -10,6 +12,8 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
 public import Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.fmt.Errorf
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 
 @[expose] public section
 
@@ -74,17 +78,20 @@ theorem confchange.Changer.apply.wp_proof
     (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG))
-    (wp_ConfChangeType_String : raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG)) :
+    (wp_ConfChangeType_String : raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG))
+    (wp_ConfChangeSingle_GetNodeId : raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG))
+    (wp_ConfChangeSingle_GetType : raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG)) :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) := by
-  intro p cfgp trk chg base s ccs l dq dqs Hmi
-  wp_start as ⟨Hp, Hccs, Hw⟩
+  intro p cfgp trk chg base s ccs ls l dq dqs Hmi
+  wp_start as ⟨Hp, Hccs, #Hcl, Hw⟩
   wp_auto
   wp_method_call
   wp_call
   wp_auto
   ihave %Hclen := ownSlice_len $$ Hccs
+  ihave %Hll := BigSepL2.bigSepL2_length $$ Hcl
   -- `for _, cc := range ccs`: after `n` changes, the state is `applyAll (l.take n) s`
-  ihave IH : iprop(∃ (n : w64) (x : raftpb.ConfChangeSingle) (s' : CCState),
+  ihave IH : iprop(∃ (n : w64) (x : Loc) (s' : CCState),
       "i" ∷ i_ptr ↦ n ∗
       "cc" ∷ cc_ptr ↦ x ∗
       "Hw" ∷ ownWork chg base cfgp trk s' ∗
@@ -97,31 +104,40 @@ theorem confchange.Changer.apply.wp_proof
   wp_if_destruct
   · have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z ccs.len := ⟨Hn.1, Hif⟩
     simp only [Hbnd', _root_.and_self]
-    have Hlt : sint.nat n < l.length := by have := Hclen.1; word
+    have Hlt : sint.nat n < l.length := by have := Hclen.1; rw [← Hll]; word
+    have Hltq : sint.nat n < ls.length := by rw [Hll]; exact Hlt
     obtain ⟨cc, Hcc⟩ : ∃ cc, l[sint.nat n]? = some cc := ⟨_, List.getElem?_eq_getElem Hlt⟩
-    wp_apply wp_load_slice_index ccs (sint.Z n) _ _ cc Hn.1 $$ [Hccs] with Hccs
-    · iframe Hccs; ipureintro; exact Hcc
+    obtain ⟨q, Hq⟩ : ∃ q, ls[sint.nat n]? = some q := ⟨_, List.getElem?_eq_getElem Hltq⟩
+    ihave #Hcq := BigSepL2.bigSepL2_lookup (Φ := fun _ q c => ccsRO (GF := GF) q c) Hq Hcc $$ Hcl
+    wp_apply wp_load_slice_index ccs (sint.Z n) _ _ q Hn.1 $$ [Hccs] with Hccs
+    · iframe Hccs; ipureintro; exact Hq
     have Htake : l.take (sint.nat (n + W64 1)) = l.take (sint.nat n) ++ [cc] := by
       rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Hcc]; rfl
     have Hstep : applyAll (l.take (sint.nat (n + W64 1))) s = applyOne cc s' := by
       rw [Htake, applyAll_snoc, Hn.2.2]; rfl
+    wp_apply wp_ConfChangeSingle_GetNodeId.1 q DFrac.discard cc $$ [Hcq] as -
+    · iexact Hcq
     wp_if_destruct
     · -- `NodeId == 0`: skipped
       wp_for_post
       iframe
-      iexists n + W64 1, cc, s'
+      iexists n + W64 1, q, s'
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
       rw [Hstep]; simp [applyOne, Hif]
     have H0 := Hif
+    wp_apply wp_ConfChangeSingle_GetType.1 q DFrac.discard cc $$ [Hcq] as -
+    · iexact Hcq
     wp_if_destruct
     · -- `AddNode`
+      wp_apply wp_ConfChangeSingle_GetNodeId.1 q DFrac.discard cc $$ [Hcq] as -
+      · iexact Hcq
       wp_apply wp_Changer_makeVoter c_ptr cfgp trk chg base s' cc.NodeId' _ Hmi $$ [$c $Hw]
         as ⟨c, Hw⟩
       wp_for_post
       iframe
-      iexists n + W64 1, cc, _
+      iexists n + W64 1, q, _
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
@@ -129,11 +145,13 @@ theorem confchange.Changer.apply.wp_proof
     have H1 := Hif
     wp_if_destruct
     · -- `AddLearnerNode`
+      wp_apply wp_ConfChangeSingle_GetNodeId.1 q DFrac.discard cc $$ [Hcq] as -
+      · iexact Hcq
       wp_apply wp_Changer_makeLearner c_ptr cfgp trk chg base s' cc.NodeId' _ Hmi $$ [$c $Hw]
         as ⟨c, Hw⟩
       wp_for_post
       iframe
-      iexists n + W64 1, cc, _
+      iexists n + W64 1, q, _
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
@@ -141,11 +159,13 @@ theorem confchange.Changer.apply.wp_proof
     have H2 := Hif
     wp_if_destruct
     · -- `RemoveNode`
+      wp_apply wp_ConfChangeSingle_GetNodeId.1 q DFrac.discard cc $$ [Hcq] as -
+      · iexact Hcq
       wp_apply wp_remove_work wp_Changer_remove c_ptr cfgp trk chg base s' cc.NodeId' _
         $$ [$c $Hw] as ⟨c, Hw⟩
       wp_for_post
       iframe
-      iexists n + W64 1, cc, _
+      iexists n + W64 1, q, _
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
@@ -155,12 +175,14 @@ theorem confchange.Changer.apply.wp_proof
     · -- `UpdateNode`: nothing
       wp_for_post
       iframe
-      iexists n + W64 1, cc, s'
+      iexists n + W64 1, q, s'
       iframe
       ipureintro
       refine ⟨by word, by word, ?_⟩
       rw [Hstep]; simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_right H3, ite_eq_left Hif]
     · -- any other type: "unexpected conf type %d"
+      wp_apply wp_ConfChangeSingle_GetType.1 q DFrac.discard cc $$ [Hcq] as -
+      · iexact Hcq
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl

@@ -21,16 +21,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`ws.Watch(ctx, id, key, end, startRev, fcs...)`**: the range `key`/`end` (`end` empty: a
-single key, or from `key` if `end` is non-nil: the store's business) and the filters are handed
-to the store for good. It returns `nil` with the watcher's id (`id` itself unless it is
-`AutoWatchID`, `0`) only for a non-empty range (`end` empty or `key < end`); otherwise `-1` with
-`ErrEmptyWatcherRange` (an empty range, or the stream closed) or `ErrWatcherDuplicateID` (an
-explicit `id` already in use). The start revision is at least `0`; the caller's `P.R` is lent
-to the store. On success it returns the watcher `w` the store registered (`P.IW`), what the store
-says of it (`P.IWF`: its range `watchRangeOf k e endk startRev id'`, the filters, its first
-revision `lo`), and, for an id the stream assigned (`AutoWatchID`), that the stream assigned it
-to `w` (`idAssigned`: such an id names one watcher of the stream for good, `idAssigned_agree`). -/
+/-- **`ws.Watch(ctx, id, key, end, startRev, fcs...)`** with an id the stream assigns
+(`AutoWatchID`, `0`; unit W-M2: an explicit id can be one reused after a cancel,
+`issues/etcd-watch-id-reuse-stale-events.md`, and its watcher cannot be recorded in the channel's
+id map; the verified server never passes one, `v3rpc.watchReqOk`): the range `key`/`end` (`end`
+empty: a single key, or from `key` if `end` is non-nil: the store's business) and the filters
+are handed to the store for good. It returns `nil` with the id it assigned only for a non-empty
+range (`end` empty or `key < end`); otherwise `-1` with `ErrEmptyWatcherRange` (an empty range,
+or the stream closed). The start revision is at least `0`; the caller's `P.R` is lent to the
+store. On success it returns the watcher `w` the store registered (`P.IW`), what the store says
+of it (`P.IWF`: its range `watchRangeOf k e endk startRev id'`, the filters, its first revision
+`lo`), and that the stream assigned the id to `w` (`idAssigned`: such an id names one watcher of
+the stream for good, `idAssigned_agree`; the channel's invariant knows it from the registration
+on, `chanRegFact`), with its token (`idTok`: one per id, `idTok_excl`; the watch slice's unit
+W-C). -/
 abbrev mvcc.watchStream.Watch.spec : Prop :=
   ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (key endk fcs : GoSlice) (k e : List w8)
@@ -38,17 +42,15 @@ abbrev mvcc.watchStream.Watch.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchStream ws wa P γ ∗ context.isContext ctx cd ∗
       key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.R ∗ P.T ∗
-      ⌜0 ≤ sint.Z startRev⌝ }}
+      ⌜0 ≤ sint.Z startRev ∧ id = W64 0⌝ }}
     (App (App (App (App (App (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))
   {{ (id' : w64) (err : GoInterface), RET (PairV #id' #err);
-      ((⌜err = GoInterface.nil⌝ ∗ ⌜e = [] ∨ go.GoStringLt k e⌝ ∗ ⌜id ≠ W64 0 → id' = id⌝ ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ⌜e = [] ∨ go.GoStringLt k e⌝ ∗
         ∃ (w : Loc) (lo : Nat), P.IW w ∗
           P.IWF w (mvcc.watchRangeOf k e endk startRev id') fcs lo ∗
-          (⌜id ≠ W64 0⌝ ∨ mvcc.idAssigned γ id' w)) ∨
-       (⌜id' = W64 (-1)⌝ ∗
-        (globalAddr ErrEmptyWatcherRange ↦□ err ∨
-         (⌜id ≠ W64 0⌝ ∗ globalAddr ErrWatcherDuplicateID ↦□ err)))) ∗ P.R }}
+          mvcc.idAssigned γ id' w ∗ mvcc.idTok γ id') ∨
+       (⌜id' = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err)) ∗ P.R }}
 
 end spec
 

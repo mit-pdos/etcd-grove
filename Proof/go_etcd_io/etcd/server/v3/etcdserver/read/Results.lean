@@ -5,10 +5,10 @@ axioms`).
 
 **The chain.** A client calls `LinearizableReadNotify(ctx)` knowing a lower bound `c` of the
 cluster's committed index (`committedAtLeast γr c`). It reads the current notifier `nc` under the
-read lock and deposits `c` in `nc`'s need (`read_deposit`: the read invariant keeps a committed
+read lock and deposits `c` in `nc`'s need (`read_need_deposit`: the read invariant keeps a committed
 bound at least the need). The loop swaps `nc` out under the write lock and freezes its need at `n`
 with a committed bound `n` (`read_swap`), then issues `ReadIndex` at `n`: every read state that
-answers one of its requests has an index at least `n` (`isReadRaft`, `readStateOk`), so the
+answers one of its requests has an index at least `n` (`isReadRaft`, `srvReadStateOk`), so the
 confirmed index `ci ≥ n` (`requestCurrentIndex`). It waits until the applied index reaches `ci`
 (`AppliedIndex`, `ApplyWait`), then closes `nc` with `nil`, which tells the waiters the frozen need
 and an applied index at least it (`frozenOk`). So a `nil` from `LinearizableReadNotify` means the
@@ -17,7 +17,11 @@ applied index has passed a `ReadIndex` issued after the call began, hence at lea
 
 **The contracts** (`read/Inv.lean`): the `server` interface (`isReadServer srv γr LR NR`) and the
 `raftInterface` (`isReadRaft rf γr RQ`), which the request path's unit 4b discharges for
-`*EtcdServer` and its `raftNode`.
+`*EtcdServer` and its `raftNode`. Since 2026-10-16 (stage R7b of the raft v3.7 retarget) raft's
+`ReadIndex` takes a read credit and the fresh token of its context: both come with the request id
+(`NextRequestID`'s clause of `isReadServer`; the server mints them from the id, `srvRdFreshInv`),
+so one `ReadIndex` per id, paid by the id budget; and the loop's precondition carries the minted
+contexts' fact (`readCtxMinted`: a read state's context is a minted id's, eight bytes long).
 -/
 module
 
@@ -46,7 +50,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 /-- **`NewRead`'s result meets the read contract** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/read/
-NewRead.lean`): given the server's `Done()`, `NewRead(srv, rf)` returns `r` with `isRead r γr`
+NewRead.lean`): given the server's `Done()`, `NewRead(srv, rf)` returns `r` with `isReadNotify r γr`
 (the contract the server's `Range`/`Txn` take: `LinearizableReadNotify` returns `nil` only with
 `readIndexOk γr c`), the reader slots of `r.mux`, and the loop's precondition from the server's
 and raft's contracts. -/

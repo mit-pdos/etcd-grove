@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 answer to `rq'` (`appliedOk`: dispatched, the apply package's response, no error); failure, no
 response and an error (2026-10-14, unit C2a: the success with the result's witness at `ρ.rd`,
 `appliedWit`): the apply's (`appliedErr`), or `processInternalRaftRequestOnce`'s (the
-proposal, if made, deposited). -/
+proposal, if made, deposited). Unit W-M3: the update's committed log `L` is the raft prefix whose
+model is the log `lb` the entry met (`appliedOk`'s `x.log`), and the log after is certified. -/
 abbrev EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
@@ -40,9 +41,9 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedOk E ρ.rd rq' F resp ∗
-          ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ □ Qr L) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (lb : mvcc.Log),
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedOk E ρ.rd rq' F resp lb ∗
+          ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜kvModel ρ.kv L = lb⌝ ∗ □ Qr L) ∨
        (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err) ∨

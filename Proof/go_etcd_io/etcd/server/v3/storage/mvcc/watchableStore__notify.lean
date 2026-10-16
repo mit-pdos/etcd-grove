@@ -648,7 +648,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
     (hrel : NotifyRel σ N (batchOf σ.Ws σ.ST (evsOfRevM N (stateAfter ilog) pend)) PB keys
       keys.length STi Wsi Bv Out PBr)
     (vs' : GoSlice) (vm : GoMap) (k : Loc) (st : WatcherSt) (hSTk : STi !! k = some st) :
-    (monoListLbOwn γ.st.idx.hist (histOf (ilog ++ [pend])) ∗
+    (evLog γ.st (ilog ++ [pend]) ∗
         ([∗map] w ↦ r ∈ Wsi, ∃ fcs, watcherFixed w r fcs)) ∗
         memberAt (GF := GF) γ σ N keys keys.length Out Bv k st ⊢
       memberRes γ 1 (notifyState σ N STi Wsi Bv Out vs' vm) k st := by
@@ -833,8 +833,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
         iunfold evsWf at Hwf
         iunfold evsWf
         icases Hwf with ⟨%L, #HlbL, %HL⟩
-        ihave %Hcmp := mono_list_lb_valid _ _ _ $$ Hlb HlbL
-        have hcmp := histOf_cmp_log Hcmp
+        ihave %hcmp := evLog_cmp _ _ _ $$ Hlb HlbL
         rw [hdN] at HL
         iexists ilog ++ [pend]
         iframe Hlb
@@ -1006,8 +1005,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     iunfold mvcc.evsWf at Hwf
     icases Hwf with ⟨%L, #HlbL, %HL⟩
     rw [hdN] at HL
-    ihave %Hcmp := mono_list_lb_valid _ _ _ $$ Hlb HlbL
-    have hcmp := mvcc.histOf_cmp_log Hcmp
+    ihave %hcmp := mvcc.evLog_cmp _ _ _ $$ Hlb HlbL
     have hevsw : evsw = mvcc.watchEvents (ilog ++ [pend]) r' γw.lo N := by
       rw [HL.1]
       exact mvcc.watchEvents_cmp hcmp.symm r' HL.2 (Or.inl (by simp; omega))
@@ -1037,6 +1035,8 @@ theorem mvcc.watchableStore.notify.wp_proof
     · rw [if_neg hwEne]
       simp only at Hlen
       iframe Hmeta Hfx Hfo Hch Hchf Hl Ha Hwf' Hsl HevB
+      isplitr
+      · ileft; ipureintro; rfl
       ipureintro
       refine ⟨Hlen, rfl, fun _ => rfl, ?_, ?_⟩
       · intro ev hev; rw [hmod ev hev]; exact Int.le_refl _

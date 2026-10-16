@@ -143,11 +143,11 @@ theorem EtcdServer.DeleteRange.wp_proof
     · iapply deletePermit_reqPropOk $$ Hnp
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, %Lq, #HLq, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOk at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
-    obtain ⟨Hstep, Hfl⟩ := Hstep0
+    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+    obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
     have Hk : apply.dispatchKind rq' = .deleteRange := by
       rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
     have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
@@ -169,10 +169,10 @@ theorem EtcdServer.DeleteRange.wp_proof
     isplitr
     · ipureintro; rfl
     iexists hm, rq', op', x, x', .applied log' false, skip
-    iframe Hpo Hhdr Hcert HMint Hwit
+    iframe Hpo Hhdr Hcert HMint Hwit Hcok
     isplitr
     rotate_left
-    · iexists kvStateOf (kvModel ρ.kv Lq); iexact HQq
+    · rw [Hxlb, ← HLlb]; iexact HQq
     ipureintro
     refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
       Hfl' log' false rfl⟩

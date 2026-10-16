@@ -41,13 +41,13 @@ local macro "rr_ok" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; rfl
-  iexists hm, rq'
+  iexists hm, rq', lb
   isplitr
   · ipureintro; exact Hwire
   isplitr [HQL]
   · iunfold appliedOk
     iexists y, y', o, skip
-    iframe Hcert HMint Hwit
+    iframe Hcert HMint Hwit Hok
     isplitr
     · ipureintro; exact Hstep
     rw [← hve]
@@ -75,11 +75,11 @@ theorem EtcdServer.raftRequest.wp_proof
   wp_apply hP s E ρ ctx cd p rq Qr F Hid0 $$ [Hrd Hard Hcred Hhdr Hok] as %res %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hhdr Hok
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, Hri, HQL⟩ | ⟨%Hres, #HaE, Hdep⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, %lb, Hri, HQL⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
     (try wp_auto)
     iunfold resultIsW at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn
@@ -118,7 +118,7 @@ theorem EtcdServer.raftRequest.wp_proof
         iexists y, y', .rejected
         iframe Hcert HMint
         isplitr
-        · ipureintro; exact Hstep
+        · ipureintro; exact ⟨Hstep.1, Hstep.2.1⟩
         simp only [apply.applyResultIs]
         iexact Hrej
       · rw [hve] at HvE; exact absurd rfl HvE
@@ -151,7 +151,7 @@ theorem EtcdServer.raftRequest.wp_proof
         iexists y, y', .dispatched o skip
         iframe Hcert HMint
         isplitr
-        · ipureintro; exact Hstep
+        · ipureintro; exact ⟨Hstep.1, Hstep.2.1⟩
         simp only [apply.applyResultIs, apply.dispatchResult, or_true, ↓reduceIte]
         isplitr
         · ipureintro; exact Hnn

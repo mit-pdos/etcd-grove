@@ -38,8 +38,8 @@ theorem WatchResponse.IsProgressNotify.wp_proof
     WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) := by
   intro wr resp r dq
   obtain ⟨events, compactRev, canceled, created, hdrRev⟩ := r
-  simp only [respAt, eventsAt]
-  wp_start as ⟨Hwr, ⟨⟨%ls, #Hsl, %Hlen, #Hall⟩, #Hhdr, %Hf⟩⟩
+  simp only [eventsAt]
+  wp_start as ⟨Hwr, ⟨%ls, #Hsl, %Hlen, #Hall⟩, Hhdrw, %Hf⟩
   ihave %Hsl_len := ownSlice_len _ _ _ $$ Hsl
   obtain ⟨Hc, Hca, Hcr⟩ := Hf
   have Hev : (resp.Events'.len = W64 0) ↔ events = [] := by
@@ -47,7 +47,8 @@ theorem WatchResponse.IsProgressNotify.wp_proof
   simp only [RespModel.isProgressNotify]
   wp_auto
   wp_if_destruct
-  · rw [Hca]
+  · ihave #Hhdr := Hhdrw $$ %(Hev.1 Hif)
+    rw [Hca]
     rw [show events.isEmpty = true from List.isEmpty_iff.2 (Hev.1 Hif)]
     cases canceled
     · wp_auto

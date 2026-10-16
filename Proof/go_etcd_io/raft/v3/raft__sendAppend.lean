@@ -1,5 +1,7 @@
 /-
 Port of election_proof/proof_raft__sendAppend.v.
+
+raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 
@@ -25,10 +27,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.sendAppend.wp_proof
     (wp_raft_maybeSendAppend : raft.maybeSendAppend.spec (GF := GF) (hG := hG)) :
     raft.sendAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s to Hto Hcfg
+  intro c r id s to Hto Hcfg Hlead
   wp_start as Hphys
   wp_auto
-  wp_apply wp_raft_maybeSendAppend c r id s to true Hto Hcfg $$ [$Hphys]
+  wp_apply wp_raft_maybeSendAppend c r id s to true Hto Hcfg Hlead $$ [$Hphys]
     as %b %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
   iapply HΦ
   iframe

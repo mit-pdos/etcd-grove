@@ -1,15 +1,16 @@
 # Retargeting the raft proof to raft v3.7 (protobuf-go v2)
 
-**Stage R0, 2026-10-15, branch `raft-retarget`.** For review: the "Design" section is a
-proposal; nothing in it is decided beyond what R0 had to do to port `quorum` and `tracker`
-(marked *provisional*). Line numbers are of the new source (`.lake/go-src/raft37`, commit
+**Stage R0, 2026-10-15, branch `raft-retarget`; stages R1, R2 and R3 done the same day**
+(`notes/STATUS.md`, "Retargeting raft to v3.7, stage R1", "... stages R2 and R3"). The "Design" section was R0's proposal; the review's answers
+to its open questions are under "Open questions for the reviewer", "Decisions", and what R1 found
+is marked *R1* (*R3*) where it corrects or refines a fact. Line numbers are of the new source (`.lake/go-src/raft37`, commit
 `509271dac` = etcd-io/raft v3.7.0 `b867cf13` plus the read-index fix) unless marked OLD
 (`.lake/go-src/etcd-raft`, `0560cb7` = `40f8be7` plus the fix).
 
 ## Where things are
 
-- Source: branch `raft37-goose-lean` of a local clone at `.lake/go-src/raft37` (to be pushed to
-  `upamanyus/etcd`), one commit on v3.7.0: the fix of `issues/raft-readindex-singleton-stale.md`
+- Source: branch `raft37-goose-lean` of `upamanyus/etcd` (pushed; a local clone at
+  `.lake/go-src/raft37`), one commit on v3.7.0: the fix of `issues/raft-readindex-singleton-stale.md`
   rebased onto pointer messages (`issues/raft-conf-lag-model/0001-raft-readindex-singleton-fix-v3.7.0.patch`).
   `go test ./...` passes; the two regression tests fail without the fix.
 - Translation: project `raft37` of `etc/goose.py` (`Project.root = "Raft37"`), modules
@@ -21,8 +22,7 @@ proposal; nothing in it is decided beyond what R0 had to do to port `quorum` and
   `etc/link-lean-first-raft37.txt`), results in `Raft37/Proof/go_etcd_io/raft/v3/Results.lean`,
   collection `etc/tcb-collections/raft37.txt`. `etc/proof_roots.py` and `etc/verified-code.py`
   see the root (packages keyed `Raft37:go.etcd.io/raft/v3`).
-- Until the branch is pushed: `GOTOOLCHAIN=go1.27.1 etc/goose.py --check --src raft37=.lake/go-src/raft37`
-  (CI's plain `etc/goose.py --check` cannot fetch `509271dac` yet).
+- The branch is pushed (R1): a plain `GOTOOLCHAIN=go1.27.1 etc/goose.py --check` fetches `509271dac`.
 
 ## Inventory
 
@@ -109,7 +109,10 @@ messages `[]*T`, hidden `state`/`sizeCache`/`unknownFields`, nil-safe getters, n
 7. `ConfState.Equivalent` (confstate.go:26-52) clones, sorts, treats nil `AutoLeave` as false,
    compares with `proto.Equal` (unknown fields included, nil = empty slice); nil on either side is
    an error. `ConfChangeV2.LeaveJoint` (111-114) tests the getters instead of `proto.Equal`.
-   Spec: equivalent in every case the specs state.
+   Spec: equivalent in every case the specs state. *R1*: not quite: since `proto.Equal` compares
+   unknown fields, a `ConfState` with one is "not equivalent" to the same configuration and raft
+   panics (`issues/raft-confstate-unknown-fields-panic.md`, reproduced); the specs cover conf states
+   without unknown fields (`InvPb.lean`'s `csPts`), a premise of the later `restore`/`newRaft` specs.
 8. `MemoryStorage`: `Snapshot()`/`CreateSnapshot` return deep clones (OLD: shallow value copies);
    `ApplySnapshot` stores a clone; `SetHardState` keeps the caller's pointer; `Append` keeps the
    caller's entry pointers and `Entries` returns them (capped subslice, 162-165). Spec: ownership
@@ -242,13 +245,20 @@ of 38 changed: `ProgressTracker.ConfState`).
   `Snapshot` with the merged one, `server/etcdserver/snapshot_merge.go:51`), so it needs write
   access to the struct.
 
+*R3*: `MemoryStorage.hardState` is `nil` until the first `SetHardState` (`NewMemoryStorage` sets
+only `ents` and `snapshot`), so the storage holds a nil-or-read-only hard state (`hsOpt`).
+
 **Snapshots.** Cloned on every path into and out of the log and storage: `unstable.restore` (196),
 `nextSnapshot` (114), `raftLog.snapshot` (295), `MemoryStorage.Snapshot` (213),
 `ApplySnapshot` (234), `CreateSnapshot` (262); `Ready.Snapshot` is a fresh clone per
 `readyWithoutAccept` (156), shared with the `MsgStorageAppend{,Resp}` messages (243, 360). A
 `MsgSnap` carries the pointer `raftLog.snapshot()` returned (689). Written in place: by `Ensure*`
 (nil fields only; a received snapshot 1836, `ApplySnapshot`'s argument 222) and by
-`CreateSnapshot` on `MemoryStorage`'s own (255-261).
+`CreateSnapshot` on `MemoryStorage`'s own (255-261). *R3*: also by `MemoryStorage.Snapshot()` on its
+own (`ms.snapshot = EnsureSnapshot(ms.snapshot)`, 212: the field and the nil fields, under the lock)
+and by the unlocked `InitialState` on its own conf state (`EnsureConfState`, 132); and
+`CreateSnapshot` keeps the caller's `data` slice (261), so the storage's snapshot owns those bytes.
+Hence the storage's snapshot is its owner's (`ownMemoryStorage`), not the lock's.
 
 **Hard states** are fresh per `hardState()` (504-510) and never written after construction;
 shared by `Ready.HardState`, `prevHardSt` (aliased by `acceptReady`), `MemoryStorage.hardState`
@@ -261,7 +271,7 @@ uncloned from `InitialState`. **Conf changes**: `ConfChange.AsV2` allocates a fr
 
 ### Proposal
 
-**D1. The model's data are pure records, field for field** (*provisional, done in R0*). The
+**D1. The model's data are pure records, field for field** (*done in R0, final in R1*: Q1). The
 protocol model, `Plog`, `CCModel` and the specs' records use `EntryM` (`Term' Index' Type' Data'`),
 `MessageM` (the scalar fields: `Type' To' From' Term' LogTerm' Index' Commit' Vote' Reject'
 RejectHint'`) and `ConfChangeSingleM` (`Type' NodeId'`) in `Raft37/Proof/.../PbModel.lean`: what
@@ -270,7 +280,10 @@ were, so 19k lines of model port by a rename and `LogState`, `UnstableSt`, `Stor
 `Msg`, `PState` keep their shapes (`List EntryM`). `absMsg` takes a `MessageM` (it already reads
 only scalar fields). The same for a `SnapshotM` (`Metadata.Index/Term`, the `ConfState` lists and
 `AutoLeave`, i.e. today's `SnapTrip` plus `Data`) to replace `snapId`/`snapTrip`/`absSnap`'s
-`raftpb.Snapshot`, and a `HardStateM` (`Term Vote Commit`) for `hardstateVal`.
+`raftpb.Snapshot`, and a `HardStateM` (`Term Vote Commit`) for `hardstateVal`. *R1*: done, the
+snapshot nested as the Go messages are: `SnapshotM` (`Data' : List w8`, `Metadata' :
+SnapshotMetadataM`), `SnapshotMetadataM` (`ConfState' : ConfStateM`, `Index'`, `Term'`), `ConfStateM`
+(the four lists, `AutoLeave'`), so `sv.Metadata'.ConfState'.AutoLeave'` reads as before.
 
 **D2. An entry, once built, is a persistent read-only fact** `entRO (l : Loc) (e : EntryM)`:
 `l.Term ↦□ p ∗ cellRO p e.Term'` and likewise `Index`, `Type` (`cellRO p v := p = nil ∧ v = 0 ∨
@@ -306,7 +319,8 @@ fraction).
 
 **D5. protobuf's runtime is the trust boundary.** Hidden fields (`state`, `sizeCache`,
 `unknownFields`) are split off at allocation into an invariant, `pbMsg l` (persistent), which only
-the `proto.*` axioms take; verified code never touches them. New trust-boundary axioms (all of
+the `proto.*` axioms take (*R1*: `pbMsg T l uf`, one per object, nested objects each their own,
+indexed by the unknown fields' bytes because `proto.Equal` compares them); verified code never touches them. New trust-boundary axioms (all of
 Go functions of `google.golang.org/protobuf/proto`, names-only, each a spec per message type):
 `proto.Clone` (Entry, Snapshot, ConfState: a fresh deep copy, `pbMsg` of the copy), `proto.Size`
 (returns some `n`: the specs never fix sizes), `proto.Marshal`/`Unmarshal` (ConfChange,
@@ -326,19 +340,46 @@ value with slice facts), `Ready`'s fields (nil-or-pointer `HardState`/`Snapshot`
 
 | stage | what | old lines (Spec+Proof) | kind |
 |---|---|---:|---|
-| R1 | D1 records final; `Protocol/*` rest, `Plog`, `CCModel`, `SnapConf`, `StepLemmas*`, `StepGhostMode` | ~22k | rename (R0 did 7.5k) |
-| R1 | raftpb: getters, `Enum`, `Ensure*`, codec (`AsV1/AsV2/EnterJoint/LeaveJoint`, `MarshalConfChange`, `Equivalent`), D5 axioms, `pbMsg` | ~2.5k | redo |
-| R2 | confchange (`Restore`, `toConfChangeSingle` on `*ConfState`; `Changer` unchanged) | ~3.4k (1k changed) | adapt |
-| R3 | `log_unstable`, `log`, `storage` (`MemoryStorage`), `InvRaftlog`/`InvStorage`/`InvMemstorage`, `entRO` | ~12k | redesign of physical predicates |
-| R4 | `raft.go`: `InvRaftPhys` (`msgOwn`, `outboxRel`), `raft__Step/*`, `stepLeader`, per-function | ~35k | redesign + adapt |
-| R5 | `rawnode`/`node`/`bootstrap`, `InvRawnode*`, `InvNode*`, the `Ready` predicates | ~15k | redesign |
-| R6 | the swap (`Raft37/*` becomes `Code/`, `Spec/`, `Proof/`), `isRaftNodeIfc` from the new `node`/`RawNode` specs, `EtcdDeps` retired, the register's `go.mod` | — | integration |
+| R1 **done** | D1 records final; `Protocol/*` rest, `Plog`, `CCModel`, `SnapConf`, `StepLemmas*`, `StepGhostMode` | ~22k | rename (R0 did 7.5k). *Actual*: 19 files / 16,151 lines: 13 / 12,547 by the rename alone, 4 / 2,339 with an import edited, `CCApply(C)` 2 / 1,265 split off `InvApplyConf(C)`; `SpecResults` 151 (moved definitions) |
+| R1 **done** | raftpb: getters, `Enum`, `Ensure*`, codec (`AsV1/AsV2/EnterJoint/LeaveJoint`, `MarshalConfChange`, `Equivalent`), D5 axioms, `pbMsg` | ~2.5k | redo. *Actual*: `InvPb.lean` 807; 55 functions (40 getters, 4 `Enum`, 3 `Ensure*`, 8 of the codec and `Equivalent`) in 110 Spec/Proof files / 5,567 lines; 9 `proto.*` axioms in 18 files / 754 lines |
+| R2 **done** | confchange (`Restore`, `toConfChangeSingle` on `*ConfState`; `Changer` unchanged) | ~3.4k (1k changed) | adapt. *Actual*: 22 functions, 44 files / 5,177 lines; 17 by imports alone, `apply`/`Simple`/`EnterJoint` over `[]*ConfChangeSingle`, `toConfChangeSingle`/`Restore` over `ownCSM`; not imports only: `apply`'s error path needs `fmt.Errorf` and `raftpb.ConfChangeType.String`, the old proof's axioms restated for v3.7 |
+| R3 **done** | `log_unstable`, `log`, `storage` (`MemoryStorage`), `InvRaftlog`/`InvStorage`/`InvMemstorage`, `entRO` | ~12k | redesign of physical predicates. *Actual*: predicates 3,149 lines (`InvPbLog` new 352: `entsPts`/`entsRO`); 64 functions (`MemoryStorage` 13 + `NewMemoryStorage`, `unstable` 12, `raftLog` 31 + `newLogWithSize`, 6 helpers), specs 3,518 lines, proofs 7,014 (18 / 1,489 as copied after the rename, 46 / 5,525 edited, 1,258 lines new), `MemstorageInstance`; no new axiom |
+| R4 **done** | `raft.go`: `InvRaftPhys` (`msgOwn`, `outboxRel`), `raft__Step/*`, `stepLeader`, per-function | ~35k | redesign + adapt. *Actual*: shared predicates (`msgPtsC`/`msgIn`, `InvPbMsg`, `InvRaftPhys` 3,570 over `QMsg`); 82 spec files (47 by the rename alone); every `raft.go` function proved, `newRaft` included (raft37 135 → 217 of 327 functions, 2,621 of 3,707 lines): 139 proof files / 24,856 lines in phase 3, `raft__Step/` 46 modules / 9,955 and the dispatch 855, `stepLeader` 2,668; D6 (an entry's data its bytes) and D7 (a snapshot's conf state frozen once `AutoLeave` is set); one new axiom, `DescribeConfChange` (a log formatter) |
+| R5 **done** | `rawnode`/`node`/`bootstrap`, `InvRawnode*`, `InvNode*`, the `Ready` predicates | ~15k | redesign. *Actual*: predicates 5,133 lines (`InvRawnode` 1,206, `InvRawnodeC` 126, `InvRawnodeReady` 1,176, `InvNode` 874, `InvNodeRun` 1,751); 40 spec files / 2,539 lines (the 37 of `rawnode.go`/`node.go` and three Lean-first storage-response helpers); 40 functions proved in 44 files / 7,321 lines (raft37 217 → 257 of 327 functions, 3,062 of 3,707 lines, beyond the old tree's 251 of 323): `RawNode` API 18, the `Ready` core 4 (`acceptReady` 659, `Advance` 576), `node` API 17, `node.run` 934; D8 (`Ready` hands the messages out, responses to others at half: `issues/raft-ready-messages-read-after-handout.md`), `msgIn`'s capacity only for a `MsgApp`; `bootstrap.go` out of scope as before; no new axiom |
+| R6a **done** | the swap (`Raft37/*` becomes `Code/`, `Spec/`, `Proof/`), `EtcdDeps` retired (D9: the server's translation imports the verified raft, its proofs link raft's getter specs, `entryAt`/`msgAt`/`hardStateAt` defined over raft's `entRO`/`msgOwn`/`hsOpt`), the tooling to one raft project | — | integration. *Actual*: the swap mechanical (1,274 files, `git mv` and a rename); the server 37 files, the three predicates definitions over raft's, the getters' specs raft's restated in the server's shape; two trust-boundary statements changed (`pbutil.MustUnmarshalMessage`'s ConfChange case and `EtcdServer.applyConfChange` over `ownCCV1`); six server names renamed for clashes with raft's; the server's Link imports raft's (notes/STATUS.md, "stage R6") |
+| R6b **done** | the register ported to raft v3.7 (Go: pointer messages, `proto.Unmarshal`; `go.mod` to the fork's `raft37-goose-lean`), retranslated, its proofs redone over the new node specs | ~6k (register) | redesign. *Actual*: the Go ported (150 lines changed; `deliver` steps the wire's copy of a message, since `Ready` hands responses out at half); specs and proofs redone (29 files, 1,079 lines changed), no `sorry` of the register's own; one raft spec weakened for it (the `InitialState` closure of `newRaft`/`NewRawNode`/`RestartNode` takes the conf state at any `AutoLeave`) |
+| R7a **done** | raft's side of the discharge (D10, `notes/decisions.md` "The server's raft contract discharged"): `propAu`/`noopAu` with the appended entry's index, `isCommitted_wf`, `rLog_committed`; `readyData` with the `SoftState`; `node.Propose`/`ReadIndex`/`step*` over any context (`nodeCtx`), the error named; `msgOwn_persist`; the `MemoryStorage` instance of `StorageModel` shared | — | spec extension |
+| R7b **done** | the server's contract layer defined over raft's (`ServerRaftNames.raft`/`pre`, `srvRLog := rLog`, `srvRaftN := raftN`, `RNNames.node`, `rnReadyP := readyP`, `rnEnvOk`), the tick and read credits paid (`isRNTicker E`, `rnReadCred` through the read loop), `srvCommittedInv` with its log prefix, `rnLogFits`; then `isRaftNodeIfc`, `raftPropose`, `isRNMemStor` as theorems (`Stop` the one premise left) | — | proof design. *Actual*: B1 the contract layer (two commits), B2 the read loop (the credit and token come with the request id, not the request: no new gRPC premise), B3 `NodeBridge.lean`; assumed, named: `rnStopOk`, `rnLogFits`, `rnCtxErrOk`, `rnPropErrOk` (notes/STATUS.md, "stage R7b") |
+| R7c **done** | the two error-value premises retired on raft's side: `ctxErr` through `Spec/context/ErrDone.lean` in `stepWithWaitOption`; `propP`'s handoff naming `Propose`'s result error | — | small. *Actual*: one agent, two commits; raft's Link imports `Proof.context.Link`; collections `raft`/`register` gain `context.ErrDone` |
+| R8a **done** | the bare `MemoryStorage` without a snapshot is a `Storage` (D11, `notes/decisions.md` "The server's start over raft's `RestartNode`"): the leader's progress bound `PrvalsOk` in `ownRaftPhys` (every peer's `Next` within `[1, lastIndex + 1]`, `Match` and a pending snapshot's index at most `lastIndex`), the ghost witness `ackIn` on accepting `MsgAppResp`s, then the storage contract's `Snapshot` clause conditional on compaction, `raftLog.term` naming its error, `raftLog.snapshot`/`maybeSendSnapshot` under a compacted log | — | proof design. *Actual*: phase 1 two agents in parallel on fixed stubs (physical 55 files, ghost 3), phase 2 one agent (18 files); 67 files, +1,290/-344; no spec of the node API changed; `raftLog.term` unchanged; new premises: `s.role = .leader` on `maybeSendAppend`/`sendAppend`/`bcastAppend`, `≠ .leader` on `handleAppendEntries`, a compacted log on `raftLog.snapshot`/`maybeSendSnapshot`; no new axiom (notes/STATUS.md, "stage R8a") |
+| R8b *planned* | the new cluster's start: the cluster's initial log in the protocol (`Bootstrap`'s conf-change entries at term 1, committed from the start), `newRaft` with an empty conf state, `Bootstrap`/`StartNode` proved; the server's composition on `bootstrapRaftFromCluster` (`newRaftNode` translated with its body) | — | protocol extension; design first (D11) |
 
 Bottom-up order as listed; R1's two parts are independent; R3 depends on R1 (D1, D2, D5); R4 on
 R2 and R3; R5 on R4. R4 is the largest and can be split per `raft__Step` case once
 `InvRaftPhys` is redesigned.
 
 ### Open questions for the reviewer
+
+**Decisions** (the review of R0, applied from R1 on):
+
+- **Q1**: the primed field-for-field records, final (R1 added `ConfStateM`, `SnapshotMetadataM`,
+  `SnapshotM`, `HardStateM`).
+- **Q2**: `readyWithoutAccept`'s `Ready` is a read-only view of raft's messages; `acceptReady`
+  transfers their ownership to the caller (R5).
+- **Q3**: `Step` takes the caller's message and keeps it (R4, R5; the issue
+  `raft-step-writes-caller-message` documents it).
+- **Q4**: the hidden fields in a persistent invariant per object (`pbMsg T l uf`), taken only by the
+  `proto.*` axioms, because `proto.Size` writes `sizeCache` on log entries several holders share
+  (done in R1; `notes/decisions.md`, "The protobuf runtime as raft's trust boundary").
+- **Q5**: `Ensure*` takes ownership where it writes (done in R1: `EnsureConfState`,
+  `EnsureSnapshotMetadata`, `EnsureSnapshot` take their argument at `1`).
+- **Q6**: the storage contract models `MemoryStorage` (no clone required where it gives none);
+  `InitialState` is specified for its single call, at construction (`newRaft`) (R3).
+- **Q7**: one swap at the end (R6; split into R6a the swap and R6b the register, with `isRaftNodeIfc`
+  deferred to R7: `notes/decisions.md`, "The swap").
+- **Q8**: `RdState.pend` stays R0's rename (`List (MessageM × List EntryM)`).
+
+The questions as R0 put them:
 
 1. **D1's names**: keep the primed field-for-field records (`EntryM`, `MessageM`, ...: cheapest,
    the model text unchanged) or rename to the model's own vocabulary now (a larger diff, once)?

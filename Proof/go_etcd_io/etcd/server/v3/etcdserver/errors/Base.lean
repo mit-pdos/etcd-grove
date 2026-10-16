@@ -3,8 +3,7 @@ Package initialization for `server/v3/etcdserver/errors` (names-only): `ErrNoSpa
 fixed non-nil error (`errors.New` at init: a pointer error, `errors.IsPointerError`), which the
 entry applier compares the applier's error with (`errors.Is`). An assumption about package initialization, not proved from `initialize'`, as the
 others. Moved unchanged from `etcdserver/BaseApply.lean` (2026-10-11), so that the server's
-txn package has it without the apply thread's translation (which reaches etcd's raft
-dependency, `EtcdDeps`).
+txn package has it without the apply thread's translation (which reaches raft's).
 -/
 module
 

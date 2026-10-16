@@ -36,16 +36,23 @@ the batch starts above the compaction boundary and at most one past the stored
 entries.
 
 An empty batch needs no token (2026-10-10): `Append` returns at once, as the empty
-case of a `Ready`'s `appendRight`/`appendReceipt` (`InvStorage.lean`) has it. -/
+case of a `Ready`'s `appendRight`/`appendReceipt` (`InvStorage.lean`) has it.
+
+raft v3.7 (stage R3, 2026-10-15): `entries` is a `[]*pb.Entry` and `Append` keeps the caller's
+pointers (`append(ms.ents[:offset:offset], entries...)`, `storage.go:318-321`), so the batch
+comes as `entsPts s dq p` -- each entry a read-only log entry (`entRO`), which the storage then
+shares. Until the retarget the batch's values were copied and only the slice was lent; now
+the entries must be frozen before they are appended (they are: a `Ready`'s entries are the
+log's, `entRO` since raft appended them). The slice itself comes back. -/
 abbrev MemoryStorage.Append.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List raftpb.Entry) (s : GoSlice)
+  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List EntryM) (s : GoSlice)
     (dq : DFrac),
   (∀ e0, p.head? = some e0 → uint.Z e0.Index' + (p.length : Int) ≤ 2^61) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htok" ∷ (⌜p = []⌝ ∨ memAppendTok ms γs σ p) ∗
-      "Hs" ∷ s ↦*{dq} p }}
+      "Hs" ∷ entsPts s dq p }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Append")) (Val #s))
-  {{ RET #interface.nil; (⌜p = []⌝ ∨ memAppendedTok ms γs σ p) ∗ s ↦*{dq} p }}
+  {{ RET #interface.nil; (⌜p = []⌝ ∨ memAppendedTok ms γs σ p) ∗ entsPts s dq p }}
 
 end spec
 

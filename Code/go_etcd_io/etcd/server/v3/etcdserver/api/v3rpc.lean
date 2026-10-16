@@ -17,7 +17,7 @@ public import Code.google_golang_org.protobuf.proto
 public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api
-public import EtcdDeps.Code.go_etcd_io.raft.v3
+public import Code.go_etcd_io.raft.v3
 public import Code.google_golang_org.grpc.codes
 public import Code.google_golang_org.grpc.status
 public import Code.go_etcd_io.etcd.pkg.v3.adt

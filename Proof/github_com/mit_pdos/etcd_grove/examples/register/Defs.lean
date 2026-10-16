@@ -58,6 +58,12 @@ inside `Node.ReadIndex`, after the waiter is made, and the reader turns the answ
 applied-encodings table, and the committed prefix it applied (`runOwn`) -- is the `run`
 goroutine's alone (only `apply` touches those fields, holding the lock for the waiters).
 
+## Raft v3.7 (2026-10-16, stage R6b)
+
+The entries of the logs are the model's records (`EntryM`, `Proof/go_etcd_io/raft/v3/PbModel.lean`:
+what the getters of a `*pb.Entry` return), as raft's ghost state has them since the retarget; the
+`Ready`'s messages are owned pointers (`sendSpec`); a `ReadState`'s context is its bytes (`rsOk`).
+
 ## The storage
 
 `*register.Storage` is a raft `Storage` (`RegStorageInstance.lean`): the instance of
@@ -144,11 +150,11 @@ def regOwnStorage (st : Storage) (σ : StorState) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = regStorIface s⌝ ∗ regStorRec s ms γs ∗
     ownMemoryStorage ms γs σ)
 
-def regAppendTok (st : Storage) (σ : StorState) (p : List raftpb.Entry) : IProp GF :=
+def regAppendTok (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = regStorIface s⌝ ∗ regStorRec s ms γs ∗
     memAppendTok ms γs σ p)
 
-def regAppendedTok (st : Storage) (σ : StorState) (p : List raftpb.Entry) : IProp GF :=
+def regAppendedTok (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = regStorIface s⌝ ∗ regStorRec s ms γs ∗
     memAppendedTok ms γs σ p)
 
@@ -250,7 +256,7 @@ half, `rLog`, 2026-10-14, stage R) with its entries' data `ods` -- the history i
 data, first occurrences (`firstOcc ods`) --, the value after the history, the authorities of
 raft's fresh tokens (data and read contexts), the sequence numbers, the mint and the slots'
 registry. -/
-def regCore (γr : RegNames) (L : List raftpb.Entry) (ods : List (Option (List w8)))
+def regCore (γr : RegNames) (L : List EntryM) (ods : List (Option (List w8)))
     (M : GMap (List w8) Unit) (F : GMap (List w8) Unit) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) : IProp GF :=
   iprop(rLog γr.raft L ∗ ([∗list] e;o ∈ L;ods, entDataIs γr.raft e o) ∗
@@ -261,14 +267,14 @@ def regCore (γr : RegNames) (L : List raftpb.Entry) (ods : List (Option (List w
     -- every datum in the log was minted (only the register's updates move `rLog`)
     ⌜∀ d, some d ∈ ods → M !! d = some ()⌝)
 
-instance regCore_timeless (γr : RegNames) (L : List raftpb.Entry) (ods : List (Option (List w8)))
+instance regCore_timeless (γr : RegNames) (L : List EntryM) (ods : List (Option (List w8)))
     (M : GMap (List w8) Unit) (F : GMap (List w8) Unit) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) :
     Timeless (regCore (GF := GF) γr L ods M F S Mi O) := by
   unfold regCore; infer_instance
 
 def regInvBody (γr : RegNames) : IProp GF :=
-  iprop(∃ (L : List raftpb.Entry) (ods : List (Option (List w8))) (M : GMap (List w8) Unit)
+  iprop(∃ (L : List EntryM) (ods : List (Option (List w8))) (M : GMap (List w8) Unit)
       (F : GMap (List w8) Unit) (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8))
       (O : GMap (List w8) (GName × GName)),
     regCore γr L ods M F S Mi O ∗ [∗map] d ↦ γp ∈ O, opSlot γr d γp (firstOcc ods))
@@ -282,7 +288,7 @@ instance regInv_persistent (γr : RegNames) : Persistent (regInv (GF := GF) γr)
 /-- What a waiter learns with the value `v`: the operation's datum `d` first occurs at
 `m` in a committed log, and `v` is the register's value after it. -/
 def waitP (γr : RegNames) (d : List w8) (v : List w8) : IProp GF :=
-  iprop(∃ (l : List raftpb.Entry) (ods : List (Option (List w8))) (m : Nat),
+  iprop(∃ (l : List EntryM) (ods : List (Option (List w8))) (m : Nat),
     isCommitted γr.raft l ∗ ([∗list] e;o ∈ l;ods, entDataIs γr.raft e o) ∗
     ⌜ods[m]? = some (some d) ∧ d ∉ firstOcc (ods.take m) ∧
       v = regFold (firstOcc (ods.take m) ++ [d])⌝)
@@ -293,7 +299,7 @@ instance waitP_persistent (γr : RegNames) (d v : List w8) :
 
 /-- A lower bound on the register's history (see the file header; persistent). -/
 def regLb (γr : RegNames) (L : List (List w8)) : IProp GF :=
-  iprop(∃ (l : List raftpb.Entry) (ods : List (Option (List w8))),
+  iprop(∃ (l : List EntryM) (ods : List (Option (List w8))),
     isCommitted γr.raft l ∗ ([∗list] e;o ∈ l;ods, entDataIs γr.raft e o) ∗ ⌜L = firstOcc ods⌝)
 
 instance regLb_persistent (γr : RegNames) (L : List (List w8)) :
@@ -314,7 +320,7 @@ index `i` of `c` (`readOk`), and the value `v` after a committed log `ap` at lea
 The reader, which knows the log its deposit was made at (`readReq`, from `Node.ReadIndex`),
 turns it into `readP`. -/
 def readAns (γr : RegNames) (c : List w8) (v : List w8) : IProp GF :=
-  iprop(∃ (i : w64) (ap : List raftpb.Entry) (ods : List (Option (List w8))),
+  iprop(∃ (i : w64) (ap : List EntryM) (ods : List (Option (List w8))),
     readOk γr.raft c i ∗ isCommitted γr.raft ap ∗
     ([∗list] e;o ∈ ap;ods, entDataIs γr.raft e o) ∗
     ⌜uint.Z i ≤ (ap.length : Int) ∧ v = regFold (firstOcc ods)⌝)
@@ -403,15 +409,20 @@ instance isRegister_persistent (γr : RegNames) (γp : RepNames) (r : Loc) :
     Persistent (isRegister (GF := GF) γr γp r) := by
   unfold isRegister; infer_instance
 
-/-- The `send` callback (`func([]pb.Message)`): it takes the messages of a `Ready`, with
-what the node's `Ready` says of them (persistent) and (2026-10-13) each one's read credit
-(one for a `MsgReadIndex`). Delivering them to the peers' `Node.Step` (copying a
-proposal's entries, which `Step` takes owned; passing a message's credit on) is the
+/-- The `send` callback (`func([]*pb.Message)`): it takes the messages of a `Ready` as `Ready`
+hands them out (raft v3.7, 2026-10-16, stage R6b, D8: `readyData`): the slice of their pointers,
+owned, each message owned at `readyDq` (whole, but a response, `MsgAppResp`/`MsgVoteResp`, at half:
+raft's `acceptReady` still reads its `To`), with what the node's `Ready` says of it (persistent:
+legitimately sent, `isRaftMsg`, of a term within the budget, `termLB`) and (2026-10-13) its read
+credit (one for a `MsgReadIndex`). Delivering them to the peers' `Node.Step` (copying a
+message's entries slice, which `Step` takes owned; passing a message's credit on) is the
 transport's. -/
 def sendSpec (f : GoFunc) (γn : NodeNames) : IProp GF :=
-  iprop(□ ∀ (msl : GoSlice) (ms : List raftpb.Message),
-    {{ msl ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γn.raft m ∗ termLB γn.bud m.Term') ∗
-        [∗list] m ∈ ms, rdCred γn.raft (if m.Type' = MsgReadIndex then 1 else 0) }}
+  iprop(□ ∀ (msl : GoSlice) (ms : List QMsg),
+    {{ msl ↦* ms.map QMsg.loc ∗
+        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γn.raft q.st ∗
+          termLB γn.bud q.st.msg.Term') ∗
+        [∗list] q ∈ ms, rdCred γn.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0) }}
       (App (Val #f) (Val #msl))
     {{ RET #(); True }})
 
@@ -419,9 +430,19 @@ instance sendSpec_persistent (f : GoFunc) (γn : NodeNames) :
     Persistent (sendSpec (GF := GF) f γn) := by
   unfold sendSpec; infer_instance
 
+/-- A `ReadState` Go value as `Ready` hands it out (raft v3.7, stage R6b): its `RequestCtx` slice
+holds the bytes `c` read-only, and `readStateOk` of the record `⟨Index, c⟩` (D6: a read context is
+its bytes). What `run` collects from `readStatesPts` (`readStatesPts_rsOk`, `Lemmas.lean`) and
+`answer` takes per read state. Persistent. -/
+def rsOk (γ : RaftNames) (v : ReadState) : IProp GF :=
+  iprop(∃ c : List w8, v.RequestCtx' ↦*□ c ∗ readStateOk γ ⟨v.Index', c⟩)
+
+instance rsOk_persistent (γ : RaftNames) (v : ReadState) : Persistent (rsOk (GF := GF) γ v) := by
+  unfold rsOk; infer_instance
+
 /-- The applier's state (the `run` goroutine's): the value and the applied-encodings
 table, at the committed prefix `ap` it applied. -/
-def runOwn (γr : RegNames) (r : Loc) (ap : List raftpb.Entry) : IProp GF :=
+def runOwn (γr : RegNames) (r : Loc) (ap : List EntryM) : IProp GF :=
   iprop(∃ (v : List w8) (mA : Loc) (A : GMap (List w8) Bool)
       (ods : List (Option (List w8))),
     "Hv" ∷ r.[RRegister, go!"value"] ↦ v ∗
@@ -465,7 +486,7 @@ def rmCC (id : w64) : CCV1M := { type := W32 1, nodeId := id, context := [], id 
 /-- What `run` knows of its node's configuration, at the committed log `D` applied up to
 position `len`: the configuration index `ca` of the last conf change applied, past which `D`
 has no conf entry before `len`, and the configuration, `c0` or `c1`. -/
-def RunCfg (D : List raftpb.Entry) (len ca : Nat) (cfg c0 c1 : CCState) : Prop :=
+def RunCfg (D : List EntryM) (len ca : Nat) (cfg c0 c1 : CCState) : Prop :=
   ca ≤ len ∧ NoConfIn D ca len ∧ (cfg = c0 ∨ cfg = c1)
 
 end ccfg

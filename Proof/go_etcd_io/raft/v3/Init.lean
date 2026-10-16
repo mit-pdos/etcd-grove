@@ -10,10 +10,12 @@ variables (non-`nil`, and for the three the proofs compare against, of a pointer
 `errors.New`), `globalRand` with its mutex, `emptyState`, the message tables.
 
 Three things are not facts of the model, and are premises:
-* `raftpb`'s, `os`'s, `reflect`'s and `strconv`'s `wp_initialize'` are `sorry`: their
-  initializers are only partly translated (the variables' initializers that `raftpb.toml`
-  does not translate, gogoproto's registration in `raftpb`'s `init`, and the names-only
-  standard-library packages), so they call opaque values.
+* `raftpb`'s, `proto`'s, `os`'s and `strconv`'s `wp_initialize'` are `sorry`: their
+  initializers are only partly translated (raftpb's protobuf plumbing, the file descriptor
+  and its registration, which `raftpb.toml` does not translate; the names-only packages
+  `google.golang.org/protobuf/proto` and the standard library's), so they call opaque values.
+  (Raft v3.7, stage R4: `proto` is new, raft imports it; `reflect` is gone, `ConfState.Equivalent`
+  no longer calling `reflect.DeepEqual`; `emptyState` is a pointer, `&pb.HardState{}`.)
 * `log.New` (raft's `defaultLogger`, `discardLogger`) is not modelled by Perennial: the
   class `log.NewModel` says that the name `log.New` stands for `log.New.model`, a function
   that returns a new `*Logger` (what raft needs of it; the Go function allocates and
@@ -82,16 +84,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem reflect.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.reflect get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val reflect.initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.reflect }} := by
-  -- Unprovable: `reflect` is translated names-only; its variables' initializers
-  -- (`uint8Type'init`, `kindNames'init`, ...) are opaque (axioms in Perennial/Code/reflect.lean).
-  sorry
-
 theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.os get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
@@ -125,6 +117,17 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize' (get_is_pkg_init : GoString →
   -- `ErrIntOverflowRaft`, `ErrUnexpectedEndOfGroupRaft` (`fmt.Errorf`), of the file
   -- descriptor, of `_ = proto.Marshal`, and the package's `init` (gogoproto's `RegisterEnum`,
   -- `RegisterType`, `RegisterFile`) are opaque (axioms in Code/go_etcd_io/raft/v3/raftpb.lean).
+  sorry
+
+theorem google_golang_org.protobuf.proto.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.protobuf.proto get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val google_golang_org.protobuf.proto.initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto }} := by
+  -- Unprovable (raft v3.7, stage R4): protobuf-go's `proto` is translated names-only; its
+  -- variables' initializers (`wireTypes'init`, `errRecursionDepth'init`, `errDecode'init`,
+  -- `errUnknown'init`) are opaque (axioms in Code/google_golang_org/protobuf/proto.lean).
   sorry
 
 theorem go_etcd_io.raft.v3.quorum.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
@@ -243,28 +246,29 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := Loc) globalRand _ as HGR
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrProposalDropped go.error as HEPD
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStopped go.error as HES
-  wp_apply wp_GlobalAlloc (V := raftpb.HardState) emptyState _ as HEmpty
+  wp_apply wp_GlobalAlloc (V := Loc) emptyState _ as HEmpty
   wp_apply wp_GlobalAlloc (V := GoInterface) raftLogger Logger.ty as _
   wp_apply wp_GlobalAlloc (V := sync.Mutex) raftLoggerMu _ as _
   wp_apply wp_GlobalAlloc (V := Loc) discardLogger _ as _
   wp_apply wp_GlobalAlloc (V := Loc) defaultLogger _ as _
-  wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd18⟩
-  wp_apply go_etcd_io.raft.v3.tracker.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply go_etcd_io.raft.v3.quorum.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply go_etcd_io.raft.v3.confchange.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply slices.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply math.big.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply crypto.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply context.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply os.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply log.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply io.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply fmt.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd18⟩
+  wp_apply go_etcd_io.raft.v3.tracker.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd17⟩
+  wp_apply go_etcd_io.raft.v3.quorum.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply go_etcd_io.raft.v3.confchange.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd15⟩
+  wp_apply strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply slices.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply math.big.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply crypto.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply context.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply os.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply log.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply io.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply fmt.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hdp⟩
   wp_apply errors.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
   icases os_isPkgInit_Stderr $$ Hd6 with ⟨%stderr, #Hstderr⟩
   icases io_isPkgInit_Discard $$ Hd4 with ⟨%discard, #Hdiscard⟩
@@ -277,10 +281,29 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu
   · inext
     itrivial
+  -- (stage R4 phase 3) `emptyState`'s struct: its cells (all `nil`) frozen, its hidden fields
+  -- made into the `protobuf` invariant (`hsRO es ⟨0, 0, 0⟩` unfolded, `Base.lean`)
+  ihave %HesNN := typedPointsto_not_null $$ «$r0»
+  icases typedPointsto_split _ _ _ $$ «$r0» with Hes
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hes with ⟨Hst, HeT, HeV, HeC, Heuf, Hesc, -⟩
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod inv_alloc (nroot.@"protobuf") ⊤
+      iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice),
+        _.[raftpb.HardState, go!"state"] ↦ st ∗ _.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
+          _.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))
+      $$ [Hst Heuf Hesc Hnil] with #HesPb
+  · inext
+    iexists _, _, _
+    iframe Hst Hesc Heuf Hnil
   ipersist HES
   ipersist HEPD
   ipersist HGR
   ipersist HEmpty
+  ipersist HeT
+  ipersist HeV
+  ipersist HeC
   ipersist HEC
   ipersist HEU
   ipersist HESU
@@ -298,14 +321,27 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   imodintro
   unfold isInitialized isLockedRand
   iexists _, _, _, _, _, _, _, _, _, _
-  rw [show (⟨W64 0, W64 0, W64 0⟩ : raftpb.HardState) = zero_val raftpb.HardState from rfl]
   ihave #HEB' : iprop(∃ eb : GoInterface, (globalAddr errBreak ↦□ eb : IProp GF) ∗
       ⌜eb ≠ interface.nil ∧ IsNewError eb⌝) $$ [HEB]
   · iexists _
     iframe HEB
     ipureintro
     exact ⟨nofun, isNewError_of_ptr (by assumption)⟩
-  iframe HES HEPD HGR HEmpty HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
+  -- (raft v3.7, stage R4) `emptyState = &pb.HardState{}`: a pointer to a fresh zero struct,
+  -- as `hsRO es ⟨0, 0, 0⟩` unfolded (phase 3)
+  ihave #HEmpty' : iprop(∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ ⌜es ≠ null⌝ ∗
+      (es.[raftpb.HardState, go!"Term"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Vote"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Commit"] ↦□ null : IProp GF) ∗
+      inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
+          (sc : w32) (us : GoSlice),
+        es.[raftpb.HardState, go!"state"] ↦ st ∗ es.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
+          es.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8)))
+      $$ [HEmpty HeT HeV HeC HesPb]
+  · iexists _
+    iframe HEmpty HeT HeV HeC HesPb
+    ipureintro; exact HesNN
+  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
   ipureintro
   exact ⟨nofun, nofun, isNewError_of_ptr (by assumption), nofun, nofun,
     isNewError_of_ptr (by assumption), isNewError_of_ptr (by assumption), nofun⟩

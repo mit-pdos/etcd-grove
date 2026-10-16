@@ -43,7 +43,7 @@ theorem isSafeRetryMutableRPC.wp_proof
     · iapply HΦ; itrivial
     · iapply HΦ; itrivial
   · wp_auto
-    wp_apply HCode as %c
+    wp_apply HCode
     wp_if_destruct
     · wp_apply wp_ErrorDesc err $$ [$Hse] as %d -
       wp_if_destruct

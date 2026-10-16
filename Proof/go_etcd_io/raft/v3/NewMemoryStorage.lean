@@ -2,6 +2,8 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
+public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
+public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 
@@ -21,16 +23,31 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The fields at the empty state, the ghost state at its one state, and the mutex
 allocated around them. -/
-theorem NewMemoryStorage.wp_proof :
+theorem NewMemoryStorage.wp_proof
+    (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG)) :
     NewMemoryStorage.spec (GF := GF) (hG := hG) := by
   wp_start as #Hinit
-  wp_apply wp_slice_make2 (V := raftpb.Entry) (W64 1) as %sl ⟨Hsl, Hsl_cap⟩
-  · ipureintro; word
-  wp_alloc ms as Hms
-  iStructNamed Hms
-  -- the lock's halves of `hardState` and `snapshot`, and its counters (2026-10-12)
+  wp_apply wp_slice_literal_ex (V := Loc)
+  wp_alloc l0 as Hl0
+  wp_auto
+  iexists [l0]
+  isplitr
+  · ipureintro; rfl
+  iintro %slp ⟨Hsl, Hsl_cap⟩
+  have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue [])] = 1 := rfl
+  simp only [Hsz]
+  -- the dummy entry, a fresh zero `*pb.Entry`, frozen
+  imod entOwn_of_struct l0 (zero_val raftpb.Entry) (zero_val EntryM) ⊤ rfl $$ [Hl0] with He0
+  · iframe Hl0
+    isplitl []; · iapply cellRO_null
+    isplitl []; · iapply cellRO_null
+    isplitl []; · iapply cellRO_null
+    iapply ownSlice_nil
+  imod entOwn_freeze $$ He0 with #He0
+  wp_auto
+  iStructNamed «$r0»
+  -- the lock's half of `hardState` and its counters (2026-10-12)
   icases (ptsto_halves _ _).1 $$ hardState with ⟨hardState, HhardState⟩
-  icases (ptsto_halves _ _).1 $$ snapshot with ⟨snapshot, Hsnapshot⟩
   iStructNamedPrefix callStats "cs_"
   imod ownSlice_persist $$ Hsl with #Hsl
   -- the ghost state: `hist` and `done` at the one state, `ep` arbitrary
@@ -38,8 +55,8 @@ theorem NewMemoryStorage.wp_proof :
   imod mono_list_own_alloc (GF := GF) [memStorEmpty] with ⟨%γd, Hd, -⟩
   icases (monoAuth_halves γd [memStorEmpty]).1 $$ Hd with ⟨Hd1, Hd2⟩
   imod ghostVar_alloc (GF := GF) (memStorEmpty, ([] : List StorState)) with ⟨%γe, He⟩
-  imod sync.init_Mutex (memstorageInv ms ⟨γh, γd, γe⟩) ⊤ (ms.[MemoryStorage, go!"Mutex"])
-    $$ Mutex [Hd1 hardState snapshot ents cs_firstIndex cs_lastIndex cs_entries cs_term
+  imod sync.init_Mutex (memstorageInv «$r0_ptr» ⟨γh, γd, γe⟩) ⊤ («$r0_ptr».[MemoryStorage, go!"Mutex"])
+    $$ Mutex [Hd1 hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term
       cs_snapshot Hsl_cap] with #Hmu
   · inext
     unfold memstorageInv
@@ -51,34 +68,35 @@ theorem NewMemoryStorage.wp_proof :
       ipureintro; rfl
     isplitl
     · unfold memstorageFields
-      iexists zero_val raftpb.HardState, zero_val raftpb.Snapshot, sl, zero_val raftpb.Entry,
-        _, _, _, _, _
+      iexists null, slice.mk slp (W64 1) (W64 1), zero_val EntryM, _, _, _, _, _
       simp only [named]
       iframe
       isplitr
-      · ipureintro; exact ⟨rfl, rfl⟩
-      isplitr
-      · rw [show memStorEmpty.scs = (∅ : CSLists) from rfl]
-        iapply ownCSL_zero
-      isplitr
-      · rw [show zero_val raftpb.Entry :: memStorEmpty.ents = List.replicate 1 (zero_val raftpb.Entry)
-          from rfl]
-        iexact Hsl
+      · iunfold entsRO; iunfold entsPts
+        iexists [l0]
+        iframe Hsl
+        iapply (BigSepL2.bigSepL2_cons).2
+        iframe He0
+        rw [show memStorEmpty.ents = [] from rfl]
+        iapply entsBig_nil
       ipureintro; exact ⟨rfl, rfl⟩
     ipureintro; simp only [memStorEmpty, List.length_nil]; word
-  wp_auto
-  iapply HΦ $$ %ms %(⟨γh, γd, γe⟩ : MemStorNames)
-  isplitr [HhardState Hsnapshot cs_initialState]
+  wp_apply wp_EnsureSnapshot null none $$ [] as %sp ⟨Hsp, -⟩
+  · simp only [snapOpt]; ipureintro; trivial
+  simp only [Option.getD_none]
+  ihave Hsp := ownSnapE_weaken $$ Hsp
+  iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe⟩ : MemStorNames)
+  isplitr [HhardState cs_initialState]
   rotate_left
   · unfold memStorMeta
-    iexists _, []
+    iexists _, null
     simp only [named]
-    iframe Hpkg Hmu HhardState Hsnapshot cs_initialState
-    iapply ownCSRO_zero
-  unfold ownMemoryStorage memView
+    iframe Hpkg Hmu HhardState cs_initialState
+    iapply hsOpt_null
+  unfold ownMemoryStorage memView memSnapOwn
   simp only [named]
   iframe Hpkg Hmu
-  isplitl
+  isplitl [Hh Hd2 He]
   · iexists [memStorEmpty]
     iframe Hh
     ileft
@@ -87,6 +105,10 @@ theorem NewMemoryStorage.wp_proof :
     · ipureintro; exact ⟨rfl, rfl⟩
     iexists _
     iexact He
+  isplitl
+  · iexists sp, _
+    iframe snapshot Hsp
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
   ipureintro; simp only [memStorEmpty, List.length_nil]; word
 
 end proof

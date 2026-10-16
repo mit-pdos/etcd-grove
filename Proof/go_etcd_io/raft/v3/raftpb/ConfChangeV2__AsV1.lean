@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeV2__AsV1.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeV2__AsV1.lean`.
 -/
 module
 
@@ -25,8 +25,7 @@ theorem raftpb.ConfChangeV2.AsV1.wp_proof : raftpb.ConfChangeV2.AsV1.spec (GF :=
   intro c
   wp_start
   wp_auto
-  iapply HΦ
-  itrivial
+  iapply HΦ; ipureintro; trivial
 
 end proof
 

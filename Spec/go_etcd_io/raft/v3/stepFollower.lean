@@ -37,6 +37,15 @@ Lean notes:
   c`, or a disjunction of such, with `c` not `MsgSnap`). A spec file states and does
   not prove, so it is not ported here (a proof introduces the antecedent and refutes it
   by rewriting and `decide`).
+
+raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), taken as `Step` passes it
+(`msgIn ml dqe`, the entry pointers owned for a `MsgProp` and read-only otherwise) and not given
+back: a forwarded message (`MsgProp`, `MsgReadIndex`, `MsgTransferLeader`) gets `m.To =
+new(r.lead)` and is frozen (`msgIn_to_msgOwn`) and queued by `send`; a `MsgApp`/`MsgSnap` goes
+to `handleAppendEntries`/`handleSnapshot` whole. The `"Hctx"`/`"Hrents"`/`"Hents"` points-tos are
+the message's state (`ents`, `cl`); the `MsgSnap` premise is pure, on the snapshot the message
+holds (`sn = some sv`) and its `ConfState`'s lists (`scfg = sv.Metadata'.ConfState'.lists`; until
+the retarget the read-only slices, `ownCSL`); "`Entries`/`Context` `nil`" is `ents = []`/`cl = []`.
 -/
 module
 
@@ -64,14 +73,14 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 (stamped; `m.From = 0`), `Term = 0` (not stamped for `MsgProp`), the rest `m`'s. Field
 for field what `Step.propForward` sends (`Msg.mk .propose id s.lead (W64 0) m.reject
 m.index m.logterm m.commit m.rejecthint m.entries`). -/
-def propForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
+def propForward (id lead : w64) (m : MessageM) (ents : List EntryM)
     (cl : List w8 := []) : Msg :=
   Msg.mkV .propose id lead (W64 0) m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint'
     ents [] cl
 
 /-- A read-index request forwarded to the leader `lead` (2026-10-12): `From` stamped if unset
 (a twice-forwarded request keeps its requester), `Term` left at `0`. -/
-def readForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
+def readForward (id lead : w64) (m : MessageM) (ents : List EntryM)
     (cl : List w8 := []) : Msg :=
   Msg.mkV .readIndex (if m.From' = W64 0 then id else m.From') lead (W64 0) m.Reject' m.Index'
     m.LogTerm' m.Commit' m.RejectHint' ents [] cl
@@ -80,8 +89,8 @@ def readForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
 `ErrProposalDropped` (the postcondition then says `err` is that global's value;
 otherwise `err = nil`). -/
 def FollowerStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
-    (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (cl : List w8 := []) : Prop :=
   if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
   else if m.Type' = MsgProp then
@@ -122,8 +131,8 @@ the configuration `c'` the node is at afterwards: `c` itself, except after a `Ms
 `restore` installs, which moves it to the snapshot's (since 2026-10-14, stage A3; since B8 the
 configuration its `ConfState`'s lists `scfg` denote, any; `SnapCfgOk`); `MsgTimeoutNow` campaigns
 at `c` (`HupOkC`). -/
-def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
   (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
    else c' = c) ∧
@@ -158,8 +167,8 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
 
 /-- At a simple configuration, `FollowerStepResultC`'s step is `FollowerStepResult`'s. -/
 theorem FollowerStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64} {s : NState}
-    {m : raftpb.Message}
-    {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
+    {m : MessageM}
+    {ents : List EntryM} {sv : SnapshotM} {dropped : Bool} {s' : NState} {c' : CfgM}
     {cl : List w8} (h : FollowerStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
     FollowerStepResult cfg scfg id s m ents sv dropped s' cl := by
   obtain ⟨-, h⟩ := h
@@ -205,8 +214,8 @@ of its ids: `SnapScope`, `CSLists.Has`; in A3 non-joint with any voters; until t
 and is gone.)
 -/
 abbrev stepFollower.spec : Prop :=
-  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (cl : List w8),
+  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
@@ -230,7 +239,10 @@ abbrev stepFollower.spec : Prop :=
       plogFindConflict ls.prev es ents = W64 0 ∨
       uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
      -- from another node (2026-10-10, `handleAppendEntries`'s premise)
-     m.From' ≠ id) →
+     m.From' ≠ id ∧
+     -- (2026-10-16, stage R8a) not a leader (`handleAppendEntries`'s premise: a leader's log only
+     -- grows); `Step` dispatches here at a follower
+     s.role ≠ .leader) →
   (m.Type' = MsgHeartbeat →
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →
@@ -240,26 +252,19 @@ abbrev stepFollower.spec : Prop :=
   -- wrap and `r.step` agrees with the role (`hup`'s premises)
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
-        m.Entries' = slice.nil ∧ m.Context' = slice.nil) ∧
+        ents = [] ∧ cl = []) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
+  -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
+  (m.Type' = MsgSnap →
+     sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      -- the `Context` (2026-10-12): what a forwarded proposal and the response to a
-      -- heartbeat carry
-      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgReadIndex⌝ -∗
-                 m.Context' ↦*□ cl) ∗
-      -- (2026-10-12) a read-index message's entries, read-only
-      "Hrents" ∷ (⌜m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp⌝ -∗
-                  m.Entries' ↦*□ ents) ∗
-      "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ⌜SnapScope sv scfg ∧
-                   s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id⌝ ∗
-                 m.Snapshot' ↦□ sv ∗
-                 ownCSL sv.Metadata'.ConfState' scfg) ∗
-      "Hents" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgProp⌝ -∗
-                 m.Entries' ↦*□ ents ∗
-                 ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}
-    (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #m))
+      -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a
+      -- forwarded proposal and the response to a heartbeat carry)
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, cl, rs⟩ }}
+    (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
       ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗

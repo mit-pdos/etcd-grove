@@ -4,6 +4,11 @@ Rocq counterpart).
 
 Every callee's spec is taken at any storage registry (`∀ [RegStor GF]`): the proof allocates
 the registry and instantiates them at it.
+
+**Raft v3.7 (2026-10-16, stage R6b).** `RestartNode` takes the register's storage under the
+register's `StorageModel` (`regStorage_isStorage`) and its `InitialState` closure
+(`regStorage_initialState`); the conf state it returns is `regConfState clusterIds` (the voters,
+no `AutoLeave`: `al = false`, which `RestartNode.spec` admits since stage R6b).
 -/
 module
 
@@ -320,19 +325,18 @@ theorem Main.wp_proof
       (sint.nat (W64 (0 + 1 + 1))) (W64 3)) = clusterIds := rfl
   rw [Hsz, Hl]
   imod ownSlice_persist _ _ _ $$ Hvsl with #Hvsl
-  -- raft's ghost state for the cluster, the term budget, the proposed slices
-  -- (2026-10-14, stage R) with the register's invariant, the client's half of the value and the
-  -- sequence-number tokens, allocated from the client's share once raft's names exist: the
-  -- register builds the standing update for raft's own entries (`reg_noopAu`)
+  -- raft's ghost state for the cluster and the term budget (2026-10-14, stage R) with the
+  -- register's invariant, the client's half of the value and the sequence-number tokens,
+  -- allocated from the client's share once raft's names exist: the register builds the standing
+  -- update for raft's own entries (`reg_noopAu`)
   imod raft_dyn_alloc (GF := GF) ⊤ (ccDecOf opR) c0R c0R_ok (GMap.listToSet clusterIds) ccOkR
     (fun γ => iprop(∃ γr : RegNames, ⌜γr.raft = γ⌝ ∗ regInv γr ∗ regVal γr [] ∗
-      ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s) ∗
-      ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8))))
+      ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s)))
     (by rw [GMap.elem_of_list_to_set]; decide) $$ []
-    with ⟨%γ, %Hcfg', #Hcinv, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs, HreSl⟩, Hghosts, #Hc0,
+    with ⟨%γ, %Hcfg', #Hcinv, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩, Hghosts, #Hc0,
       HrdC, #HrdI⟩
   · unfold allocClient
-    iintro %γ0 %_ #_ HcL Hfresh HreSl HrdF
+    iintro %γ0 %_ #_ HcL Hfresh HrdF
     imod regInv_alloc (GF := GF) ⊤ γ0 (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdF
       with ⟨%γr0, %Hγr0, #Hreg0, Hval0, Hseqs0⟩
     ihave #Hnoop := reg_noopAu γr0 $$ Hreg0
@@ -340,7 +344,7 @@ theorem Main.wp_proof
     imodintro
     iframe Hnoop
     iexists γr0
-    iframe Hreg0 Hval0 Hseqs0 HreSl
+    iframe Hreg0 Hval0 Hseqs0
     ipureintro; rfl
   have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2
   have Hdyn := Hcfg'.1
@@ -348,7 +352,6 @@ theorem Main.wp_proof
   imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
   icases (tickCred_split bud (3 * ticksN) timeoutsN).1 $$ Hcred with ⟨Hcred, Htcred⟩
-  imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd
   -- the clients' invariant
   imod ghostVar_alloc (GF := GF) false with ⟨%γf, Hf⟩
   icases ghostVar_halves γf false $$ Hf with ⟨Hf1, Hf2⟩
@@ -428,17 +431,17 @@ theorem Main.wp_proof
       isplitr
       · ipureintro; exact ⟨Hdyn, rfl⟩
       iexact Hghost
-    wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) bud _
-      (nodeConfig id0 st) qLogger
-      ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (zero_val raftpb.HardState)
-      { (zero_val raftpb.ConfState) with Voters' := slice.mk vsl (W64 3) (W64 3) } clusterIds
-      DFrac.discard (nodeConfig_valid id0 st Hid0m) rfl rfl
+    wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
+      bud _ (nodeConfig id0 st) qLogger
+      ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
+      (register.regConfState clusterIds)
+      (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
-      rfl rfl rfl rfl rfl (by left; rfl) rfl (by unfold HsEmpty; exact ⟨rfl, rfl, rfl⟩)
+      rfl rfl rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
       (fun _ => rfl))
-      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hpd]
+      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
     obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
@@ -581,11 +584,11 @@ theorem Main.wp_proof
         imodintro
         iintro %msl %ms %Φ'
         imodintro
-        iintro ⟨Hmsl, #Hok, Hcr⟩ HΦ'
+        iintro ⟨Hmsl, Hmsok, Hcr⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
         wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms)
-          $$ [$Hmsl $Hcr]
+          $$ [$Hmsl $Hmsok $Hcr]
         · iframe #
         iapply HΦ'
         itrivial

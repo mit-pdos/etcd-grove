@@ -1,6 +1,8 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 
@@ -32,7 +34,8 @@ the protocol does not see: the state after it, `s1`, is `s` with `lt := 0`); the
 leader past the heartbeat timeout `raft.Step` of a `MsgBeat`. -/
 theorem raft.tickHeartbeat.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
-    (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG)) :
+    (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickHeartbeat.spec (GF := GF) (hG := hG) := by
   intro c md γ r id s Hwf Hpc
   wp_start as H
@@ -114,33 +117,60 @@ theorem raft.tickHeartbeat.wp_proof
     wp_apply raft.wp_store_heartbeatElapsedC $$ Hphys as Hphys
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     try wp_auto
+    -- (raft v3.7, stage R4) `&pb.Message{From: new(r.id), Type: pb.MsgBeat.Enum()}`, built into
+    -- `msgIn` (`msgPtsC_of_struct`), its two cells frozen
+    rw [show raftpb.MsgBeat = #((W32 1 : raftpb.MessageType)) from rfl]
+    -- (as `confchange/toConfChangeSingle.lean`) Perennial gives `NotInterface` per type
+    -- constructor, and `go.int32` (`MessageType`'s underlying type) is a non-reducible definition
+    haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+    wp_apply wp_MessageType_Enum (W32 1)
+    iintro %pty Hpty
+    imod cellRO_alloc $$ Hpty with #cTy
+    imod cellRO_alloc $$ «$v0» with #cFr
+    wp_auto
+    ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+    · iapply ownSlice_nil
+    imod ownSlice_persist $$ Hnilb with #Hnilb
+    ihave Hnile : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+    · iapply ownSlice_nil
+    imod ownSlice_persist $$ Hnile with #Hnile
+    ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+    · iapply ownSlice_nil
+    imod msgPtsC_of_struct «$a0_ptr»
+        { state' := zeroValDef, Type' := pty, To' := null, From' := «$v0_ptr», Term' := null,
+          LogTerm' := null, Index' := null, Entries' := slice.nil, Commit' := null, Vote' := null,
+          Snapshot' := null, Reject' := null, RejectHint' := null, Context' := slice.nil,
+          Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
+        DFrac.discard true [] ⟨{ (zero_val MessageM) with Type' := W32 1, From' := id }, [], none, [], []⟩
+        ⊤ rfl $$ [«$a0» Hnilr] with Hmsg
+    · iframe «$a0» Hnile Hnilb Hnilr cTy cFr
+      simp only [snapOpt, ↓reduceIte]
+      repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
+      isplitr
+      · iapply BigSepL2.bigSepL2_nil.2; itrivial
+      isplitr
+      · iapply ownSliceCap_nil
+      itrivial
     have hP : (W32 1 : w32) ≠ MsgProp := by simp [MsgProp]
     imod rdCred_zero_upd (GF := GF) γ with Hcr
-    wp_apply wp_raft_Step c md γ r id s1 _ [] []
-      (by simp [StepMsg, stepMsgTypes, MsgBeat])
-      
-      (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
-      (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf1
-      (GMode.Pre.of_other (by msg_ne) (fun h => by rw [Hrole1]; exact Hpc h) (by msg_ne) (by msg_ne))
-      $$ [$Hphys $Hghost $Hlc1 Hcr]
+    wp_apply wp_raft_Step c md γ r id s1 «$a0_ptr»
+        ({ (zero_val MessageM) with Type' := W32 1, From' := id } : MessageM) [] [] none []
+        (by simp [StepMsg, stepMsgTypes, MsgBeat])
+        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
+        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+        (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf1
+        (GMode.Pre.of_other (by msg_ne) (fun h => by rw [Hrole1]; exact Hpc h) (by msg_ne) (by msg_ne))
+      $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
     · simp only [hP, ↓reduceIte, named]
-      isplitr
-      · isplitr
-        · iapply ownSlice_nil
-        isplitr
-        · iapply ownSliceCap_nil
-        isplitr
-        · ipureintro; msg_ne
-        isplitr
-        · ipureintro; msg_ne
+      ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
+      isplitl [Hmsg]
+      · iframe Hmsg
+        repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
         imodintro
         iintro %ty %Hty
         rw [show mtypeOf (W32 1) = none from rfl] at Hty
         cases Hty
-      isplitr
-      · iapply ownSlice_nil
       isplitl [Hcr]
       · rw [ite_eq_right (by msg_ne)]; iexact Hcr
       imodintro
@@ -159,7 +189,7 @@ theorem raft.tickHeartbeat.wp_proof
       ipureintro
       obtain ⟨Ht1, -, Ht3, Hi, -⟩ := Htm (by msg_ne)
       have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
-      have H0 : uint.Z (0 : w64) = 0 := rfl
+      have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
       simp only [H0] at Ht3
       exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne), Ht1,
         by have h0 : 0 ≤ uint.Z s1.term := by word

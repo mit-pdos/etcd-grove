@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Lease
 public import Proof.go_etcd_io.etcd.client.v3.Version
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.WaitEvents
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.WaitPrefixEvents
+public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WithFirstKey
 public import Proof.go_etcd_io.etcd.client.v3.WithFirstRev
 public import Proof.go_etcd_io.etcd.client.v3.WithLastKey
@@ -74,6 +75,11 @@ public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphe
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueKV
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.putNewKV
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
+public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.waitEvents
@@ -148,6 +154,30 @@ theorem context.wp_TODO :
 theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
+
+theorem status.wp_FromError :
+    EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.FromError.wp_proof
+
+theorem rpctypes.wp_ErrorDesc :
+    EtcdGrove.rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.ErrorDesc.wp_proof status.wp_FromError
+
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
+
+theorem rpctypes.wp_Error :
+    EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
+theorem v3.WatchResponse.wp_Err :
+    EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
 
 theorem v3.wp_getPrefix :
     EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
@@ -251,7 +281,7 @@ theorem Barrier.wp_Release :
 
 theorem wp_waitEvents :
     EtcdGrove.recipes.waitEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.waitEvents.wp_proof
+  EtcdGrove.recipes.waitEvents.wp_proof v3.WatchResponse.wp_Err
 
 theorem wp_WaitEvents :
     EtcdGrove.recipes.WaitEvents.spec (GF := GF) (hG := hG) :=

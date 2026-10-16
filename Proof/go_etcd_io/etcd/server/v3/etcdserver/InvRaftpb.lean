@@ -1,14 +1,19 @@
 /-
-raft v3.7's `raftpb` messages as the apply thread reads them: the shared vocabulary of
-`Spec/Entry__Get*.lean` and `Spec/ConfChange__GetId.lean`. Lean-first (no Rocq
-counterpart).
+raft v3.7's `raftpb` entries as the apply thread reads them: the server's model `EntryModel`
+over raft's own points-to predicate (stage R6 of the raft v3.7 retarget, D9: `notes/decisions.md`,
+"The swap"). Lean-first (no Rocq counterpart).
 
-This is etcd's own raft dependency (`EtcdCache/Code/go_etcd_io/raft/v3/raftpb.lean`, from
-etcd's `go.mod`), not the fork `EtcdRaft/` translates: its messages are protobuf-go v2
-(optional fields are pointers, nil for absent, read through getters that default to the
-zero value). As in `Cache/InvStore.lean`, a message is described through its fields only
-(`entryAt`, persistent), never a whole-message points-to (whose instances contain the opaque
-`state : impl.MessageState`).
+Until the swap (2026-10-16) the server's raft was a names-only translation of etcd's dependency
+(`EtcdDeps/`), and this file described an entry field by field (`optU64`/`optU32` per optional
+field, `entryAt`), with the getters' specs restated over that. Now the server's translation
+imports the verified raft, whose `InvPb.lean` describes the same objects (`entPts l dq e` over
+`EntryM`: one `cellRO` per optional field, the data bytes read-only, the hidden protobuf fields
+in the `protobuf` invariant), and the getters' specs are raft's. So `entryAt e m` is raft's
+`entRO e m.toM`: the server keeps its model (its ghost logs, `rnReadyP`, the request path's
+`InvRequest` and the exported `Results` are stated over `EntryModel`), raft provides the
+points-to. The lemmas below restate raft's getter specs in the shape the server's proofs use
+(`wp_entryAt_GetIndex` and the like take the raft spec as a hypothesis, as raft's own
+`LemmasMiscR.lean` does for `hsOpt`).
 
 It imports the apply package's `Base` (raftpb's instance), not the server's `BaseApply`: the
 apply package reads entries too (`apply.Apply`) and must not import the server's translation.
@@ -16,6 +21,11 @@ apply package reads entries too (`apply.Apply`) and must not import the server's
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.raft.v3.InvPb
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 
 @[expose] public section
 
@@ -40,7 +50,8 @@ wait with after a conf change (`s.w.Trigger(cc.ID, ...)`). Opaque, as `isConfCha
 premise can say the conf change's id is no KV request's). -/
 opaque ccIdOf : List w8 → w64
 
-/-- A raft entry as the apply thread uses it. -/
+/-- A raft entry as the apply thread uses it (the server's model; raft's is `EntryM`,
+`Proof/go_etcd_io/raft/v3/PbModel.lean`, the same four values). -/
 structure EntryModel where
   term : w64
   index : w64
@@ -57,6 +68,42 @@ instance entryModel_countable : Pos.Countable EntryModel :=
       obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := h
       rfl)
 
+/-- The server's entry as raft's record (`EntryM`: what the getters return, field for field;
+`raftpb.EntryType` is `w32`). -/
+def EntryModel.toM [FfiSyntax] (m : EntryModel) : EntryM := ⟨m.term, m.index, m.typ, m.data⟩
+
+-- Projection lemmas, `@[simp, word_unfold]` (`Proof/go_etcd_io/raft/v3/ProjSimps.lean`).
+proj_simps Perennial.EtcdGrove.EntryModel.toM
+
+theorem EntryModel.toM_inj [FfiSyntax] {m m' : EntryModel} (h : m.toM = m'.toM) : m = m' := by
+  cases m; cases m'
+  simp only [EntryModel.toM, EntryM.mk.injEq] at h
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+  rfl
+
+/-- Raft's record as the server's entry (2026-10-16, stage R7b: the server's contract is defined
+over raft's protocol, whose logs are of `EntryM`). -/
+def EntryModel.ofM [FfiSyntax] (e : EntryM) : EntryModel := ⟨e.Term', e.Index', e.Type', e.Data'⟩
+
+proj_simps Perennial.EtcdGrove.EntryModel.ofM
+
+@[simp] theorem EntryModel.toM_ofM [FfiSyntax] (e : EntryM) : (EntryModel.ofM e).toM = e := by
+  cases e; rfl
+
+@[simp] theorem EntryModel.ofM_toM [FfiSyntax] (m : EntryModel) : EntryModel.ofM m.toM = m := by
+  cases m; rfl
+
+theorem EntryModel.toM_injective [FfiSyntax] : Function.Injective (EntryModel.toM) :=
+  fun _ _ h => EntryModel.toM_inj h
+
+@[simp] theorem EntryModel.map_toM_ofM [FfiSyntax] (l : List EntryM) :
+    (l.map EntryModel.ofM).map EntryModel.toM = l := by
+  rw [List.map_map]; exact List.map_id'' (fun e => EntryModel.toM_ofM e) l
+
+@[simp] theorem EntryModel.map_ofM_toM [FfiSyntax] (L : List EntryModel) :
+    (L.map EntryModel.toM).map EntryModel.ofM = L := by
+  rw [List.map_map]; exact List.map_id'' (fun m => EntryModel.ofM_toM m) L
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -64,46 +111,91 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
 
-/-- `TypeRepr` of the messages the apply thread reads fields of, straight from their
-`TypeAssumptions` (as `Cache/InvStore.lean` does for the cache's messages). -/
-instance (priority := high) entry_typeRepr : TypeRepr raftpb.Entry.ty raftpb.Entry :=
-  go.type_repr_underlying (u := raftpb.Entry.underlying)
-
-instance (priority := high) entry_typeRepr_u : TypeRepr raftpb.Entry.underlying raftpb.Entry :=
-  go.type_repr_underlying (u := raftpb.Entry.underlying)
-
-instance (priority := high) confChange_typeRepr : TypeRepr raftpb.ConfChange.ty raftpb.ConfChange :=
-  go.type_repr_underlying (u := raftpb.ConfChange.underlying)
-
-instance (priority := high) confChange_typeRepr_u :
-    TypeRepr raftpb.ConfChange.underlying raftpb.ConfChange :=
-  go.type_repr_underlying (u := raftpb.ConfChange.underlying)
-
-/-- An optional `uint64` field's pointer `p` holds `v` (nil: absent, read as 0). -/
-def optU64 (p : Loc) (v : w64) : IProp GF :=
-  if p = null then iprop(⌜v = W64 0⌝) else iprop(p ↦□ v)
-
-instance optU64_persistent (p : Loc) (v : w64) : Persistent (optU64 (GF := GF) p v) := by
-  unfold optU64; split <;> infer_instance
-
-/-- An optional `int32` (enum) field's pointer `p` holds `v` (nil: absent, read as 0). -/
-def optU32 (p : Loc) (v : w32) : IProp GF :=
-  if p = null then iprop(⌜v = W32 0⌝) else iprop(p ↦□ v)
-
-instance optU32_persistent (p : Loc) (v : w32) : Persistent (optU32 (GF := GF) p v) := by
-  unfold optU32; split <;> infer_instance
-
-/-- `e` is a (non-nil) read-only entry modelled by `m`. -/
-def entryAt (e : Loc) (m : EntryModel) : IProp GF :=
-  iprop(⌜e ≠ null⌝ ∗
-    ∃ (pt pi pty : Loc) (d : GoSlice),
-      structFieldRef raftpb.Entry go!"Term" e ↦□ pt ∗ optU64 pt m.term ∗
-      structFieldRef raftpb.Entry go!"Index" e ↦□ pi ∗ optU64 pi m.index ∗
-      structFieldRef raftpb.Entry go!"Type" e ↦□ pty ∗ optU32 pty m.typ ∗
-      structFieldRef raftpb.Entry go!"Data" e ↦□ d ∗ d ↦*□ m.data)
+/-- `e` is a (non-nil) read-only entry modelled by `m`: raft's `entRO` (D9). -/
+def entryAt (e : Loc) (m : EntryModel) : IProp GF := entRO e m.toM
 
 instance entryAt_persistent (e : Loc) (m : EntryModel) : Persistent (entryAt (GF := GF) e m) := by
   unfold entryAt; infer_instance
+
+/-- What the apply thread reads of an entry besides the getters: it is non-nil, and its `Data`
+field holds a read-only slice of the model's bytes (`pbutil.MustUnmarshalMessage`'s argument). -/
+theorem entryAt_fields (e : Loc) (m : EntryModel) :
+    entryAt (GF := GF) e m ⊢
+      ⌜e ≠ null⌝ ∗ ∃ d : GoSlice, e.[raftpb.Entry, go!"Data"] ↦□ d ∗ d ↦*□ m.data := by
+  iintro H
+  unfold entryAt entRO entPts
+  iNamed H
+  isplitr
+  · ipureintro; exact Hnn
+  iexists ds
+  iframe HD
+  iExactEq Hd
+  rfl
+
+/-! ## The getters, in the server's terms -/
+
+/-- `e.GetIndex()` of an entry at `m` is `m.index` (raft's `Entry.GetIndex.spec`). -/
+theorem wp_entryAt_GetIndex (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
+    ∀ (e : Loc) (m : EntryModel),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ entryAt e m }}
+      (App (Val (e @!! go.GoType.PointerType raftpb.Entry.ty @!! go!"GetIndex")) (Val #()))
+    {{ RET #m.index; True }} := by
+  intro e m
+  iintro %Φ ⟨#Hi, #H⟩ HΦ
+  iunfold entryAt at H
+  iapply wp_GetIndex.1 e DFrac.discard m.toM $$ [$Hi $H]
+  inext
+  iintro -
+  ispecialize HΦ $$ []
+  · itrivial
+  iExactEq HΦ
+  rfl
+
+/-- `e.GetTerm()` of an entry at `m` is `m.term`. -/
+theorem wp_entryAt_GetTerm (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
+    ∀ (e : Loc) (m : EntryModel),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ entryAt e m }}
+      (App (Val (e @!! go.GoType.PointerType raftpb.Entry.ty @!! go!"GetTerm")) (Val #()))
+    {{ RET #m.term; True }} := by
+  intro e m
+  iintro %Φ ⟨#Hi, #H⟩ HΦ
+  iunfold entryAt at H
+  iapply wp_GetTerm.1 e DFrac.discard m.toM $$ [$Hi $H]
+  inext
+  iintro -
+  ispecialize HΦ $$ []
+  · itrivial
+  iExactEq HΦ
+  rfl
+
+/-- `e.GetType()` of an entry at `m` is `m.typ`. -/
+theorem wp_entryAt_GetType (wp_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG)) :
+    ∀ (e : Loc) (m : EntryModel),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ entryAt e m }}
+      (App (Val (e @!! go.GoType.PointerType raftpb.Entry.ty @!! go!"GetType")) (Val #()))
+    {{ RET #m.typ; True }} := by
+  intro e m
+  iintro %Φ ⟨#Hi, #H⟩ HΦ
+  iunfold entryAt at H
+  iapply wp_GetType.1 e DFrac.discard m.toM $$ [$Hi $H]
+  inext
+  iintro -
+  ispecialize HΦ $$ []
+  · itrivial
+  iExactEq HΦ
+  rfl
+
+/-- `cc.GetId()` of a conf change holding `m` (raft's `ownCCV1`, at any fraction) whose id is
+`id`: what the apply thread triggers the wait with (`ccIdOf`, stated by
+`pbutil.MustUnmarshalMessage`'s spec and kept by `applyConfChange`'s). -/
+theorem wp_ownCCV1_GetId (wp_GetId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
+    (cc : Loc) (dq : DFrac) (m : CCV1M) (id : w64) (hid : m.id = id) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 cc dq m }}
+      (App (Val (cc @!! go.GoType.PointerType raftpb.ConfChange.ty @!! go!"GetId")) (Val #()))
+    {{ RET #id; ownCCV1 cc dq m }} := by
+  subst hid
+  iintro %Φ ⟨#Hi, H⟩ HΦ
+  iapply wp_GetId.1 cc dq m $$ [$Hi $H] HΦ
 
 end defs
 

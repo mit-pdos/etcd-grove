@@ -6,7 +6,8 @@ A read state whose index is at most `applied` (so at most `|ap|`) and whose cont
 to this replica's read at `seq`, with a waiter in `reads`: the context is the one minted at
 `(id, seq)` (`reg_read_minted`, from the fresh token raft's read registry keeps), and the waiter
 gets the read state's read index with the value after `ap` (`readAns`, 2026-10-14, stage R:
-the reader, which knows the log its deposit was made at, turns it into `readP`).
+the reader, which knows the log its deposit was made at, turns it into `readP`). raft v3.7
+(2026-10-16, stage R6b): a read state's context is its bytes (`rsOk`, D6).
 -/
 module
 
@@ -44,7 +45,7 @@ theorem Register.answer.wp_proof (wp_decode : register.decode.spec (GF := GF) (h
   ihave IH : iprop(∃ (k : w64) (rsv : ReadState) (restv : GoSlice) (ps' : List ReadState),
       "i" ∷ i_ptr ↦ k ∗ "rs" ∷ rs_ptr ↦ rsv ∗ "rest" ∷ rest_ptr ↦ restv ∗
       "Hrest" ∷ restv ↦* ps' ∗ "Hcap" ∷ ownSliceCap ReadState restv (DFrac.own 1) ∗
-      "Hps'" ∷ ([∗list] s ∈ ps', readStateOk γr.raft s) ∗
+      "Hps'" ∷ ([∗list] v ∈ ps', rsOk γr.raft v) ∗
       "Hrun" ∷ runOwn γr r ap ∗ "Hpsl" ∷ psl ↦*{dq} ps ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ps.length : Int)⌝) $$ [i rs rest Hrun Hpsl]
   · iexists W64 0, _, _, []
@@ -64,8 +65,7 @@ theorem Register.answer.wp_proof (wp_decode : register.decode.spec (GF := GF) (h
     simp only [Hbnd', and_self]
     wp_apply wp_load_slice_index psl (sint.Z k) _ dq sv Hk.1 $$ [Hpsl] as Hpsl
     · iframe Hpsl; ipureintro; exact Hsv
-    ihave #Hsv := BigSepL.bigSepL_lookup (Φ := fun _ s => readStateOk (GF := GF) γr.raft s) Hsv
-      $$ Hps
+    ihave #Hsv := BigSepL.bigSepL_lookup (Φ := fun _ v => rsOk (GF := GF) γr.raft v) Hsv $$ Hps
     wp_if_destruct
     · -- a later index: kept
       wp_apply wp_slice_literal
@@ -78,15 +78,17 @@ theorem Register.answer.wp_proof (wp_decode : register.decode.spec (GF := GF) (h
       iexists k + W64 1, sv, rest', ps' ++ [sv]
       iframe
       isplitl
-      · iapply (BigSepL.bigSepL_singleton (Φ := fun _ s => readStateOk (GF := GF) γr.raft s)).2
+      · iapply (BigSepL.bigSepL_singleton (Φ := fun _ v => rsOk (GF := GF) γr.raft v)).2
         iexact Hsv
       ipureintro; constructor <;> word
     · -- answered, if it is this replica's waiting read
       have Hle : uint.Z sv.Index' ≤ (ap.length : Int) := by word
-      imod node_readState_data γp.node id n sv ⊤ CoPset.subseteq_top $$ HisNode [] with
-        ⟨%cx, #Hcx, #Hok⟩
-      · rw [Hraft]; iexact Hsv
-      rw [Hraft]
+      iunfold rsOk at Hsv
+      icases Hsv with ⟨%cx, #Hcx, #Hok⟩
+      imod node_readState_data γp.node id n ⟨sv.Index', cx⟩ ⊤ $$ HisNode [] with #Hok0
+      · rw [Hraft]; iexact Hok
+      ihave #Hok' : readOk γr.raft cx sv.Index' $$ []
+      · rw [← Hraft]; iexact Hok0
       wp_apply wp_decode sv.RequestCtx' cx DFrac.discard $$ [$Hcx]
       iintro -
       cases Hdec : decodeOp cx with
@@ -156,9 +158,9 @@ theorem Register.answer.wp_proof (wp_decode : register.decode.spec (GF := GF) (h
               iunfold readWaiterOk at Hw
               icases Hw with ⟨%c0, %γh, #Hmint, #Hho, Hprod⟩
               -- the waiter's context is the read state's: both are minted at `(id, sq)`
-              ihave #Hok' := Hok
-              iunfold readOk at Hok'
-              icases Hok' with ⟨%Lc', #Hrq', -⟩
+              ihave #Hok'' := Hok'
+              iunfold readOk at Hok''
+              icases Hok'' with ⟨%Lc', #Hrq', -⟩
               rw [Hif] at Hkey
               ihave #Hcinv : raftCommitInv γr.raft $$ []
               · rw [← Hraft]; open_node HisNode; iexact Hcinv
@@ -188,7 +190,7 @@ theorem Register.answer.wp_proof (wp_decode : register.decode.spec (GF := GF) (h
               · isplitl
                 · unfold readAns
                   iexists sv.Index', ap, ods
-                  iframe Hok Hap Hods
+                  iframe Hok' Hap Hods
                   ipureintro; exact ⟨Hle, Hval⟩
                 · itrivial
               iintro -

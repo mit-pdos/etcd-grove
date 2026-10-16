@@ -27,7 +27,6 @@ module
 public import Proof.go_etcd_io.raft.v3.StepLemmasR
 public import Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
 public import Proof.go_etcd_io.raft.v3.SnapConf
-public import Spec.go_etcd_io.raft.v3.raft__restore
 
 @[expose] public section
 
@@ -55,7 +54,7 @@ def GMode.isDyn : GMode → Bool
 
 /-- The dynamic mode's premises of a step of `raft.Step` the code cannot check (see the file
 header); none in the static mode. -/
-def GMode.Pre (md : GMode) (m : raftpb.Message) (ents : List raftpb.Entry) (s : NState) : Prop :=
+def GMode.Pre (md : GMode) (m : MessageM) (ents : List EntryM) (s : NState) : Prop :=
   match md with
   | .static => True
   | .dyn _ _ _ g =>
@@ -68,7 +67,7 @@ def GMode.Pre (md : GMode) (m : raftpb.Message) (ents : List raftpb.Entry) (s : 
 /-- How a step moves the dynamic mode's ghost part (2026-10-14, stage B7 part 2): only a
 snapshot (`StepR.snapRestore`) moves it freely; a `MsgStorageApplyResp` moves the configuration
 index to the new `applied` when below (`CidxMove`); any other step keeps it. -/
-def GMove (m : raftpb.Message) (s' : NState) (g g' : RGh) : Prop :=
+def GMove (m : MessageM) (s' : NState) (g g' : RGh) : Prop :=
   m.Type' = MsgSnap ∨ g' = g ∨
     (m.Type' = MsgStorageApplyResp ∧ g' = { g with cidx := max g.cidx (uint.nat s'.logst.applied) })
 
@@ -77,7 +76,7 @@ def GMove (m : raftpb.Message) (s' : NState) (g g' : RGh) : Prop :=
 prefix, `AdmS dec c0 (fun _ => False)`) dynamically, the ghost part possibly moved (the
 configuration index by `StepR.advance`; all of it by `StepR.snapRestore`), and (2026-10-14, stage
 B7 part 2) by nothing else (`GMove`). -/
-def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (m : raftpb.Message) (s s' : NState)
+def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s s' : NState)
     (md' : GMode) : Prop :=
   match md with
   | .static => md' = .static ∧ ∃ recv, StepC c id (toPState s) recv (toPState s')
@@ -118,7 +117,7 @@ theorem StepC.commit_mono {c : CfgM} {id : w64} {ps : PState} {recv : List Msg} 
   | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
       padoptLeader]
 
-theorem StepR.commit_mono {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {id : w64}
+theorem StepR.commit_mono {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
     {r : RState} {recv : List Msg} {r' : RState} (H : StepR Adm dec id r recv r') :
     uint.Z r.p.commit ≤ uint.Z r'.p.commit := by
   induction H with
@@ -146,7 +145,7 @@ theorem StepR.commit_mono {Adm : List raftpb.Entry → CCState → Prop} {dec : 
       padoptLeader]
 
 /-- The step in the mode's model does not move the code's commit index back. -/
-theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : raftpb.Message}
+theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
     {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md') :
     uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
   cases md with
@@ -159,7 +158,7 @@ theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : raftpb
 
 /-- A step of any message but a `MsgStorageApplyResp` keeps the mode (the configuration index
 does not move, `CidxMove`). -/
-theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : raftpb.Message}
+theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
     {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md')
     (hm : m.Type' ≠ MsgStorageApplyResp) (hs : m.Type' ≠ MsgSnap := by first | assumption | (intro h; simp_all) | decide) :
     md' = md := by
@@ -175,7 +174,7 @@ theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : raftpb.Messag
 /-- A `MsgStorageApplyResp`'s step moves the configuration index to the new `applied` when it
 was below (`CidxMove`). -/
 theorem GMode.StepOut.applyResp {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0} {g : RGh}
-    {c : CfgM} {id : w64} {m : raftpb.Message} {s s' : NState} {md' : GMode}
+    {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
     (H : (GMode.dyn dec c0 h0 g).StepOut c id m s s' md') (hs : m.Type' ≠ MsgSnap) :
     ∃ cidx', (cidx' = g.cidx ∨ cidx' = max g.cidx (uint.nat s'.logst.applied)) ∧
       md' = .dyn dec c0 h0 { g with cidx := cidx' } := by
@@ -187,7 +186,7 @@ theorem GMode.StepOut.applyResp {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0} {g 
 
 /-- The dynamic mode's premises of a step, for a message that is no snapshot, no storage-apply
 acknowledgement and no proposal: only that the node is no pre-candidate. -/
-theorem GMode.Pre.of_other {md : GMode} {m : raftpb.Message} {ents : List raftpb.Entry}
+theorem GMode.Pre.of_other {md : GMode} {m : MessageM} {ents : List EntryM}
     {s : NState} (_h1 : m.Type' ≠ MsgSnap) (h2 : md.isDyn = true → s.role ≠ .preCandidate)
     (h3 : m.Type' ≠ MsgStorageApplyResp) (h4 : m.Type' ≠ MsgProp) : md.Pre m ents s := by
   cases md with
@@ -197,7 +196,7 @@ theorem GMode.Pre.of_other {md : GMode} {m : raftpb.Message} {ents : List raftpb
 
 /-- `GMode.Pre` gives `DynHyp` at any end state whose `applied` moved at most to the
 acknowledged index, given the invariant (`applied ≤` the configuration index). -/
-theorem GMode.Pre.dynHyp {md : GMode} {m : raftpb.Message} {ents : List raftpb.Entry}
+theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
     {s s' : NState} (h : md.Pre m ents s) (Hns : m.Type' ≠ MsgSnap)
     (Hap : m.Type' = MsgStorageApplyResp →
       s'.logst.applied = s.logst.applied ∨
@@ -246,6 +245,27 @@ theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s 
   iintro ⟨Hg, -⟩
   iapply ownRaftGhost_inv_md γ id (toPState s) $$ Hg
 
+/-- `ackIn` at equal arguments (2026-10-16, stage R8a): for an `ackIn` stated at a term and an index
+that are only definitionally the ones a lemma wants (`(toPState s).term`, `(absMsg …).index`). -/
+theorem ackIn_cast (γ : RaftNames) {t t' i i' : w64} (ht : t = t') (hi : i = i') :
+    ackIn (GF := GF) γ t i ⊢ ackIn γ t' i' := by
+  subst ht hi; exact .rfl
+
+/-- At a leader, an `ackIn` of its term is at most its last index (2026-10-16, stage R8a, D11):
+`ownRaftGhost_ackIn_le` through the mode's ghost state. -/
+theorem ownStepGhost_ackIn_le (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (i : w64) (Hl : s.role = .leader) :
+    ⊢ ownStepGhost (GF := GF) γ md c id s -∗ ackIn γ s.term i -∗
+      ⌜uint.Z i ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ ∗
+      ownStepGhost γ md c id s := by
+  unfold ownStepGhost
+  iintro ⟨Hg, Hrest⟩ Hai
+  ihave Hai' := ackIn_cast γ (show s.term = (toPState s).term from rfl) rfl $$ Hai
+  icases ownRaftGhost_ackIn_le γ id (toPState s) i
+      (by rw [toPState_role, proleRole_leader]; exact Hl) $$ Hg Hai' with ⟨%H, Hg⟩
+  iframe Hg Hrest
+  ipureintro; exact H
+
 /-- In the dynamic mode, `ownStepGhost` is `ownRaftGhostR`. -/
 theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh)
     (c : CfgM) (id : w64) (s : NState) :
@@ -271,7 +291,7 @@ theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : Cfg
 
 /-- A branch's step updates the mode's ghost state: statically `ownRaftGhost_stepC`,
 dynamically `ownRaftGhostR_stepR` (the premises `DynHyp` from `Hdh`, given the invariant). -/
-theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : raftpb.Message)
+theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       RInv dec c0 (rOf s g) → DynHyp m s s' g) :
@@ -379,20 +399,20 @@ ghost state's voters (the configuration a restore installs is then still `CfgSta
 dynamically, A3 -- the `ConfState` denotes the fold of the snapshot's prefix (`SnapConfOk`), for
 any recorded prefix ending at the snapshot's entry id (records agree, so there is one; the
 message shows one exists, `isMessage_snap_prefix`). -/
-def GMode.SnapOk (γ : RaftNames) : GMode → raftpb.Snapshot → CSLists → IProp GF
+def GMode.SnapOk (γ : RaftNames) : GMode → SnapshotM → CSLists → IProp GF
   | .static, _, scfg => iprop(⌜GMap.listToSet scfg.voters = γ.reCfg ∧ scfg.outgoing = []⌝)
-  | .dyn dec c0 _ _, sv, scfg => iprop(□ ∀ (fp : List raftpb.Entry), logRecs γ base0 fp -∗
+  | .dyn dec c0 _ _, sv, scfg => iprop(□ ∀ (fp : List EntryM), logRecs γ base0 fp -∗
       ⌜FullOk (snapId sv) fp⌝ -∗
       ⌜SnapConfOk dec c0 fp scfg.outgoing scfg.voters scfg.learners scfg.learnersNext
         sv.Metadata'.ConfState'.AutoLeave'⌝)
 
-instance GMode.SnapOk_persistent (γ : RaftNames) (md : GMode) (sv : raftpb.Snapshot)
+instance GMode.SnapOk_persistent (γ : RaftNames) (md : GMode) (sv : SnapshotM)
     (scfg : CSLists) : Persistent (md.SnapOk (GF := GF) γ sv scfg) := by
   cases md <;> unfold GMode.SnapOk <;> infer_instance
 
 /-- An id `restore`'s `found` search finds is an id of the configuration the `ConfState`
 denotes. -/
-theorem snapCfg_ids {sv : raftpb.Snapshot} {scfg : CSLists} {id : w64} (h : scfg.Has id) :
+theorem snapCfg_ids {sv : SnapshotM} {scfg : CSLists} {id : w64} (h : scfg.Has id) :
     id ∈ (snapCfg sv scfg).ids := by
   unfold snapCfg csCfgM CfgM.ids CfgM.voters
   rcases h with h | h | h
@@ -404,8 +424,8 @@ theorem snapCfg_ids {sv : raftpb.Snapshot} {scfg : CSLists} {id : w64} (h : scfg
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOk`);
 dynamically `ownRaftGhostR_stepR` at the snapshot's prefix `fp0`, the one the message shows
 (`isMessage_snap_prefix`), whose fold the `ConfState` denotes (`GMode.SnapOk`). -/
-theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : raftpb.Message)
-    (Hms : m.Type' = MsgSnap) (sv : raftpb.Snapshot) (scfg : CSLists) (s : NState) (recv : List Msg) (s' : NState)
+theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM)
+    (Hms : m.Type' = MsgSnap) (sv : SnapshotM) (scfg : CSLists) (s : NState) (recv : List Msg) (s' : NState)
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s')
     (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) :

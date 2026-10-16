@@ -8,7 +8,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -43,15 +43,21 @@ cannot fail): the snapshot is above the commit index (`raft.restore`'s first tes
 `2^61`, `LogStoreOk`'s bound for a pending snapshot (a transport premise of `Step`).
 The snapshot's `ConfState.Voters` are passed in read-only, for `ownSnap` (since
 2026-10-03). (2026-10-15, stage S) The snapshot, with those lists (`snapTrip`), joins the ones
-the node may send (`logRestore`'s `ksn`). -/
+the node may send (`logRestore`'s `ksn`).
+
+raft v3.7 (stage R3, 2026-10-15): `s` is a `*pb.Snapshot`, read at any fraction (its getters,
+then `unstable.restore`'s clone) and given back; the lists are the record's
+(`sv.Metadata'.ConfState'.lists`; until the retarget the caller's read-only `ConfState` slices,
+`ownCSL ... voters`). -/
 abbrev raftLog.restore.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (sv : raftpb.Snapshot) (voters : CSLists),
+  ∀ (l : Loc) (ls : LogState) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
   uint.Z ls.committed < uint.Z (snapId sv).index' →
   uint.Z (snapId sv).index' < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "#Hvoters" ∷ ownCSL sv.Metadata'.ConfState' voters }}
-    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"restore")) (Val #sv))
-  {{ RET #(); ownRaftLog l (logRestore ls (snapTrip sv voters)) }}
+      "Hsnap" ∷ ownSnapM sp dq sv }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"restore")) (Val #sp))
+  {{ RET #(); ownSnapM sp dq sv ∗
+      ownRaftLog l (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists)) }}
 
 end spec
 

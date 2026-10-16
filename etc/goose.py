@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate, or check, the Goose translations of etcd-raft and etcd (in `Code/`, `GeneratedProof/`).
+"""Regenerate, or check, the Goose translations of raft and etcd (in `Code/`, `GeneratedProof/`).
 
 usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perennial DIR]
 
@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft, raft37, etcd, register, porcupine or lintest;
+  --project    only this project (raft, etcd, register, porcupine or lintest;
                repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -23,10 +23,10 @@ Each project is a Go repository at a pinned revision, translated into `Code/` an
 every non-standard-library Go path the translation reaches to the empty root
 (modules `Code.<pkg>`, `GeneratedProof.<pkg>`; standard-library packages stay
 `Perennial.*`, Perennial's).  A project's `parts` translate more of its packages into a
-module root of their own (`<root>/Code/`, configured by `<root>/Code/**.toml`): etcd's raft
-dependency, in `EtcdDeps/`, whose Go path is that of the etcd-raft project.  A project
-may also translate into a module root of its own (`root`): raft v3.7 (project raft37,
-`Raft37/`), the parallel tree the raft proof is ported into.
+module root of their own (`<root>/Code/`, configured by `<root>/Code/**.toml`), and a project
+may itself translate into such a root (`root`): for a Go path two sources translate (none
+now; until stage R6 of the raft v3.7 retarget, 2026-10-16, etcd's raft dependency in
+`EtcdDeps/` and the raft proof's parallel tree `Raft37/`, both raft's path).
 Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
@@ -55,8 +55,8 @@ WORK = os.path.join(ROOT, ".lake", "goose")
 @dataclass
 class Part:
     """A translation of some of a project's packages into the module root `root`: for a Go
-    path that is also translated from another source (etcd's own raft dependency, whose
-    path is etcd-raft's), so that the two have different modules."""
+    path that is also translated from another source (none now; etcd's own raft dependency
+    was one, `EtcdDeps/`), so that the two have different modules."""
     root: str
     lean_roots: list
     packages: list
@@ -89,8 +89,8 @@ class Project:
     local: str = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
-    # a project whose Go paths another project also translates (raft v3.7, a parallel
-    # tree beside etcd-raft's while the proof is ported).
+    # a project whose Go paths another project also translates (none now; raft v3.7 was
+    # one, the parallel tree `Raft37/` the raft proof was ported into).
     root: str = ""
 
     @property
@@ -100,45 +100,19 @@ class Project:
 
 PROJECTS = [
     Project(
-        name="etcd-raft",
-        # Upstream etcd-io/raft 40f8be7 (the last commit before raftpb moved to
-        # protobuf-go v2, 2026-04-15; from the next commit on, messages are pointers with
-        # getters, see notes/STATUS.md, "Retargeting raft to upstream") plus one fix (the
-        # single-voter read-index shortcut, issues/raft-readindex-singleton-stale.md) and
-        # its regression test: branch raft-goose-lean of the etcd fork (a branch holding
-        # etcd-io/raft's history).
-        repo="https://github.com/upamanyus/etcd",
-        rev="0560cb75ad8e21c68f3323228520776820c5090a",
-        # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
-        lean_roots=["go.etcd.io/raft/v3=", "github.com/gogo/protobuf="],
-        packages=[
-            ".",
-            "go.etcd.io/raft/v3/confchange",
-            "go.etcd.io/raft/v3/quorum",
-            "go.etcd.io/raft/v3/raftpb",
-            "go.etcd.io/raft/v3/tracker",
-            # names only: what raftpb's `ConfChangeV2.LeaveJoint` calls (`proto.Equal`)
-            "github.com/gogo/protobuf/proto",
-        ],
-        owned=[os.path.join("go_etcd_io", "raft"), os.path.join("github_com", "gogo")],
-        counted_modules=["go.etcd.io/raft/v3"],
-    ),
-    Project(
-        name="raft37",
+        name="raft",
         # The raft etcd links (go.etcd.io/raft/v3 v3.7.0 in etcd's go.mod: etcd-io/raft
         # b867cf13, protobuf-go v2 raftpb: messages, entries, snapshots are pointers with
         # getters) plus the single-voter read-index fix rebased onto it
         # (issues/raft-readindex-singleton-stale.md): branch raft37-goose-lean of the etcd
-        # fork. The retarget of the raft proof is done in a parallel tree, the module root
-        # Raft37 (modules Raft37.Code.go_etcd_io.raft.v3*, ...; notes/raft-retarget-plan.md),
-        # until it reaches etcd-raft's results and replaces it. Until the branch is pushed,
-        # translate (and --check) with --src raft37=<a checkout of it>.
+        # fork. (The raft proof was ported to it in a parallel tree, the module root Raft37,
+        # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
+        # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
         rev="509271dac8a49e670fd434444fa26eacdb1aa7b7",
-        root="Raft37",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
-        lean_roots=["go.etcd.io/raft/v3=Raft37", "google.golang.org="],
+        lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
@@ -152,20 +126,21 @@ PROJECTS = [
     Project(
         name="etcd",
         # Branch `goose-lean`: upstream main (2026-10), the commits that make it
-        # translatable, and the one bug fix of `cache-ready-after-retry` (64313a1f8); its
-        # two other commits are reverted (no code change unless it fixes a bug). Branch
+        # translatable, and the two bug fixes of `cache-ready-after-retry` (64313a1f8; its
+        # two other commits are reverted: no code change unless it fixes a bug) and
+        # `recipes-closed-watch-channel` (0aa6c6af8, cherry-picked as 0df483bee). Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="bc8b52a503191e8af023b209a1cc5b54e1025d6d",
-        # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the raft
-        # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
+        rev="0df483bee6854c84981f5825ab53d5da636ce402",
+        # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
+        # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "net=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
-                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=EtcdDeps"],
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -304,18 +279,6 @@ PROJECTS = [
                "net", os.path.join("encoding", "hex"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin")],
-        parts=[
-            # etcd's own raft dependency (go.etcd.io/raft/v3 in etcd's go.mod), whose
-            # raftpb is protobuf-go v2: not the gogoproto etcd-raft above, but the same
-            # Go path, so into a root of its own (modules EtcdDeps.Code.go_etcd_io.raft.v3*;
-            # both define `Perennial.go_etcd_io.raft.v3.*`, so no module imports both).
-            Part(
-                root="EtcdDeps",
-                lean_roots=["go.etcd.io/raft/v3=EtcdDeps", "google.golang.org="],
-                packages=["go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb"],
-                owned=[os.path.join("go_etcd_io", "raft")],
-            ),
-        ],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",
@@ -338,7 +301,9 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "register"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3="],
+        # (raft v3.7, stage R6b: the register reaches protobuf-go's `proto`, which the raft
+        # tree translates into the root, `Code.google_golang_org.protobuf.proto`)
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "register")],
     ),

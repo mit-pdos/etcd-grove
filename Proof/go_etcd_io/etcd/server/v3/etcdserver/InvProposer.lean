@@ -20,7 +20,9 @@ leader's atomic, the cluster and the transport, the applied and committed indice
 some read names, `srvIndexInvs`: 2026-10-13, unit 4b), and two
 invariants of the request path's ghost state: the **mint** (`srvMintInv`: the authority of raft's
 fresh-data tokens; every token is of data that decode to a request claimed under its id, so a
-proposer that claims a fresh id for its data mints the data's token: `srv_claim_mint`), and (2026-10-14,
+proposer that claims a fresh id for its data mints the data's token: `srv_claim_mint`; and, since
+2026-10-16, stage R7b, the read contexts' mint `srvRdFreshInv`: the read loop's request ids mint
+raft's fresh read-context tokens and read credits, `srvRdFresh_mint`), and (2026-10-14,
 unit T1) the **KV invariant** (`kvInv ρ.raft ρ.kv`: the server's half of raft's committed log with
 the KV ghost state; a proposal's update is built from it, `kv_prop_au`; until then the client
 log's other half, `srvCLogInv`, and a trivial update).
@@ -282,7 +284,7 @@ end defs
 section typeRepr
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -319,11 +321,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The mint** (see the file header): the authority of raft's fresh-data tokens `F`, each
-token's data decoding to a request claimed under its id. -/
+token's data decoding to a request claimed under its id; and (2026-10-16, stage R7b) the read
+contexts' mint (`srvRdFreshInv`, `InvRequest.lean`: the authority of raft's fresh read-context
+tokens and its read credits, both minted from the request ids the read loop takes). -/
 def srvMintInv (ρ : ReqNames) : IProp GF :=
-  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.fresh 1 F ∗
+  iprop(inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.raft.reFresh 1 F ∗
     [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
-      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim ρ.ids id d γf)
+      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim ρ.ids id d γf) ∗
+    srvRdFreshInv ρ.raft ρ.ids)
 
 instance srvMintInv_persistent (ρ : ReqNames) : Persistent (srvMintInv (GF := GF) ρ) := by
   unfold srvMintInv; infer_instance
@@ -442,14 +447,17 @@ apply package's (`dispatchAnswer` with no error), mvcc's certificate of the log 
 token of the revision the step appended, if it appended one (`revMinted`, unit V1);
 (2026-10-14, unit C2a) the log after applied through an index of the committed log
 (`appliedWit γr`, the result's witness, `resultIsW`); and (the vertical slice's unit V2) a KV
-write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`). -/
+write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`); and (unit W-M3) the log
+the entry met is `lb` (`x.log`, which the raft request's result ties to the raft prefix the
+proposal's update fired at) and the log after is certified (`certOk`). -/
 def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (F : mvcc.Log)
-    (resp : GoInterface) :
+    (resp : GoInterface) (lb : mvcc.Log) :
     IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
-    ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o⌝ ∗
+    ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
+      x.log = lb⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
-    revMinted E x.log x'.log ∗ appliedWit γr x'.log)
+    revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
 
 /-- **The apply thread's answer to `rq'` carried the error `err`** (`result.Err`): the result
 `ar` of applying `rq'` (`resultIs`), whose `Err` is `err`. -/

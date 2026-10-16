@@ -40,8 +40,9 @@ parallel; this lemma only picks one. `m.Term < r.Term` drops the message;
 `m.Term = r.Term` answers it, and how depends on whether this node has already voted
 in the term. -/
 theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgVote →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -53,10 +54,9 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        -- the message's `Context` is readable and is not the leader-transfer marker:
-        -- leader transfer is out of scope
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        -- (stage R4) the message, as `Step` received it
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -71,11 +71,11 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hle0 Hwf
   by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-  · exact wp_Step_MsgVote_lt _P c r id s m ents Hty Hto Hterm Hfnz Hlt Hwf
+  · exact wp_Step_MsgVote_lt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hlt Hwf
   · have Heq : m.Term' = s.term := by word
     by_cases Hv0 : s.vote = W64 0
-    · exact wp_Step_MsgVote_eq_novote _P c r id s m ents Hty Hto Hterm Hfnz Heq Hv0 Hwf
-    · exact wp_Step_MsgVote_eq_voted _P c r id s m ents Hty Hto Hterm Hfnz Heq Hv0 Hwf
+    · exact wp_Step_MsgVote_eq_novote _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Heq Hv0 Hwf
+    · exact wp_Step_MsgVote_eq_voted _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Heq Hv0 Hwf
 
 end StepProof
 

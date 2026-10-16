@@ -8,15 +8,19 @@ registered (`etcd_kv_served`'s conclusion) returns a queue whose `Enqueue` and `
 recipes' specs in the server's model (`v3rpc.etcdModelOfServer E`): the composition of
 `queue_NewQueue`/`queue_Enqueue`/`queue_Dequeue` with `isEtcdRecipesClient_of_kv`. `Dequeue`'s
 answer is stated in the server's terms (`queueTaken`): the item it returns was, with its value,
-under `kp` in the state of a certified log (`idxCert`) just before the claim's revision `r` and
+under `kp` in the state of a sealed log (`idxSealed`, unit W-M2b: the clients' model is over
+sealed logs; every certified log is one) just before the claim's revision `r` and
 gone from it at `r`, and the claim holds the server's token of `r` (`revTok`, exclusive: dequeued
 at most once, `queue_vertical_once`); the order (`dequeueOrder`) in the model's terms, which
 unfold to the same (`srvEtcdState`).
 
 Premises: `isEtcdRecipesClient_of_kv`'s (the server's read side, the registrations, `kvObjAt`,
-the client's `KV` and `Watcher` fields, the watcher contract `isEtcdRangeWatcherOpen` (unused on
-`Dequeue`'s get path, needed by its wait path: the watch slice's), `sortNamesOk`, `clientErrsIs`,
-`hAs`) and `kp ≠ []` (`NewQueue`'s).
+the client's `KV` and `Watcher` fields, the closable watcher contract `isEtcdRangeWatcher` (unused on
+`Dequeue`'s get path, needed by its wait path; etcd's client watcher meets it, unit W-Q's
+`queue_end_to_end_client` in `Results.lean`), `sortNamesOk`, `clientErrsIs`,
+`hAs`, the clients' updates `kvWritesOk`: unit W-M3, at the write and the read names, with the
+floor of a certified log, which a client holding `etcdKV` in its invariant has, `kvAnyAu_of_inv`)
+and `kp ≠ []` (`NewQueue`'s).
 -/
 module
 
@@ -51,22 +55,22 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **A dequeue's claim, in the server's terms**: the token of the claim's revision `r`
-(`revTok`, the server's: exclusive); a certified log in whose state at `r - 1` the item `it`
-(under `kp`) was, under `kp`; and a certified log in whose state at `r` no key-value under `kp`
+(`revTok`, the server's: exclusive); a sealed log in whose state at `r - 1` the item `it`
+(under `kp`) was, under `kp`; and a sealed log in whose state at `r` no key-value under `kp`
 has `it`'s key. -/
 def queueTaken (E : apply.AEnv GF) (kp : GoString) (it : EtcdKv) (r : w64) : IProp GF :=
   iprop(revTok E r ∗
-    (∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+    (∃ log : mvcc.Log, mvcc.idxSealed E.γ.idx log ∗
       ⌜0 ≤ sint.Z (r - W64 1) ∧ sint.Z (r - W64 1) < log.length ∧
         it ∈ txn.underPfx kp (mvcc.stateAt log (sint.Z (r - W64 1)).toNat) ∧ kp <+: it.key⌝) ∗
-    (∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+    (∃ log : mvcc.Log, mvcc.idxSealed E.γ.idx log ∗
       ⌜0 < sint.Z r ∧ sint.Z r < log.length ∧
         ∀ v ∈ txn.underPfx kp (mvcc.stateAt log (sint.Z r).toNat), v.key ≠ it.key⌝))
 
-/-- etcd's state in the server's model is a certified log's. -/
-theorem srvState_cert (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : List EtcdKv) :
+/-- etcd's state in the server's model is a sealed log's. -/
+theorem srvState_sealed (E : apply.AEnv GF) (r : w64) (pfx : GoString) (s : List EtcdKv) :
     etcdState (self := v3rpc.etcdModelOfServer E) r pfx s ⊢
-      ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+      ∃ log : mvcc.Log, mvcc.idxSealed E.γ.idx log ∗
         ⌜0 ≤ sint.Z r ∧ sint.Z r < log.length ∧
           s = txn.underPfx pfx (mvcc.stateAt log (sint.Z r).toNat)⌝ := by
   rw [v3rpc.etcdModelOfServer_etcdState]
@@ -87,8 +91,8 @@ theorem queueTaken_of (E : apply.AEnv GF) (kp : GoString) (it : EtcdKv) (r : w64
   iframe Htok
   iunfold revKeyDeleted at Hd
   icases Hd with ⟨%s1, %s1', -, #Hs1', %Hp⟩
-  ihave ⟨%log, #Hl, %Hlp⟩ := srvState_cert E _ kp s $$ Hs
-  ihave ⟨%log', #Hl', %Hlp'⟩ := srvState_cert E _ kp s1' $$ Hs1'
+  ihave ⟨%log, #Hl, %Hlp⟩ := srvState_sealed E _ kp s $$ Hs
+  ihave ⟨%log', #Hl', %Hlp'⟩ := srvState_sealed E _ kp s1' $$ Hs1'
   isplitl []
   · iexists log
     iframe Hl
@@ -121,7 +125,7 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
         kvObjAt api addr ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcherOpen (EM := v3rpc.etcdModelOfServer E) w kp ∗
+        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w kp ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"

@@ -37,16 +37,20 @@ request is allocated and persisted. The record gains `⟨commitIndex, req.From',
 (`readonlyAdd`), where `ents` is what `req.Entries'` points to, which the caller holds
 read-only (as `msgAbs` does for a queued message -- the request message is stored by
 value, so its `Entries` slice is shared). The receiver is a pointer, so the spec owns
-the object. -/
+the object.
+
+raft v3.7 (2026-10-15, stage R4): `req` is a `*pb.Message`, stored by pointer, so the caller
+hands over the request frozen (`msgOwn req □`, what `ownReadreq` keeps) instead of its entries'
+points-to; the record gains `⟨commitIndex, m.From', ents⟩` as before. -/
 abbrev readOnly.addRequest.spec : Prop :=
-  ∀ (ro : Loc) (r : ReadOnly) (commitIndex : w64) (req : raftpb.Message)
-    (ents : List raftpb.Entry),
+  ∀ (ro : Loc) (r : ReadOnly) (commitIndex : w64) (req : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r ∗
-      "#Hents" ∷ req.Entries' ↦*□ ents }}
+      "#Hreq" ∷ msgOwn req DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
     (App (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"addRequest"))
       (Val #commitIndex)) (Val #req))
   {{ RET #();
-      ownReadOnly ro (readonlyAdd r (ReadReq.mk commitIndex req.From' ents)) }}
+      ownReadOnly ro (readonlyAdd r (ReadReq.mk commitIndex m.From' ents)) }}
 
 end spec
 

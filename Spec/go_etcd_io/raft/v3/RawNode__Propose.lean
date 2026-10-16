@@ -22,8 +22,16 @@ only when the node was the leader).
 `From: rn.raft.id` is why `Step`'s `MsgProp` premise and `send`'s `From` premise admit
 `From = id` since 2026-10-06.
 
+raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, "The node layer over pointer messages"):
+the message is `&pb.Message{Type: MsgProp.Enum(), From: new(rn.raft.id), Entries:
+[]*pb.Entry{{Data: data}}}`, a slice literal of one fresh entry holding `data`'s bytes (D6: the
+entry's record is `propEntryM data`, its `Data` the caller's frozen slice, `data_sl ↦*□ data`);
+`raft.Step` takes it (`msgIn ml 1`). The data must be non-empty (`Hne`, D6: with bytes in the
+record an empty proposal and a leader's own entry are the same record, and `entDataIs (some d)`
+needs `d ≠ []`).
+
 Lean notes:
-* Rocq's `prop_entry` is `propEntry`.
+* Rocq's `prop_entry` was `propEntry`, now `propEntryM` (the record).
 * As for `raft.Step.spec` (see its Lean notes), the section fixes `hlc :=
   HasLC.hasLC` (`ownRawNode` holds `ownRaftGhost`, which needs `[InvGS GF]`, the heap's
   invariant instance only at `.hasLC`) and has `[AllG GF]`.
@@ -41,9 +49,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
-/-- The entry `Propose` builds: `pb.Entry{Data: data}`. -/
-def propEntry [FfiSyntax] (data_sl : GoSlice) : raftpb.Entry :=
-  { (zero_val raftpb.Entry) with Data' := data_sl }
+-- (2026-10-16, stage R5) `propEntry data_sl` (the Goose value) is `propEntryM data`
+-- (`InvRawnode.lean`): D6, the entry holds the bytes.
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -60,7 +67,10 @@ abbrev RawNode.Propose.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "#Hdata" ∷ data_sl ↦*□ data ∗
-      "#Hent" ∷ entData γ (propEntry data_sl) }}
+      -- (2026-10-16, stage R5, D6) non-empty data: an empty proposal would be a leader's own
+      -- entry
+      "%Hne" ∷ ⌜data ≠ []⌝ ∗
+      "#Hent" ∷ entData γ (propEntryM data) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Propose")) (Val #data_sl))
   {{ (err : GoInterface), RET #err;
       "Hrn" ∷ ownRawNode γ rn id rs ∗

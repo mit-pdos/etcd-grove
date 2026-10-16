@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_unstable__restore.v (857d09190). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -33,17 +33,24 @@ caller's read-only `ConfState.Voters` (since 2026-10-03: `raftLog.snapshot()` ha
 stored snapshot's voters to `maybeSendSnapshot`). The old entries are dropped (the
 suffix is empty, a `nil` slice); the logger is left alone, which `ownUnstable` keeps
 without saying (until 2026-10-08 the post said so, on the Goose value). (2026-10-15, stage S)
-The snapshot, with its lists, joins the ones the node may send (`ksn`, `pendKsn`). -/
+The snapshot, with its lists, joins the ones the node may send (`ksn`, `pendKsn`).
+
+raft v3.7 (stage R3, 2026-10-15): `s` is a `*pb.Snapshot`, read at any fraction and given back,
+and `u.snapshot = proto.Clone(s)` (`log_unstable.go:196`): the log holds a fresh clone,
+read-only for good (`ownSnap`; until the retarget `&s` of the by-value parameter with the
+caller's `ConfState` slices, `ownCSL` of the lists `voters`, now the record's own). -/
 abbrev unstable.restore.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableSt) (sv : raftpb.Snapshot) (voters : CSLists),
+  ∀ (u : Loc) (us : UnstableSt) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us ∗
-      "#Hvoters" ∷ ownCSL sv.Metadata'.ConfState' voters }}
-    (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"restore")) (Val #sv))
+      "Hsnap" ∷ ownSnapM sp dq sv }}
+    (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"restore")) (Val #sp))
   {{ RET #();
+      ownSnapM sp dq sv ∗
       ownUnstable u { ents := [], offset := sv.Metadata'.Index' + W64 1,
                       inprogress := sv.Metadata'.Index' + W64 1,
-                      snap := some (snapId sv), ksn := us.ksn ++ [snapTrip sv voters] } }}
+                      snap := some (snapId sv),
+                      ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists] } }}
 
 end spec
 

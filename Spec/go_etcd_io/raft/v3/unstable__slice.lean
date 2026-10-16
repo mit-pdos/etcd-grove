@@ -5,7 +5,7 @@ Lean notes: Rocq's `Z.to_nat` is `Int.toNat`; `subslice` is Perennial's
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 three-index sub-slice `u.entries[lo-off : hi-off : hi-off]` of the entry slice.
 
 The result **aliases** `u.entries`, and is handed out read-only and for good
-(`s ↦*□ es`): `ownUnstable` holds the entries read-only, because nothing ever writes
+(`entsRO s es`): `ownUnstable` holds the entries read-only, because nothing ever writes
 one again (`InvRaftlog.lean`). Its capacity equals its length (that is what the third
 index buys: an `append` to the result reallocates instead of writing into the suffix's
 slack), which `raftLog.slice` relies on through `extend`. (Until 2026-09-29 the
@@ -46,8 +46,8 @@ abbrev unstable.slice.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hun" ∷ ownUnstable u us }}
     (App (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"slice"))
       (Val #lo)) (Val #hi))
-  {{ (s : GoSlice) (es : List raftpb.Entry), RET #s;
-      ownUnstable u us ∗ s ↦*□ es ∗
+  {{ (s : GoSlice) (es : List EntryM), RET #s;
+      ownUnstable u us ∗ entsRO s es ∗
       ⌜(es.length : Int) = uint.Z hi - uint.Z lo ∧
         (∀ e, e ∈ es → e ∈ us.ents) ∧
         s.cap = s.len ∧

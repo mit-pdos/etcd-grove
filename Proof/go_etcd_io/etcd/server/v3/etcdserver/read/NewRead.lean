@@ -68,12 +68,12 @@ theorem read.NewRead.wp_proof
   wp_auto
   iapply HΦ
   isplitr
-  · iunfold isRead
+  · iunfold isReadNotify
     iintro !> %ctx %cd %c %g %Q %Φ' !> ⟨#Hctx, #Hc, Hrr, #HsQ, #HdQ⟩ HΦ'
     iapply hNotify r γr ctx cd c g Q $$ [Hrr] HΦ'
     iframe #; iframe Hrr
   isplitr
-  · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp
+  · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp #Hmint
     iunfold isReadLoopPre
     iexists srv, rf, wc, γw
     iframe #

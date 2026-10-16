@@ -30,7 +30,7 @@ omit [GoGlobalContext] in
 /-- What `Storage.Term` answers (`termAt prev stored i`, `InvStorage.lean`) is
 `plogTermAt` of the whole log on the visible stable range: the stored entries agree
 with `sents` there, `sents` being a prefix. -/
-private theorem termAt_visible (prev : entryID) (sents uents stored : List raftpb.Entry)
+private theorem termAt_visible (prev : entryID) (sents uents stored : List EntryM)
     (i t : w64) (Hpre : sents <+: stored)
     (Hr : uint.Z prev.index' ≤ uint.Z i ∧
       uint.Z i ≤ uint.Z prev.index' + (sents.length : Int))

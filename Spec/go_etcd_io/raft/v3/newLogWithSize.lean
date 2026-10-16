@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_newLogWithSize.v (857d09190). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 

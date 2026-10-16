@@ -32,6 +32,11 @@ and `0` for both otherwise.
 
 Lean notes: Rocq's `app_resp` and `handle_app_result` are `appResp` and
 `HandleAppResult` (a Prop-valued definition). The Rocq argument named `to` is `dst`.
+
+raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), taken as `stepFollower`/
+`stepCandidate` pass it, a received message (`msgIn ml □`: its entries read-only, the `Entries`
+slice's capacity owned, which `maybeAppend` may adopt) and not given back; read through its
+getters (`logSliceFromMsgApp`); every reply shares `m`'s `From` cell (`To: m.From`, read-only).
 -/
 module
 
@@ -70,8 +75,8 @@ the second and third on whether `(m.LogTerm, m.Index)` matches the log
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
   (`findConflictByTerm`'s spec pins only `hint ≤ min(m.Index, lastIndex())`, and the
   model allows any). -/
-def HandleAppResult (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (s' : NState) : Prop :=
+def HandleAppResult (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (s' : NState) : Prop :=
   let ls := s.logst
   let es := ls.sents ++ ls.uents
   let prev := entryID.mk m.LogTerm' m.Index'
@@ -80,7 +85,7 @@ def HandleAppResult (id : w64) (s : NState) (m : raftpb.Message)
    s' = sendMsgs s [appResp id s dst false ls.committed (W64 0) (W64 0)])
   ∨
   (uint.Z ls.committed ≤ uint.Z m.Index' ∧
-   ∃ (lastnewi : w64) (es' : List raftpb.Entry) (ls' : LogState),
+   ∃ (lastnewi : w64) (es' : List EntryM) (ls' : LogState),
      plogMaybeAppend ls.prev es prev ents = some (lastnewi, es') ∧
      ls'.prev = ls.prev ∧
      ls'.sents ++ ls'.uents = es' ∧
@@ -119,14 +124,19 @@ m.Index), entries: m.Entries}`:
   (`app_no_conflict_below_commit`, `Protocol/Facts.lean`);
 - the `Entries` slice read-only with its capacity owned, because `maybeAppend` may
   adopt it as the unstable suffix. On the other two exits the capacity is simply
-  dropped.
+  dropped. (Stage R4: the message, `msgIn ml □`, holds both.)
 
-Not needed, and so not premises: `m.Type = MsgApp` (the body never reads it), `m.From ≠
+`m.Type = MsgApp` (stage R5): the body never reads it, but a received message holds its
+`Entries` capacity only when it is a `MsgApp` (`msgIn`'s `needsCap`), and `maybeAppend` needs it;
+both callers are in their `MsgApp` arm.
+
+Not needed, and so not premises: `m.From ≠
 0` and `m.To = id` (no panic depends on them; `send`'s `MsgAppResp` clause allows any
 `To`, the node itself included), `m.Term` (only `a.term`, which nothing reads). -/
 abbrev raft.handleAppendEntries.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry),
+    (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
+    (rs : List Loc),
   PlogWf (entryID.mk m.LogTerm' m.Index') ents →
   uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
   (let ls := s.logst
@@ -138,11 +148,15 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   -- from another node (2026-10-10; `Step`'s premise): every reply goes to `m.From`, and
   -- a self-addressed rejection would not be steppable (`AAMsgOk`)
   m.From' ≠ id →
+  -- a `MsgApp` (stage R5): only then does `msgIn` hold the `Entries` capacity
+  m.Type' = MsgApp →
+  -- (2026-10-16, stage R8a, D11) not at a leader: `maybeAppend` may truncate the log, and a
+  -- leader's log only grows (`PrvalsOk`); a leader never handles a `MsgApp` of its term
+  s.role ≠ .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hents" ∷ m.Entries' ↦*□ ents ∗
-      "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #m))
+      "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #ml))
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
 
@@ -150,7 +164,8 @@ abbrev raft.handleAppendEntries.spec : Prop :=
 derived from `raft.handleAppendEntries.spec` by `raft.handleAppendEntries.spec_simple`. -/
 abbrev raft.handleAppendEntries.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry),
+    (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
+    (rs : List Loc),
   PlogWf (entryID.mk m.LogTerm' m.Index') ents →
   uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
   (let ls := s.logst
@@ -160,11 +175,12 @@ abbrev raft.handleAppendEntries.specS : Prop :=
    plogFindConflict ls.prev es ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) →
   m.From' ≠ id →
+  m.Type' = MsgApp →
+  s.role ≠ .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "#Hents" ∷ m.Entries' ↦*□ ents ∗
-      "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #m))
+      "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #ml))
   {{ (s' : NState), RET #();
       ownRaftPhys cfg r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
 
@@ -172,10 +188,10 @@ open Iris.ProofMode in
 theorem raft.handleAppendEntries.spec_simple
     (H : raft.handleAppendEntries.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents Hwf Hb Hc Hfrom
-  iintro %Φ ⟨#Hpkg, Hphys, #Hents, Hcap⟩ HΦ
+  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl
+  iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s m ents Hwf Hb Hc Hfrom $$ [$Hpkg $Hphys $Hents $Hcap]
+  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl $$ [$Hpkg $Hphys $Hm]
   inext
   iintro %s' ⟨Hphys, %Hres⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

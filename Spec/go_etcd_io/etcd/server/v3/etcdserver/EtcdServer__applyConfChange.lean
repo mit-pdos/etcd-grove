@@ -32,13 +32,16 @@ section of the batch lock, after the hook (as `apply.Apply`'s: the caller's hook
 writes update), or, if the validation fails, there are none and it stores the applying index
 `(i, t)` into the consistent index `s.consistIndex = ci` (the caller's triple for that store,
 `Pre -∗ WP ci.SetConsistentIndex(i, t) {Adv}`). Without `v3` it writes nothing to the backend.
-It may change `cc` (it sets `NodeId` on a failed validation), but not its `Id`. -/
+It may change `cc` (it sets `NodeId` on a failed validation), but not its `Id`: the change is
+raft's `ownCCV1` (owned, as `pbutil.MustUnmarshalMessage` decoded it; since stage R6 of the raft
+v3.7 retarget, 2026-10-16, when the struct value with its `Id` cell), some record `m'` after
+with `m`'s id. -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
-  ∀ (s cc ep : Loc) (v : raftpb.ConfChange) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
+  ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (Pre Q Post Adv : IProp GF) (i t : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
-      cc ↦ v ∗ epConfStateAddr ep ↦ cs ∗
+      ownCCV1 cc (DFrac.own 1) m ∗ epConfStateAddr ep ↦ cs ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗
           (Pre -∗ WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!!
@@ -47,7 +50,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyConfChange"))
       (Val #cc)) (Val #ep)) (Val #v3))
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
-      (∃ (v' : raftpb.ConfChange) (cs' : Loc), cc ↦ v' ∗ ⌜v'.Id' = v.Id'⌝ ∗
+      (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc (DFrac.own 1) m' ∗ ⌜m'.id = m.id⌝ ∗
         epConfStateAddr ep ↦ cs') ∗
       (if v3 then iprop(Post ∨ Adv) else Pre) }}
 

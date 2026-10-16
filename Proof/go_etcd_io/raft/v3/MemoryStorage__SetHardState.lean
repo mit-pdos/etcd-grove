@@ -21,10 +21,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem MemoryStorage.SetHardState.wp_proof :
     MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) := by
-  intro ms γs hs snap st
-  wp_start as Hmeta
+  intro ms γs hs st hs'
+  wp_start as ⟨Hmeta, #Hst⟩
   iunfold memStorMeta at Hmeta
-  icases Hmeta with ⟨%n, %voters, Hmeta⟩
+  icases Hmeta with ⟨%n, %hp, Hmeta⟩
   iNamed Hmeta
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -36,8 +36,7 @@ theorem MemoryStorage.SetHardState.wp_proof :
   icases Hinv with ⟨%σp, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs0, %snap0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn,
-    Hfields_inv⟩
+  icases Hfields_inv with ⟨%hp0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamedSuffix Hfields_inv "_f"
   icombine HhardState HhardState_f gives %Heq
   subst Heq
@@ -47,7 +46,7 @@ theorem MemoryStorage.SetHardState.wp_proof :
   icases (ptsto_halves _ _).1 $$ HhardState with ⟨HhardState, HhardState_f⟩
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState_f Hsnapshot_f Hvoters_f
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState_f
     Hents_f_f Hents_f Hents_cap_f Hcs_firstIndex_f Hcs_lastIndex_f Hcs_entries_f Hcs_term_f
     Hcs_snapshot_f]
   · inext
@@ -55,13 +54,13 @@ theorem MemoryStorage.SetHardState.wp_proof :
     iexists σp
     iframe Hgs_inv
     isplitl
-    · iexists st, snap0, es, dummy, nfi, nli, nen, nte, nsn
+    · iexists st, es, dummy, nfi, nli, nen, nte, nsn
       iframe
-      ipureintro; exact ⟨Hsnap_id_f, Hdummy_f⟩
+      ipureintro; exact Hdummy_f
     ipureintro; exact Hpb_inv
   iapply HΦ
   unfold memStorMeta
-  iexists n, voters
+  iexists n, st
   iframe # ∗
 
 end proof

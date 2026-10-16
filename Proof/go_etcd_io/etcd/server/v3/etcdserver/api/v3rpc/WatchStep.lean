@@ -232,7 +232,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **The server model's step from the watch events**: a certified small log with revision `r1`
+/-- **The server model's step from the watch events**: a sealed small log with revision `r1`
 (`r0 ≤ r1 < log.length`), no watch event of a range covering exactly the keys under `pfx`
 strictly between `r0` and `r1`: `srvStep` of `r1`'s watch events. -/
 theorem srvStep_of_watch (E : apply.AEnv GF) (log : Log) (rng : WatchRange) (pfx : GoString)
@@ -246,7 +246,7 @@ theorem srvStep_of_watch (E : apply.AEnv GF) (log : Log) (rng : WatchRange) (pfx
   ihave %Hp : ⌜LogWf' log ∧ log.length < 2 ^ 63⌝ $$ [Hl]
   · unfold srvLog
     icases Hl with ⟨Hc, -⟩
-    iapply idxCert_pure $$ Hc
+    iapply sealed_pure $$ Hc
   obtain ⟨hwf, hlen⟩ := Hp
   obtain ⟨hz, hs⟩ := watchStreamSpec_step log hwf hlen rng pfx hcov r0 r1 hnone
   have e0 : sint.Z (W64 (r0 : Int)) = r0 := by word

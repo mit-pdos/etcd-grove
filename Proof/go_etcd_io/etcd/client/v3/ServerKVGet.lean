@@ -5,8 +5,10 @@ V2b, 2026-10-14, after slice-v2's; `InvServerKV.lean`). Lean-first, no Rocq coun
 `isEtcdKVTodo_of_kv`: a `*kv` over a connection to a gRPC server at `addr` where etcd's `Range` is
 registered (`kvObjAt api addr`, `etcd_kv_served`) meets `isEtcdKVTodo` (`cache/v3/InvEtcdTxn.lean`)
 at `v3rpc.etcdModelOfServer E`, for a non-empty prefix. The call is `kv.Get` at `context.TODO()`
-(`todo_ctx`), the request handed the caller's floor (`floor_of_reached`: linearizability) and the
-committed index `0`.
+(`todo_ctx`), the request handed the read side's first certificate as its floor
+(`floor0_of_read`), the committed index `0` and, for a linearizable get, the client's read update
+(`kvAnyAu`, unit W-M3) whose result is the floor of the caller's `etcdReached lo`
+(`certOk_of_reached`) at the state read: linearizability.
 
 * **The wire's get is the `Op`'s** (`wire_fields`, `wire_rangeSel`, `wire_sort`): the request
   `kv.Do` sends (`rangeWireOf o`) has the `Op`'s key, range, revision, limit, filters, flags; its
@@ -250,20 +252,43 @@ theorem sortNamesIf_of_ok (b : Bool) : sortNamesOk (GF := GF) ⊢ sortNamesIf b 
 /-- **A real `*kv` meets the recipes' get contract** (`isEtcdKVTodo`) at the server's model, for a
 non-empty prefix (see the file header). Premises: the registration of etcd's `Range` at `addr`,
 the server's read side (`isServerRead`: the first certificate, `storeSmall`), `etcdserverpb`'s
-sort enumerations (`sortNamesOk`), that `errors.As` can take `*rpctypes.EtcdError` (`hAs`). -/
+sort enumerations (`sortNamesOk`), that `errors.As` can take `*rpctypes.EtcdError` (`hAs`), and
+(unit W-M3) the client's updates at the read names (`kvAnyAu E γr`: a linearizable get's floor is
+its read update's result, at the state of the log read). -/
 theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        sortNamesOk ⊢
+        sortNamesOk ∗ kvAnyAu E γr ⊢
       isEtcdKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany⟩
   unfold isEtcdKVTodo
   iintro !> %key %sl %gs %R %lo %Φ !> ⟨#Hopts, HR, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx⟩ := Hpre
-  ihave ⟨%F, #HF, %HlF⟩ := floor_of_reached s E γr lo $$ [$Hsrd $Hlo]
+  -- the floor (unit W-M3): a certified log longer than `lo`, and, for a linearizable get, the
+  -- client's read update whose result is that the state read is at least that log
+  ihave ⟨%l, #Hcl, %Hll⟩ := certOk_of_reached E lo $$ Hlo
+  ihave ⟨%F, #HF, %HlF⟩ := floor0_of_read s E γr $$ Hsrd
   ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
+  iunfold kvAnyAu at Hany
+  imod Hany $$ %(KVOp.range (rangeWireOf (opGetModel key gs))) %l Hcl with #Hau
+  ihave ⟨%Q, #Hdq, #HQf⟩ : iprop(∃ Q : KVState → IProp GF,
+      (⌜Q = fun _ => iprop(True)⌝ ∨
+        (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
+      □ (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ -∗
+        ∀ σ, Q σ -∗ ⌜l.length ≤ σ.rev + 1⌝)) $$ []
+  · cases hs : (rangeWireOf (opGetModel key gs)).base.serializable
+    · iexists (fun σ => iprop(⌜l.length ≤ σ.rev + 1⌝))
+      isplitl
+      · iright
+        isplitr; · ipureintro; rfl
+        iapply kvOpAu_range $$ Hau
+      · iintro !> - %σ H; iexact H
+    · iexists (fun _ => iprop(True))
+      isplitl
+      · ileft; ipureintro; rfl
+      · iintro !> %h; cases h
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   ihave #Hc0 : committedAtLeast γr (W64 0) $$ []
@@ -272,7 +297,7 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     iexact H0
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
   iapply (v3.kv.wp_Get api addr todoCtxVal cd key sl gs R (etcdRangeSpec E γr cid mid)
-    (rangeReplyOk E γr (W64 0) F (rangeWireOf (opGetModel key gs)) cid mid (fun _ => iprop(True))))
+    (rangeReplyOk E γr (W64 0) F (rangeWireOf (opGetModel key gs)) cid mid Q))
     $$ [HR]
   · iframe #
     iframe
@@ -281,10 +306,8 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     imodintro
     inext
     unfold etcdRangeSpec
-    iexists (W64 0), F, (fun _ => iprop(True))
+    iexists (W64 0), F, Q
     iframe #
-    isplitr
-    · ileft; ipureintro; rfl
     iintro %m Hm
     iexact Hm
   inext
@@ -298,16 +321,28 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     · unfold kvGetResultR; ileft; ipureintro; exact Herr.1
     · unfold getRespMore; ileft; ipureintro; exact Herr.1
   iunfold rangeReplyOk at Hq
-  icases Hq with ⟨%log, #Hcert, %Hlog, -⟩
+  icases Hq with ⟨%log, #Hcert, #Hcok, %Hlog, -, #HQl⟩
   obtain ⟨h2, h3, hrev, -, -, -, -, hsrv, hFl⟩ := Hlog
+  -- the floor at the state read (a linearizable get's)
+  ihave %Hfl : ⌜(opGetModel key gs).base.serializable = false →
+      sint.Z lo ≤ (log.length : Int) - 1⌝ $$ []
+  · by_cases hs : (rangeWireOf (opGetModel key gs)).base.serializable = false
+    · ihave #Himp := HQf $$ %hs %(kvStateOf log)
+      simp only [hs, Bool.false_eq_true, ↓reduceIte]
+      ihave %h := Himp $$ HQl
+      ipureintro; intro _
+      simp only [kvStateOf] at h
+      omega
+    · ipureintro; intro h
+      exact absurd (by rw [(wire_fields _).2.2.2.2.2.2.1]; exact h) hs
+  iclear HQl
   iunfold rangeRespMsg at Hm
   icases Hm with ⟨%Hrn, %h, %ksl, %ps, #Hh, #Hhf, #Hksl, #Hps, #Hkvs, #Hmore, -⟩
   iunfold hdrFull at Hhf
   icases Hhf with ⟨%Hhn, -, -, #Hrev, -, -⟩
   rw [hrev] at hsrv; rw [hrev]
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
-  have hFlen := hFl.length_le
-  ihave #Hreach := v3rpc.etcdReached_of_cert E log (W64 ((log.length : Int) - 1)) (by omega) $$ Hcert
+  ihave #Hreach := v3rpc.etcdReached_of_certOk E log (W64 ((log.length : Int) - 1)) (by omega) $$ Hcok
   ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $Hcert]
   ihave #Hgr : getRespRev resp (W64 ((log.length : Int) - 1)) $$ []
   · unfold getRespRev
@@ -321,7 +356,7 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     rw [(wire_fields _).2.2.1, h0]
     simp only [mvcc.rangeRev, show sint.Z (W64 0) = 0 from rfl, Int.le_refl, ↓reduceIte]
     exact txn.stateAt_lastRev log (by intro h; simp [h] at h2) (by omega)
-  generalize opGetModel key gs = o at Hx hst hsrv ⊢
+  generalize opGetModel key gs = o at Hx hst hsrv Hfl ⊢
   isplitl
   · unfold kvGetResultR
     iright
@@ -330,7 +365,8 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     iframe Hgr Hreach
     isplitl
     · ipureintro
-      refine ⟨fun _ => ?_, by omega⟩
+      refine ⟨fun h => ?_, by omega⟩
+      have := Hfl h
       omega
     ihave #Hpk := kvPtrsAt_of_kvsIs ps m.kvs $$ Hkvs
     split

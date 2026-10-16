@@ -190,15 +190,15 @@ variable [FfiSyntax]
 the sender and term given separately: `send` stamps both (`From := r.id` when unset,
 `Term := r.Term` for most types), so what reaches the queue is `m` with those two
 fields replaced. -/
-def absMsgFrom (ty : MsgType) (m : raftpb.Message) (src term : w64)
-    (ents : List raftpb.Entry) (ctx : List w8 := []) : Msg :=
+def absMsgFrom (ty : MsgType) (m : MessageM) (src term : w64)
+    (ents : List EntryM) (ctx : List w8 := []) : Msg :=
   Msg.mkV ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents [] ctx
 
 /-- The abstraction of a physical message. Not a function of `m` alone: `m.Entries` is
 a slice, and `ents` is the list it points to -- `ownRaftPhys` holds `m.Entries ↦*□ ents`
 for every queued message (`outboxRel`, `InvRaftPhys.lean`). Not for a `MsgSnap`: see
 `absSnap`. -/
-def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry)
+def absMsg (ty : MsgType) (m : MessageM) (ents : List EntryM)
     (ctx : List w8 := []) : Msg :=
   absMsgFrom ty m m.From' m.Term' ents ctx
 
@@ -223,18 +223,19 @@ structure SnapTrip [FfiSyntax] where
   al : Bool
 
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
-is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to, and `voters`
+is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to (since the raft v3.7
+retarget, stage R1, its record `SnapshotM`), and `voters`
 the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
 the abstract message keeps the incoming voters). `index`/`logterm` are the
 snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
 `maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
 `src`/`term` are given separately because `send` stamps them. -/
-def absSnapFrom (m : raftpb.Message) (src term : w64) (sv : raftpb.Snapshot)
+def absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM)
     (voters : CSLists) : Msg :=
   Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
     m.Commit' m.RejectHint' [] voters.voters []
 
-def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) : Msg :=
+def absSnap (m : MessageM) (sv : SnapshotM) (voters : CSLists) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
 
 end msgs
@@ -245,15 +246,15 @@ variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
 /-- What a message other than a heartbeat or its response carries as a protocol message
 does not depend on its `Context` (2026-10-12; a heartbeat's is a read-index position): the
 branches that do not echo it work at the abstraction with none. -/
-theorem isMessage_absMsg_ctx (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8)
+theorem isMessage_absMsg_ctx (γ : RaftNames) (ty : MsgType) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8)
     (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
     isMessage (GF := GF) γ (absMsg ty m ents ctx) = isMessage γ (absMsg ty m ents) := by
   obtain ⟨h1, h2⟩ := hty
   cases ty <;> first | contradiction | rfl
 
-theorem isMessage_ctx_intro (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8)
+theorem isMessage_ctx_intro (γ : RaftNames) (ty : MsgType) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8)
     (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
     isMessage (GF := GF) γ (absMsg ty m ents) ⊢ isMessage γ (absMsg ty m ents ctx) := by
   rw [isMessage_absMsg_ctx γ ty m ents ctx hty]
@@ -281,8 +282,8 @@ notes/decisions.md, "One predicate per object".) -/
 
 structure LogState [FfiSyntax] where
   prev : entryID
-  sents : List raftpb.Entry
-  uents : List raftpb.Entry
+  sents : List EntryM
+  uents : List EntryM
   committed : w64
   applied : w64
   /-- the pending, not yet stored snapshot's id (`unstable.snapshot`, set by
@@ -310,7 +311,7 @@ structure LogState [FfiSyntax] where
   the right to append them, and `ownRaftLog_absorb` takes the receipt back and empties
   the field (until then `ownRaftLog_persist` lent the storage itself); `Advance`
   requires it empty. -/
-  unpersisted : List raftpb.Entry
+  unpersisted : List EntryM
   /-- What the `Storage` holds (its entries after `prev`) once the application has
   appended `unpersisted` (2026-10-10), while no snapshot is pending (`InvRaftlog.lean`,
   `Hstored`): ghost, not a Go field. Only a `Ready` changes it (`logAcceptUnstable`: the
@@ -319,7 +320,7 @@ structure LogState [FfiSyntax] where
   longer has. `stableTo` needs it (`StableOk`, `InvReadylog.lean`): an acknowledgement
   `Advance` steps after a truncation is right only because the storage still agrees
   with the log up to the acknowledged entry. -/
-  stored : List raftpb.Entry
+  stored : List EntryM
   /-- `l.applyingEntsSize` and `l.maxApplyingEntsSize` (2026-10-05): the flow control
   on handing out committed entries. In the state because `acceptApplying` calls
   `maxAppliableIndex` between updating the size and the paused flag, and only what the
@@ -600,6 +601,147 @@ it as an `Int` equation, and `ownRaftLog`'s `Hnowrap` says the `W64` does not wr
 def logLast (ls : LogState) : w64 :=
   W64 (uint.Z ls.prev.index' + ls.sents.length + ls.uents.length)
 
+/-- `ownRaftLog`'s `Hnowrap` (2026-10-16, stage R8a): `lastIndex() + 1` does not wrap. What the
+progress lemmas below take; `ownRaftPhys_prvals_ok` reads it out of the struct. -/
+def LogNoWrap (ls : LogState) : Prop :=
+  uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2^64
+
+/-- `logLast` as an integer, once it does not wrap. -/
+theorem LogNoWrap.logLast_Z {ls : LogState} (H : LogNoWrap ls) :
+    uint.Z (logLast ls) = uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) := by
+  unfold LogNoWrap at H; unfold logLast; word
+
+theorem LogNoWrap.logLast {ls : LogState} (H : LogNoWrap ls) : uint.Z (logLast ls) + 1 < 2^64 := by
+  rw [H.logLast_Z]; exact H
+
+/-- `lastIndex()`'s result (an `Int` equation, as the `raftLog` specs state it) is `logLast`. -/
+theorem logLast_eq_of_Z (ls : LogState) (i : w64)
+    (H : uint.Z i = uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int)) :
+    i = logLast ls := by
+  unfold logLast; apply uint_Z_inj.1; rw [← H]; word
+
+/-- `logLast` of a log with the same index range (the same base and lengths): what a log
+accessor's give-back asks of a leader (`ownRaftPhys_log_at`) when the last index is unchanged. -/
+theorem logLast_le_of_fields {ls ls' : LogState} (hp : ls'.prev.index' = ls.prev.index')
+    (hs : ls'.sents.length = ls.sents.length) (hu : ls'.uents.length = ls.uents.length) :
+    uint.Z (logLast ls) ≤ uint.Z (logLast ls') := by
+  unfold logLast; rw [hp, hs, hu]; exact Int.le_refl _
+
+/-! ### The leader's progress bound (2026-10-16, stage R8a, D11) -/
+
+/-- A leader's view of a peer (`Progress`) against its log (2026-10-16, stage R8a, D11): `Next` at
+least `1` and at most one past the last index, `Match` and a pending snapshot's index at most the
+last index. -/
+def PrOk (ls : LogState) (p : Progress) : Prop :=
+  1 ≤ uint.Z p.next ∧ uint.Z p.next ≤ uint.Z (logLast ls) + 1 ∧
+  uint.Z p.matched ≤ uint.Z (logLast ls) ∧ uint.Z p.pendingSnapshot ≤ uint.Z (logLast ls)
+
+/-- `PrOk` is monotone in the log's last index: a leader's log only grows. -/
+theorem PrOk.mono {ls ls' : LogState} {p : Progress} (H : PrOk ls p)
+    (Hle : uint.Z (logLast ls) ≤ uint.Z (logLast ls')) : PrOk ls' p := by
+  unfold PrOk at *; omega
+
+/-- `PrOk` of a value with the same `Next` and `Match` and no larger pending snapshot. -/
+theorem PrOk.fields {ls : LogState} {p p' : Progress} (H : PrOk ls p)
+    (hn : p'.next = p.next) (hm : p'.matched = p.matched)
+    (hs : uint.Z p'.pendingSnapshot ≤ uint.Z p.pendingSnapshot) : PrOk ls p' := by
+  unfold PrOk at *; rw [hn, hm]; omega
+
+/-- `PrOk` of a value with the same `Next` and `Match` and no pending snapshot. -/
+theorem PrOk.fields0 {ls : LogState} {p p' : Progress} (H : PrOk ls p)
+    (hn : p'.next = p.next) (hm : p'.matched = p.matched)
+    (hs : p'.pendingSnapshot = W64 0) : PrOk ls p' := by
+  unfold PrOk at *; rw [hn, hm, hs]; have := uint_Z_nonneg p.pendingSnapshot; word
+
+/-- The field writes of `stepLeader` that touch none of the three bounded fields. -/
+theorem PrOk.setPaused {ls : LogState} {p : Progress} (H : PrOk ls p) (b : Bool) :
+    PrOk ls { p with paused := b } :=
+  H.fields rfl rfl (Int.le_refl _)
+
+theorem PrOk.setInfl {ls : LogState} {p : Progress} (H : PrOk ls p) (i : Inflights) :
+    PrOk ls { p with infl := i } :=
+  H.fields rfl rfl (Int.le_refl _)
+
+/-- `pr.PendingSnapshot = 0` (`MsgSnapStatus` rejected). -/
+theorem PrOk.clearSnap {ls : LogState} {p : Progress} (H : PrOk ls p) :
+    PrOk ls { p with pendingSnapshot := W64 0 } :=
+  H.fields0 rfl rfl rfl
+
+/-! One lemma per `Progress` method (`tracker/progress.go`), under `PrOk` of the old value and,
+where `Match + 1` or `Next + k` must not wrap, `logLast + 1 < 2^64` (`ownRaftLog`'s `Hnowrap`,
+`logLast_nowrap`). -/
+
+theorem PrOk.resetState {ls : LogState} {p : Progress} (H : PrOk ls p) (st : PRState) :
+    PrOk ls (progressResetState p st) :=
+  H.fields0 rfl rfl rfl
+
+theorem PrOk.becomeProbe {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
+    (H : PrOk ls p) : PrOk ls (progressBecomeProbe p) := by
+  have Hnw := Hnw.logLast
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk
+  simp only [progressBecomeProbe, progressResetState, progressBecomeProbeNext, w64Max]
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+theorem PrOk.becomeReplicate {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
+    (H : PrOk ls p) : PrOk ls (progressBecomeReplicate p) := by
+  have Hnw := Hnw.logLast
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk
+  simp only [progressBecomeReplicate, progressResetState]
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+theorem PrOk.becomeSnapshot {ls : LogState} {p : Progress} {i : w64}
+    (Hnw : LogNoWrap ls) (H : PrOk ls p) (Hi : uint.Z i ≤ uint.Z (logLast ls)) :
+    PrOk ls (progressBecomeSnapshot p i) := by
+  have Hnw := Hnw.logLast
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk
+  simp only [progressBecomeSnapshot, progressResetState]
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+/-- `SentEntries(entries, bytes)` of entries from `Next` on, within the log. -/
+theorem PrOk.sentEntries {ls : LogState} {p : Progress} {entries bytes : w64}
+    (Hnw : LogNoWrap ls) (H : PrOk ls p) (He : 0 ≤ sint.Z entries)
+    (Hb : uint.Z p.next + sint.Z entries ≤ uint.Z (logLast ls) + 1) :
+    PrOk ls (progressSentEntries p entries bytes) := by
+  have Hnw := Hnw.logLast
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  have He' : uint.Z entries = sint.Z entries := by word
+  unfold PrOk progressSentEntries
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+theorem PrOk.sentCommit {ls : LogState} {p : Progress} (H : PrOk ls p) (c : w64) :
+    PrOk ls (progressSentCommit p c) :=
+  H.fields rfl rfl (Int.le_refl _)
+
+/-- `MaybeUpdate(n)` of an index within the log. -/
+theorem PrOk.maybeUpdate {ls : LogState} {p : Progress} {n : w64}
+    (H : PrOk ls p) (Hn : uint.Z n ≤ uint.Z (logLast ls)) :
+    PrOk ls (progressMaybeUpdate p n) := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk progressMaybeUpdate
+  simp only [w64Max]
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+/-- `MaybeDecrTo(rejected, matchHint)`: both arms (in the probe arm `rejected = Next - 1`, within
+the log by `PrOk` itself). -/
+theorem PrOk.maybeDecrTo {ls : LogState} {p : Progress} {rejected matchHint : w64}
+    (Hnw : LogNoWrap ls) (H : PrOk ls p) :
+    PrOk ls (progressMaybeDecrTo p rejected matchHint).2 := by
+  have Hnw := Hnw.logLast
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk progressMaybeDecrTo
+  simp only [w64Max, w64Min]
+  split
+  · split <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  · split
+    · rename_i Hr
+      have Hr' : uint.Z rejected = uint.Z p.next - 1 := by
+        rw [← Hr]; word
+      split <;> split <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+    · refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
 /-- `unstable.offset`, which `ownRaftLog` pins to the end of the stable part
 (`Hoffset`). -/
 def logOffset (ls : LogState) : Int :=
@@ -607,19 +749,19 @@ def logOffset (ls : LogState) : Int :=
 
 /-- `nextUnstableEnts()`: the unstable entries not yet handed out by a `Ready`
 (`u.entries[offsetInProgress-offset:]`). -/
-def nextUnstable (ls : LogState) : List raftpb.Entry :=
+def nextUnstable (ls : LogState) : List EntryM :=
   ls.uents.drop (uint.Z ls.inprogress - logOffset ls).toNat
 -- (Both moved here from `InvReadylog.lean` on 2026-10-10: `ownRaftPhys` states
 -- `NGhost.unst` on `nextUnstable`.)
 
 /-- `raftLog.append` at the end of the log: the batch joins the unstable suffix
 (`Spec/raftLog__append.lean`). -/
-def logAppend (ls : LogState) (ents : List raftpb.Entry) : LogState :=
+def logAppend (ls : LogState) (ents : List EntryM) : LogState :=
   { ls with uents := ls.uents ++ ents }
 
 /-- A snapshot's id, `(Metadata.Term, Metadata.Index)` -- what `raft.restore` builds as
 `id := entryID{term, index}`. -/
-def snapId (sv : raftpb.Snapshot) : entryID :=
+def snapId (sv : SnapshotM) : entryID :=
   entryID.mk sv.Metadata'.Term' sv.Metadata'.Index'
 
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
@@ -633,7 +775,7 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/
-def snapTrip (sv : raftpb.Snapshot) (cl : CSLists) : SnapTrip :=
+def snapTrip (sv : SnapshotM) (cl : CSLists) : SnapTrip :=
   ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave'⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
@@ -763,6 +905,104 @@ node's own `Progress` in the new progress map `prs` -- tracked, and outside the 
 def learnerOf (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) : Bool :=
   decide (id ∈ domSet prs ∧ id ∉ cfg)
 
+/-! ### The leader's progress bound on a state (2026-10-16, stage R8a, D11) -/
+
+section prvals_ok
+variable [FfiSyntax]
+
+/-- Every tracked peer of a leader is within its log (vacuous for a non-leader: a follower's log
+may shrink, and `reset` re-initializes the progress on winning). A pure conjunct of `ownRaftPhys`
+(`InvRaftPhys.lean`). -/
+def PrvalsOk (s : NState) : Prop :=
+  s.role = .leader → ∀ v p, s.prvals !! v = some p → PrOk s.logst p
+
+/-- `PrvalsOk` depends on `role`, `prvals` and `logst` only. -/
+theorem PrvalsOk.of_fields {s s' : NState} (H : PrvalsOk s) (hr : s'.role = s.role)
+    (hp : s'.prvals = s.prvals) (hl : s'.logst = s.logst) : PrvalsOk s' := by
+  unfold PrvalsOk at *; rw [hr, hp, hl]; exact H
+
+theorem PrvalsOk.not_leader {s : NState} (h : s.role ≠ .leader) : PrvalsOk s :=
+  fun hl => absurd hl h
+
+/-- One peer's `Progress` written. -/
+theorem PrvalsOk.insert {s : NState} {pvs : GMap w64 Progress}
+    (H : PrvalsOk { s with prvals := pvs }) {k : w64} {p' : Progress}
+    (Hp : s.role = .leader → PrOk s.logst p') :
+    PrvalsOk { s with prvals := <[k := p']> pvs } := by
+  intro Hl v p Hv
+  simp only at Hl Hv ⊢
+  by_cases hk : k = v
+  · subst hk; rw [GMap.lookup_insert_eq] at Hv; cases Hv; exact Hp Hl
+  · rw [GMap.lookup_insert_ne _ _ hk] at Hv; exact H Hl v p Hv
+
+/-- The log changed, its last index not lower at a leader. -/
+theorem PrvalsOk.mono_log {s : NState} {ls' : LogState} (H : PrvalsOk s)
+    (Hle : s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')) :
+    PrvalsOk { s with logst := ls' } :=
+  fun Hl v p Hv => (H Hl v p Hv).mono (Hle Hl)
+
+/-- The bound of one tracked peer. -/
+theorem PrvalsOk.lookup {s : NState} (H : PrvalsOk s) (Hl : s.role = .leader) {v : w64}
+    {p : Progress} (Hv : s.prvals !! v = some p) : PrOk s.logst p :=
+  H Hl v p Hv
+
+/-- What `reset`'s `Visit` closure writes into the peer `v`'s `Progress`, with `li` the log's last
+index (`raft.go`'s `reset`: `*pr = Progress{Match: 0, Next: lastIndex+1, ...}; if id == r.id {
+pr.Match = lastIndex }`): `Next = lastIndex + 1`, `Match = 0` (`lastIndex` for the node itself),
+no pending snapshot, `StateProbe` (the zero `Progress`'s state). -/
+def ResetPr (id li v : w64) (p : Progress) : Prop :=
+  p.next = li + W64 1 ∧ p.matched = (if v = id then li else W64 0) ∧
+  p.pendingSnapshot = W64 0 ∧ p.state = .probe
+
+/-- `PrOk` of a value `reset`'s closure writes: `Next = lastIndex + 1`, `Match` `0` or `lastIndex`,
+no pending snapshot. -/
+theorem PrOk.of_reset_vals {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
+    (hn : p.next = logLast ls + W64 1) (hm : p.matched = W64 0 ∨ p.matched = logLast ls)
+    (hs : p.pendingSnapshot = W64 0) : PrOk ls p := by
+  have Hnw := Hnw.logLast
+  unfold PrOk; rw [hn, hs]
+  rcases hm with hm | hm <;> rw [hm] <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+theorem ResetPr.prOk {id v : w64} {ls : LogState} {p : Progress}
+    (Hnw : LogNoWrap ls) (H : ResetPr id (logLast ls) v p) : PrOk ls p := by
+  obtain ⟨h1, h2, h3, -⟩ := H
+  refine PrOk.of_reset_vals Hnw h1 ?_ h3
+  rw [h2]; split
+  · exact .inr rfl
+  · exact .inl rfl
+
+/-- What a `Changer`'s new progress map holds, given the old one (`InvApplyConfC.lean`,
+`ownResult_transfer`): each `Progress` is a copy of the old one at that id (`Match`, `Next` and the
+pending snapshot kept) or fresh (`initProgress`: `Match = 0`, `Next = max(LastIndex, 1)`, no
+pending snapshot), `li` the `Changer`'s `LastIndex`. -/
+def PrKeptAt (old : GMap w64 Progress) (li k : w64) (p' : Progress) : Prop :=
+  (∃ p, old !! k = some p ∧ p'.matched = p.matched ∧ p'.next = p.next ∧
+    p'.pendingSnapshot = p.pendingSnapshot) ∨
+  (p'.matched = W64 0 ∧ uint.Z p'.next = max (uint.Z li) 1 ∧ p'.pendingSnapshot = W64 0)
+
+def PrKept (old pvs : GMap w64 Progress) (li : w64) : Prop :=
+  ∀ k p', pvs !! k = some p' → PrKeptAt old li k p'
+
+/-- `PrKeptAt` says what `MatchKept` says of `Match`. -/
+theorem PrKeptAt.matchKept {old : GMap w64 Progress} {li k : w64} {p' : Progress}
+    (H : PrKeptAt old li k p') :
+    uint.Z p'.matched = 0 ∨ ∃ p, old !! k = some p ∧ p.matched = p'.matched := by
+  rcases H with ⟨p, Hp, hm, -, -⟩ | ⟨hm, -, -⟩
+  · exact .inr ⟨p, Hp, hm.symm⟩
+  · left; rw [hm]; rfl
+
+/-- `PrKept` at the log's last index keeps `PrOk`. -/
+theorem PrKept.prOk {old pvs : GMap w64 Progress} {ls : LogState}
+    (H : PrKept old pvs (logLast ls)) (Hold : ∀ v p, old !! v = some p → PrOk ls p)
+    (v : w64) (p : Progress) (Hv : pvs !! v = some p) : PrOk ls p := by
+  rcases H v p Hv with ⟨p0, Hp0, hm, hn, hs⟩ | ⟨hm, hn, hs⟩
+  · exact (Hold v p0 Hp0).fields hn hm (by rw [hs]; exact Int.le_refl _)
+  · unfold PrOk; rw [hm, hn, hs]
+    have := uint_Z_nonneg (logLast ls)
+    refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+end prvals_ok
+
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
@@ -847,8 +1087,8 @@ def becomeLeaderPre (id : w64) (s : NState) : NState :=
 
 /-- The empty entry a new leader appends (`pb.Entry{Data: nil}`, the zero `Entry`),
 stamped at the leader's term and the log's next index. -/
-def leaderEntry (s : NState) : raftpb.Entry :=
-  stamp s.term (logLast s.logst) 0 (zero_val raftpb.Entry)
+def leaderEntry (s : NState) : EntryM :=
+  stamp s.term (logLast s.logst) 0 (zero_val EntryM)
 
 /-- `appendEntry`'s self-acknowledgement, at a state whose log already holds the
 appended batch: a `MsgAppResp` to itself at the last index (`r.send(pb.Message{To:

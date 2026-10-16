@@ -198,7 +198,6 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr⌝ ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "#HT" ∷ □ (|==> Er.T) ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     -- the names-only parts' contracts and the packages' ghost facts
@@ -235,9 +234,12 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
 /-- **What `start` hands to `Start`'s goroutines** (not persistent): a reader slot of `wgMu` (for
 `Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the
 reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`), `s.wgMu`'s
-(`srvWgReader`), `s.leaderChanged`'s. -/
+(`srvWgReader`), `s.leaderChanged`'s; and (2026-10-16, stage R7b) that the request path's read
+names are `γr` (`isServerBuilt`'s premise, which the read server's discharge takes,
+`isReadServer_of_server`). -/
 def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
-  iprop("Hgo" ∷ srvWgReader s ∗
+  iprop("%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
+    "Hgo" ∷ srvWgReader s ∗
     "Hrl" ∷ (∃ r : Loc, srvReadAddr s ↦□ r ∗
       isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1)) ∗
     "HLR" ∷ srvReadLR s ∗

@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raftLog__append
 public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 
@@ -26,8 +27,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 /-- Rocq `truncate_append_split`: the new visible stable part and unstable suffix make
 up `plogTruncateAppend` of the whole log. -/
-private theorem truncateAppend_split (prev : entryID) (sents uents : List raftpb.Entry)
-    (e0 : raftpb.Entry) (ents' : List raftpb.Entry) :
+private theorem truncateAppend_split (prev : entryID) (sents uents : List EntryM)
+    (e0 : EntryM) (ents' : List EntryM) :
     sents.take (uint.Z e0.Index' - uint.Z prev.index' - 1).toNat ++
       (uents.take (uint.Z e0.Index' - uint.Z prev.index' - 1 - (sents.length : Int)).toNat
         ++ e0 :: ents') =
@@ -37,8 +38,8 @@ private theorem truncateAppend_split (prev : entryID) (sents uents : List raftpb
   omega
 
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
-private theorem truncateAppend_lengths (prev : entryID) (sents uents : List raftpb.Entry)
-    (e0 : raftpb.Entry) (ents' : List raftpb.Entry)
+private theorem truncateAppend_lengths (prev : entryID) (sents uents : List EntryM)
+    (e0 : EntryM) (ents' : List EntryM)
     (H1 : uint.Z prev.index' < uint.Z e0.Index')
     (H2 : uint.Z e0.Index' ≤ uint.Z prev.index' + (sents.length : Int)
       + (uents.length : Int) + 1) :
@@ -54,8 +55,8 @@ omit go_gctx in
 over the bare quantities: `E` the batch's first index, `P` the old `prev.index`, `kip`
 and `k'` the old and new `offsetInProgress - offset`. -/
 private theorem append_persistOk (σ : StorState)
-    (lpend sents uents stored : List raftpb.Entry) (e0 : raftpb.Entry)
-    (ents' : List raftpb.Entry) (E P kip k' : Int)
+    (lpend sents uents stored : List EntryM) (e0 : EntryM)
+    (ents' : List EntryM) (E P kip k' : Int)
     (Hpre0 : (sents ++ uents.take kip.toNat) <+: storApp σ lpend)
     (Hst : storApp σ lpend = stored)
     (Hkip : kip.toNat ≤ uents.length)
@@ -88,13 +89,14 @@ re-sealed at `logTruncateAppend`: same storage state `σ`, the visible stable pa
 `e0.Index` when the batch starts inside it. -/
 theorem raftLog.append.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
-    (wp_unstable_truncateAndAppend : unstable.truncateAndAppend.spec (GF := GF) (hG := hG)) :
+    (wp_unstable_truncateAndAppend : unstable.truncateAndAppend.spec (GF := GF) (hG := hG))
+    (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     raftLog.append.spec (GF := GF) (hG := hG) := by
   intro l ls ents es dq Hpre
   wp_start as H
   iNamed H
   wp_auto
-  ihave %Hlen := ownSlice_len $$ Hes
+  ihave %Hlen := entsPts_len _ _ _ $$ Hes
   cases ents with
   | nil =>
     -- `len(ents) == 0`: the log is untouched and the result is the old last index.
@@ -117,20 +119,18 @@ theorem raftLog.append.wp_proof
     rw [decide_eq_false (by word)]
     wp_auto
     rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len by word)]
-    icases ownSlice_elem_acc (sint.Z (W64 0)) e0 es dq (e0 :: ents') (by decide) He0 $$ Hes
-      with ⟨He0, Hesback⟩
-    -- (a field load through a fractional struct points-to is not found by `wp_auto`:
-    -- take the field out by hand, as `Proof/unstable__truncateAndAppend.lean` does)
-    icases (AccessStrict.access_strict
-        (A := (sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es).[raftpb.Entry, go!"Index"] ↦{dq}
-          e0.Index')
-        (A' := (sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es).[raftpb.Entry, go!"Index"] ↦{dq}
-          e0.Index')
-        (P := sliceIndexRef raftpb.Entry (sint.Z (W64 0)) es ↦{dq} e0)) $$ He0 with ⟨He0, Hclose⟩
-    wp_auto
-    ihave He0 := Hclose $$ He0
-    ihave Hes := Hesback $$ He0
-    rw [show ((e0 :: ents').set (sint.Z (W64 0)).toNat e0) = e0 :: ents' from rfl]
+    iunfold entsPts at Hes
+    icases Hes with ⟨%lps, Hs, #Hb⟩
+    icases entsBig_lookup lps (e0 :: ents') 0 e0 He0 $$ Hb with ⟨%lp, %Hlp, #He⟩
+    wp_apply wp_load_slice_index es (sint.Z (W64 0)) lps dq lp (by decide) $$ [Hs] with Hs
+    · iframe
+      ipureintro
+      exact Hlp
+    wp_apply wp_Entry_GetIndex.1 lp DFrac.discard e0 $$ [$He] as -
+    ihave Hes : entsPts es dq (e0 :: ents') $$ [Hs]
+    · iunfold entsPts
+      iexists lps
+      iframe Hs Hb
     -- the `Panicf`: `after = e0.Index - 1 >= committed`
     iNamed Hlog
     wp_auto

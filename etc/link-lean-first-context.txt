@@ -1,4 +1,8 @@
-# etcd-grove's trust boundary of `context` (an axiom, `Proof/context/Err.lean`), read by
-# `etc/gen-link.py --context`: a context's `Err()`, its error's `Error()` returning some string.
-# The cache's and mvcc's Links take it as an `@` callee.
+# etcd-grove's trust boundary of `context` (axioms, `Proof/context/Err.lean`,
+# `Proof/context/ErrDone.lean`), read by `etc/gen-link.py --context`: a context's `Err()`, its
+# error's `Error()` returning some string (`context_Err`; the cache's and mvcc's Links take it as
+# an `@` callee); a done context's `Err()` being `Canceled` or `DeadlineExceeded`
+# (`context_ErrDone`; raft's Link takes it as an `@` callee for `node.stepWithWaitOption`, and the
+# server's reuses it from here).
 context_Err:
+context_ErrDone:

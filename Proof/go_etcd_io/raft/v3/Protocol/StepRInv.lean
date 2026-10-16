@@ -67,20 +67,20 @@ theorem rUnat_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a ≤ uint.n
 /-! ### Conf entries of a list -/
 
 /-- I3: every conf-change entry is at a position below `pci`, at most one at or past `a`. -/
-def ConfI3 (l : List raftpb.Entry) (pci a : Nat) : Prop :=
-  (∀ (k : Nat) (e : raftpb.Entry), l[k]? = some e → IsConfEnt e → k < pci) ∧
+def ConfI3 (l : List EntryM) (pci a : Nat) : Prop :=
+  (∀ (k : Nat) (e : EntryM), l[k]? = some e → IsConfEnt e → k < pci) ∧
   confCount (l.drop a) ≤ 1
 
-theorem confCount_eq_zero {l : List raftpb.Entry}
-    (h : ∀ (k : Nat) (e : raftpb.Entry), l[k]? = some e → ¬ IsConfEnt e) : confCount l = 0 := by
+theorem confCount_eq_zero {l : List EntryM}
+    (h : ∀ (k : Nat) (e : EntryM), l[k]? = some e → ¬ IsConfEnt e) : confCount l = 0 := by
   unfold confCount
   rw [List.countP_eq_zero]
   intro a ha
   obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 ha
   simpa using h k a hk
 
-theorem confCount_le_one {l : List raftpb.Entry}
-    (h : ∀ (k1 k2 : Nat) (e1 e2 : raftpb.Entry), k1 < k2 → l[k1]? = some e1 →
+theorem confCount_le_one {l : List EntryM}
+    (h : ∀ (k1 k2 : Nat) (e1 e2 : EntryM), k1 < k2 → l[k1]? = some e1 →
       l[k2]? = some e2 → IsConfEnt e1 → IsConfEnt e2 → False) : confCount l ≤ 1 := by
   induction l with
   | nil => simp [confCount]
@@ -97,7 +97,7 @@ theorem confCount_le_one {l : List raftpb.Entry}
       omega
 
 /-- Dropping more entries leaves no more conf entries. -/
-theorem confCount_drop_le (l : List raftpb.Entry) {a b : Nat} (h : a ≤ b) :
+theorem confCount_drop_le (l : List EntryM) {a b : Nat} (h : a ≤ b) :
     confCount (l.drop b) ≤ confCount (l.drop a) := by
   have : l.drop a = (l.drop a).take (b - a) ++ l.drop b := by
     have h2 := List.take_append_drop (b - a) (l.drop a)
@@ -106,8 +106,8 @@ theorem confCount_drop_le (l : List raftpb.Entry) {a b : Nat} (h : a ≤ b) :
   rw [this, confCount_append]; omega
 
 /-- No conf entry at or past `a`. -/
-theorem confCount_drop_zero {l : List raftpb.Entry} {a : Nat}
-    (h : ∀ (k : Nat) (e : raftpb.Entry), l[k]? = some e → IsConfEnt e → k < a) :
+theorem confCount_drop_zero {l : List EntryM} {a : Nat}
+    (h : ∀ (k : Nat) (e : EntryM), l[k]? = some e → IsConfEnt e → k < a) :
     confCount (l.drop a) = 0 :=
   confCount_eq_zero fun k e hk hc => by
     rw [List.getElem?_drop] at hk
@@ -115,7 +115,7 @@ theorem confCount_drop_zero {l : List raftpb.Entry} {a : Nat}
     omega
 
 /-- The stamped entries have the conf entries of the batch. -/
-theorem confCount_mapIdx {l : List raftpb.Entry} {f : Nat → raftpb.Entry → raftpb.Entry}
+theorem confCount_mapIdx {l : List EntryM} {f : Nat → EntryM → EntryM}
     (hf : ∀ k e, (f k e).Type' = e.Type') : confCount (l.mapIdx f) = confCount l := by
   induction l generalizing f with
   | nil => rfl
@@ -129,11 +129,11 @@ theorem confCount_mapIdx {l : List raftpb.Entry} {f : Nat → raftpb.Entry → r
 
 /-! ### `NoConfIn` -/
 
-theorem NoConfIn.mono {l : List raftpb.Entry} {lo hi lo' hi' : Nat} (h : NoConfIn l lo hi)
+theorem NoConfIn.mono {l : List EntryM} {lo hi lo' hi' : Nat} (h : NoConfIn l lo hi)
     (h1 : lo ≤ lo') (h2 : hi' ≤ hi) : NoConfIn l lo' hi' :=
   fun k e hk1 hk2 he => h k e (by omega) (by omega) he
 
-theorem NoConfIn.confCount {l : List raftpb.Entry} {lo hi : Nat} (h : NoConfIn l lo hi) :
+theorem NoConfIn.confCount {l : List EntryM} {lo hi : Nat} (h : NoConfIn l lo hi) :
     confCount ((l.drop lo).take (hi - lo)) = 0 :=
   confCount_eq_zero fun k e hk => by
     rw [List.getElem?_take] at hk
@@ -143,7 +143,7 @@ theorem NoConfIn.confCount {l : List raftpb.Entry} {lo hi : Nat} (h : NoConfIn l
     · cases hk
 
 /-- With no conf entry in `[lo, hi)`, the fold up to `hi` is the fold up to `lo`. -/
-theorem cfgFold_noConf (dec : CCDec) (c0 : CCState) {l : List raftpb.Entry} {lo hi : Nat}
+theorem cfgFold_noConf (dec : CCDec) (c0 : CCState) {l : List EntryM} {lo hi : Nat}
     {cs : CCState} (h : NoConfIn l lo hi) (hlh : lo ≤ hi) (hf : cfgFold dec c0 (l.take lo) = some cs) :
     cfgFold dec c0 (l.take hi) = some cs := by
   have hsplit : l.take hi = l.take lo ++ (l.drop lo).take (hi - lo) := by
@@ -153,26 +153,26 @@ theorem cfgFold_noConf (dec : CCDec) (c0 : CCState) {l : List raftpb.Entry} {lo 
 
 /-! ### I1 and I3 -/
 
-theorem ConfI1.mono {l : List raftpb.Entry} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') :
+theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') :
     ConfI1 l c' :=
   fun k1 k2 e1 e2 hlt h1 h2 c1 c2 => Nat.lt_of_lt_of_le (h k1 k2 e1 e2 hlt h1 h2 c1 c2) hc
 
 /-- Below the end of the list is free. -/
-theorem ConfI1.min_length {l : List raftpb.Entry} {c : Nat} (h : ConfI1 l c) :
+theorem ConfI1.min_length {l : List EntryM} {c : Nat} (h : ConfI1 l c) :
     ConfI1 l (min c l.length) := by
   intro k1 k2 e1 e2 hlt h1 h2 c1 c2
   have := h k1 k2 e1 e2 hlt h1 h2 c1 c2
   have := (List.getElem?_eq_some_iff.mp h2).1
   omega
 
-theorem ConfI1.prefix {l1 l2 : List raftpb.Entry} {c : Nat} (h : ConfI1 (l1 ++ l2) c) :
+theorem ConfI1.prefix {l1 l2 : List EntryM} {c : Nat} (h : ConfI1 (l1 ++ l2) c) :
     ConfI1 l1 c := by
   intro k1 k2 e1 e2 hlt h1 h2 c1 c2
   have hk2 := (List.getElem?_eq_some_iff.mp h2).1
   exact h k1 k2 e1 e2 hlt (by rw [List.getElem?_append_left (by omega)]; exact h1)
     (by rw [List.getElem?_append_left hk2]; exact h2) c1 c2
 
-theorem ConfI1.append_nonconf {l x : List raftpb.Entry} {c : Nat} (h : ConfI1 l c)
+theorem ConfI1.append_nonconf {l x : List EntryM} {c : Nat} (h : ConfI1 l c)
     (hx : ∀ e ∈ x, ¬ IsConfEnt e) : ConfI1 (l ++ x) c := by
   intro k1 k2 e1 e2 hlt h1 h2 c1 c2
   by_cases hk2 : k2 < l.length
@@ -182,7 +182,7 @@ theorem ConfI1.append_nonconf {l x : List raftpb.Entry} {c : Nat} (h : ConfI1 l 
     exact absurd c2 (hx e2 (List.mem_of_getElem? h2))
 
 /-- Every list with one conf entry at most past `a` has I1 at any `c ≥ a`. -/
-theorem ConfI1_of_drop_le {l : List raftpb.Entry} {a c : Nat} (h : confCount (l.drop a) ≤ 1)
+theorem ConfI1_of_drop_le {l : List EntryM} {a c : Nat} (h : confCount (l.drop a) ≤ 1)
     (hac : a ≤ c) : ConfI1 l c := by
   intro k1 k2 e1 e2 hlt h1 h2 c1 c2
   apply Classical.byContradiction
@@ -193,7 +193,7 @@ theorem ConfI1_of_drop_le {l : List raftpb.Entry} {a c : Nat} (h : confCount (l.
   omega
 
 /-- I1 and no conf entry in `[a, c)`: at most one past `a`. -/
-theorem ConfI1.confCount_drop {l : List raftpb.Entry} {a c : Nat} (h : ConfI1 l c)
+theorem ConfI1.confCount_drop {l : List EntryM} {a c : Nat} (h : ConfI1 l c)
     (hn : NoConfIn l a c) : confCount (l.drop a) ≤ 1 := by
   apply confCount_le_one
   intro k1 k2 e1 e2 hlt h1 h2 c1 c2
@@ -302,7 +302,7 @@ theorem RInv.commitUp {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec
     · rw [hl'] at h; cases h
 
 /-- A node starting from `c0` with the committed and applied log `L` (see the file header). -/
-theorem RInv_init (dec : CCDec) (c0 : CCState) (r : RState) (L : List raftpb.Entry)
+theorem RInv_init (dec : CCDec) (c0 : CCState) (r : RState) (L : List EntryM)
     (hfp : r.fp = []) (hb : r.p.base = base0) (hl : r.p.log = L)
     (hL : (L.length : Int) < 2 ^ 64)
     (hc : uint.Z r.p.commit = L.length) (ha : r.applied = r.p.commit) (hci : r.cidx = L.length)
@@ -333,17 +333,17 @@ theorem RInv_init (dec : CCDec) (c0 : CCState) (r : RState) (L : List raftpb.Ent
 /-- What the loop keeps of its accumulator: `pendingConfIndex` only grows; every accepted conf
 entry is below it; at most one is accepted, and only when `pendingConfIndex ≤ applied`, after
 which it is past `applied`. -/
-def PCInv (applied li pci : w64) (acc : List raftpb.Entry × w64) : Prop :=
+def PCInv (applied li pci : w64) (acc : List EntryM × w64) : Prop :=
   uint.Z pci ≤ uint.Z acc.2 ∧
-  (∀ (i : Nat) (e : raftpb.Entry), acc.1[i]? = some e → IsConfEnt e →
+  (∀ (i : Nat) (e : EntryM), acc.1[i]? = some e → IsConfEnt e →
     uint.Z li + (i : Int) + 1 ≤ uint.Z acc.2) ∧
   confCount acc.1 ≤ 1 ∧
   (confCount acc.1 = 0 → acc.2 = pci) ∧
   (0 < confCount acc.1 → uint.Z pci ≤ uint.Z applied ∧ uint.Z applied < uint.Z acc.2)
 
 /-- Appending an entry that is no conf change keeps `PCInv`. -/
-theorem PCInv.snoc_nonconf {applied li pci : w64} {acc : List raftpb.Entry × w64}
-    {x : raftpb.Entry} (h : PCInv applied li pci acc) (hx : ¬ IsConfEnt x) :
+theorem PCInv.snoc_nonconf {applied li pci : w64} {acc : List EntryM × w64}
+    {x : EntryM} (h : PCInv applied li pci acc) (hx : ¬ IsConfEnt x) :
     PCInv applied li pci (acc.1 ++ [x], acc.2) := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
   have hc : confCount (acc.1 ++ [x]) = confCount acc.1 := by
@@ -359,8 +359,8 @@ theorem PCInv.snoc_nonconf {applied li pci : w64} {acc : List raftpb.Entry × w6
       have := (List.getElem?_eq_some_iff.mp he).1; simp at this; omega
     rw [this] at he; simp at he; subst he; exact absurd hce hx
 
-theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List raftpb.Entry × w64}
-    {x : raftpb.Entry × Option CCMsg} (h : PCInv applied li pci acc)
+theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List EntryM × w64}
+    {x : EntryM × Option CCMsg} (h : PCInv applied li pci acc)
     (hx : x.2.isSome = decide (IsConfEnt x.1)) (hal : uint.Z applied ≤ uint.Z li)
     (hb : uint.Z li + (acc.1.length : Int) + 1 < 2 ^ 64) :
     PCInv applied li pci (propConfStep joint applied li acc x) := by
@@ -406,9 +406,9 @@ theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List raftp
       · intro _; simp only; rw [hnew]; rw [hp] at hle; exact ⟨hle, by omega⟩
 
 theorem propConf_foldl_inv (joint : Bool) {applied li pci : w64}
-    (hal : uint.Z applied ≤ uint.Z li) (xs : List (raftpb.Entry × Option CCMsg))
+    (hal : uint.Z applied ≤ uint.Z li) (xs : List (EntryM × Option CCMsg))
     (hx : ∀ x ∈ xs, x.2.isSome = decide (IsConfEnt x.1)) :
-    ∀ acc : List raftpb.Entry × w64, PCInv applied li pci acc →
+    ∀ acc : List EntryM × w64, PCInv applied li pci acc →
       uint.Z li + (acc.1.length : Int) + (xs.length : Int) < 2 ^ 64 →
       PCInv applied li pci (xs.foldl (propConfStep joint applied li) acc) := by
   induction xs with
@@ -421,7 +421,7 @@ theorem propConf_foldl_inv (joint : Bool) {applied li pci : w64}
         (by simp only [List.length_cons] at hb; omega)
     · rw [propConfStep_length]; simp only [List.length_cons] at hb; push_cast; omega
 
-theorem cctypes_iff {ents : List raftpb.Entry} {cs : List (Option CCMsg)}
+theorem cctypes_iff {ents : List EntryM} {cs : List (Option CCMsg)}
     (H : CCTypesOk ents cs) : ∀ x ∈ ents.zip cs, x.2.isSome = decide (IsConfEnt x.1) := by
   induction H with
   | nil => intro x hx; simp at hx
@@ -433,7 +433,7 @@ theorem cctypes_iff {ents : List raftpb.Entry} {cs : List (Option CCMsg)}
     · exact ih x hx
 
 /-- What the loop's result says (`PCInv` of the whole batch). -/
-theorem propConf_inv (joint : Bool) {applied li pci : w64} {ents : List raftpb.Entry}
+theorem propConf_inv (joint : Bool) {applied li pci : w64} {ents : List EntryM}
     {cs : List (Option CCMsg)} (hcs : CCTypesOk ents cs) (hal : uint.Z applied ≤ uint.Z li)
     (hnw : uint.Z li + (ents.length : Int) < 2 ^ 64) :
     PCInv applied li pci (propConf applied li pci ents cs joint) := by
@@ -629,7 +629,7 @@ theorem RInv_snapFastfwd {r : RState} (m : Msg) (ms : List Msg) (H : RInv dec c0
 
 /-- A snapshot restored: the node's full log is the snapshot's prefix, its configuration the
 snapshot's, which is the prefix's fold (`hcfg`, A3: the message's knowledge). -/
-theorem RInv_snapRestore {r : RState} (m : Msg) (fp' : List raftpb.Entry) (cs' : CCState)
+theorem RInv_snapRestore {r : RState} (m : Msg) (fp' : List EntryM) (cs' : CCState)
     (ms : List Msg) (H : RInv dec c0 r) (hc : uint.Z r.p.commit < uint.Z m.index)
     (hfull : FullOk (entryID.mk m.logterm m.index) fp') (hcfg : cfgFold dec c0 fp' = some cs') :
     RInv dec c0 { r with
@@ -687,7 +687,7 @@ theorem RInv_applySnap {r : RState} (H : RInv dec c0 r) (hs : r.snap = true) :
   · intro hc; have := (H.cand hc).1; rw [hs] at this; cases this
 
 /-- The configuration takes the next conf entry: the fold one entry further. -/
-theorem RInv_applyConf {r : RState} (k : Nat) (e : raftpb.Entry) (op : CCOp) (cs' : CCState)
+theorem RInv_applyConf {r : RState} (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState)
     (H : RInv dec c0 r) (hs : r.snap = false) (hk : r.cidx ≤ k) (hkc : k < uint.nat r.p.commit)
     (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : NoConfIn r.full r.cidx k)
     (hd : dec (r.full.take k) e = some op) (hst : ccStepB op r.cfg = some cs') :
@@ -709,8 +709,8 @@ end rules
 
 /-- Log matching between two full logs: where they have an entry of the same term, they agree
 up to it. -/
-def LogMatchL (F G : List raftpb.Entry) : Prop :=
-  ∀ (k : Nat) (e e' : raftpb.Entry), F[k]? = some e → G[k]? = some e' → e.Term' = e'.Term' →
+def LogMatchL (F G : List EntryM) : Prop :=
+  ∀ (k : Nat) (e e' : EntryM), F[k]? = some e → G[k]? = some e' → e.Term' = e'.Term' →
     F.take (k + 1) = G.take (k + 1)
 
 /-- What an `MsgApp` tells its receiver `r` for I1 (the ghost state's to supply, B4): the batch
@@ -720,7 +720,7 @@ with the message's previous term at its index, and agreeing with the receiver's 
 log matching. -/
 def AppKnow (r : RState) (m : Msg) : Prop :=
   AppPayloadOk m ∧
-  ∃ G : List raftpb.Entry, G.length = uint.nat m.index + m.entries.length ∧
+  ∃ G : List EntryM, G.length = uint.nat m.index + m.entries.length ∧
     G.drop (uint.nat m.index) = m.entries ∧
     ConfI1 G (uint.nat m.commit) ∧
     (0 < uint.nat m.index → ∃ e, G[uint.nat m.index - 1]? = some e ∧ e.Term' = m.logterm) ∧
@@ -751,10 +751,10 @@ theorem ConfI1_appOk {dec : CCDec} {c0 : CCState} {r : RState} {id : w64} {m : M
   rw [hsplit] at this
   exact this.prefix
 
-theorem plogFindConflict_first (b : entryID) (es : List raftpb.Entry) :
-    ∀ (ents : List raftpb.Entry) (d : Nat) (e : raftpb.Entry), ents[d]? = some e →
+theorem plogFindConflict_first (b : entryID) (es : List EntryM) :
+    ∀ (ents : List EntryM) (d : Nat) (e : EntryM), ents[d]? = some e →
     ¬ PlogMatches b es (entId e) →
-    (∀ (j : Nat) (e' : raftpb.Entry), j < d → ents[j]? = some e' → PlogMatches b es (entId e')) →
+    (∀ (j : Nat) (e' : EntryM), j < d → ents[j]? = some e' → PlogMatches b es (entId e')) →
     plogFindConflict b es ents = e.Index' := by
   intro ents
   induction ents with
@@ -773,7 +773,7 @@ theorem plogFindConflict_first (b : entryID) (es : List raftpb.Entry) :
         (fun j e' hj he' => hbef (j + 1) e' (by omega) (by simpa using he'))
 
 /-- A full log's term at a positive index is its entry's. -/
-theorem full_entry_of_term (F : List raftpb.Entry) (j t : w64)
+theorem full_entry_of_term (F : List EntryM) (j t : w64)
     (h : plogTermAt base0 F j = some t) (hj : 0 < uint.Z j) :
     ∃ e, F[uint.nat j - 1]? = some e ∧ e.Term' = t := by
   have h0 := base0_index
@@ -794,7 +794,7 @@ variable {dec : CCDec} {c0 : CCState}
 within it. With a conflict (above the commit index), the new full log is the sender's `G`
 (log matching below the conflict), whose I1 at the message's commit index gives I1 at the new
 commit index; the prefix up to the configuration index is untouched. -/
-theorem RInv_appAccept {r : RState} (m : Msg) (lastnewi : w64) (es' : List raftpb.Entry)
+theorem RInv_appAccept {r : RState} (m : Msg) (lastnewi : w64) (es' : List EntryM)
     (ms : List Msg) (H : RInv dec c0 r)
     (hma : plogMaybeAppend r.p.base r.p.log (entryID.mk m.logterm m.index) m.entries
       = some (lastnewi, es'))
@@ -937,7 +937,7 @@ theorem RInv.leader_drop_cidx {dec : CCDec} {c0 : CCState} {r : RState} (H : RIn
 prefix's fold (`AdmFold`, A3 for snapshots) and what each received `MsgApp` tells the state
 that receives it (`AppKnow`, stated here for any state with the invariant, since the
 derivation does not name it; the per-rule lemmas take it for the receiving state only). -/
-theorem RInv_stepR {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {c0 : CCState}
+theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : CCState}
     {id : w64} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
     {r : RState} {ms : List Msg} {r' : RState} (h : StepR Adm dec id r ms r')
     (hK : ∀ r1 m, m ∈ ms → m.ty = .app → RInv dec c0 r1 → AppKnow r1 m)
@@ -983,7 +983,7 @@ theorem RInv_stepR {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} 
     | exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
 
 /-- A derivation that receives nothing keeps `RInv` with no message knowledge. -/
-theorem RInv_stepR_nil {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {c0 : CCState}
+theorem RInv_stepR_nil {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : CCState}
     {id : w64} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
     {r r' : RState} (h : StepR Adm dec id r [] r') (H : RInv dec c0 r) : RInv dec c0 r' :=
   RInv_stepR hAdm h (fun _ _ hm => by simp at hm) H

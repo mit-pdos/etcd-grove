@@ -38,7 +38,7 @@ theorem raftLog.entries.wp_proof
     iapply HΦ
     iframe Hlog
     isplitl
-    · iapply ownSlice_nil (V := raftpb.Entry)
+    · unfold entsRO; iapply entsPts_nil
     · ipureintro
       exact ⟨fun e He => absurd He (List.not_mem_nil), List.nil_prefix⟩
   · wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li2 ⟨Hlog, %Hli2⟩

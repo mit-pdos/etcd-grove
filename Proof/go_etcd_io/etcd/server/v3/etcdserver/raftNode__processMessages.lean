@@ -5,8 +5,8 @@ Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessages
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Logger__Warn
@@ -37,6 +37,8 @@ theorem raftNode.processMessages.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.processMessages.spec (GF := GF) (hG := hG) := by
+  have wp_GetTo := wp_msgAt_GetTo wp_GetTo
+  have wp_GetType := wp_msgAt_GetType wp_GetType
   intro E γ r sl msL
   wp_start as ⟨#Hr, #Hsl, #Hall⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl

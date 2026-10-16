@@ -58,7 +58,8 @@ axiom OutOfRange [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def Unimplemented [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 12)
 
-axiom Internal [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Internal [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 13)
 
 @[reducible] noncomputable def Unavailable [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 14)

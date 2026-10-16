@@ -20,12 +20,18 @@ proposal is forwarded to can read the bytes back (`node.run`, from the proposed 
 invariant, `propData_ccEnts`). The caller provides the recording (`"#Hreg"`: what
 `propData_register` gives with the invariant, `InvNode.lean`). A conf-change entry is no
 client operation: its data is outside the client log (`entDataIs`, `none`).
+(2026-10-16, stage R5, D6: the entry's record holds its bytes, so the protocol message carries
+them and a leader decodes them from the record (`entData_cc`, `ccEntsOk_cc`, pure); the
+recording and `"#Hreg"` are gone.)
 
 Not stated: whether the change is appended or refused (a pending conf change, an empty
 `ConfChangeV2`), which `Step`'s postcondition does not expose and the error does not tell
 (a refused conf change is appended as an empty normal entry, `nil` returned); and the order
 in which the application must apply committed conf changes (`ApplyConfChange`) relative to
 `Advance`, which is `RawNode.ApplyConfChange`'s concern (its spec's documentation).
+
+raft v3.7 (2026-10-16, stage R5): `confChangeToMsg` returns a `*pb.Message`, owned
+(`confChangeToMsg.spec`), which `raft.Step` takes for good; `cc` is given back.
 -/
 module
 
@@ -48,13 +54,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The ability to record a slice as proposed (`isPropData`): what the proposed slices'
-invariant gives (`propData_register`, `InvNode.lean`). -/
-def propRegister (γ : RaftNames) : IProp GF :=
-  iprop(□ ∀ (sl : GoSlice) (bs : List w8), sl ↦*□ bs ={⊤}=∗ isPropData γ sl bs)
-
-instance propRegister_persistent (γ : RaftNames) : Persistent (propRegister (GF := GF) γ) := by
-  unfold propRegister; infer_instance
+-- (2026-10-16, stage R5, D6) `propRegister` (recording a slice as proposed, `isPropData`) is
+-- gone with the proposed slices: a conf-change entry holds its bytes.
 
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
 theorem ccEntryType_some (o : CCMsg) :
@@ -78,47 +79,34 @@ change). -/
 def CCAllowed (γ : RaftNames) (o : CCMsg) : Prop :=
   ∀ bs, CCData (some o) bs → γ.reCCOk (ccEntryType (some o)) bs
 
-/-- A conf change's entry is no client operation: its data are bytes that decode. -/
-theorem entData_cc (γ : RaftNames) (o : CCMsg) (data : GoSlice) (bs : List w8)
+omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+/-- A conf change's entry is no client operation: its data are bytes that decode.
+(2026-10-16, stage R5, D6: over the entry's record `ccEntryM`, which holds the bytes; until then
+over a proposed slice, `isPropData`.) -/
+theorem entData_cc (γ : RaftNames) (o : CCMsg) (bs : List w8)
     (H : CCData (some o) bs) (Hok : γ.reCCOk (ccEntryType (some o)) bs) :
-    ⊢ isPropData (GF := GF) γ data bs -∗ entData γ (ccEntry (some o) data) := by
-  iintro #Hpd
+    ⊢ entData (GF := GF) γ (ccEntryM (some o) bs) := by
   unfold entData
   iexists none
   unfold entDataIs
   iright
-  isplitr
-  · ipureintro
-    show ccEntryType (some o) ≠ W32 0
-    rcases ccEntryType_some o with h | h <;> rw [h] <;> word
-  iexists bs
-  dsimp only [ccEntry]
-  iframe Hpd
   ipureintro
-  exact ⟨ccData_decodes o bs H, Hok⟩
+  refine ⟨?_, ccData_decodes o bs H, Hok⟩
+  show ccEntryType (some o) ≠ W32 0
+  rcases ccEntryType_some o with h | h <;> rw [h] <;> word
 
-/-- What `Step` needs of the conf change's entry: its bytes, which decode. -/
-theorem ccEntsOk_cc (o : CCMsg) (data : GoSlice) (bs : List w8) (H : CCData (some o) bs) :
-    ⊢ data ↦*□ bs -∗ ccEntsOk (GF := GF) [ccEntry (some o) data] [some o] := by
-  iintro #Hd
+omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx hG [StorageModel GF] sem package_sem in
+/-- What `Step` needs of the conf change's entry: its bytes decode (pure since D6). -/
+theorem ccEntsOk_cc (o : CCMsg) (bs : List w8) (H : CCData (some o) bs) :
+    ⊢ ccEntsOk (GF := GF) [ccEntryM (some o) bs] [some o] := by
   unfold ccEntsOk
   iapply (BigSepL2.bigSepL2_cons (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2
   isplitl
   · rcases o with m | m
     · simp only [ccEntOk]
-      isplitr
-      · ipureintro; rfl
-      iexists bs
-      dsimp only [ccEntry]
-      iframe Hd
-      ipureintro; exact H
+      ipureintro; exact ⟨rfl, H⟩
     · simp only [ccEntOk]
-      isplitr
-      · ipureintro; rfl
-      iexists bs
-      dsimp only [ccEntry]
-      iframe Hd
-      ipureintro; exact H
+      ipureintro; exact ⟨rfl, H⟩
   iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2
   iempintro
 
@@ -130,8 +118,7 @@ abbrev RawNode.ProposeConfChange.spec : Prop :=
   CCAllowed γ o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      "Hc" ∷ ownCCI c dq (some o) ∗
-      "#Hreg" ∷ propRegister γ }}
+      "Hc" ∷ ownCCI c dq (some o) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ProposeConfChange")) (Val #c))
   {{ (err : GoInterface), RET #err;
       "Hrn" ∷ ownRawNode γ rn id rs ∗

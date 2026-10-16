@@ -1,6 +1,5 @@
 /-
-Proof of `Spec/go_etcd_io/raft/v3/raftpb/MarshalConfChange.lean`. Lean-first (no Rocq
-counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/raftpb/MarshalConfChange.lean`.
 -/
 module
 
@@ -8,8 +7,8 @@ public import Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChange
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV1
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__Marshal
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__Marshal
+public import Spec.google_golang_org.protobuf.proto.MarshalConfChange
+public import Spec.google_golang_org.protobuf.proto.MarshalConfChangeV2
 
 @[expose] public section
 
@@ -31,8 +30,8 @@ theorem raftpb.MarshalConfChange.wp_proof
     (wp_ConfChange_AsV1 : raftpb.ConfChange.AsV1.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV1 : raftpb.ConfChangeV2.AsV1.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
-    (wp_ConfChange_Marshal : raftpb.ConfChange.Marshal.spec (GF := GF) (hG := hG))
-    (wp_ConfChangeV2_Marshal : raftpb.ConfChangeV2.Marshal.spec (GF := GF) (hG := hG)) :
+    (wp_proto_MarshalConfChange : proto.MarshalConfChange.spec (GF := GF) (hG := hG))
+    (wp_proto_MarshalConfChangeV2 : proto.MarshalConfChangeV2.spec (GF := GF) (hG := hG)) :
     raftpb.MarshalConfChange.spec (GF := GF) (hG := hG) := by
   intro c o dq
   wp_start as Hc
@@ -43,7 +42,7 @@ theorem raftpb.MarshalConfChange.wp_proof
     wp_auto
     simp only [raftpb.EntryConfChangeV2]
     wp_auto
-    ihave Hnil : (slice.nil ↦* ([] : List w8)) $$ []
+    ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
     · iapply ownSlice_nil
     iapply HΦ $$ %slice.nil %([] : List w8)
     iframe
@@ -55,12 +54,12 @@ theorem raftpb.MarshalConfChange.wp_proof
     wp_apply wp_ConfChange_AsV1
     simp only [raftpb.EntryConfChange]
     wp_auto
-    wp_apply wp_ConfChange_Marshal _ v m (DFrac.own 1) dq $$ [$ccv1 $Hown]
-      as %sl %bs ⟨-, Hown, Hsl, %Hdec⟩
+    wp_apply wp_proto_MarshalConfChange v dq m $$ [$Hown] as %sl %bs ⟨Hown, Hsl, %Hdec⟩
     iapply HΦ $$ %sl %bs
     iframe
-    ipureintro
-    exact ⟨rfl, Hdec⟩
+    isplitl
+    · ipureintro; rfl
+    · ipureintro; exact Hdec
   · simp only [ownCCI, ccEntryType]
     icases Hc with ⟨%v, %Hc, Hown⟩
     subst Hc
@@ -69,12 +68,12 @@ theorem raftpb.MarshalConfChange.wp_proof
     wp_apply wp_ConfChangeV2_AsV2
     simp only [raftpb.EntryConfChangeV2]
     wp_auto
-    wp_apply wp_ConfChangeV2_Marshal _ v m (DFrac.own 1) dq $$ [$ccv2 $Hown]
-      as %sl %bs ⟨-, Hown, Hsl, %Hdec⟩
+    wp_apply wp_proto_MarshalConfChangeV2 v dq m $$ [$Hown] as %sl %bs ⟨Hown, Hsl, %Hdec⟩
     iapply HΦ $$ %sl %bs
     iframe
-    ipureintro
-    exact ⟨rfl, Hdec⟩
+    isplitl
+    · ipureintro; rfl
+    · ipureintro; exact Hdec
 
 end proof
 

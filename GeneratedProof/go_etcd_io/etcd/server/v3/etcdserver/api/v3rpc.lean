@@ -20,7 +20,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
-public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3
+public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap

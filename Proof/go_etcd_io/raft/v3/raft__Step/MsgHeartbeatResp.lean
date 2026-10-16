@@ -35,13 +35,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 /-- `MsgHeartbeatResp`: dropped if stale, a step-down if from a higher term, otherwise
 `r.step(m)` -- at a leader, possibly a `sendAppend`. The empty `Context` (no read-index
 requests in scope) keeps `stepLeader` out of the read-only code; `From ≠ id` rules out
 `send`'s self-addressed `Panicf`. -/
 theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8)
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM)
     (Hlrd : s.role = .leader → m.Term' = s.term →
       (RdOk c.voters s.rd ∧ s.term ≠ W64 0) ∧ (ctx = [] ∨ 8 ≤ ctx.length) ∧
       (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
@@ -54,9 +57,8 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents ∗
-        "#Hctx0" ∷ m.Context' ↦*□ ctx }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -67,26 +69,26 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf
-  wp_start_folded as ⟨Hphys, -, #Hctx0⟩
+  wp_start_folded as ⟨Hphys, Hm⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · wp_apply (wp_Step_Resp_gt _P c r id s m ents .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
-        Hgt Hwf) $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+  · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
+        Hgt Hwf) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
     iapply HΦ $$ %err %s'
     iframe Hphys
     ipureintro
     obtain ⟨recv, Hrecv, Hstep⟩ := Href
     exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_apply (wp_Step_Resp_lt _P c r id s m ents .heartbeatResp (.inr Hty) Hterm Hlt Hwf)
-        $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, -, %Hfr, %Htm⟩
+    · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents .heartbeatResp (.inr Hty) Hterm Hlt Hwf)
+        $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, -, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys
       ipureintro
       obtain ⟨recv, Hrecv, Hstep⟩ := Href
       exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgHeartbeatResp_eq _P c r id s m ents ctx Hlrd Hty Hto Hterm Hteq Hfnz
-        Hfid Hwf) $$ [$Hpkg $Hphys $Hctx0] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+      wp_apply (wp_Step_MsgHeartbeatResp_eq _P _Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hteq Hfnz
+        Hfid Hwf) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys
       ipureintro

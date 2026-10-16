@@ -25,22 +25,28 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
 /-- **`waitEvents(wc, evs)`**, for the channel `wc` of a range watch `o` (under `pfx`) from
-`rev`, **never closed** (the SPSC channel's close predicate is `False`: the premise of the
-bundle's `isEtcdRangeWatcherOpen`), consumed by the caller, and a non-empty read-only slice of
-event types whose last is `typ`: receives responses until it has seen the types in order, and
-returns the event that completes them, of type `typ`, with etcd's contract for it
-(`waitedEvent`). It never returns `nil`: that happens only when the channel closes, which the
-premise excludes (on a close the code as shipped returns `nil`, the recipes' findings). -/
+`rev`, which may be closed at any time (the SPSC channel's close predicate is `True`: the
+bundle's `isEtcdRangeWatcher`), consumed by the caller, and a non-empty read-only slice of event
+types whose last is `typ`: receives responses until it has seen the types in order. Returns
+* `(ev, nil)` with `ev` the event that completes them, of type `typ`, with etcd's contract for it
+  (`waitedEvent`), and the consumer token back;
+* `(nil, err)` with `err ≠ nil` when a response is canceled or carries an error
+  (`wresp.Err()`, before its events are read) or the channel closes first (`ErrWatchClosed`,
+  the verified fork's fix, unit W-Q); the consumer token is not returned (a close puts it
+  in the channel's invariant, `spsc_rcv_au`). -/
 abbrev waitEvents.spec : Prop :=
   ∀ (wc : Loc) (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w64)
     (rcv : List go_etcd_io.etcd.client.v3.WatchResponse) (sl : GoSlice) (ts : List w32)
     (typ : w32),
-  {{ isSpsc (GF := GF) γ.spsc wc (rangeWatchElem γ pfx o rev) (fun _ => iprop(False)) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+      isSpsc (GF := GF) γ.spsc wc (rangeWatchElem γ pfx o rev) (fun _ => iprop(True)) ∗
       spscConsumer γ.spsc rcv ∗ sl ↦*□ ts ∗ ⌜ts.getLast? = some typ⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.waitEvents)) (Val #wc))
       (Val #sl))
-  {{ (ev : Loc), RET #ev; waitedEvent pfx o rev typ ev ∗
-      ∃ rcv' : List go_etcd_io.etcd.client.v3.WatchResponse, spscConsumer γ.spsc rcv' }}
+  {{ (ev : Loc) (err : GoInterface), RET (PairV #ev #err);
+      (⌜err = GoInterface.nil⌝ ∗ waitedEvent pfx o rev typ ev ∗
+        ∃ rcv' : List go_etcd_io.etcd.client.v3.WatchResponse, spscConsumer γ.spsc rcv') ∨
+      ⌜err ≠ GoInterface.nil ∧ ev = null⌝ }}
 
 end spec
 

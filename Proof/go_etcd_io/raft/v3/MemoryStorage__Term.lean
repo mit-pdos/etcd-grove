@@ -4,6 +4,9 @@ Port of election_proof/proof_MemoryStorage__Term.v.
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 
@@ -21,12 +24,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem MemoryStorage.Term.wp_proof :
+theorem MemoryStorage.Term.wp_proof
+    (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Term.spec (GF := GF) (hG := hG) := by
   intro ms γs σ i0
   wp_start as ⟨Hms, %Hrange, %Hpf⟩
   iunfold ownMemoryStorage at Hms
-  icases Hms with ⟨#Hinit, #Hmu, Hview, %Hbounded⟩
+  icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -40,22 +45,18 @@ theorem MemoryStorage.Term.wp_proof :
   icases memView_agree γs σ σ0 $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
   obtain ⟨Hrange0, Hteq⟩ := memView_term σ σ0 Hvw i0 Hrange Hpf
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
+  icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
-  wp_auto
   icases Hents with #Hents
-  ihave %Hlen := ownSlice_len $$ Hents
-  icases ownSlice_elem_acc 0 dummy es _ (dummy :: σ0.ents) (by omega) rfl $$ Hents with ⟨#He, -⟩
-  obtain ⟨Hlen1, Hlen2⟩ := Hlen
-  simp only [List.length_cons] at Hlen1
-  have H0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len := by
-    constructor <;> word
-  simp only [H0, and_self, ↓reduceIte]
-  word_lit_simp
-  -- Lean: field loads through a struct points-to at a fraction other than `1` are
-  -- not found by `wp_load` (see `pbEntryID`); split the entry into its fields
-  iStructNamedSuffix He "_0"
+  ihave %Hcl := entsRO_cons_len $$ Hents
+  icases entsRO_lookup es (dummy :: σ0.ents) 0 dummy rfl $$ Hents
+    with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   wp_auto
+  rw [ite_eq_left ⟨by word, by word⟩]
+  wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
+  · iframe Hls; ipureintro; exact Hl0.1
+  wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
+  · iframe He0
   obtain ⟨Hd0, Hd1⟩ := Hdummy
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; word
@@ -68,14 +69,16 @@ theorem MemoryStorage.Term.wp_proof :
     simp only [List.length_cons]; omega
   obtain ⟨e, He⟩ : ∃ e, (dummy :: σ0.ents)[(uint.Z i0 - uint.Z σ0.prev.index').toNat]? = some e :=
     ⟨_, List.getElem?_eq_getElem Hlt⟩
-  icases ownSlice_elem_acc (uint.Z i0 - uint.Z σ0.prev.index') e es _ (dummy :: σ0.ents)
-    (by omega) He $$ Hents with ⟨#He1, -⟩
+  icases entsRO_lookup es (dummy :: σ0.ents) _ e He $$ Hents
+    with ⟨%ls1, %l1, #Hls1, #He1, %Hl1⟩
   have H1 : 0 ≤ uint.Z i0 - uint.Z σ0.prev.index' ∧
       uint.Z i0 - uint.Z σ0.prev.index' < sint.Z es.len := by
     constructor <;> word
   simp only [H1, and_self, ↓reduceIte]
-  iStructNamedSuffix He1 "_1"
-  wp_auto
+  wp_apply wp_load_slice_index es (uint.Z i0 - uint.Z σ0.prev.index') ls1 DFrac.discard l1 (by word) $$ [Hls1] with -
+  · iframe Hls1; ipureintro; exact Hl1.1
+  wp_apply wp_GetTerm.1 l1 DFrac.discard e $$ [He1] with -
+  · iframe He1
   have Hterm : termAt σ0.prev σ0.ents i0 = some e.Term' := by
     unfold termAt
     by_cases Hi : uint.Z i0 = uint.Z σ0.prev.index'
@@ -94,15 +97,15 @@ theorem MemoryStorage.Term.wp_proof :
       rfl
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hsnapshot Hvoters Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · inext
     unfold memstorageInv memstorageFields
     iexists σ0
     iframe Hgs_inv
     isplitl
-    · iexists hs, snap, es, dummy, _, _, _, _, _
+    · iexists hp, es, dummy, _, _, _, _, _
       iframe # ∗
-      ipureintro; exact ⟨Hsnap_id, Hd0, Hd1⟩
+      ipureintro; exact ⟨Hd0, Hd1⟩
     ipureintro; exact Hpb_inv
   iapply HΦ
   isplitr
