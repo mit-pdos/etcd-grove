@@ -1,0 +1,11 @@
+# etcd-io/etcd#22395 (checkIntervals reads a from-key delete as [Key, +inf)): the changed
+# function, what its check gives (distinct keys, the IgnoreValue/IgnoreLease premise) and the
+# gRPC handlers that call it. Branch pr-verify/etcd-22395; notes/pr-verify/etcd-22395.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22395.txt [--check [--update]]
+roots checkIntervals
+roots kvServer__Txn
+roots quotaKVServer__Txn
+axiom EtcdServer.Alarm.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
+axiom status.Error.wp_proof

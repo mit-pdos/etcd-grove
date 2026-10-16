@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd#22395 verified (branch `pr-verify/etcd-22395`, 2026-10-16)
+
+This branch translates the etcd fork with etcd#22395 applied (`pr-etcd-22395-goose-lean`, not
+pushed; `etc/goose.py --check` fails here by design) and proves it: `checkIntervals` reads a
+from-key delete (`RangeEnd = "\x00"`) as `[Key, +∞)`. `v3rpc.delIvl` gains the case,
+`checkIntervals`' proof covers the new test, `check_gives_nodup` drops its premise
+`ReqOp.noFromKeyDelL` (`goodDel` is "non-empty key"), and the new `CheckIgn.lean`
+(`check_gives_ignOk`, restated as `checkIntervals_ignOk`) derives the txn run's `IgnOk` premise
+from the gRPC checks: the panic of `issues/etcd-txn-delete-then-ignore-put.md`. Open: it still
+takes `siblingSafeL` (believed unneeded), and nothing links it to `txn.TxnPre` yet. The compaction
+section below ("`NoDelPutAt` is not met by the gRPC checks") is about the pinned code: with the PR,
+`check_gives_nodup` holds without the from-key exclusion. Report: `notes/pr-verify/etcd-22395.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

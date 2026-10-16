@@ -633,24 +633,79 @@ theorem v3rpc.checkIntervals.wp_proof
       · have he : e ≠ [] := by
           intro h; subst h; apply Hif; simp at Hel; unfold sint.nat at Hel; word
         have hesl : esl ≠ slice.nil := by intro h; subst h; apply Hif; rfl
-        have hdel : v3rpc.delIvl o = (k, e) := by
-          subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl, he]
-        wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
-        wp_apply wp_bytes_to_string esl e DFrac.discard $$ [$He] as -
-        wp_apply hIvl
-        wp_apply hIns $$ [$Htl] as Htl
-        · ipureintro; exact ci_ins_bound hu HL Hdc
-        wp_for_post
-        iframe
-        iexists n + W64 1, p, _
-        iframe
-        ipureintro
-        refine ⟨by constructor <;> word, ?_⟩
-        rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-          v3rpc.ci_levelDels_append]
-        simp only [v3rpc.levelDels]
-        rw [hdel]
-        exact v3rpc.ci_insert_perm _ _ _ HL
+        -- `rangeEnd := dreq.RangeEnd`; `len(rangeEnd) == 1 && rangeEnd[0] == 0`: a from-key
+        -- delete, whose range end becomes `nil` (etcd#22395)
+        by_cases hone : esl.len = W64 1
+        · have hlen1 : e.length = 1 := by rw [Hel.1, hone]; rfl
+          obtain ⟨c, rfl⟩ := List.length_eq_one_iff.1 hlen1
+          simp only [decide_eq_true hone]
+          wp_auto
+          rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z esl.len by
+            rw [hone]; decide)]
+          wp_apply wp_load_slice_index esl (sint.Z (W64 0)) [c] DFrac.discard c (by decide) $$ [] as -
+          · iframe He; ipureintro; rfl
+          wp_if_destruct
+          · -- the range end `"\x00"`: `[k, +∞)`
+            have hdel : v3rpc.delIvl o = (k, []) := by
+              subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl, Hif]
+            ihave #Hnil := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
+            wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
+            wp_apply wp_bytes_to_string slice.nil ([] : GoString) DFrac.discard $$ [$Hnil] as -
+            wp_apply hIvl
+            wp_apply hIns $$ [$Htl] as Htl
+            · ipureintro; exact ci_ins_bound hu HL Hdc
+            wp_for_post
+            iframe
+            iexists n + W64 1, p, _
+            iframe
+            ipureintro
+            refine ⟨by constructor <;> word, ?_⟩
+            rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
+              v3rpc.ci_levelDels_append]
+            simp only [v3rpc.levelDels]
+            rw [hdel]
+            exact v3rpc.ci_insert_perm _ _ _ HL
+          · have hdel : v3rpc.delIvl o = (k, [c]) := by
+              subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl]; exact Hif
+            wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
+            wp_apply wp_bytes_to_string esl [c] DFrac.discard $$ [$He] as -
+            wp_apply hIvl
+            wp_apply hIns $$ [$Htl] as Htl
+            · ipureintro; exact ci_ins_bound hu HL Hdc
+            wp_for_post
+            iframe
+            iexists n + W64 1, p, _
+            iframe
+            ipureintro
+            refine ⟨by constructor <;> word, ?_⟩
+            rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
+              v3rpc.ci_levelDels_append]
+            simp only [v3rpc.levelDels]
+            rw [hdel]
+            exact v3rpc.ci_insert_perm _ _ _ HL
+        · simp only [decide_eq_false hone]
+          have hne : e ≠ [W8 0] := by
+            intro h; subst h; apply hone; have h1 := Hel.1; simp only [List.length_singleton] at h1
+            unfold sint.nat at h1; word
+          have hdel : v3rpc.delIvl o = (k, e) := by
+            subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl, he]; exact hne
+          wp_auto
+          wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
+          wp_apply wp_bytes_to_string esl e DFrac.discard $$ [$He] as -
+          wp_apply hIvl
+          wp_apply hIns $$ [$Htl] as Htl
+          · ipureintro; exact ci_ins_bound hu HL Hdc
+          wp_for_post
+          iframe
+          iexists n + W64 1, p, _
+          iframe
+          ipureintro
+          refine ⟨by constructor <;> word, ?_⟩
+          rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
+            v3rpc.ci_levelDels_append]
+          simp only [v3rpc.levelDels]
+          rw [hdel]
+          exact v3rpc.ci_insert_perm _ _ _ HL
     | txn cs ts es =>
       iunfold v3rpc.reqOpIs at Hp
       icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩

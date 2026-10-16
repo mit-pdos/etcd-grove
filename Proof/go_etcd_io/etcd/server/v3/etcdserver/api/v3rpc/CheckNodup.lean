@@ -2,17 +2,17 @@
 **What `checkIntervals` is for**, proved (unit 1 of the request path): a branch `ops` of a
 transaction that passes the gRPC layer's checks — `checkRequestOp` (`opsCheck n ops = none`: every
 put and delete has a non-empty key, at any depth) and `checkIntervals` (`intervalsOk`) — with no
-from-key delete (`ReqOp.noFromKeyDelL`) and no nested put that a later sibling nested
-transaction deletes (`ReqOp.siblingSafeL`), run by the server at any state (`txn.srvOps`, whatever
+nested put that a later sibling nested transaction deletes (`ReqOp.siblingSafeL`), run by the server at any state (`txn.srvOps`, whatever
 its comparisons choose), puts distinct keys none of which it deletes: the condition of the txn
 package's `keys_nodup_iff_check`, hence `NoDupKeysPerRev` of the transaction's revision
 (`check_gives_nodup`). Lean-first (no Rocq counterpart).
 
-**The two exclusions are findings of the code**, not of the proof; without either the statement
-is false: `checkIntervals` reads a from-key delete's range `[k, "\x00")` as the empty interval,
-so a later put of a key it deletes passes (`issues/etcd-txn-delete-then-ignore-put.md`); and it
-checks a nested transaction's puts against the deletes of its level and of the siblings *before*
-it, not after (`issues/etcd-txn-check-intervals-sibling.md`).
+**The exclusion is a finding of the code**, not of the proof; without it the statement is false:
+`checkIntervals` checks a nested transaction's puts against the deletes of its level and of the
+siblings *before* it, not after (`issues/etcd-txn-check-intervals-sibling.md`). On the pinned code
+a second exclusion was needed, no from-key delete (`ReqOp.noFromKeyDelL`): it read a from-key
+delete's range `[k, "\x00")` as the empty interval (`issues/etcd-txn-delete-then-ignore-put.md`);
+etcd#22395 reads it as `[k, +∞)`, and this proof is of that code.
 
 **The keys' check is needed too**: unit 0's statement without it (`intervalsOkNoKeysStmt`) is
 false (`intervalsOkNoKeysStmt_false`): `checkIntervals`' affine order reads the
@@ -73,8 +73,11 @@ theorem affCmp_lt (a b : GoString) (ha : a ≠ []) (hb : b ≠ []) (h : go.GoStr
 theorem affCmp_nonempty_left (a : GoString) (ha : a ≠ []) : adt.affCmp [] a = 1 := by
   unfold adt.affCmp; simp [ha]
 
-/-- A delete the check sees as the code does: a non-empty key, not a from-key range end. -/
-def goodDel (o : OpFull) : Prop := o.key ≠ [] ∧ o.base.rangeEnd ≠ [W8 0]
+/-- A delete the check sees as the code does: a non-empty key (`checkRequestOp`). -/
+def goodDel (o : OpFull) : Prop := o.key ≠ []
+
+theorem affCmp_nonempty_right (a : GoString) (ha : a ≠ []) : adt.affCmp a [] = -1 := by
+  unfold adt.affCmp; simp [ha]
 
 theorem hits_sub {a b : List adt.IvlS} {k : GoString} (hab : ∀ x ∈ a, x ∈ b)
     (h : hits b k = false) : hits a k = false := by
@@ -89,7 +92,7 @@ theorem hits_single {d : adt.IvlS} {ds : List adt.IvlS} {k : GoString} (hd : d �
 /-- A deleted key (in the delete's range) is one `checkIntervals` sees the delete hit. -/
 theorem hits_of_inRange (o : OpFull) (k : GoString) (hk : k ≠ []) (ho : goodDel o)
     (h : inRange o.key o.base.rangeEnd k = true) : hits [delIvl o] k = true := by
-  obtain ⟨hkey, hfk⟩ := ho
+  have hkey : o.key ≠ [] := ho
   unfold inRange at h
   unfold hits delIvl pointIvl
   simp only [List.any_cons, List.any_nil, Bool.or_false, decide_eq_true_eq]
@@ -100,6 +103,16 @@ theorem hits_of_inRange (o : OpFull) (k : GoString) (hk : k ≠ []) (ho : goodDe
     have hne : o.key ++ [W8 0] ≠ [] := by simp
     rw [affCmp_lt _ _ hkey hne (strLt_append_zero _ hkey)]
     simp
+  by_cases hfk : o.base.rangeEnd = [W8 0]
+  · -- a from-key delete: `[key, +∞)`
+    rw [if_neg he, if_pos hfk] at h; rw [if_neg he, if_pos hfk]
+    unfold adt.ivlCmp
+    rw [affCmp_nonempty_right _ hk]
+    have : ¬ adt.affCmp k o.key < 0 := by
+      rw [adt.affCmp_neg_iff]; rintro ⟨-, h' | h'⟩
+      · exact hkey h'
+      · simp [h'] at h
+    simp [this]
   · simp only [he, hfk, ↓reduceIte, Bool.and_eq_true, Bool.not_eq_true',
       decide_eq_false_iff_not, decide_eq_true_eq] at h ⊢
     obtain ⟨h1, h2⟩ := h
@@ -114,16 +127,25 @@ theorem hits_of_inRange (o : OpFull) (k : GoString) (hk : k ≠ []) (ho : goodDe
 /-- `Union`'s filter keeps a good delete's interval. -/
 theorem unionSel_mem (o : OpFull) (ds : List adt.IvlS) (ho : goodDel o) (h : delIvl o ∈ ds) :
     delIvl o ∈ unionSel ds := by
-  obtain ⟨hkey, hfk⟩ := ho
+  have hkey : o.key ≠ [] := ho
   unfold unionSel
   rw [List.mem_filter]
   refine ⟨h, ?_⟩
-  have hb : (delIvl o).1 ≠ [] := by unfold delIvl; split <;> simpa
+  have hb : (delIvl o).1 ≠ [] := by unfold delIvl; split <;> (try split) <;> simpa
+  by_cases hfk : o.base.rangeEnd = [W8 0]
+  · -- a from-key delete: `[key, +∞)` meets `["\x00", +∞)`
+    have hd : delIvl o = (o.key, []) := by simp [delIvl, hfk]
+    simp only [decide_eq_true_eq]
+    unfold adt.ivlCmp unionIvl
+    rw [hd]
+    simp only
+    rw [affCmp_nonempty_left _ hkey, affCmp_nonempty_right _ (by simp)]
+    simp
   have he1 : (delIvl o).2 ≠ [] := by unfold delIvl pointIvl; split <;> simp_all
   have he2 : (delIvl o).2 ≠ [W8 0] := by
     unfold delIvl pointIvl; split
     · intro h; have := congrArg List.length h; simp at this; exact hkey this
-    · assumption
+    · exact hfk
   simp only [decide_eq_true_eq]
   unfold adt.ivlCmp unionIvl
   have : ¬ adt.affCmp [W8 0] (delIvl o).1 < 0 ∨ ¬ adt.affCmp [] (delIvl o).1 ≤ 0 := by
@@ -408,7 +430,7 @@ def Good (P : List GoString) (D : List OpFull) (puts : List GoString) (ds : List
 
 /-- Every run of the operations `ops` passing the check is `Good`. -/
 def GoodAll (ops : List ReqOp) : Prop :=
-  ∀ puts ds, ivCheck ops = some (puts, ds) → ReqOp.noFromKeyDelL ops →
+  ∀ puts ds, ivCheck ops = some (puts, ds) →
     ReqOp.siblingSafeL ops → ReqOp.keysNEL ops → ∀ P D, RunL ops P D → Good P D puts ds
 
 set_option linter.unusedVariables false in
@@ -417,7 +439,7 @@ nested transactions' loop from `(p0, d0)` to `(pend, dend)`, the level's puts ch
 the latter, the level's deletes in `d0`; the nested transactions' branches `GoodAll`. -/
 theorem level : ∀ (ops : List ReqOp)
     (hnest : ∀ u ∈ ops, ∀ cs ts es, u = .txn cs ts es → GoodAll ts ∧ GoodAll es)
-    (hfk : ReqOp.noFromKeyDelL ops) (hsib : ReqOp.siblingSafeL ops) (hkn : ReqOp.keysNEL ops)
+    (hsib : ReqOp.siblingSafeL ops) (hkn : ReqOp.keysNEL ops)
     (p0 pend : List GoString) (d0 dend : List adt.IvlS) (nest : List NestRes)
     (hn : ivNest ops = some nest) (hfold : nest.foldl nestStep (some (p0, d0)) = some (pend, dend))
     (hLP : ∀ k ∈ levelPuts ops, k ∉ pend ∧ hits dend k = false) (hLPnd : (levelPuts ops).Nodup)
@@ -426,17 +448,16 @@ theorem level : ∀ (ops : List ReqOp)
     P.Nodup ∧ (∀ k ∈ P, k ∈ pend ∨ k ∈ levelPuts ops) ∧ (∀ k ∈ P, k ∉ p0) ∧
       (∀ k ∈ P, hits d0 k = false) ∧ (∀ o ∈ D, delIvl o ∈ dend) ∧
       (∀ k ∈ P, ∀ o ∈ D, hits [delIvl o] k = false) ∧ (∀ k ∈ P, k ≠ []) ∧ (∀ o ∈ D, goodDel o)
-  | [], _, _, _, _, p0, pend, d0, dend, nest, hn, hfold, _, _, _, P, D, hrun => by
+  | [], _, _, _, p0, pend, d0, dend, nest, hn, hfold, _, _, _, P, D, hrun => by
     simp only [ivNest, Option.some.injEq] at hn; subst hn
     simp only [List.foldl_nil, Option.some.injEq, Prod.mk.injEq] at hfold
     obtain ⟨rfl, rfl⟩ := hfold
     simp only [RunL] at hrun; obtain ⟨rfl, rfl⟩ := hrun
     simp
-  | u :: rest, hnest, hfk, hsib, hkn, p0, pend, d0, dend, nest, hn, hfold, hLP, hLPnd, hLD,
+  | u :: rest, hnest, hsib, hkn, p0, pend, d0, dend, nest, hn, hfold, hLP, hLPnd, hLD,
       P, D, hrun => by
     simp only [RunL] at hrun
     obtain ⟨P1, D1, P2, D2, rfl, rfl, h1, h2⟩ := hrun
-    simp only [ReqOp.noFromKeyDelL] at hfk
     simp only [ReqOp.siblingSafeL] at hsib
     simp only [ReqOp.keysNEL] at hkn
     have hnest' : ∀ v ∈ rest, ∀ cs ts es, v = .txn cs ts es → GoodAll ts ∧ GoodAll es :=
@@ -446,7 +467,7 @@ theorem level : ∀ (ops : List ReqOp)
     | range o =>
       simp only [RunOp] at h1; obtain ⟨rfl, rfl⟩ := h1
       simp only [ivNest] at hn
-      have ih := level rest hnest' hfk.2 hsib.2.2 hkn.2 p0 pend d0 dend nest hn hfold
+      have ih := level rest hnest' hsib.2.2 hkn.2 p0 pend d0 dend nest hn hfold
         (by simpa [levelPuts] using hLP) (by simpa [levelPuts] using hLPnd)
         (by simpa [levelDels] using hLD) P2 D2 h2
       simpa [levelPuts] using ih
@@ -455,7 +476,7 @@ theorem level : ∀ (ops : List ReqOp)
       simp only [RunOp] at h1; obtain ⟨rfl, rfl⟩ := h1
       simp only [ivNest] at hn
       simp only [levelPuts, List.mem_cons, List.nodup_cons, forall_eq_or_imp] at hLP hLPnd
-      have ih := level rest hnest' hfk.2 hsib.2.2 hkn.2 p0 pend d0 dend nest hn hfold
+      have ih := level rest hnest' hsib.2.2 hkn.2 p0 pend d0 dend nest hn hfold
         hLP.2 hLPnd.2 (by simpa [levelDels] using hLD) P2 D2 h2
       obtain ⟨i1, i2, i3, i4, i5, i6, i7, i8⟩ := ih
       have hko : o.key ∉ P2 := fun hk => by
@@ -474,14 +495,14 @@ theorem level : ∀ (ops : List ReqOp)
       simp only [RunOp] at h1; obtain ⟨rfl, rfl⟩ := h1
       simp only [ivNest] at hn
       simp only [levelDels, List.mem_cons, forall_eq_or_imp] at hLD
-      have ih := level rest hnest' hfk.2 hsib.2.2 hkn.2 p0 pend d0 dend nest hn hfold
+      have ih := level rest hnest' hsib.2.2 hkn.2 p0 pend d0 dend nest hn hfold
         (by simpa [levelPuts] using hLP) (by simpa [levelPuts] using hLPnd) hLD.2 P2 D2 h2
       obtain ⟨i1, i2, i3, i4, i5, i6, i7, i8⟩ := ih
       simp only [List.nil_append, List.singleton_append, List.mem_cons, forall_eq_or_imp,
         levelPuts]
       refine ⟨i1, i2, i3, i4, ⟨hmono.2 _ hLD.1, i5⟩,
         fun k hk => ⟨hits_single hLD.1 (i4 k hk), i6 k hk⟩, i7,
-        ⟨⟨hkn.1, by simpa [ReqOp.noFromKeyDel] using hfk.1⟩, i8⟩⟩
+        ⟨hkn.1, i8⟩⟩
     | txn cs ts es =>
       simp only [ivNest] at hn
       split at hn
@@ -495,12 +516,11 @@ theorem level : ∀ (ops : List ReqOp)
         rw [hs] at hfold
         obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8⟩ := nestStep_spec hs
         have hmono' := nestFold_mono nr p1 pend d1 dend hfold
-        have ih := level rest hnest' hfk.2 hsib.2.2 hkn.2 p1 pend d1 dend nr hr hfold
+        have ih := level rest hnest' hsib.2.2 hkn.2 p1 pend d1 dend nr hr hfold
           (by simpa [levelPuts] using hLP) (by simpa [levelPuts] using hLPnd)
           (fun x hx => a2 x (hLD x (by simpa [levelDels] using hx))) P2 D2 h2
         obtain ⟨i1, i2, i3, i4, i5, i6, i7, i8⟩ := ih
         obtain ⟨gT, gE⟩ := hnest _ (by simp) cs ts es rfl
-        simp only [ReqOp.noFromKeyDel] at hfk
         simp only [ReqOp.siblingSafe] at hsib
         simp only [ReqOp.keysNE] at hkn
         -- the branch run: `Good` against its own check, and its puts/deletes in the txn's
@@ -512,11 +532,11 @@ theorem level : ∀ (ops : List ReqOp)
           simp only [RunOp] at h1
           rcases h1 with h1 | h1
           · obtain ⟨g1, g2, g3, g4, g5, g6⟩ :=
-              gT pT dT hT hfk.1.1 hsib.2.1.1 hkn.1.1 P1 D1 h1
+              gT pT dT hT hsib.2.1.1 hkn.1.1 P1 D1 h1
             exact ⟨g1, fun k hk => a3 k (g2 k hk), fun k hk => a7 k (g2 k hk),
               fun o ho => a5 _ (unionSel_mem o _ (g6 o ho) (g3 o ho)), g4, g5, g6⟩
           · obtain ⟨g1, g2, g3, g4, g5, g6⟩ :=
-              gE pE dE hE hfk.1.2 hsib.2.1.2 hkn.1.2 P1 D1 h1
+              gE pE dE hE hsib.2.1.2 hkn.1.2 P1 D1 h1
             refine ⟨g1, fun k hk => a4 k (g2 k hk), fun k hk => ⟨fun hp => ?_, (a8 k (g2 k hk)).2⟩,
               fun o ho => a6 _ (unionSel_mem o _ (g6 o ho) (g3 o ho)), g4, g5, g6⟩
             exact (a7 k ((a8 k (g2 k hk)).1 hp)).1 hp
@@ -562,7 +582,7 @@ theorem level : ∀ (ops : List ReqOp)
 theorem goodAll_of_nest (ops : List ReqOp)
     (hnest : ∀ u ∈ ops, ∀ cs ts es, u = .txn cs ts es → GoodAll ts ∧ GoodAll es) :
     GoodAll ops := by
-  intro puts ds hiv hfk hsib hkn P D hrun
+  intro puts ds hiv hsib hkn P D hrun
   unfold ivCheck at hiv
   cases hn : ivNest ops with
   | none => rw [hn] at hiv; cases hiv
@@ -577,7 +597,7 @@ theorem goodAll_of_nest (ops : List ReqOp)
   obtain ⟨hds, hmem, hnd, hall⟩ := putFold_spec _ _ _ _ _ hiv
   subst hds
   obtain ⟨i1, i2, -, -, i5, i6, i7, i8⟩ :=
-    level ops hnest hfk hsib hkn [] pend (levelDels ops) ds nest hn hf hall hnd
+    level ops hnest hsib hkn [] pend (levelDels ops) ds nest hn hf hall hnd
       (fun _ h => h) P D hrun
   exact ⟨i1, fun k hk => (hmem k).2 (i2 k hk), i5, i6, i7, i8⟩
 
@@ -608,20 +628,19 @@ theorem goodAll : ∀ (n : Nat) (ops : List ReqOp), ReqOp.szL ops ≤ n → Good
       have := sz_le_szL hu; subst he; simp only [ReqOp.sz] at this
       exact ⟨goodAll n ts (by omega), goodAll n es (by omega)⟩)
 
-/-- **`check_gives_nodup`** (`intervalsOkCheckStmt`): see the file header. The two exclusions
-(`noFromKeyDelL`, `siblingSafeL`) are findings of the code
-(`issues/etcd-txn-delete-then-ignore-put.md`, `issues/etcd-txn-check-intervals-sibling.md`):
-without either the statement is false. -/
+/-- **`check_gives_nodup`** (`intervalsOkCheckStmt`): see the file header. The exclusion
+(`siblingSafeL`) is a finding of the code (`issues/etcd-txn-check-intervals-sibling.md`): without
+it the statement is false. With etcd#22395, no from-key exclusion (`noFromKeyDelL`). -/
 theorem check_gives_nodup (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv)
     (r : w64) (htx : ReqOp.toTxnOps ops = some tops) (hck : opsCheck n ops = none)
-    (hfk : ReqOp.noFromKeyDelL ops) (hsib : ReqOp.siblingSafeL ops) (hiv : intervalsOk ops) :
+    (hsib : ReqOp.siblingSafeL ops) (hiv : intervalsOk ops) :
     (txn.putKeysOf (txn.srvOps s0 r s tops).1).Nodup ∧
       ∀ k ∈ txn.putKeysOf (txn.srvOps s0 r s tops).1, k ∉ txn.delKeysOf (txn.srvOps s0 r s tops).1 := by
   obtain ⟨P, D, hrun, hp, hd⟩ := runL_of s0 r ops tops s htx
   unfold intervalsOk at hiv
   obtain ⟨⟨puts, ds⟩, hc⟩ := Option.isSome_iff_exists.1 hiv
   obtain ⟨g1, -, -, g4, g5, g6⟩ :=
-    goodAll _ ops (Nat.le_refl _) puts ds hc hfk hsib (keysNEL_of_check ops n hck) P D hrun
+    goodAll _ ops (Nat.le_refl _) puts ds hc hsib (keysNEL_of_check ops n hck) P D hrun
   rw [hp]
   refine ⟨g1, fun k hk hdel => ?_⟩
   obtain ⟨o, ho, hin⟩ := hd k hdel
@@ -631,7 +650,7 @@ theorem check_gives_nodup (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 s
 
 /-- **`intervalsOkCheckStmt` holds.** -/
 theorem intervalsOkCheckStmt_holds : intervalsOkCheckStmt :=
-  fun n ops tops s0 s r htx hck hfk hsib hiv => check_gives_nodup n ops tops s0 s r htx hck hfk hsib hiv
+  fun n ops tops s0 s r htx hck hsib hiv => check_gives_nodup n ops tops s0 s r htx hck hsib hiv
 
 /-- **Unit 0's statement, without the keys checked, is false**: without the keys checked (`checkRequestOp`,
 which runs before `checkIntervals` in `kvServer.Txn`), a put of the empty key and a delete of the
@@ -643,7 +662,6 @@ theorem intervalsOkNoKeysStmt_false : ¬ intervalsOkNoKeysStmt := by
       .delete (txn.deleteOpOf [] [] false)]
     [txn.putTxnOp (txn.putOpOf [] [] (W64 0) false false false),
       .delete (txn.deleteOpOf [] [] false)] [] [] (W64 1) rfl
-    (by simp [ReqOp.noFromKeyDelL, ReqOp.noFromKeyDel, txn.deleteOpOf])
     (by simp [ReqOp.siblingSafeL, ReqOp.siblingSafe, sibOk])
     (by
       simp only [intervalsOk, ivCheck, ivNest, Option.bind_some, ivFinish, levelPuts, levelDels,

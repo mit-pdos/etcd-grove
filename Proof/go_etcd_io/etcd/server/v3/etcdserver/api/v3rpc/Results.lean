@@ -8,11 +8,18 @@ Unit 1 (2026-10-12): every function of `key.go` but `kvServer.RangeStream` and
 `kvServer.Compact`, of `header.go` and `util.go`'s `togRPCError` specified and proved
 (`Link.lean`). The results:
 * **`check_gives_nodup`** (`CheckNodup.lean`; `intervalsOkCheckStmt_holds`): a branch passing
-  `checkRequestOp` (non-empty keys) and `checkIntervals` with no from-key delete and no nested put a later sibling deletes, run by the server, writes each key at most
-  once; with the txn package's `keys_nodup_iff_check`, `checkIntervals_nodup` below: the changes'
-  keys are distinct (`NoDupKeysPerRev`'s per-transaction part). The two exclusions are the
-  code's findings (`issues/etcd-txn-delete-then-ignore-put.md`,
-  `issues/etcd-txn-check-intervals-sibling.md`).
+  `checkRequestOp` (non-empty keys) and `checkIntervals` with no nested put a later sibling
+  deletes, run by the server, writes each key at most once; with the txn package's
+  `keys_nodup_iff_check`, `checkIntervals_nodup` below: the changes' keys are distinct
+  (`NoDupKeysPerRev`'s per-transaction part). The exclusion is the code's finding
+  (`issues/etcd-txn-check-intervals-sibling.md`). (Branch `pr-verify/etcd-22395`: of the code
+  with etcd#22395, which reads a from-key delete as `[k, +∞)`; the pinned code also needed no
+  from-key delete, `issues/etcd-txn-delete-then-ignore-put.md`.)
+* **`check_gives_ignOk`** (`CheckIgn.lean`, branch `pr-verify/etcd-22395`): with the same checks,
+  the run's premise on `IgnoreValue`/`IgnoreLease` puts (`txn.IgnOk`, `TxnPre`'s) holds: the
+  apply-loop panic of `issues/etcd-txn-delete-then-ignore-put.md` is excluded at the API, for
+  requests without a later-sibling delete of a nested put (`siblingSafeL`; believed unneeded, not
+  proved) and not yet linked to the apply thread's `TxnPre`.
 * **`checkRequestOp_nonempty`**: a transaction passing `checkTxnRequest` has no empty
   operation at any depth (the txn package's `etcd-txn-empty-requestop` precondition discharged at
   the API).
@@ -40,6 +47,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckIgn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
@@ -62,16 +70,26 @@ namespace v3rpc
 open Iris Iris.BI
 
 /-- **`checkIntervals` gives distinct keys** (see `check_gives_nodup`): a branch `ops` passing
-`checkRequestOp` and `checkIntervals`, with no from-key delete and no nested put a later sibling deletes, run by the
+`checkRequestOp` and `checkIntervals`, with no nested put a later sibling deletes, run by the
 server whose deletes are of present keys (`DelsPresent`, which a run gives), changes each key at
 most once. -/
 theorem checkIntervals_nodup (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv)
     (r : w64) (hops : ReqOp.toTxnOps ops = some tops) (hck : opsCheck n ops = none)
-    (hfk : ReqOp.noFromKeyDelL ops)
     (hsib : ReqOp.siblingSafeL ops) (hiv : intervalsOk ops)
     (hdel : txn.DelsPresent r s (txn.srvOps s0 r s tops).1) :
     ((txn.srvOps s0 r s tops).1.map mvcc.Change.key).Nodup :=
-  (txn.keys_nodup_iff_check _ s hdel).2 (check_gives_nodup n ops tops s0 s r hops hck hfk hsib hiv)
+  (txn.keys_nodup_iff_check _ s hdel).2 (check_gives_nodup n ops tops s0 s r hops hck hsib hiv)
+
+/-- **`checkIntervals` excludes the `IgnoreValue`/`IgnoreLease` panic** (see `check_gives_ignOk`,
+etcd#22395): a branch passing `checkRequestOp` and `checkIntervals`, with no nested put a later
+sibling deletes, run by the server from its sorted read view `s0` with its gets within the model,
+meets the run's premise `OpsOk true` (`TxnPre`'s): every put that needs the previous key-value finds
+it, unless it was missing at `s0` (when `checkTxn` rejects the transaction). -/
+theorem checkIntervals_ignOk (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 : List EtcdKv)
+    (r : w64) (hs0 : s0.Pairwise etcdKvLess) (hops : ReqOp.toTxnOps ops = some tops)
+    (hck : opsCheck n ops = none) (hsib : ReqOp.siblingSafeL ops) (hiv : intervalsOk ops)
+    (hg : OpsGetsOk s0 r s0 tops) : txn.OpsOk true s0 r s0 tops :=
+  check_gives_ignOk n ops tops s0 r hs0 hops hck hsib hiv hg
 
 /-- **An empty operation is rejected** at any depth: a transaction passing `checkTxnRequest`
 has the txn package's model (no empty `RequestOp`, the `etcd-txn-empty-requestop` precondition). -/
@@ -755,7 +773,9 @@ end watch_wire
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
+#print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_ignOk
 #print axioms Perennial.EtcdGrove.v3rpc.check_gives_nodup
+#print axioms Perennial.EtcdGrove.v3rpc.check_gives_ignOk
 #print axioms Perennial.EtcdGrove.v3rpc.intervalsOkCheckStmt_holds
 #print axioms Perennial.EtcdGrove.v3rpc.intervalsOkNoKeysStmt_false
 #print axioms Perennial.EtcdGrove.v3rpc.checkRequestOp_nonempty

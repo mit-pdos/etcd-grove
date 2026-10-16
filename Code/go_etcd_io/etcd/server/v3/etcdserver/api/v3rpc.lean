@@ -1883,11 +1883,24 @@ noncomputable def checkIntervals.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree.ty go!"Insert"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree.ty))) (Var "dels"))) (Var "$a0")) (Var "$a1")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dreq"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dreq"))))
+  (Let "rangeEnd" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dreq")))))
-  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dreq")))))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd")))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.NewStringAffineInterval []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Interval.ty))) (Pair (Var "iv") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Interval.ty))) (Pair (Var "iv") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd")) (Val #(W64 0))))) (Val #(W8 0)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "rangeEnd") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "rangeEnd") (Var "$r0")))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dreq")))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.NewStringAffinePoint []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
@@ -1913,7 +1926,7 @@ noncomputable def checkIntervals.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree.ty))) (Pair (Var "dels") (Var "$r0"))))))))))
 
-/-- go: key.go:317:6 -/
+/-- go: key.go:324:6 -/
 noncomputable def checkRequestOp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "maxTxnOps"

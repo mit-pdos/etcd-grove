@@ -22,12 +22,14 @@ operations of a transaction get `maxTxnOps` less the widest of its comparisons a
 (`issues/etcd-max-txn-ops-nested.md`).
 
 **`checkIntervals` as the code computes it** (`ivCheck`): the deletes of a level as affine
-intervals (`delIvl`: the point `[k, k + "\x00")` for an empty range end, `[k, end)` otherwise),
+intervals (`delIvl`: the point `[k, k + "\x00")` for an empty range end, `[k, +∞)` for the range
+end `"\x00"`, `[k, end)` otherwise),
 the nested transactions' puts and deletes (`ivNest`, both branches, recursively), then the
 level's puts (`ivFinish`), with the interval tree's overlap (`adt.ivlCmp`, the `adt` model) and
-`Union`'s filter by `["\x00", +∞)`. So a range end `"\x00"` (a from-key delete,
-`WithFromKey`) is the interval `[k, "\x00")`, which is empty and overlaps no put: the code's
-semantics, not the client's (`issues/etcd-txn-delete-then-ignore-put.md`). The range end is read
+`Union`'s filter by `["\x00", +∞)`. A range end `"\x00"` (a from-key delete, `WithFromKey`) is
+the interval `[k, +∞)`, as the executor reads it (`mkGteRange`): this is etcd#22395's fix; the
+pinned code reads it as `[k, "\x00")`, which is empty and overlaps no put
+(`issues/etcd-txn-delete-then-ignore-put.md`). The range end is read
 from the denotation `o.base.rangeEnd` (`txn.rangeEndOf`), which is the request's bytes for a
 request decoded from the wire (protobuf-go decodes an empty `bytes` field as `nil`); an empty but
 non-nil `RangeEnd` (built in memory, never from the wire) denotes `[0]` where the code reads a
@@ -36,10 +38,11 @@ point: unit 1's specs take the request off the wire.
 **What the check is for** (`intervalsOkCheckStmt`, proved by unit 1): a branch that passes
 `checkRequestOp` (non-empty keys) and `checkIntervals` (`intervalsOk`), run by the server
 (`txn.srvOps`), writes each key at most once (the txn package's `keys_nodup_iff_check`
-condition, hence `NoDupKeysPerRev`), provided it has no from-key delete (`noFromKeyDel`) and no
-nested transaction puts a key a later sibling nested transaction deletes (`siblingSafe`): `checkIntervals` checks a nested transaction's puts against
-the deletes of its level and of the siblings *before* it, not after
-(`issues/etcd-txn-check-intervals-sibling.md`). Both gaps are the code's.
+condition, hence `NoDupKeysPerRev`), provided no nested transaction puts a key a later sibling
+nested transaction deletes (`siblingSafe`): `checkIntervals` checks a nested transaction's puts
+against the deletes of its level and of the siblings *before* it, not after
+(`issues/etcd-txn-check-intervals-sibling.md`), a gap of the code. With etcd#22395 a from-key
+delete needs no premise any more (the pinned code's statement needed `noFromKeyDel`).
 -/
 module
 
@@ -198,9 +201,13 @@ def txnReqOk (maxTxnOps : Int) (cs : List CmpModel) (ts es : List ReqOp) : Prop 
 def pointIvl (k : GoString) : adt.IvlS := (k, k ++ [W8 0])
 
 /-- A delete's interval: `NewStringAffinePoint(Key)` for an empty range end,
-`NewStringAffineInterval(Key, RangeEnd)` otherwise (`"\x00"` included: the empty `[k, "\x00")`). -/
+`NewStringAffineInterval(Key, "")` for the range end `"\x00"` (a from-key delete: `[k, +∞)`,
+the affine order's `""` being +∞; etcd#22395), `NewStringAffineInterval(Key, RangeEnd)`
+otherwise. -/
 def delIvl (o : OpFull) : adt.IvlS :=
-  if o.base.rangeEnd = [] then pointIvl o.key else (o.key, o.base.rangeEnd)
+  if o.base.rangeEnd = [] then pointIvl o.key
+  else if o.base.rangeEnd = [W8 0] then (o.key, [])
+  else (o.key, o.base.rangeEnd)
 
 /-- `dels.Intersects(NewStringAffinePoint(k))`: some interval of `ds` overlaps the point `k`. -/
 def hits (ds : List adt.IvlS) (k : GoString) : Bool :=
@@ -284,7 +291,8 @@ def intervalsOk (ops : List ReqOp) : Prop := (ivCheck ops).isSome
 /-! ## What the check is for (stated; unit 1) -/
 
 mutual
-/-- No delete has the range end `"\x00"` (a from-key delete), at any depth. -/
+/-- No delete has the range end `"\x00"` (a from-key delete), at any depth. (The premise the
+pinned code's `check_gives_nodup` needed; etcd#22395 removes the need: kept for the comparison.) -/
 def ReqOp.noFromKeyDel : ReqOp → Prop
   | .delete o => o.base.rangeEnd ≠ [W8 0]
   | .txn _ ts es => ReqOp.noFromKeyDelL ts ∧ ReqOp.noFromKeyDelL es
@@ -342,17 +350,17 @@ end
 /-- **What `checkIntervals` is for** (stated here; proved by unit 1, `CheckNodup.lean`:
 `intervalsOkCheckStmt_holds`, from `check_gives_nodup`): a branch `ops` that passes the gRPC
 layer's checks, `checkRequestOp` at some budget (`opsCheck n ops = none`: every put and delete key
-non-empty, at any depth) and `checkIntervals` (`intervalsOk`), with no from-key delete and no
-later-sibling delete of a nested put, run by the server at any state (`txn.srvOps`, whatever its
+non-empty, at any depth) and `checkIntervals` (`intervalsOk`), with no later-sibling delete of a
+nested put, run by the server at any state (`txn.srvOps`, whatever its
 comparisons choose), has distinct put keys, none of them deleted: the condition of the txn
 package's `keys_nodup_iff_check` (with `DelsPresent`, which the run gives, `NoDupKeysPerRev` of
-the transaction's revision). Without either exclusion it is false (the two issues). Unit 0
+the transaction's revision). Without the exclusion it is false (the issue). Unit 0
 stated it without `opsCheck` (`intervalsOkNoKeysStmt`), which is false too
 (`intervalsOkNoKeysStmt_false`): `checkIntervals`' affine order reads the empty key as +∞, so a
 put and a delete of `""` pass it; `kvServer.Txn` runs `checkTxnRequest` first. -/
 def intervalsOkCheckStmt : Prop :=
   ∀ (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv) (r : w64),
-    ReqOp.toTxnOps ops = some tops → opsCheck n ops = none → ReqOp.noFromKeyDelL ops →
+    ReqOp.toTxnOps ops = some tops → opsCheck n ops = none →
     ReqOp.siblingSafeL ops → intervalsOk ops →
     (txn.putKeysOf (txn.srvOps s0 r s tops).1).Nodup ∧
       ∀ k ∈ txn.putKeysOf (txn.srvOps s0 r s tops).1, k ∉ txn.delKeysOf (txn.srvOps s0 r s tops).1
@@ -360,7 +368,7 @@ def intervalsOkCheckStmt : Prop :=
 /-- Unit 0's statement, without the keys checked: false (`intervalsOkNoKeysStmt_false`). -/
 def intervalsOkNoKeysStmt : Prop :=
   ∀ (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv) (r : w64),
-    ReqOp.toTxnOps ops = some tops → ReqOp.noFromKeyDelL ops → ReqOp.siblingSafeL ops →
+    ReqOp.toTxnOps ops = some tops → ReqOp.siblingSafeL ops →
     intervalsOk ops →
     (txn.putKeysOf (txn.srvOps s0 r s tops).1).Nodup ∧
       ∀ k ∈ txn.putKeysOf (txn.srvOps s0 r s tops).1, k ∉ txn.delKeysOf (txn.srvOps s0 r s tops).1
