@@ -1234,7 +1234,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   · rw [Qp.half_add_half]; iexact Hcl0
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
-        dyn, ccOk, Hcne⟩ :=
+        dyn, ccOk, [], Hcne⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1370,6 +1370,53 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) (C : RaftNames → 
   isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.2⟩
   simp only [Option.isSome_none]
   iexact H
+
+/-! ### A new cluster's bootstrap log (2026-10-16, stage R8b, D12) -/
+
+/-- The state every member of a new cluster is in after `RawNode.Bootstrap` (`StartNode`): term
+`1`, a follower, the bootstrap log `bootLog` committed, nothing else (`initPState` otherwise). -/
+def bootPState (bootLog : List EntryM) : PState :=
+  { initPState with term := W64 1, log := bootLog, commit := W64 bootLog.length }
+
+/-- The bootstrap log of the peers `ps`, as `Bootstrap` builds it: one entry per peer, entry `k`
+an `EntryConfChange` (type `1`) at term `1` and index `k + 1`, whose bytes decode (`ccDecodeV1`)
+to `AddNode ps[k]` and are admitted by the cluster's policy `ccOk` (`RaftNames.reCCOk`, so that
+`entDataIs e none` holds of it). -/
+def BootLogOk (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) : Prop :=
+  bootLog.length = ps.length ∧ (bootLog.length : Int) < 2 ^ 61 ∧
+  ∀ k e, bootLog[k]? = some e →
+    e.Term' = W64 1 ∧ uint.Z e.Index' = k + 1 ∧ e.Type' = W32 1 ∧
+    (∃ m : CCV1M, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId) ∧
+    ccOk (W32 1) e.Data'
+
+/-- `allocClient` for a cluster starting at the bootstrap log: the client's half of the committed
+log and its commit fact are at `bootLog`. -/
+def allocClientBoot (E : CoPset) (cfg : GSet w64) (bootLog : List EntryM)
+    (C : RaftNames → IProp GF) : IProp GF :=
+  iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reBoot = bootLog⌝ -∗
+    isCommitted γ bootLog -∗ rLog γ bootLog -∗
+    ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
+    ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
+
+/-- **The allocation of a new cluster's ghost state** (stage R8b): as `ownRaftGhost_alloc`, in the
+static mode, but every node at `bootPState bootLog` and the committed log `bootLog` from the start
+(`BootLogOk`: the peers' conf-change entries, admitted by `ccOk`). **Stub** (2026-10-16): proved by
+the protocol side of stage R8b. -/
+theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 → List w8 → Prop)
+    (ps : List w64) (bootLog : List EntryM) (C : RaftNames → IProp GF) :
+    cfg ≠ ∅ →
+    W64 0 ∉ ids →
+    cfg = GMap.listToSet ps →
+    BootLogOk ccOk ps bootLog →
+    ⊢ allocClientBoot E cfg bootLog C -∗
+      |={E}=> ∃ γ : RaftNames,
+        ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ ∗
+        raftCommitInv (GF := GF) γ ∗
+        isCommitted γ bootLog ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗
+        C γ ∗
+        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
+  sorry
 
 end ghost
 

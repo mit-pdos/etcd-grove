@@ -280,6 +280,13 @@ structure RaftNames where
   conf entries with a decoder of the entry alone (a pure `CCDec` cannot read a slice's bytes)
   pins the changes it may meet here; `fun _ _ => True` admits every change. -/
   reCCOk : w32 → List w8 → Prop
+  /-- The cluster's bootstrap log (2026-10-16, stage R8b, D12): the entries every member starts
+  with, committed from the start (`RawNode.Bootstrap`'s one `EntryConfChange` per peer at term
+  `1`, the same on every member of a new cluster); `[]` for a cluster whose log starts empty
+  (`ownRaftGhost_alloc`, the register). A record of index `i ≤ |reBoot|` is the boot entry there
+  (`isEntryR`), a commit index `≤ |reBoot|` needs no quorum (`commitJ`), and every log holds
+  `reBoot` as a prefix. -/
+  reBoot : List EntryM
   /-- The voter set is not empty (2026-10-14, reconfiguration stage B2). The protocol's
   step at a configuration (`StepC`) reads quorums by Go's convention, under which every
   set is a majority of an empty voter set (`MajQ`); the ghost state needs a real quorum
