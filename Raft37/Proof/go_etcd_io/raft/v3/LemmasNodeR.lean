@@ -5,10 +5,14 @@ Lemmas of the `node` API (`node.go`; raft v3.7 retarget, stage R5 phase 3, group
   its `Entries`, `Context`, `Responses` nil and no snapshot, is a received message (`msgIn`, at
   `□`), with no entries (`ReportUnreachable`, `ReportSnapshot`, `TransferLeadership`,
   `ForgetLeader`, `Campaign`).
+* `msgPtsC_nonnull`: a message's pointer is not `nil`.
+* `stepP_split`: `node.Step`'s argument opened: its message (`msgIn`, at `□` from the network,
+  at `1` forwarded), of a nonnegative type (for `IsLocalMsg`), and the rest to close it again.
 -/
 module
 
 public import Raft37.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import Raft37.Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -24,7 +28,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -69,6 +73,49 @@ theorem msgIn_of_scalar_struct (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj 
     itrivial
   imodintro
   iapply msgIn_of_msgPtsC_cap $$ Hmsg
+
+/-- A message's pointer is not `nil`. -/
+theorem msgPtsC_nonnull (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢ ⌜l ≠ null⌝ ∗ msgPtsC l dq dqe cap ms := by
+  iintro H
+  ihave %Hnn : ⌜l ≠ null⌝ $$ [H]
+  · iunfold msgPtsC at H
+    iNamed H
+    ipureintro; exact Hnn
+  iframe H
+  ipureintro; exact Hnn
+
+/-- `node.Step`'s argument opened (see the file header). -/
+theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
+    stepP (GF := GF) γ id ml ⊢ ∃ (dqe : DFrac) (st : MsgSt), msgIn ml dqe st ∗
+      ⌜0 ≤ sint.Z st.msg.Type'⌝ ∗ (msgIn ml dqe st -∗ stepP γ id ml) := by
+  iintro H
+  unfold stepP
+  icases H with (Hnet | Hfwd)
+  · iunfold netP at Hnet
+    icases Hnet with ⟨%st, Hm, %Hok, #Hab, #Hlb, Hcr, Htc⟩
+    iexists DFrac.discard, st
+    iframe Hm
+    isplitr
+    · ipureintro; exact netStepTypes_nonneg Hok.1
+    iintro Hm
+    ileft
+    iunfold netP
+    iexists st
+    iframe Hm Hab Hlb Hcr Htc
+    ipureintro; exact Hok
+  · iunfold fwdP at Hfwd
+    icases Hfwd with ⟨%st, Hm, %Hty, #Hab⟩
+    iexists DFrac.own 1, st
+    iframe Hm
+    isplitr
+    · ipureintro; rw [Hty]; decide
+    iintro Hm
+    iright
+    iunfold fwdP
+    iexists st
+    iframe Hm Hab
+    ipureintro; exact Hty
 
 end lemmas
 
