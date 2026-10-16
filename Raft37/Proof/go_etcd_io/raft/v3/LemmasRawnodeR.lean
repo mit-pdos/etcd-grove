@@ -6,6 +6,7 @@ module
 
 public import Raft37.Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Raft37.Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Raft37.Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 
@@ -60,6 +61,11 @@ theorem msgPtsC_store_LogTerm (l : Loc) (dqe : DFrac) (cap : Bool) (ms : MsgSt) 
   · ipureintro; exact Hnn
   iframe
   iframe cTy cTo cFr cTe cLt' cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- A read-only hard state is one that may be `nil` (`raft.hardState()`'s result handed to
+`IsEmptyHardState`/`isHardStateEqual`). -/
+theorem hsRO_to_hsOpt (p : Loc) (h : HardStateM) : hsRO (GF := GF) p h ⊢ hsOpt p h := by
+  iintro H; unfold hsOpt; iright; iexact H
 
 end lemmas
 
