@@ -333,3 +333,4 @@ RawNode__acceptReady: IsEmptyHardState needStorageApplyRespMsg raftLog__acceptUn
 RawNode__Ready: RawNode__readyWithoutAccept RawNode__acceptReady
 RawNode__BasicStatus: getBasicStatus
 RawNode__ApplyConfChange: raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2 raft__applyConfChange
+RawNode__Advance: raft__Step
