@@ -132,6 +132,10 @@ import re
 import sys
 import textwrap
 
+# The v3rpc package's assumptions (the server's model, `v3rpc.etcdModelOfServer`), which the
+# client's watch specs take besides the client's (the watch slice's unit W-C).
+SRV_ASSUMPTIONS = "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions"
+
 # The Lean-first links: (callee list, what the links open, the package assumptions they
 # are stated under, a description for the header, the module roots holding their specs).
 LEAN_FIRST = {
@@ -511,6 +515,9 @@ variable [package_sem : {assumptions}]
         # mvcc's index specs use the btree through the cache's interface (its assumptions), and
         # so does every result that links one of them
         allg += " [go_etcd_io.etcd.cache.v3.Assumptions]" if fn in cache_assumptions else ""
+        # the client's watch specs are stated at the server's model (the watch slice's unit W-C:
+        # `v3rpc.etcdModelOfServer`), under the v3rpc package's assumptions too
+        allg += f" [{SRV_ASSUMPTIONS}]" if fn in srv_assumptions else ""
         # ... or, stated over any raft storage model, that (the register's transport)
         if "[RegStor GF]" not in src and "[StorageModel GF]" in src:
             allg += " [StorageModel GF]"
@@ -545,6 +552,17 @@ variable [package_sem : {assumptions}]
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
                 or any(c in cache_assumptions for c in callees[fn])):
             cache_assumptions.add(fn)
+
+    # the results whose specs take the v3rpc package's assumptions besides the mode's (the
+    # client's watch specs, at the server's model), and every result linking one of them
+    srv_assumptions = set()
+    if assumptions != SRV_ASSUMPTIONS:
+        for fn in order:
+            if fn in reused or fn in external:
+                continue
+            if (f"variable [srv_sem : {SRV_ASSUMPTIONS}]" in open(spec_file(fn)).read()
+                    or any(c in srv_assumptions for c in callees[fn])):
+                srv_assumptions.add(fn)
 
     # the results that reach a pending function, and the pending functions themselves: emitted
     # last, with the pending specs as hypotheses

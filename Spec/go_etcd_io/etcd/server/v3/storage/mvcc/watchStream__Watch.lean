@@ -30,7 +30,8 @@ explicit `id` already in use). The start revision is at least `0`; the caller's 
 to the store. On success it returns the watcher `w` the store registered (`P.IW`), what the store
 says of it (`P.IWF`: its range `watchRangeOf k e endk startRev id'`, the filters, its first
 revision `lo`), and, for an id the stream assigned (`AutoWatchID`), that the stream assigned it
-to `w` (`idAssigned`: such an id names one watcher of the stream for good, `idAssigned_agree`). -/
+to `w` (`idAssigned`: such an id names one watcher of the stream for good, `idAssigned_agree`),
+with its token (`idTok`: one per id, `idTok_excl`; the watch slice's unit W-C). -/
 abbrev mvcc.watchStream.Watch.spec : Prop :=
   ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (key endk fcs : GoSlice) (k e : List w8)
@@ -45,7 +46,7 @@ abbrev mvcc.watchStream.Watch.spec : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ⌜e = [] ∨ go.GoStringLt k e⌝ ∗ ⌜id ≠ W64 0 → id' = id⌝ ∗
         ∃ (w : Loc) (lo : Nat), P.IW w ∗
           P.IWF w (mvcc.watchRangeOf k e endk startRev id') fcs lo ∗
-          (⌜id ≠ W64 0⌝ ∨ mvcc.idAssigned γ id' w)) ∨
+          (⌜id ≠ W64 0⌝ ∨ (mvcc.idAssigned γ id' w ∗ mvcc.idTok γ id'))) ∨
        (⌜id' = W64 (-1)⌝ ∗
         (globalAddr ErrEmptyWatcherRange ↦□ err ∨
          (⌜id ≠ W64 0⌝ ∗ globalAddr ErrWatcherDuplicateID ↦□ err)))) ∗ P.R }}

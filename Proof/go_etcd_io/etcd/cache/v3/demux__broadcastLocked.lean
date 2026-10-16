@@ -38,7 +38,7 @@ theorem demux.broadcastLocked.wp_proof
   icases Hresp' with ⟨#HevsAt, #Hhdr, %-⟩
   wp_auto
   wp_apply wp_IsProgressNotify resp_ptr resp r (DFrac.own 1) $$ [resp] as resp
-  · iframe resp; iexact Hresp
+  · iframe resp; iapply respAt_isProgressPre $$ Hresp
   unfold BroadcastPre at Hpre
   cases hpn : r.isProgressNotify
   · simp only [hpn, Bool.false_eq_true, ↓reduceIte] at Hpre

@@ -69,6 +69,7 @@ The results:
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.Link
+public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
 
@@ -2435,6 +2436,60 @@ theorem watchClient_Watch : EtcdGrove.watchClient.Watch.spec (GF := GF) (hG := h
 
 end watch_stub
 
+section watcher
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **etcd's client's watcher meets the clients' range-watch contract** (unit W-C; the closable
+one, `isEtcdRangeWatcher`, `cache/v3/InvEtcdTxn.lean`) at the server's model
+(`v3rpc.etcdModelOfServer V.R.E`): `isEtcdRangeWatcher_of_watcher` at the linked
+`watcher.Watch` (`watch.go`'s `Watch`, `run`, `serveSubstream`, ..., over the generated stub
+`watchClient_Watch`). The watcher `isClientWatcher V w` rests on `watchConnFacts V`: the
+registration `isGrpcStream … (watchUp V.R.γ) (watchSpec V.R)` at the connection's address, what
+`v3rpc.etcd_watch_served_etcd_chain` gives for etcd's server; the server facts it does not yet
+state (S2 `srvProgressAllAnswers`, S3 `srvEventIdsAssigned`, S4 `srvWatchCert`), `srvNoDupKeys`
+(`issues/etcd-txn-check-intervals-sibling.md`), `noRetryableStreamErr` (the reconnection excluded:
+`issues/etcd-watch-resume-closing-substream.md`), the watch-token supply, `srvLogsSmall`
+(`srvLogsSmall_of_read`) and `V.R.γ.st = V.R.E.γ` (`watchSrvLink_of_server`). -/
+theorem client_watcher_rangeWatcher (V : WEnv GF) (w : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
+    isEtcdRangeWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx :=
+  isEtcdRangeWatcher_of_watcher v3.watcher.wp_Watch V w
+
+/-- **`NewWatcher(c)` returns a range watcher** (unit W-C): over a client `c` whose connection
+satisfies `watchConnFacts V`, `NewWatcher` (linked) returns the `Watcher` interface of a
+`*watcher` meeting the clients' closable range-watch contract at the server's model. -/
+theorem client_newWatcher_rangeWatcher (V : WEnv GF) (c : Loc) (callSl : GoSlice)
+    (vs : List GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        isPkgInit (PROP := IProp GF) pkg_id.context ∗
+        watchConnFacts V ∗ ⌜c ≠ null⌝ ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" c ↦□ V.conn ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
+        callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
+      (App (Val (@! go_etcd_io.etcd.client.v3.NewWatcher)) (Val #c))
+    {{ (wi : GoInterface), RET #wi; ∃ (w : Loc),
+        ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗
+        isEtcdRangeWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx }} := by
+  iintro %Φ ⟨#P1, #P2, #P3, #Hf, %Hc, #Hconn, #Hcall, #Hvs, #Hok, #Hlg, %Hb⟩ HΦ
+  iapply (v3.wp_NewWatcher V c callSl vs) $$ [] [HΦ]
+  · iframe #; ipureintro; exact ⟨Hc, Hb⟩
+  · iintro !> %wi ⟨%w, %wc, %lg, %Hwi, Hw⟩
+    iapply HΦ
+    iexists w
+    isplitr; · ipureintro; exact Hwi
+    iapply (client_watcher_rangeWatcher { V with wc := wc, lg := lg } w) $$ [Hw]
+    iframe #; iexact Hw
+
+end watcher
+
 end client
 
 #print axioms Perennial.EtcdGrove.client.client_get_value
@@ -2456,6 +2511,8 @@ end client
 #print axioms Perennial.EtcdGrove.client.etcd_deleteMethodOk
 #print axioms Perennial.EtcdGrove.client.etcd_kv_served
 #print axioms Perennial.EtcdGrove.client.watchClient_Watch
+#print axioms Perennial.EtcdGrove.client.client_watcher_rangeWatcher
+#print axioms Perennial.EtcdGrove.client.client_newWatcher_rangeWatcher
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Put
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Get
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Do

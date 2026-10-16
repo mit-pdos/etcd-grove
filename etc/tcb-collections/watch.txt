@@ -16,6 +16,10 @@
 # (the server's names-only `IsMemberExist`/`IsLearner` with `membership.localKept`,
 # `api.IsCapabilityEnabled`, grpc's `MD.Get`, `utf8.ValidString`, prometheus's
 # `CounterVec.WithLabelValues`); the leader monitor (`monitorLeader`) adds none.
+# Unit W-C (2026-10-16): the client's watcher (`client_watcher_rangeWatcher`,
+# `client_newWatcher_rangeWatcher`, client/v3/Results.lean: client/v3/watch.go over the stub); new
+# boundary: `streamKeyFromCtx`, `context.WithCancelValCtx`, grpc's `status.FromError`/`status.Error`,
+# `time.Time.IsZero`, zap's `String`/`Int`/`Int64`/`Duration`/`Error`/`Logger.Info`/`Logger.Debug`.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/watch.txt [--check [--update]]
 #
@@ -25,6 +29,7 @@ roots \bv3rpc\.(watch_server|new_watch_server|watchStreamSpec_step|srvStep_of_wa
 roots \bv3rpc\.(watch_handler|watch_streamHandlerOk|etcd_watchMethodOk|etcd_watch_served|etcd_watch_served_chain)$
 roots \bclient\.watchClient_Watch$
 roots \bv3rpc\.(new_stream_interceptor|etcd_watch_served_etcd_chain)$
+roots \bclient\.(client_watcher_rangeWatcher|client_newWatcher_rangeWatcher)$
 axiom EtcdServer.IsLearner.wp_proof
 axiom EtcdServer.IsMemberExist.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
@@ -35,6 +40,7 @@ axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txLive
+axiom context.WithCancelValCtx.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.GenericClientStream.CloseSend.wp_proof
@@ -56,10 +62,14 @@ axiom membership.localKept_persistent
 axiom metadata.MD.Get.wp_proof
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom rand.Int63n.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
+axiom streamKeyFromCtx.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.NewTicker.wp_proof
 axiom time.Ticker.Stop.wp_proof
+axiom time.Time.IsZero.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
@@ -69,7 +79,11 @@ axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.NewNop.wp_proof
+axiom zap.String.wp_proof

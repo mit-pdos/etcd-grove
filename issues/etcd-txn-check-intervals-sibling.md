@@ -62,3 +62,14 @@ func TestProbeSiblingPutThenDelete(t *testing.T) {
   (a second pass over the collected puts after all unions), as the level's own puts are.
 - **Found**: 2026-10-12, the request path's unit 0 (stating `checkIntervals`'s semantics in
   `Defs.lean`).
+
+**A consequence for watchers** (2026-10-15, the watch slice's unit W-C): such a revision writes
+`k` twice (a put, then a delete), so etcd's watch delivers, at that revision, a put event of `k`
+whose key-value is not in the state at the revision, then the delete. A watcher contract that
+says each event's key-value is (for a put) or is not (for a delete) in etcd's state at the
+event's revision (`client/v3`'s `rangeWatchEvOk`, which the recipes and the cache rest on) is
+false for it. The client's watch is verified under the premise `srvNoDupKeys` (every certified
+log of the server writes each key at most once per revision, `txn.NoDupKeysPerRev`;
+`Proof/go_etcd_io/etcd/client/v3/InvWatch.lean`), which the transactions of the recipes and the
+cache meet (their transactions never put and delete one key): the premise is about other writers
+to the same server.

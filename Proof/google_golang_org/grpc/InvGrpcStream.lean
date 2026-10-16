@@ -105,7 +105,10 @@ attribute [instance] StreamMsg.cnt
 
 /-- The ghost names of one stream: the up queue (the requests the client sent), the server's
 received prefix of it, the down queue (the responses the server sent), the up queue's end, the
-client's received prefix of the down queue, the down queue's end. -/
+client's received prefix of the down queue, the down queue's end, and (the watch slice's unit
+W-C) an auxiliary name the handler sets once (`streamAuxTok`, `streamAuxIs`): the names of the
+handler's own per-stream ghost state, allocated after the stream specification is fixed, which
+the stream specification can then mention. -/
 structure StreamNames where
   up : GName
   upRcv : GName
@@ -113,6 +116,40 @@ structure StreamNames where
   upEnd : GName
   downRcv : GName
   downEnd : GName
+  aux : GName
+
+/-- **The stream's auxiliary name, not yet set** (exclusive): the handler's run gets it with the
+fresh stream (`grpcStreamMethodOk`) and sets it once (`streamAux_set`). -/
+def streamAuxTok (γ : StreamNames) : IProp GF :=
+  dghostVar γ.aux (DFrac.own 1) (none : Option (List GName))
+
+/-- **The stream's auxiliary name is set to `v`** (persistent; agreement: `streamAuxIs_agree`):
+the handler's own ghost names for this stream. -/
+def streamAuxIs (γ : StreamNames) (v : List GName) : IProp GF :=
+  dghostVar γ.aux DFrac.discard (some v)
+
+instance streamAuxIs_persistent (γ : StreamNames) (v : List GName) :
+    Persistent (streamAuxIs (GF := GF) γ v) := by
+  unfold streamAuxIs; infer_instance
+
+/-- The handler sets the auxiliary name, once. -/
+theorem streamAux_set (γ : StreamNames) (v : List GName) :
+    streamAuxTok (GF := GF) γ ⊢ |==> streamAuxIs γ v := by
+  unfold streamAuxTok streamAuxIs
+  iintro H
+  imod dghostVar_update (some v) γ.aux none $$ H with H
+  imod dghostVar_persist γ.aux 1 (some v) $$ H with H
+  imodintro
+  iexact H
+
+/-- Two settings of the auxiliary name agree. -/
+theorem streamAuxIs_agree (γ : StreamNames) (v v' : List GName) :
+    streamAuxIs (GF := GF) γ v ∗ streamAuxIs γ v' ⊢ ⌜v = v'⌝ := by
+  unfold streamAuxIs
+  iintro ⟨H1, H2⟩
+  ihave %H := dghostVar_agree γ.aux (some v) DFrac.discard (some v') DFrac.discard $$ H1 H2
+  ipureintro
+  cases H; rfl
 
 /-- **The server's receiver token** at `L`: the requests received so far, a prefix of the up
 queue. -/
@@ -622,7 +659,7 @@ def grpcStreamHandlerOk {Req Rep : StreamMsg GF} (h : val) (S : IProp GF)
   iprop(□ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (Φ : val → IProp GF),
     Spec γ Dn -∗ S -∗ srvStreamIs st γ Req Rep Up Dn ci cd -∗ srvRecvTok (Req := Req) γ [] -∗
-    srvSendTok (Rep := Rep) γ [] -∗ ▷ (∀ err : GoInterface, Φ #err) -∗
+    srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗ ▷ (∀ err : GoInterface, Φ #err) -∗
     WP (App (Val h) (Val #st)) {{ Φ }})
 
 instance grpcStreamHandlerOk_persistent {Req Rep : StreamMsg GF} (h : val) (S : IProp GF)
@@ -806,7 +843,8 @@ def grpcStreamMethodOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (
     □ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc),
       Spec γ Dn -∗ S -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
-      srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ srvStreamInfoIs info -∗
+      srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
+      srvStreamInfoIs info -∗
       srvStreamChainWP #info ics mh #srv #st (fun _ => iprop(True)))
 
 instance grpcStreamMethodOk_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)

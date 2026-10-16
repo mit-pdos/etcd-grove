@@ -23,16 +23,25 @@ public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient
+public import Proof.go_etcd_io.etcd.client.v3.NewWatchFromWatchClient
+public import Proof.go_etcd_io.etcd.client.v3.NewWatcher
 public import Proof.go_etcd_io.etcd.client.v3.OpDelete
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
+public import Proof.go_etcd_io.etcd.client.v3.OpWatch
 public import Proof.go_etcd_io.etcd.client.v3.Op__IsSortOptionValid
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.client.v3.Op__isWrite
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRangeRequest
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRequestOp
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
+public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
+public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
+public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.context.WithCancelValCtx
+public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
 public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
@@ -45,9 +54,11 @@ public import Proof.google_golang_org.grpc.GenericClientStream__Send
 public import Proof.google_golang_org.grpc.Peer
 public import Proof.google_golang_org.grpc.StaticMethod
 public import Proof.go_etcd_io.etcd.client.v3.isContextError
+public import Proof.go_etcd_io.etcd.client.v3.isHaltErr
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetry
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryImmutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC
+public import Proof.go_etcd_io.etcd.client.v3.isUnavailableErr
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
@@ -57,7 +68,9 @@ public import Proof.go_etcd_io.etcd.client.v3.kv__Do
 public import Proof.go_etcd_io.etcd.client.v3.kv__Get
 public import Proof.go_etcd_io.etcd.client.v3.kv__Put
 public import Proof.go_etcd_io.etcd.client.v3.kv__Txn
+public import Proof.go_etcd_io.etcd.client.v3.newBlockLogger
 public import Proof.google_golang_org.grpc.peer.Peer__String
+public import Proof.go_etcd_io.etcd.client.v3.progressRequest__toPB
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Put
@@ -70,20 +83,55 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.google_golang_org.grpc.status.Code
+public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.FromError
+public import Proof.go_etcd_io.etcd.client.v3.streamKeyFromCtx
+public import Proof.time.Time__IsZero
 public import Proof.go_etcd_io.etcd.client.v3.txn__Commit
 public import Proof.go_etcd_io.etcd.client.v3.txn__Else
 public import Proof.go_etcd_io.etcd.client.v3.txn__If
 public import Proof.go_etcd_io.etcd.client.v3.txn__Then
 public import Proof.go_etcd_io.etcd.client.v3.NewKV
+public import Proof.go_etcd_io.etcd.client.v3.valCtx__Deadline
+public import Proof.go_etcd_io.etcd.client.v3.valCtx__Done
+public import Proof.go_etcd_io.etcd.client.v3.valCtx__Err
 public import Proof.go_etcd_io.etcd.client.v3.waitRetryBackoff
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.watchClient__Watch
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__addSubstream
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__backoffIfUnavailable
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__broadcastResponse
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__close
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__closeSubstream
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__dispatchEvent
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__joinSubstreams
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__newWatchClient
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__newWatcherStreamBufLogger
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__nextResume
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__openWatchClient
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__recordBufWait
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__run
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__sendCloseSubstream
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__serveSubstream
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__serveWatchClient
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__startBufWait
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__unicastResponse
+public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__waitCancelSubstreams
+public import Proof.go_etcd_io.etcd.client.v3.watchRequest__toPB
+public import Proof.go_etcd_io.etcd.client.v3.watcherStream__resetBufWait
+public import Proof.go_etcd_io.etcd.client.v3.watcher__Close
+public import Proof.go_etcd_io.etcd.client.v3.watcher__Watch
+public import Proof.go_etcd_io.etcd.client.v3.watcher__closeStream
+public import Proof.go_etcd_io.etcd.client.v3.watcher__newWatcherGRPCStream
 public import Proof.go_etcd_io.etcd.client.v3.withBackoff
 public import Proof.go_etcd_io.etcd.client.v3.withMax
 public import Proof.go_etcd_io.etcd.client.v3.withRepeatablePolicy
 public import Proof.go_etcd_io.etcd.client.v3.withVersion
+public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Int
+public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
+public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
@@ -205,6 +253,46 @@ theorem v3.wp_OpPut :
     EtcdGrove.OpPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.OpPut.wp_proof v3.Op.wp_applyOpts
 
+theorem v3.wp_OpWatch :
+    EtcdGrove.OpWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpWatch.wp_proof v3.Op.wp_applyOpts
+
+theorem ResponseHeader.wp_GetRevision :
+    EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseHeader.GetRevision.wp_proof
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
+theorem v3.WatchResponse.wp_Err :
+    EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
+
+theorem v3.WatchResponse.wp_IsProgressNotify :
+    EtcdGrove.WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WatchResponse.IsProgressNotify.wp_proof ResponseHeader.wp_GetRevision
+
+theorem time.Time.wp_IsZero :
+    EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.time.Time.IsZero.wp_proof
+
+theorem zap.wp_Int64 :
+    EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int64.wp_proof
+
+theorem zap.wp_Int' :
+    EtcdGrove.zap.Int'.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int'.wp_proof
+
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
+theorem zap.Logger.wp_Info :
+    EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Info.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -296,6 +384,14 @@ theorem wp_NewWatchClient :
     EtcdGrove.NewWatchClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewWatchClient.wp_proof
 
+theorem v3.wp_NewWatchFromWatchClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.NewWatchFromWatchClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewWatchFromWatchClient.wp_proof v3.Client.wp_GetLogger
+
+theorem v3.wp_NewWatcher [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.NewWatcher.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewWatcher.wp_proof wp_NewWatchClient v3.wp_NewWatchFromWatchClient
+
 theorem v3.Op.wp_IsSortOptionValid :
     EtcdGrove.Op.IsSortOptionValid.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.IsSortOptionValid.wp_proof
@@ -315,6 +411,18 @@ theorem v3.Op.wp_toRequestOp :
 theorem v3.wp_RetryKVClient :
     EtcdGrove.RetryKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryKVClient.wp_proof wp_NewKVClient
+
+theorem v3.blockLogger.wp_recordWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.blockLogger.recordWait.wp_proof
+
+theorem context.wp_WithCancelValCtx :
+    EtcdGrove.context.WithCancelValCtx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithCancelValCtx.wp_proof
+
+theorem v3.wp_ensureWatchHeader [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.ensureWatchHeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ensureWatchHeader.wp_proof
 
 theorem grpc.ClientConn.wp_Invoke :
     EtcdGrove.grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG) :=
@@ -343,6 +451,14 @@ theorem grpc.GenericClientStream.wp_Send :
 theorem grpc.wp_StaticMethod :
     EtcdGrove.grpc.StaticMethod.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.StaticMethod.wp_proof
+
+theorem v3.wp_isHaltErr [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.isHaltErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.isHaltErr.wp_proof status.wp_FromError
+
+theorem v3.wp_isUnavailableErr [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.isUnavailableErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.isUnavailableErr.wp_proof status.wp_FromError
 
 theorem kVClient.wp_DeleteRange :
     EtcdGrove.kVClient.DeleteRange.spec (GF := GF) (hG := hG) :=
@@ -396,9 +512,21 @@ theorem v3.kv.wp_Txn :
     EtcdGrove.kv.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kv.Txn.wp_proof
 
+theorem v3.wp_newBlockLogger [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.newBlockLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.newBlockLogger.wp_proof
+
+theorem v3.progressRequest.wp_toPB [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.progressRequest.toPB.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.progressRequest.toPB.wp_proof
+
 theorem v3.retryKVClient.wp_Txn :
     EtcdGrove.retryKVClient.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.retryKVClient.Txn.wp_proof kVClient.wp_Txn
+
+theorem v3.wp_streamKeyFromCtx [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.streamKeyFromCtx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.streamKeyFromCtx.wp_proof
 
 theorem v3.txn.wp_Commit :
     EtcdGrove.txn.Commit.spec (GF := GF) (hG := hG) :=
@@ -420,9 +548,121 @@ theorem v3.wp_NewKV :
     EtcdGrove.NewKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKV.wp_proof v3.wp_RetryKVClient
 
+theorem v3.valCtx.wp_Deadline [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.valCtx.Deadline.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.valCtx.Deadline.wp_proof
+
+theorem v3.valCtx.wp_Done [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.valCtx.Done.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.valCtx.Done.wp_proof
+
+theorem v3.valCtx.wp_Err [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.valCtx.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.valCtx.Err.wp_proof
+
 theorem watchClient.wp_Watch :
     EtcdGrove.watchClient.Watch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watchClient.Watch.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_NewStream grpc.GenericClientStream.wp_Send grpc.GenericClientStream.wp_Recv grpc.GenericClientStream.wp_CloseSend grpc.GenericClientStream.wp_Context
+
+theorem v3.watchGRPCStream.wp_addSubstream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.addSubstream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.addSubstream.wp_proof rpctypes.wp_Error
+
+theorem v3.watchGRPCStream.wp_backoffIfUnavailable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.backoffIfUnavailable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.backoffIfUnavailable.wp_proof v3.wp_isUnavailableErr
+
+theorem v3.watchGRPCStream.wp_broadcastResponse [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.broadcastResponse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.broadcastResponse.wp_proof
+
+theorem v3.watchGRPCStream.wp_close [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.close.wp_proof v3.wp_ContextError
+
+theorem v3.watchGRPCStream.wp_sendCloseSubstream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.sendCloseSubstream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.sendCloseSubstream.wp_proof
+
+theorem v3.watchGRPCStream.wp_closeSubstream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.closeSubstream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.closeSubstream.wp_proof v3.watchGRPCStream.wp_sendCloseSubstream
+
+theorem v3.watchGRPCStream.wp_unicastResponse [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.unicastResponse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.unicastResponse.wp_proof
+
+theorem v3.watchGRPCStream.wp_dispatchEvent [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.dispatchEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.dispatchEvent.wp_proof v3.wp_ensureWatchHeader v3.WatchResponse.wp_IsProgressNotify v3.watchGRPCStream.wp_broadcastResponse v3.watchGRPCStream.wp_unicastResponse
+
+theorem v3.watchGRPCStream.wp_joinSubstreams [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.joinSubstreams.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.joinSubstreams.wp_proof
+
+theorem v3.watchGRPCStream.wp_waitCancelSubstreams [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.waitCancelSubstreams.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.waitCancelSubstreams.wp_proof
+
+theorem v3.watchGRPCStream.wp_openWatchClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.openWatchClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.openWatchClient.wp_proof watchClient.wp_Watch v3.wp_isHaltErr rpctypes.wp_Error v3.watchGRPCStream.wp_backoffIfUnavailable
+
+theorem v3.watchGRPCStream.wp_serveWatchClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.serveWatchClient.wp_proof
+
+theorem v3.watchGRPCStream.wp_newWatchClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.newWatchClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.newWatchClient.wp_proof v3.watchGRPCStream.wp_joinSubstreams v3.watchGRPCStream.wp_waitCancelSubstreams v3.watchGRPCStream.wp_openWatchClient v3.watchGRPCStream.wp_serveWatchClient rpctypes.wp_Error
+
+theorem v3.watchGRPCStream.wp_newWatcherStreamBufLogger [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.newWatcherStreamBufLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.newWatcherStreamBufLogger.wp_proof v3.wp_newBlockLogger zap.wp_String zap.wp_Int64 zap.wp_Int' zap.wp_Duration zap.Logger.wp_Info
+
+theorem v3.watchGRPCStream.wp_nextResume [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.nextResume.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.nextResume.wp_proof
+
+theorem v3.watcherStream.wp_resetBufWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watcherStream.resetBufWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watcherStream.resetBufWait.wp_proof
+
+theorem v3.watchGRPCStream.wp_recordBufWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.recordBufWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.recordBufWait.wp_proof time.Time.wp_IsZero v3.blockLogger.wp_recordWait v3.watcherStream.wp_resetBufWait
+
+theorem v3.watchGRPCStream.wp_startBufWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.startBufWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.startBufWait.wp_proof time.Time.wp_IsZero
+
+theorem v3.watchGRPCStream.wp_serveSubstream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.serveSubstream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.serveSubstream.wp_proof v3.watchGRPCStream.wp_startBufWait v3.watchGRPCStream.wp_recordBufWait v3.watcherStream.wp_resetBufWait v3.WatchResponse.wp_Err
+
+theorem v3.watchRequest.wp_toPB [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchRequest.toPB.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchRequest.toPB.wp_proof
+
+theorem v3.watcher.wp_closeStream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watcher.closeStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watcher.closeStream.wp_proof
+
+theorem v3.watchGRPCStream.wp_run [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.run.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.run.wp_proof v3.watchGRPCStream.wp_newWatchClient v3.watchGRPCStream.wp_nextResume v3.watchGRPCStream.wp_dispatchEvent v3.watchGRPCStream.wp_addSubstream v3.watchGRPCStream.wp_closeSubstream v3.watchGRPCStream.wp_joinSubstreams v3.watchGRPCStream.wp_serveSubstream v3.watchGRPCStream.wp_newWatcherStreamBufLogger v3.watchRequest.wp_toPB v3.watcher.wp_closeStream v3.wp_isHaltErr zap.Logger.wp_Debug zap.wp_Error zap.wp_Int64
+
+theorem v3.watcher.wp_Close [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watcher.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watcher.Close.wp_proof v3.watchGRPCStream.wp_close errors.wp_IsStatusErr
+
+theorem v3.watcher.wp_newWatcherGRPCStream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watcher.newWatcherGRPCStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watcher.newWatcherGRPCStream.wp_proof context.wp_WithCancelValCtx v3.wp_streamKeyFromCtx v3.watchGRPCStream.wp_run
+
+theorem v3.watcher.wp_Watch [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watcher.Watch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watcher.Watch.wp_proof v3.wp_OpWatch v3.wp_streamKeyFromCtx v3.watcher.wp_newWatcherGRPCStream
 
 theorem v3.wp_withBackoff :
     EtcdGrove.withBackoff.spec (GF := GF) (hG := hG) :=

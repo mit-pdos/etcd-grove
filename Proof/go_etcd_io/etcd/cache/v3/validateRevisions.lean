@@ -31,7 +31,8 @@ theorem validateRevisions.wp_proof
   intro resp r latestRev
   wp_start as #Hresp
   wp_auto
-  wp_apply wp_IsProgressNotify $$ [$resp $Hresp] as resp
+  wp_apply wp_IsProgressNotify $$ [resp] as resp
+  · iframe resp; iapply respAt_isProgressPre $$ Hresp
   have Hhdr0 : r.isProgressNotify = true → r.hdrRev ≠ W64 0 := by
     intro h hz; simp [RespModel.isProgressNotify, hz] at h
   ihave Hresp2 := Hresp

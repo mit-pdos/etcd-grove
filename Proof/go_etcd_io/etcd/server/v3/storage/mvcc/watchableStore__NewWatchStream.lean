@@ -136,9 +136,10 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
-  let γo : mvcc.WsStreamNames := ⟨γt, γi⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γf, Hidf⟩
+  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf⟩
   imod sync.init_Mutex (mvcc.watchStreamInv wsl (mvcc.storeWatchParams s st γ) ch γo) ⊤
-    (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids]
+    (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids Hidf]
     with #Hmu
   · inext
     iunfold mvcc.watchStreamInv
@@ -153,10 +154,10 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · iintro !> %id %w %h; simp [GMap.lookup_empty] at h
     isplitr
     · iintro !> %id %c %w %h; simp [GMap.lookup_empty] at h
-    isplitl [Hids]
+    isplitl [Hids Hidf]
     · iunfold mvcc.idsInv
       iexists ∅
-      iframe Hids
+      iframe Hids Hidf
       ipureintro
       refine ⟨by first | decide | rfl | (show (0 : Int) ≤ 0; omega) | word, fun i hi => ?_⟩
       simp [GMap.lookup_empty] at hi

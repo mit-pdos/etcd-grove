@@ -233,7 +233,7 @@ theorem demux.updateStoreLocked.wp_proof
   iunfold respAt at Hresp'
   icases Hresp' with ⟨#HevsAt, #Hhdr, % ⟨Hcomp, Hcanc, Hcre⟩⟩
   wp_apply wp_IsProgressNotify resp_ptr resp r (DFrac.own 1) $$ [resp] as resp
-  · iframe resp; iexact Hresp
+  · iframe resp; iapply respAt_isProgressPre $$ Hresp
   cases hpn : r.isProgressNotify
   · wp_auto
     ihave #HevsAt' := HevsAt

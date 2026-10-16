@@ -6795,6 +6795,42 @@ proved).
 
 ---
 
+## The client's watch over the stream: per-stream answer and id tokens, run's dispatch cursor, premises for what the server does not yet state (unit W-C, 2026-10-15 · adopted)
+
+- **A created response is the head's**: the client sends one create at a time (only the head of
+  `resuming`), and the server answers each request at most once: `recvLoop` mints an exclusive
+  answer token per received request (`ansTok`, from a pool named in the stream's auxiliary name)
+  and hands it with the control response. `run` keeps the tokens of the answered positions, so a
+  `Created` answers the one unanswered create. *Rejected:* a monotone "answered position" in the
+  response model (a ghost field of `WatchRespM` and a send-order invariant in `sendLoop`: more
+  W-S surgery for the same fact).
+- **The stream's auxiliary name** (`StreamNames.aux`, `streamAuxTok`/`streamAuxIs`): the handler
+  allocates its per-stream ghost state (the mvcc stream's names `γo`, the answer pool `γa`) after
+  the stream specification is fixed, and publishes them once; the specification can then name
+  them (`ctrlOk`'s `∃ γo γa, streamAuxIs γs (auxOf γo γa)`), and agreement makes every response's
+  names the same. A new field of `StreamNames` and one premise of `grpcStreamMethodOk`: the
+  stream interceptors' contracts are unchanged.
+- **An announced id is new** (`idTok`, an exclusive token per id `watchStream.Watch` assigns,
+  beside the persistent `idAssigned`): without it a second `Created` with an id `run` already
+  registered (and whose substream the server's `Canceled` made it close) would let `run` send on
+  a closed channel in the model; with `idLive` (an mvcc response's id is live after the responses
+  before it: the send loop's `ids`) no response reaches a closed substream.
+- **`run` dispatches with the contract's facts already established** (`recvElem`): each response
+  sent to a substream carries `rangeWatchRespOk` relative to `run`'s dispatch cursor `γhi`, a mono
+  list `run` extends at each successful send; the substream publishes it on `outc` with the
+  contract's own cursor `γ.cur`. A failed send (the substream stopped: the select took `donec`)
+  leaves `γhi` as it was, and later sends to it carry the stopped goroutine's exit flag instead
+  (`γx`, published by `donec`), so the cursor never has to account for an undelivered response.
+- **What the server does not state is a named premise** (S2 `srvProgressAllAnswers`, S3
+  `srvEventIdsAssigned`, S4 `srvWatchCert`), each a fact of etcd's server that needs the mvcc
+  channel invariant to name stream-level facts (S2, S3) or the commit point moved (S4); and
+  `srvNoDupKeys` (no revision writes a key twice), which etcd's server does not guarantee
+  (`issues/etcd-txn-check-intervals-sibling.md`). *Rejected:* weakening the clients' contract
+  (it is fixed: the cache and the recipes rest on it).
+- **The reconnection is excluded, not proved** (`noRetryableStreamErr`): `watch.go`'s resume can
+  send on a closed channel (`issues/etcd-watch-resume-closing-substream.md`), so no proof of
+  `run` covers it; the premise names the transport's codes `run` retries on.
+
 ## Retargeting raft in a parallel tree
 
 **2026-10-15 · accepted (stage R0, branch `raft-retarget`)**

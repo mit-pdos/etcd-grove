@@ -34,7 +34,7 @@ theorem v3rpc.serverWatchStream.close.wp_proof
   wp_start as ⟨#Hsws, Hopen, Hcc, Hadd⟩
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
-  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, #Hwstream,
+  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, -, #Hwstream,
     -⟩
   ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit

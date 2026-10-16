@@ -147,7 +147,7 @@ theorem store.Apply.wp_proof
       subst Hval
       wp_auto
       wp_apply wp_IsProgressNotify resp_ptr resp r (DFrac.own 1) $$ [resp] as resp
-      · iframe resp; iexact Hresp
+      · iframe resp; iapply respAt_isProgressPre $$ Hresp
       cases hpn : r.isProgressNotify
       · -- not a progress notification
         ihave #HevsAt' := HevsAt

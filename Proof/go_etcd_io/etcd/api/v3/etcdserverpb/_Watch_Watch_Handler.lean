@@ -28,7 +28,7 @@ theorem etcdserverpb._Watch_Watch_Handler.wp_proof
     (wp_Context : grpc.GenericServerStream.Context.spec (GF := GF) (hG := hG)) :
     etcdserverpb._Watch_Watch_Handler.spec (GF := GF) (hG := hG) := by
   intro Req Rep Up Spec srv S γ Dn ci cd st hReq hRep hsrv
-  wp_start as ⟨#Hown, #Hh, HSpec, HS, #Hraw, HRt, HSt⟩
+  wp_start as ⟨#Hown, #Hh, HSpec, HS, #Hraw, HRt, HSt, HAux⟩
   wp_auto
   wp_alloc p as Hp
   wp_auto
@@ -44,7 +44,7 @@ theorem etcdserverpb._Watch_Watch_Handler.wp_proof
   wp_auto
   iunfold grpcStreamHandlerOk at Hh
   wp_bind (App (Val #(methods srv.ty go!"Watch" srv.v)) _)
-  iapply Hh $$ %γ %Dn %ci %cd %_ %_ HSpec HS Hst HRt HSt
+  iapply Hh $$ %γ %Dn %ci %cd %_ %_ HSpec HS Hst HRt HSt HAux
   inext
   iintro %err
   wp_auto
