@@ -25,3 +25,7 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   request varied in a parameter, answers contradicting each other), and test that property.
 - 2026-10-16, etcd-range-sort-none-limit: remove the unnecessary comment from the fix (the doc comment on the new
   helper `rangeSortOrder`, which restated its code). Rule (step 5): no comment that restates the code.
+- 2026-10-16, etcd-range-sort-none-limit: "The issue does NOT need to explain the root cause; no mention of rangeLimit,
+  sortRangeResults, etc." Rule (step 8, "What happened"; step 2; "Writing for upstream"): the issue has the symptom,
+  the expectation and the reproduction only (no function names, code permalinks or history); the root cause goes in
+  the PR and the commit message.

@@ -23,8 +23,6 @@ b
 
 The same happens with `CREATE`, `MODIFY` and `VALUE`, and for any client that sends `SortOrder: NONE` with a non-key target and a `Limit` (`clientv3.WithSort(target, clientv3.SortNone)` with `clientv3.WithLimit`). With `--order=ASCEND` the limited results are right.
 
-For `NONE` with a non-key target, the server sorts ascending ([`sortRangeResults`](https://github.com/etcd-io/etcd/blob/ea8b59433d82e8fc3f1365618740395e0028bd03/server/etcdserver/txn/range.go#L125-L131), since #6672). But [`rangeLimit`](https://github.com/etcd-io/etcd/blob/ea8b59433d82e8fc3f1365618740395e0028bd03/server/etcdserver/txn/range.go#L86-L103) decides whether the results will be re-sorted from the order as sent, and [`IsDefaultOrdering`](https://github.com/etcd-io/etcd/blob/ea8b59433d82e8fc3f1365618740395e0028bd03/server/etcdserver/txn/range.go#L97-L103) treats `NONE` as unsorted. So the limit is passed to mvcc, which reads only the first `limit + 1` keys in key order (`a`, `b` for `--limit=1`). The server then sorts those by version and truncates them to `b`. `Count` and `More` are still correct.
-
 ### What did you expect to happen?
 
 `--limit=N` returns the first `N` results of the response without a limit: `c` for `--limit=1`, as with `--order=ASCEND`.
@@ -33,7 +31,7 @@ For `NONE` with a non-key target, the server sorts ascending ([`sortRangeResults
 
 Run the `etcdctl` commands above against a single-member cluster built from `main` (ea8b59433).
 
-As a unit test (`TestRangeSortLimit` in `server/etcdserver/txn/range_test.go` on the linked branch): put the keys above; for each sort target and order, compare `Range` over `[a, d)` with limits 1 to 3 against the same `Range` without a limit. On `main`, the `NONE` cases with a non-key target fail at limit 1 (output trimmed):
+As a unit test (`TestRangeSortLimit` in `server/etcdserver/txn/range_test.go` on the linked branch): put the keys above; for each sort target and order, compare a range over `[a, d)` with limits 1 to 3 against the same range without a limit. On `main`, the `NONE` cases with a non-key target fail at limit 1 (output trimmed):
 
 ```
     --- FAIL: TestRangeSortLimit/VERSION/NONE (0.00s)
@@ -48,7 +46,7 @@ As a unit test (`TestRangeSortLimit` in `server/etcdserver/txn/range_test.go` on
 
 ### Anything else we need to know?
 
-The bug has been present since `NONE` began to sort ascending for non-key targets (#6672, 2016), and it is on `release-3.6` and `release-3.5`. Both branches keep the limit when `r.SortOrder == NONE` and then sort ascending, so a fix would need a backport.
+`release-3.6` and `release-3.5` have the same code, so they are likely affected too (not run there).
 
 `rpc.proto` still documents `NONE` as "default, no sorting". The limited response matches neither that nor the ascending order the server uses without a limit.
 

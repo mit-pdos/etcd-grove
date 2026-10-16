@@ -58,8 +58,8 @@ Documentation fixes are branches too: Go doc comments and `Documentation/` live 
 
 `git -C <clone> fetch upstream`, then confirm the code the finding describes is unchanged at `upstream/main`
 (`git log upstream/main -- <files>` since the revision the finding cites; read the code). Record the base commit.
-If it is fixed upstream, update the finding's **Status** and stop. Every line reference in the candidates is a
-permalink at the base commit: `https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`.
+If it is fixed upstream, update the finding's **Status** and stop. Every line reference in the PR is a permalink at
+the base commit (the issue has none, step 8): `https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`.
 
 ### 3. Duplicates and security
 
@@ -122,7 +122,9 @@ worktree of the base, `go build -ldflags "-X go.etcd.io/etcd/api/v3/version.GitS
 into the version fields. Test output may be trimmed to the failing lines (no log noise), but not reworded.
 
 - **What happened?** — the user-visible behavior first, in etcd's terms (an `etcdctl` command, a client call, a
-  server config); then why, briefly, with permalinks to the few lines that matter. Choose the example whose output
+  server config), and nothing about the cause: no function or variable names, no code permalinks, no history of
+  how the bug came in. The root cause goes in the PR (and the commit message), not the issue. Choose the example
+  whose output
   is visibly wrong on its own, without the reader having to accept an expected behavior first: the same request
   varied in one parameter, giving answers that contradict each other (`--limit=1` returns `b` but `--limit=2` and
   no limit start with `c`), beats one answer set against what the docs are said to promise.
@@ -133,8 +135,8 @@ into the version fields. Test output may be trimmed to the failing lines (no log
   the expectation in what holds under every reading.
 - **How can we reproduce it?** — the minimal steps (`etcdctl` sequence when one exists), then the test from the
   branch and its failing output.
-- **Anything else we need to know?** — impact and who is affected, workarounds, related code that may share the
-  bug. One sentence may say it was found while formally verifying etcd; no more.
+- **Anything else we need to know?** — impact and who is affected, workarounds, other releases affected (said as
+  behavior, and whether it was run there). One sentence may say it was found while formally verifying etcd; no more.
 
 `pr.md`: title = the commit subject; body: what the change does and why (two or three sentences), `Fixes #<issue>`
 (placeholder), how it was tested, notes for the reviewer (alternatives considered, behavior changes), and the AI
@@ -151,9 +153,11 @@ anything not verified. Set `meta.md`'s state to `draft`.
 
 The readers are etcd maintainers triaging many issues. They know etcd; they do not know this repository.
 
-- Lead with the symptom a user sees. Mechanism second, history last (and only if it explains the bug).
+- The issue is the symptom a user sees, the expected behavior and how to reproduce it; the mechanism and the
+  history are the PR's.
 - No vocabulary from this repository: spec, proof, premise, Goose, Gooseable, unit, ghost, "the verified code".
-- Short: an issue body a maintainer reads in two minutes; code excerpts only for the lines that are wrong.
+- Short: an issue body a maintainer reads in two minutes, with no code excerpts; in the PR, code excerpts only for
+  the lines that are wrong.
 - Plain claims, no overstating severity; say what was and was not reproduced.
 
 ## After filing
