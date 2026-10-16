@@ -29,19 +29,20 @@ Look for, in this order:
    own, suggest a variant that is (the same request varied in one parameter, giving answers that contradict each
    other). A sweep of three variants where the middle one disagrees with both neighbors (no limit `c b a`,
    `--limit=1` `b`, `--limit=2` `c b`) is the intended shape: do not cut it to two.
-9. **Manual claims.** A claim about what a command prints (in the PR's testing, say) must use the issue's example
-   data; flag one that uses other data, or data on which the result is not well-defined (ties in a sort).
 5. **The expectation.** Is "What did you expect" grounded in something you can check (the API docs in the checkout,
    a test, a past decision, consistency with a variant of the request)? Check the docs: if they say something else,
    does the issue say so, as a question to the maintainers?
 6. **What the issue must not contain.** Internals (function or variable names, links into the code, how the bug
    came in), claims about other releases, a description of the test (the link shows it), anything about how the bug
    was found beyond its standard last paragraph.
-7. **The PR.** Does it explain the root cause, with permalinks? Does it say why the fix belongs in this layer and
-   name the alternatives a reviewer would ask about (a client-side fix, changing the documented behavior instead)?
-   Is the fix the smallest change, with no comment that restates the code? Is the test as simple as the issue's
-   example? The issue and PR cover this bug and this change only: flag any mention of other features the changed
+7. **The PR.** Like etcd's merged fix PRs, it is a few sentences: the root cause and the change with permalinks,
+   `Fixes #`, one line on testing, the AI disclosure. Flag anything beyond that (notes for the reviewer,
+   alternatives, costs, suite lists, backport requests) for deletion, and do not propose adding any. Is the fix
+   the right layer and the smallest change, with no comment that restates the code? If not, say so as an edit to
+   the change, not to the PR text. Is the test as simple as the issue's example? The issue and PR cover this bug and this change only: flag any mention of other features the changed
    code serves or of other bugs, and do not propose adding one. Report a bug you find nearby separately, after
    your edits, as "Outside these documents: ...".
 8. **Accuracy.** Every factual claim checked against the checkout: test and function names, file paths, quotes
    from documentation, the behavior described. List any that are wrong.
+9. **Manual claims.** A claim about what a command prints must use the issue's example data; flag one that uses
+   other data, or data on which the result is not well-defined (ties in a sort).

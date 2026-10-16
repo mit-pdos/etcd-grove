@@ -71,3 +71,9 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   rounds 1-2 had added a PR note on `RangeStream`, which calls the same helper and has a bug of its own.) Rule (step
   9, after `pr.md`; `review.md` item 7): the issue and PR cover this bug and this change only, with no mention of
   other features the code serves or of other bugs; the reviewer reports a nearby bug separately, for `issues/`.
+- 2026-10-16, etcd-range-sort-none-limit: "What's the point of the notes for the reviewer? Is that standard for etcd
+  PRs?" It is not: etcd's PR template has no sections, and merged fix PRs are a few sentences (#22596: one);
+  backports are cherry-picked after merge. "Trim down pr.md." Rules (step 9 `pr.md`; step 6; `review.md` item 7;
+  `check.py`): the PR is the root cause and change with permalinks, `Fixes #`, one line of testing and the
+  disclosure; alternatives, costs, suites and backports go to `meta.md`, "If a reviewer asks", for the user.
+  This replaces the step-6 rule (from "Shouldn't the fix just change etcdctl?") that put the alternatives in the PR.

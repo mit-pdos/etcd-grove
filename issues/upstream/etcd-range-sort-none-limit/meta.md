@@ -58,3 +58,18 @@ Round 2: `check.py` clean. Reviewer edits:
 No third round: round 2's edits were PR wording only.
 
 User review (2026-10-16): no mention of `RangeStream` in the issue or the PR; the PR's `RangeStream` note is gone.
+Then the PR was trimmed to etcd's usual shape (what and why, `Fixes`, one line of testing, the disclosure); what it
+dropped is below, for answering a reviewer.
+
+## If a reviewer asks
+
+- Cost: these requests now read the whole range before sorting, as the same request with `SortOrder: ASCEND`
+  already does.
+- Why not have `etcdctl` send `ASCEND` when `--sort-by` is given without `--order`: that fixes `etcdctl` only;
+  other clients sending `NONE` with a limit would still get the wrong keys.
+- Why not make `NONE` mean no sorting, as `rpc.proto` documents: that would undo #6672, which made a non-key target
+  with no order sort ascending; `TestV3RangeRequest` ("sort ASCEND by default") and `TestCtlV3GetTimeout`
+  (`--sort-by=CREATE`) test that behavior.
+- Backports: `release-3.6` (`executeRange`) and `release-3.5` (`applierV3backend.Range`) have the same condition
+  (`r.SortOrder != NONE`); not run there.
+- Suites run: listed under Verification above.

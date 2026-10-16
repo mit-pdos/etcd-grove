@@ -24,6 +24,7 @@ PR_DISCLOSURE = (
 # Vocabulary of this repository that means nothing upstream.
 LOCAL_WORDS = r"\b(specs?|proofs?|premises?|Goose|Gooseable|ghost|verified code|Lean|Rocq|Perennial|Iris)\b"
 MAX_PROSE_WORDS = 250
+MAX_PR_WORDS = 90
 
 failures = 0
 
@@ -162,6 +163,12 @@ def main():
             fail("pr: first line is not 'Title: <commit subject>'")
         elif subject and pr.splitlines()[0][len("Title: "):] != subject:
             fail(f"pr: title is not the commit subject ({subject!r})")
+        body = norm(pr.split("\n", 1)[1] if "\n" in pr else "").replace(PR_DISCLOSURE, "")
+        body = re.sub(r"\]\([^)]*\)", "]", body)  # link targets are not words
+        if len(body.split()) > MAX_PR_WORDS:
+            warn(f"pr: {len(body.split())} words; etcd fix PRs are a few sentences (aim for under {MAX_PR_WORDS})")
+        if re.search(r"^\*\*|^#+ ", pr, flags=re.M):
+            fail("pr: has sections (headings or bold labels); etcd fix PRs are a few plain sentences")
         if "Fixes #" not in pr:
             fail("pr: no 'Fixes #<issue>'")
         if PR_DISCLOSURE not in norm(pr):

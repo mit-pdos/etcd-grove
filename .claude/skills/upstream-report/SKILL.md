@@ -124,14 +124,15 @@ output. A test that passes without the fix does not reproduce the bug: rethink i
 
 ### 6. The fix
 
-Fix the layer where the defect is. Before writing it, list the alternatives a reviewer will ask about — a
+Fix the layer where the defect is. Before writing it, list the alternatives a reviewer may ask about — a
 smaller-looking change elsewhere (in `etcdctl` or the client rather than the server), or changing the documented or
-tested behavior instead of the code — and what each would leave broken or change; they go in the PR's notes.
+tested behavior instead of the code — and what each would leave broken or change. They go in `meta.md`, "If a
+reviewer asks", with the change's costs and the backports checked: answers for the user, not text for the PR.
 
 The smallest change that fixes the bug, in the surrounding code's style. No refactoring, no unrelated cleanup, none
 of the Goose branches' rewrites ("Gooseable"), no comments about verification, no comment that restates the code (a
 new helper gets a doc comment only where its neighbors have one). If there are several reasonable fixes, pick one
-and name the others in the PR's notes.
+and name the others in `meta.md`.
 
 ### 7. Verify
 
@@ -177,12 +178,18 @@ Every output in the issue is pasted from a run (the transcript, the test), never
 `OK` lines of setup commands and trailing blank lines may go, and test output may be trimmed to the failing
 assertion; nothing is reworded.
 
-`pr.md`: `Title:` the commit subject. Body: what the change does and the root cause, in two or three sentences,
-with permalinks at the base (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`) where a line matters;
-`Fixes #<issue>`; **Testing** (the new test, in one sentence; the suites run; the example rerun with the fix);
-**Notes for the reviewer** (the alternatives from step 6 with what each leaves broken, behavior changes and costs,
-backports only as far as checked); and, word for word: "This PR was written in part with the assistance of
-generative AI; I have reviewed and tested every change."
+`pr.md` follows etcd's merged fix PRs, whose template has no sections and whose bodies are a few sentences
+(#22596: one). `Title:` the commit subject. Body, and nothing else:
+
+1. the root cause and the change, in one to three sentences, with permalinks at the base
+   (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`) to the lines that matter;
+2. `Fixes #<issue>`;
+3. one line on testing: the new test runs the issue's example, fails on `main` and passes with the change;
+4. word for word: "This PR was written in part with the assistance of generative AI; I have reviewed and tested
+   every change."
+
+No "Notes for the reviewer", alternatives, costs, suite lists or backport requests: those are in `meta.md` for the
+user to answer with if asked (backports are cherry-picked after merge, at the maintainers' request).
 
 The issue and the PR are about this bug and this change only. Other features the changed code serves (`RangeStream`
 calling the same helper), what the change does to them, and other bugs found nearby are not mentioned, not even as
@@ -211,7 +218,8 @@ means a step above went wrong: say so in the hand-off.
 Report to the user: the worktree and branch, the base commit, the three files, the test commands, the command that
 pushes the branch to the fork under the name the issue links (`git -C ~/etcd-fixes/<slug> push origin <slug>`), what
 the review rounds changed, and a short review checklist — the commit message to rewrite, the judgment calls (the
-fix's layer, severity, duplicates found, rejected review edits), anything not verified. Set `meta.md`'s state to
+fix's layer, severity, duplicates found, rejected review edits), anything not verified, and where the answers to
+likely reviewer questions are (`meta.md`, "If a reviewer asks"). Set `meta.md`'s state to
 `draft`.
 
 ## Writing for upstream
