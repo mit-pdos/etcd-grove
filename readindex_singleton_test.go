@@ -25,7 +25,9 @@ package raft
 //     the next entry x is, and wins term 2 alone. A ReadIndex issued then must
 //     return an index covering x (index 3), committed before the read.
 //   - TestReadIndexSingletonRemovedLeaderStale: the same start; node 2 stays
-//     leader after its removal (StepDownOnRemoval is false, the default). After
+//     leader after its removal (possible only while StepDownOnRemoval was
+//     configurable and false; since etcd-io/raft#239 the removed leader steps
+//     down and the test checks that instead). After
 //     a partition {1} | {2} in which node 1 wins term 2 and commits y, a read at
 //     node 2 must not be answered with an index below y's.
 
@@ -202,8 +204,13 @@ func TestReadIndexSingletonNewLeaderStale(t *testing.T) {
 func TestReadIndexSingletonRemovedLeaderStale(t *testing.T) {
 	c := riSetup(t)
 	n1, n2 := c.nodes[1], c.nodes[2]
-	if n2.rn.BasicStatus().RaftState != StateLeader {
-		t.Fatal("node 2 stepped down")
+	if st := n2.rn.BasicStatus().RaftState; st != StateLeader {
+		// etcd-io/raft#239: a removed leader always steps down, so the
+		// scenario below (a removed leader answering a read) cannot arise.
+		if st != StateFollower {
+			t.Fatalf("node 2 is %v, want StateFollower after its removal", st)
+		}
+		return
 	}
 	// Partition {1} | {2}. Node 1 wins term 2 alone and commits y.
 	c.drop = func(m *pb.Message) bool { return m.GetFrom() != m.GetTo() }
