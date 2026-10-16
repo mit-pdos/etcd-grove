@@ -1,7 +1,12 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#4203 issue closed: related, flagged: asked in 2016 whether a Ready's conf change must be applied before Advance (maintainer: 'probably fair'); closed by etcd-io/etcd#4049, whose Advance comment allows Advance while applying without that exception; the safety consequence was not raised (maintainer called delaying a conf change apply safe)
+  - etcd-io/raft#80 issue open: related, not this bug: the pendingConfIndex > applied proposal check gives false positives; proposes tracking the configuration explicitly
+  - etcd-io/raft#234 issue closed: related, not this bug: split brain with a stalled apply; closed citing hasUnappliedConfChanges (assumes conf changes applied before the applied index moves)
+  - etcd-io/raft#456 issue open: related, not this bug: the TLA+ spec lacks the hasUnappliedConfChanges guard; says the Go code is safe
+  - etcd-io/etcd#12136 issue closed: related, not this bug: pendingConfIndex vs applied with AutoLeave (liveness), fixed by etcd-io/etcd#12137
 ---
 
 # raft: calling `Advance` before `ApplyConfChange`, which the documentation allows, breaks safety

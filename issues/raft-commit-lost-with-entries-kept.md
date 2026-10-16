@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/raft#300 pr closed: same root cause (HardState.Commit not persisted with the entries), different symptom (force-new-cluster drops a committed entry); closed, resolved on the etcd side
+  - etcd-io/raft#234 issue closed: related, not this bug: split brain with a stalled apply; closed citing hasUnappliedConfChanges (assumes conf changes applied before the applied index moves)
 ---
 
 # raft: entries persisted without their `HardState.Commit` can break membership safety
