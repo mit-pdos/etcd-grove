@@ -11,10 +11,15 @@ Lean notes:
   section variable `c` as its second.
 * Rocq's `Local Ltac ne_ty` (`bool_decide (m.Type = c) = false` by `w32_ne`) is not
   ported.
+
+raft v3.7 (2026-10-15, stage R4 phase 3): the message is a pointer `ml` with `msgIn ml □ ⟨m, ents,
+sn, ctx, rs⟩`, read by its getters (`wp_get`/`wp_gets`, `ElectionLemmas.lean`, by `PB`); `Step`
+first checks `m != nil` (`msgPtsC_nn`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.prevote_lemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 
@@ -34,18 +39,21 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 2000000 in
 /-- `MsgPreVoteResp` with `m.Term < r.Term`: logged and dropped. `StepC.refl`, nothing
 received. -/
 theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgPreVoteResp →
     m.Term' ≠ W64 0 →
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -56,34 +64,51 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hterm Hlt Hwf
-  wp_start as Hphys
-  iNamed Hphys
-  wp_auto
+  wp_start as ⟨Hphys, Hm⟩
+  icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  try wp_auto
+  wp_gets
+  rw [decide_eq_false Hnn]
+  try wp_auto
+  wp_gets
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_gets
   rw [decide_eq_false Hterm]
-  wp_auto
+  try wp_auto
+  wp_gets
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_gets
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
-  wp_auto
+  try wp_auto
+  wp_gets
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_gets
   rw [decide_eq_true Hlt]
-  wp_auto
+  try wp_auto
+  wp_gets
   wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
+  wp_gets
   wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn20 : decide (m.Type' = W32 20) = false := decide_eq_false (by rw [Hty]; w32_ne)
   -- `checkQuorum` is off; with pre-vote on the type test runs and is false
-  cases s.prevote <;> wp_auto
-  all_goals try (rw [Hn8]; wp_auto; rw [Hn3]; wp_auto)
+  cases s.prevote <;> try wp_auto
+  all_goals try (wp_gets; rw [Hn8]; try wp_auto; wp_gets; rw [Hn3]; try wp_auto)
   all_goals
+    wp_gets
     rw [Hn17]
-    wp_auto
+    try wp_auto
+    wp_gets
     rw [Hn20]
-    wp_auto
+    try wp_auto
+    wp_gets
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_gets
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_gets
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
     iframe Hphys

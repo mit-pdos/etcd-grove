@@ -4,7 +4,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/updateCommittedIndex.lean`. 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 

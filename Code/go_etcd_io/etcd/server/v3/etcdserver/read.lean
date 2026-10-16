@@ -11,7 +11,7 @@ public import Perennial.Code.time
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.errors
-public import EtcdDeps.Code.go_etcd_io.raft.v3
+public import Code.go_etcd_io.raft.v3
 public import Perennial.Golang.Defn
 
 @[expose] public section

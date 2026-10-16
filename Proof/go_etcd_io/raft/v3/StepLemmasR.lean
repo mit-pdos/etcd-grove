@@ -37,9 +37,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.StepLemmasC
 public import Proof.go_etcd_io.raft.v3.Protocol.StepR
-public import Proof.go_etcd_io.raft.v3.InvReadylog
-public import Proof.go_etcd_io.raft.v3.InvRaftlog
-public import Spec.go_etcd_io.raft.v3.raft__hup
+public import Proof.go_etcd_io.raft.v3.SpecResults
 
 @[expose] public section
 
@@ -93,7 +91,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
   | drain (s : PState) (o' : List Msg) :
       o'.Subperm s.outbox →
       StepCF s [] { s with outbox := o' }
-  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List raftpb.Entry) :
+  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List EntryM) :
       m.ty = .app →
       m.dst = id →
       m.src ≠ id →
@@ -207,7 +205,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
         src := if m.src = W64 0 then id else m.src
         dst := s.lead
         term := W64 0 }])
-  | readPend (m : Msg) (s : PState) (pm : raftpb.Message) :
+  | readPend (m : Msg) (s : PState) (pm : MessageM) :
       m.ty = .readIndex → s.role = .leader → m.src = pm.From' →
       StepCF s [m] ({ s with rd := { s.rd with pend := s.rd.pend ++ [(pm, m.entries)] } })
   | readArrive (m : Msg) (s : PState) :
@@ -237,7 +235,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
         ({ s with rd := { s.rd with
              ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
         (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2)
-  | readState (m : Msg) (s : PState) (e : raftpb.Entry) :
+  | readState (m : Msg) (s : PState) (e : EntryM) :
       m.ty = .readIndexResp → m.entries = [e] →
       StepCF s [m] ({ s with rd := { s.rd with states := s.rd.states ++ [⟨m.index, e.Data'⟩] } })
   | sendFree (s : PState) (m : Msg) :
@@ -330,7 +328,7 @@ theorem RState.with_p_pci (r : RState) (p' : PState)
   · rw [ite_eq_right hl, ← hz (fun h => hl (h2 h))]
 
 /-- `RState.with_p_pci` on a `StepR` derivation's target. -/
-theorem StepR.pci_keep {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {id : w64}
+theorem StepR.pci_keep {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
     {r : RState} {ms : List Msg} {p' : PState} (h : StepR Adm dec id r ms { r with p := p' })
     (h1 : p'.role = .leader → r.p.role = .leader) (h2 : r.p.role = .leader → p'.role = .leader)
     (hz : r.p.role ≠ .leader → r.pci = W64 0) :
@@ -340,7 +338,7 @@ theorem StepR.pci_keep {Adm : List raftpb.Entry → CCState → Prop} {dec : CCD
 /-- A `StepCF` derivation is a `StepR` one, at any `RState` over its start whose non-leader
 `pci` is `0`: the configuration is `c`; the extra fields are kept, but `pci`, kept at a leader
 and cleared at a step-down. -/
-theorem StepCF.toR {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {c : CfgM}
+theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : CfgM}
     {id : w64} {s : PState} {ms : List Msg} {s' : PState} (h : StepCF c id s ms s') :
     ∀ (r : RState), r.p = s → r.cfg.cfg = c → (r.p.role ≠ .leader → r.pci = W64 0) →
       StepR Adm dec id r ms
@@ -483,7 +481,7 @@ learner flags), the full log's prefix below the compaction boundary. -/
 structure RGh where
   cidx : Nat
   cfg : CCState
-  fp : List raftpb.Entry
+  fp : List EntryM
 
 /-- `pendingConfIndex` as the dynamic model reads it: the code's at a leader, `0` elsewhere (see
 the file header). -/
@@ -533,7 +531,7 @@ theorem rOf_frame (s s' : NState) (g : RGh) (hf : RFrame s s') :
     simp [h, this, ha, hs]
 
 /-- The dynamic model's premises of a step of `raft.Step` (see the file header). -/
-def DynHyp (m : raftpb.Message) (s s' : NState) (g : RGh) : Prop :=
+def DynHyp (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
   m.Type' ≠ MsgSnap ∧ s.role ≠ .preCandidate ∧ FullOk (toPState s).base g.fp ∧
   (m.Type' = MsgStorageApplyResp →
     s.logst.snap = none ∧ NoConfIn (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
@@ -544,21 +542,21 @@ def DynHyp (m : raftpb.Message) (s s' : NState) (g : RGh) : Prop :=
 
 /-- How a step moves the configuration index (2026-10-14, stage B7 part 2): not at all, but for
 a `MsgStorageApplyResp`, whose `StepR.advance` takes it to the new `applied` when below. -/
-def CidxMove (m : raftpb.Message) (s' : NState) (g : RGh) (cidx' : Nat) : Prop :=
+def CidxMove (m : MessageM) (s' : NState) (g : RGh) (cidx' : Nat) : Prop :=
   cidx' = g.cidx ∨
     (m.Type' = MsgStorageApplyResp ∧ cidx' = max g.cidx (uint.nat s'.logst.applied))
 
 /-- What a branch of `raft.Step` delivers (see the file header): the `StepC c` witness, and the
 `StepR` one at every ghost part over `c`, under the dynamic model's premises. -/
-def StepCD (c : CfgM) (id : w64) (m : raftpb.Message) (s : NState) (recv : List Msg)
+def StepCD (c : CfgM) (id : w64) (m : MessageM) (s : NState) (recv : List Msg)
     (s' : NState) : Prop :=
   StepC c id (toPState s) recv (toPState s') ∧
-  ∀ (Adm : List raftpb.Entry → CCState → Prop) (dec : CCDec) (g : RGh), g.cfg.cfg = c →
+  ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh), g.cfg.cfg = c →
     DynHyp m s s' g → ∃ cidx', CidxMove m s' g cidx' ∧
       StepR Adm dec id (rOf s g) recv (rOf s' { g with cidx := cidx' })
 
 /-- A frame step of the code is a `StepCD` one. -/
-theorem StepCD.frame {c : CfgM} {id : w64} {m : raftpb.Message} {s : NState}
+theorem StepCD.frame {c : CfgM} {id : w64} {m : MessageM} {s : NState}
     {recv : List Msg} {s' : NState}
     (h : StepCF c id (toPState s) recv (toPState s')) (hf : RFrame s s') :
     StepCD c id m s recv s' := by
@@ -568,7 +566,7 @@ theorem StepCD.frame {c : CfgM} {id : w64} {m : raftpb.Message} {s : NState}
 
 /-- A `StepCD` step that the dynamic model's premises exclude (a `MsgSnap`, a pre-candidate's):
 only the `StepC` witness is needed. -/
-theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : raftpb.Message} {s : NState}
+theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : MessageM} {s : NState}
     {recv : List Msg} {s' : NState} (h : StepC c id (toPState s) recv (toPState s'))
     (hx : m.Type' = MsgSnap ∨ s.role = .preCandidate) : StepCD c id m s recv s' :=
   ⟨h, fun _ _ _ _ hd => by
@@ -577,7 +575,7 @@ theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : raftpb.Message} {s : NStat
     · exact absurd hx hd.2.1⟩
 
 /-- A frame step, then a `StepCD` one (2026-10-14, stage B7). -/
-theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : raftpb.Message} {s s1 s' : NState}
+theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : MessageM} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
     (h2 : StepCD c id m s1 r2 s') (hd : ∀ g, DynHyp m s s' g → DynHyp m s1 s' g) :
     StepCD c id m s (r1 ++ r2) s' := by
@@ -597,7 +595,7 @@ full prefix). -/
 def StepCDS (c c' cn : CfgM) (id : w64) (sid : entryID) (s : NState) (recv : List Msg)
     (s' : NState) : Prop :=
   StepC c id (toPState s) recv (toPState s') ∧
-  ∀ (Adm : List raftpb.Entry → CCState → Prop) (dec : CCDec) (g : RGh) (fp' : List raftpb.Entry)
+  ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh) (fp' : List EntryM)
     (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → cs'.cfg = cn → id ∈ cn.ids →
     Adm fp' cs' → ∃ g', g'.cfg.cfg = c' ∧ StepR Adm dec id (rOf s g) recv (rOf s' g')
 
@@ -622,8 +620,8 @@ theorem StepCDS.trans_frame {c c' cn : CfgM} {id : w64} {sid : entryID} {s s1 s'
 /-- A restore (`handleSnapshot`'s third exit) as `StepR.snapRestore`: the node takes the
 snapshot's prefix `fp'` and configuration state `cs'`, at the snapshot's index, with the snapshot
 pending (`applied` unchanged, `raftLog.restore`'s unstable snapshot set). -/
-theorem stepR_snap_restore {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {id : w64}
-    (s s' : NState) (g : RGh) (m : Msg) (fp' : List raftpb.Entry) (cs' : CCState)
+theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
+    (s s' : NState) (g : RGh) (m : Msg) (fp' : List EntryM) (cs' : CCState)
     (h1 : m.ty = .snap) (h2 : m.dst = id) (h3 : m.src ≠ id) (h4 : m.term = (toPState s).term)
     (h5 : s.role ≠ .leader) (h6 : uint.Z (toPState s).commit < uint.Z m.index)
     (h7 : ¬ PlogMatches (toPState s).base (toPState s).log (entryID.mk m.logterm m.index))
@@ -716,7 +714,7 @@ theorem stepCF_record_then_lose (c : CfgM) (id : w64) (s : PState) (m : Msg)
 /-- `hasUnappliedConfChanges`'s answer as `StepR.campaign`'s guard: with the full prefix below
 the log's boundary and no snapshot pending (`prev ≤ applied`), no conf entry at the log indices
 `(applied, committed]` is no conf entry at the full log's positions `[applied, committed)`. -/
-theorem noConfIn_of_unapplied (ls : LogState) (fp : List raftpb.Entry)
+theorem noConfIn_of_unapplied (ls : LogState) (fp : List EntryM)
     (Hfp : (fp.length : Int) = uint.Z ls.prev.index')
     (H1 : uint.Z ls.prev.index' ≤ uint.Z ls.applied) (H2 : uint.Z ls.applied ≤ uint.Z ls.committed)
     (H3 : uint.Z ls.committed + 1 < 2 ^ 64)
@@ -753,7 +751,7 @@ theorem rOf_nonleader (s s' : NState) (g : RGh) (ha : s'.logst.applied = s.logst
 /-- `hup`'s step as a `StepCD` one: nothing, a pre-election (a frame step: `abandon` and free
 sends), or an election, which is `StepR.campaign` with the guard `hup` checked
 (`HupGuard`). The log facts are `ownRaftLog`'s. -/
-theorem stepCD_hup {c : CfgM} {id : w64} {m : raftpb.Message} {s s' : NState}
+theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
     (Hok : HupOkC c id s s') (Hnw : uint.Z s.term + 1 < 2 ^ 64)
     (Hlog : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
       uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :

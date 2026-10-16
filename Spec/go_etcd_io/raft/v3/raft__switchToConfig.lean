@@ -126,7 +126,11 @@ stay a voter, for the same reason (the Go code leaves it campaigning; if it then
 `issues/raft-advance-before-applyconfchange.md`, which is how an application gets there).
 The result is `SwitchOkC`, from `{ s with progress, prvals, isLearner := learnerOfC c id }`.
 The statement on `ownRaftPhys` is `raft.switchToConfig.specS`, which gained the candidate
-premise. -/
+premise.
+
+raft v3.7 (2026-10-15, stage R4): the `ConfState` returned is a `*pb.ConfState`, the tracker's
+fresh one (`ProgressTracker.ConfState`'s post, R0): owned, its `AutoLeave` set (`csPts cs 1 ⟨xs,
+ls, os, lns, c.autoLeave⟩ true`), with the same permutation facts on its lists. -/
 abbrev raft.switchToConfig.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
@@ -143,12 +147,11 @@ abbrev raft.switchToConfig.spec : Prop :=
       "Hnew" ∷ ownConfigC c cfgv prsm prs pvs }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
-  {{ (cs : raftpb.ConfState) (xs os ls lns : List w64) (s' : NState), RET #cs;
+  {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
       ownRaftPhysCV c c.voters r id s' ∗
-      cs.Voters' ↦* xs ∗ cs.VotersOutgoing' ↦* os ∗ cs.Learners' ↦* ls ∗
-      cs.LearnersNext' ↦* lns ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
       ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
-        lns ≡ₚ elements c.learnersNext ∧ cs.AutoLeave' = c.autoLeave⌝ ∗
+        lns ≡ₚ elements c.learnersNext⌝ ∗
       ⌜SwitchOkC c id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id }
         s'⌝ }}
 
@@ -169,13 +172,10 @@ abbrev raft.switchToConfig.specS : Prop :=
       "Hnew" ∷ ownConfigV cfg cfgv prsm prs pvs }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
-  {{ (cs : raftpb.ConfState) (xs ls : List w64) (s' : NState), RET #cs;
+  {{ (cs : Loc) (xs ls : List w64) (s' : NState), RET #cs;
       ownRaftPhys cfg r id s' ∗
-      cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
-      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet prs \ cfg) ∧
-        cs.VotersOutgoing'.len = W64 0 ∧
-        cs.LearnersNext'.len = W64 0 ∧
-        cs.AutoLeave' = false⌝ ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet prs \ cfg)⌝ ∗
       ⌜SwitchOk cfg id { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }
         s'⌝ }}
 
@@ -202,20 +202,18 @@ theorem raft.switchToConfig.spec_simple
       exact GMap.elem_of_union_l _ (h hr)
     · ipureintro; exact Hmi
   inext
-  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hxs, Hos, Hls, Hlns, %Hcs, %Hsw⟩
+  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hp, %Hsw⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  obtain ⟨H1, H2, H3, H4, H5⟩ := Hcs
+  obtain ⟨H1, H2, H3, H4⟩ := Hp
   have Hos0 : os = [] := perm_elements_empty _ H2
   have Hlns0 : lns = [] := perm_elements_empty _ H4
   subst Hos0 Hlns0
-  ihave %Hol := ownSlice_len $$ Hos
-  ihave %Hll := ownSlice_len $$ Hlns
   iapply HΦ $$ %cs %xs %ls %s'
-  iframe Hphys Hxs Hls
+  iframe Hphys
+  isplitl [Hcs]
+  · simp only [CfgM.simple]; iexact Hcs
   ipureintro
-  refine ⟨⟨H1, H3, ?_, ?_, H5⟩, ?_⟩
-  · simp at Hol; word
-  · simp at Hll; word
+  refine ⟨⟨H1, H3⟩, ?_⟩
   · rw [learnerOfC_simple] at Hsw
     unfold SwitchOkC at Hsw
     unfold SwitchOk
@@ -240,15 +238,12 @@ theorem raft.switchToConfig.spec_follower
         ownConfig cfg cfgv prsm prs }}
       (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
         (Val #cfgv)) (Val #prsm))
-    {{ (cs : raftpb.ConfState) (xs ls : List w64)
+    {{ (cs : Loc) (xs ls : List w64)
         (pvs : GMap w64 Progress), RET #cs;
         ownRaftPhys cfg r id { s with progress := prs, prvals := pvs,
                                       isLearner := learnerOf cfg prs id } ∗
-        cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
-        ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn ∧
-          cs.VotersOutgoing'.len = W64 0 ∧
-          cs.LearnersNext'.len = W64 0 ∧
-          cs.AutoLeave' = false⌝ }} := by
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+        ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hcfg⟩ HΦ
   icases ownRaftPhys_reconfig cfg0 cfg r id s (fun h => absurd Hrole h) $$ Hphys
     with ⟨%tv, Htrkf, Hold, Hback⟩
@@ -260,7 +255,7 @@ theorem raft.switchToConfig.spec_follower
     $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
   · ipureintro; exact Hmi
   inext
-  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
+  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
   unfold SwitchOk at Hsw
   rw [ite_eq_right (by rw [Hrole]; decide)] at Hsw
   subst Hsw
@@ -274,13 +269,14 @@ theorem raft.switchToConfig.spec_follower
       · exact h
     · intro h; exact ⟨.inr h, Hd k h⟩
   iapply HΦ $$ %cs %xs %ls %pvs
-  iframe Hphys Hcs Hls
+  iframe Hphys Hcs
   ipureintro
-  exact ⟨Hcs0.1, Hl ▸ Hcs0.2.1, Hcs0.2.2⟩
+  exact ⟨Hcs0.1, Hl ▸ Hcs0.2⟩
 
 /-- The statement until 2026-10-13: at a non-leader, from the struct sealed at any
 configuration `cfg0` and the new configuration as `confchange.Restore` builds it
-(`ownConfig`), with no learners (`domSet prs = cfg`). What `newRaft` and `restore` call. -/
+(`ownConfig`), with no learners (`domSet prs = cfg`). What `newRaft` and `restore` call.
+(Stage R4: the `ConfState` a `csPts` pointer; the other three lists empty, `AutoLeave` off.) -/
 theorem raft.switchToConfig.spec_nonleader
     (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
     (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
@@ -290,14 +286,10 @@ theorem raft.switchToConfig.spec_nonleader
         ownConfig cfg cfgv prsm prs }}
       (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
         (Val #cfgv)) (Val #prsm))
-    {{ (cs : raftpb.ConfState) (xs : List w64)
+    {{ (cs : Loc) (xs : List w64)
         (pvs : GMap w64 Progress), RET #cs;
         ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
-        cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
-        ⌜cs.VotersOutgoing'.len = W64 0 ∧
-          cs.Learners'.len = W64 0 ∧
-          cs.LearnersNext'.len = W64 0 ∧
-          cs.AutoLeave' = false⌝ }} := by
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hcfg⟩ HΦ
   icases ownRaftPhys_reconfig cfg0 cfg r id s (fun h => absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Hold, Hback⟩
   icases ownTracker_votes $$ Hold with ⟨Hvotes, %Hmi⟩
@@ -308,14 +300,14 @@ theorem raft.switchToConfig.spec_nonleader
     $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
   · ipureintro; exact Hmi
   inext
-  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
+  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
   unfold SwitchOk at Hsw
   rw [ite_eq_right (by rw [Hrole]; decide)] at Hsw
   subst Hsw
   have HL : learnerOf cfg prs id = false := by
     unfold learnerOf; rw [Hdom]; simp
   have Hls0 : ls = [] := by
-    have h := Hcs0.2.1.length_eq
+    have h := Hcs0.2.length_eq
     rw [Hdom, GMap.length_elements] at h
     have h2 : cfg \ cfg = (∅ : GSet w64) := by
       apply GMap.set_eq; intro k
@@ -324,13 +316,11 @@ theorem raft.switchToConfig.spec_nonleader
     rw [h2, GMap.size_empty] at h
     exact List.eq_nil_of_length_eq_zero h
   subst Hls0
-  ihave %Hll := ownSlice_len $$ Hls
   iapply HΦ $$ %cs %xs %pvs
   rw [HL]
   iframe Hphys Hcs
   ipureintro
-  refine ⟨Hcs0.1, Hcs0.2.2.1, ?_, Hcs0.2.2.2⟩
-  simp at Hll; word
+  exact Hcs0.1
 
 end spec
 

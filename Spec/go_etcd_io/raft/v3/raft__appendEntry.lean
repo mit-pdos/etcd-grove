@@ -143,23 +143,36 @@ Since 2026-09-25 the log's state is in `NState`, so the postcondition says exact
 was appended: the batch, stamped with the current term and consecutive indices after
 `lastIndex()` (`stamp`, `logLast`, `logAppend`, `Defs.lean`). Until then it returned
 the struct at the *same* state, which was only true because `ownRaftPhys` quantified
-the log away. -/
+the log away.
+
+### raft v3.7 (2026-10-15, stage R4)
+
+`es` is a `[]*pb.Entry`, and v3.7's `appendEntry` **no longer writes the caller's entries**: it
+clones each (`cloned[i] = proto.Clone(es[i]).(*pb.Entry)`), stamps the clones (`Term =
+new(r.Term)`, `Index = new(li + 1 + i)`) and appends those. So the batch is taken at any fraction
+and given back unchanged (`entsPts es dq ents`), and what reaches the log is the stamped clones.
+A clone holds the same record (`proto.CloneEntry.spec`,
+`Spec/google_golang_org/protobuf/proto/CloneEntry.lean`: its `Data` is a fresh slice holding the
+same bytes, and since D6 the record's `Data'` is the bytes), so the log grows by
+`ents.mapIdx (stamp ...)`, as before the retarget, when the batch itself was stamped in place
+and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
+`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.) -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List raftpb.Entry),
+    (ents : List EntryM) (dq : DFrac),
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      es ↦* ents }}
+      "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
       -- an all-empty batch is never dropped -- see above
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
-      -- stamped on both paths: the loop runs before the budget check
-      es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
+      ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
+      -- (stage R4) the caller's batch, untouched
+      entsPts es dq ents ∗
       if accepted then
         ownRaftPhysCV c c.voters r id
           (sendMsgs
@@ -176,15 +189,15 @@ abbrev raft.appendEntry.spec : Prop :=
 derived from `raft.appendEntry.spec` by `raft.appendEntry.spec_simple`. -/
 abbrev raft.appendEntry.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List raftpb.Entry),
+    (ents : List EntryM) (dq : DFrac),
   (ents.length : Int) < 2^61 →
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
-      es ↦* ents }}
+      "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
-      es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
+      ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
+      entsPts es dq ents ∗
       if accepted then
         ownRaftPhys cfg r id
           (sendMsgs
@@ -200,13 +213,13 @@ open Iris.ProofMode in
 theorem raft.appendEntry.spec_simple
     (H : raft.appendEntry.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents Hlen Ht
+  intro cfg r id s es ents dq Hlen Ht
   iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s es ents Hlen Ht $$ [$Hpkg $Hphys $Hes]
+  iapply H _ r id s es ents dq Hlen Ht $$ [$Hpkg $Hphys $Hes]
   inext
   iintro %acc ⟨%Hacc, Hes, Hphys⟩
-  iapply HΦ
+  iapply HΦ $$ %acc
   iframe Hes
   isplitr
   · ipureintro; exact Hacc

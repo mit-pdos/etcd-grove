@@ -2,7 +2,7 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.limitSize
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__Size
+public import Spec.google_golang_org.protobuf.proto.SizeEntry
 
 @[expose] public section
 
@@ -20,53 +20,47 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit [GoGlobalContext] in
-/-- Rocq `list_insert_id`. -/
-private theorem list_set_id {A : Type} (l : List A) (i : Nat) (x : A) (h : l[i]? = some x) :
-    l.set i x = l := by
-  obtain ⟨hlt, rfl⟩ := List.getElem?_eq_some_iff.1 h
-  exact List.set_getElem_self hlt
-
 /-- Three exits, each giving a different `n`:
 - `len(ents) == 0`: the input comes straight back. `es = []`, so `take 0 es = es` and
   any `n` would do; `0` is chosen.
 - the loop's early `return ents[:limit]`: a two-index sub-slice, so `n = limit` and the
-  result is `ownSlice_split_all`'s left half, with the right half captured in the
-  wand's closure. This is the only `return` out of a `for:` body on the log path.
+  result is `ownSlice_split_all`'s left half (of the pointers; the entries' `entRO`s are
+  persistent and taken along), with the right half captured in the wand's closure.
 - falling out of the loop: `n = |es|`, the input again.
 
 The loop invariant is just the two mutable locations plus `1 <= limit <= |es|`; nothing
-about `size`, since the spec says nothing about where the cut falls. `Entry.Size` has a
-pointer receiver applied to `&ents[i]`, not to a loaded value, so the element points-to
-comes from `ownSlice_elem_acc` and goes back with `List.set_getElem_self`. -/
+about `size`, since the spec says nothing about where the cut falls. raft v3.7: each entry is
+weighed by `proto.Size(ents[i])` (`util.go:290,292`), on the loaded pointer's `entRO`. -/
 theorem limitSize.wp_proof
-    (wp_Entry_Size : raftpb.Entry.Size.spec (GF := GF) (hG := hG)) :
+    (wp_proto_SizeEntry : proto.SizeEntry.spec (GF := GF) (hG := hG)) :
     limitSize.spec (GF := GF) (hG := hG) := by
   intro s es dq maxSize
   wp_start as H
   iNamed H
+  iunfold entsPts at Hs
+  icases Hs with ⟨%ls, Hs, #Hb⟩
   wp_auto
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   ihave %Hwf := ownSlice_wf _ _ _ $$ Hs
+  ihave %Hbl := entsBig_length $$ Hb
   wp_if_destruct
-  · have Hnil : es = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen.1]; word)
+  · have Hnil : es = [] := List.eq_nil_of_length_eq_zero (by rw [← Hbl, Hlen.1]; word)
     subst Hnil
     iapply HΦ $$ %s %0
     simp only [List.take_zero]
-    iframe Hs
     isplitr
     · ipureintro; exact ⟨by simp, fun h => absurd rfl h⟩
+    isplitl
+    · iunfold entsPts; iexists ls; iframe Hs Hb
     · iintro H; iexact H
-  have Hne : 0 < es.length := by rw [Hlen.1]; word
+  have Hne : 0 < es.length := by rw [← Hbl, Hlen.1]; word
   obtain ⟨e0, He0⟩ : ∃ e0, es[0]? = some e0 :=
     ⟨es[0], List.getElem?_eq_getElem Hne⟩
+  icases entsBig_lookup ls es 0 e0 He0 $$ Hb with ⟨%l0, %Hl0, #Hl0⟩
   rw [ite_eq_left ⟨by word, by word⟩]
-  icases ownSlice_elem_acc (sint.Z (W64 0)) e0 s dq es (by word) (by simpa using He0) $$ Hs
-    with ⟨He, Hsback⟩
-  wp_auto
-  wp_apply wp_Entry_Size $$ [$He] as %sz0 He
-  ihave Hs := Hsback $$ He
-  rw [show (sint.Z (W64 0)).toNat = 0 from rfl, list_set_id es 0 e0 He0]
+  wp_apply wp_load_slice_index s (sint.Z (W64 0)) ls dq l0 (by word) $$ [Hs] as Hs
+  · iframe; ipureintro; exact Hl0
+  wp_apply wp_proto_SizeEntry l0 DFrac.discard e0 $$ [$Hl0] as %sz0 ⟨-, -⟩
   ihave IH : (∃ (lim sz : w64),
       "limit" ∷ limit_ptr ↦ lim ∗
       "size" ∷ size_ptr ↦ sz ∗
@@ -78,26 +72,40 @@ theorem limitSize.wp_proof
   wp_if_destruct
   · obtain ⟨e, He⟩ : ∃ e, es[(sint.Z lim).toNat]? = some e :=
       ⟨es[(sint.Z lim).toNat]'(by word), List.getElem?_eq_getElem _⟩
+    icases entsBig_lookup ls es _ e He $$ Hb with ⟨%l, %Hl, #Hl⟩
     rw [ite_eq_left ⟨by word, by word⟩]
-    icases ownSlice_elem_acc (sint.Z lim) e s dq es (by word) He $$ Hs with ⟨He, Hsback⟩
-    wp_auto
-    wp_apply wp_Entry_Size $$ [$He] as %szi He
-    ihave Hs := Hsback $$ He
-    rw [list_set_id es _ e He]
+    wp_apply wp_load_slice_index s (sint.Z lim) ls dq l (by word) $$ [Hs] as Hs
+    · iframe; ipureintro; exact Hl
+    wp_apply wp_proto_SizeEntry l DFrac.discard e $$ [$Hl] as %szi ⟨-, -⟩
     wp_if_destruct
     · rw [ite_eq_left ⟨by word, by word, by word⟩]
       wp_auto
       wp_for_post
-      icases (ownSlice_split_all lim s dq es ⟨by word, by word⟩).1 $$ Hs with ⟨Hs1, Hs2⟩
-      iapply HΦ $$ %(slice.slice s raftpb.Entry (W64 0) lim) %(sint.nat lim)
-      iframe Hs1
+      icases (ownSlice_split_all lim s dq ls ⟨by word, by word⟩).1 $$ Hs with ⟨Hs1, Hs2⟩
+      iapply HΦ $$ %(slice.slice s Loc (W64 0) lim) %(sint.nat lim)
       isplitr
       · ipureintro; exact ⟨by word, fun _ => by word⟩
+      isplitl [Hs1]
+      · iunfold entsPts
+        iexists ls.take (sint.nat lim)
+        iframe Hs1
+        iapply entsBig_take $$ Hb
       iintro Hs1
-      ihave Hs := ownSlice_combine lim s dq (es.take (sint.nat lim)) (es.drop (sint.nat lim))
-        (W64 0) s.len ⟨by rw [List.length_take]; word, by word, by word, by word⟩ $$ Hs1 Hs2
+      iunfold entsPts at Hs1
+      icases Hs1 with ⟨%ls', Hs1, #Hb'⟩
+      ihave %Hbl' := entsBig_length $$ Hb'
+      ihave Hs := ownSlice_combine lim s dq ls' (ls.drop (sint.nat lim))
+        (W64 0) s.len ⟨by rw [Hbl', List.length_take]; word, by word, by word, by word⟩ $$ Hs1 Hs2
+      ihave Hs := ownSlice_trivial_slice_2 _ _ _ $$ Hs
+      iunfold entsPts
+      iexists ls' ++ ls.drop (sint.nat lim)
+      iframe Hs
+      ihave #Hd := entsBig_drop (sint.nat lim) ls es $$ Hb
+      ihave Ha := entsBig_app ls' (ls.drop (sint.nat lim)) (es.take (sint.nat lim))
+        (es.drop (sint.nat lim)) $$ [Hb' Hd]
+      · iframe Hb' Hd
       rw [List.take_append_drop]
-      iapply ownSlice_trivial_slice_2 $$ Hs
+      iexact Ha
     · wp_for_post
       iframe
       iexists _, _
@@ -105,9 +113,10 @@ theorem limitSize.wp_proof
       ipureintro; word
   · iapply HΦ $$ %s %es.length
     rw [List.take_length]
-    iframe Hs
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, fun _ => Hne⟩
+    isplitl
+    · iunfold entsPts; iexists ls; iframe Hs Hb
     · iintro H; iexact H
 
 end proof

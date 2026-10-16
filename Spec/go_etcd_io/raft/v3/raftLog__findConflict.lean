@@ -7,7 +7,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
@@ -55,13 +55,13 @@ is.
 
 The batch is lent at any fraction and comes back; the log is unchanged. -/
 abbrev raftLog.findConflict.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (es : GoSlice) (dq : DFrac) (ents : List raftpb.Entry),
+  ∀ (l : Loc) (ls : LogState) (es : GoSlice) (dq : DFrac) (ents : List EntryM),
   (∀ e ∈ ents, uint.Z ls.prev.index' ≤ uint.Z e.Index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "Hes" ∷ es ↦*{dq} ents }}
+      "Hes" ∷ entsPts es dq ents }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"findConflict")) (Val #es))
   {{ RET #(plogFindConflict ls.prev (ls.sents ++ ls.uents) ents);
-      ownRaftLog l ls ∗ es ↦*{dq} ents }}
+      ownRaftLog l ls ∗ entsPts es dq ents }}
 
 end spec
 

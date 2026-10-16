@@ -8,6 +8,13 @@ joins are `wp_join`. `own_tracker_cfg_size` is the pure `ownTracker_cfg_size`;
 `elements_split` is `perm_id_cons`; `own_raft_phys_send_perm` is inlined as
 `ownRaftPhysC_outbox`. The slice range is a `doFor` over an index, as in Rocq.
 `_wp_raft_poll` is unused, as in Rocq (the postulates include `POLL`).
+
+raft v3.7 (stage R4): each message is a fresh `*pb.Message`, built owned (`msgOwn_lit0` for the
+self-addressed response, `msgOwn_lit` with the `Context` bytes for a request; its cells
+`new(id)`, `new(term)`, `new(last.index)`, `new(last.term)` frozen); the request's type is
+`voteMsg.Enum()` on the local variable, Go's lifted method of `*MessageType`
+(`MessageType.wp_ptr_Enum_of`), the response's `voteRespMsgType(voteMsg).Enum()`. A new callee,
+`raftpb.MessageType.Enum`; `send`'s `MsgSnap` premise discharged by the message type.
 -/
 module
 
@@ -21,6 +28,8 @@ public import Spec.go_etcd_io.raft.v3.raft__promotable
 public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Spec.slices.Sort
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 
@@ -109,6 +118,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- `(*MessageType).Enum` (`voteMsg.Enum()` on the local variable): the value method on `*l`, Go's
+method set of `*MessageType` (stage R4). -/
+private theorem MessageType.wp_ptr_Enum_of
+    (wp_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) (l : Loc) (x : raftpb.MessageType) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (l ↦ x : IProp GF) }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.MessageType.ty @!! go!"Enum")) (Val #()))
+    {{ (p : Loc), RET #p; l ↦ x ∗ p ↦ x }} := by
+  wp_start as Hl
+  wp_auto
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_Enum x
+  iintro %p Hp
+  iapply HΦ
+  iframe
+
 theorem raft.campaign.wp_proof
     (wp_raft_becomeCandidate : raft.becomeCandidate.spec (GF := GF) (hG := hG))
     (wp_raft_becomePreCandidate : raft.becomePreCandidate.spec (GF := GF) (hG := hG))
@@ -118,7 +142,8 @@ theorem raft.campaign.wp_proof
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
     (wp_JointConfig_IDs : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
-    (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
+    (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
   intro c r id s t Hrole Hid_cfg Hnowrap Hpv
   -- the voters of either half, named: everything below is about that set
@@ -296,12 +321,26 @@ theorem raft.campaign.wp_proof
       -- computes the literal's `Type` field
       wp_apply wp_voteRespMsgType (vreqW32 pre) (vrespW32 pre)
         (by cases pre <;> simp [vreqW32, vrespW32])
+      haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+      wp_apply wp_MessageType_Enum (vrespW32 pre)
+      iintro %pty Hpty
+      imod cellRO_alloc $$ Hpty with #cTy
+      imod cellRO_alloc $$ «$v0» with #cTo
+      imod cellRO_alloc $$ «$v1» with #cTe
+      wp_auto
+      imod msgOwn_lit0 «$a0_ptr» _
+          ⟨vrespW32 pre, y, 0, s.term + W64 1, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
+      · iframe «$a0» cTy cTo cTe
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+        msg_nulls
       -- `send`'s side conditions: `From = 0` (the literal leaves it unset),
       -- and `SendOk`'s vote clause -- the type is a vote message, its
       -- `mtypeOf`, the term is nonzero (this is what the no-wrap premise
       -- buys), and -- only for a request -- the destination is not this
       -- node. The last is vacuous here: this is a response.
-      wp_apply wp_raft_send _ _ _ _ _ [] [] [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
+      wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none [] []
+          [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
           (Or.inl rfl)
           (Or.inl ⟨vrespTy pre,
             by cases pre <;> simp [vrespW32],
@@ -316,17 +355,12 @@ theorem raft.campaign.wp_proof
             -- with pre-vote off, an election's: at the node's term (2026-10-10)
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32, 
+              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32,
                   MsgVoteResp, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
-        $$ [$Hphys]
-      · isplitr
-        · iapply ownSlice_nil
-        isplitr
-        · iapply ownSlice_nil
-        iapply send_no_snap
-        cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]
+          (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
+        $$ [$Hphys $Hm]
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r y
           (sendMsgs { campRoleState y s pre with prvals := pvs }
@@ -369,7 +403,22 @@ theorem raft.campaign.wp_proof
         rw [Htc]
         iapply ownSlice_nil
       imod ownSlice_persist $$ Hcl with #Hcl
-      wp_apply wp_raft_send _ _ _ _ _ [] (transferCtx t)
+      -- (stage R4) the request `&pb.Message{To: new(id), Term: new(term), Type: voteMsg.Enum(),
+      -- Index: new(last.index), LogTerm: new(last.term), Context: ctx}`, built owned
+      imod cellRO_alloc $$ «$v0» with #cTo
+      imod cellRO_alloc $$ «$v1» with #cTe
+      wp_apply MessageType.wp_ptr_Enum_of wp_MessageType_Enum $$ [$voteMsg] as %pty ⟨voteMsg, Hpty⟩
+      imod cellRO_alloc $$ Hpty with #cTy
+      imod cellRO_alloc $$ «$v3» with #cIx
+      imod cellRO_alloc $$ «$v4» with #cLt
+      imod msgOwn_lit «$a0_ptr» _
+          ⟨vreqW32 pre, y, 0, s.term + W64 1, lastID.term', lastID.index', 0, 0, false, 0⟩
+          (transferCtx t) ⊤ $$ [«$a0»] with Hm
+      · iframe «$a0» cTy cTo cTe cIx cLt Hcl
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+        msg_nulls
+      wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none (transferCtx t) []
           [campReq pre id y (s.term + W64 1) lastID (transferCtx t)]
           (Or.inl rfl)
           (Or.inl ⟨vreqTy pre,
@@ -384,13 +433,8 @@ theorem raft.campaign.wp_proof
                   MsgVote, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
-        $$ [$Hphys]
-      · isplitr
-        · iapply ownSlice_nil
-        isplitr
-        · iexact Hcl
-        iapply send_no_snap
-        cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]
+          (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
+        $$ [$Hphys $Hm]
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r id
           (sendMsgs { campRoleState id s pre with prvals := pvs }

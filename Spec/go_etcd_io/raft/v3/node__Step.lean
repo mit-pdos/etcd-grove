@@ -11,6 +11,10 @@ Since 2026-10-10 also a proposal forwarded by a peer (`fwdP`, `stepP`): a follow
 `Ready` holds the proposals it forwards to the leader (each entry's data deposited by the
 proposing node), which `step` hands to `run` on `propc`.
 Specified for `context.Background()`.
+
+raft v3.7 (2026-10-16, stage R5): `m` is a `*pb.Message` (`ml`), handed to `run` for good
+(`stepP`: `netP`'s `msgIn ml □`, `fwdP`'s `msgIn ml 1`); a `nil` one is an error, which `stepP`
+excludes.
 -/
 module
 
@@ -35,10 +39,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev node.Step.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (m : raftpb.Message),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ stepP γ id m }}
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ stepP γ id ml }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
-      (Val #(interface.ok context.backgroundCtxVal))) (Val #m))
+      (Val #(interface.ok context.backgroundCtxVal))) (Val #ml))
   {{ (err : GoInterface), RET #err; True }}
 
 end spec

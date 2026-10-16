@@ -10,12 +10,12 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Get
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetRangeEnd
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ApplyWait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
@@ -86,17 +86,17 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetVote
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.IsEmptyHardState
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.IsEmptySnap
+public import Proof.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import Proof.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
+public import Proof.go_etcd_io.raft.v3.raftpb.HardState__GetVote
+public import Proof.go_etcd_io.raft.v3.IsEmptyHardState
+public import Proof.go_etcd_io.raft.v3.IsEmptySnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Swap
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetTo
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import Proof.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import Proof.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.NewNotifier
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
@@ -112,9 +112,9 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetRangeEn
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetRevision
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp__GetRequest
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
+public import Proof.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetCompare
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetFailure
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetSuccess
@@ -167,7 +167,7 @@ public import Proof.container.heap.Push
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
-public import EtcdDeps.Proof.go_etcd_io.raft.v3.isHardStateEqual
+public import Proof.go_etcd_io.raft.v3.isHardStateEqual
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
@@ -525,7 +525,7 @@ theorem raftpb.SnapshotMetadata.wp_GetIndex :
     raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG) :=
   raftpb.SnapshotMetadata.GetIndex.wp_proof
 
-theorem wp_IsEmptySnap :
+theorem wp_IsEmptySnap [StorageModel GF] :
     IsEmptySnap.spec (GF := GF) (hG := hG) :=
   IsEmptySnap.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
@@ -617,11 +617,11 @@ theorem raftpb.HardState.wp_GetCommit :
     raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG) :=
   raftpb.HardState.GetCommit.wp_proof
 
-theorem wp_isHardStateEqual :
+theorem wp_isHardStateEqual [StorageModel GF] :
     isHardStateEqual.spec (GF := GF) (hG := hG) :=
   isHardStateEqual.wp_proof raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit
 
-theorem wp_IsEmptyHardState :
+theorem wp_IsEmptyHardState [StorageModel GF] :
     IsEmptyHardState.spec (GF := GF) (hG := hG) :=
   IsEmptyHardState.wp_proof wp_isHardStateEqual
 

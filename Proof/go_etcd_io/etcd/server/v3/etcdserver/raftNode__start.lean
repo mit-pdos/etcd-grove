@@ -9,10 +9,10 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessages
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__onStop
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.IsEmptySnap
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.IsEmptyHardState
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
+public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.google_golang_org.protobuf.proto.Clone
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal

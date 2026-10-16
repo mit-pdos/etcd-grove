@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] [GoGlobalContext] in
 /-- Rocq `plog_last_eq`: on a well-formed log, the id read off `lastIndex()` and the
 term there is `plogLast`. -/
-private theorem plogLast_eq (b : entryID) (es : List raftpb.Entry) (t li : w64)
+private theorem plogLast_eq (b : entryID) (es : List EntryM) (t li : w64)
     (Hwf : PlogWf b es) (Hli : uint.Z li = plogLastIndexZ b es)
     (Ht : plogTermAt b es li = some t) :
     entryID.mk t li = plogLast b es := by

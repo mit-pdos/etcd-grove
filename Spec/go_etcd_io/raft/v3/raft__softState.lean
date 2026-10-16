@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

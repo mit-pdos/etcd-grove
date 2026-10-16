@@ -4,6 +4,10 @@ Port of election_proof/proof_raft__becomeLeader.v.
 Lean notes: the Go code stores the generated constant `go_etcd_io.raft.v3.StateLeader`
 (`#(W64 2)`), which `wp_apply` does not unify with `#(stateW64 .leader)`;
 `wp_store_state_leader` is `raft.wp_store_stateC` at that value.
+
+raft v3.7 (stage R4): the empty entry is `&pb.Entry{Data: nil}`, a fresh struct made an owned
+entry (`entOwn_of_struct`) and frozen (`entOwn_freeze`), its one-element slice handed to
+`appendEntry` as `entsPts` (at `1`; `appendEntry` clones it and gives it back).
 -/
 module
 
@@ -13,6 +17,7 @@ public import Spec.go_etcd_io.raft.v3.traceBecomeLeader
 public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
+public import Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 
@@ -108,16 +113,31 @@ theorem raft.becomeLeader.wp_proof
     word
   subst Hli'
   wp_apply wp_traceBecomeLeader
+  -- (stage R4) `emptyEnt := &pb.Entry{Data: nil}`: a fresh entry, frozen read-only
+  ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnilb with #Hnilb
+  imod entOwn_of_struct «$r0_ptr»
+      { state' := zeroValDef, Term' := null, Index' := null, Type' := null, Data' := slice.nil,
+        unknownFields' := slice.nil, sizeCache' := 0 } (zero_val EntryM) ⊤ rfl $$ [«$r0»] with He
+  · iframe «$r0» Hnilb
+    msg_nulls
+  imod entOwn_freeze $$ He with #He
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
   iintro %es ⟨Hes, -⟩
+  ihave Hes : entsPts _ (DFrac.own 1) [zero_val EntryM] $$ [Hes]
+  · iunfold entsPts
+    iexists [«$r0_ptr»]
+    iframe Hes
+    iapply BigSepL2.bigSepL2_singleton.2; iexact He
   wp_auto
   -- `appendEntry` writes `Term`/`Index` into every element of the slice, so it needs
   -- `Hes`. It returns a bool, and its postcondition says an all-empty batch is never
   -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
   -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
-  wp_apply wp_raft_appendEntry c r id _ _ [zero_val raftpb.Entry]
+  wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1)
       (by simp) (by subst hs1; exact Hnz)
       $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩

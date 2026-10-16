@@ -23,8 +23,8 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import Code.go_etcd_io.etcd.server.v3.storage
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
-public import EtcdDeps.Code.go_etcd_io.raft.v3
-public import EtcdDeps.Code.go_etcd_io.raft.v3.raftpb
+public import Code.go_etcd_io.raft.v3
+public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.strconv
 public import Perennial.Code.sync
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc

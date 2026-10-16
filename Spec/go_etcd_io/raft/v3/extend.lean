@@ -3,7 +3,7 @@ Port of `election_proof/spec_extend.v` (feb5c73d4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -47,14 +47,14 @@ proof now takes it from the model instead. What is trusted is unchanged
 Both inputs are only read and come back at their fractions; the result is fresh and
 fully owned. -/
 abbrev extend.spec : Prop :=
-  ∀ (dst vals : GoSlice) (ds vs : List raftpb.Entry) (dq1 dq2 : DFrac),
+  ∀ (dst vals : GoSlice) (ds vs : List EntryM) (dq1 dq2 : DFrac),
   sint.Z dst.cap < (ds.length : Int) + (vs.length : Int) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hdst" ∷ dst ↦*{dq1} ds ∗
-      "Hvals" ∷ vals ↦*{dq2} vs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hdst" ∷ entsPts dst dq1 ds ∗
+      "Hvals" ∷ entsPts vals dq2 vs }}
     (App (App (Val #(functions extend [])) (Val #dst)) (Val #vals))
   {{ (s : GoSlice), RET #s;
-      s ↦* (ds ++ vs) ∗ ownSliceCap raftpb.Entry s (DFrac.own 1) ∗
-      dst ↦*{dq1} ds ∗ vals ↦*{dq2} vs }}
+      entsPts s (DFrac.own 1) (ds ++ vs) ∗ ownSliceCap Loc s (DFrac.own 1) ∗
+      entsPts dst dq1 ds ∗ entsPts vals dq2 vs }}
 
 end spec
 

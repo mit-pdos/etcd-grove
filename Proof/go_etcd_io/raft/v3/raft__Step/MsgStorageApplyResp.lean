@@ -12,6 +12,7 @@ section variable `c` as its second.
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.Base
+public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ namespace StepProof
 /-- `appliedTo` as a `StepCD` step (2026-10-14, stage B7): nothing the protocol sees, and in the
 dynamic model `StepR.advance` to the new `applied` (A1, from `DynHyp`), which moves the
 configuration index along. -/
-private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : raftpb.Message) (s : NState)
+private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : MessageM) (s : NState)
     (idx sz : w64) (Hty : m.Type' = MsgStorageApplyResp)
     (Hidx : uint.Z idx ≤ uint.Z s.logst.committed)
     (Hac : uint.Z s.logst.applied ≤ uint.Z s.logst.committed) :
@@ -56,6 +57,7 @@ private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : raftpb.Message) (s :
   · show uint.Z (w64Max idx s.logst.applied) ≤ uint.Z s.logst.committed
     unfold w64Max; split <;> word
 
+set_option maxHeartbeats 1000000 in
 /-- The local acknowledgement `RawNode.Advance` steps after the application applied a
 `Ready`'s committed entries (`newStorageApplyRespMsg`: `Term = 0`, `Entries` the
 entries). The term preamble is skipped; the type switch's `MsgStorageApplyResp` case
@@ -70,8 +72,10 @@ runs
 moving `applied` (`logAppliedTo`). Nothing the protocol sees changes: `StepC.refl`. The
 premise is `appliedTo`'s: the last entry is committed. -/
 theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) :
     m.Type' = MsgStorageApplyResp →
     m.Term' = W64 0 →
     (∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed) →
@@ -80,8 +84,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     (c.autoLeave = true → s.role ≠ .leader) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -94,17 +98,24 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
           ∃ e, ents.getLast? = some e ∧ s'.logst.applied = w64Max e.Index' s.logst.applied⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hterm Hlast Hwf Hal
-  wp_start as ⟨Hphys, #Hents⟩
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_get _Q
   -- `m.Term = 0` (a local message), so the term preamble is skipped
   rw [decide_eq_true Hterm]
   wp_auto
   -- the type switch: not `MsgHup`, not `MsgStorageAppendResp`, but
   -- `MsgStorageApplyResp`
-  rw [Hty]
-  wp_auto
-  ihave %Hlen := ownSlice_len $$ Hents
+  wp_drive _Q
+  wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es1 ⟨#Hes1, Hm⟩
+  ihave %Hlen := entsPts_len $$ Hes1
+  try wp_auto
   cases He : ents.getLast? with
   | none =>
     -- no entries: nothing to do
@@ -122,21 +133,34 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     simp only [List.length_append, List.length_singleton] at Hlen
     rw [decide_eq_true (by word)]
     wp_auto
-    -- `m.Entries[len(m.Entries)-1].Index`
+    -- `m.GetEntries()[len(m.GetEntries())-1].GetIndex()`
+    wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es2 ⟨#Hes2, Hm⟩
+    wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es3 ⟨#Hes3, Hm⟩
+    ihave %Hlen2 := entsPts_len $$ Hes2
+    ihave %Hlen3 := entsPts_len $$ Hes3
+    simp only [List.length_append, List.length_singleton] at Hlen2 Hlen3
+    icases entsRO_lookup es2 (es ++ [e]) es.length e (by simp) $$ Hes2
+      with ⟨%ls, %le, #Hls, #He, %Hl⟩
+    try wp_auto
     rw [ite_eq_left ⟨by word, by word⟩]
-    icases ownSlice_elem_acc (sint.Z (m.Entries'.len - W64 1)) e _ _ _ (by word)
-      (by rw [show (sint.Z (m.Entries'.len - W64 1)).toNat = es.length by word]; simp)
-      $$ Hents with ⟨#He, -⟩
-    iStructNamed He
-    wp_auto
-    wp_apply _P.entsSize $$ [$Hents] as %sz -
+    wp_apply wp_load_slice_index es2 (sint.Z (es3.len - W64 1)) ls DFrac.discard le (by word)
+      $$ [Hls] with -
+    · iframe Hls; ipureintro
+      rw [show (sint.Z (es3.len - W64 1)).toNat = es.length by word]; exact Hl.1
+    wp_apply _Q.EntryGetIndex.1 le DFrac.discard e $$ [He] with -
+    · iframe He
+    try wp_auto
+    wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es4 ⟨#Hes4, Hm⟩
+    wp_apply _P.entsSize $$ [$Hes4] as %sz -
     -- `applied ≤ applying`: `applying` stays put when the entries end at or below it
     icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
     icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
     icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
     ihave Hphys := Hback $$ Hlog
     wp_apply _P.appliedTo c r id s e.Index' sz (Hlast e He) Hal $$ [$Hphys] as Hphys
-    wp_apply _P.payloadsSize $$ [$Hents] as %psz -
+    try wp_auto
+    wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es5 ⟨#Hes5, Hm⟩
+    wp_apply _P.payloadsSize $$ [$Hes5] as %psz -
     wp_apply _P.reduceUncommittedSize $$ [$Hphys] as Hphys
     iapply HΦ $$ %interface.nil %_
     iframe Hphys

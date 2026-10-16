@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_raftLog__scan.v (feb5c73d4). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -35,7 +35,7 @@ is `nil` at once, and `hasUnappliedConfChanges` only knows
 `applied + 1 <= committed + 1`. -/
 abbrev raftLog.scan.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (lo hi pageSize : w64) (f : GoFunc)
-    (I : List raftpb.Entry → IProp GF) (B : GoInterface → IProp GF),
+    (I : List EntryM → IProp GF) (B : GoInterface → IProp GF),
   uint.Z ls.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
     uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
       + (ls.uents.length : Int) + 1 →

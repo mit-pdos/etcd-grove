@@ -12,7 +12,7 @@ usage: etc/verified-code.py [-o REPORT.txt|REPORT.md]... [--markdown] [--functio
                file" tables
   --package    a summary row for the Go packages at or below PREFIX (an import path,
                `<root>:<path>` for a project translated into a module root of its own,
-               `Raft37:go.etcd.io/raft/v3`), and the "by file" tables and --functions only
+               `<root>:go.etcd.io/raft/v3`), and the "by file" tables and --functions only
                of those; may be repeated
   --go-src     where the Go sources are: DIR/<project> for each project of
                `etc/goose.py`, a checkout of its Go repository at the revision pinned
@@ -186,7 +186,7 @@ def project_part_packages():
 def rooted(proj, path):
     """A Go package or module path of project `proj` as this script keys it: as is, or
     `<root>:<path>` for a project translated into a module root of its own (whose paths
-    another project's sources also have: raft v3.7's `Raft37`)."""
+    another project's sources also have; none now, raft v3.7's `Raft37` was one)."""
     root = PROJECTS[proj].root
     return f"{root}:{path}" if root else path
 
@@ -257,10 +257,10 @@ def local_proofs(objs):
     """This repository's specs: (project, the Lean name of the function (`T.M`)) ->
     (state, sorry-free), from the linked results of `LINKS`."""
     # Keyed by (module, name): the same name is linked in several module roots (the raft
-    # proof's `Link`, `EtcdDeps`'s, `Raft37`'s all link `quorum.JointConfig.wp_IDs`), and each
+    # proof's `Link`, `EtcdDeps`'s, `Raft37`'s all linked `quorum.JointConfig.wp_IDs`), and each
     # is its project's own result. A result's `uses` name results by name alone: one is
-    # resolved in its own module, else in a module of the same root (`Raft37.*`,
-    # `EtcdDeps.*`, or the plain `Proof.*`), never across roots.
+    # resolved in its own module, else in a module of the same root (a part's, or the
+    # plain `Proof.*`), never across roots.
     roots, axioms = {}, set()
     for o in objs:
         if o["t"] == "root" and o["module"] in LINKS:

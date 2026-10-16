@@ -39,8 +39,8 @@ theorem confchange.Changer.EnterJoint.wp_proof
     (wp_Changer_apply : confchange.Changer.apply.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG) := by
-  intro p chg c prs pvs autoLeave ccs l dq dqs dqc dqm dqp Hmi
-  wp_start as ⟨Hp, Hccs, Htc⟩
+  intro p chg c prs pvs autoLeave ccs ls l dq dqs dqc dqm dqp Hmi
+  wp_start as ⟨Hp, Hccs, #Hcl, Htc⟩
   wp_auto
   wp_method_call
   wp_call
@@ -194,7 +194,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
     _ prs' pvs rfl $$ Hcfgp Hc0 Htrk Hcopies Hnew
   -- `c.apply(&cfg, trk, ccs...)`
   wp_auto
-  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs l _ _ Hmi $$ [$c $Hccs $Hw]
+  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi $$ [$c $Hccs $Hcl $Hw]
     as %err2 ⟨c, Hccs, Hres⟩
   have Hej : enterJointM autoLeave l { cfg := c, prs := flagsOf pvs } =
       match (applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState)) with

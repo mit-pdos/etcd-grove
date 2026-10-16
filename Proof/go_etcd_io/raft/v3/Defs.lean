@@ -190,15 +190,15 @@ variable [FfiSyntax]
 the sender and term given separately: `send` stamps both (`From := r.id` when unset,
 `Term := r.Term` for most types), so what reaches the queue is `m` with those two
 fields replaced. -/
-def absMsgFrom (ty : MsgType) (m : raftpb.Message) (src term : w64)
-    (ents : List raftpb.Entry) (ctx : List w8 := []) : Msg :=
+def absMsgFrom (ty : MsgType) (m : MessageM) (src term : w64)
+    (ents : List EntryM) (ctx : List w8 := []) : Msg :=
   Msg.mkV ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents [] ctx
 
 /-- The abstraction of a physical message. Not a function of `m` alone: `m.Entries` is
 a slice, and `ents` is the list it points to -- `ownRaftPhys` holds `m.Entries ↦*□ ents`
 for every queued message (`outboxRel`, `InvRaftPhys.lean`). Not for a `MsgSnap`: see
 `absSnap`. -/
-def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry)
+def absMsg (ty : MsgType) (m : MessageM) (ents : List EntryM)
     (ctx : List w8 := []) : Msg :=
   absMsgFrom ty m m.From' m.Term' ents ctx
 
@@ -223,18 +223,19 @@ structure SnapTrip [FfiSyntax] where
   al : Bool
 
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
-is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to, and `voters`
+is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to (since the raft v3.7
+retarget, stage R1, its record `SnapshotM`), and `voters`
 the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
 the abstract message keeps the incoming voters). `index`/`logterm` are the
 snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
 `maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
 `src`/`term` are given separately because `send` stamps them. -/
-def absSnapFrom (m : raftpb.Message) (src term : w64) (sv : raftpb.Snapshot)
+def absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM)
     (voters : CSLists) : Msg :=
   Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
     m.Commit' m.RejectHint' [] voters.voters []
 
-def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) : Msg :=
+def absSnap (m : MessageM) (sv : SnapshotM) (voters : CSLists) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
 
 end msgs
@@ -245,15 +246,15 @@ variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
 /-- What a message other than a heartbeat or its response carries as a protocol message
 does not depend on its `Context` (2026-10-12; a heartbeat's is a read-index position): the
 branches that do not echo it work at the abstraction with none. -/
-theorem isMessage_absMsg_ctx (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8)
+theorem isMessage_absMsg_ctx (γ : RaftNames) (ty : MsgType) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8)
     (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
     isMessage (GF := GF) γ (absMsg ty m ents ctx) = isMessage γ (absMsg ty m ents) := by
   obtain ⟨h1, h2⟩ := hty
   cases ty <;> first | contradiction | rfl
 
-theorem isMessage_ctx_intro (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8)
+theorem isMessage_ctx_intro (γ : RaftNames) (ty : MsgType) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8)
     (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
     isMessage (GF := GF) γ (absMsg ty m ents) ⊢ isMessage γ (absMsg ty m ents ctx) := by
   rw [isMessage_absMsg_ctx γ ty m ents ctx hty]
@@ -281,8 +282,8 @@ notes/decisions.md, "One predicate per object".) -/
 
 structure LogState [FfiSyntax] where
   prev : entryID
-  sents : List raftpb.Entry
-  uents : List raftpb.Entry
+  sents : List EntryM
+  uents : List EntryM
   committed : w64
   applied : w64
   /-- the pending, not yet stored snapshot's id (`unstable.snapshot`, set by
@@ -310,7 +311,7 @@ structure LogState [FfiSyntax] where
   the right to append them, and `ownRaftLog_absorb` takes the receipt back and empties
   the field (until then `ownRaftLog_persist` lent the storage itself); `Advance`
   requires it empty. -/
-  unpersisted : List raftpb.Entry
+  unpersisted : List EntryM
   /-- What the `Storage` holds (its entries after `prev`) once the application has
   appended `unpersisted` (2026-10-10), while no snapshot is pending (`InvRaftlog.lean`,
   `Hstored`): ghost, not a Go field. Only a `Ready` changes it (`logAcceptUnstable`: the
@@ -319,7 +320,7 @@ structure LogState [FfiSyntax] where
   longer has. `stableTo` needs it (`StableOk`, `InvReadylog.lean`): an acknowledgement
   `Advance` steps after a truncation is right only because the storage still agrees
   with the log up to the acknowledged entry. -/
-  stored : List raftpb.Entry
+  stored : List EntryM
   /-- `l.applyingEntsSize` and `l.maxApplyingEntsSize` (2026-10-05): the flow control
   on handing out committed entries. In the state because `acceptApplying` calls
   `maxAppliableIndex` between updating the size and the paused flag, and only what the
@@ -607,19 +608,19 @@ def logOffset (ls : LogState) : Int :=
 
 /-- `nextUnstableEnts()`: the unstable entries not yet handed out by a `Ready`
 (`u.entries[offsetInProgress-offset:]`). -/
-def nextUnstable (ls : LogState) : List raftpb.Entry :=
+def nextUnstable (ls : LogState) : List EntryM :=
   ls.uents.drop (uint.Z ls.inprogress - logOffset ls).toNat
 -- (Both moved here from `InvReadylog.lean` on 2026-10-10: `ownRaftPhys` states
 -- `NGhost.unst` on `nextUnstable`.)
 
 /-- `raftLog.append` at the end of the log: the batch joins the unstable suffix
 (`Spec/raftLog__append.lean`). -/
-def logAppend (ls : LogState) (ents : List raftpb.Entry) : LogState :=
+def logAppend (ls : LogState) (ents : List EntryM) : LogState :=
   { ls with uents := ls.uents ++ ents }
 
 /-- A snapshot's id, `(Metadata.Term, Metadata.Index)` -- what `raft.restore` builds as
 `id := entryID{term, index}`. -/
-def snapId (sv : raftpb.Snapshot) : entryID :=
+def snapId (sv : SnapshotM) : entryID :=
   entryID.mk sv.Metadata'.Term' sv.Metadata'.Index'
 
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
@@ -633,7 +634,7 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/
-def snapTrip (sv : raftpb.Snapshot) (cl : CSLists) : SnapTrip :=
+def snapTrip (sv : SnapshotM) (cl : CSLists) : SnapTrip :=
   ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave'⟩
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
@@ -847,8 +848,8 @@ def becomeLeaderPre (id : w64) (s : NState) : NState :=
 
 /-- The empty entry a new leader appends (`pb.Entry{Data: nil}`, the zero `Entry`),
 stamped at the leader's term and the log's next index. -/
-def leaderEntry (s : NState) : raftpb.Entry :=
-  stamp s.term (logLast s.logst) 0 (zero_val raftpb.Entry)
+def leaderEntry (s : NState) : EntryM :=
+  stamp s.term (logLast s.logst) 0 (zero_val EntryM)
 
 /-- `appendEntry`'s self-acknowledgement, at a state whose log already holds the
 appended batch: a `MsgAppResp` to itself at the last index (`r.send(pb.Message{To:

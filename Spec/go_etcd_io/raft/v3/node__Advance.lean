@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev node.Advance.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List raftpb.Entry) (ca : Nat)
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (ca : Nat)
     (cfg : CCState),
   -- (2026-10-15, stage N) **A1**, in the dynamic mode: every conf entry of the committed log
   -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration

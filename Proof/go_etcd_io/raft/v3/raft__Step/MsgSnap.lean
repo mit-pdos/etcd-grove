@@ -49,9 +49,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (scfg : CSLists) (sv : raftpb.Snapshot) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -62,6 +65,9 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- the snapshot's `ConfState` well formed, any (joint included), its index below `2^61`
     -- (`Step`'s `"Hsnap"`)
     SnapScope sv scfg →
+    -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
+    sn = some sv →
+    scfg = sv.Metadata'.ConfState'.lists →
     -- protocol facts the dispatch derives from the ghost state: at the current term
     -- the receiver is not a leader (`isLeader_unique`), and a follower's tally is
     -- empty (`FollowerVotesOk`)
@@ -69,9 +75,8 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' scfg }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
@@ -80,13 +85,13 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hnl Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgSnap_gt _P c r id s m scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
-      Hwf Hscope Hgt
+  · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
+      Hwf Hscope Hsn Hscl Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_start_folded as ⟨Hphys, -, -⟩
-      iapply wp_Step_MsgSnap_lt _P c r id s m sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys]
+    · wp_start_folded as ⟨Hphys, Hm⟩
+      iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys $Hm]
       inext
       iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr⟩
       iapply HΦ $$ %err %s' %c
@@ -94,8 +99,8 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ipureintro
       exact ⟨Or.inl rfl, Hwf', Href, Herr⟩
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgSnap_eq _P c r id s m scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
-        Hwf Hscope Hteq (Hnl Hteq) Hvotes
+      exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
+        Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes
 
 end StepProof
 

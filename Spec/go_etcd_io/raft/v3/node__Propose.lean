@@ -17,6 +17,10 @@ occurrence with the handle it gets back (`node_collect`), once it sees that entr
 A retry (`fresh = false`) needs only `deposited γ data`, which every proposal returns. The
 error (`ErrProposalDropped` when no leader is known, ...) says only whether this proposal
 reached a leader; the update stays deposited either way.
+
+raft v3.7 (2026-10-16, stage R5): the message is a fresh `*pb.Message` whose one entry holds
+`data`'s bytes (D6: `propEntryM data`, the caller's slice frozen, `data_sl ↦*□ data`), on `propc`
+(`propP`); the data must be non-empty (D6: an empty proposal would be a leader's own entry).
 -/
 module
 
@@ -42,9 +46,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.Propose.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8)
-    (Q : List raftpb.Entry → IProp GF) (fresh : Bool),
+    (Q : List EntryM → IProp GF) (fresh : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      data_sl ↦*□ data ∗ propArg γ.raft data Q fresh }}
+      data_sl ↦*□ data ∗
+      -- (2026-10-16, stage R5, D6) non-empty data (`node_propose_ghost`)
+      ⌜data ≠ []⌝ ∗
+      propArg γ.raft data Q fresh }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok context.backgroundCtxVal))) (Val #data_sl))
   {{ (err : GoInterface), RET #err; propRes γ.raft data Q fresh }}

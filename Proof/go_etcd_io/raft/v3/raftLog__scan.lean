@@ -56,7 +56,7 @@ The bound `lo + len(ents) <= hi` -- needed both to re-establish the
 invariant and to show the `w64` addition does not wrap -- is exactly
 `slice`'s `length es <= hi - lo`. `ownRaftLog`'s `Hnowrap` is not
 needed and the predicate stays sealed throughout. -/
-private theorem scanRange_page (ls : LogState) (lo cur hi n : w64) (es : List raftpb.Entry)
+private theorem scanRange_page (ls : LogState) (lo cur hi n : w64) (es : List EntryM)
     (Hn : uint.Z n = (es.length : Int)) (Hlo : uint.Z ls.prev.index' + 1 ≤ uint.Z lo) (Hcur : uint.Z lo ≤ uint.Z cur)
     (Hhi : uint.Z cur + (es.length : Int) ≤ uint.Z hi)
     (Hend : uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
@@ -89,7 +89,7 @@ private theorem scanRange_page (ls : LogState) (lo cur hi n : w64) (es : List ra
     have hlen : (M.take a).length = a := by rw [List.length_take]; omega
     have h2 := congrArg (List.take (a + es.length)) hM
     rw [h2]
-    have key : ∀ (A X : List raftpb.Entry),
+    have key : ∀ (A X : List EntryM),
         (A ++ (es ++ X)).take (A.length + es.length) = A ++ es := by
       intro A X
       induction A with
@@ -131,7 +131,7 @@ theorem raftLog.scan.wp_proof
     wp_apply wp_raftLog_slice l ls cur hi pageSize Hsl $$ [$Hlog]
       as %s %es ⟨Hlog, #Hes, ⟨%Hne, %Hlen, %_, %Hpre⟩, -⟩
     -- the "got 0 entries" error is dead: the page is non-empty
-    ihave %Hslen := ownSlice_len $$ Hes
+    ihave %Hslen := entsPts_len $$ Hes
     have Hlen0 : es.length ≠ 0 := fun h => Hne (List.eq_nil_of_length_eq_zero h)
     have Hsne : s.len ≠ W64 0 := by
       intro Heq0; rw [Heq0] at Hslen; apply Hlen0; rw [Hslen.1]; rfl

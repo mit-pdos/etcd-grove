@@ -17,6 +17,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 
@@ -36,13 +37,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 /-- `m.Term > r.Term` for a `MsgAppResp` or `MsgHeartbeatResp`: neither is `fromLeader`,
 so the preamble runs `becomeFollower(m.Term, None)`; the type switch then reaches its
 default arm, `r.step(m)`, which is `stepFollower` after the step-down, and
 `stepFollower` has no arm for either type. One `StepC.higherTerm`. -/
 theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ty : MsgType) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (ty : MsgType) :
     (m.Type' = MsgAppResp ∧ ty = .appResp) ∨
     (m.Type' = MsgHeartbeatResp ∧ ty = .heartbeatResp) →
     m.To' = id →
@@ -50,8 +54,9 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     uint.Z s.term < uint.Z m.Term' →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -67,46 +72,58 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     rcases Hty with ⟨Ht, _⟩ | ⟨Ht, _⟩
     · exact .inr (.inl Ht)
     · exact .inr (.inr Ht)
-  wp_start as Hphys
-  iNamed Hphys
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm
   rw [decide_eq_false Hterm]
   wp_auto
+  wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_true Hgt]
   wp_auto
   rcases Hty with ⟨Hty, -⟩ | ⟨Hty, -⟩
-  all_goals iterate 6 (try (rw [Hty]; wp_auto))
   all_goals
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    repeat (first
+      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
+      | (wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm; try wp_auto)
+      | (wp_apply _Q.GetFrom.1 $$ [$Hm] as Hm; try wp_auto))
+  all_goals
+    repeat (first
+      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
+      | (wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm; try wp_auto)
+      | (wp_apply _Q.GetFrom.1 $$ [$Hm] as Hm; try wp_auto)
+      | (wp_apply raft.wp_load_idC $$ Hphys as Hphys; try wp_auto)
+      | (wp_apply raft.wp_load_TermC $$ Hphys as Hphys; try wp_auto))
     wp_raft_logC
-    iterate 6 (try (rw [Hty]; wp_auto))
+    repeat (first
+      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
+      | (wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm; try wp_auto)
+      | (wp_apply _Q.GetFrom.1 $$ [$Hm] as Hm; try wp_auto))
     wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
-    iterate 6 (try (rw [Hty]; wp_auto))
+    try wp_auto
+    repeat (first
+      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
+      | (rw [Hty]; wp_auto))
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
     rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
       stepFuncOf .follower from rfl]
     simp only [stepFuncOf]
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        m [] (zero_val _) [] (.inr (.inr (.inr (.inr (.inl Hty3)))))
+        ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-      $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-    · isplitl []
-      · iintro %Hc; exfalso; rw [Hty] at Hc
-        first | (rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
-      isplitl []
-      · iintro %Hc; exfalso; rw [Hty] at Hc
-        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-      isplitl []
-      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-      · iintro %Hc; exfalso; rw [Hty] at Hc
-        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+    · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]

@@ -19,7 +19,7 @@ Lean-first: pure, no ghost state. The paper proof this file founds is
   (`IsConfEnt`) applied in order by `ccStepB` (`ccApplyM` and the size bound), its change
   read by `dec` from the entry and the prefix before it (`CCDec`, since stage B3: an
   application may change what it applies depending on the history, as etcd does; the
-  decoder from the proposed data, `isPropData`, is `decOfData`); `none` where Go would panic
+  decoder from the entries' bytes is `decOfData`); `none` where Go would panic
   (`applyConfChange`'s `panic(err)`, an undecodable entry) or the bound fails.
   `confPos`/`confCount` are a log's conf-change positions (0-based list indices: the entry
   at log index `i` of a log from `base0` is at position `i - 1`) and their number.
@@ -28,7 +28,7 @@ Lean-first: pure, no ghost state. The paper proof this file founds is
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.CCApply
 
 @[expose] public section
 
@@ -103,7 +103,7 @@ theorem checkedM_some {s s' : CCState} (h : checkedM s = some s') : s' = s ∧ C
   · rename_i hc; cases h; exact ⟨rfl, hc⟩
   · cases h
 
-theorem applyM_incoming {ccs : List raftpb.ConfChangeSingle} {s s' : CCState}
+theorem applyM_incoming {ccs : List ConfChangeSingleM} {s s' : CCState}
     (h : applyM ccs s = some s') : s'.cfg.incoming ≠ ∅ := by
   unfold applyM at h
   cases h1 : applyAll ccs s with
@@ -138,7 +138,7 @@ theorem not_symdiffTooBig {l r : GSet w64} (hb : symdiffN l r < 2 ^ 63)
   rw [this] at h
   omega
 
-theorem simpleM_overlap {ccs : List raftpb.ConfChangeSingle} {s s' : CCState}
+theorem simpleM_overlap {ccs : List ConfChangeSingleM} {s s' : CCState}
     (h : simpleM ccs s = some s') (hs : CfgOk s) (hb : GMap.size s'.cfg.ids < 2 ^ 62) :
     QOverlap s.cfg s'.cfg ∧ CfgOk s' := by
   obtain ⟨_, hsi, hsb⟩ := hs
@@ -170,7 +170,7 @@ theorem simpleM_overlap {ccs : List raftpb.ConfChangeSingle} {s s' : CCState}
     omega
   exact maj_symdiff_overlap _ _ q1 q2 hsd' (JQuorum_incoming hsi h1) (JQuorum_incoming hin' h2)
 
-theorem enterJointM_overlap {al : Bool} {ccs : List raftpb.ConfChangeSingle} {s s' : CCState}
+theorem enterJointM_overlap {al : Bool} {ccs : List ConfChangeSingleM} {s s' : CCState}
     (h : enterJointM al ccs s = some s') (hs : CfgOk s) (hb : GMap.size s'.cfg.ids < 2 ^ 62) :
     QOverlap s.cfg s'.cfg ∧ CfgOk s' := by
   obtain ⟨_, hsi, _⟩ := hs
@@ -210,7 +210,7 @@ theorem leaveJointM_overlap {s s' : CCState}
   exact quorums_intersect s.cfg.incoming q1 q2 (JQuorum_incoming hsi h1) h2'
 
 /-- `raft.applyConfChange`'s change keeps quorums overlapping. -/
-theorem ccApplyM_overlap {t : raftpb.ConfChangeTransition} {ccs : List raftpb.ConfChangeSingle}
+theorem ccApplyM_overlap {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeSingleM}
     {s s' : CCState} (h : ccApplyM t ccs s = some s') (hs : CfgOk s)
     (hb : GMap.size s'.cfg.ids < 2 ^ 62) : QOverlap s.cfg s'.cfg ∧ CfgOk s' := by
   unfold ccApplyM at h
@@ -224,7 +224,7 @@ theorem ccApplyM_overlap {t : raftpb.ConfChangeTransition} {ccs : List raftpb.Co
 /-! ### The configuration of a log prefix -/
 
 /-- A conf change as `raft.applyConfChange` takes it: `AsV2`'s transition and changes. -/
-abbrev CCOp := raftpb.ConfChangeTransition × List raftpb.ConfChangeSingle
+abbrev CCOp := raftpb.ConfChangeTransition × List ConfChangeSingleM
 
 /-- One conf change applied, within the size bound of `CfgOk`. -/
 def ccStepB (op : CCOp) (s : CCState) : Option CCState :=
@@ -236,36 +236,36 @@ it applies depending on the history (`EtcdServer.applyConfChange` validates the 
 its membership store and, if it refuses it, passes it to raft with `NodeID` zeroed, which
 `confchange` then skips): every node applies the same committed entry at the same prefix,
 which is all the argument needs. `CCDec.ofEnt` is a decoder that ignores the prefix. -/
-abbrev CCDec := List raftpb.Entry → raftpb.Entry → Option CCOp
+abbrev CCDec := List EntryM → EntryM → Option CCOp
 
 /-- A decoder of the entry alone. -/
-def CCDec.ofEnt (d : raftpb.Entry → Option CCOp) : CCDec := fun _ e => d e
+def CCDec.ofEnt (d : EntryM → Option CCOp) : CCDec := fun _ e => d e
 
 /-- One entry, after the prefix `pre`: a conf-change entry's decoded change applied; any other
 entry leaves the configuration. -/
-def entStep (dec : CCDec) (pre : List raftpb.Entry) (s : CCState) (e : raftpb.Entry) :
+def entStep (dec : CCDec) (pre : List EntryM) (s : CCState) (e : EntryM) :
     Option CCState :=
   if IsConfEnt e then (dec pre e).bind fun op => ccStepB op s else some s
 
 /-- The configuration after the entries `l`, from `s`, the entries `pre` before them. -/
-def cfgFoldFrom (dec : CCDec) (pre : List raftpb.Entry) (s : CCState) :
-    List raftpb.Entry → Option CCState
+def cfgFoldFrom (dec : CCDec) (pre : List EntryM) (s : CCState) :
+    List EntryM → Option CCState
   | [] => some s
   | e :: es => (entStep dec pre s e).bind fun s' => cfgFoldFrom dec (pre ++ [e]) s' es
 
 /-- The configuration after the entries `l` (a log from its start), from `s`. -/
-def cfgFold (dec : CCDec) (s : CCState) (l : List raftpb.Entry) : Option CCState :=
+def cfgFold (dec : CCDec) (s : CCState) (l : List EntryM) : Option CCState :=
   cfgFoldFrom dec [] s l
 
 /-- The positions of the conf-change entries of `l`, in order, counted from `k`. -/
-def confPosFrom (k : Nat) : List raftpb.Entry → List Nat
+def confPosFrom (k : Nat) : List EntryM → List Nat
   | [] => []
   | e :: es => (if IsConfEnt e then [k] else []) ++ confPosFrom (k + 1) es
 
 /-- The positions (0-based) of the conf-change entries of `l`, in order. -/
-def confPos (l : List raftpb.Entry) : List Nat := confPosFrom 0 l
+def confPos (l : List EntryM) : List Nat := confPosFrom 0 l
 
-theorem mem_confPosFrom (k : Nat) (l : List raftpb.Entry) (i : Nat) :
+theorem mem_confPosFrom (k : Nat) (l : List EntryM) (i : Nat) :
     i ∈ confPosFrom k l ↔ k ≤ i ∧ ∃ e, l[i - k]? = some e ∧ IsConfEnt e := by
   induction l generalizing k with
   | nil => simp [confPosFrom]
@@ -292,13 +292,13 @@ theorem mem_confPosFrom (k : Nat) (l : List raftpb.Entry) (i : Nat) :
         rw [show i - k = (i - (k + 1)) + 1 by omega, List.getElem?_cons_succ] at he'
         exact he'
 
-theorem mem_confPos (l : List raftpb.Entry) (i : Nat) :
+theorem mem_confPos (l : List EntryM) (i : Nat) :
     i ∈ confPos l ↔ ∃ e, l[i]? = some e ∧ IsConfEnt e := by
   unfold confPos
   rw [mem_confPosFrom]
   simp
 
-theorem length_confPosFrom (k : Nat) (l : List raftpb.Entry) :
+theorem length_confPosFrom (k : Nat) (l : List EntryM) :
     (confPosFrom k l).length = confCount l := by
   induction l generalizing k with
   | nil => rfl
@@ -306,11 +306,11 @@ theorem length_confPosFrom (k : Nat) (l : List raftpb.Entry) :
     rw [confPosFrom, List.length_append, ih, confCount_cons]
     by_cases h : IsConfEnt e <;> simp [h, Nat.add_comm]
 
-theorem length_confPos (l : List raftpb.Entry) : (confPos l).length = confCount l :=
+theorem length_confPos (l : List EntryM) : (confPos l).length = confCount l :=
   length_confPosFrom 0 l
 
-theorem cfgFoldFrom_append (dec : CCDec) (pre : List raftpb.Entry) (s : CCState)
-    (l1 l2 : List raftpb.Entry) :
+theorem cfgFoldFrom_append (dec : CCDec) (pre : List EntryM) (s : CCState)
+    (l1 l2 : List EntryM) :
     cfgFoldFrom dec pre s (l1 ++ l2)
       = (cfgFoldFrom dec pre s l1).bind fun s' => cfgFoldFrom dec (pre ++ l1) s' l2 := by
   induction l1 generalizing s pre with
@@ -321,12 +321,12 @@ theorem cfgFoldFrom_append (dec : CCDec) (pre : List raftpb.Entry) (s : CCState)
     | none => rfl
     | some s' => simp [ih]
 
-theorem cfgFold_append (dec : CCDec) (s : CCState) (l1 l2 : List raftpb.Entry) :
+theorem cfgFold_append (dec : CCDec) (s : CCState) (l1 l2 : List EntryM) :
     cfgFold dec s (l1 ++ l2) = (cfgFold dec s l1).bind fun s' => cfgFoldFrom dec l1 s' l2 := by
   unfold cfgFold; rw [cfgFoldFrom_append, List.nil_append]
 
 /-- One more entry at the end. -/
-theorem cfgFold_snoc (dec : CCDec) (s : CCState) (l : List raftpb.Entry) (e : raftpb.Entry) :
+theorem cfgFold_snoc (dec : CCDec) (s : CCState) (l : List EntryM) (e : EntryM) :
     cfgFold dec s (l ++ [e]) = (cfgFold dec s l).bind fun s' => entStep dec l s' e := by
   rw [cfgFold_append]
   cases cfgFold dec s l with
@@ -336,13 +336,13 @@ theorem cfgFold_snoc (dec : CCDec) (s : CCState) (l : List raftpb.Entry) (e : ra
     cases entStep dec l s' e <;> rfl
 
 /-- An entry that is not a conf change leaves the configuration. -/
-theorem entStep_not_conf (dec : CCDec) (pre : List raftpb.Entry) (s : CCState)
-    (e : raftpb.Entry) (h : ¬ IsConfEnt e) : entStep dec pre s e = some s := by
+theorem entStep_not_conf (dec : CCDec) (pre : List EntryM) (s : CCState)
+    (e : EntryM) (h : ¬ IsConfEnt e) : entStep dec pre s e = some s := by
   unfold entStep; rw [ite_eq_right h]
 
 /-- One conf-change entry keeps quorums overlapping and `CfgOk`. -/
-theorem entStep_overlap {dec : CCDec} {pre : List raftpb.Entry} {s s' : CCState}
-    {e : raftpb.Entry} (h : entStep dec pre s e = some s') (hs : CfgOk s) :
+theorem entStep_overlap {dec : CCDec} {pre : List EntryM} {s s' : CCState}
+    {e : EntryM} (h : entStep dec pre s e = some s') (hs : CfgOk s) :
     QOverlap s.cfg s'.cfg ∧ CfgOk s' := by
   unfold entStep at h
   split at h
@@ -360,8 +360,8 @@ theorem entStep_overlap {dec : CCDec} {pre : List raftpb.Entry} {s s' : CCState}
         · cases h
   · cases h; exact ⟨QOverlap.refl hs.2.1, hs⟩
 
-theorem cfgFoldFrom_ok {dec : CCDec} {pre : List raftpb.Entry} {s s' : CCState}
-    {l : List raftpb.Entry} (h : cfgFoldFrom dec pre s l = some s') (hs : CfgOk s) :
+theorem cfgFoldFrom_ok {dec : CCDec} {pre : List EntryM} {s s' : CCState}
+    {l : List EntryM} (h : cfgFoldFrom dec pre s l = some s') (hs : CfgOk s) :
     CfgOk s' := by
   induction l generalizing s pre with
   | nil => cases h; exact hs
@@ -373,13 +373,13 @@ theorem cfgFoldFrom_ok {dec : CCDec} {pre : List raftpb.Entry} {s s' : CCState}
       rw [he, Option.bind_some] at h
       exact ih h (entStep_overlap he hs).2
 
-theorem cfgFold_ok {dec : CCDec} {s s' : CCState} {l : List raftpb.Entry}
+theorem cfgFold_ok {dec : CCDec} {s s' : CCState} {l : List EntryM}
     (h : cfgFold dec s l = some s') (hs : CfgOk s) : CfgOk s' :=
   cfgFoldFrom_ok h hs
 
 /-- Entries with no conf change leave the configuration. -/
-theorem cfgFoldFrom_zero (dec : CCDec) (pre : List raftpb.Entry) (s : CCState)
-    (l : List raftpb.Entry) (h : confCount l = 0) : cfgFoldFrom dec pre s l = some s := by
+theorem cfgFoldFrom_zero (dec : CCDec) (pre : List EntryM) (s : CCState)
+    (l : List EntryM) (h : confCount l = 0) : cfgFoldFrom dec pre s l = some s := by
   induction l generalizing pre with
   | nil => rfl
   | cons e l ih =>
@@ -389,13 +389,13 @@ theorem cfgFoldFrom_zero (dec : CCDec) (pre : List raftpb.Entry) (s : CCState)
     simp only [cfgFoldFrom, entStep_not_conf dec pre s e hn, Option.bind_some]
     exact ih _ (by omega)
 
-theorem cfgFold_zero (dec : CCDec) (s : CCState) (l : List raftpb.Entry)
+theorem cfgFold_zero (dec : CCDec) (s : CCState) (l : List EntryM)
     (h : confCount l = 0) : cfgFold dec s l = some s :=
   cfgFoldFrom_zero dec [] s l h
 
 /-- Entries with at most one conf change keep quorums overlapping. -/
-theorem cfgFoldFrom_le_one_overlap {dec : CCDec} {pre : List raftpb.Entry} {s s' : CCState}
-    {l : List raftpb.Entry} (hc : confCount l ≤ 1) (h : cfgFoldFrom dec pre s l = some s')
+theorem cfgFoldFrom_le_one_overlap {dec : CCDec} {pre : List EntryM} {s s' : CCState}
+    {l : List EntryM} (hc : confCount l ≤ 1) (h : cfgFoldFrom dec pre s l = some s')
     (hs : CfgOk s) : QOverlap s.cfg s'.cfg := by
   induction l generalizing s pre with
   | nil => cases h; exact QOverlap.refl hs.2.1
@@ -415,13 +415,13 @@ theorem cfgFoldFrom_le_one_overlap {dec : CCDec} {pre : List raftpb.Entry} {s s'
       exact ih (by omega) h hs
 
 theorem cfgFold_le_one_overlap {dec : CCDec} {s s' : CCState}
-    {l : List raftpb.Entry} (hc : confCount l ≤ 1) (h : cfgFold dec s l = some s')
+    {l : List EntryM} (hc : confCount l ≤ 1) (h : cfgFold dec s l = some s')
     (hs : CfgOk s) : QOverlap s.cfg s'.cfg :=
   cfgFoldFrom_le_one_overlap hc h hs
 
 /-- Two prefixes of one log whose conf counts differ by at most one have overlapping
 configurations. -/
-theorem fold_adjacent (dec : CCDec) (l : List raftpb.Entry) (i j : Nat)
+theorem fold_adjacent (dec : CCDec) (l : List EntryM) (i j : Nat)
     (s0 si sj : CCState) (hij : i ≤ j) (hc : confCount (l.take j) ≤ confCount (l.take i) + 1)
     (h0 : CfgOk s0) (hi : cfgFold dec s0 (l.take i) = some si)
     (hj : cfgFold dec s0 (l.take j) = some sj) : QOverlap si.cfg sj.cfg := by
@@ -433,7 +433,7 @@ theorem fold_adjacent (dec : CCDec) (l : List raftpb.Entry) (i j : Nat)
   exact cfgFoldFrom_le_one_overlap (by omega) hj (cfgFold_ok hi h0)
 
 /-- The symmetric form: the conf counts of the two prefixes, in either order. -/
-theorem fold_adjacent' (dec : CCDec) (l : List raftpb.Entry) (i j : Nat)
+theorem fold_adjacent' (dec : CCDec) (l : List EntryM) (i j : Nat)
     (s0 si sj : CCState) (hc1 : confCount (l.take j) ≤ confCount (l.take i) + 1)
     (hc2 : confCount (l.take i) ≤ confCount (l.take j) + 1)
     (h0 : CfgOk s0) (hi : cfgFold dec s0 (l.take i) = some si)
@@ -444,11 +444,11 @@ theorem fold_adjacent' (dec : CCDec) (l : List raftpb.Entry) (i j : Nat)
 
 /-! ### The decoder from the entries' bytes (2026-10-14, reconfiguration stage B3)
 
-A conf-change entry's `Data'` is a slice; what it holds is recorded, once proposed, in the
-ghost map of proposed slices (`isPropData`, `Protocol/Ghost.lean`), which agrees across
-nodes. Given that map's content as a function `data` from slices to bytes, a conf-change
-entry decodes the way `stepLeader` and `RawNode.ApplyConfChange` read it: `Unmarshal` by the
-entry's type (`ccDecodeV1`/`ccDecodeV2`), then `AsV2` (`ccV2Of`). An entry whose bytes do not
+A conf-change entry's `Data'` is its bytes (D6, stage R4; until then a slice whose bytes the
+ghost map of proposed slices recorded, `decOfData` taking that map as a function). A
+conf-change entry decodes the way `stepLeader` and `RawNode.ApplyConfChange` read it:
+`Unmarshal` by the entry's type (`ccDecodeV1`/`ccDecodeV2`), then `AsV2` (`ccV2Of`). An entry
+whose bytes do not
 decode has no change (`none`, which `cfgFold` turns into `none`: Go panics there). The
 decoder an etcd-like application uses may also depend on the prefix (`CCDec`); this one does
 not. -/
@@ -459,15 +459,15 @@ def ccMsgOfBytes (ty : w32) (bs : List w8) : Option CCMsg :=
   else if ty = W32 2 then (ccDecodeV2 bs).map CCMsg.v2
   else none
 
-/-- The decoder of entries whose slices hold `data`: by the entry alone. -/
-def decOfData (data : GoSlice → List w8) : CCDec :=
-  CCDec.ofEnt fun e => (ccMsgOfBytes e.Type' (data e.Data')).map ccV2Of
+/-- The decoder of entries by their bytes: by the entry alone. -/
+def decOfData : CCDec :=
+  CCDec.ofEnt fun e => (ccMsgOfBytes e.Type' e.Data').map ccV2Of
 
 /-- A conf-change entry whose bytes decode (`CCDecodes`, which `stepLeader` checks when it
 is proposed) has a change. -/
-theorem decOfData_some (data : GoSlice → List w8) (pre : List raftpb.Entry) (e : raftpb.Entry)
-    (hc : IsConfEnt e) (hd : CCDecodes e.Type' (data e.Data')) :
-    ∃ op, decOfData data pre e = some op := by
+theorem decOfData_some (pre : List EntryM) (e : EntryM)
+    (hc : IsConfEnt e) (hd : CCDecodes e.Type' e.Data') :
+    ∃ op, decOfData pre e = some op := by
   simp only [decOfData, CCDec.ofEnt, ccMsgOfBytes]
   rcases hc with h1 | h2
   · obtain ⟨m, hm⟩ := hd.1 h1
@@ -490,7 +490,7 @@ theorem cfgState_empty_ids (V : GSet w64) : (cfgState V ∅).cfg.ids = V := by
     · exact absurd h (GMap.not_elem_of_empty _)
   · intro h; exact .inl (.inl h)
 
-theorem ccApplyM_single_simple (c : raftpb.ConfChangeSingle) (s : CCState) :
+theorem ccApplyM_single_simple (c : ConfChangeSingleM) (s : CCState) :
     ccApplyM (W32 0) [c] s = simpleM [c] s := by
   unfold ccApplyM
   rw [ite_eq_right (by simp)]

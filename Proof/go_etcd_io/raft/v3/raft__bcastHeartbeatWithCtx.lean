@@ -3,6 +3,8 @@ Port of election_proof/proof_raft__bcastHeartbeatWithCtx.v.
 
 Lean notes: the Rocq helper `wp_bcast_hb` is inlined in the theorem (it was the whole
 proof). The Rocq `Local Lemma heartbeat_ok_intro` is a private theorem.
+
+raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 

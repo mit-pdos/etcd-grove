@@ -1,9 +1,10 @@
 /-
-`raftpb.ConfChangeV2.AsV1` (`raftpb/confchange.go:75`). Lean-first (no Rocq counterpart); see `InvConfChangeMsg.lean`.
+`(*ConfChangeV2).AsV1` (`raftpb/confchange.go:77`). Port of the old spec to raft v3.7 (pointer
+receiver, a nil `*ConfChange` where gogoproto's returned the zero value; stage R1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -21,12 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `c.AsV1()` returns `(ConfChange{}, false)`. -/
+/-- `c.AsV1()` returns `(nil, false)`. -/
 abbrev raftpb.ConfChangeV2.AsV1.spec : Prop :=
-  ∀ (c : raftpb.ConfChangeV2),
+  ∀ (c : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
-    (App (Val (c @!! raftpb.ConfChangeV2.ty @!! go!"AsV1")) (Val #()))
-  {{ RET (PairV #(zero_val raftpb.ConfChange) #false); True }}
+    (App (Val (c @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"AsV1")) (Val #()))
+  {{ RET (PairV #(null : Loc) #false); True }}
 
 end spec
 

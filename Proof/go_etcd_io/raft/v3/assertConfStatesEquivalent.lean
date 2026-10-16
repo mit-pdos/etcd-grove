@@ -23,11 +23,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem assertConfStatesEquivalent.wp_proof
     (wp_ConfState_Equivalent : raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG)) :
     assertConfStatesEquivalent.spec (GF := GF) (hG := hG) := by
-  intro l cs1 cs2 a b dq1 dq2 dl1 dl2 Hperm Hb Hal
+  intro l cs1 cs2 a b dq1 dq2 Hperm Hb Hal
   wp_start as ⟨H1, H2⟩
   wp_auto
-  wp_apply wp_ConfState_Equivalent _ _ _ _ _ _ _ _ _ Hperm Hb Hal
-    $$ [$cs1 $H1 $H2] as ⟨-, H1, H2⟩
+  wp_apply wp_ConfState_Equivalent cs1 cs2 a b dq1 dq2 Hperm Hb Hal
+    $$ [$H1 $H2] as ⟨H1, H2⟩
   iapply HΦ
   iframe
 

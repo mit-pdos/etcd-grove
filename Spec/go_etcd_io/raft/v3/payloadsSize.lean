@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_payloadsSize.v (feb5c73d4). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `Code/go_etcd_io/raft/v3.lean`) -- a `slice.for_range` accumulating
 `payloadSize(e)`, exactly `entsSize`'s shape.
 
-The result is **not** pinned to the sum of the `len(e.Data)`: that sum is computed in
+The result is **not** pinned to the sum of the `len(e.Data)` (since D6, stage R4, the
+bytes' lengths, and an empty payload `e.Data' = []`): that sum is computed in
 `uint64` with no overflow check, so a triple stating it would have to carry a bound
 premise that nothing on the election path can supply. What is pinned is the case the
 callers care about -- a batch of empty payloads weighs `0`.
@@ -38,12 +39,12 @@ entries it weighs come out of the log and may carry data. Widened from the
 `Forall`-premised form on 2026-09-20; the old conclusion is the new implication applied
 to the old premise. -/
 abbrev payloadsSize.spec : Prop :=
-  ∀ (s : GoSlice) (es : List raftpb.Entry) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ s ↦*{dq} es }}
+  ∀ (s : GoSlice) (es : List EntryM) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPts s dq es }}
     (App (Val #(functions payloadsSize [])) (Val #s))
   {{ (n : w64), RET #n;
-      s ↦*{dq} es ∗
-      ⌜(∀ e ∈ es, sint.Z e.Data'.len = 0) → n = W64 0⌝ }}
+      entsPts s dq es ∗
+      ⌜(∀ e ∈ es, e.Data' = []) → n = W64 0⌝ }}
 
 end spec
 

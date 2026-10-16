@@ -5,8 +5,8 @@ Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessages
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Logger__Warn

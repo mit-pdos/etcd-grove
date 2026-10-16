@@ -27,8 +27,13 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
   iNamed H
   open_unstable
   icases Hents with #Hents
-  ihave %Hlen := ownSlice_len $$ Hents
-  ihave %Hwf := ownSlice_wf $$ Hents
+  ihave %Hlen := entsPts_len $$ Hents
+  ihave Hents' := Hents
+  iunfold entsRO at Hents'
+  iunfold entsPts at Hents'
+  icases Hents' with ⟨%ls, #Hls, #Hb⟩
+  ihave %Hwf := ownSlice_wf $$ Hls
+  ihave %Hbl := entsBig_length $$ Hb
   wp_auto
   have Hk : sint.Z (us.inprogress - us.offset) =
       uint.Z us.inprogress - uint.Z us.offset := by word
@@ -38,11 +43,11 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
     isplitl
     · close_unstable
     rw [List.drop_eq_nil_of_le (by word)]
-    iapply ownSlice_nil
+    iapply entsPts_nil
   · rw [ite_eq_left ⟨by word, by word, by word⟩]
     wp_auto
     icases (ownSlice_slice (us.inprogress - us.offset) uv.entries'.len uv.entries'
-      DFrac.discard us.ents ⟨by word, by word, by word⟩).1 $$ Hents with ⟨-, #H2, -⟩
+      DFrac.discard ls ⟨by word, by word, by word⟩).1 $$ Hls with ⟨-, #H2, -⟩
     iapply HΦ
     isplitl [Hu Hents_cap]
     · close_unstable
@@ -52,7 +57,11 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
       congr 1
       word
     rw [← Hsub]
-    iframe # ∗
+    iunfold entsRO
+    iunfold entsPts
+    iexists subslice (sint.nat (us.inprogress - us.offset)) (sint.nat uv.entries'.len) ls
+    iframe H2
+    iapply entsBig_subslice $$ Hb
 
 end proof
 

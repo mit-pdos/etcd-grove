@@ -30,15 +30,20 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 premise -- stated on the log's state `s.logst`, which `NState` records.
 
 `loadState` does not touch the tracker. (Until 2026-09-25 the *log* had to be on loan,
-because `ownRaftPhys` did not record its state.) -/
+because `ownRaftPhys` did not record its state.)
+
+raft v3.7 (2026-10-15, stage R4): `hs` is a `*pb.HardState` read through its getters, the
+caller's read-only `hsRO hp hs` (`newRaft` passes `InitialState`'s, after `IsEmptyHardState`
+said it is not empty, so not `nil`). -/
 abbrev raft.loadState.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (hs : raftpb.HardState),
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (hp : Loc) (hs : HardStateM),
   uint.Z s.logst.committed ≤ uint.Z hs.Commit' ∧ uint.Z hs.Commit' ≤ uint.Z (logLast s.logst) →
   -- the term does not move back (2026-10-10, `raft.wp_store_Term`); `newRaft` loads the
   -- persisted state into a struct at term `0`
   uint.Z s.term ≤ uint.Z hs.Term' →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"loadState")) (Val #hs))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+      "#Hhs" ∷ hsRO hp hs }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"loadState")) (Val #hp))
   {{ RET #();
       ownRaftPhys cfg r id
         { s with term := hs.Term', vote := hs.Vote',

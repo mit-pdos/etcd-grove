@@ -24,7 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.DispatchLemmas
-public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3
+public import GeneratedProof.go_etcd_io.raft.v3
 
 @[expose] public section
 

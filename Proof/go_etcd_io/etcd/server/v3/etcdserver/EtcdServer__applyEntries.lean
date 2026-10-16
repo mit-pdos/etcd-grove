@@ -4,7 +4,7 @@ Proof of `Spec/EtcdServer__applyEntries.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
 

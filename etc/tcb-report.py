@@ -269,12 +269,12 @@ def main():
     args = ap.parse_args()
 
     # Roots are keyed by (module, name): the same name is linked in several module roots
-    # (the raft proof's `Link`, `EtcdDeps`'s and `Raft37`'s all state
+    # (the raft proof's `Link`, `EtcdDeps`'s and `Raft37`'s all stated
     # `confchange.Changer.wp_apply`), each its tree's own result. Axioms, `sorry`s and
     # definitions are keyed by name: a name declared in two trees (the trust-boundary axiom
     # `raftpb.ConfChangeType.String.wp_proof`, the spec `raft.Step.spec`) keeps one record
     # per module, and `at_(...)` picks the one of a root's own module, else of its part
-    # (`Raft37.*`, `EtcdDeps.*`, the plain `Proof.*`), never across parts. The baseline's
+    # (a part's root, the plain `Proof.*`), never across parts. The baseline's
     # `axiom X` lines are by (short) name, so such an axiom is one line.
     roots, axioms, sorries, defs = {}, {}, {}, {}
     for o in proof_roots.load(args.json, "tcb", args.reuse):

@@ -12,6 +12,7 @@ public import GeneratedProof.go_etcd_io.raft.v3.confchange
 public import GeneratedProof.go_etcd_io.raft.v3.quorum
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_etcd_io.raft.v3.tracker
+public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
@@ -1271,7 +1272,7 @@ instance MemoryStorage_access_load_hardState (l : Loc) (v : go_etcd_io.raft.v3.M
  by
   solve_pointsto_access_struct
 
-instance MemoryStorage_access_store_hardState (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (hardState' : go_etcd_io.raft.v3.raftpb.HardState) :
+instance MemoryStorage_access_store_hardState (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (hardState' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) hardState' (DFrac.own 1))
@@ -1287,7 +1288,7 @@ instance MemoryStorage_access_load_snapshot (l : Loc) (v : go_etcd_io.raft.v3.Me
  by
   solve_pointsto_access_struct
 
-instance MemoryStorage_access_store_snapshot (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (snapshot' : go_etcd_io.raft.v3.raftpb.Snapshot) :
+instance MemoryStorage_access_store_snapshot (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (snapshot' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) snapshot' (DFrac.own 1))

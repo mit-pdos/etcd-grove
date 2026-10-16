@@ -232,14 +232,19 @@ is `ApplyCCOk`, a protocol `Step` that receives nothing (`applyCCOk_step`). (Unt
 
 The order in which an application must call this relative to `Advance`
 (`issues/raft-advance-before-applyconfchange.md`) is `RawNode.ApplyConfChange`'s
-concern; for an unchanged configuration it does not matter. -/
+concern; for an unchanged configuration it does not matter.
+
+raft v3.7 (2026-10-15, stage R4): `cc` is a `*pb.ConfChangeV2` (`ownCCV2 cc dq ccm`, R1's, read
+through `LeaveJoint`/`EnterJoint` and its `Changes` slice; given back), its content `ccm` (until
+the retarget the Goose value's `Transition'` and the list behind its `Changes'`); the result is
+`switchToConfig`'s fresh `*pb.ConfState` (`csPts cs 1 ... true`). -/
 abbrev raft.applyConfChange.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : raftpb.ConfChangeV2)
-    (ccs : List raftpb.ConfChangeSingle) (dq : DFrac) (c' : CCState),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : CCV2M) (dq : DFrac)
+    (c' : CCState),
   -- the model's answer: `confchange`'s errors (which `applyConfChange` turns into a panic)
   -- and an undefined `Transition` with joint consensus (`ConfChangeV2.EnterJoint`'s panic,
   -- `issues/raft-unknown-transition-panic.md`) are `none`
-  ccApplyM cc.Transition' ccs (cfgStateC c) = some c' →
+  ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
   -- not too many tracked ids (`ownTrackerC`'s bound)
   (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →
   -- a removed or demoted leader steps down (`switchToConfig`)
@@ -248,39 +253,34 @@ abbrev raft.applyConfChange.spec : Prop :=
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hccs" ∷ cc.Changes' ↦*{dq} ccs }}
+      "Hcc" ∷ ownCCV2 cc dq ccm }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
-  {{ (cs : raftpb.ConfState) (xs os ls lns : List w64) (s' : NState), RET #cs;
+  {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
       ownRaftPhysCV c'.cfg c'.cfg.voters r id s' ∗
-      cc.Changes' ↦*{dq} ccs ∗
-      cs.Voters' ↦* xs ∗ cs.VotersOutgoing' ↦* os ∗ cs.Learners' ↦* ls ∗
-      cs.LearnersNext' ↦* lns ∗
+      ownCCV2 cc dq ccm ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c'.cfg.autoLeave) true ∗
       ⌜xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
-        ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext ∧
-        cs.AutoLeave' = c'.cfg.autoLeave⌝ ∗
+        ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext⌝ ∗
       ⌜ApplyCCOkC c'.cfg id s s'⌝ }}
 
 /-- The statement on `ownRaftPhys` until 2026-10-13 (a change that keeps the voters `cfg`),
 derived by `spec_simple`. -/
 abbrev raft.applyConfChange.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : raftpb.ConfChangeV2)
-    (ccs : List raftpb.ConfChangeSingle) (dq : DFrac) (lrn' : GSet w64),
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : CCV2M) (dq : DFrac)
+    (lrn' : GSet w64),
   (∀ k, k ∈ lrn' → k ∉ cfg) →
   (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 →
-  ccApplyM cc.Transition' ccs (cfgState cfg (domSet s.progress \ cfg)) =
+  ccApplyM ccm.transition ccm.changes (cfgState cfg (domSet s.progress \ cfg)) =
     some (cfgState cfg lrn') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hccs" ∷ cc.Changes' ↦*{dq} ccs }}
+      "Hcc" ∷ ownCCV2 cc dq ccm }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
-  {{ (cs : raftpb.ConfState) (xs ls : List w64) (s' : NState), RET #cs;
+  {{ (cs : Loc) (xs ls : List w64) (s' : NState), RET #cs;
       ownRaftPhys cfg r id s' ∗
-      cc.Changes' ↦*{dq} ccs ∗
-      cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
-      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn' ∧
-        cs.VotersOutgoing'.len = W64 0 ∧
-        cs.LearnersNext'.len = W64 0 ∧
-        cs.AutoLeave' = false⌝ ∗
+      ownCCV2 cc dq ccm ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn'⌝ ∗
       ⌜ApplyCCOk cfg id s s'⌝ }}
 
 
@@ -288,7 +288,7 @@ open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
     (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccs dq lrn' Hd' Hsz' Happ
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
   icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -296,29 +296,27 @@ theorem raft.applyConfChange.spec_simple
   have Hids : (cfgState cfg lrn').cfg.ids = cfg ∪ lrn' := by
     show (CfgM.simple cfg lrn').ids = _
     unfold CfgM.ids; rw [CfgM.voters_simple]; rfl
-  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccs dq (cfgState cfg lrn')
+  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
       (fun hl hn => absurd (Hv (by rw [hl]; decide)) (by rw [Hv'] at hn; exact hn))
       (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide))
     $$ [$Hpkg $Hphys $Hccs]
   inext
-  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hxs, Hos, Hls, Hlns, %Hcs, %Hok⟩
+  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩
   ihave Hphys := (show ownRaftPhysCV (GF := GF) (cfgState cfg lrn').cfg (cfgState cfg lrn').cfg.voters r id s'
       ⊢ ownRaftPhysC (CfgM.simple cfg lrn') r id s' from .rfl) $$ Hphys
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  obtain ⟨H1, H2, H3, H4, H5⟩ := Hcs
+  obtain ⟨H1, H2, H3, H4⟩ := Hcs
   have Hos0 : os = [] := perm_elements_empty _ H2
   have Hlns0 : lns = [] := perm_elements_empty _ H4
   subst Hos0 Hlns0
-  ihave %Hol := ownSlice_len $$ Hos
-  ihave %Hll := ownSlice_len $$ Hlns
   iapply HΦ $$ %cs %xs %ls %s'
-  iframe Hphys Hccs Hxs Hls
+  iframe Hphys Hccs
+  isplitl [Hcs']
+  · simp only [cfgState, cfgM]; iexact Hcs'
   ipureintro
   obtain ⟨prs, pvs, Hpd, Hmk, Hsw⟩ := Hok
-  refine ⟨⟨H1, H3, ?_, ?_, H5⟩, prs, pvs, fun _ => Hmk, ?_⟩
-  · simp at Hol; word
-  · simp at Hll; word
+  refine ⟨⟨H1, H3⟩, prs, pvs, fun _ => Hmk, ?_⟩
   · have Hl : learnerOfC (cfgState cfg lrn').cfg id = learnerOf cfg prs id := by
       unfold learnerOfC learnerOf
       rw [Hpd, Hids]

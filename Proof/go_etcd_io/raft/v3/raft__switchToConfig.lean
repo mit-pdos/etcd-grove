@@ -2,6 +2,9 @@
 Port of election_proof/proof_raft__switchToConfig.v; the leader case (2026-10-13,
 reconfiguration stage D) and any configuration with a removed or demoted leader (2026-10-13,
 stage A2) are Lean-first.
+
+raft v3.7 (stage R4): `r.trk.ConfState()` returns a `*pb.ConfState` (`csPts`, owned, handed to
+the caller); the leader's `len(cs.Voters)` opens it for the field load and folds it back.
 -/
 module
 
@@ -93,7 +96,7 @@ theorem raft.switchToConfig.wp_proof
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ConfState $$ [$Htrkf $Htrk]
-    as %cs %xs %os %ls %lns ⟨Htrkf, Htrk, Hcs, Hos, Hls, Hlns, %Hcs0⟩
+    as %cs %xs %os %ls %lns ⟨Htrkf, Htrk, Hcs, %Hcs0⟩
   ihave Hphys := Hback $$ %tv2 Htrkf Htrk
   -- `pr, ok := r.trk.Progress[r.id]`
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -152,11 +155,20 @@ theorem raft.switchToConfig.wp_proof
       wp_apply raft.wp_load_stateC $$ Hphys as Hphys
       rw [Hst]
       wp_auto
-      ihave %Hxlen := ownSlice_len $$ Hcs
+      iNamed Hcs
+      ihave %Hxlen := ownSlice_len $$ Hv
+      wp_auto
+      ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true
+        $$ [HV Hv HL Hl HO Ho HN Hn HA]
+      · iunfold csPts
+        iexists sv, sl, so, sn, pa
+        iframe
+        iframe cA Hpb
+        ipureintro; exact ⟨Hnn, Hal⟩
       -- `len(cs.Voters) == 0` (no incoming voter): nothing more
       wp_if_destruct
       · iapply HΦ $$ %cs %xs %os %ls %lns %s1
-        iframe Hphys Hcs Hos Hls Hlns
+        iframe Hphys Hcs
         ipureintro
         refine ⟨Hcs0, ?_⟩
         have e : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)
@@ -336,7 +348,7 @@ theorem raft.switchToConfig.wp_proof
       iNamed HR2
       wp_auto
       iapply HΦ $$ %cs %xs %os %ls %lns %s'
-      iframe Hphys Hcs Hos Hls Hlns
+      iframe Hphys Hcs
       ipureintro
       subst Hs0 Hs1
       refine ⟨Hcs0, ?_⟩
@@ -390,7 +402,7 @@ theorem raft.switchToConfig.wp_proof
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %_
-        iframe Hphys Hcs Hos Hls Hlns
+        iframe Hphys Hcs
         ipureintro
         refine ⟨Hcs0, ?_⟩
         have e : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)
@@ -431,7 +443,7 @@ theorem raft.switchToConfig.wp_proof
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %_
-        iframe Hphys Hcs Hos Hls Hlns
+        iframe Hphys Hcs
         ipureintro
         refine ⟨Hcs0, ?_⟩
         have e : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)

@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/spec_strings_Join.v` (feb5c73d4).
+Port of `election_proof/spec_strings_Join.v` (feb5c73d4) (stage R4 of the raft v3.7 retarget, for `newRaft`).
 -/
 module
 

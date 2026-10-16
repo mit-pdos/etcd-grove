@@ -116,7 +116,7 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bo
 /-- `maybeAppend`'s `commitTo(min(committed, lastnewi))` panics if the log ends before
 it: it never does (`plogMaybeAppend_last`, from the batch's `AppPayloadOk`). -/
 theorem app_commit_le_lastnewi (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool}
-    (lastnewi : w64) (es' : List raftpb.Entry) :
+    (lastnewi : w64) (es' : List EntryM) :
     m.ty = .app →
     m.dst = id →
     uint.Z ps.term ≤ uint.Z m.term →
@@ -245,7 +245,7 @@ theorem ownRaftGhost_committed (γ : RaftNames) (id : w64) (s : PState) {md : Bo
   · iexact Hc
 
 /-- The entry at index `i` of a log, read in its full log. -/
-theorem entry_at_full (b : entryID) (fp es : List raftpb.Entry) (i : w64) :
+theorem entry_at_full (b : entryID) (fp es : List EntryM) (i : w64) :
     FullOk b fp → uint.Z b.index' < uint.Z i →
     plogEntryAt b es i = (fp ++ es)[(uint.Z i - 1).toNat]? := by
   intro ⟨Hlen, _, _⟩ Hi
@@ -311,14 +311,14 @@ log. The pivot argument (`lc_core`) needs the vote table, which is in the invari
 statement is a fancy update. (Until 2026-10-05 it was stated over the whole cluster,
 `cluster_ghost`, because the pivot voter's records were in its own ghost state.) -/
 
-private theorem cq_lead (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
+private theorem cq_lead (γ : RaftNames) (t n : w64) (G : List EntryM) :
     ⊢ cq (GF := GF) γ t n G -∗ ⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t G :=
   cq_base γ t n G
 
 /-- A full log's committed prefix, at a term no later than a leader's, is in the leader's
 full log: in its campaign log by `lc_core` for an earlier term, in its log of the same
 term otherwise. -/
-theorem commitIn_leader (γ : RaftNames) (Fn : List raftpb.Entry) (c tm id2 : w64)
+theorem commitIn_leader (γ : RaftNames) (Fn : List EntryM) (c tm id2 : w64)
     (ps2 : PState) :
     ps2.role = .leader →
     uint.Z tm ≤ uint.Z ps2.term →
@@ -395,8 +395,8 @@ theorem node_full (γ : RaftNames) (id : w64) (ps : PState) :
 
 /-- Entries of two full logs with records, at an index above both bases, that have the
 same term there, are the same entry. -/
-theorem full_entry_eq (γ : RaftNames) (b1 : entryID) (fp1 es1 : List raftpb.Entry)
-    (b2 : entryID) (fp2 es2 : List raftpb.Entry) (i : w64) :
+theorem full_entry_eq (γ : RaftNames) (b1 : entryID) (fp1 es1 : List EntryM)
+    (b2 : entryID) (fp2 es2 : List EntryM) (i : w64) :
     FullOk b1 fp1 → FullOk b2 fp2 → PlogWf b1 es1 → PlogWf b2 es2 →
     uint.Z b1.index' < uint.Z i → uint.Z b2.index' < uint.Z i →
     (plogTermAt base0 (fp1 ++ es1) i).isSome →
@@ -426,7 +426,7 @@ theorem full_entry_eq (γ : RaftNames) (b1 : entryID) (fp1 es1 : List raftpb.Ent
   rfl
 
 /-- An entry of the stored log is a term of the full log there. -/
-theorem entry_term (b : entryID) (fp es : List raftpb.Entry) (i : w64) :
+theorem entry_term (b : entryID) (fp es : List EntryM) (i : w64) :
     FullOk b fp → uint.Z b.index' < uint.Z i ∧ uint.Z i ≤ plogLastIndexZ b es →
     (plogTermAt base0 (fp ++ es) i).isSome := by
   intro Hf Hi
@@ -434,7 +434,7 @@ theorem entry_term (b : entryID) (fp es : List raftpb.Entry) (i : w64) :
   exact plogTermAt_in_range _ _ _ ⟨by omega, Hi.2⟩
 
 theorem leader_completeness_tbl (γ : RaftNames) (id1 : w64) (ps1 : PState) (id2 : w64)
-    (ps2 : PState) (i : w64) (e : raftpb.Entry) :
+    (ps2 : PState) (i : w64) (e : EntryM) :
     uint.Z i ≤ uint.Z ps1.commit →
     plogEntryAt ps1.base ps1.log i = some e →
     ps2.role = .leader →
@@ -464,7 +464,7 @@ leader's, is in the leader's log (above its compaction boundary; below it the le
 snapshot covers it). `Qed` since 2026-10-03, from `lc_core`; over two nodes since
 2026-10-05. -/
 theorem leader_completeness (γ : RaftNames) (E : CoPset) (id1 : w64) (ps1 : PState)
-    (id2 : w64) (ps2 : PState) (i : w64) (e : raftpb.Entry) :
+    (id2 : w64) (ps2 : PState) (i : w64) (e : EntryM) :
     ↑raftN ⊆ E →
     uint.Z i ≤ uint.Z ps1.commit →
     plogEntryAt ps1.base ps1.log i = some e →
@@ -499,7 +499,7 @@ used the first; it is now keyed by data and filled before the proposal leaves it
 
 /-- A leader's term log has nothing past its last index. -/
 theorem ownRaftGhost_term_fresh (γ : RaftNames) (id : w64) (s : PState)
-    (e : raftpb.Entry) :
+    (e : EntryM) :
     s.role = .leader →
     plogLastIndexZ s.base s.log < uint.Z e.Index' →
     e.Term' = s.term →
@@ -539,7 +539,7 @@ given the first committed entry with that data. `committed_data` gives the data 
 committed log's entries. -/
 
 /-- Two lists of data for the same entries are the same. -/
-theorem entDataIs_list_agree (γ : RaftNames) (l : List raftpb.Entry) :
+theorem entDataIs_list_agree (γ : RaftNames) (l : List EntryM) :
     ∀ (o1 o2 : List (Option (List w8))),
     ⊢ ([∗list] e;o ∈ l;o1, entDataIs (GF := GF) γ e o) -∗
       ([∗list] e;o ∈ l;o2, entDataIs γ e o) -∗ ⌜o1 = o2⌝ := by
@@ -575,7 +575,7 @@ theorem entDataIs_list_agree (γ : RaftNames) (l : List raftpb.Entry) :
     rw [h, h']
 
 /-- The data of a prefix of the entries is a prefix of their data. -/
-theorem entDataIs_list_prefix (γ : RaftNames) (l P : List raftpb.Entry)
+theorem entDataIs_list_prefix (γ : RaftNames) (l P : List EntryM)
     (o oP : List (Option (List w8))) (Hp : l <+: P) :
     ⊢ ([∗list] e;o ∈ l;o, entDataIs (GF := GF) γ e o) -∗
       ([∗list] e;o ∈ P;oP, entDataIs γ e o) -∗ ⌜o <+: oP⌝ := by
@@ -590,7 +590,7 @@ theorem entDataIs_list_prefix (γ : RaftNames) (l P : List raftpb.Entry)
 
 /-- No committed entry holds a data the registry does not have: every committed client entry
 was deposited. -/
-theorem ods_not_fresh (γ : RaftNames) (l : List raftpb.Entry) (ods : List (Option (List w8)))
+theorem ods_not_fresh (γ : RaftNames) (l : List EntryM) (ods : List (Option (List w8)))
     (R : GMap (List w8) GName) (d : List w8) (HRd : R !! d = none) :
     ⊢ ([∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ e o) -∗ ghostMapAuth γ.reProps 1 R -∗
       ⌜some d ∉ ods⌝ := by
@@ -608,8 +608,8 @@ theorem ods_not_fresh (γ : RaftNames) (l : List raftpb.Entry) (ods : List (Opti
   cases Hl
 
 /-- The entry at a position of a log with data: its data is the list's at that position. -/
-theorem entsData_lookup (γ : RaftNames) (l : List raftpb.Entry) (ods : List (Option (List w8)))
-    (m : Nat) (e : raftpb.Entry) (He : l[m]? = some e) :
+theorem entsData_lookup (γ : RaftNames) (l : List EntryM) (ods : List (Option (List w8)))
+    (m : Nat) (e : EntryM) (He : l[m]? = some e) :
     ⊢ ([∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ e o) -∗
       ∃ o, ⌜ods[m]? = some o⌝ ∗ entDataIs γ e o := by
   iintro #H
@@ -625,7 +625,7 @@ theorem entsData_lookup (γ : RaftNames) (l : List raftpb.Entry) (ods : List (Op
 ticket), for a data never deposited before (its fresh token). The client gets the slot's handle.
 No committed entry holds the data yet (`ods_not_fresh`), so the slot starts with no result. -/
 theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
-    (Q : List raftpb.Entry → IProp GF) :
+    (Q : List EntryM → IProp GF) :
     ↑raftN ⊆ E →
     ⊢ raftCommitInv γ -∗ propFresh γ d -∗ propAu γ d Q ={E}=∗ ∃ γq, isProp γ d γq Q := by
   intro HE
@@ -696,7 +696,7 @@ position `m` of a committed log `L` holding `d` --, the update's result at the l
 (persistent, no ticket), under two laters (the invariant it is stored in; the saved predicate
 naming it). -/
 theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
-    (Q : List raftpb.Entry → IProp GF) (L : List raftpb.Entry) (m : Nat) (e : raftpb.Entry) :
+    (Q : List EntryM → IProp GF) (L : List EntryM) (m : Nat) (e : EntryM) :
     ↑raftN ⊆ E → L[m]? = some e →
     ⊢ raftCommitInv γ -∗ isProp γ d γq Q -∗ isCommitted γ L -∗ entDataIs γ e (some d) ={E}=∗
       ▷ ▷ □ Q (L.take m) := by
@@ -753,7 +753,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
   iapply Hiff $$ HQ'
 
 /-- The data of a committed log's entries. -/
-theorem committed_data (γ : RaftNames) (E : CoPset) (l : List raftpb.Entry) :
+theorem committed_data (γ : RaftNames) (E : CoPset) (l : List EntryM) :
     ↑raftN ⊆ E →
     ⊢ raftCommitInv γ -∗ isCommitted γ l ={E}=∗
       ∃ ods, [∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ e o := by
@@ -892,8 +892,8 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
     ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ [] -∗
       ghostMapAuth γm 1 (∅ : GMap w64 TermRec) -∗
       ghostMapAuth γa 1 (∅ : GMap (w64 × w64) Unit) -∗
-      ghostMapAuth γc 1 (∅ : GMap w64 (List raftpb.Entry × w64)) -∗
-      ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List raftpb.Entry)) -∗
+      ghostMapAuth γc 1 (∅ : GMap w64 (List EntryM × w64)) -∗
+      ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List EntryM)) -∗
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
       ownLogGhost γ id initPState none := by
@@ -917,7 +917,7 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
       simp [initPState, plogLastIndexZ]
   isplitr
   · unfold logRecs
-    rw [show initPState.log = ([] : List raftpb.Entry) from rfl]
+    rw [show initPState.log = ([] : List EntryM) from rfl]
     iapply (BigSepL.bigSepL_nil).2; iempintro
   isplitr; · unfold matchedOk; rw [Hrole]; iempintro
   isplitr; · iapply commitIn_zero γ _ _ _ rfl
@@ -926,7 +926,7 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
   · ipureintro
     refine ⟨FullOk_base0, fun k e Hk => by simp [initPState] at Hk, ?_⟩
     intro j x Hx
-    rw [show ([] ++ initPState.log : List raftpb.Entry) = [] from rfl] at Hx
+    rw [show ([] ++ initPState.log : List EntryM) = [] from rfl] at Hx
     have Hr := plogTermAt_some_range _ _ _ _ Hx
     unfold plogLastIndexZ at Hr
     rw [base0_index] at Hr
@@ -936,7 +936,7 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
       have h1 := uint_Z_nonneg j
       rw [show uint.Z (W64 0) = 0 from rfl]; omega)
     subst Hj
-    have H0 := plogTermAt_base base0 ([] : List raftpb.Entry)
+    have H0 := plogTermAt_base base0 ([] : List EntryM)
     rw [show base0.index' = W64 0 from rfl] at H0
     rw [H0] at Hx
     cases Hx
@@ -960,7 +960,7 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
     refine ⟨fun p1 p2 e1 e2 _ H1 _ => by simp at H1, fun e He => by simp at He,
       fun t i Hi => by simp at Hi⟩
   · unfold cprefix
-    rw [show ((([] : List raftpb.Entry) ++ initPState.log).take (uint.Z initPState.commit).toNat)
+    rw [show ((([] : List EntryM) ++ initPState.log).take (uint.Z initPState.commit).toNat)
       = [] from rfl]
     isplitl; · iexact Hc0
     ipureintro
@@ -1018,8 +1018,8 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id : w64)
       ghostMapAuth γv (1 : Qp).half (∅ : GMap w64 w64) -∗
       ghostMapAuth γm 1 (∅ : GMap w64 TermRec) -∗
       ghostMapAuth γa 1 (∅ : GMap (w64 × w64) Unit) -∗
-      ghostMapAuth γc 1 (∅ : GMap w64 (List raftpb.Entry × w64)) -∗
-      ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List raftpb.Entry)) -∗
+      ghostMapAuth γc 1 (∅ : GMap w64 (List EntryM × w64)) -∗
+      ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List EntryM)) -∗
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
       ghostMapAuth γlc 1 (∅ : GMap w64 GName) -∗
@@ -1086,9 +1086,9 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) {md : Bool}
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reAcks !! x = some γx⌝ ∗
         ghostMapAuth γx 1 (∅ : GMap (w64 × w64) Unit)) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reCamp !! x = some γx⌝ ∗
-        ghostMapAuth γx 1 (∅ : GMap w64 (List raftpb.Entry × w64))) -∗
+        ghostMapAuth γx 1 (∅ : GMap w64 (List EntryM × w64))) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reVlogs !! x = some γx⌝ ∗
-        ghostMapAuth γx 1 (∅ : GMap Nat ((w64 × Bool) × List raftpb.Entry))) -∗
+        ghostMapAuth γx 1 (∅ : GMap Nat ((w64 × Bool) × List EntryM))) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reWins !! x = some γx⌝ ∗
         ghostMapAuth γx 1 (∅ : GMap w64 (GSet w64))) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reEvs !! x = some γx⌝ ∗
@@ -1135,14 +1135,13 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) {md : Bool}
 
 /-- What the client of a new ghost state is handed before the commit invariant exists
 (2026-10-14, stage R): its half of the full committed log, the authorities of the fresh-data
-tokens, of the proposed slices and of the fresh read-context tokens, and the empty log's
+tokens and of the fresh read-context tokens, and the empty log's
 commit fact; it gives back the standing update `noopAu γ` (which may mention its own
 invariants, so it is built once `γ` is known) and keeps `C γ`. -/
 def allocClient (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → @DynCfg e))
     (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn⌝ -∗ isCommitted γ [] -∗ rLog γ [] -∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
-    ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8)) -∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
 
 /-- The allocation, in either mode (2026-10-14, stage B5: `dyn` is the ghost state's mode,
@@ -1169,14 +1168,14 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   imod alloc_maps (GF := GF) (K := w64) (V := w64) ids with ⟨%nv, %Hnv, Hv⟩
   imod alloc_maps (GF := GF) (K := w64) (V := TermRec) ids with ⟨%nt, -, Ht⟩
   imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, -, Ha⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := List raftpb.Entry × w64) ids with ⟨%nc, -, Hc⟩
-  imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List raftpb.Entry) ids
+  imod alloc_maps (GF := GF) (K := w64) (V := List EntryM × w64) ids with ⟨%nc, -, Hc⟩
+  imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List EntryM) ids
     with ⟨%nl, -, Hl⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, -, Hw⟩
   imod alloc_evs (GF := GF) ids with ⟨%ne, He⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nlc, -, Hlc⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nrq, -, Hrq⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × List raftpb.Entry)
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × List EntryM)
     with ⟨%γrd, Hrda⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrf, Hrfa⟩
   imod own_alloc ((● (2 ^ 64 - 2 : Nat) : Auth Nat) • (◯ (2 ^ 64 - 2 : Nat) : Auth Nat))
@@ -1184,16 +1183,15 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   icases (own_op γrc _ _).1 $$ HC with ⟨HCa, HCf⟩
   imod ownCommitted_alloc (GF := GF) with ⟨%γc, Hcauth, #Hclb⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName) with ⟨%γpr, Hpra⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := GoSlice) (V := List w8) with ⟨%γsl, Hsla⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfr, Hfra⟩
-  imod ghostVar_alloc (GF := GF) ([] : List raftpb.Entry) with ⟨%γcl, Hcl0⟩
+  imod ghostVar_alloc (GF := GF) ([] : List EntryM) with ⟨%γcl, Hcl0⟩
   -- (2026-10-14, reconfiguration stage B4) the winners table, empty
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := WinRec) with ⟨%γtb, Htba⟩
-  icases ghostVar_split γcl ([] : List raftpb.Entry) (1 : Qp).half (1 : Qp).half $$ [Hcl0]
+  icases ghostVar_split γcl ([] : List EntryM) (1 : Qp).half (1 : Qp).half $$ [Hcl0]
     with ⟨Hcl1, Hcl2⟩
   · rw [Qp.half_add_half]; iexact Hcl0
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
-      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
+      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, Hcne⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
@@ -1206,7 +1204,6 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   have e8 : γ0.reCommit = γc := by rw [Hγ0]
   have e9 : γ0.reProps = γpr := by rw [Hγ0]
   have e0 : γ0.reCfg = cfg := by rw [Hγ0]
-  have e10 : γ0.reSl = γsl := by rw [Hγ0]
   have e11 : γ0.reRLog = γcl := by rw [Hγ0]
   have e12 : γ0.reFresh = γfr := by rw [Hγ0]
   have e13 : γ0.reLcm = nlc := by rw [Hγ0]
@@ -1215,13 +1212,13 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   have e15' : γ0.reRdFresh = γrf := by rw [Hγ0]
   have e16 : γ0.reRdCred = γrc := by rw [Hγ0]
   have e17 : γ0.reTbl = γtb := by rw [Hγ0]
-  rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e10, ← e11, ← e12, ← e13, ← e14,
+  rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e11, ← e12, ← e13, ← e14,
     ← e15, ← e15', ← e16, ← e17]
   ihave #Hc0 : isCommitted (GF := GF) γ0 [] $$ []
   · rw [isCommitted_unseal]; unfold isCommittedDef; iexact Hclb
   -- the client's part: its standing update
   iunfold allocClient at Hcl
-  imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hsla Hrfa with ⟨#Hnoop, HCl⟩
+  imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hrfa with ⟨#Hnoop, HCl⟩
   · ipureintro; exact ⟨e0, by rw [Hγ0]⟩
   · unfold rLog; iexact Hcl2
   imod inv_alloc rdCredN E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗

@@ -5,7 +5,7 @@ counterpart); the request path's unit 4b (2026-10-13).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 
 @[expose] public section
 

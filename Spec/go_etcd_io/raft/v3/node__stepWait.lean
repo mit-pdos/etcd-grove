@@ -2,7 +2,9 @@
 
 ## `node.stepWait(ctx, m)` (node.go:502)
 
-`stepWithWaitOption(ctx, m, true)`, for `Propose`'s message.
+`stepWithWaitOption(ctx, m, true)`, for `Propose`'s message. (2026-10-16, stage R5: the message
+at `ml`, owned, `msgIn ml 1` of `propMsgM` with the entry `propEntryM data` (D6: its bytes); until
+then the Goose value `propMsg esl` with the entries' slice, its capacity and the data slice.)
 -/
 module
 
@@ -27,12 +29,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev node.stepWait.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl esl : GoSlice) (data : List w8),
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (data : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      esl ↦* [propEntry data_sl] ∗ ownSliceCap raftpb.Entry esl (DFrac.own 1) ∗
-      data_sl ↦*□ data ∗ entData γ.raft (propEntry data_sl) }}
+      msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
+      entData γ.raft (propEntryM data) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWait"))
-      (Val #(interface.ok context.backgroundCtxVal))) (Val #(propMsg esl)))
+      (Val #(interface.ok context.backgroundCtxVal))) (Val #ml))
   {{ (err : GoInterface), RET #err; True }}
 
 end spec

@@ -1,8 +1,13 @@
-/- Lean-first (no Rocq counterpart). -/
+/- Lean-first (no Rocq counterpart).
+
+raft v3.7 (2026-10-16, stage R5): the message is a fresh `&pb.Message{Type: MsgHup.Enum()}`,
+built as `msgIn` (`msgOwn_lit0`, `msgOwn_to_msgIn`) and given to `Step` for good. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.RawNode__Campaign
 public import Spec.go_etcd_io.raft.v3.raft__Step
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.LemmasRawnodeR
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 
@@ -32,48 +37,51 @@ local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, Msg
 /-- `Step` on the literal message `pb.Message{Type: MsgHup}`; its `NetFrame` and
 `TermStep` keep `ownRawNode` but for the term (`stepsOk_mono_le`). -/
 theorem RawNode.Campaign.wp_proof
-    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
+    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Campaign.spec (GF := GF) (hG := hG) := by
   intro γ rn id rs Hterm
   wp_start as H
   iNamed H
   iNamed Hrn
   wp_auto_lc 1
+  rw [show raftpb.MsgHup = #((W32 0 : raftpb.MessageType)) from rfl]
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_MessageType_Enum (W32 0) as %pty Hpty
+  imod cellRO_alloc $$ Hpty with #cTy
+  imod msgOwn_lit0 «$a0_ptr» _ ({ (zero_val MessageM) with Type' := W32 0 } : MessageM) ⊤ $$ [«$a0»] with Hm
+  · iframe «$a0» cTy
+    isplitr
+    · ipureintro; simp
+    msg_nulls
+  ihave Hm := msgOwn_to_msgIn _ _ (by simp [MsgApp]) $$ Hm
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
-  wp_apply wp_raft_Step cf _ γ _ id s _ [] []
-    (by simp [StepMsg, stepMsgTypes, MsgHup]) 
+  have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
+  wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
+    [] [] none []
+    (by simp [StepMsg, stepMsgTypes, MsgHup])
     (fun _ => ⟨rfl, by rw [← Htrm]; exact Hterm⟩)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hcr]
+    $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
-    have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
     simp only [hP, ↓reduceIte, named]
-    isplitr
-    · isplitr
-      · iapply ownSlice_nil
-      isplitr
-      · iapply ownSliceCap_nil
-      isplitr
-      · ipureintro; msg_ne
-      isplitr
-      · ipureintro; msg_ne
+    isplitl [Hm]
+    · iframe Hm
+      repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
       imodintro
       iintro %ty %Hty
       rw [show mtypeOf (W32 0) = none from rfl] at Hty
       cases Hty
-    isplitr
-    · iapply ownSlice_nil
     isplitl [Hcr]
     · rw [ite_eq_right (by msg_ne)]; iexact Hcr
     imodintro
     iintro %Hc
     simp [MsgSnap] at Hc
-  have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
   simp only [hP]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, Herr⟩
   have Hc := Href.commit_mono
@@ -87,12 +95,12 @@ theorem RawNode.Campaign.wp_proof
   icases Herr with (%Herr | ⟨%Hc', -⟩)
   · iapply HΦ $$ %err %s'.term
     simp only [named]
-    isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
-    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv steps Hwf' Hin Hal
+    isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
+    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin Hal
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok) rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
     ipureintro
     rw [Htrm]
     exact ⟨⟨Ht1, Ht2⟩, Herr⟩

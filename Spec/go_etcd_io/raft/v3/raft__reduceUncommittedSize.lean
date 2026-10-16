@@ -3,7 +3,7 @@ Port of `election_proof/spec_raft__reduceUncommittedSize.v` (857d09190).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

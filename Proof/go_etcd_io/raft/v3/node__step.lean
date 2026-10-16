@@ -20,7 +20,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `stepWithWaitOption(ctx, m, false)`: `m` is not a proposal (`NetMsgOk`). -/
+/-- `stepWithWaitOption(ctx, m, false)`: `m` is not a proposal (`NetMsgOk`). (Raft v3.7, stage
+R5: `stepP` passed on whole, `stepArg`'s network branch being `netP` alone.) -/
 theorem node.step.wp_proof
     (wp_node_stepWithWaitOption : node.stepWithWaitOption.spec (GF := GF) (hG := hG)) :
     node.step.spec (GF := GF) (hG := hG) := by
@@ -41,18 +42,12 @@ theorem node.step.wp_proof
     wp_auto
     iapply HΦ
     itrivial
-  iunfold netP at Hnet
-  icases Hnet with ⟨%Hok, Hnet⟩
   wp_auto
   wp_apply wp_node_stepWithWaitOption γ id n m false $$ [Hnet]
   · iframe Hnode
     unfold stepArg
     ileft
-    isplitr
-    · ipureintro; exact netStepTypes_ne_prop Hok.1
-    unfold netP
-    iframe Hnet
-    ipureintro; exact Hok
+    iexact Hnet
   iintro %err -
   wp_auto
   iapply HΦ

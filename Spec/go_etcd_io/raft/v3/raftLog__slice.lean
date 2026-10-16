@@ -9,7 +9,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -40,7 +40,7 @@ unreachable, and `lo < hi` rules out the empty early return.
 The result **aliases the log** in two of the three cases (a sub-slice of
 `unstable.entries`, or one the `Storage` handed out); in the third (a range spanning
 the stable/unstable boundary) it is a fresh slice from `extend`. In every case it is
-returned **read-only and for good**, `s ↦*□ es`, and the log comes back unchanged: no
+returned **read-only and for good**, `entsRO s es`, and the log comes back unchanged: no
 entry of the log is ever written again once it is in it -- `unstable` never writes in
 place (`ownUnstable`, `InvRaftlog.lean`) and `Storage` promises the same (`isStorage`'s
 `Entries`, `InvStorage.lean`) -- so there is nothing to give back. `maybeSendAppend`
@@ -61,9 +61,9 @@ abbrev raftLog.slice.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"slice"))
       (Val #lo)) (Val #hi)) (Val #maxSize))
-  {{ (s : GoSlice) (es : List raftpb.Entry),
+  {{ (s : GoSlice) (es : List EntryM),
       RET (PairV #s #interface.nil);
-      ownRaftLog l ls ∗ s ↦*□ es ∗
+      ownRaftLog l ls ∗ entsRO s es ∗
       ⌜es ≠ [] ∧
         (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
         (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
@@ -73,7 +73,7 @@ abbrev raftLog.slice.spec : Prop :=
       -- (`ents[:len:len]`), returns `Storage.Entries`' capped slice, or `extend`s into a
       -- fresh one -- so the caller may hand the slice on where its capacity is demanded
       -- (`Step`'s `Hents_cap`, for `Advance`'s `MsgStorageApplyResp`)
-      ownSliceCap raftpb.Entry s (DFrac.own 1) }}
+      ownSliceCap Loc s (DFrac.own 1) }}
 
 end spec
 

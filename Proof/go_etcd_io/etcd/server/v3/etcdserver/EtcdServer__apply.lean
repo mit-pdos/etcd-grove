@@ -11,16 +11,16 @@ public import Spec.go_uber_org.zap.Stringer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentApplyingIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setTerm
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 
 @[expose] public section

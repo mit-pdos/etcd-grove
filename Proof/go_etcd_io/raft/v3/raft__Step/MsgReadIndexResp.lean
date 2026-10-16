@@ -33,8 +33,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-theorem followerStepResult_readIndexResp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
-    (e : raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+theorem followerStepResult_readIndexResp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
+    (e : EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgReadIndexResp)
     (H : FollowerStepResultC c scfg id s m [e] sv dropped s' c' cl) :
     c = c' ∧ dropped = false ∧ s' = addReadState s m.Index' e.Data' := by
@@ -45,16 +45,19 @@ theorem followerStepResult_readIndexResp (c : CfgM) {scfg : CSLists} {c' : CfgM}
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, W32] at H
   simpa using H
 
-theorem toPState_addReadState (s : NState) (i : w64) (d : GoSlice) (Hr : s.role ≠ .leader) :
+theorem toPState_addReadState (s : NState) (i : w64) (d : List w8) (Hr : s.role ≠ .leader) :
     toPState (addReadState s i d) =
       { toPState s with rd := { (toPState s).rd with
           states := (toPState s).rd.states ++ [⟨i, d⟩] } } := by
   simp [addReadState, toPState, Hr, rdNL]
   try exact ⟨rfl, rfl⟩
 
+set_option maxHeartbeats 1000000 in
 theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (e : raftpb.Entry) (ctx : List w8) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (e : EntryM) :
     m.Type' = MsgReadIndexResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -62,8 +65,8 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ [e] }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, [e], sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -73,12 +76,18 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfid Hwf
-  wp_start as ⟨Hphys, #Hents⟩
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_get _Q
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
     iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
   have Hfl : fromLeader MsgType.readIndexResp = false := rfl
@@ -86,35 +95,26 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
   · -- a step-down, then a follower's `ReadState`
     rw [decide_eq_true Hgt]
     wp_auto
-    iterate 6 (try (rw [Hty]; wp_auto))
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_drive _Q
     wp_raft_logC
-    iterate 6 (try (rw [Hty]; wp_auto))
+    wp_drive _Q
     wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
-    iterate 6 (try (rw [Hty]; wp_auto))
+    wp_drive _Q
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
     rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
       stepFuncOf .follower from rfl]
     simp only [stepFuncOf]
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        m [e] (zero_val _) []
+        ml m [e] sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-      $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-    · isplitl []
-      · iintro %Hc; exfalso; rw [Hty] at Hc
-        rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
-      isplitl []
-      · iintro _; iexact Hents
-      isplitl []
-      · iapply Hsnap0
-      · iintro %Hc; exfalso; rw [Hty] at Hc
-        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+    · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_readIndexResp _ _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -141,18 +141,16 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     exact StepCF.readState (absMsg .readIndexResp m [e] ctx) _ e rfl rfl
   · rw [decide_eq_false Hgt]
     wp_auto
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_drive _Q
     by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · -- stale: dropped
       rw [decide_eq_true Hlt]
       wp_auto
-      wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-      wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
+      wp_drive _Q
       cases s.prevote <;> wp_auto
-      all_goals iterate 6 (try (rw [Hty]; wp_auto))
+      all_goals wp_drive _Q
       all_goals
-        wp_apply raft.wp_load_idC $$ Hphys as Hphys
-        wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+        wp_drive _Q
         wp_raft_logC
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
@@ -163,30 +161,22 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       have Hteq : m.Term' = s.term := by word
       rw [decide_eq_false Hlt]
       wp_auto
-      rw [Hty]
-      wp_auto
+      wp_drive _Q
       wp_apply raft.wp_load_stepC $$ Hphys as Hphys
       rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
       cases Hrole : s.role
       · -- Follower: a `ReadState`
         simp only [stepFuncOf]
-        wp_apply _P.stepFollower c ∅ r id s m [e] (zero_val _) []
+        wp_apply _P.stepFollower c ∅ r id s ml m [e] sn rs (zero_val _) ctx
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-          $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-        · isplitl []
-          · iintro %Hc; exfalso; rw [Hty] at Hc
-            rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
-          isplitl []
-          · iintro _; iexact Hents
-          isplitl []
-          · iapply Hsnap0
-          · iintro %Hc; exfalso; rw [Hty] at Hc
-            rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+            (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+        · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
         obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_readIndexResp _ _ _ _ _ _ _ _ _ Hty Hres
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
@@ -201,7 +191,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         exact StepCF.readState (absMsg .readIndexResp m [e] ctx) _ e rfl rfl
       · -- Candidate: ignored
         simp only [stepFuncOf]
-        wp_apply _P.stepCandidate c ∅ r id s m [e] (zero_val _) []
+        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
@@ -210,12 +200,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-        · isplitl []
-          · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-          isplitl []
-          · iapply Hsnap0
-          · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+            (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+        · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
         obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inr Hty) Hres
         subst s1
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -228,7 +215,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
       · -- Leader: ignored (neither switch has it)
         simp only [stepFuncOf]
-        wp_apply _P.stepLeader c r id s m [e] []
+        wp_apply _P.stepLeader c r id s ml m [e] sn ctx rs
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))))
             Hrole
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -239,11 +226,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
-        · isplitl []
-          · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-          isplitl []
-          · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+          $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+        · isplitl [Hm]
+          · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
           · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         unfold LeaderStepResultC at Hres
         rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
@@ -265,7 +250,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
       · -- PreCandidate: ignored
         simp only [stepFuncOf]
-        wp_apply _P.stepCandidate c ∅ r id s m [e] (zero_val _) []
+        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
@@ -274,12 +259,9 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-        · isplitl []
-          · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-          isplitl []
-          · iapply Hsnap0
-          · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+            (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+        · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
         obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inr Hty) Hres
         subst s1
         simp only [Bool.false_eq_true, ↓reduceIte]

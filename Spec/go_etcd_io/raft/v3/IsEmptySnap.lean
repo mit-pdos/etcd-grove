@@ -28,12 +28,17 @@ is one field test:
 
 Pure, so the triple says exactly that. It matters because `raft.maybeSendSnapshot`
 follows it with `panic("need non-empty snapshot")`: the proof there has to know the
-answer is `false`, which it gets from `isStorage`'s `HSnapshot` (`InvStorage.lean`). -/
+answer is `false`, which it gets from `isStorage`'s `HSnapshot` (`InvStorage.lean`).
+
+raft v3.7 (2026-10-15, stage R4): `sp` is a `*pb.Snapshot`, `sp.GetMetadata().GetIndex() == 0`
+(`node.go:127`): a `nil` pointer (`o = none`) is empty; otherwise the snapshot, at any fraction,
+is given back. -/
 abbrev IsEmptySnap.spec : Prop :=
-  ∀ (sp : raftpb.Snapshot),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (sp : Loc) (dq : DFrac) (o : Option SnapshotM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hsp" ∷ snapOpt sp dq o }}
     (App (Val #(functions IsEmptySnap [])) (Val #sp))
-  {{ (b : Bool), RET #b; ⌜b = decide (sp.Metadata'.Index' = W64 0)⌝ }}
+  {{ (b : Bool), RET #b;
+      ⌜b = o.elim true (fun sv => decide (sv.Metadata'.Index' = W64 0))⌝ ∗ snapOpt sp dq o }}
 
 end spec
 

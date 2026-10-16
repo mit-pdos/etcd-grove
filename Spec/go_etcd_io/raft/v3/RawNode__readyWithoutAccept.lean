@@ -46,7 +46,17 @@ Since 2026-10-10 also:
   `ownRawNode`'s scope);
 - `Habandon`: the `Ready` may be dropped instead of accepted (`node.go`'s `select` takes
   another case): with the messages given back, the node is whole again, at `rs` with the
-  lower bounds raised to what the `Ready` held (`ownRawNodeReady_abandon`). -/
+  lower bounds raised to what the `Ready` held (`ownRawNodeReady_abandon`).
+
+raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, D8): **the messages are handed out** --
+`rd.Messages` (a `[]*pb.Message` aliasing `r.msgs`, extended by the `msgsAfterAppend` messages to
+others) holds the pointers of `ms : List QMsg`, each message owned at `readyDq` (a
+`MsgAppResp`/`MsgVoteResp`/`MsgPreVoteResp` at half: `acceptReady` reads the other half's
+`To`; the application gets those read-only, `issues/raft-ready-messages-read-after-handout.md`;
+every other message whole); `Habandon` takes them back. `Entries`/`CommittedEntries` are
+`entsRO` (`[]*pb.Entry`, read-only), the read states `readStatesPts` (their contexts bytes, D6),
+`rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOpt rd.HardState' h` (new:
+the `Ready` hands out `hardState()`'s fresh pointer, or `nil`). -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
@@ -55,28 +65,34 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
-  {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message)
-      (sts : List ReadState), RET #rd;
+  {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
+      (sts : List ReadStateM) (h : HardStateM), RET #rd;
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms ∗
-      "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
+      "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-      "#Hents" ∷ rd.Entries' ↦*□ es ∗
-      "Hmsgs" ∷ rd.Messages' ↦* ms ∗
-      "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
-      "#Hmsgs_ok" ∷ ([∗list] m ∈ ms, isRaftMsg γ m) ∗
-      "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
-      "Habandon" ∷ (rd.Messages' ↦* ms -∗
-                    ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) -∗
+      "#Hents" ∷ entsRO rd.Entries' es ∗
+      "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗
+      "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
+      -- (2026-10-16, stage R5, D8) the messages handed out, a response at half
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ q.st) ∗
+      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.term⌝ ∗
+      "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗
+                    ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
+                    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
                     ownRawNodeReady γ rn id rs rd ce es ms -∗
                     ∃ (n : Nat) (u : Bool) (c : w64),
                       ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
                        (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
                          uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
                       ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c }) ∗
-      "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝ ∗
+      "%Hsnapz" ∷ ⌜rd.Snapshot' = null⌝ ∗
       -- the read states (2026-10-13)
-      "#Hrs" ∷ rd.ReadStates' ↦*□ sts ∗
-      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) }}
+      "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
+      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
+      -- (2026-10-16, stage R5) the hard state: `nil` when unchanged, else `hardState()`'s fresh
+      -- read-only one
+      "#Hhard" ∷ hsOpt rd.HardState' h }}
 
 end spec
 

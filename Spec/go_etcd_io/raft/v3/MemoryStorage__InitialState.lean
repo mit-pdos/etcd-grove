@@ -22,19 +22,35 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ms.InitialState()`: the hard state last set (`SetHardState`) and the `ConfState` of
 the snapshot, and no error. It takes no lock (it reads `hardState` and `snapshot` and
-increments `callStats.initialState` bare), so it is stated on `memStorMeta`, whose
-halves of the two fields and whose counter make those accesses race-free (the lock's
-halves are only read under it, the writers need `memStorMeta`): `InitialState` cannot
-run concurrently with `SetHardState`, `ApplySnapshot` or `CreateSnapshot`, with which
-it races in Go although the mutex is documented to protect all fields
-(issues/raft-memorystorage-initialstate-unlocked.md). -/
+increments `callStats.initialState` bare): `InitialState` cannot run concurrently with
+`SetHardState`, `Snapshot`, `ApplySnapshot` or `CreateSnapshot`, with which it races in Go
+although the mutex is documented to protect all fields
+(issues/raft-memorystorage-initialstate-unlocked.md).
+
+raft v3.7 (stage R3, 2026-10-15; decision Q6: specified for its single call, at construction,
+by `newRaft`). It returns the storage's own pointers: `ms.hardState` (`nil` or read-only,
+`hsOpt`) and the snapshot's conf state made whole by `EnsureConfState` (`storage.go:131-133`),
+which **writes** the conf state's `AutoLeave` when it is `nil` -- without the lock. So it is
+stated on both halves of the storage: `memStorMeta` (the application's: half of `hardState`
+and the unlocked counter) and `ownMemoryStorage` (the owner's, which holds the snapshot,
+`memSnapOwn`), which at construction one caller holds, before raft starts. The conf state
+(holding the storage's `scs`, `sal`: `storCS σ`) is returned read-only for good with its
+`AutoLeave` set (`csPts cs □ _ true`), beside the storage as it was (D7, stage R4: the storage's
+snapshot now holds it frozen, `csOptA`'s third case; nothing writes a conf state in place once
+its `AutoLeave` is set). `newRaft` reads it in `confchange.Restore` and
+`assertConfStatesEquivalent` while it reads the log, which holds the storage, so the conf state
+cannot be lent with a wand back to the storage (R3's statement until D7). When the snapshot has
+no metadata or conf state it is a fresh one, frozen likewise. Until the retarget it returned the
+two values and read only `memStorMeta`'s halves. -/
 abbrev MemoryStorage.InitialState.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (hs : raftpb.HardState) (snap : raftpb.Snapshot),
+  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (hs : HardStateM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hmeta" ∷ memStorMeta ms γs hs snap }}
+      "Hms" ∷ ownMemoryStorage ms γs σ ∗
+      "Hmeta" ∷ memStorMeta ms γs hs }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"InitialState")) (Val #()))
-  {{ RET (PairV (PairV #hs #snap.Metadata'.ConfState') #interface.nil);
-      memStorMeta ms γs hs snap }}
+  {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
+      hsOpt hp hs ∗ memStorMeta ms γs hs ∗ ownMemoryStorage ms γs σ ∗
+      csPts cs DFrac.discard (storCS σ) true }}
 
 end spec
 

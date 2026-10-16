@@ -7,7 +7,12 @@ way: close the raft struct's view unchanged (`close_view`) and refold `ownRawNod
 Lean notes: Rocq's `nstate_set_same` is not needed (the record update closing the view
 is definitionally `s`). Rocq's `close_view`/`finish_true` are the local macros
 `close_view`/`finish`; the tail after the hard-state test, which falls through in two
-ways, is the local macro `rest`. -/
+ways, is the local macro `rest`.
+
+raft v3.7 (2026-10-16, stage R5): `r.softState()` and `r.hardState()` are called through their
+specs on the closed struct (`raft.softState.spec`, `raft.hardState.spec`; the latter returns a
+fresh read-only `*pb.HardState`, `hsRO`), compared with `prevHardSt` (`hsRO`) as `hsOpt`; the
+struct's view is opened only for the log and the queues (`rest`). -/
 module
 
 public import Spec.go_etcd_io.raft.v3.RawNode__HasReady
@@ -17,6 +22,9 @@ public import Spec.go_etcd_io.raft.v3.isHardStateEqual
 public import Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableSnapshot
 public import Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableEnts
 public import Spec.go_etcd_io.raft.v3.raftLog__hasNextCommittedEnts
+public import Spec.go_etcd_io.raft.v3.raft__softState
+public import Spec.go_etcd_io.raft.v3.raft__hardState
+public import Proof.go_etcd_io.raft.v3.LemmasRawnodeR
 
 @[expose] public section
 
@@ -43,6 +51,17 @@ local macro "close_view" : tactic => `(tactic| (
     HmsgsAA_cap Houtbox %HmsgsAA_ok %Hout_term %Hgh_out %Hgh_unst Hlog))
 
 set_option hygiene false in
+/-- Refold `ownRawNode` unchanged, return (the struct closed). -/
+local macro "finish0" : tactic => `(tactic| (
+  iapply HΦ
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
+
+set_option hygiene false in
 /-- Close the view, refold `ownRawNode` unchanged, return. -/
 local macro "finish" : tactic => `(tactic| (
   close_view
@@ -50,9 +69,9 @@ local macro "finish" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; rfl
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
 
 set_option hygiene false in
 /-- The one path that returns `false`: no queue is non-empty, no unstable entry is
@@ -64,6 +83,7 @@ local macro "finish_false" : tactic => `(tactic| (
     by_cases h : nextUnstable s.logst = []
     · exact h
     · exact absurd (Hue.trans (decide_eq_true h)) (by decide)
+  simp only [List.length_map] at Hl1 Hl2
   have Hout0 : s.gh.outlb = 0 := by word
   have Hrd0 : s.rd.states = [] := by
     apply List.eq_nil_of_length_eq_zero
@@ -78,14 +98,18 @@ local macro "finish_false" : tactic => `(tactic| (
   iright
   isplitr
   · ipureintro; rfl
-  iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv steps Hwf Hin Hal Hasync Hdlen Hunp
+  iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb ⟨Hout0, Hnu, Hrd0⟩
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
 
 set_option hygiene false in
 /-- The rest of `HasReady` once the hard-state test fell through: Rocq's `all:` tail,
 shared by the two ways of falling through. -/
 local macro "rest" : tactic => `(tactic| (
+  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
+    ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  iNamed Hv
+  try wp_auto
   wp_apply wp_raftLog_hasNextUnstableSnapshot $$ [Hlog] as %bsn ⟨Hlog, %Hsn⟩
   · iframe Hlog
   cases bsn
@@ -125,37 +149,31 @@ theorem RawNode.HasReady.wp_proof
       raftLog.hasNextUnstableSnapshot.spec (GF := GF) (hG := hG))
     (wp_raftLog_hasNextUnstableEnts : raftLog.hasNextUnstableEnts.spec (GF := GF) (hG := hG))
     (wp_raftLog_hasNextCommittedEnts :
-      raftLog.hasNextCommittedEnts.spec (GF := GF) (hG := hG)) :
+      raftLog.hasNextCommittedEnts.spec (GF := GF) (hG := hG))
+    (wp_raft_softState : raft.softState.spec (GF := GF) (hG := hG))
+    (wp_raft_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     RawNode.HasReady.spec (GF := GF) (hG := hG) := by
   intro γ rn id rs
   wp_start as H
   iNamed H
   iNamed Hrn
-  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
-    ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
-  iNamed Hv
   wp_auto
-  wp_method_call
-  wp_call
-  wp_auto
+  wp_apply wp_raft_softState cf rnv.raft' id s $$ Hphys as Hphys
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, _⟩
   wp_if_destruct
   rotate_left
-  · finish
-  -- `r.hardState()`
-  icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-  wp_method_call
-  wp_call
-  wp_auto
-  ihave Hlog := Hlb $$ Hl
-  wp_apply wp_IsEmptyHardState
+  · finish0
+  -- `r.hardState()`: a fresh read-only hard state
+  wp_apply wp_raft_hardState cf rnv.raft' id s $$ Hphys as %hp ⟨#Hhp, Hphys⟩
+  ihave #Hhp' := hsRO_to_hsOpt _ _ $$ Hhp
+  ihave #Hhard' := hsRO_to_hsOpt _ _ $$ Hhard
+  wp_apply wp_IsEmptyHardState hp _ $$ [$Hhp']
   wp_if_destruct
   · rest
-  · wp_apply wp_isHardStateEqual
+  · wp_apply wp_isHardStateEqual hp rnv.prevHardSt' _ _ $$ [$Hhp' $Hhard']
     wp_if_destruct
     · rest
-    · finish
-
+    · finish0
 end proof
 
 end EtcdGrove

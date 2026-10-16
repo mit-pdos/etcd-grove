@@ -27,7 +27,7 @@ theorem MemoryStorage.LastIndex.wp_proof
   intro ms γs σ
   wp_start as ⟨Hms, %Hpnil⟩
   iunfold ownMemoryStorage at Hms
-  icases Hms with ⟨#Hinit, #Hmu, Hview, %Hbounded⟩
+  icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -42,15 +42,15 @@ theorem MemoryStorage.LastIndex.wp_proof
   have Heq : σ0 = σ := Hvw.2.2.2 Hpnil
   subst Heq
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
+  icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
-  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, _, _, _, _, _
+    iexists hp, es, dummy, _, _, _, _, _
     simp only [named]
     iframe
-    ipureintro; exact ⟨Hsnap_id, Hdummy⟩
+    ipureintro; exact Hdummy
   wp_apply wp_MemoryStorage_lastIndex _ _ Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
   wp_method_call
   wp_call
@@ -65,7 +65,7 @@ theorem MemoryStorage.LastIndex.wp_proof
   · ipureintro; exact Hli
   unfold ownMemoryStorage
   simp only [named]
-  iframe Hinit Hmu Hview
+  iframe Hinit Hmu Hview Hsn
   ipureintro; exact Hbounded
 
 end proof

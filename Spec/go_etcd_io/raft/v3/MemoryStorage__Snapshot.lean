@@ -43,7 +43,14 @@ Since 2026-10-14 (reconfiguration stage B8) all four of its `ConfState`'s slices
 (`ownCSL`), which the storage keeps (`ownCSRO` in `memstorageFields`) and `isStorage`'s
 `HSnapshot` hands out. Since 2026-10-15 (stage S) *which* `ConfState`: the lists `σ.scs` and the
 `AutoLeave` `σ.sal` the storage's state records, the ones `CreateSnapshot`/`ApplySnapshot`
-stored, so that raft knows which certified snapshot it forwards (`ownRaftLog`'s `Hsksn`). -/
+stored, so that raft knows which certified snapshot it forwards (`ownRaftLog`'s `Hsksn`).
+
+raft v3.7 (stage R3, 2026-10-15): `Snapshot()` makes the storage's snapshot whole
+(`ms.snapshot = EnsureSnapshot(ms.snapshot)`, a write of the field and of the object's nil
+fields, `storage.go:212`; the storage owns both, `memSnapOwn`) and returns a fresh clone
+(`proto.Clone`, 213), owned by the caller, whose record's id, conf-state lists and `AutoLeave`
+are the storage's. Until the retarget the snapshot came back by value with its `ConfState`
+slices the storage's, read-only (`ownCSL`). -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface),
@@ -51,12 +58,12 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Snapshot")) (Val #()))
-  {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
+  {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧ snapId snap = σ.ss ∧
-          snap.Metadata'.ConfState'.AutoLeave' = σ.sal⌝ ∗
-        ownCSL snap.Metadata'.ConfState' σ.scs)) }}
+       (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+        ⌜snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
+          sv.Metadata'.ConfState'.lists = σ.scs⌝)) }}
 
 end spec
 

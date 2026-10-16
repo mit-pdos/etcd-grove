@@ -40,7 +40,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A `MemoryStorage` with a snapshot meets the contract, with its own hand-out and
+/-- A `MemoryStorage` with a snapshot meets the contract (raft v3.7, stage R3: the `Snapshot`
+clause's fresh owned clone is the method's own result), with its own hand-out and
 receipt (`memAppendTok`, `memAppendedTok`, `InvMemstorage.lean`). The snapshot premise
 (`ss.index ≠ 0`, until 2026-10-10 a conjunct of `ownMemoryStorage`) is the contract's
 `Snapshot` clause, which promises a non-empty snapshot: a new storage
@@ -113,13 +114,16 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     iframe Hown
     isplitr
     · ipureintro; exact Hss
-    icases Hr with (%Herr | ⟨%Herr, Hv⟩)
+    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv⟩)
     · ileft; ipureintro; exact Herr
     iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists sv
     iframe Hv
     ipureintro
-    refine ⟨Herr.1, Herr.2.1, ?_, Herr.2.2⟩
-    have H := congrArg entryID.index' Herr.2.1
+    refine ⟨Hsv.1, ?_, Hsv.2.1, Hsv.2.2⟩
+    have H := congrArg entryID.index' Hsv.1
     simp only [snapId] at H
     rw [H]; exact Hss
   isplitr

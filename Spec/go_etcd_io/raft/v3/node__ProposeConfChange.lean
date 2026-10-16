@@ -7,6 +7,10 @@ entry's data is recorded as proposed (`isPropData`, through the node's proposed 
 invariant, `node_read_register`), which makes the proposal a protocol message (`fwdP`).
 Partial correctness: nothing is promised of the error (as for `Node.Step`), and whether the
 change is appended or refused is not visible.
+
+raft v3.7 (2026-10-16, stage R5, D6): the entry holds the conf change's bytes, so no recording
+(`isPropData`) is needed: the proposal is `fwdP` from `confChangeToMsg`'s owned message
+(`msgIn ml 1`), `entData_cc`, `ccEntsOk_cc`.
 -/
 module
 

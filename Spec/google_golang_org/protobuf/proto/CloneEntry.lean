@@ -3,15 +3,14 @@
 names-only), raft v3.7 retarget, stage R1 (`notes/decisions.md`, "The protobuf runtime as raft's
 trust boundary"). `appendEntry` clones every entry it appends (`raft.go:817`) and stamps the
 clone.
-Lean-first; stated over the raftpb ownership predicates of `Raft37/Proof/go_etcd_io/raft/v3/InvPb.lean`
-(this file imports only `Raft37` modules: the old raft's and `EtcdDeps`'s raftpb define the same
-names). Until the raft trees are swapped (stage R6) a raft v3.7 statement about `proto.*` is kept
-apart from the etcd side's (`Clone.lean`, `Size.lean`, `Marshal.lean`, `Unmarshal.lean`), as
-`MarshalIRR.lean` is from `Marshal.lean`.
+Lean-first; stated over the raftpb ownership predicates of `Proof/go_etcd_io/raft/v3/InvPb.lean`
+(a raft v3.7 statement about `proto.*`, kept apart from the etcd side's `Clone.lean`, `Size.lean`,
+`Marshal.lean`, `Unmarshal.lean`, as `MarshalIRR.lean` is from `Marshal.lean`; until stage R6 swapped
+the raft trees, 2026-10-16, this file was the only one importing the `Raft37` tree's raftpb).
 -/
 module
 
-public import Raft37.Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

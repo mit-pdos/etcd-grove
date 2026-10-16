@@ -17,7 +17,7 @@ Lean notes: As for `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 
 @[expose] public section
 
@@ -64,7 +64,15 @@ The node's new state: `delivered` grows by `ce`, `unpersisted` is `es`, and the 
 messages for `Advance` are queued (`steps`), which `Advance` takes whatever they are.
 (Until 2026-10-10 the postcondition also returned a flag `advanceable`, whether
 `Advance` was proved for the queue: not when it held a self-addressed response, which
-no client could rule out.) -/
+no client could rule out.)
+
+raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, D8): `readyWithoutAccept` then
+`acceptReady` (`RawNode.readyWithoutAccept.spec`'s file says what changed): the messages handed
+out (`ms : List QMsg`, a response at half -- `acceptReady` read the other half, which stays with
+the node's way back and is dropped with the queues: the application gets responses read-only,
+`issues/raft-ready-messages-read-after-handout.md`), the entries `entsRO`, the read states
+`readStatesPts`, `rd.Snapshot` `nil`, and the hard state `hsOpt rd.HardState' h` (new). The
+`ReadState`s' contexts are bytes (D6), `readStateOk` over `ReadStateM`. -/
 abbrev RawNode.Ready.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
@@ -72,25 +80,30 @@ abbrev RawNode.Ready.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
-  {{ (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message)
-      (sts : List ReadState) (steps : List Pending), RET #rd;
+  {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
+      (sts : List ReadStateM) (h : HardStateM) (steps : List Pending), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false } ∗
-      "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
+      "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-      "#Hents" ∷ rd.Entries' ↦*□ es ∗
-      "Hmsgs" ∷ rd.Messages' ↦* ms ∗
-      "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
-      "#Hmsgs_ok" ∷ ([∗list] m ∈ ms, isRaftMsg γ m) ∗
+      "#Hents" ∷ entsRO rd.Entries' es ∗
+      "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗
+      "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
+      -- (2026-10-16, stage R5, D8) the messages, a response at half
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ q.st) ∗
       -- each message's read credit (2026-10-13)
-      "Hmsgs_cred" ∷ ([∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0)) ∗
+      "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
+        rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
       -- every message is of a term at most the node's at the call (2026-10-10)
-      "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
-      "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝ ∗
+      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.term⌝ ∗
+      "%Hsnapz" ∷ ⌜rd.Snapshot' = null⌝ ∗
       -- the read states (2026-10-13)
-      "#Hrs" ∷ rd.ReadStates' ↦*□ sts ∗
+      "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
+      -- (2026-10-16, stage R5) the hard state, `nil` or fresh and read-only
+      "#Hhard" ∷ hsOpt rd.HardState' h ∗
       -- the right to append `es` to the node's storage (2026-10-10)
       "Happ" ∷ appendRight rs.storage es }}
 

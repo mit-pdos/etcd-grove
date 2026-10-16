@@ -12,6 +12,7 @@ public import GeneratedProof.go_etcd_io.raft.v3.confchange
 public import GeneratedProof.go_etcd_io.raft.v3.quorum
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_etcd_io.raft.v3.tracker
+public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
@@ -144,7 +145,7 @@ instance Ready_access_load_HardState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (d
  by
   solve_pointsto_access_struct
 
-instance Ready_access_store_HardState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (HardState' : go_etcd_io.raft.v3.raftpb.HardState) :
+instance Ready_access_store_HardState (l : Loc) (v : go_etcd_io.raft.v3.Ready) (HardState' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"HardState" l) v.HardState' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"HardState" l) HardState' (DFrac.own 1))
@@ -192,7 +193,7 @@ instance Ready_access_load_Snapshot (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq
  by
   solve_pointsto_access_struct
 
-instance Ready_access_store_Snapshot (l : Loc) (v : go_etcd_io.raft.v3.Ready) (Snapshot' : go_etcd_io.raft.v3.raftpb.Snapshot) :
+instance Ready_access_store_Snapshot (l : Loc) (v : go_etcd_io.raft.v3.Ready) (Snapshot' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Snapshot" l) v.Snapshot' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Snapshot" l) Snapshot' (DFrac.own 1))
@@ -338,7 +339,7 @@ instance msgWithResult_access_load_m (l : Loc) (v : go_etcd_io.raft.v3.msgWithRe
  by
   solve_pointsto_access_struct
 
-instance msgWithResult_access_store_m (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (m' : go_etcd_io.raft.v3.raftpb.Message) :
+instance msgWithResult_access_store_m (l : Loc) (v : go_etcd_io.raft.v3.msgWithResult) (m' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"m" l) v.m' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.msgWithResult go!"m" l) m' (DFrac.own 1))
@@ -696,7 +697,7 @@ instance RawNode_access_load_prevHardSt (l : Loc) (v : go_etcd_io.raft.v3.RawNod
  by
   solve_pointsto_access_struct
 
-instance RawNode_access_store_prevHardSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (prevHardSt' : go_etcd_io.raft.v3.raftpb.HardState) :
+instance RawNode_access_store_prevHardSt (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (prevHardSt' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevHardSt" l) v.prevHardSt' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevHardSt" l) prevHardSt' (DFrac.own 1))
@@ -810,7 +811,7 @@ instance readIndexRequest_access_load_req (l : Loc) (v : go_etcd_io.raft.v3.read
  by
   solve_pointsto_access_struct
 
-instance readIndexRequest_access_store_req (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (req' : go_etcd_io.raft.v3.raftpb.Message) :
+instance readIndexRequest_access_store_req (l : Loc) (v : go_etcd_io.raft.v3.readIndexRequest) (req' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"req" l) v.req' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.readIndexRequest go!"req" l) req' (DFrac.own 1))

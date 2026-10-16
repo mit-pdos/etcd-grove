@@ -21,6 +21,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- `confChangeToMsg`, then `Step` of the proposal, forwarded (`fwdP`). (Raft v3.7, stage R5, D6:
+the message `msgIn ml 1` from `confChangeToMsg`, its entry `ccEntryM (some o) bs` holding the
+bytes, so no recording of the data is needed (`entData_cc`).) -/
 theorem node.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
@@ -28,24 +31,16 @@ theorem node.ProposeConfChange.wp_proof
   intro γ id n c o dq Hok
   wp_start as ⟨#Hnode, Hc⟩
   wp_auto
-  wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %esl %data %bs ⟨Hc, Hes, Hcap, Hdata, %Hbs⟩
-  ipersist Hdata
-  imod node_read_register γ id n data bs ⊤ CoPset.subseteq_top $$ Hnode Hdata with #Hpd
-  ihave #Hent := entData_cc γ.raft o data bs Hbs (Hok bs Hbs) $$ Hpd
-  wp_apply wp_node_Step γ id n (ccPropMsg esl) $$ [$Hnode Hes Hcap]
+  wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
+  ihave #Hent := entData_cc γ.raft o bs Hbs (Hok bs Hbs)
+  wp_apply wp_node_Step γ id n ml $$ [$Hnode Hm]
   · unfold stepP
     iright
     unfold fwdP
+    iexists ⟨propMsgM, [ccEntryM (some o) bs], none, [], []⟩
+    iframe Hm
     isplitr
     · ipureintro; rfl
-    iexists [ccEntry (some o) data], []
-    ihave Hes : (ccPropMsg esl).Entries' ↦* [ccEntry (some o) data] $$ [Hes]
-    · rw [show (ccPropMsg esl).Entries' = esl from rfl]; iexact Hes
-    ihave Hcap : ownSliceCap raftpb.Entry (ccPropMsg esl).Entries' (DFrac.own 1) $$ [Hcap]
-    · rw [show (ccPropMsg esl).Entries' = esl from rfl]; iexact Hcap
-    iframe Hes Hcap
-    isplitr
-    · simp only [ccPropMsg]; iapply ownSlice_nil
     unfold isMessage absMsg absMsgFrom
     isplitr
     · ipureintro

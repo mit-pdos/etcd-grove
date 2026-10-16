@@ -1,9 +1,15 @@
-/- Port of election_proof/proof_MemoryStorage__firstIndex.v. -/
+/-
+Port of `election_proof/proof_MemoryStorage__firstIndex.v`.
+-/
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__firstIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -19,35 +25,34 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `ents[0].Index + 1`, read through the dummy entry. The slice is read-only (`↦*□`),
-so the element access is the one `limitSize` uses (`ownSlice_elem_acc`) and the entry
-is handed back at once. The sum does not wrap: `Hb`. -/
-theorem MemoryStorage.firstIndex.wp_proof :
+/-- Read through the dummy entry `ents[0]` (a read-only log entry, `entsRO`) with
+`GetIndex()` (raft v3.7). The sum does not wrap: `Hb`. -/
+theorem MemoryStorage.firstIndex.wp_proof
+    (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.firstIndex.spec (GF := GF) (hG := hG) := by
   intro ms σ Hb
-  wp_start as H
-  iNamed H
-  unfold memstorageFields
+  wp_start as Hf
   iNamed Hf
+  iNamed Hf
+  ihave %Hcl := entsRO_cons_len $$ Hents
+  icases entsRO_lookup es (dummy :: σ.ents) 0 dummy rfl $$ Hents
+    with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   wp_auto
-  ihave %Hlen := ownSlice_len $$ Hents
-  simp only [List.length_cons] at Hlen
-  simp only [show (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len) = True from
-    eq_true (by word), ↓reduceIte]
-  icases ownSlice_elem_acc (sint.Z (W64 0)) dummy _ _ _ (by word) (by simp) $$ Hents with ⟨#He, Hback⟩
-  ihave Hents := Hback $$ %dummy He
-  rw [show (dummy :: σ.ents).set (sint.Z (W64 0)).toNat dummy = dummy :: σ.ents by simp]
-  iStructNamed He
-  wp_auto
+  rw [ite_eq_left ⟨by word, by word⟩]
+  wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
+  · iframe Hls; ipureintro; exact Hl0.1
+  wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
+  · iframe He0
   iapply HΦ
   isplitr
   · ipureintro
     rw [Hdummy.1]
     word
-  · iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn
+  · unfold memstorageFields
+    iexists hp, es, dummy, nfi, nli, nen, nte, nsn
     iframe
     ipureintro
-    exact ⟨Hsnap_id, Hdummy⟩
+    exact Hdummy
 
 end proof
 

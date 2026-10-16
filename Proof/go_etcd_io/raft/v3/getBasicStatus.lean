@@ -30,7 +30,7 @@ theorem getBasicStatus.wp_proof
   wp_auto
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_leadTransfereeC $$ Hphys as Hphys
-  wp_apply wp_raft_hardState $$ Hphys as Hphys
+  wp_apply wp_raft_hardState $$ Hphys as %hp ⟨#Hhs, Hphys⟩
   wp_apply wp_raft_softState $$ Hphys as Hphys
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
@@ -40,7 +40,8 @@ theorem getBasicStatus.wp_proof
   ihave Hphys := Hback $$ Hlog
   rw [Hlv.2]
   unfold basicStatusOf
-  iapply HΦ $$ Hphys
+  iapply HΦ
+  iframe Hhs Hphys
 
 end proof
 

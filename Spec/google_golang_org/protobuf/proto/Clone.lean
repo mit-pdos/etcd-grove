@@ -7,7 +7,7 @@ cloned: `clientv3`'s `*pb.Compare` (`cloneCompare`), and the server's raft wrapp
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvCmp
-public import EtcdDeps.Code.go_etcd_io.raft.v3.raftpb
+public import Code.go_etcd_io.raft.v3.raftpb
 
 @[expose] public section
 

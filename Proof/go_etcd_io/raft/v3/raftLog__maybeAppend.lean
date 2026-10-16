@@ -4,6 +4,7 @@ Port of election_proof/proof_raftLog__maybeAppend.v.
 module
 
 public import Spec.go_etcd_io.raft.v3.raftLog__maybeAppend
+public import Proof.go_etcd_io.raft.v3.LemmasRaftlogW
 public import Spec.go_etcd_io.raft.v3.raftLog__matchTerm
 public import Spec.go_etcd_io.raft.v3.raftLog__findConflict
 public import Spec.go_etcd_io.raft.v3.raftLog__append
@@ -24,9 +25,9 @@ variable [FfiSyntax]
 /-- Pure facts about `plogFindConflict` the proof needs: it is `0` exactly when every
 entry matches (for a batch with no index `0`), and otherwise it is the index of the
 first entry that does not. -/
-private theorem find_conflict_cases (b : entryID) (es ents : List raftpb.Entry) :
+private theorem find_conflict_cases (b : entryID) (es ents : List EntryM) :
     (plogFindConflict b es ents = W64 0 ∧ ∀ e ∈ ents, PlogMatches b es (entId e)) ∨
-    (∃ (k : Nat) (e : raftpb.Entry), ents[k]? = some e ∧
+    (∃ (k : Nat) (e : EntryM), ents[k]? = some e ∧
       plogFindConflict b es ents = e.Index' ∧
       ¬ PlogMatches b es (entId e) ∧
       ∀ (j : Nat) e', j < k → ents[j]? = some e' → PlogMatches b es (entId e')) := by
@@ -51,7 +52,7 @@ private theorem find_conflict_cases (b : entryID) (es ents : List raftpb.Entry) 
       simp only [plogFindConflict, ite_eq_right Hm]
 
 /-- `logTruncateAppend` moves only the entry lists. -/
-private theorem logTruncateAppend_fields (ls : LogState) (ents : List raftpb.Entry) :
+private theorem logTruncateAppend_fields (ls : LogState) (ents : List EntryM) :
     (logTruncateAppend ls ents).prev = ls.prev ∧
     (logTruncateAppend ls ents).committed = ls.committed ∧
     (logTruncateAppend ls ents).applied = ls.applied ∧
@@ -63,7 +64,7 @@ private theorem logTruncateAppend_fields (ls : LogState) (ents : List raftpb.Ent
   cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- A matched entry is inside the log. -/
-private theorem matches_le_last (b : entryID) (es : List raftpb.Entry) (id : entryID) :
+private theorem matches_le_last (b : entryID) (es : List EntryM) (id : entryID) :
     PlogMatches b es id →
     uint.Z b.index' ≤ uint.Z id.index' ∧ uint.Z id.index' ≤ plogLastIndexZ b es :=
   plogTermAt_some_range b es id.index' id.term'
@@ -97,6 +98,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- The suffix of an entry slice from `k` on (`s[k:]`). -/
+private theorem entsPts_drop (k : w64) (s : GoSlice) (dq : DFrac) (es : List EntryM)
+    (hk : 0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z s.len) :
+    entsPts (GF := GF) s dq es ⊢ entsPts (slice.slice s Loc k s.len) dq (es.drop (sint.nat k)) := by
+  iintro H
+  iunfold entsPts at H
+  icases H with ⟨%lps, Hs, #Hb⟩
+  icases (ownSlice_split_all k s dq lps hk).1 $$ Hs with ⟨-, Hs⟩
+  iunfold entsPts
+  iexists lps.drop (sint.nat k)
+  iframe Hs
+  iapply entsBig_drop
+  iexact Hb
+
 theorem raftLog.maybeAppend.wp_proof
     (wp_raftLog_matchTerm : raftLog.matchTerm.spec (GF := GF) (hG := hG))
     (wp_raftLog_findConflict : raftLog.findConflict.spec (GF := GF) (hG := hG))
@@ -107,7 +122,7 @@ theorem raftLog.maybeAppend.wp_proof
   wp_start as H
   iNamed H
   wp_auto
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hents
+  ihave %Hlen := entsPts_len _ _ _ $$ Hents
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnwl, Hlog⟩
@@ -198,8 +213,7 @@ theorem raftLog.maybeAppend.wp_proof
       rw [decide_eq_false (by word)]
       wp_auto
       -- the batch from the conflict on: `a.entries[k:]`
-      icases (ownSlice_split_all (W64 (k : Int)) a.entries' DFrac.discard ents (by word)).1 $$ Hents
-        with ⟨-, #Hdrop⟩
+      ihave #Hdrop := entsPts_drop (W64 (k : Int)) a.entries' DFrac.discard ents (by word) $$ Hents
       ihave %Hcapwf := ownSliceCap_wf _ _ $$ Hcap
       icases (ownSliceCap_slice a.entries' (W64 (k : Int)) (DFrac.own 1) (by word)).1 $$ Hcap
         with Hcap'
@@ -208,7 +222,7 @@ theorem raftLog.maybeAppend.wp_proof
       have He2 : (ents.drop k)[0]? = some e := by simpa using Hk
       ihave Hadopt : (if logAdopts ls (ents.drop k)
           then iprop(⌜DFrac.discard = DFrac.discard⌝ ∗
-            ownSliceCap raftpb.Entry (slice.slice a.entries' raftpb.Entry (W64 (k : Int)) a.entries'.len)
+            ownSliceCap Loc (slice.slice a.entries' Loc (W64 (k : Int)) a.entries'.len)
               (DFrac.own 1))
           else iprop(True)) $$ [Hcap']
       · split

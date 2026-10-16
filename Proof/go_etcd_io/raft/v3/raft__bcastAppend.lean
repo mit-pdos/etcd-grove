@@ -2,7 +2,9 @@
 
 Lean notes: the Rocq helper `wp_bcast` is inlined in the theorem (it was the whole
 proof). The Rocq `Local Lemma send_msgs_app` is not needed (the state equations are
-closed by `cases s; simp [sendMsgs]`). `ownTracker_cast` is a local helper. -/
+closed by `cases s; simp [sendMsgs]`). `ownTracker_cast` is a local helper. 
+raft v3.7 (stage R4): compiles as ported (imports only).
+-/
 module
 
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend

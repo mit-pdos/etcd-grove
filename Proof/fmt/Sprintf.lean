@@ -31,7 +31,6 @@ theorem fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG) := by
   iframe Hargs
   ipureintro; exact Hout
 
-#check @fmt.Sprintf.wp_proof
 
 end proof
 

@@ -28,6 +28,11 @@ Any number of voters (the single-voter premise went with stage F's fix). The `Ra
 client-facing state is unchanged: a `MsgReadIndex` moves no term and no log (`raft.Step`'s
 `NetFrame`, `TermStep`).
 
+raft v3.7 (2026-10-16, stage R5): the request is `&pb.Message{Type: MsgReadIndex.Enum(), Entries:
+[]*pb.Entry{{Data: rctx}}}`, stepped with `raft.Step` (`msgIn ml □`). D6: a read context is its
+bytes (`readStateOk` over `ReadStateM`, etcd matches read states by `bytes.Equal`), so the client
+supplies `rctx ↦*□ c` (the entry holds the slice read-only) instead of the proposed slice.
+
 Lean notes: as `RawNode.Propose.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).
 -/
 module
@@ -43,9 +48,10 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
-/-- The message `ReadIndex` builds: `pb.Message{Type: MsgReadIndex, Entries: esl}`. -/
-def readIndexMsg [FfiSyntax] (esl : GoSlice) : raftpb.Message :=
-  { (zero_val raftpb.Message) with Type' := MsgReadIndex, Entries' := esl }
+/-- The scalars of the message `ReadIndex` builds: `pb.Message{Type: MsgReadIndex, ...}`
+(2026-10-16, stage R5: a record; its one entry is `propEntryM c`, the context's bytes; until
+then the Goose value `readIndexMsg esl` with the entries' slice). -/
+def readIndexMsgM [FfiSyntax] : MessageM := { (zero_val MessageM) with Type' := MsgReadIndex }
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -58,10 +64,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev RawNode.ReadIndex.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rctx : GoSlice) (c : List w8)
-    (Qr : List raftpb.Entry → IProp GF) (L0 : List raftpb.Entry),
+    (Qr : List EntryM → IProp GF) (L0 : List EntryM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      "#Hpd" ∷ isPropData γ rctx c ∗
+      -- (2026-10-16, stage R5, D6) the context's bytes, read-only (until then a proposed slice,
+      -- `isPropData γ rctx c`): the request's entry holds them
+      "#Hctx" ∷ rctx ↦*□ c ∗
       "Hfr" ∷ rdFresh γ c ∗
       "#Hau" ∷ readAu γ Qr ∗
       "#HL0" ∷ isCommitted γ L0 ∗

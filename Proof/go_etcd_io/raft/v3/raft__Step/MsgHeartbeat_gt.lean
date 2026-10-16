@@ -18,6 +18,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.repl_lemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 
@@ -37,9 +38,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -53,9 +57,8 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents ∗
-        "#Hctx" ∷ m.Context' ↦*□ ctx }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -65,44 +68,42 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hgt
-  wp_start as ⟨Hphys, #Hents, #Hctx⟩
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_get _Q
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_true Hgt]
   wp_auto
-  repeat (rw [Hty]; wp_auto)
+  wp_drive _Q
   -- "received a message with higher term"
-  wp_apply raft.wp_load_idC $$ Hphys as Hphys
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   wp_raft_logC
   -- MsgApp || MsgHeartbeat || MsgSnap: the second holds
-  repeat (rw [Hty]; wp_auto)
+  wp_drive _Q
   -- becomeFollower(m.Term, m.From): a leader's message
   wp_apply _P.becomeFollower c r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
-  repeat (rw [Hty]; wp_auto)
+  wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
   wp_apply _P.stepFollower c ∅ r id
-      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m ents (zero_val _) ctx (.inr (.inr (.inr (.inl Hty))))
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inr (.inl Hty))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hcommit, Hfid⟩)
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-    $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-  · isplitl []
-    · iintro _; iexact Hctx
-    isplitl []
-    · iintro %Hc; exfalso; rw [Hty] at Hc
-      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-    isplitl []
-    · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-    · iintro %Hc; exfalso; rw [Hty] at Hc
-      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+  · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn

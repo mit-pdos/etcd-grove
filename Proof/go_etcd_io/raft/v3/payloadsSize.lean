@@ -36,14 +36,17 @@ theorem payloadsSize.wp_proof
   intro s es dq
   wp_start as H
   iNamed H
+  iunfold entsPts at Hs
+  icases Hs with ⟨%ls, Hs, #Hb⟩
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hs
-  ihave IH : iprop(∃ (n acc : w64) (ev : raftpb.Entry),
+  ihave %Hbl := entsBig_length $$ Hb
+  ihave IH : iprop(∃ (n acc : w64) (ev : Loc),
       "i" ∷ i_ptr ↦ n ∗
       "size" ∷ s_ptr ↦ acc ∗
       "ent" ∷ e_ptr ↦ ev ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (es.length : Int)⌝ ∗
-      "%Hacc" ∷ ⌜(∀ e ∈ es, sint.Z e.Data'.len = 0) → acc = W64 0⌝) $$ [i s e]
+      "%Hacc" ∷ ⌜(∀ e ∈ es, e.Data' = []) → acc = W64 0⌝) $$ [i s e]
   · iexists _, _, _
     iframe
     ipureintro
@@ -53,13 +56,11 @@ theorem payloadsSize.wp_proof
   · have Hlt : (sint.Z n).toNat < es.length := by word
     obtain ⟨e, He⟩ : ∃ e, es[(sint.Z n).toNat]? = some e :=
       ⟨_, List.getElem?_eq_getElem Hlt⟩
+    icases entsBig_lookup ls es _ e He $$ Hb with ⟨%l, %Hl, #Hl⟩
     simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len from ⟨Hn.1, Hif⟩]
-    wp_apply wp_load_slice_index s (sint.Z n) es dq e Hn.1 $$ [Hs] as Hs
-    · iframe; ipureintro; exact He
-    -- `payloadSize` has no premise and returns nothing, so `wp_apply` runs
-    -- straight on through the accumulating store: the goal comes back at
-    -- `wp_for_post` with `size` holding `acc + len(e.Data)`.
-    wp_apply wp_payloadSize
+    wp_apply wp_load_slice_index s (sint.Z n) ls dq l Hn.1 $$ [Hs] as Hs
+    · iframe; ipureintro; exact Hl
+    wp_apply wp_payloadSize l DFrac.discard e $$ [$Hl] as -
     wp_for_post
     iframe
     iexists _, _, _
@@ -70,10 +71,13 @@ theorem payloadsSize.wp_proof
     -- was `0` by the invariant
     intro Hzero
     have Hz0 := Hzero e (List.mem_of_getElem? He)
-    rw [Hacc Hzero]
+    rw [Hacc Hzero, Hz0, List.length_nil]
     word
   · iapply HΦ
-    iframe
+    isplitl
+    · iunfold entsPts
+      iexists ls
+      iframe Hs Hb
     ipureintro; exact Hacc
 
 end proof

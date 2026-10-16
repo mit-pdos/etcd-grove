@@ -45,8 +45,8 @@ abbrev MemoryStorage.Entries.spec : Prop :=
       ⌜PendFrom σ (uint.Z hi)⌝ }}
     (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Entries"))
       (Val #lo)) (Val #hi)) (Val #maxSize))
-  {{ (s : GoSlice) (es : List raftpb.Entry), RET (PairV #s #interface.nil);
-      s ↦*□ es ∗
+  {{ (s : GoSlice) (es : List EntryM), RET (PairV #s #interface.nil);
+      entsRO s es ∗
       ⌜es ≠ [] ∧
         (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
         (∀ e, e ∈ es → e ∈ σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat) ∧

@@ -1,5 +1,7 @@
 /-
 Port of election_proof/proof_raft__sendAppend.v.
+
+raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 

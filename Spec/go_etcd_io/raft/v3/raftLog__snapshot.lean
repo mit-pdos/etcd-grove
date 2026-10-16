@@ -5,7 +5,7 @@ Lean notes: Rocq's `(#snap, #err)` is `PairV #snap #err`; `global_addr` is
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -53,23 +53,27 @@ storage's is (`ownRaftLog`'s `Hsksn`, the lists those `HSnapshot` returns), and 
 one (`Hpksn`).
 
 The log comes back at the same state, like `raftLog.firstIndex`: the one caller,
-`raft.maybeSendSnapshot`, calls both on the same log. -/
+`raft.maybeSendSnapshot`, calls both on the same log.
+
+raft v3.7 (stage R3, 2026-10-15): both sources return a **fresh clone**, owned by the caller
+(`proto.Clone(l.unstable.snapshot)`, `log.go:295`; the storage's `Snapshot()` clones too), where
+until the retarget the snapshot came by value with its `ConfState` slices read-only (`ownCSL`).
+The lists are the record's. -/
 abbrev raftLog.snapshot.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (esu : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "#Hesu" ∷ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"snapshot")) (Val #()))
-  {{ (snap : raftpb.Snapshot) (err : GoInterface), RET (PairV #snap #err);
+  {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       ownRaftLog l ls ∗
       (⌜err = esu⌝ ∨
-       (⌜err = interface.nil ∧
-          snap.Metadata'.Index' ≠ W64 0 ∧
-          uint.Z snap.Metadata'.Index' ≤ uint.Z ls.committed ∧
-          plogTermAt ls.prev (ls.sents ++ ls.uents) snap.Metadata'.Index'
-            = some snap.Metadata'.Term'⌝ ∗
-        ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters ∗
+       (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+        ⌜sv.Metadata'.Index' ≠ W64 0 ∧
+          uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
+          plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
+            = some sv.Metadata'.Term' ∧
           -- (2026-10-15, stage S) one the node may send
-          ⌜snapTrip snap voters ∈ ls.ksn⌝)) }}
+          snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn⌝)) }}
 
 end spec
 

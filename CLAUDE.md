@@ -5,7 +5,7 @@ using the Lean port of Perennial (branch `lean` of
 [mit-pdos/perennial](https://github.com/mit-pdos/perennial)), which is a Lake
 dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the
 framework and the Goose translator; this repository has the Goose translation of
-etcd-raft and of etcd's `cache` package (`Code/`, `GeneratedProof/`), and the proofs.
+raft (v3.7) and of etcd (`Code/`, `GeneratedProof/`), and the proofs.
 Every file is a module of Lean's module system (see "Modules" below).
 
 It is a port of the Rocq development on branch `main` (`new/proof/go_etcd_io/raft/
@@ -68,18 +68,13 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   and `Results.lean`; `Proof/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify}/` hold the request
   path's wait registry, id generator and notifier (`Defs.lean` and the proofs), linked in the
   server's `Link.lean`.
-- `EtcdDeps/{Code,GeneratedProof,Spec,Proof}/<pkg>`: the same, for etcd's own raft
-  dependency (raft v3.7, in etcd's `go.mod`; modules `EtcdDeps.Code.go_etcd_io.raft.v3`,
-  ...), which the server names. Its Go path is that of the raft in `Code/go_etcd_io/raft/`,
-  and both define `Perennial.go_etcd_io.raft.v3.*`, so no module imports both: the server's
-  proofs never meet the Raft proof's (`etc/tcb-report.py` runs Lean on them separately).
-- `Raft37/{Code,GeneratedProof,Spec,Proof}/<pkg>`: the same, for the parallel tree of the
-  raft v3.7 retarget (`notes/raft-retarget-plan.md`; modules `Raft37.Code.go_etcd_io.raft.v3`,
-  ...): the Raft proof rebuilt file by file for raft v3.7 (protobuf-go v2 messages), linked by
-  `etc/gen-link.py --raft37` (`Raft37/Proof/go_etcd_io/raft/v3/{Link,Results}.lean`). Same Lean
-  namespace as `Code/go_etcd_io/raft/` (`Perennial.go_etcd_io.raft.v3.*`), so no module imports
-  both; at the swap it replaces the old tree. The trust-boundary specs of protobuf-go's `proto`
-  it rests on are in the root's `Spec/google_golang_org/protobuf/proto/`.
+- A project translated into a module root of its own (`<root>/{Code,GeneratedProof,Spec,Proof}/`,
+  a part: `etc/goose.py`, `etc/proof_roots.py`) is supported but none exists now: until stage R6
+  of the raft v3.7 retarget (2026-10-16, `notes/raft-retarget-plan.md`) `EtcdDeps/` held etcd's
+  raft dependency names-only for the server and `Raft37/` the parallel tree the Raft proof was
+  ported into; the swap made the latter the raft tree and the server imports it. The
+  trust-boundary specs of protobuf-go's `proto` the Raft proof rests on are in
+  `Spec/google_golang_org/protobuf/proto/`.
 
 ## Modules
 
@@ -177,13 +172,16 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
 translator, each of a Go repository at the revision pinned in `etc/goose.py`. They are
 generated: never edit the `.lean` files by hand.
 
-- `{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft, upstream `etcd-io/raft` at the
-  last commit before its raftpb moved to protobuf-go v2 (`40f8be7`, 2026-04-15; the later
-  commits pass messages as pointers with getters, which the proof does not model yet:
-  `notes/STATUS.md`, "Retargeting raft to upstream") plus one fix, the single-voter
-  read-index shortcut (`issues/raft-readindex-singleton-stale.md`), taken from branch
-  `raft-goose-lean` of the fork `upamanyus/etcd` (commit `0560cb7`, a branch holding
-  etcd-io/raft's history); modules `Code.go_etcd_io.raft.v3`, ....
+- `{Code,GeneratedProof}/go_etcd_io/raft/`: raft v3.7.0 (etcd-io/raft `b867cf13`, the raft
+  etcd's `go.mod` pins; protobuf-go v2 raftpb: messages, entries and snapshots are pointers
+  read through getters) plus one fix, the single-voter read-index shortcut
+  (`issues/raft-readindex-singleton-stale.md`): branch `raft37-goose-lean` of the fork
+  `upamanyus/etcd` (commit `509271dac`), project `raft` of `etc/goose.py`; the same packages
+  as before (`.`, `confchange`, `quorum`, `raftpb`, `tracker`), raftpb all but its protobuf
+  plumbing (`ProtoReflect`, `Descriptor`, the file descriptor, ...); modules
+  `Code.go_etcd_io.raft.v3`, .... (Until 2026-10-16 the verified raft was the fork's
+  `raft-goose-lean`, upstream `40f8be7` plus the fix, the last commit before raftpb moved to
+  protobuf-go v2, with gogoproto messages: `notes/raft-retarget-plan.md`.)
 - `{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,google_golang_org,go_uber_org}/`: etcd's
   `cache` package (the fork `upamanyus/etcd`, branch `goose-lean`; branch `goose` is the
   Rocq side's), with bodies, and the B-tree it uses
@@ -198,15 +196,9 @@ generated: never edit the `.lean` files by hand.
   `sorry -- axiomatized type`; no linked result reaches them (`etc/tcb-report.py`).
 - From the same fork, etcd's server: `server/v3/etcdserver/cindex` and the apply thread
   of `server/v3/etcdserver` and `storage/schema` with bodies, and the packages their types
-  name types- or names-only (zap, bbolt, `net/http`, ...); and etcd's raft dependency
-  (v3.7) into `EtcdDeps/` (a `Part` of the etcd project in `etc/goose.py`, configured by
-  `EtcdDeps/Code/**.toml`).
-- `{Code,GeneratedProof}` under `Raft37/`: raft v3.7.0 plus the single-voter read-index fix
-  (branch `raft37-goose-lean` of the fork `upamanyus/etcd`, commit `509271dac`), project `raft37`
-  of `etc/goose.py` translated into a module root of its own (`Project.root = "Raft37"`,
-  configured by `Raft37/Code/**.toml`): the same packages as etcd-raft's (`.`, `confchange`,
-  `quorum`, `raftpb`, `tracker`), raftpb all but its protobuf plumbing (`ProtoReflect`,
-  `Descriptor`, the file descriptor, ...).
+  name types- or names-only (zap, bbolt, `net/http`, ...); its raft dependency
+  (`go.etcd.io/raft/v3` v3.7.0) is the raft above, which the etcd project does not translate
+  (`-lean-root go.etcd.io/raft/v3=`).
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the

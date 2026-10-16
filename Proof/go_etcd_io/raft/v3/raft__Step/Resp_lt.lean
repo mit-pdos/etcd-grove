@@ -16,6 +16,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 
@@ -35,19 +36,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 /-- `m.Term < r.Term` for a `MsgAppResp` or `MsgHeartbeatResp`: with `checkQuorum` and
 `preVote` both off, and the type neither `MsgPreVote` nor `MsgStorageAppendResp`, the
 stale message is only logged, then `return nil`. `StepC.refl`, nothing received. -/
 theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ty : MsgType) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (ty : MsgType) :
     m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp →
     m.Term' ≠ W64 0 →
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -58,25 +63,27 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hterm Hlt Hwf
-  wp_start as Hphys
-  iNamed Hphys
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_get _Q
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_false (show ¬ (uint.Z s.term < uint.Z m.Term') by omega)]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_true Hlt]
   wp_auto
-  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
-  rcases Hty with Hty | Hty <;> cases s.prevote <;> wp_auto
-  all_goals iterate 6 (try (rw [Hty]; wp_auto))
+  wp_drive _Q
+  rcases Hty with Hty | Hty <;> cases s.prevote <;> try wp_auto
   all_goals
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_drive _Q
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s
     iframe Hphys

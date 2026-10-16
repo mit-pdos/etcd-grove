@@ -29,6 +29,12 @@ loop checks the premises against its `RawNode` (`runCfg_confc`) and applies the 
 (`StepR.applyConf`, a removed leader stepping down). The answer is the new configuration's
 `ConfState` (`confstateOk`). A1 at `Advance` (`node.Advance.spec`) is what makes the order
 matter.
+
+**raft v3.7 (2026-10-16, stage R5).** `cc.AsV2()` is a `*pb.ConfChangeV2` (for a
+`*ConfChangeV2`, `cc` itself), sent on `confc` read-only (`confcP`: `ownCCV2 v □`, hence
+`ownCCI c □`); the answer is the `*pb.ConfState` `run`'s `applyConfChange` returned, owned
+(`csPts csp 1 cs true`), its lists the record's (`confstateS`/`confstateOk` pure). Go returns
+`nil` if `done` fires first, which it never does.
 -/
 module
 
@@ -56,7 +62,7 @@ abbrev node.ApplyConfChange.spec : Prop :=
     -- (2026-10-15, stage N) the dynamic mode's: the committed log the driver was handed (a
     -- lower bound of `run`'s), its view of the configuration, the conf entry applied (at
     -- position `k`) and the configuration it gives
-    (ds : List raftpb.Entry) (ca : Nat) (cfg : CCState) (k : Nat) (e : raftpb.Entry)
+    (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
     (cs' : CCState),
   -- the static mode (the voters fixed): a change that keeps the voters, drops learners
   (γ.mode = .static → CCShrink γ.raft.reCfg (ccV2Of o).1 (ccV2Of o).2) →
@@ -66,9 +72,12 @@ abbrev node.ApplyConfChange.spec : Prop :=
       ownCCI c DFrac.discard (some o) ∗
       (⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
-  {{ (csp : Loc) (cs : raftpb.ConfState), RET #csp; csp ↦ cs ∗
-      ((⌜γ.mode = .static⌝ ∗ confstateS γ cs) ∨
-       (⌜γ.mode.isDyn = true⌝ ∗ nodeCfg γ (k + 1) cs' ∗ confstateOk cs cs'.cfg)) }}
+  {{ (csp : Loc) (cs : ConfStateM), RET #csp;
+      -- (2026-10-16, stage R5) `applyConfChange`'s fresh `*pb.ConfState`, owned (`confstateP`;
+      -- until then `csp ↦ cs` with the slices in `confstateS`/`confstateOk`)
+      csPts csp (DFrac.own 1) cs true ∗
+      ((⌜γ.mode = .static⌝ ∗ ⌜confstateS γ cs⌝) ∨
+       (⌜γ.mode.isDyn = true⌝ ∗ nodeCfg γ (k + 1) cs' ∗ ⌜confstateOk cs cs'.cfg⌝)) }}
 
 end spec
 

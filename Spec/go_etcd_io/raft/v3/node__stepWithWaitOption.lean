@@ -7,6 +7,13 @@ the result), anything else on `recvc`. Specified for `context.Background()` (its
 is `nil`, so the `ctx` cases never fire) and for the two uses `Propose` and `Step` make of
 it: `Propose`'s message (`propMsg`, with `wait`), and a message from the network
 (`netP`).
+
+raft v3.7 (2026-10-16, stage R5): `m` is a `*pb.Message` (`ml`), handed to `run` for good.
+`Propose`'s message is `msgIn ml 1` of `propMsgM` with the one entry `propEntryM data` (D6: the
+bytes; until then the Goose value `propMsg esl`, `m = propMsg esl`, with the entries' slice,
+its capacity and the data slice). A message from the network is `netP` alone: its type, which
+`netP` quantifies with the message's state, is not `MsgProp` by `NetMsgOk`
+(`netStepTypes_ne_prop`; until then a separate conjunct `m.Type' ≠ MsgProp`).
 -/
 module
 
@@ -30,22 +37,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- What `stepWithWaitOption` is called with (see the file header). -/
-def stepArg (γ : NodeNames) (id : w64) (m : raftpb.Message) (wait : Bool) : IProp GF :=
-  iprop((⌜m.Type' ≠ MsgProp⌝ ∗ netP γ id m) ∨
-    (⌜wait = true⌝ ∗ ∃ (data_sl esl : GoSlice) (data : List w8),
-      ⌜m = propMsg esl⌝ ∗ esl ↦* [propEntry data_sl] ∗
-      ownSliceCap raftpb.Entry esl (DFrac.own 1) ∗ data_sl ↦*□ data ∗
-      entData γ.raft (propEntry data_sl)) ∨
+def stepArg (γ : NodeNames) (id : w64) (ml : Loc) (wait : Bool) : IProp GF :=
+  iprop(netP γ id ml ∨
+    (⌜wait = true⌝ ∗ ∃ data : List w8,
+      msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
+      entData γ.raft (propEntryM data)) ∨
     -- a proposal forwarded by a peer (2026-10-10)
-    (⌜wait = false⌝ ∗ fwdP γ m))
+    (⌜wait = false⌝ ∗ fwdP γ ml))
 
 /-- See the file header. -/
 abbrev node.stepWithWaitOption.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (m : raftpb.Message) (wait : Bool),
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (wait : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      stepArg γ id m wait }}
+      stepArg γ id ml wait }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWithWaitOption"))
-      (Val #(interface.ok context.backgroundCtxVal))) (Val #m)) (Val #wait))
+      (Val #(interface.ok context.backgroundCtxVal))) (Val #ml)) (Val #wait))
   {{ (err : GoInterface), RET #err; True }}
 
 end spec

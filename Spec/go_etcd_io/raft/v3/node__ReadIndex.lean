@@ -16,6 +16,10 @@ hands out (`readyData`), from which the client reads `readOk` of its read
 (`node_readState_data`), the witness `readWit γ c Qr i` with its handle, and the update's
 results (`node_read_collect`). The error says only whether the request reached `run`; a
 dropped request leaves the update deposited, firing harmlessly, with no `ReadState` naming it.
+
+raft v3.7 (2026-10-16, stage R5, D6): a read context is its bytes (`readStateOk` over
+`ReadStateM`); the client supplies `rctx ↦*□ c` (the request's entry holds the slice read-only)
+rather than the proposed slice.
 -/
 module
 
@@ -41,9 +45,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.ReadIndex.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8)
-    (Qr : List raftpb.Entry → IProp GF) (L0 : List raftpb.Entry),
+    (Qr : List EntryM → IProp GF) (L0 : List EntryM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      isPropData γ.raft rctx c ∗ rdFresh γ.raft c ∗ readAu γ.raft Qr ∗
+      -- (2026-10-16, stage R5, D6) the context's bytes, read-only (until then `isPropData γ.raft
+      -- rctx c`)
+      rctx ↦*□ c ∗ rdFresh γ.raft c ∗ readAu γ.raft Qr ∗
       isCommitted γ.raft L0 ∗ rdCred γ.raft 1 }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
       (Val #(interface.ok context.backgroundCtxVal))) (Val #rctx))

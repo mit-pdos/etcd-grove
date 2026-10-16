@@ -29,7 +29,7 @@ theorem unstable.mustCheckOutOfBounds.wp_proof :
   iNamed H
   open_unstable
   wp_auto
-  ihave %Hlen := ownSlice_len $$ Hents
+  ihave %Hlen := entsPts_len $$ Hents
   rw [decide_eq_false (show ¬ uint.Z hi < uint.Z lo by omega)]
   wp_auto
   rw [decide_eq_false (show ¬ uint.Z lo < uint.Z us.offset by omega)]

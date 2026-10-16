@@ -29,7 +29,7 @@ abbrev raftLog.nextUnstableEnts.spec : Prop :=
   ∀ (l : Loc) (ls : LogState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"nextUnstableEnts")) (Val #()))
-  {{ (s : GoSlice), RET #s; ownRaftLog l ls ∗ s ↦*□ nextUnstable ls }}
+  {{ (s : GoSlice), RET #s; ownRaftLog l ls ∗ entsRO s (nextUnstable ls) }}
 
 end spec
 

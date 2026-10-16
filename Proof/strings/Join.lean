@@ -1,5 +1,5 @@
 /-
-Port of `election_proof/proof_strings_Join.v`.
+Port of `election_proof/proof_strings_Join.v` (stage R4 of the raft v3.7 retarget).
 -/
 module
 

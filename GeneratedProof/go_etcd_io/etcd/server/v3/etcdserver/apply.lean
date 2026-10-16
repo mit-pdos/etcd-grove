@@ -24,7 +24,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
-public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.sync

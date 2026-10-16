@@ -1,10 +1,10 @@
 /-
-`raftpb.ConfChangeV2.LeaveJoint` (`raftpb/confchange.go:109`): whether the change leaves
-a joint configuration. Lean-first (no Rocq counterpart); see `InvConfChangeMsg.lean`.
+`(*ConfChangeV2).LeaveJoint` (`raftpb/confchange.go:111`). Port of the old spec to raft v3.7 (the
+getters instead of gogoproto's `proto.Equal` with the zero change; stage R1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -22,14 +22,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `c.LeaveJoint()` with `c.Changes` holding `ccs`: `true` iff the change is zero but for its
-`Context` (`proto.Equal` with the zero `ConfChangeV2`), i.e. the `Auto` transition and no
-changes. -/
+/-- `c.LeaveJoint()` of a `*ConfChangeV2` holding `m`: `true` iff the `Auto` transition and no
+changes (the change is zero but for its `Context`). -/
 abbrev raftpb.ConfChangeV2.LeaveJoint.spec : Prop :=
-  ∀ (c : raftpb.ConfChangeV2) (ccs : List raftpb.ConfChangeSingle) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ c.Changes' ↦*{dq} ccs }}
-    (App (Val (c @!! raftpb.ConfChangeV2.ty @!! go!"LeaveJoint")) (Val #()))
-  {{ RET #(decide (c.Transition' = W32 0 ∧ ccs = [])); c.Changes' ↦*{dq} ccs }}
+  ∀ (c : Loc) (dq : DFrac) (m : CCV2M),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 c dq m }}
+    (App (Val (c @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"LeaveJoint")) (Val #()))
+  {{ RET #(decide (m.transition = W32 0 ∧ m.changes = [])); ownCCV2 c dq m }}
 
 end spec
 

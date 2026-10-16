@@ -4,6 +4,9 @@ Port of `election_proof/proof_raftLog__restore.v`.
 module
 
 public import Spec.go_etcd_io.raft.v3.raftLog__restore
+public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Spec.go_etcd_io.raft.v3.unstable__restore
 
 @[expose] public section
@@ -32,31 +35,45 @@ private theorem isLoggerVal_open (x : GoInterface) :
 `logRestore`: the `Storage` and its state `σ` carried over unchanged, now shadowed
 (`LogStoreOk`'s `some` case). -/
 theorem raftLog.restore.wp_proof
-    (wp_unstable_restore : unstable.restore.spec (GF := GF) (hG := hG)) :
+    (wp_unstable_restore : unstable.restore.spec (GF := GF) (hG := hG))
+    (wp_Snapshot_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG)) :
     raftLog.restore.spec (GF := GF) (hG := hG) := by
-  intro l ls sv voters Hcmlt Hlt
+  intro l ls sp dq sv Hcmlt Hlt
   wp_start as H
   iNamed H
   iNamed Hlog
   icases isLoggerVal_open _ $$ Hl_logger with ⟨%lg, %Hlg, #Hlgr⟩
   wp_auto
+  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hsnap] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  ispecialize Hback $$ Hm
+  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetTerm pm dq _ $$ [$Hm] as Hm
+  ispecialize Hback $$ Hm
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
   try iintro %_ ⟨_, -⟩
   try wp_auto
   rw [Hlg]
   wp_apply Logger.wp_logf lg _ _ _ (by decide) $$ Hlgr
+  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  ispecialize Hback $$ Hm
+  try wp_auto
   icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip
     $$ Hl Huents_cap Huents Husnap Hpksn Hu_logger with ⟨Hun, Hlback⟩
-  wp_apply wp_unstable_restore _ _ _ voters $$ [$Hun $Hvoters] as Hun
+  wp_apply wp_unstable_restore _ _ sp dq sv $$ [$Hun $Hback] as ⟨Hsnap, Hun⟩
   iclear Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
     with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hpk, #Hu_logger, %Hoff', %Hoip'⟩
   iapply HΦ
+  iframe Hsnap
   rw [← Hlg]
   simp only [snapId] at Hcmlt Hlt
   iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
-      lv.storage' σ _ _ (logRestore ls (snapTrip sv voters))
+      lv.storage' σ _ _ (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists))
       rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
       (fun h => List.mem_append_left _ (Hsksn h)) ?_ ?_ ?_

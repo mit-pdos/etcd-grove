@@ -1,8 +1,13 @@
-/- Lean-first (no Rocq counterpart). -/
+/- Lean-first (no Rocq counterpart). 
+raft v3.7 (2026-10-16, stage R5): the message is a pointer, its type and sender read by the getters
+(`Message.GetType`/`GetFrom` on `msgIn`), and passed to `raft.Step` for good.
+-/
 module
 
 public import Spec.go_etcd_io.raft.v3.RawNode__Step
 public import Spec.go_etcd_io.raft.v3.raft__Step
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.IsLocalMsg
 public import Spec.go_etcd_io.raft.v3.IsResponseMsg
 public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
@@ -33,9 +38,9 @@ local macro "early_return" e:term : tactic => `(tactic| (
   try wp_auto
   iapply HΦ $$ %$e %rs.term
   isplitl
-  · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s cf fp rnv sv steps Hwf Hin
+  · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s cf fp rnv sv hprev steps Hwf Hin
       Hal Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
   ipureintro; refine ⟨Int.le_refl _, ?_⟩; split <;> omega))
 
 set_option hygiene false in
@@ -57,9 +62,13 @@ theorem RawNode.Step.wp_proof
     (wp_IsResponseMsg : IsResponseMsg.spec (GF := GF) (hG := hG))
     (wp_IsLocalMsg : IsLocalMsg.spec (GF := GF) (hG := hG))
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
-    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
+    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs m ents ctx Hok _Hdns Htn
+  intro γ rn id rs ml st Hok _Hdns Htn
+  rcases st with ⟨m, ents, sn, ctx, rsp⟩
+  simp only at Hok _Hdns Htn ⊢
   have Hok0 := Hok
   obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -⟩ := Hok0
   have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
@@ -73,17 +82,22 @@ theorem RawNode.Step.wp_proof
   iNamed HI
   wp_auto_lc 1
   -- `IsLocalMsg(m.Type) && !IsLocalMsgTarget(m.From)`
+  wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   wp_apply wp_IsLocalMsg _ Hty0 as %b1 _
   wp_if_destruct
-  all_goals try (wp_apply wp_IsLocalMsgTarget m.From'; wp_if_destruct)
+  all_goals try (wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+                 wp_apply wp_IsLocalMsgTarget m.From'; wp_if_destruct)
   all_goals try early_return errStepLocal
   -- `IsResponseMsg(m.Type) && !IsLocalMsgTarget(m.From) && trk.Progress[m.From] == nil`
-  all_goals (wp_apply wp_IsResponseMsg _ Hty0 as %b2 _; wp_if_destruct)
-  all_goals try (wp_apply wp_IsLocalMsgTarget m.From'; wp_if_destruct)
+  all_goals (wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
+             wp_apply wp_IsResponseMsg _ Hty0 as %b2 _; wp_if_destruct)
+  all_goals try (wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+                 wp_apply wp_IsLocalMsgTarget m.From'; wp_if_destruct)
   all_goals try (
     icases ownRaftPhysC_tracker_same cf rnv.raft' id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     icases ownTrackerC_progress_map cf tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-    wp_auto
+    try wp_auto
+    wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ _ m.From' _
       $$ Hprs with -
     ihave Hphys := Hback $$ %tv Htrkf Htrk
@@ -94,7 +108,7 @@ theorem RawNode.Step.wp_proof
       try wp_auto
       have HnP : m.Type' ≠ MsgProp := by not_net
       have Hsm : StepMsg m := netStepTypes_stepMsg Hty
-      have Hrest : RestMsgOk s m := Hok.restMsgOk (by rw [← Htrm]; exact Htn)
+      have Hrest : RestMsgOk s m ents ctx := Hok.restMsgOk (by rw [← Htrm]; exact Htn)
       have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
       have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
@@ -108,14 +122,14 @@ theorem RawNode.Step.wp_proof
       have P5 : m.Type' = MsgBeat → m.Term' = W64 0 := by not_net
       have P6 : m.Type' = MsgProp → m.Term' = W64 0 ∧ (m.From' = W64 0 ∨ m.From' = id) := by
         not_net
-      have P7 : m.Type' = MsgStorageAppendResp → m.Snapshot' = null ∧
+      have P7 : m.Type' = MsgStorageAppendResp → sn = none ∧
           uint.Z m.Term' ≤ uint.Z s.term ∧
           (m.Term' = W64 0 ∨ m.Term' = s.term → m.Index' ≠ W64 0 →
             StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
         not_net
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
-      wp_apply wp_raft_Step cf _ γ _ id s m ents ctx Hsm  P1
+      wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp Hsm P1
         (fun h => Hnr h (by ty_ne))
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
@@ -132,13 +146,13 @@ theorem RawNode.Step.wp_proof
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
           Hself (.inr (.inr (.inr h)))⟩) Hrest Hwf
         (GMode.Pre.of_facts Hpf (by not_net) (by not_net))
-        $$ [$Hphys $Hghost $Hlc1 Hents_cap Hcred]
+        $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
       · simp only [HnP, ↓reduceIte, named]
-        isplitl [Hents_cap]
-        · isplitr
-          · iexact Hents
-          isplitl [Hents_cap]
-          · iexact Hents_cap
+        isplitl [Hm]
+        · isplitl [Hm]
+          · iexact Hm
+          isplitr
+          · iempintro
           isplitr
           · ipureintro; not_net
           isplitr
@@ -146,8 +160,6 @@ theorem RawNode.Step.wp_proof
           imodintro
           iintro %ty %Hty' _
           iapply Hmsg $$ %ty %Hty'
-        isplitr
-        · iexact Hctx
         isplitl [Hcred]
         · iexact Hcred
         imodintro
@@ -174,12 +186,12 @@ theorem RawNode.Step.wp_proof
       wp_auto
       iapply HΦ $$ %err %s'.term
       isplitl
-      · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv steps Hwf' Hin
+      · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
           Hal
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
           Hstok' rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
           (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, Ht3⟩)

@@ -4,7 +4,7 @@ Port of `election_proof/proof_entsSize.v`.
 module
 
 public import Spec.go_etcd_io.raft.v3.entsSize
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__Size
+public import Spec.google_golang_org.protobuf.proto.SizeEntry
 
 @[expose] public section
 
@@ -22,45 +22,49 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A `for range` accumulating `Entry.Size()` into `size`. Since the spec says nothing
-about the value, the loop invariant carries no arithmetic at all -- only the two
-mutable locations and the index bound that the `IndexRef` needs. `ent.Size()` takes the
-address of the range variable `ent`, so each iteration has its own `ent` (Go's
-per-iteration loop variables), allocated in the body: it is not in the invariant.
-
-`Entry.Size` has a pointer receiver and the range variable `ent` is that pointer, so
-`raftpb.Entry.Size.spec` applies to `ent_ptr` directly. -/
+/-- A `for range` accumulating `proto.Size(ent)` into `size`. Since the spec says nothing
+about the value, the loop invariant carries no arithmetic at all -- only the mutable locations
+and the index bound. raft v3.7: the range variable `ent` is a `*pb.Entry` (allocated outside
+the loop, so in the invariant), a log entry by the slice's `entRO`s, weighed by
+`proto.SizeEntry.spec` at `□`. -/
 theorem entsSize.wp_proof
-    (wp_Entry_Size : raftpb.Entry.Size.spec (GF := GF) (hG := hG)) :
+    (wp_proto_SizeEntry : proto.SizeEntry.spec (GF := GF) (hG := hG)) :
     entsSize.spec (GF := GF) (hG := hG) := by
   intro s es dq
-  wp_start as Hs
-  iNamed Hs
+  wp_start as H
+  iNamed H
+  iunfold entsPts at Hs
+  icases Hs with ⟨%ls, Hs, #Hb⟩
   wp_auto
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hs
-  ihave IH : iprop(∃ (n sz : w64),
-      "i" ∷ i_ptr ↦ n ∗ "size" ∷ size_ptr ↦ sz ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (es.length : Int)⌝) $$ [i size]
-  · iexists W64 0, zero_val w64
+  ihave %Hlen := ownSlice_len $$ Hs
+  ihave %Hbl := entsBig_length $$ Hb
+  ihave IH : iprop(∃ (n sz : w64) (ev : Loc),
+      "i" ∷ i_ptr ↦ n ∗ "size" ∷ size_ptr ↦ sz ∗ "ent" ∷ ent_ptr ↦ ev ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (es.length : Int)⌝) $$ [i size ent]
+  · iexists _, _, _
     iframe
     ipureintro
     word
   wp_for IH
   wp_if_destruct
-  · list_elem es (sint.nat n) as e
-    rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-    wp_apply wp_load_slice_index s (sint.Z n) es dq e Hn.1 $$ [Hs] with Hs
-    · iframe
-      ipureintro
-      exact He_lookup
-    wp_apply wp_Entry_Size $$ [$ent] as %sz2 ent
+  · have Hlt : (sint.Z n).toNat < es.length := by word
+    obtain ⟨e, He⟩ : ∃ e, es[(sint.Z n).toNat]? = some e :=
+      ⟨_, List.getElem?_eq_getElem Hlt⟩
+    icases entsBig_lookup ls es _ e He $$ Hb with ⟨%l, %Hl, #Hl⟩
+    simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len from ⟨Hn.1, Hif⟩]
+    wp_apply wp_load_slice_index s (sint.Z n) ls dq l Hn.1 $$ [Hs] as Hs
+    · iframe; ipureintro; exact Hl
+    wp_apply wp_proto_SizeEntry l DFrac.discard e $$ [$Hl] as %sz2 ⟨-, -⟩
     wp_for_post
     iframe
-    iexists n + W64 1, sz + sz2
+    iexists _, _, _
     iframe
     ipureintro
     word
-  · iapply HΦ $$ Hs
+  · iapply HΦ
+    iunfold entsPts
+    iexists ls
+    iframe Hs Hb
 
 end proof
 

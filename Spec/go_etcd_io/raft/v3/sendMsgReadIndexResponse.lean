@@ -27,6 +27,10 @@ index (`readonlyArrive`: queued, then acknowledged by the leader itself at the n
 position), and a heartbeat goes to every peer with the new position as its context
 (`hbCtx`, of the queue with the request). The request's entries are read-only (the queue
 keeps the message).
+
+raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), frozen (`msgOwn ml □`): the queue
+keeps the pointer (`ownReadreq`), `responseToReadIndexReq` shares its `Entries`; the record's
+scalars `m` and entries `ents` as before.
 -/
 module
 
@@ -46,11 +50,11 @@ section results
 variable [FfiSyntax]
 
 /-- The request `m` (entries `ents`) arriving at the leader in state `s`: its record. -/
-def arriveReq (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry) : ReadReq :=
+def arriveReq (s : NState) (m : MessageM) (ents : List EntryM) : ReadReq :=
   ⟨s.logst.committed, m.From', ents⟩
 
 /-- ... and the state with it queued (before the heartbeats). -/
-def arriveState (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry) :
+def arriveState (id : w64) (s : NState) (m : MessageM) (ents : List EntryM) :
     NState :=
   { s with rd := { s.rd with ro := readonlyArrive s.rd.ro id (arriveReq s m ents) } }
 
@@ -123,8 +127,8 @@ theorem readRespondAll_take_succ (id : w64) (s : NState) (qs : List ReadReq) (n 
 state `s` at the configuration `c` (2026-10-14): at a configuration whose only voter is the
 leader itself, answered at once at the commit index; otherwise queued, and heartbeats with the
 new position broadcast. -/
-def SendRIResult (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (s' : NState) : Prop :=
+def SendRIResult (c : CfgM) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (s' : NState) : Prop :=
   (CfgSingle c id ∧ s' = readRespond id s (arriveReq s m ents)) ∨
   (¬ CfgSingle c id ∧ ∃ (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs (arriveState id s m ents) ms with prvals := pvs } ∧
@@ -143,14 +147,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev sendMsgReadIndexResponse.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
   s.role = .leader →
   ents ≠ [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hents" ∷ m.Entries' ↦*□ ents }}
-    (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #m))
+      "#Hm" ∷ msgOwn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+    (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #ml))
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ }}
 

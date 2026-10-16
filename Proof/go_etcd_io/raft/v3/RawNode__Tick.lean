@@ -48,12 +48,12 @@ theorem RawNode.Tick.wp_proof
     ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
     iapply HΦ $$ %s'.term
     isplitl
-    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv steps
+    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
         Hwf' Hin Hal
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok) rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, Ht2⟩)

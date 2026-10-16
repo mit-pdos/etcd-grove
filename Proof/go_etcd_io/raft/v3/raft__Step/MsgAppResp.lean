@@ -35,13 +35,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 /-- `MsgAppResp`: dropped if stale, a step-down if from a higher term, otherwise
 `r.step(m)` -- at a leader, the replication path. `Reject → From ≠ id` is
 `stepLeader`'s: a rejecting response from the node itself would make `sendAppend`
 address itself. -/
 theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry)
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM)
     (Hlrd : s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0) :
     m.Type' = MsgAppResp →
     m.To' = id →
@@ -51,8 +54,8 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -63,22 +66,22 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hrej Hwf
-  wp_start_folded as ⟨Hphys, -⟩
+  wp_start_folded as ⟨Hphys, Hm⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · wp_apply (wp_Step_Resp_gt _P c r id s m ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
-      $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+  · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
+      $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
     iapply HΦ $$ %err %s'
     iframe Hphys
     ipureintro
     exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
       Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_Resp_lt _P c r id s m ents .appResp (.inl Hty) Hterm Hlt Hwf
-        $$ [$Hpkg $Hphys] HΦ
+    · iapply wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents .appResp (.inl Hty) Hterm Hlt Hwf
+        $$ [$Hpkg $Hphys $Hm] HΦ
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P c r id s m ents Hlrd Hty Hto Hterm Hteq Hfnz Hrej
+      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)
-        $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+        $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys
       ipureintro

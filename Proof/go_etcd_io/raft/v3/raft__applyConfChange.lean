@@ -1,4 +1,8 @@
-/- Lean-first (no Rocq counterpart), 2026-10-13: reconfiguration stage D. -/
+/- Lean-first (no Rocq counterpart), 2026-10-13: reconfiguration stage D.
+
+raft v3.7 (stage R4): `cc` is a `*pb.ConfChangeV2` (`ownCCV2`), read by `LeaveJoint`/`EnterJoint`
+(pointer methods with specs, no longer unfolded); `cc.Changes...` opens it for the field load and
+folds it back after the changer. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
@@ -41,7 +45,7 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccs dq c' Happ0 Hsz Hsdr Hcand
+  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
@@ -60,11 +64,8 @@ theorem raft.applyConfChange.wp_proof
   unfold ccApplyM at Happ
   wp_auto
   wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
-  wp_method_call
-  wp_call
-  wp_auto
-  wp_apply wp_ConfChangeV2_LeaveJoint cc ccs dq $$ [$Hccs] as Hccs
-  by_cases Hlj : cc.Transition' = W32 0 ∧ ccs = []
+  wp_apply wp_ConfChangeV2_LeaveJoint cc dq ccm $$ [$Hcc] as Hcc
+  by_cases Hlj : ccm.transition = W32 0 ∧ ccm.changes = []
   · -- `changer.LeaveJoint()`
     rw [decide_eq_true Hlj]
     rw [ite_eq_left Hlj] at Happ
@@ -96,37 +97,42 @@ theorem raft.applyConfChange.wp_proof
           · exact .inl ⟨hin, Hmk⟩
           · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
       $$ [$Htrkf $Hback' $Hvotes $Hnew]
-      as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, Hos, Hls, Hlns, %Hcs0, %Hsw⟩
+      as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
     · ipureintro; exact Hmi
     try wp_auto
     iapply HΦ $$ %cs %xs %os %ls %lns %s'
-    iframe Hphys Hccs Hcs Hos Hls Hlns
+    iframe Hphys Hcc Hcs
     ipureintro
     exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
   · rw [decide_eq_false Hlj]
     rw [ite_eq_right Hlj] at Happ
     wp_auto
-    wp_method_call
-    wp_call
-    wp_auto
-    wp_apply wp_ConfChangeV2_EnterJoint cc ccs dq
-      (fun Hn => by rw [Hn] at Happ; cases Happ) $$ [$Hccs] as %rv ⟨Hccs, Hres⟩
-    cases Hej : enterJointOf cc.Transition' ccs.length with
+    wp_apply wp_ConfChangeV2_EnterJoint cc dq ccm
+      (fun Hn => by rw [Hn] at Happ; cases Happ) $$ [$Hcc] as %rv ⟨Hcc, Hres⟩
+    cases Hej : enterJointOf ccm.transition ccm.changes.length with
     | none => rw [Hej] at Happ; cases Happ
     | some p =>
       obtain ⟨al, ok⟩ := p
       rw [Hej] at Happ
-      simp only [Hej]
       icases Hres with %Hres
       subst Hres
       cases ok
       · -- `changer.Simple(cc.Changes...)`
         simp only at Happ
+        iunfold ownCCV2 at Hcc
+        icases Hcc with ⟨%pt, %chs, %ls, %cs, %uf, %Hnn, HT0, #cT, HCh, Hch, #Hccs, HC0, #Hcs, #Hpb⟩
         wp_auto
         wp_apply wp_Changer_Simple _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
-            cc.Changes' ccs (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
-          $$ [$Hccs $Htc $changer]
-          as %cfgv %trk %err ⟨-, Hccs, -, Hres⟩
+            chs ls ccm.changes (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
+          $$ [$Hch $Htc $changer]
+          as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
+        · iexact Hccs
+        ihave Hcc : ownCCV2 cc dq ccm $$ [HT0 HCh Hch HC0]
+        · iunfold ownCCV2
+          iexists pt, chs, ls, cs, uf
+          iframe
+          iframe cT Hccs Hcs Hpb
+          ipureintro; exact Hnn
         rw [Hst, Happ]
         simp only [ownResult]
         icases Hres with ⟨%Herr, Hc, Hw⟩
@@ -150,20 +156,29 @@ theorem raft.applyConfChange.wp_proof
               · exact .inl ⟨hin, Hmk⟩
               · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
-          as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, Hos, Hls, Hlns, %Hcs0, %Hsw⟩
+          as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
-        iframe Hphys Hccs Hcs Hos Hls Hlns
+        iframe Hphys Hcc Hcs
         ipureintro
         exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
       · -- `changer.EnterJoint(autoLeave, cc.Changes...)`
         simp only at Happ
+        iunfold ownCCV2 at Hcc
+        icases Hcc with ⟨%pt, %chs, %ls, %cs, %uf, %Hnn, HT0, #cT, HCh, Hch, #Hccs, HC0, #Hcs, #Hpb⟩
         wp_auto
         wp_apply wp_Changer_EnterJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs al
-            cc.Changes' ccs (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
-          $$ [$Hccs $Htc $changer]
-          as %cfgv %trk %err ⟨-, Hccs, -, Hres⟩
+            chs ls ccm.changes (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
+          $$ [$Hch $Htc $changer]
+          as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
+        · iexact Hccs
+        ihave Hcc : ownCCV2 cc dq ccm $$ [HT0 HCh Hch HC0]
+        · iunfold ownCCV2
+          iexists pt, chs, ls, cs, uf
+          iframe
+          iframe cT Hccs Hcs Hpb
+          ipureintro; exact Hnn
         rw [Hst, Happ]
         simp only [ownResult]
         icases Hres with ⟨%Herr, Hc, Hw⟩
@@ -187,11 +202,11 @@ theorem raft.applyConfChange.wp_proof
               · exact .inl ⟨hin, Hmk⟩
               · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
-          as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, Hos, Hls, Hlns, %Hcs0, %Hsw⟩
+          as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
-        iframe Hphys Hccs Hcs Hos Hls Hlns
+        iframe Hphys Hcc Hcs
         ipureintro
         exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
 

@@ -20,12 +20,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Field-wise equality of two `HardState`s; `HardState` has exactly the three fields
-compared. -/
+compared.
+
+raft v3.7 (2026-10-15, stage R4): two `*pb.HardState`s compared through their getters
+(`node.go:117`), each possibly `nil` (`hsOpt`, read as the zero record). -/
 abbrev isHardStateEqual.spec : Prop :=
-  ∀ (a b : raftpb.HardState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (a b : Loc) (ha hb : HardStateM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "#Ha" ∷ hsOpt a ha ∗ "#Hb" ∷ hsOpt b hb }}
     (App (App (Val #(functions isHardStateEqual [])) (Val #a)) (Val #b))
-  {{ RET #(decide (a.Term' = b.Term' ∧ a.Vote' = b.Vote' ∧ a.Commit' = b.Commit'));
+  {{ RET #(decide (ha.Term' = hb.Term' ∧ ha.Vote' = hb.Vote' ∧ ha.Commit' = hb.Commit'));
       True }}
 
 end spec

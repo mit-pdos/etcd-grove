@@ -6,9 +6,12 @@ the wait registry (`pkg/wait`) and the id generator (`pkg/idutil`). Lean-first (
 counterpart); plan: `notes/decisions.md`, "The request path: raft as a contract, the wait
 registry, the checks as the premises' discharge".
 
-**Raft as a contract** (`raftPropose`). The server's raft is etcd's dependency (raft v3.7,
-`EtcdDeps/`, names-only), not the verified fork (`Code/go_etcd_io/raft/`, 118 commits earlier,
-before the protobuf-go v2 raftpb); the two translations cannot be imported together. So
+**Raft as a contract** (`raftPropose`). Until stage R6 of the raft v3.7 retarget (2026-10-16)
+the server's raft was etcd's dependency translated names-only (`EtcdDeps/`), not the verified
+fork (118 commits earlier, before the protobuf-go v2 raftpb), and the two translations could not
+be imported together; since R6 the server's translation is the verified raft's
+(`Code/go_etcd_io/raft/`, raft v3.7 plus the read-index fix; `notes/decisions.md`, "The swap"),
+and the contract stays until R7 discharges it from `node.Propose`'s spec. So
 `raftNode.Propose` (= `raft.Node.Propose`, promoted) gets, as a contract of the server's `Node`
 field, the statement the verified `node.Propose` proves for the register
 (`Spec/go_etcd_io/raft/v3/node__Propose.lean`, `InvNode.lean`), restated over the server's own

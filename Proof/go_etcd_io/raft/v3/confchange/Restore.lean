@@ -1,5 +1,8 @@
 /-
-Proof of `Spec/confchange_Restore.lean`.
+Proof of `Spec/go_etcd_io/raft/v3/confchange/Restore.lean`. (2026-10-15, raft v3.7 retarget,
+stage R2: the `ConfState` a pointer, the changes `*pb.ConfChangeSingle` pointers; the joint
+case's `chain` invariant also holds the `ConfState`, which the `EnterJoint` closure reads
+through `GetAutoLeave`.)
 
 Until 2026-10-08 this file was `axiom confchange.Restore.wp_proof` (the Rocq
 `proof_confchange_Restore.v`'s `Axiom`): the package was not translated. It is now
@@ -16,6 +19,7 @@ public import Spec.go_etcd_io.raft.v3.confchange.toConfChangeSingle
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
 public import Spec.go_etcd_io.raft.v3.confchange.chain
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetAutoLeave
 
 @[expose] public section
 
@@ -34,7 +38,7 @@ set_option Elab.async false
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -112,24 +116,25 @@ theorem ownCCSt_step (chg : confchange.Changer) (s' : CCState) (r : Option CCSta
 
 /-- `chg.Simple(ccs)` on a tracker holding `ownCCSt s`, the model answering `some s'`. -/
 theorem wp_Simple_st (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
-    (p : Loc) (chg : confchange.Changer) (ccs : GoSlice) (l : List raftpb.ConfChangeSingle)
-    (s s' : CCState) (dq dqs : DFrac)
+    (p : Loc) (chg : confchange.Changer) (ccs : GoSlice) (ls : List Loc)
+    (l : List ConfChangeSingleM) (s s' : CCState) (dq dqs : DFrac)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
     (Hm : simpleM l s = some s') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
-        ccs ↦*{dqs} l ∗ ownCCSt chg.Tracker'.Config' chg.Tracker'.Progress' s }}
+        ccs ↦*{dqs} ls ∗ ([∗list] q;c ∈ ls;l, ccsRO q c) ∗
+        ownCCSt chg.Tracker'.Config' chg.Tracker'.Progress' s }}
       (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"Simple")) (Val #ccs))
     {{ (cfg : tracker.Config) (trk : Loc), RET (PairV (PairV #cfg #trk) #interface.nil);
-        p ↦{dq} chg ∗ ccs ↦*{dqs} l ∗ ownCCSt cfg trk s' }} := by
-  iintro %Φ ⟨#Hpkg, Hp, Hccs, Hst⟩ HΦ
+        p ↦{dq} chg ∗ ccs ↦*{dqs} ls ∗ ownCCSt cfg trk s' }} := by
+  iintro %Φ ⟨#Hpkg, Hp, Hccs, #Hcl, Hst⟩ HΦ
   unfold ownCCSt
   icases Hst with ⟨%prs, %pvs, Hc, Hpm, Hpt, HR, %Hfl⟩
   ihave Htc : ownTrackerCC chg.Tracker' (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
       s.cfg prs pvs $$ [Hc Hpm Hpt]
   · unfold ownTrackerCC
     iframe
-  iapply H p chg s.cfg prs pvs ccs l dq dqs (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) Hmi
-    $$ [$Hpkg $Hp $Hccs $Htc]
+  iapply H p chg s.cfg prs pvs ccs ls l dq dqs (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) Hmi
+    $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
   inext
   iintro %cfg %trk %err ⟨Hp, Hccs, -, Hres⟩
   rw [ccState_flags s pvs Hfl]
@@ -143,25 +148,26 @@ theorem wp_Simple_st (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
 /-- `chg.EnterJoint(al, ccs)` on a tracker holding `ownCCSt s`, the model answering
 `some s'`. -/
 theorem wp_EnterJoint_st (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG))
-    (p : Loc) (chg : confchange.Changer) (al : Bool) (ccs : GoSlice)
-    (l : List raftpb.ConfChangeSingle) (s s' : CCState) (dq dqs : DFrac)
+    (p : Loc) (chg : confchange.Changer) (al : Bool) (ccs : GoSlice) (ls : List Loc)
+    (l : List ConfChangeSingleM) (s s' : CCState) (dq dqs : DFrac)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
     (Hm : enterJointM al l s = some s') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
-        ccs ↦*{dqs} l ∗ ownCCSt chg.Tracker'.Config' chg.Tracker'.Progress' s }}
+        ccs ↦*{dqs} ls ∗ ([∗list] q;c ∈ ls;l, ccsRO q c) ∗
+        ownCCSt chg.Tracker'.Config' chg.Tracker'.Progress' s }}
       (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"EnterJoint"))
         (Val #al)) (Val #ccs))
     {{ (cfg : tracker.Config) (trk : Loc), RET (PairV (PairV #cfg #trk) #interface.nil);
-        p ↦{dq} chg ∗ ccs ↦*{dqs} l ∗ ownCCSt cfg trk s' }} := by
-  iintro %Φ ⟨#Hpkg, Hp, Hccs, Hst⟩ HΦ
+        p ↦{dq} chg ∗ ccs ↦*{dqs} ls ∗ ownCCSt cfg trk s' }} := by
+  iintro %Φ ⟨#Hpkg, Hp, Hccs, #Hcl, Hst⟩ HΦ
   unfold ownCCSt
   icases Hst with ⟨%prs, %pvs, Hc, Hpm, Hpt, HR, %Hfl⟩
   ihave Htc : ownTrackerCC chg.Tracker' (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
       s.cfg prs pvs $$ [Hc Hpm Hpt]
   · unfold ownTrackerCC
     iframe
-  iapply H p chg s.cfg prs pvs al ccs l dq dqs (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) Hmi
-    $$ [$Hpkg $Hp $Hccs $Htc]
+  iapply H p chg s.cfg prs pvs al ccs ls l dq dqs (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) Hmi
+    $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
   inext
   iintro %cfg %trk %err ⟨Hp, Hccs, -, Hres⟩
   rw [ccState_flags s pvs Hfl]
@@ -175,8 +181,8 @@ theorem wp_EnterJoint_st (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
 /-- `chg.Simple(ccs)` from the empty tracker `MakeProgressTracker` built (`cfgState ∅ ∅`): its
 voter map `v0` and its (read-only) progress map come back. -/
 theorem wp_Simple_empty (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
-    (p : Loc) (chg : confchange.Changer) (ccs : GoSlice) (l : List raftpb.ConfChangeSingle)
-    (v0 : Loc) (s' : CCState) (dq dqs : DFrac)
+    (p : Loc) (chg : confchange.Changer) (ccs : GoSlice) (ls : List Loc)
+    (l : List ConfChangeSingleM) (v0 : Loc) (s' : CCState) (dq dqs : DFrac)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
     (Harr : chg.Tracker'.Config'.Voters'.arr = [v0, map.nil])
     (Hl : chg.Tracker'.Config'.Learners' = map.nil)
@@ -184,13 +190,13 @@ theorem wp_Simple_empty (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG
     (Hal : chg.Tracker'.Config'.AutoLeave' = false)
     (Hm : simpleM l (cfgState ∅ ∅) = some s') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
-        ccs ↦*{dqs} l ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
+        ccs ↦*{dqs} ls ∗ ([∗list] q;c ∈ ls;l, ccsRO q c) ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
         chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
       (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"Simple")) (Val #ccs))
     {{ (cfg : tracker.Config) (trk : Loc), RET (PairV (PairV #cfg #trk) #interface.nil);
-        p ↦{dq} chg ∗ ccs ↦*{dqs} l ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
+        p ↦{dq} chg ∗ ccs ↦*{dqs} ls ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
         ownCCSt cfg trk s' }} := by
-  iintro %Φ ⟨#Hpkg, Hp, Hccs, Hv0, #Hpm⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hp, Hccs, #Hcl, Hv0, #Hpm⟩ HΦ
   ihave Hprs0 : ([∗map] _k ↦ pr;pv ∈ (∅ : GMap w64 Loc);(∅ : GMap w64 tracker.Progress),
       (pr ↦ pv : IProp GF)) $$ []
   · iapply (BigSepM2.bigSepM2_empty _).2; iempintro
@@ -205,8 +211,8 @@ theorem wp_Simple_empty (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG
     · simp only [cfgM]; iapply ownIdsetC_nil
     · rw [Hl]; simp only [cfgM]; iapply ownIdsetC_nil
     · rw [Hln]; simp only [cfgM]; iapply ownIdsetC_nil
-  iapply H p chg (cfgM ∅ ∅) ∅ ∅ ccs l dq dqs (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
-    $$ [$Hpkg $Hp $Hccs $Htc]
+  iapply H p chg (cfgM ∅ ∅) ∅ ∅ ccs ls l dq dqs (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
+    $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
   inext
   iintro %cfg %trk %err ⟨Hp, Hccs, Htc, Hres⟩
   have Hf0 : flagsOf (∅ : GMap w64 tracker.Progress) = cfgFlags ∅ ∅ := by
@@ -270,7 +276,7 @@ theorem progs_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
 /-- The model states `chain` threads through `Restore`'s ops: before op `j ≤ n` (the `n`
 `Simple` ops `sops`), the fold of the first `j`; before op `n + 1` (the `EnterJoint`, when
 joint), the final state `s'`. -/
-def RestoreAt (sops : List raftpb.ConfChangeSingle) (s' : CCState) (j : Nat) (s : CCState) :
+def RestoreAt (sops : List ConfChangeSingleM) (s' : CCState) (j : Nat) (s : CCState) :
     Prop :=
   (j ≤ sops.length ∧ simpleFold (sops.take j) (cfgState ∅ ∅) = some s) ∨
   (j = sops.length + 1 ∧ s = s')
@@ -279,7 +285,7 @@ def RestoreAt (sops : List raftpb.ConfChangeSingle) (s' : CCState) (j : Nat) (s 
 empty configuration `Restore` started from (`j = 0`), or held as `ownCCSt` at the model state
 `RestoreAt j` (`0 < j`). `MakeProgressTracker`'s own voter map `v0` is only read and comes
 back. -/
-def restoreInv (chg : confchange.Changer) (v0 : Loc) (sops : List raftpb.ConfChangeSingle)
+def restoreInv (chg : confchange.Changer) (v0 : Loc) (sops : List ConfChangeSingleM)
     (s' : CCState) (j : Nat) (cfg : tracker.Config) (prs : Loc) : IProp GF :=
   iprop(v0 ↦$ (∅ : GMap w64 Unit) ∗
     (⌜j = 0 ∧ cfg = chg.Tracker'.Config' ∧ prs = chg.Tracker'.Progress'⌝ ∨
@@ -288,24 +294,26 @@ def restoreInv (chg : confchange.Changer) (v0 : Loc) (sops : List raftpb.ConfCha
 /-- One `Simple([c])` op of `Restore`, op `j` of the `Simple` ops `sops` (whose fold succeeds):
 from `restoreInv j` to `restoreInv (j + 1)`. -/
 theorem wp_restore_simple_op (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
-    (chg : confchange.Changer) (v0 : Loc) (sops : List raftpb.ConfChangeSingle) (s' sN : CCState)
-    (Hfull : simpleFold sops (cfgState ∅ ∅) = some sN) (j : Nat) (c : raftpb.ConfChangeSingle)
+    (chg : confchange.Changer) (v0 : Loc) (sops : List ConfChangeSingleM) (s' sN : CCState)
+    (Hfull : simpleFold sops (cfgState ∅ ∅) = some sN) (j : Nat) (c : ConfChangeSingleM)
     (Hc : sops[j]? = some c)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
     (Harr : chg.Tracker'.Config'.Voters'.arr = [v0, map.nil])
     (Hl : chg.Tracker'.Config'.Learners' = map.nil)
     (Hln : chg.Tracker'.Config'.LearnersNext' = map.nil)
     (Hal : chg.Tracker'.Config'.AutoLeave' = false)
-    (p : Loc) (cfg : tracker.Config) (prs : Loc) (sl2 : GoSlice) :
+    (p : Loc) (cfg : tracker.Config) (prs : Loc) (sl2 : GoSlice) (q : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
         p ↦ ({ chg with Tracker' := { chg.Tracker' with Config' := cfg, Progress' := prs } } :
           confchange.Changer) ∗
-        sl2 ↦* [c] ∗ chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
+        sl2 ↦* [q] ∗ ccsRO q c ∗ chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
         restoreInv chg v0 sops s' j cfg prs }}
       (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"Simple")) (Val #sl2))
     {{ (cfg' : tracker.Config) (trk : Loc), RET (PairV (PairV #cfg' #trk) #interface.nil);
         restoreInv chg v0 sops s' (j + 1) cfg' trk }} := by
-  iintro %Φ ⟨#Hpkg, Hp, Hsl2, #Hpm, HI⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hp, Hsl2, #Hq, #Hpm, HI⟩ HΦ
+  ihave #Hcl : ([∗list] q';c' ∈ [q];[c], ccsRO (GF := GF) q' c') $$ []
+  · iapply BigSepL2.bigSepL2_singleton.2; iexact Hq
   obtain ⟨sj, sj1, Hsj, Hstep, Hsj1⟩ := simpleFold_step sops _ sN j c Hc Hfull
   have hj : j < sops.length := (List.getElem?_eq_some_iff.1 Hc).1
   have HR1 : RestoreAt sops s' (j + 1) sj1 := .inl ⟨hj, Hsj1⟩
@@ -316,8 +324,8 @@ theorem wp_restore_simple_op (H : confchange.Changer.Simple.spec (GF := GF) (hG 
     have e : sj = cfgState ∅ ∅ := by
       simp only [List.take_zero, simpleFold, Option.some.injEq] at Hsj; exact Hsj.symm
     subst e
-    wp_apply wp_Simple_empty H p chg sl2 [c] v0 sj1 _ _ Hmi Harr Hl Hln Hal Hstep
-      $$ [$Hpkg $Hp $Hsl2 $Hv0 $Hpm] as %cfg' %trk ⟨-, -, Hv0, Hst⟩
+    wp_apply wp_Simple_empty H p chg sl2 [q] [c] v0 sj1 _ _ Hmi Harr Hl Hln Hal Hstep
+      $$ [$Hpkg $Hp $Hsl2 $Hcl $Hv0 $Hpm] as %cfg' %trk ⟨-, -, Hv0, Hst⟩
     iapply HΦ
     iframe Hv0
     iright
@@ -334,8 +342,8 @@ theorem wp_restore_simple_op (H : confchange.Changer.Simple.spec (GF := GF) (hG 
     subst e
     wp_apply wp_Simple_st H p
       ({ chg with Tracker' := { chg.Tracker' with Config' := cfg, Progress' := prs } } :
-        confchange.Changer) sl2 [c] s sj1 _ _ Hmi Hstep
-      $$ [$Hpkg $Hp $Hsl2 $Hst] as %cfg' %trk ⟨-, -, Hst⟩
+        confchange.Changer) sl2 [q] [c] s sj1 _ _ Hmi Hstep
+      $$ [$Hpkg $Hp $Hsl2 $Hcl $Hst] as %cfg' %trk ⟨-, -, Hst⟩
     iapply HΦ
     iframe Hv0
     iright
@@ -348,21 +356,22 @@ theorem wp_restore_simple_op (H : confchange.Changer.Simple.spec (GF := GF) (hG 
 /-- The `EnterJoint(al, inc...)` op of a joint `Restore`, after the `n` `Simple` ops `sops`
 (whose fold `sN` it answers with `s'`): from `restoreInv n` to `restoreInv (n + 1)`. -/
 theorem wp_restore_ej_op (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG))
-    (chg : confchange.Changer) (v0 : Loc) (sops : List raftpb.ConfChangeSingle) (s' sN : CCState)
+    (chg : confchange.Changer) (v0 : Loc) (sops : List ConfChangeSingleM) (s' sN : CCState)
     (Hfull : simpleFold sops (cfgState ∅ ∅) = some sN) (al : Bool)
-    (inc : List raftpb.ConfChangeSingle) (Hej : enterJointM al inc sN = some s')
+    (inc : List ConfChangeSingleM) (Hej : enterJointM al inc sN = some s')
     (hpos : 0 < sops.length)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
-    (p : Loc) (cfg : tracker.Config) (prs : Loc) (sl : GoSlice) (dqs : DFrac) :
+    (p : Loc) (cfg : tracker.Config) (prs : Loc) (sl : GoSlice) (lsi : List Loc) (dqs : DFrac) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
         p ↦ ({ chg with Tracker' := { chg.Tracker' with Config' := cfg, Progress' := prs } } :
           confchange.Changer) ∗
-        sl ↦*{dqs} inc ∗ restoreInv chg v0 sops s' sops.length cfg prs }}
+        sl ↦*{dqs} lsi ∗ ([∗list] q;c ∈ lsi;inc, ccsRO q c) ∗
+        restoreInv chg v0 sops s' sops.length cfg prs }}
       (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"EnterJoint"))
         (Val #al)) (Val #sl))
     {{ (cfg' : tracker.Config) (trk : Loc), RET (PairV (PairV #cfg' #trk) #interface.nil);
-        sl ↦*{dqs} inc ∗ restoreInv chg v0 sops s' (sops.length + 1) cfg' trk }} := by
-  iintro %Φ ⟨#Hpkg, Hp, Hsl, HI⟩ HΦ
+        sl ↦*{dqs} lsi ∗ restoreInv chg v0 sops s' (sops.length + 1) cfg' trk }} := by
+  iintro %Φ ⟨#Hpkg, Hp, Hsl, #Hcl, HI⟩ HΦ
   unfold restoreInv
   icases HI with ⟨Hv0, (⟨%Hj0, -, -⟩ | ⟨-, %s, %HR, Hst⟩)⟩
   · omega
@@ -373,8 +382,8 @@ theorem wp_restore_ej_op (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
   subst e
   wp_apply wp_EnterJoint_st H p
     ({ chg with Tracker' := { chg.Tracker' with Config' := cfg, Progress' := prs } } :
-      confchange.Changer) al sl inc s s' _ _ Hmi Hej
-    $$ [$Hpkg $Hp $Hsl $Hst] as %cfg' %trk ⟨-, Hsl, Hst⟩
+      confchange.Changer) al sl lsi inc s s' _ _ Hmi Hej
+    $$ [$Hpkg $Hp $Hsl $Hcl $Hst] as %cfg' %trk ⟨-, Hsl, Hst⟩
   iapply HΦ
   iframe Hv0 Hsl
   iright
@@ -405,36 +414,74 @@ theorem ownCCSt_post (cfg : tracker.Config) (prsm : Loc) (s' : CCState) :
   apply GMap.set_eq; intro k
   rw [GMap.elem_of_dom', GMap.elem_of_dom', GMap.mem_iff, Hdom' k, ← flagsOf_mem, Hfl]
 
+/-- A conf state's pointer is not `nil`. -/
+theorem ownCSM_nonnull (p : Loc) (dq : DFrac) (c : ConfStateM) :
+    ownCSM (GF := GF) p dq c ⊢ ownCSM p dq c ∗ ⌜p ≠ null⌝ := by
+  iintro H
+  simp only [ownCSM]
+  iunfold csPts at H
+  iNamed H
+  isplitl
+  · iunfold csPts
+    iexists sv, sl, so, sn, pa
+    isplitr
+    · ipureintro; exact Hnn
+    iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+    ipureintro; exact Hal
+  · ipureintro; exact Hnn
+
+/-- `cs.GetAutoLeave()` of an owned (non-`nil`) conf state. -/
+theorem wp_GetAutoLeave_own
+    (wp_ConfState_GetAutoLeave : raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG))
+    (p : Loc) (dq : DFrac) (c : ConfStateM) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCSM p dq c }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.ConfState.ty @!! go!"GetAutoLeave"))
+        (Val #()))
+    {{ RET #c.AutoLeave'; ownCSM p dq c }} := by
+  iintro %Φ ⟨#Hpkg, Hcs⟩ HΦ
+  icases ownCSM_nonnull p dq c $$ Hcs with ⟨Hcs, %Hnn⟩
+  iapply wp_ConfState_GetAutoLeave p dq c $$ [$Hpkg Hcs]
+  · unfold csOpt; iright; iexact Hcs
+  inext
+  iintro Hcs
+  iapply HΦ
+  unfold csOpt
+  icases Hcs with (⟨%Hn, -⟩ | Hcs)
+  · exact absurd Hn Hnn
+  · iexact Hcs
+
 theorem confchange.Restore.wp_proof
     (wp_confchange_toConfChangeSingle : confchange.toConfChangeSingle.spec (GF := GF) (hG := hG))
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_Changer_EnterJoint : confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG))
-    (wp_confchange_chain : confchange.chain.spec (GF := GF) (hG := hG)) :
+    (wp_confchange_chain : confchange.chain.spec (GF := GF) (hG := hG))
+    (wp_ConfState_GetAutoLeave : raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG)) :
     confchange.Restore.spec (GF := GF) (hG := hG) := by
-  intro chg cs voters learners outgoing learnersNext dq dql dqo dqn v0 s' Hvne Hm Hmi Harr Hl Hln
-    Hal
-  wp_start as ⟨Hvs, Hls, Hlo, Hln, Hv0, #Hpm⟩
+  intro chg cs c dq v0 s' Hvne Hm Hmi Harr Hl Hln Hal
+  wp_start as ⟨Hcs, Hv0, #Hpm⟩
   wp_auto
-  wp_apply wp_confchange_toConfChangeSingle _ voters learners outgoing learnersNext
-    $$ [$Hvs $Hls $Hlo $Hln] as %outs %ins ⟨Hvs, Hls, Hlo, Hln, Houts, Hins, Hinscap⟩
+  wp_apply wp_confchange_toConfChangeSingle cs c dq $$ [$Hcs]
+    as %outs %ins %lo %li ⟨Hcs, Houts, #Hlo, Hins, #Hli, Hinscap⟩
   ihave %Houtslen := ownSlice_len $$ Houts
   ihave %Hinslen := ownSlice_len $$ Hins
+  ihave %Hlolen := BigSepL2.bigSepL2_length $$ Hlo
+  ihave %Hlilen := BigSepL2.bigSepL2_length $$ Hli
   wp_if_destruct
   · -- not joint: one `Simple` per change of `in`
-    have Hvo : outgoing = [] := by
+    have Hvo : c.VotersOutgoing' = [] := by
       have h := Houtslen.1
-      rw [Hif, restoreOutCC, List.length_map] at h
+      rw [Hlolen, Hif, restoreOutCC, List.length_map] at h
       exact List.eq_nil_of_length_eq_zero (by rw [h]; rfl)
-    subst Hvo
-    have Hfull : simpleFold (restoreInCC [] voters learners learnersNext) (cfgState ∅ ∅) =
-        some s' := by
+    have Hfull : simpleFold (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext')
+        (cfgState ∅ ∅) = some s' := by
+      rw [Hvo] at Hm ⊢
       unfold restoreM restoreSimpleOps at Hm; simpa using Hm
-    have hpos : 0 < (restoreInCC [] voters learners learnersNext).length := by
+    have hpos : 0 < (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').length := by
       rw [restoreInCC]
       simp only [List.length_append, List.length_map]
       have := Nat.pos_of_ne_zero (fun h => Hvne (List.eq_nil_of_length_eq_zero h))
       omega
-    ihave HI0 : restoreInv chg v0 (restoreInCC [] voters learners learnersNext) s' 0 chg.Tracker'.Config' chg.Tracker'.Progress' $$ [Hv0]
+    ihave HI0 : restoreInv chg v0 (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') s' 0 chg.Tracker'.Config' chg.Tracker'.Progress' $$ [Hv0]
     · unfold restoreInv
       iframe Hv0
       ileft
@@ -446,17 +493,17 @@ theorem confchange.Restore.wp_proof
     -- `for _, cc := range ins { cc := cc; ops = append(ops, func(chg) {chg.Simple(cc)}) }`:
     -- after `n` iterations, `ops` holds `n` closures, the `j`th taking the pair from
     -- `restoreInv j` to `restoreInv (j + 1)`
-    ihave IH : iprop(∃ (n : w64) (ops' : GoSlice) (fs : List GoFunc) (x : raftpb.ConfChangeSingle),
+    ihave IH : iprop(∃ (n : w64) (ops' : GoSlice) (fs : List GoFunc) (x : Loc),
         "i" ∷ i_ptr ↦ n ∗
         "ops" ∷ ops_ptr ↦ ops' ∗
         "Hcc" ∷ cc_ptr ↦ x ∗
         "Hops" ∷ ops' ↦* fs ∗
         "Hopscap" ∷ ownSliceCap GoFunc ops' (DFrac.own 1) ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ((restoreInCC [] voters learners learnersNext).length : Int) ∧ fs.length = sint.nat n⌝ ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ((restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').length : Int) ∧ fs.length = sint.nat n⌝ ∗
         "#Hfs" ∷ □ (∀ (j : Nat) (f : GoFunc), ⌜fs[j]? = some f⌝ -∗
-          opSpec f chg (restoreInv chg v0 (restoreInCC [] voters learners learnersNext) s' j) (restoreInv chg v0 (restoreInCC [] voters learners learnersNext) s' (j + 1))))
+          opSpec f chg (restoreInv chg v0 (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') s' j) (restoreInv chg v0 (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') s' (j + 1))))
       $$ [i ops cc Hnil Hcap]
-    · iexists W64 0, slice.nil, [], zero_val raftpb.ConfChangeSingle
+    · iexists W64 0, slice.nil, [], zero_val Loc
       simp only [named]
       iframe i ops cc Hnil Hcap
       isplitr
@@ -466,14 +513,17 @@ theorem confchange.Restore.wp_proof
       simp at Hjf
     wp_for IH
     wp_if_destruct
-    · have Hlt : sint.nat n < (restoreInCC [] voters learners learnersNext).length := by
-        have := Hinslen.1; word
-      obtain ⟨c, Hc⟩ : ∃ c, (restoreInCC [] voters learners learnersNext)[sint.nat n]? = some c :=
+    · have Hlt : sint.nat n < (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').length := by
+        have := Hinslen.1; rw [← Hlilen]; word
+      have Hltq : sint.nat n < li.length := by rw [Hlilen]; exact Hlt
+      obtain ⟨cc0, Hc⟩ : ∃ cc0, (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext')[sint.nat n]? = some cc0 :=
         ⟨_, List.getElem?_eq_getElem Hlt⟩
+      obtain ⟨q, Hq⟩ : ∃ q, li[sint.nat n]? = some q := ⟨_, List.getElem?_eq_getElem Hltq⟩
+      ihave #Hcq := BigSepL2.bigSepL2_lookup (Φ := fun _ q c => ccsRO (GF := GF) q c) Hq Hc $$ Hli
       have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z ins.len := ⟨Hn.1, Hif⟩
       simp only [Hbnd', _root_.and_self]
-      wp_apply wp_load_slice_index ins (sint.Z n) _ _ c Hn.1 $$ [Hins] with Hins
-      · iframe Hins; ipureintro; exact Hc
+      wp_apply wp_load_slice_index ins (sint.Z n) _ _ q Hn.1 $$ [Hins] with Hins
+      · iframe Hins; ipureintro; exact Hq
       -- the closure captures its loop-local copy `cc`, read-only from here on
       ipersist cc
       -- `ops = append(ops, func(chg Changer) {...})`
@@ -485,7 +535,7 @@ theorem confchange.Restore.wp_proof
       wp_apply wp_slice_append $$ [$Hops $Hopscap $Hsl] as %ops2 ⟨Hops, Hopscap, -⟩
       wp_for_post
       iframe
-      iexists n + W64 1, ops2, _, c
+      iexists n + W64 1, ops2, _, q
       simp only [named]
       iframe i ops Hcc Hops Hopscap
       have Hfslen : fs.length = sint.nat n := Hn.2.2
@@ -506,25 +556,25 @@ theorem confchange.Restore.wp_proof
       subst Hj'
       rw [List.getElem?_concat_length] at Hjf
       cases Hjf
-      -- `func(chg Changer) { return chg.Simple(cc) }`: `Simple([c])` on the pair in `chg`'s
+      -- `func(chg Changer) { return chg.Simple(cc) }`: `Simple([cc])` on the pair in `chg`'s
       -- tracker, from `restoreInv fs.length` to `restoreInv (fs.length + 1)`
       unfold opSpec
       iintro %cfg %prs
       wp_start_folded as HI
       wp_auto
-      wp_apply wp_slice_literal (V := raftpb.ConfChangeSingle) [c]
+      wp_apply wp_slice_literal (V := Loc) [q]
       isplitr
       · ipureintro; rfl
       iintro %sl2 ⟨Hsl2, -⟩
       rw [← Hfslen] at Hc
-      wp_apply wp_restore_simple_op wp_Changer_Simple chg v0 (restoreInCC [] voters learners learnersNext) s' s' Hfull fs.length c Hc Hmi
-        Harr Hl Hln Hal _ cfg prs _ $$ [$Hpkg $chg $Hsl2 $Hpm $HI] as %cfg' %trk HI
+      wp_apply wp_restore_simple_op wp_Changer_Simple chg v0 (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') s' s' Hfull fs.length cc0 Hc Hmi
+        Harr Hl Hln Hal _ cfg prs _ q $$ [$Hpkg $chg $Hsl2 $Hcq $Hpm $HI] as %cfg' %trk HI
       iapply HΦ
       iexact HI
-    have Hn' : sint.nat n = (restoreInCC [] voters learners learnersNext).length := by
-      have := Hinslen.1; word
+    have Hn' : sint.nat n = (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').length := by
+      have := Hinslen.1; rw [← Hlilen]; word
     -- `chain(chg, ops...)`
-    wp_apply wp_confchange_chain chg ops' fs _ (restoreInv chg v0 (restoreInCC [] voters learners learnersNext) s')
+    wp_apply wp_confchange_chain chg ops' fs _ (restoreInv chg v0 (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') s')
         $$ [$Hops $HI0 $Hfs] as %cfg %prs ⟨Hops, HI⟩
     unfold restoreInv
     icases HI with ⟨Hv0, (⟨%Hj0, -, -⟩ | ⟨%Hpos, %s, %HR, Hst⟩)⟩
@@ -539,30 +589,33 @@ theorem confchange.Restore.wp_proof
     iframe
     iframe Hpm
     ipureintro; exact Hdom
-  · -- joint: one `Simple(AddNode)` per outgoing voter, then `EnterJoint(cs.AutoLeave, in...)`
-    have Hvo : outgoing ≠ [] := by
-      intro h; subst h; apply Hif
-      have h := Houtslen.1
-      simp only [restoreOutCC, List.map_nil, List.length_nil] at h
+  · -- joint: one `Simple(AddNode)` per outgoing voter, then `EnterJoint(cs.GetAutoLeave(), in...)`
+    have Hvo : c.VotersOutgoing' ≠ [] := by
+      intro h; apply Hif
+      have h' := Houtslen.1
+      rw [Hlolen] at h'
+      simp only [restoreOutCC, h, List.map_nil, List.length_nil] at h'
       word
     have Hm' := Hm
     unfold restoreM restoreSimpleOps at Hm'
     simp only [Hvo, ↓reduceIte] at Hm'
-    obtain ⟨sN, Hfull, Hej⟩ : ∃ sN, simpleFold (restoreOutCC outgoing) (cfgState ∅ ∅) = some sN ∧
-        enterJointM cs.AutoLeave' (restoreInCC outgoing voters learners learnersNext) sN =
+    obtain ⟨sN, Hfull, Hej⟩ : ∃ sN, simpleFold (restoreOutCC c.VotersOutgoing') (cfgState ∅ ∅) = some sN ∧
+        enterJointM c.AutoLeave' (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') sN =
           some s' := by
-      cases h : simpleFold (restoreOutCC outgoing) (cfgState ∅ ∅) with
+      cases h : simpleFold (restoreOutCC c.VotersOutgoing') (cfgState ∅ ∅) with
       | none => rw [h] at Hm'; cases Hm'
       | some sN => rw [h] at Hm'; exact ⟨sN, rfl, Hm'⟩
-    have hpos : 0 < (restoreOutCC outgoing).length := by
+    have hpos : 0 < (restoreOutCC c.VotersOutgoing').length := by
       rw [restoreOutCC, List.length_map]
       exact Nat.pos_of_ne_zero (fun h => Hvo (List.eq_nil_of_length_eq_zero h))
-    -- the `EnterJoint` closure reads `cs.AutoLeave` and `incoming`, read-only from here on
+    -- the `EnterJoint` closure reads `cs` and `incoming`, read-only from here on; the
+    -- `ConfState` itself (`GetAutoLeave`) is threaded through `chain`'s invariant
     ipersist cs
     ipersist incoming
     ipersist Hins
-    ihave HI0 : restoreInv chg v0 (restoreOutCC outgoing) s' 0 chg.Tracker'.Config' chg.Tracker'.Progress' $$ [Hv0]
-    · unfold restoreInv
+    ihave HI0 : iprop(restoreInv chg v0 (restoreOutCC c.VotersOutgoing') s' 0 chg.Tracker'.Config' chg.Tracker'.Progress' ∗ ownCSM cs dq c) $$ [Hv0 Hcs]
+    · iframe Hcs
+      unfold restoreInv
       iframe Hv0
       ileft
       ipureintro; exact ⟨rfl, rfl, rfl⟩
@@ -572,18 +625,19 @@ theorem confchange.Restore.wp_proof
     · iapply ownSliceCap_nil
     -- `for _, cc := range outs { cc := cc; ops = append(ops, func(chg) {chg.Simple(cc)}) }`:
     -- after `n` iterations, `ops` holds `n` closures, the `j`th taking the pair from
-    -- `restoreInv j` to `restoreInv (j + 1)`
-    ihave IH : iprop(∃ (n : w64) (ops' : GoSlice) (fs : List GoFunc) (x : raftpb.ConfChangeSingle),
+    -- `restoreInv j` to `restoreInv (j + 1)` (each with the `ConfState`)
+    ihave IH : iprop(∃ (n : w64) (ops' : GoSlice) (fs : List GoFunc) (x : Loc),
         "i" ∷ i_ptr ↦ n ∗
         "ops" ∷ ops_ptr ↦ ops' ∗
         "Hcc" ∷ cc_ptr ↦ x ∗
         "Hops" ∷ ops' ↦* fs ∗
         "Hopscap" ∷ ownSliceCap GoFunc ops' (DFrac.own 1) ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ((restoreOutCC outgoing).length : Int) ∧ fs.length = sint.nat n⌝ ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ((restoreOutCC c.VotersOutgoing').length : Int) ∧ fs.length = sint.nat n⌝ ∗
         "#Hfs" ∷ □ (∀ (j : Nat) (f : GoFunc), ⌜fs[j]? = some f⌝ -∗
-          opSpec f chg (restoreInv chg v0 (restoreOutCC outgoing) s' j) (restoreInv chg v0 (restoreOutCC outgoing) s' (j + 1))))
+          opSpec f chg (fun cfg prs => iprop(restoreInv chg v0 (restoreOutCC c.VotersOutgoing') s' j cfg prs ∗ ownCSM cs dq c))
+            (fun cfg prs => iprop(restoreInv chg v0 (restoreOutCC c.VotersOutgoing') s' (j + 1) cfg prs ∗ ownCSM cs dq c))))
       $$ [i ops cc Hnil Hcap]
-    · iexists W64 0, slice.nil, [], zero_val raftpb.ConfChangeSingle
+    · iexists W64 0, slice.nil, [], zero_val Loc
       simp only [named]
       iframe i ops cc Hnil Hcap
       isplitr
@@ -593,14 +647,17 @@ theorem confchange.Restore.wp_proof
       simp at Hjf
     wp_for IH
     wp_if_destruct
-    · have Hlt : sint.nat n < (restoreOutCC outgoing).length := by
-        have := Houtslen.1; word
-      obtain ⟨c, Hc⟩ : ∃ c, (restoreOutCC outgoing)[sint.nat n]? = some c :=
+    · have Hlt : sint.nat n < (restoreOutCC c.VotersOutgoing').length := by
+        have := Houtslen.1; rw [← Hlolen]; word
+      have Hltq : sint.nat n < lo.length := by rw [Hlolen]; exact Hlt
+      obtain ⟨cc0, Hc⟩ : ∃ cc0, (restoreOutCC c.VotersOutgoing')[sint.nat n]? = some cc0 :=
         ⟨_, List.getElem?_eq_getElem Hlt⟩
+      obtain ⟨q, Hq⟩ : ∃ q, lo[sint.nat n]? = some q := ⟨_, List.getElem?_eq_getElem Hltq⟩
+      ihave #Hcq := BigSepL2.bigSepL2_lookup (Φ := fun _ q c => ccsRO (GF := GF) q c) Hq Hc $$ Hlo
       have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z outs.len := ⟨Hn.1, Hif⟩
       simp only [Hbnd', _root_.and_self]
-      wp_apply wp_load_slice_index outs (sint.Z n) _ _ c Hn.1 $$ [Houts] with Houts
-      · iframe Houts; ipureintro; exact Hc
+      wp_apply wp_load_slice_index outs (sint.Z n) _ _ q Hn.1 $$ [Houts] with Houts
+      · iframe Houts; ipureintro; exact Hq
       -- the closure captures its loop-local copy `cc`, read-only from here on
       ipersist cc
       -- `ops = append(ops, func(chg Changer) {...})`
@@ -612,7 +669,7 @@ theorem confchange.Restore.wp_proof
       wp_apply wp_slice_append $$ [$Hops $Hopscap $Hsl] as %ops2 ⟨Hops, Hopscap, -⟩
       wp_for_post
       iframe
-      iexists n + W64 1, ops2, _, c
+      iexists n + W64 1, ops2, _, q
       simp only [named]
       iframe i ops Hcc Hops Hopscap
       have Hfslen : fs.length = sint.nat n := Hn.2.2
@@ -633,33 +690,36 @@ theorem confchange.Restore.wp_proof
       subst Hj'
       rw [List.getElem?_concat_length] at Hjf
       cases Hjf
-      -- `func(chg Changer) { return chg.Simple(cc) }`: `Simple([c])` on the pair in `chg`'s
+      -- `func(chg Changer) { return chg.Simple(cc) }`: `Simple([cc])` on the pair in `chg`'s
       -- tracker, from `restoreInv fs.length` to `restoreInv (fs.length + 1)`
       unfold opSpec
       iintro %cfg %prs
       wp_start_folded as HI
+      icases HI with ⟨HI, Hcs⟩
       wp_auto
-      wp_apply wp_slice_literal (V := raftpb.ConfChangeSingle) [c]
+      wp_apply wp_slice_literal (V := Loc) [q]
       isplitr
       · ipureintro; rfl
       iintro %sl2 ⟨Hsl2, -⟩
       rw [← Hfslen] at Hc
-      wp_apply wp_restore_simple_op wp_Changer_Simple chg v0 (restoreOutCC outgoing) s' sN Hfull fs.length c Hc Hmi
-        Harr Hl Hln Hal _ cfg prs _ $$ [$Hpkg $chg $Hsl2 $Hpm $HI] as %cfg' %trk HI
+      wp_apply wp_restore_simple_op wp_Changer_Simple chg v0 (restoreOutCC c.VotersOutgoing') s' sN Hfull fs.length cc0 Hc Hmi
+        Harr Hl Hln Hal _ cfg prs _ q $$ [$Hpkg $chg $Hsl2 $Hcq $Hpm $HI] as %cfg' %trk HI
       iapply HΦ
-      iexact HI
-    have Hn' : sint.nat n = (restoreOutCC outgoing).length := by
-      have := Houtslen.1; word
-    -- `ops = append(ops, func(chg Changer) { return chg.EnterJoint(cs.AutoLeave, incoming...) })`
+      dsimp only
+      iframe HI Hcs
+    have Hn' : sint.nat n = (restoreOutCC c.VotersOutgoing').length := by
+      have := Houtslen.1; rw [← Hlolen]; word
+    -- `ops = append(ops, func(chg Changer) { return chg.EnterJoint(cs.GetAutoLeave(), incoming...) })`
     wp_func_lits
     wp_apply wp_slice_literal (V := GoFunc) [_]
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_slice_append $$ [$Hops $Hopscap $Hsl] as %ops2 ⟨Hops, Hopscap, -⟩
-    have Hfslen : fs.length = (restoreOutCC outgoing).length := by rw [Hn.2.2, Hn']
+    have Hfslen : fs.length = (restoreOutCC c.VotersOutgoing').length := by rw [Hn.2.2, Hn']
     -- `chain(chg, ops...)`
-    wp_apply wp_confchange_chain chg ops2 (fs ++ [_]) _ (restoreInv chg v0 (restoreOutCC outgoing) s')
+    wp_apply wp_confchange_chain chg ops2 (fs ++ [_]) _
+        (fun j cfg prs => iprop(restoreInv chg v0 (restoreOutCC c.VotersOutgoing') s' j cfg prs ∗ ownCSM cs dq c))
         $$ [$Hops $HI0] as %cfg %prs ⟨Hops, HI⟩
     · imodintro
       iintro %j %f %Hjf
@@ -676,13 +736,16 @@ theorem confchange.Restore.wp_proof
       unfold opSpec
       iintro %cfg %prs
       wp_start_folded as HI
-      iStructNamed cs
+      icases HI with ⟨HI, Hcs⟩
       wp_auto
+      wp_apply wp_GetAutoLeave_own wp_ConfState_GetAutoLeave cs dq c $$ [$Hcs] as Hcs
       rw [Hfslen]
-      wp_apply wp_restore_ej_op wp_Changer_EnterJoint chg v0 (restoreOutCC outgoing) s' sN Hfull cs.AutoLeave' _ Hej
-        hpos Hmi _ cfg prs ins _ $$ [$Hpkg $chg $Hins $HI] as %cfg' %trk ⟨-, HI⟩
+      wp_apply wp_restore_ej_op wp_Changer_EnterJoint chg v0 (restoreOutCC c.VotersOutgoing') s' sN Hfull c.AutoLeave' _ Hej
+        hpos Hmi _ cfg prs ins li _ $$ [$Hpkg $chg $Hins $Hli $HI] as %cfg' %trk ⟨-, HI⟩
       iapply HΦ
-      iexact HI
+      dsimp only
+      iframe HI Hcs
+    icases HI with ⟨HI, Hcs⟩
     unfold restoreInv
     icases HI with ⟨Hv0, (⟨%Hj0, -, -⟩ | ⟨%Hpos, %s, %HR, Hst⟩)⟩
     · exfalso; simp at Hj0

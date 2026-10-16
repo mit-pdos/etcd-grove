@@ -47,7 +47,7 @@ theorem raftLog.findConflict.wp_proof
   iNamed Hlog
   iNamed Hes
   wp_auto
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hes
+  ihave %Hlen := entsPts_len _ _ _ $$ Hes
   -- the `for range` counter is `i_ptr`; the Go-level `i` (written from `$key`) is the
   -- inaccessible one
   rename_i gi_ptr
@@ -56,7 +56,7 @@ theorem raftLog.findConflict.wp_proof
       "Hj" ∷ i_ptr ↦ n ∗
       "Hgi" ∷ gi_ptr ↦ k ∗
       "Hlog" ∷ ownRaftLog l ls ∗
-      "Hes" ∷ es ↦*{dq} ents ∗
+      "Hes" ∷ entsPts es dq ents ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝ ∗
       "%Hfc" ∷ ⌜plogFindConflict ls.prev (ls.sents ++ ls.uents) ents
                  = plogFindConflict ls.prev (ls.sents ++ ls.uents) (ents.drop (sint.nat n))⌝)
@@ -68,22 +68,24 @@ theorem raftLog.findConflict.wp_proof
   wp_for IH
   wp_if_destruct
   · list_elem ents (sint.nat n) as e
+    iunfold entsPts at Hes
+    icases Hes with ⟨%lps, Hs, #Hb⟩
+    icases entsBig_lookup lps ents (sint.nat n) e He_lookup $$ Hb with ⟨%lp, %Hlp, #He⟩
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-    wp_apply wp_load_slice_index es (sint.Z n) ents dq e Hn.1 $$ [Hes] with Hes
+    wp_apply wp_load_slice_index es (sint.Z n) lps dq lp Hn.1 $$ [Hs] with Hs
     · iframe
       ipureintro
-      exact He_lookup
+      exact Hlp
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-    icases ownSlice_elem_acc (sint.Z n) e es dq ents Hn.1 He_lookup $$ Hes with ⟨He, Hesback⟩
-    wp_apply wp_pbEntryID $$ [$He] as He
-    ihave Hes := Hesback $$ %e He
-    have Hset : ents.set (sint.Z n).toNat e = ents := by
-      have hlt : (sint.Z n).toNat < ents.length := by word
-      have hget : ents[(sint.Z n).toNat]'hlt = e := by
-        have h2 : ents[(sint.Z n).toNat]? = some e := He_lookup
-        rw [List.getElem?_eq_getElem hlt] at h2; exact Option.some.inj h2
-      rw [← hget]; exact List.set_getElem_self hlt
-    rw [Hset]
+    wp_apply wp_load_slice_index es (sint.Z n) lps dq lp Hn.1 $$ [Hs] with Hs
+    · iframe
+      ipureintro
+      exact Hlp
+    wp_apply wp_pbEntryID $$ [$He] as -
+    ihave Hes : entsPts es dq ents $$ [Hs]
+    · iunfold entsPts
+      iexists lps
+      iframe Hs Hb
     wp_apply wp_raftLog_matchTerm l _ (entId e) $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
     have Hdrop : ents.drop (sint.nat n) = e :: ents.drop (sint.nat n + 1) := by
       have hlt : sint.nat n < ents.length := by word

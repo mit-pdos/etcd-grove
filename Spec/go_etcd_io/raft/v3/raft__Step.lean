@@ -21,6 +21,22 @@ Lean notes:
   the comparison with the `go_string` `campaignTransfer`).
 * `[∗ list] e;Q ∈ ents;Qs, …` is `bigSepL2`; Rocq's `word.add (word.add (plast_index
   ps) (W64 1)) (W64 k)` (`k : nat`) is `plastIndex ps + W64 1 + W64 (k : Int)`.
+
+raft v3.7 (2026-10-15, stage R4; `notes/decisions.md`, "`raft.go` over pointer messages"): `Step`
+takes a `*pb.Message` (`ml`) **for good** (Q3), as a received message: `msgIn ml dqe ⟨m, ents, sn,
+ctx, rs⟩` -- the struct at `1` (`stepFollower` replaces `To`, `send` `From`/`Term`), the entry
+pointers at `1` for a `MsgProp` (the conf-change loop replaces refused entries' slots) and
+read-only otherwise, the `Entries` slice's capacity owned (a `MsgApp`'s array may be adopted), the
+snapshot owned (`EnsureSnapshot`/`EnsureConfState`). The record's parts are quantified apart --
+the scalars `m : MessageM`, the entries `ents`, the context `ctx`, the snapshot `sn`, the
+responses `rs` -- so that every pure premise and abstraction keeps its text. `"Hents"`'s and
+`"Hents_cap"`'s heap parts and `"#Hctx"` are `msgIn`'s; a proposal's conf-change entries' bytes
+(`ccEntsOk`) stay (pure since D6: an entry's `Data'` is its bytes; phase 2 of R4 also took the
+entries' data bytes, for `appendEntry`'s clones, which D6 made unneeded); the `MsgSnap` premise is on the snapshot the message holds (`sn = some sv`) and its
+`ConfState`'s lists (`scfg = sv.Metadata'.ConfState'.lists`, until the retarget the read-only
+slices, `ownCSL`); `MsgStorageAppendResp`'s `m.Snapshot' = null` is `sn = none`, and
+`RestMsgOk`'s "`Entries`/`Context` `nil`" is `ents = []`/`ctx = []` (so it takes `ents`, `ctx`).
+Nothing of the message is given back.
 -/
 module
 
@@ -69,22 +85,24 @@ forward it again and `send` panics on a stamped `MsgTransferLeader`; and it carr
 entries and no context (`RawNode.TransferLeader` builds it so, and forwarding keeps it).
 These are transport premises, like the others: no message fact carries them
 (`MsgTransferLeader` and `MsgTimeoutNow` are outside the model, `mtypeOf` is `none`). -/
-def RestMsgOk [FfiSyntax] (s : NState) (m : raftpb.Message) : Prop :=
+def RestMsgOk [FfiSyntax] (s : NState) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
+    Prop :=
   ((m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) →
      m.Term' = W64 0) ∧
   (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64) ∧
   (m.Type' = MsgTransferLeader →
-     m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧
+     ents = [] ∧ ctx = [] ∧
      (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0))
 
 /-- `RestMsgOk` of a message of none of those types. -/
-theorem RestMsgOk.of_ne [FfiSyntax] {s : NState} {m : raftpb.Message}
+theorem RestMsgOk.of_ne [FfiSyntax] {s : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8}
     (h : m.Type' ≠ MsgForgetLeader ∧ m.Type' ≠ MsgUnreachable ∧ m.Type' ≠ MsgSnapStatus ∧
-      m.Type' ≠ MsgTimeoutNow ∧ m.Type' ≠ MsgTransferLeader) : RestMsgOk s m :=
+      m.Type' ≠ MsgTimeoutNow ∧ m.Type' ≠ MsgTransferLeader) : RestMsgOk s m ents ctx :=
   ⟨fun h' => by rcases h' with h' | h' | h' <;> simp_all,
    fun h' => absurd h' h.2.2.2.1, fun h' => absurd h' h.2.2.2.2⟩
 
-def StepMsg [FfiSyntax] (m : raftpb.Message) : Prop :=
+def StepMsg [FfiSyntax] (m : MessageM) : Prop :=
   m.Type' ∈ stepMsgTypes
 
 /-- What a `Step` of one of the messages `RawNode` steps itself leaves of the node's
@@ -113,7 +131,7 @@ entries not yet handed out, so not when its last entry is at or below it. This i
 lets the `RawNode` predicate (`InvRawnode.lean`) keep its client-facing facts on the log
 (the committed entries handed out so far, the unpersisted ones) across a `Step`.
 Nothing is said for any other message type. -/
-def LocalStepOk [FfiSyntax] (m : raftpb.Message) (ents : List raftpb.Entry)
+def LocalStepOk [FfiSyntax] (m : MessageM) (ents : List EntryM)
     (s s' : NState) : Prop :=
   (m.Type' = MsgProp ∨ m.Type' = MsgStorageAppendResp ∨ m.Type' = MsgStorageApplyResp) →
   LocalFrame s s' ∧
@@ -166,7 +184,7 @@ up (a campaign); by any other message (but a `MsgPreVoteResp` or (2026-10-13) a
 in-progress entries. And (2026-10-13, for `node.go`'s term budget) a `MsgTimeoutNow` at most
 one past the larger of the node's and the message's term: a step-down to the message's
 term, then a campaign. -/
-def TermStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
+def TermStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
   (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
   (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp → m.Type' ≠ MsgTimeoutNow →
@@ -175,7 +193,7 @@ def TermStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
   (m.Type' = MsgTimeoutNow → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') + 1)
 
 /-- A step that keeps the term. -/
-theorem TermStep.of_term [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+theorem TermStep.of_term [FfiSyntax] {m : MessageM} {s s' : NState}
     (h : s'.term = s.term)
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
     TermStep m s s' := by
@@ -183,12 +201,12 @@ theorem TermStep.of_term [FfiSyntax] {m : raftpb.Message} {s s' : NState}
   exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ _ => Int.le_max_left _ _, hi,
     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega⟩
 
-theorem TermStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : TermStep m s s :=
+theorem TermStep.refl [FfiSyntax] (m : MessageM) (s : NState) : TermStep m s s :=
   TermStep.of_term rfl (fun _ => Int.le_refl _)
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
-theorem TermStep.of_le [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+theorem TermStep.of_le [FfiSyntax] {m : MessageM} {s s' : NState}
     (hup : m.Type' ≠ MsgHup) (h1 : uint.Z s.term ≤ uint.Z s'.term)
     (h2 : uint.Z s'.term ≤ uint.Z m.Term')
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
@@ -197,7 +215,7 @@ theorem TermStep.of_le [FfiSyntax] {m : raftpb.Message} {s s' : NState}
    fun _ => by have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term'); omega⟩
 
 /-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
-theorem TermStep.of_local [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+theorem TermStep.of_local [FfiSyntax] {m : MessageM} {s s' : NState}
     (h : LocalFrame s s') : TermStep m s s' :=
   TermStep.of_term h.1 (fun _ => h.2.1)
 
@@ -209,7 +227,7 @@ pre-candidate (a won pre-vote's `campaign`), and never makes the node a pre-cand
 by `Ready`: with this, stepping them all moves the term up by at most one -- once a
 pre-vote is won the node is a candidate, and stays one through the rest of the queue,
 whose responses are then all stale or a candidate's to ignore. -/
-def RespStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
+def RespStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
   ((m.Type' = MsgVoteResp ∨ m.Type' = MsgAppResp) →
      uint.Z m.Term' < uint.Z s.term → s'.role = s.role) ∧
   (m.Type' = MsgPreVoteResp →
@@ -217,17 +235,17 @@ def RespStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
       (s.role = .preCandidate ∧ uint.Z s'.term = uint.Z s.term + 1)) ∧
      (s'.role = .preCandidate → s.role = .preCandidate ∧ s'.term = s.term))
 
-theorem RespStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : RespStep m s s :=
+theorem RespStep.refl [FfiSyntax] (m : MessageM) (s : NState) : RespStep m s s :=
   ⟨fun _ _ => rfl, fun _ => ⟨.inl (Int.le_max_left _ _), fun h => ⟨h, rfl⟩⟩⟩
 
 /-- Any step of a message that is none of the three responses. -/
-theorem RespStep.of_type [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+theorem RespStep.of_type [FfiSyntax] {m : MessageM} {s s' : NState}
     (h1 : m.Type' ≠ MsgVoteResp) (h2 : m.Type' ≠ MsgAppResp)
     (h3 : m.Type' ≠ MsgPreVoteResp) : RespStep m s s' :=
   ⟨fun h => by rcases h with h | h <;> contradiction, fun h => absurd h h3⟩
 
 /-- Any step of a `MsgVoteResp` or `MsgAppResp` that is not stale. -/
-theorem RespStep.of_fresh [FfiSyntax] {m : raftpb.Message} {s s' : NState}
+theorem RespStep.of_fresh [FfiSyntax] {m : MessageM} {s s' : NState}
     (h3 : m.Type' ≠ MsgPreVoteResp) (hge : uint.Z s.term ≤ uint.Z m.Term') :
     RespStep m s s' :=
   ⟨fun _ hlt => absurd hlt (Int.not_lt.2 hge), fun h => absurd h h3⟩
@@ -265,16 +283,18 @@ abbrev raft.Step.spec : Prop :=
     -- reconfiguration state over the struct's configuration); see `StepGhostMode.lean`
     (md : GMode)
     (γ : RaftNames) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message)
+    -- (stage R4) the message's pointer; its scalars `m`, entries `ents`, context `ctx`,
+    -- snapshot `sn` and responses `rs`
+    (ml : Loc) (m : MessageM)
     -- The message's `Entries` (`[]` for a message without entries), bound here rather
     -- than in `"Hm"` since 2026-10-06. (Until 2026-10-10 also, for a `MsgProp`, the
     -- client's result predicate for each entry: a proposal's atomic update is now
     -- deposited before the proposal reaches `Step` (`prop_deposit`), and its entries'
     -- `isMessage` says so (`entData`).)
-    (ents : List raftpb.Entry)
+    (ents : List EntryM)
     -- (2026-10-12) the list the message's `Context` holds, which the abstract message
     -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
-    (ctx : List w8),
+    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc),
   StepMsg m →
   -- (Until 2026-10-14, stage B8, a premise `m.Type' = MsgSnap → id ∈ γ.reCfg`: the node one of
   -- the ghost state's voters, which a snapshot's `restore` needs. It is now one of the
@@ -358,7 +378,7 @@ abbrev raft.Step.spec : Prop :=
   -- local (`Term = 0`); its entries' last index is committed (the bound is in `"Hm"`,
   -- where the list is named).
   (m.Type' = MsgStorageAppendResp →
-     m.Snapshot' = null ∧
+     sn = none ∧
      uint.Z m.Term' ≤ uint.Z s.term ∧
      (m.Term' = W64 0 ∨ m.Term' = s.term →
       m.Index' ≠ W64 0 →
@@ -379,7 +399,7 @@ abbrev raft.Step.spec : Prop :=
   (m.Type' = MsgReadIndexResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
   -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)
-  RestMsgOk s m →
+  RestMsgOk s m ents ctx →
   -- `r.step` agrees with the role (until 2026-10-14 `NStateRel s ps`, with the protocol
   -- state `ps` the ghost state was about: now `toPState s`, in `ownStepGhost`)
   NStateWf s →
@@ -407,10 +427,14 @@ abbrev raft.Step.spec : Prop :=
       -- - what the message carries as a protocol message: its abstraction (`absMsg`,
       --   which needs the entries) was legitimately sent -- for every type but
       --   `MsgSnap`, whose abstraction is `absSnap` (`"Hsnap"` below).
+      -- (stage R4) the message, taken for good (`msgIn`: the struct, the `Entries` capacity
+      -- and the snapshot owned; the entry pointers owned for a `MsgProp`, read-only
+      -- otherwise; the `Context` holding `ctx`)
       "Hm" ∷ (
-         "Hents" ∷ (if m.Type' = MsgProp then m.Entries' ↦* ents ∗ (∃ cs, ccEntsOk ents cs)
-                    else m.Entries' ↦*□ ents) ∗
-         "Hents_cap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
+         "Hmsg_in" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+                       ⟨m, ents, sn, ctx, rs⟩ ∗
+         -- a proposal's conf-change entries' bytes, which decode
+         "Hents" ∷ (if m.Type' = MsgProp then (∃ cs, ccEntsOk ents cs) else emp) ∗
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
                       (ents.length : Int) < 2^61⌝ ∗
@@ -424,7 +448,6 @@ abbrev raft.Step.spec : Prop :=
       -- vote request is now an ordinary one: with `checkQuorum` off its `force` changes
       -- nothing -- and empty on a heartbeat response; a read-index position is now what
       -- `isMessage` says it is.)
-      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
       "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
       -- (2026-10-14, stage R) a later credit, for the ghost step: the commit invariant's
@@ -440,14 +463,15 @@ abbrev raft.Step.spec : Prop :=
       -- `ConfState` the fold of the snapshot's prefix); and the abstraction `absSnap`
       -- (`Defs.lean`) -- the snapshot's metadata, not `m`'s own `Index`/`LogTerm` -- was
       -- legitimately sent. Transport/client assumptions like the rest.
+      -- (stage R4) the snapshot the message holds (`sn = some sv`, owned in `"Hm"`) and the
+      -- lists of its `ConfState` (until the retarget the read-only slices, `ownCSL`)
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-         ∃ (sv : raftpb.Snapshot) (scfg : CSLists),
-           m.Snapshot' ↦□ sv ∗
-           ownCSL sv.Metadata'.ConfState' scfg ∗
-           ⌜SnapScope sv scfg ∧ scfg.Has id⌝ ∗
+         ∃ (sv : SnapshotM) (scfg : CSLists),
+           ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+             SnapScope sv scfg ∧ scfg.Has id⌝ ∗
            md.SnapOk γ sv scfg ∗
            isMessage γ (absSnap m sv scfg)) }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
       "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
@@ -476,16 +500,16 @@ abbrev raft.Step.spec : Prop :=
 abbrev raft.Step.specS : Prop :=
   ∀ (cfg : GSet w64)
     (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState)
-    (m : raftpb.Message)
+    (ml : Loc) (m : MessageM)
     -- The message's `Entries` (`[]` for a message without entries), bound here rather
     -- than in `"Hm"` since 2026-10-06. (Until 2026-10-10 also, for a `MsgProp`, the
     -- client's result predicate for each entry: a proposal's atomic update is now
     -- deposited before the proposal reaches `Step` (`prop_deposit`), and its entries'
     -- `isMessage` says so (`entData`).)
-    (ents : List raftpb.Entry)
+    (ents : List EntryM)
     -- (2026-10-12) the list the message's `Context` holds, which the abstract message
     -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
-    (ctx : List w8),
+    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc),
   -- The ghost state is about one configuration, and it is this one. Without this the
   -- caller could hand `ownRaftGhost_step` a `cfg` of its own choosing -- a singleton
   -- one, say, in which the node is its own quorum -- and election safety would not
@@ -580,7 +604,7 @@ abbrev raft.Step.specS : Prop :=
   -- local (`Term = 0`); its entries' last index is committed (the bound is in `"Hm"`,
   -- where the list is named).
   (m.Type' = MsgStorageAppendResp →
-     m.Snapshot' = null ∧
+     sn = none ∧
      uint.Z m.Term' ≤ uint.Z s.term ∧
      (m.Term' = W64 0 ∨ m.Term' = s.term →
       m.Index' ≠ W64 0 →
@@ -596,7 +620,7 @@ abbrev raft.Step.specS : Prop :=
   (m.Type' = MsgReadIndexResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
   -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)
-  RestMsgOk s m →
+  RestMsgOk s m ents ctx →
   -- The one place the two layers meet. `s` is the physical abstract state
   -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,
   -- and `NStateRel` (`Defs.lean`) connects them: `ps` is `s`'s protocol fields,
@@ -620,10 +644,14 @@ abbrev raft.Step.specS : Prop :=
       -- - what the message carries as a protocol message: its abstraction (`absMsg`,
       --   which needs the entries) was legitimately sent -- for every type but
       --   `MsgSnap`, whose abstraction is `absSnap` (`"Hsnap"` below).
+      -- (stage R4) the message, taken for good (`msgIn`: the struct, the `Entries` capacity
+      -- and the snapshot owned; the entry pointers owned for a `MsgProp`, read-only
+      -- otherwise; the `Context` holding `ctx`)
       "Hm" ∷ (
-         "Hents" ∷ (if m.Type' = MsgProp then m.Entries' ↦* ents ∗ (∃ cs, ccEntsOk ents cs)
-                    else m.Entries' ↦*□ ents) ∗
-         "Hents_cap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
+         "Hmsg_in" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+                       ⟨m, ents, sn, ctx, rs⟩ ∗
+         -- a proposal's conf-change entries' bytes, which decode
+         "Hents" ∷ (if m.Type' = MsgProp then (∃ cs, ccEntsOk ents cs) else emp) ∗
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
                       (ents.length : Int) < 2^61⌝ ∗
@@ -637,7 +665,6 @@ abbrev raft.Step.specS : Prop :=
       -- vote request is now an ordinary one: with `checkQuorum` off its `force` changes
       -- nothing -- and empty on a heartbeat response; a read-index position is now what
       -- `isMessage` says it is.)
-      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
       "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
       -- (2026-10-14, stage R) a later credit, for the ghost step: the commit invariant's
@@ -655,12 +682,11 @@ abbrev raft.Step.specS : Prop :=
       -- the branch (`W64 0 ∉ cfg`, `AutoLeave`, the index bound) are transport/client
       -- assumptions like the rest.
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-         ∃ (sv : raftpb.Snapshot) (scfg : CSLists),
-           m.Snapshot' ↦□ sv ∗
-           ownCSL sv.Metadata'.ConfState' scfg ∗
-           ⌜SnapScope sv scfg ∧ GMap.listToSet scfg.voters = cfg ∧ scfg.outgoing = []⌝ ∗
+         ∃ (sv : SnapshotM) (scfg : CSLists),
+           ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+             SnapScope sv scfg ∧ GMap.listToSet scfg.voters = cfg ∧ scfg.outgoing = []⌝ ∗
            isMessage γ (absSnap m sv scfg)) }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;
       "Hphys" ∷ ownRaftPhys cfg r id s' ∗
       "Hghost" ∷ ownRaftGhost γ id ps' ∗
@@ -683,20 +709,20 @@ abbrev raft.Step.specS : Prop :=
 open Iris.ProofMode in
 theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
     raft.Step.specS (GF := GF) (hG := hG) := by
-  intro cfg γ r id s ps m ents ctx Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+  intro cfg γ r id s ps ml m ents ctx sn rs Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hrel
   subst Hcfg
   obtain ⟨rfl, Hwf⟩ := Hrel
-  iintro %Φ ⟨#Hpkg, Hphys, Hghost, Hm, #Hctx, Hcred, Hlc, #Hsnap⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hphys, Hghost, Hm, Hcred, Hlc, #Hsnap⟩ HΦ
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) .static γ r id s m ents ctx
+  iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) .static γ r id s ml m ents ctx sn rs
       Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
       Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr
       Hri
       (fun _ h => absurd h (by simp [CfgM.simple]))
       Hrir Hrest Hwf trivial
-    $$ [$Hpkg $Hphys $Hm $Hctx $Hcred $Hlc Hghost]
+    $$ [$Hpkg $Hphys $Hm $Hcred $Hlc Hghost]
   · isplitl [Hghost]
     · simp only [ownStepGhost, ghostRest, GMode.isDyn]
       isplitl [Hghost]
@@ -705,13 +731,13 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
     -- the snapshot: the node is one of its voters, the ghost state's
     imodintro
     iintro %Hns
-    icases Hsnap $$ %Hns with ⟨%sv, %scfg, #Hsv, #Hcs, %Hsc, #Hm'⟩
-    obtain ⟨Hscope, Hvs, Hout⟩ := Hsc
+    icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hm'⟩
+    obtain ⟨Hsn, Hcl, Hscope, Hvs, Hout⟩ := Hsc
     iexists sv, scfg
-    iframe Hsv Hcs Hm'
+    iframe Hm'
     isplitr
     · ipureintro
-      refine ⟨Hscope, .inl ?_⟩
+      refine ⟨Hsn, Hcl, Hscope, .inl ?_⟩
       have := Hin Hns
       rw [← Hvs] at this
       exact (GMap.elem_of_list_to_set _ _).1 this

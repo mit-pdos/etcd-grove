@@ -1,4 +1,9 @@
-/- Lean-first (no Rocq counterpart), 2026-10-13: reconfiguration stage D. -/
+/- Lean-first (no Rocq counterpart), 2026-10-13: reconfiguration stage D.
+
+raft v3.7 (2026-10-16, stage R5): the conf change is a pointer (`ownCCI`): a `*ConfChange`'s
+`AsV2` returns a fresh `*ConfChangeV2` (`ownCCV2 v 1 m.asV2`, whose transition and changes are
+`ccV2Of (.v1 m)` by definition), a `*ConfChangeV2`'s is itself; `applyConfChange` returns a fresh
+`*pb.ConfState` (`csPts cs 1 … true`), handed to the caller. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.RawNode__ApplyConfChange
@@ -42,115 +47,96 @@ theorem RawNode.ApplyConfChange.wp_proof
   rcases Hmode with ⟨dec, c0, h0, h1, hm⟩ | hm
   · have Hpre := Hdyn dec c0 h0 h1 hm
     rcases o with m | m
-    · simp only [ownCCI, ownCCV1]
-      icases Hc with ⟨%v, %Hcv, %Hvm, Hctx⟩
+    · simp only [ownCCI]
+      icases Hc with ⟨%p, %Hcv, Hc1⟩
       subst Hcv
       wp_auto_lc 1
-      wp_apply wp_ConfChange_AsV2 as %v2 ⟨%Hv2, Hch⟩
-      obtain ⟨Hty, Hnid, Hid⟩ := Hvm
+      wp_apply wp_ConfChange_AsV2 p dq m $$ [$Hc1] as %v2 ⟨Hc1, Hch⟩
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
-          cs0 v2 _ (DFrac.own 1) (by rw [Hv2.1, Hty, Hnid]; exact Hpre) s cf fp rnv sv steps Hwf Hin
+          cs0 v2 m.asV2 (DFrac.own 1) Hpre s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-        $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hsteps $Hsteps_cap $Hpend $Hpown $Hdeliv $Hstrecs
-          $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hvoters, Hos, Hls, Hlns, %Hcs0⟩
+        $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
+          $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
-      iapply HΦ
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
-      iframe Hvoters Hls
-      isplitl [Hctx]
-      · try simp only [ownCCI, ownCCV1]
-        iexists v
-        isplitr
-        · ipureintro; rfl
-        iframe Hctx
-        ipureintro; exact ⟨Hty, Hnid, Hid⟩
-      iframe
+      iframe Hcs
+      isplitl [Hc1]
+      · try simp only [ownCCI]
+        iexists p
+        iframe Hc1
+        ipureintro; rfl
       iright
       isplitr
       · ipureintro; rw [hm]; rfl
       iframe Hrn
-      iexists os, lns
-      iframe Hos Hlns
-      ipureintro; exact Hcs0
-    · simp only [ownCCI, ownCCV2]
-      icases Hc with ⟨%v, %Hcv, %Htr, Hch, Hctx⟩
+      ipureintro; exact ⟨Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, trivial⟩
+    · simp only [ownCCI]
+      icases Hc with ⟨%p, %Hcv, Hch⟩
       subst Hcv
       wp_auto_lc 1
       wp_apply wp_ConfChangeV2_AsV2
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
-          cs0 v _ dq (by rw [Htr]; exact Hpre) s cf fp rnv sv steps Hwf Hin
+          cs0 p m dq Hpre s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-        $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hsteps $Hsteps_cap $Hpend $Hpown $Hdeliv $Hstrecs
-          $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hvoters, Hos, Hls, Hlns, %Hcs0⟩
+        $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
+          $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto
-      iapply HΦ
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
-      iframe Hvoters Hls
-      isplitl [Hch Hctx]
-      · try simp only [ownCCI, ownCCV2]
-        iexists v
-        isplitr
-        · ipureintro; rfl
-        iframe Hch Hctx
-        ipureintro; exact Htr
-      iframe
+      iframe Hcs
+      isplitl [Hch]
+      · try simp only [ownCCI]
+        iexists p
+        iframe Hch
+        ipureintro; rfl
       iright
       isplitr
       · ipureintro; rw [hm]; rfl
       iframe Hrn
-      iexists os, lns
-      iframe Hos Hlns
-      ipureintro; exact Hcs0
+      ipureintro; exact ⟨Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, trivial⟩
   have Hm := hm
   have Hap0 := Hap0 hm
   icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with ⟨Hphys, Hghost⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   rcases o with m | m
-  · -- a `ConfChange`: `AsV2` makes the one change
-    simp only [ownCCI, ownCCV1]
-    icases Hc with ⟨%v, %Hcv, %Hvm, Hctx⟩
+  · -- a `ConfChange`: `AsV2` makes the one change, a fresh `*ConfChangeV2`
+    simp only [ownCCI]
+    icases Hc with ⟨%p, %Hcv, Hc1⟩
     subst Hcv
     wp_auto_lc 1
-    wp_apply wp_ConfChange_AsV2 as %v2 ⟨%Hv2, Hch⟩
-    obtain ⟨Hty, Hnid, Hid⟩ := Hvm
-    have Hap : CCApplies γ.reCfg id v2.Transition' [({ Type' := v.Type', NodeId' := v.NodeId' } :
-        raftpb.ConfChangeSingle)] := by
-      rw [Hv2.1, Hty, Hnid]; exact Hap0
+    wp_apply wp_ConfChange_AsV2 p dq m $$ [$Hc1] as %v2 ⟨Hc1, Hch⟩
+    have Hap : CCApplies γ.reCfg id m.asV2.transition m.asV2.changes := Hap0
     by_cases Hsh : CCShrink γ.reCfg (ccV2Of (.v1 m)).1 (ccV2Of (.v1 m)).2
     · -- a shrinking change: as in stage L
-      have Hn0 : CCShrink γ.reCfg v2.Transition' [({ Type' := v.Type', NodeId' := v.NodeId' } :
-          raftpb.ConfChangeSingle)] := by
-        rw [Hv2.1, Hty, Hnid]; exact Hsh
+      have Hn0 : CCShrink γ.reCfg m.asV2.transition m.asV2.changes := Hsh
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
       obtain ⟨lrn', Hd', Hsz', Hn⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
-      wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id s v2 _ (DFrac.own 1) lrn' Hd'
-        Hsz' Hn
-        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hvoters, Hls, %Hcs0, %Hok⟩
-      imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv steps Hm Hrel Hin Hasync Hdlen Hunp
+      wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
+          id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn
+        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok⟩
+      imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
-      iapply HΦ
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]
-      iframe Hvoters Hls
-      isplitl [Hctx]
-      · try simp only [ownCCI, ownCCV1]
-        iexists v
-        isplitr
-        · ipureintro; rfl
-        iframe Hctx
-        ipureintro; exact ⟨Hty, Hnid, Hid⟩
-      iframe
+      iframe Hcs
+      isplitl [Hc1]
+      · try simp only [ownCCI]
+        iexists p
+        iframe Hc1
+        ipureintro; rfl
       ileft
       isplitr
       · ipureintro; exact Hm
       ileft
       iframe Hrn
       ipureintro
-      exact ⟨Hsh, Hcs0.1, fun k hk => Hd' k ((GMap.elem_of_elements _ _).1 (Hcs0.2.1.mem_iff.1 hk)),
-        Hcs0.2.2⟩
+      exact ⟨Hsh, Hcs0.1, fun k hk => Hd' k ((GMap.elem_of_elements _ _).1 (Hcs0.2.mem_iff.1 hk)),
+        trivial, trivial, trivial⟩
     · -- any other change: detached, at the new configuration
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
@@ -170,75 +156,70 @@ theorem RawNode.ApplyConfChange.wp_proof
       have HszL : (GMap.size (γ.reCfg ∪ (domSet s.progress \ γ.reCfg)) : Int) ≤ 2 ^ 62 := by
         rw [HU, GMap.size_dom]; exact Hsz
       obtain ⟨c', Happ, Hsz', Hin'⟩ := Hap _ HdL HszL
-      have Happ' := Happ
-      rw [Hv2.1, Hty, Hnid] at Happ'
+      have Happ' : ccApplyM (ccV2Of (.v1 m)).1 (ccV2Of (.v1 m)).2 (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) = some c' := Happ
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
       wp_apply +noauto wp_raft_applyConfChange (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg))
-          rnv.raft' id s v2 _ (DFrac.own 1) c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
+          rnv.raft' id s v2 m.asV2 (DFrac.own 1) c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
           (fun _ h => absurd Hin' h) (fun _ => Hin')
-        $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hvoters, Hos, Hls, Hlns, %Hcs0, %Hok⟩
+        $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok⟩
       try wp_auto
-      iapply HΦ
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)
       simp only [named]
-      iframe Hvoters Hls
-      isplitl [Hctx]
-      · try simp only [ownCCI, ownCCV1]
-        iexists v
-        isplitr
-        · ipureintro; rfl
-        iframe Hctx
-        ipureintro; exact ⟨Hty, Hnid, Hid⟩
-      iframe
+      iframe Hcs
+      isplitl [Hc1]
+      · try simp only [ownCCI]
+        iexists p
+        iframe Hc1
+        ipureintro; rfl
       ileft
       isplitr
       · ipureintro; exact Hm
       iright
       isplitr
       · ipureintro; exact Hsh
-      iexists (domSet s.progress \ γ.reCfg), c', s, s', os, lns
-      iframe Hos Hlns
+      iexists (domSet s.progress \ γ.reCfg), c', s, s'
+      ihave Hpown := pendList_forget γ id steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
-      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv steps rs.steps Hasync
-          $$ Hrn Hphys Hsoft Hsteps Hsteps_cap Hpown
+      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps Hasync
+          $$ Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap Hpown
       ipureintro
-      exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2.1, Hcs0.2.2.2.2, Hok⟩
+      exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, rfl, Hok⟩
   · -- a `ConfChangeV2`: `AsV2` is itself
-    simp only [ownCCI, ownCCV2]
-    icases Hc with ⟨%v, %Hcv, %Htr, Hch, Hctx⟩
+    simp only [ownCCI]
+    icases Hc with ⟨%p, %Hcv, Hch⟩
     subst Hcv
     wp_auto_lc 1
     wp_apply wp_ConfChangeV2_AsV2
-    have Hap : CCApplies γ.reCfg id v.Transition' m.changes := by rw [Htr]; exact Hap0
+    have Hap : CCApplies γ.reCfg id m.transition m.changes := Hap0
     by_cases Hsh : CCShrink γ.reCfg (ccV2Of (.v2 m)).1 (ccV2Of (.v2 m)).2
-    · have Hn0 : CCShrink γ.reCfg v.Transition' m.changes := by rw [Htr]; exact Hsh
+    · -- a shrinking change: as in stage L
+      have Hn0 : CCShrink γ.reCfg m.transition m.changes := Hsh
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
       obtain ⟨lrn', Hd', Hsz', Hn⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
-      wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id s v _ dq lrn' Hd' Hsz' Hn
-        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hvoters, Hls, %Hcs0, %Hok⟩
-      imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv steps Hm Hrel Hin Hasync Hdlen Hunp
+      wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
+          id s p m dq lrn' Hd' Hsz' Hn
+        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
+      imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
-      iapply HΦ
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]
-      iframe Hvoters Hls
-      isplitl [Hch Hctx]
-      · try simp only [ownCCI, ownCCV2]
-        iexists v
-        isplitr
-        · ipureintro; rfl
-        iframe Hch Hctx
-        ipureintro; exact Htr
-      iframe
+      iframe Hcs
+      isplitl [Hch]
+      · try simp only [ownCCI]
+        iexists p
+        iframe Hch
+        ipureintro; rfl
       ileft
       isplitr
       · ipureintro; exact Hm
       ileft
       iframe Hrn
       ipureintro
-      exact ⟨Hsh, Hcs0.1, fun k hk => Hd' k ((GMap.elem_of_elements _ _).1 (Hcs0.2.1.mem_iff.1 hk)),
-        Hcs0.2.2⟩
+      exact ⟨Hsh, Hcs0.1, fun k hk => Hd' k ((GMap.elem_of_elements _ _).1 (Hcs0.2.mem_iff.1 hk)),
+        trivial, trivial, trivial⟩
     · -- any other change: detached, at the new configuration
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
@@ -258,38 +239,34 @@ theorem RawNode.ApplyConfChange.wp_proof
       have HszL : (GMap.size (γ.reCfg ∪ (domSet s.progress \ γ.reCfg)) : Int) ≤ 2 ^ 62 := by
         rw [HU, GMap.size_dom]; exact Hsz
       obtain ⟨c', Happ, Hsz', Hin'⟩ := Hap _ HdL HszL
-      have Happ' := Happ
-      rw [Htr] at Happ'
+      have Happ' : ccApplyM (ccV2Of (.v2 m)).1 (ccV2Of (.v2 m)).2 (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) = some c' := Happ
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
       wp_apply +noauto wp_raft_applyConfChange (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg))
-          rnv.raft' id s v _ dq c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
+          rnv.raft' id s p m dq c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
           (fun _ h => absurd Hin' h) (fun _ => Hin')
-        $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hvoters, Hos, Hls, Hlns, %Hcs0, %Hok⟩
+        $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
       try wp_auto
-      iapply HΦ
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)
       simp only [named]
-      iframe Hvoters Hls
-      isplitl [Hch Hctx]
-      · try simp only [ownCCI, ownCCV2]
-        iexists v
-        isplitr
-        · ipureintro; rfl
-        iframe Hch Hctx
-        ipureintro; exact Htr
-      iframe
+      iframe Hcs
+      isplitl [Hch]
+      · try simp only [ownCCI]
+        iexists p
+        iframe Hch
+        ipureintro; rfl
       ileft
       isplitr
       · ipureintro; exact Hm
       iright
       isplitr
       · ipureintro; exact Hsh
-      iexists (domSet s.progress \ γ.reCfg), c', s, s', os, lns
-      iframe Hos Hlns
+      iexists (domSet s.progress \ γ.reCfg), c', s, s'
+      ihave Hpown := pendList_forget γ id steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
-      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv steps rs.steps Hasync
-          $$ Hrn Hphys Hsoft Hsteps Hsteps_cap Hpown
+      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps Hasync
+          $$ Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap Hpown
       ipureintro
-      exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2.1, Hcs0.2.2.2.2, Hok⟩
+      exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, rfl, Hok⟩
 
 end proof
 

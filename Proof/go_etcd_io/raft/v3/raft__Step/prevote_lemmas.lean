@@ -45,8 +45,8 @@ local macro "mtype_simp" : tactic =>
       or_false, false_or, false_and, and_false, ↓reduceIte, Bool.false_eq_true] at *)
 
 /-- `stepFollower` has no `MsgPreVoteResp` arm. -/
-theorem followerStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
+theorem followerStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgPreVoteResp →
     FollowerStepResultC c scfg id s m ents sv dropped s' c' → c = c' ∧ dropped = false ∧ s' = s := by
   intro Hty H
@@ -59,7 +59,7 @@ theorem followerStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (
 
 /-- `stepLeader` has none either. -/
 theorem leaderStepResult_prevoteresp (c : CfgM) (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (dropped : Bool) (s' : NState) :
+    (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgPreVoteResp →
     LeaderStepResultC c id s m ents dropped s' → dropped = false ∧ s' = s := by
   intro Hty H
@@ -80,7 +80,7 @@ theorem leaderStepResult_prevoteresp (c : CfgM) (id : w64) (s : NState)
 /-- A pre-candidate's tally keeps the log, and the term or moves it one up (a win's
 `campaign`). -/
 theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
-    (peers : List w64) (pvs : GMap w64 Progress) (m : raftpb.Message)
+    (peers : List w64) (pvs : GMap w64 Progress) (m : MessageM)
     (Hty : m.Type' = MsgPreVoteResp) (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
     NetFrame s { prevoteRespResult id s src reject won lost peers with prvals := pvs } ∧
     TermStep m s { prevoteRespResult id s src reject won lost peers with prvals := pvs } := by
@@ -112,7 +112,7 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
 (the term does not wrap) -- a loss steps down at the same term, and otherwise it stays a
 pre-candidate at the same term. -/
 theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
-    (peers : List w64) (pvs : GMap w64 Progress) (m : raftpb.Message)
+    (peers : List w64) (pvs : GMap w64 Progress) (m : MessageM)
     (Hty : m.Type' = MsgPreVoteResp) (Hp : s.role = .preCandidate)
     (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
     RespStep m s { prevoteRespResult id s src reject won lost peers with prvals := pvs } := by
@@ -133,7 +133,7 @@ theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won l
 /-- `stepCandidate` on a `MsgPreVoteResp`: nothing at a candidate; at a pre-candidate,
 the tally and then win / lose / wait, which is `stepC_prevoteRespResult`. -/
 theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
+    (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState) :
     m.Type' = MsgPreVoteResp →
     (s.role = .candidate ∨ s.role = .preCandidate) →

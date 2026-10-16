@@ -24,8 +24,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setCommitted
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__apply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_uber_org.zap.Error

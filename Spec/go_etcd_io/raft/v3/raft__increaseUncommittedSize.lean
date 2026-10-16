@@ -57,33 +57,36 @@ path writes nothing.
 Stated against `ownRaftPhys` and the batch, which is all the body touches
 (`uncommittedSize`, `maxUncommittedSize`, and `payloadsSize`'s read of the slice). The
 new `uncommittedSize` is not named because no predicate in this development mentions
-the field. -/
+the field.
+
+raft v3.7 (2026-10-15, stage R4): the batch is a `[]*pb.Entry` (`entsPts es dq ents`, R3's
+`payloadsSize` premise; `appendEntry` passes its fresh clones). -/
 abbrev raft.increaseUncommittedSize.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List raftpb.Entry) (dq : DFrac),
+    (ents : List EntryM) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hes" ∷ es ↦*{dq} ents }}
+      "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"increaseUncommittedSize"))
       (Val #es))
   {{ (ok : Bool), RET #ok;
-      ownRaftPhysCV c c.voters r id s ∗ es ↦*{dq} ents ∗
+      ownRaftPhysCV c c.voters r id s ∗ entsPts es dq ents ∗
       -- an all-empty batch is never rejected
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true⌝ }}
+      ⌜(∀ e ∈ ents, e.Data' = []) → ok = true⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.increaseUncommittedSize.spec` by `raft.increaseUncommittedSize.spec_simple`. -/
 abbrev raft.increaseUncommittedSize.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List raftpb.Entry) (dq : DFrac),
+    (ents : List EntryM) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hes" ∷ es ↦*{dq} ents }}
+      "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"increaseUncommittedSize"))
       (Val #es))
   {{ (ok : Bool), RET #ok;
-      ownRaftPhys cfg r id s ∗ es ↦*{dq} ents ∗
-      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true⌝ }}
+      ownRaftPhys cfg r id s ∗ entsPts es dq ents ∗
+      ⌜(∀ e ∈ ents, e.Data' = []) → ok = true⌝ }}
 
 open Iris.ProofMode in
 theorem raft.increaseUncommittedSize.spec_simple

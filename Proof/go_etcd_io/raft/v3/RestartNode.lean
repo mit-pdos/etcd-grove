@@ -24,15 +24,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `NewRawNode`, `newNode`, then the node's ghost state: the channels' hand-shakes (with
 `P := False` on those nobody sends on), the tick channel's invariant (no credit yet),
-`dlv` and `rof`; `run` takes its halves. -/
+`dlv` and `rof`; `run` takes its halves. (Raft v3.7, stage R5: `NewRawNode`'s premises over the
+conf state's record `csm` and D7's `InitialState`; no proposed slices' invariant (D6).) -/
 theorem RestartNode.wp_proof
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
-  intro γ md bud c cv lok si σ hs cs voters dqv P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
+  intro γ md bud c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
     P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
-  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hpdinv⟩
+  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
     | static =>
@@ -45,7 +46,7 @@ theorem RestartNode.wp_proof
       icases Hg with ⟨Hg, -⟩
       iapply ownRaftGhost_inv_md $$ Hg
   wp_auto
-  wp_apply wp_NewRawNode γ md c cv lok si σ hs cs voters dqv P1 P2 P3 P4 P5 P6 P7 P8 P9
+  wp_apply wp_NewRawNode γ md c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9
     P10 P11 P12 P13 P14 P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
     $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hghost $Hcommitted] as %rn %err H
   iNamed H
@@ -54,16 +55,16 @@ theorem RestartNode.wp_proof
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   ipersist n
   -- the node's ghost state
-  imod dghostVar_alloc ([] : List raftpb.Entry) with ⟨%γdlv, Hdlv⟩
+  imod dghostVar_alloc ([] : List EntryM) with ⟨%γdlv, Hdlv⟩
   icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
-  imod dghostVar_alloc (([], [], []) : List raftpb.Entry × List raftpb.Entry ×
-    List raftpb.Entry) with ⟨%γrof, Hrof⟩
+  imod dghostVar_alloc (([], [], []) : List EntryM × List EntryM ×
+    List EntryM) with ⟨%γrof, Hrof⟩
   icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
   -- (2026-10-15, stage N) the configuration shared with the driver
-  imod mono_list_own_alloc ([] : List raftpb.Entry) with ⟨%γdlm, Hdlm, #Hdlb⟩
-  imod dghostVar_alloc ((0 : Nat), cfgState (GMap.listToSet voters) ∅) with ⟨%γcap, Hcap⟩
+  imod mono_list_own_alloc ([] : List EntryM) with ⟨%γdlm, Hdlm, #Hdlb⟩
+  imod dghostVar_alloc ((0 : Nat), cfgState (GMap.listToSet csm.Voters') ∅) with ⟨%γcap, Hcap⟩
   icases dghostVar_halves _ _ $$ Hcap with ⟨Hcap1, Hcap2⟩
-  imod dghostVar_alloc ((0 : Nat), cfgState (GMap.listToSet voters) ∅) with ⟨%γccq, Hccq⟩
+  imod dghostVar_alloc ((0 : Nat), cfgState (GMap.listToSet csm.Voters') ∅) with ⟨%γccq, Hccq⟩
   icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcam, Hcam, #Hcamlb⟩
   unfold newNodeChans
@@ -103,7 +104,7 @@ theorem RestartNode.wp_proof
   · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
     · iframe Hnode
       unfold runPre
-      iexists nv, _, (([], [], []) : List raftpb.Entry × List raftpb.Entry × List raftpb.Entry)
+      iexists nv, _, (([], [], []) : List EntryM × List EntryM × List EntryM)
       rw [Hnvrn]
       iframe n Hrn Hrof1 Hrof2
       isplitr

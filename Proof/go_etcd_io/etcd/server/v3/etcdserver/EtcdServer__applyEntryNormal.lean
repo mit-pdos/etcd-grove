@@ -5,8 +5,8 @@ module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Lemmas
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
 public import Spec.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify

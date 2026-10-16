@@ -53,7 +53,7 @@ theorem quorums_intersect_cfg (cfg q1 q2 : GSet w64) :
   exact ⟨x, by set_solver, by set_solver, by set_solver⟩
 
 /-- A campaign log ends at its last entry. -/
-theorem camp_last (T : w64) (F0 : List raftpb.Entry) :
+theorem camp_last (T : w64) (F0 : List EntryM) :
     CampOk T F0 →
     plogTermAt base0 F0 (W64 (plogLastIndexZ base0 F0))
     = some (plogLast base0 F0).term' := by
@@ -92,7 +92,7 @@ theorem tbl_voter (γ : RaftNames) (v T c t i : w64) :
 
 /-- The induction hypothesis of `lc_core`, below the term `T`. -/
 def LcIH (γ : RaftNames) (T : w64) : Prop :=
-  ∀ (T' t' n' : w64) (F' : List raftpb.Entry) (c' : w64) (F0' G' : List raftpb.Entry),
+  ∀ (T' t' n' : w64) (F' : List EntryM) (c' : w64) (F0' G' : List EntryM),
     uint.Z T' < uint.Z T → uint.Z t' < uint.Z T' →
     PlogWf base0 G' →
     plogTermAt base0 G' (W64 (plogLastIndexZ base0 F0'))
@@ -102,7 +102,7 @@ def LcIH (γ : RaftNames) (T : w64) : Prop :=
 
 /-- A full log extends the campaign log of its leader, so it reaches that log's last
 entry. -/
-theorem prefix_camp_last (T : w64) (F0 X : List raftpb.Entry) :
+theorem prefix_camp_last (T : w64) (F0 X : List EntryM) :
     CampOk T F0 → F0 <+: X →
     plogTermAt base0 X (W64 (plogLastIndexZ base0 F0)) = some (plogLast base0 F0).term' := by
   intro Hcok Hpre
@@ -111,8 +111,8 @@ theorem prefix_camp_last (T : w64) (F0 X : List raftpb.Entry) :
 
 /-- In `lc_core` (Rocq: the `iAssert` `"Hagree"`): logs a history may mention agree with
 `F` at and below `n`, by the induction hypothesis. -/
-private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry)
-    (IH : LcIH (GF := GF) γ T) (j : w64) (X : List raftpb.Entry) :
+private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List EntryM)
+    (IH : LcIH (GF := GF) γ T) (j : w64) (X : List EntryM) :
     uint.Z t < uint.Z T → uint.Z j ≤ uint.Z n → (plogTermAt base0 X j).isSome →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗ okL γ t (uint.Z T) j X -∗
       ⌜plogTermAt base0 X j = plogTermAt base0 F j⌝ := by
@@ -155,10 +155,10 @@ private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry)
 /-- `lc_agree` at the bound `T + 1`, given that the logs of `T`'s leader agree with `F` below
 `n` (2026-10-14, stage B5: the `d` branch of a vote cast for a winner not yet in the table, the
 paper's repair 2). -/
-private theorem lc_agree_T1 (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry)
-    (IH : LcIH (GF := GF) γ T) (j : w64) (X : List raftpb.Entry) :
+private theorem lc_agree_T1 (γ : RaftNames) (T t n : w64) (F : List EntryM)
+    (IH : LcIH (GF := GF) γ T) (j : w64) (X : List EntryM) :
     uint.Z t < uint.Z T → uint.Z j ≤ uint.Z n → (plogTermAt base0 X j).isSome →
-    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗ (□ ∀ (X' : List raftpb.Entry) (j' : w64), votesTbl γ -∗ leadFull γ T X' -∗
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗ (□ ∀ (X' : List EntryM) (j' : w64), votesTbl γ -∗ leadFull γ T X' -∗
         ⌜uint.Z j' ≤ uint.Z n ∧ (plogTermAt base0 X' j').isSome⌝ -∗
         ⌜plogTermAt base0 X' j' = plogTermAt base0 F j'⌝) -∗
       okL γ t (uint.Z T + 1) j X -∗ ⌜plogTermAt base0 X j = plogTermAt base0 F j⌝ := by
@@ -190,8 +190,8 @@ was at least as up to date. Same last term: `G` has that term down to `Fv`'s las
 campaign log's last entry (`recs_chain`), and the induction hypothesis at `tc` applies to `G`
 itself. The vote counted in the election (the `d` branch: a vote cast knowing the leader of `T`
 is not in its winning quorum) by election safety, the winners table's agreement. -/
-theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w64)
-    (F0 G : List raftpb.Entry) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) :
+theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
+    (F0 G : List EntryM) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) :
     uint.Z t < uint.Z T →
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
@@ -201,7 +201,7 @@ theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w
       ([∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i') -∗
       ([∗map] v ↦ _u ∈ toMap V, isVote γ v T c) -∗
       (□ ∀ (ldr : w64) (qd : GSet w64), isWin γ ldr T qd -∗ ⌜∃ v, v ∈ V ∧ v ∉ qd⌝ -∗
-        (□ ∀ (X' : List raftpb.Entry) (j' : w64), votesTbl γ -∗ leadFull γ T X' -∗
+        (□ ∀ (X' : List EntryM) (j' : w64), votesTbl γ -∗ leadFull γ T X' -∗
         ⌜uint.Z j' ≤ uint.Z n ∧ (plogTermAt base0 X' j').isSome⌝ -∗
         ⌜plogTermAt base0 X' j' = plogTermAt base0 F j'⌝)) -∗
       isCamp γ c T F0 -∗
@@ -212,7 +212,7 @@ theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w
   icases cq_base γ _ _ _ $$ Hcq with ⟨%HFn, #HFl⟩
   -- index 0
   by_cases Hn0 : uint.Z n = 0
-  · have key : ∀ L : List raftpb.Entry, plogTermAt base0 L n = some base0.term' := by
+  · have key : ∀ L : List EntryM, plogTermAt base0 L n = some base0.term' := by
       intro L; unfold plogTermAt; rw [base0_index]; simp [Hn0]
     rw [key] at HFn
     ipureintro; rw [key]; exact HFn
@@ -347,8 +347,8 @@ theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w
 
 /-- `lc_adj_gen` for a winner in the winners table: a vote cast knowing the leader of `T`, who
 is the winner (the table's agreement), is not in the winning quorum. -/
-theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w64)
-    (F0 G : List raftpb.Entry) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) :
+theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
+    (F0 G : List EntryM) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) :
     uint.Z t < uint.Z T →
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
@@ -370,7 +370,7 @@ theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w64)
   exact absurd h1 h2
 
 /-- A winner's campaign's dynamic facts, from a vote of its quorum (2026-10-14, stage B5). -/
-theorem winner_campDyn (γ : RaftNames) (c T : w64) (V : GSet w64) (F0 : List raftpb.Entry)
+theorem winner_campDyn (γ : RaftNames) (c T : w64) (V : GSet w64) (F0 : List EntryM)
     (k : w64) (Hdyn : γ.reDyn ≠ none) (Hne : ∃ v, v ∈ V) :
     ⊢ votesTbl (GF := GF) γ -∗ ([∗map] x ↦ _u ∈ toMap V, isVote γ x T c) -∗
       isCampK γ c T F0 k -∗
@@ -396,7 +396,7 @@ theorem winner_campDyn (γ : RaftNames) (c T : w64) (V : GSet w64) (F0 : List ra
 
 /-- `cq_lt_agree` below `T`, by the induction hypothesis instead of `lc_core`. -/
 theorem cq_lt_agree_ih (γ : RaftNames) (T : w64) (IH : LcIH (GF := GF) γ T)
-    (t1 n1 t2 n2 : w64) (G1 G2 : List raftpb.Entry) :
+    (t1 n1 t2 n2 : w64) (G1 G2 : List EntryM) :
     uint.Z t1 < uint.Z t2 → uint.Z t2 < uint.Z T →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t1 n1 G1 -∗ cq γ t2 n2 G2 -∗
       ⌜∀ j : w64, uint.Z j ≤ uint.Z n1 → plogTermAt base0 G1 j = plogTermAt base0 G2 j⌝ := by
@@ -417,7 +417,7 @@ theorem cq_lt_agree_ih (γ : RaftNames) (T : w64) (IH : LcIH (GF := GF) γ T)
 
 /-- `cq_agree` below `T`, by the induction hypothesis. -/
 theorem cq_agree_ih (γ : RaftNames) (T : w64) (IH : LcIH (GF := GF) γ T)
-    (t1 n1 t2 n2 i : w64) (G1 G2 : List raftpb.Entry) :
+    (t1 n1 t2 n2 i : w64) (G1 G2 : List EntryM) :
     uint.Z t1 < uint.Z T → uint.Z t2 < uint.Z T →
     uint.Z i ≤ uint.Z n1 → uint.Z i ≤ uint.Z n2 →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t1 n1 G1 -∗ cq γ t2 n2 G2 -∗
@@ -447,8 +447,8 @@ the two indices (the induction hypothesis). If `n ≤ k`, the campaign log has `
 has every log that reaches its last entry; if `k < n`, the commit fact's log has the campaign
 log's first `k` entries, two more conf entries than its own prefix at `a`: against its I1
 (the paper's repair 1). -/
-theorem lc_far_newer (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (a : w64)
-    (F0 G : List raftpb.Entry) (kw tmc : w64) (IH : LcIH (GF := GF) γ T) :
+theorem lc_far_newer (γ : RaftNames) (T t n : w64) (F : List EntryM) (a : w64)
+    (F0 G : List EntryM) (kw tmc : w64) (IH : LcIH (GF := GF) γ T) :
     uint.Z t < uint.Z T → uint.Z tmc < uint.Z T →
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
@@ -501,8 +501,8 @@ theorem lc_far_newer (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (a :
 configuration index just after the winner's, so its quorum meets the winning one, and the
 adjacent case (`lc_adj`) puts its log, up to the entry, into the campaign log: two conf entries
 past the campaign's commit index, against I1 at the campaign. -/
-theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List raftpb.Entry) (a : w64)
-    (c : w64) (F0 : List raftpb.Entry) (kw : w64) (cW : CfgM) (V : GSet w64)
+theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List EntryM) (a : w64)
+    (c : w64) (F0 : List EntryM) (kw : w64) (cW : CfgM) (V : GSet w64)
     (IH : LcIH (GF := GF) γ T) :
     uint.Z t < uint.Z T → CampOk T F0 →
     ConfI1 F0 (uint.Z kw).toNat →
@@ -549,7 +549,7 @@ static instance). B5 replaces that one step by the case split on the configurati
 adjacent, `lc_adj`; far, `j_c ≥ j_m + 2` (the commit fact's at-most-one) or `j_c ≤ j_m - 2`
 (`lc_adj` at the commit fact's witness, then I1 at the campaign). -/
 theorem lc_core (γ : RaftNames) (k : Nat) :
-    ∀ (T t n : w64) (F : List raftpb.Entry) (c : w64) (F0 G : List raftpb.Entry),
+    ∀ (T t n : w64) (F : List EntryM) (c : w64) (F0 G : List EntryM),
     uint.Z T < (k : Int) → uint.Z t < uint.Z T →
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
@@ -624,7 +624,7 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
 /-- Two commit facts agree below the earlier one's index: same term, the leader's logs
 agree; an earlier term, `lc_core` puts the earlier committed log's entry in the later
 leader's log. -/
-theorem cq_lt_agree (γ : RaftNames) (t1 n1 t2 n2 : w64) (G1 G2 : List raftpb.Entry) :
+theorem cq_lt_agree (γ : RaftNames) (t1 n1 t2 n2 : w64) (G1 G2 : List EntryM) :
     uint.Z t1 < uint.Z t2 →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t1 n1 G1 -∗ cq γ t2 n2 G2 -∗
       ⌜∀ j : w64, uint.Z j ≤ uint.Z n1 → plogTermAt base0 G1 j = plogTermAt base0 G2 j⌝ := by
@@ -644,7 +644,7 @@ theorem cq_lt_agree (γ : RaftNames) (t1 n1 t2 n2 : w64) (G1 G2 : List raftpb.En
       (by have := uint_Z_nonneg t2; omega) Hlt Hw2 HGl $$ HS Hq1 Hl Hc Hr2 with %H2n
   iapply full_match γ G1 G2 n1 Hw1 Hw2 (by rw [H1n]; rfl) (by rw [H1n, H2n]) $$ Hr1 Hr2
 
-theorem cq_agree (γ : RaftNames) (t1 n1 t2 n2 i : w64) (G1 G2 : List raftpb.Entry) :
+theorem cq_agree (γ : RaftNames) (t1 n1 t2 n2 i : w64) (G1 G2 : List EntryM) :
     uint.Z i ≤ uint.Z n1 → uint.Z i ≤ uint.Z n2 →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t1 n1 G1 -∗ cq γ t2 n2 G2 -∗
       ⌜∀ j : w64, uint.Z j ≤ uint.Z i → plogTermAt base0 G1 j = plogTermAt base0 G2 j⌝ := by
@@ -699,15 +699,15 @@ theorem take_snoc_le {A : Type _} (l : List A) (e : A) (n : Nat) (h : n ≤ l.le
   List.take_append_of_le_length h
 
 /-- A committed entry with the client data `d` was deposited. -/
-theorem entDataIs_deposited (γ : RaftNames) (e : raftpb.Entry) (d : List w8) :
+theorem entDataIs_deposited (γ : RaftNames) (e : EntryM) (d : List w8) :
     entDataIs (GF := GF) γ e (some d) ⊢ deposited γ d := by
   unfold entDataIs
-  iintro ⟨-, -, #H⟩
+  iintro ⟨-, #H⟩
   iexact H
 
 /-- A proposal slot keeps its results as the log grows by an entry whose data is not its. -/
-theorem propSlot_grow (γ : RaftNames) (d : List w8) (γq : GName) (l : List raftpb.Entry)
-    (e : raftpb.Entry) (o : Option (List w8)) (Hne : o ≠ some d) :
+theorem propSlot_grow (γ : RaftNames) (d : List w8) (γq : GName) (l : List EntryM)
+    (e : EntryM) (o : Option (List w8)) (Hne : o ≠ some d) :
     ⊢ entDataIs (GF := GF) γ e o -∗ propSlot γ d γq l -∗ propSlot γ d γq (l ++ [e]) := by
   unfold propSlot
   iintro #He ⟨%Q, #Hsp, #Hau, #Hres⟩
@@ -721,10 +721,10 @@ theorem propSlot_grow (γ : RaftNames) (d : List w8) (γq : GName) (l : List raf
     exact absurd Ho Hne
 
 /-- The new entry's own proposal slot, fired: its result at the log before is added. -/
-theorem propSlot_fire (γ : RaftNames) (d : List w8) (γq : GName) (l : List raftpb.Entry)
-    (e : raftpb.Entry) (Q : List raftpb.Entry → IProp GF) :
+theorem propSlot_fire (γ : RaftNames) (d : List w8) (γq : GName) (l : List EntryM)
+    (e : EntryM) (Q : List EntryM → IProp GF) :
     ⊢ savedPredOwn γq DFrac.discard Q -∗ propAu γ d Q -∗ □ Q l -∗
-      □ (∀ (m : Nat) (e' : raftpb.Entry), ⌜l[m]? = some e'⌝ -∗ entDataIs γ e' (some d) -∗
+      □ (∀ (m : Nat) (e' : EntryM), ⌜l[m]? = some e'⌝ -∗ entDataIs γ e' (some d) -∗
          □ Q (l.take m)) -∗
       propSlot γ d γq (l ++ [e]) := by
   iintro #Hsp #Hau #HQ #Hres
@@ -738,8 +738,8 @@ theorem propSlot_fire (γ : RaftNames) (d : List w8) (γq : GName) (l : List raf
   · rw [Ht]; iexact HQ
 
 /-- A read slot, fired at the log grown by one entry. -/
-theorem readSlot_fire (γ : RaftNames) (r : GName × List raftpb.Entry) (l : List raftpb.Entry)
-    (e : raftpb.Entry) :
+theorem readSlot_fire (γ : RaftNames) (r : GName × List EntryM) (l : List EntryM)
+    (e : EntryM) :
     ⊢ readSlot (GF := GF) γ r l -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readSlot γ r (l ++ [e]) := by
   unfold readSlot
@@ -799,8 +799,8 @@ theorem bigSepM_fupd_thread {K V : Type} [DecidableEq K] [Pos.Countable K] (E : 
   iapply (BigSepM.bigSepM_toList (Φ := Ψ) (m := M)).2 $$ HM
 
 /-- Every read slot, fired at the log grown by one entry. -/
-theorem readsReg_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry)
-    (RR : GMap (List w8) (GName × List raftpb.Entry)) :
+theorem readsReg_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
+    (RR : GMap (List w8) (GName × List EntryM)) :
     ⊢ readsReg (GF := GF) γ l RR -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readsReg γ (l ++ [e]) RR := by
   unfold readsReg
@@ -818,10 +818,10 @@ theorem readsReg_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry
 
 /-- What the commit moves, at the global committed log `l`: its authority, its entries' data,
 the invariant's half of `reRLog` and the registries. -/
-def commitSt (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+def commitSt (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(ownCommitted γ l ∗ entsData γ l ∗ ghostVar γ.reRLog (1 : Qp).half l ∗ regsAt γ l)
 
-theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.Entry) :
+theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
     PlogWf base0 G → G[m]? = some e →
     ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑raftN}=∗
       commitSt γ (G.take (m + 1)) := by
@@ -898,7 +898,7 @@ theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.
   iexists R, RR
   iframe Hreads Hnoop Hra Hs
 
-theorem fire_upto (γ : RaftNames) (G : List raftpb.Entry) (d m : Nat) :
+theorem fire_upto (γ : RaftNames) (G : List EntryM) (d m : Nat) :
     PlogWf base0 G → m + d ≤ G.length →
     ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑raftN}=∗
       commitSt γ (G.take (m + d)) := by
@@ -917,7 +917,7 @@ theorem fire_upto (γ : RaftNames) (G : List raftpb.Entry) (d m : Nat) :
     iapply IH (m + 1) Hwf (by omega) $$ Hr Hs
 
 /-- `fire_upto` with both halves of the commit invariant open, from a ghost step. -/
-theorem fire_upto_open (γ : RaftNames) (G : List raftpb.Entry) (d m : Nat) :
+theorem fire_upto_open (γ : RaftNames) (G : List EntryM) (d m : Nat) :
     PlogWf base0 G → m + d ≤ G.length →
     ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={(⊤ \ ↑raftRegN) \ ↑raftLogN}=∗
       commitSt γ (G.take (m + d)) := by
@@ -928,7 +928,7 @@ theorem fire_upto_open (γ : RaftNames) (G : List raftpb.Entry) (d m : Nat) :
 
 /-- The two quarters of `reRLog` the commit invariant's halves hold agree, and make its
 half. -/
-theorem rlq_join (γ : RaftNames) (l1 l2 : List raftpb.Entry) :
+theorem rlq_join (γ : RaftNames) (l1 l2 : List EntryM) :
     ⊢ ghostVar (GF := GF) γ.reRLog rlq l1 -∗ ghostVar γ.reRLog rlq l2 -∗
       ⌜l1 = l2⌝ ∗ ghostVar γ.reRLog (1 : Qp).half l1 := by
   iintro H1 H2
@@ -938,7 +938,7 @@ theorem rlq_join (γ : RaftNames) (l1 l2 : List raftpb.Entry) :
   rw [← rlq_add]
   iframe H1 H2
 
-theorem rlq_split (γ : RaftNames) (l : List raftpb.Entry) :
+theorem rlq_split (γ : RaftNames) (l : List EntryM) :
     ⊢ ghostVar (GF := GF) γ.reRLog (1 : Qp).half l -∗
       ghostVar γ.reRLog rlq l ∗ ghostVar γ.reRLog rlq l := by
   iintro H
@@ -954,7 +954,7 @@ firing the deposited updates (`fire_upto`) -- with both halves of the invariant 
 registry half by the ghost step (its contents `regsOwn`, held across the step since it took
 `£ 1` to open them), the log half here; the updates' outer mask `⊤ ∖ ↑raftN` excludes
 both. -/
-theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr : w64) :
+theorem commit_extend (γ : RaftNames) (t n : w64) (G : List EntryM) (ldr : w64) :
     ⊢ raftCommitInv (GF := GF) γ -∗ regsOwn γ -∗ cq γ t n G -∗ isLeader γ ldr t -∗
       cmtLb γ ldr t n ={⊤ \ ↑raftRegN}=∗
       regsOwn γ ∗ isCommitted γ (G.take (uint.Z n).toNat) := by

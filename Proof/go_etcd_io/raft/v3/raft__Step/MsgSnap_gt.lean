@@ -18,6 +18,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.repl_lemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 
@@ -37,9 +38,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (scfg : CSLists) (sv : raftpb.Snapshot) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -48,13 +52,15 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     scfg.Has id →
     NStateWf s →
     SnapScope sv scfg →
+    -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
+    sn = some sv →
+    scfg = sv.Metadata'.ConfState'.lists →
     -- this file: the incoming term is higher
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' scfg }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
@@ -63,53 +69,46 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hgt
-  wp_start as ⟨Hphys, #Hsv, #Hcs⟩
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hgt
+  wp_start as H
+  iNamed H
+  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
   wp_auto
   wp_apply _P.traceReceiveMessage
+  try wp_auto
+  wp_get _Q
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   rw [decide_eq_true Hgt]
   wp_auto
   -- (Type == MsgVote) || (Type == MsgPreVote): both false; the switch on MsgPreVote /
   -- MsgPreVoteResp: neither
-  repeat (rw [Hty]; wp_auto)
+  wp_drive _Q
   -- "received a message with higher term"
-  wp_apply raft.wp_load_idC $$ Hphys as Hphys
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_drive _Q
   wp_raft_logC
   -- MsgApp || MsgHeartbeat || MsgSnap: the third holds
-  repeat (rw [Hty]; wp_auto)
+  wp_drive _Q
   -- becomeFollower(m.Term, m.From): a leader's message
   wp_apply _P.becomeFollower c r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
-  repeat (rw [Hty]; wp_auto)
+  wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
   wp_apply _P.stepFollower c scfg r id
-      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m [] sv []
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs sv ctx
       (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-    $$ [$Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-  · isplitl []
-    · iintro %Hc; exfalso; rw [Hty] at Hc
-      first | (rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
-    isplitl []
-    · iintro %Hc; exfalso; rw [Hty] at Hc
-      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-    isplitl []
-    · iintro %_
-      isplitr
-      · ipureintro
-        exact ⟨Hscope, rfl, rfl, Hcfg, Hfid⟩
-      · iframe Hsv Hcs
-    · iintro %Hc; exfalso; rw [Hty] at Hc
-      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
+      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid⟩)
+    $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+  · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn

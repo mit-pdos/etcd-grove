@@ -25,13 +25,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The node struct's channels, fresh (see the file header). -/
+/-- The node struct's channels, fresh (see the file header). (2026-10-16, stage R5: `recvc`,
+`confc`, `confstatec` carry pointers, `*pb.Message`, `*pb.ConfChangeV2`, `*pb.ConfState`.) -/
 def newNodeChans (nv : node) : IProp GF :=
   iprop(∃ (γp γr γc γcs γrd γa γt γd γs γst : ChanNames),
     isChan nv.propc' γp msgWithResult ∗ ownChan γp msgWithResult .Idle ∗
-    isChan nv.recvc' γr raftpb.Message ∗ ownChan γr raftpb.Message .Idle ∗
-    isChan nv.confc' γc raftpb.ConfChangeV2 ∗ ownChan γc raftpb.ConfChangeV2 .Idle ∗
-    isChan nv.confstatec' γcs raftpb.ConfState ∗ ownChan γcs raftpb.ConfState .Idle ∗
+    isChan nv.recvc' γr Loc ∗ ownChan γr Loc .Idle ∗
+    isChan nv.confc' γc Loc ∗ ownChan γc Loc .Idle ∗
+    isChan nv.confstatec' γcs Loc ∗ ownChan γcs Loc .Idle ∗
     isChan nv.readyc' γrd Ready ∗ ownChan γrd Ready .Idle ∗
     isChan nv.advancec' γa Unit ∗ ownChan γa Unit .Idle ∗
     isChan nv.tickc' γt Unit ∗ ownChan γt Unit (.Buffered []) ∗

@@ -54,7 +54,13 @@ conf-change entries the configuration in use reflects (it would need the decoded
 history), so no predicate here can state it; the guarantee lost without it is the protocol's
 (two entries committed at one index; and, by the same route, a removed candidate that goes on
 to win would panic in `becomeLeader` on its missing `Progress`), which the detached predicate
-does not claim anyway. -/
+does not claim anyway.
+
+**raft v3.7 (2026-10-16, stage R5).** `ApplyConfChange(cc)` is `return
+rn.raft.applyConfChange(cc.AsV2())`: the `*pb.ConfState` `applyConfChange` returns (stage R4),
+fresh and owned (`csPts csp 1 cs true`), the record `cs : ConfStateM`; the facts on its lists are
+those on the slices' contents before (the voters `xs`, learners `ls`, outgoing `os`, next
+learners `lns`, now `cs`'s fields; "empty" was `len = 0`, now `= []`). `cc` is given back. -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnode
@@ -72,31 +78,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
-section dyn
-variable [FfiSyntax]
-
-/-- `DynCCPre` (below) on its components (2026-10-15, stage N): the committed log handed out
-`D`, the configuration index `ca` and configuration `cfg`, and the change as `AsV2` makes it
-(`op`); what `node.go`'s `confc` arm checks against the run loop's `RawNode` from what the
-driver knows. -/
-def DynCCPreOp (dec : CCDec) (D : List raftpb.Entry) (ca : Nat) (cfg : CCState) (op : CCOp)
-    (k : Nat) (e : raftpb.Entry) (cs' : CCState) : Prop :=
-  ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
-  NoConfIn D ca k ∧ dec (D.take k) e = some op ∧
-  ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
-
-/-- The dynamic mode's premises of `ApplyConfChange` (2026-10-14, stage B7 part 2), at the change
-`o` the application passes: it is the decoded change (`dec`, from the entry and the log before
-it) of the next conf-change entry `e` of the committed log handed out, at position `k` (log index
-`k + 1`), past every applied one (`capplied ≤ k`, none in between: in order, once); it applies to
-the configuration in use (`ccStepB`: no `confchange` error, fewer than `2^62` tracked ids -- Go
-panics otherwise); and its result is no auto-leave joint configuration (`appliedTo`'s auto-leave
-proposal is out of `raft.Step`'s scope). -/
-def DynCCPre (dec : CCDec) (rs : RNState) (o : CCMsg) (k : Nat) (e : raftpb.Entry)
-    (cs' : CCState) : Prop :=
-  DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccV2Of o) k e cs'
-
-end dyn
+-- (2026-10-16, stage R5) `DynCCPreOp` and `DynCCPre` moved to `InvRawnode.lean`.
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -112,7 +94,7 @@ abbrev RawNode.ApplyConfChange.spec : Prop :=
     (dq : DFrac)
     -- (2026-10-14, stage B7 part 2) the dynamic mode's: the conf entry applied (at position `k`),
     -- and the configuration it gives
-    (k : Nat) (e : raftpb.Entry) (cs' : CCState),
+    (k : Nat) (e : EntryM) (cs' : CCState),
   -- the static mode (the voters fixed): the change applies at a voter
   (rs.mode = .static → CCApplies γ.reCfg id (ccV2Of o).1 (ccV2Of o).2) →
   -- the dynamic mode: it is the next committed conf entry's decoded change, and applies
@@ -121,37 +103,39 @@ abbrev RawNode.ApplyConfChange.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ApplyConfChange")) (Val #c))
-  {{ (csp : Loc) (cs : raftpb.ConfState) (xs ls : List w64), RET #csp;
+  {{ (csp : Loc) (cs : ConfStateM), RET #csp;
       "Hc" ∷ ownCCI c dq (some o) ∗
-      "Hcs" ∷ csp ↦ cs ∗
-      "Hvoters" ∷ cs.Voters' ↦* xs ∗
-      "Hlearners" ∷ cs.Learners' ↦* ls ∗
+      -- (2026-10-16, stage R5) the fresh `*pb.ConfState` `applyConfChange` returns, owned, its
+      -- `AutoLeave` cell set (until then `csp ↦ cs` with the voters' and learners' slices)
+      "Hcs" ∷ csPts csp (DFrac.own 1) cs true ∗
       "Hres" ∷ (
         (⌜rs.mode = .static⌝ ∗ (
         -- a shrinking change: the node stays where it was
         (⌜CCShrink γ.reCfg (ccV2Of o).1 (ccV2Of o).2⌝ ∗
           ownRawNode γ rn id rs ∗
-          ⌜xs ≡ₚ elements γ.reCfg ∧ (∀ k ∈ ls, k ∉ γ.reCfg) ∧
-            cs.VotersOutgoing'.len = W64 0 ∧ cs.LearnersNext'.len = W64 0 ∧
+          ⌜cs.Voters' ≡ₚ elements γ.reCfg ∧ (∀ k ∈ cs.Learners', k ∉ γ.reCfg) ∧
+            cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧
             cs.AutoLeave' = false⌝) ∨
         -- any other: detached, at the new configuration
         (⌜¬ CCShrink γ.reCfg (ccV2Of o).1 (ccV2Of o).2⌝ ∗
-          ∃ (lrn : GSet w64) (c' : CCState) (s s' : NState) (os lns : List w64),
+          ∃ (lrn : GSet w64) (c' : CCState) (s s' : NState),
             ownRawNodeC c'.cfg rn id s' ∗
-            cs.VotersOutgoing' ↦* os ∗ cs.LearnersNext' ↦* lns ∗
             ⌜(∀ k ∈ lrn, k ∉ γ.reCfg) ∧
               ccApplyM (ccV2Of o).1 (ccV2Of o).2 (cfgState γ.reCfg lrn) = some c' ∧
-              xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
-              ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext ∧
+              cs.Voters' ≡ₚ elements c'.cfg.incoming ∧
+              cs.VotersOutgoing' ≡ₚ elements c'.cfg.outgoing ∧
+              cs.Learners' ≡ₚ elements c'.cfg.learners ∧
+              cs.LearnersNext' ≡ₚ elements c'.cfg.learnersNext ∧
               cs.AutoLeave' = c'.cfg.autoLeave ∧ ApplyCCOkC c'.cfg id s s'⌝))) ∨
         -- (2026-10-14, stage B7 part 2) the dynamic mode: the node at the new configuration,
         -- the entry applied (`StepR.applyConf`; a removed leader has stepped down)
         (⌜rs.mode.isDyn = true⌝ ∗
           ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
-          ∃ (os lns : List w64), cs.VotersOutgoing' ↦* os ∗ cs.LearnersNext' ↦* lns ∗
-            ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
-              ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext ∧
-              cs.AutoLeave' = cs'.cfg.autoLeave⌝)) }}
+          ⌜cs.Voters' ≡ₚ elements cs'.cfg.incoming ∧
+            cs.VotersOutgoing' ≡ₚ elements cs'.cfg.outgoing ∧
+            cs.Learners' ≡ₚ elements cs'.cfg.learners ∧
+            cs.LearnersNext' ≡ₚ elements cs'.cfg.learnersNext ∧
+            cs.AutoLeave' = cs'.cfg.autoLeave⌝)) }}
 
 end spec
 

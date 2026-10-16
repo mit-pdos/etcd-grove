@@ -48,9 +48,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+set_option maxHeartbeats 1000000 in
 theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) :
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -66,9 +69,8 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents ∗
-        "#Hctx" ∷ m.Context' ↦*□ ctx }}
-      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -79,12 +81,12 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgHeartbeat_gt _P c r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
+  · exact wp_Step_MsgHeartbeat_gt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf
       (Hcommit (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · exact wp_Step_MsgHeartbeat_lt _P c r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf Hlt
+    · exact wp_Step_MsgHeartbeat_lt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hlt
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgHeartbeat_eq _P c r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
+      exact wp_Step_MsgHeartbeat_eq _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf
         (Hcommit (by omega)) Hteq Hvotes
 
 end StepProof

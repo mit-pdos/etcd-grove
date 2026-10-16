@@ -4,6 +4,7 @@ Port of `election_proof/proof_unstable__acceptInProgress.v` (857d09190).
 module
 
 public import Spec.go_etcd_io.raft.v3.unstable__acceptInProgress
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 
@@ -21,14 +22,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem unstable.acceptInProgress.wp_proof :
+theorem unstable.acceptInProgress.wp_proof
+    (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     unstable.acceptInProgress.spec (GF := GF) (hG := hG) := by
   intro u us Hidx Hnw
   wp_start as H
   iNamed H
   open_unstable
   icases Hents with #Hents
-  ihave %Hlen := ownSlice_len $$ Hents
+  ihave %Hlen := entsPts_len $$ Hents
   wp_auto
   by_cases He : us.ents = []
   · -- no entries: only the snapshot flag
@@ -54,10 +56,15 @@ theorem unstable.acceptInProgress.wp_proof :
     rw [ite_eq_left Hbnd]
     have Hk : (sint.Z (uv.entries'.len - W64 1)).toNat = us.ents.length - 1 := by word
     have Hle' : us.ents[(sint.Z (uv.entries'.len - W64 1)).toNat]? = some e := by rw [Hk]; exact Hle
-    icases ownSlice_elem_acc (sint.Z (uv.entries'.len - W64 1)) e uv.entries' _ us.ents Hbnd.1 Hle'
-      $$ Hents with ⟨#He, -⟩
-    iStructNamedSuffix He "_e"
-    wp_auto
+    ihave Hents' := Hents
+    iunfold entsRO at Hents'
+    iunfold entsPts at Hents'
+    icases Hents' with ⟨%ls, #Hls, #Hb⟩
+    icases entsBig_lookup ls us.ents _ e Hle' $$ Hb with ⟨%l, %Hl, #Hel⟩
+    wp_apply wp_load_slice_index uv.entries' (sint.Z (uv.entries'.len - W64 1)) ls DFrac.discard l
+      Hbnd.1 $$ [Hls] as -
+    · iframe Hls; ipureintro; exact Hl
+    wp_apply wp_Entry_GetIndex.1 l DFrac.discard e $$ [$Hel] as -
     wp_if_destruct <;>
     · iapply HΦ
       isplitl

@@ -2,6 +2,8 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.node__TransferLeadership
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.LemmasNodeR
 
 @[expose] public section
 
@@ -20,8 +22,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `recvc <- m` (a local message, `netP_local`); `n.done` never fires, and `ctx` is
-`Background()`, whose `Done()` is `nil`. -/
-theorem node.TransferLeadership.wp_proof :
+`Background()`, whose `Done()` is `nil`. (Raft v3.7, stage R5: the message is
+`&pb.Message{Type: pb.MsgTransferLeader.Enum(), From: new(transferee), To: new(lead)}`, built
+into `msgIn` by `msgIn_of_scalar_struct`; `MsgTransferLeader.Enum()` is a new callee.) -/
+theorem node.TransferLeadership.wp_proof
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.TransferLeadership.spec (GF := GF) (hG := hG) := by
   intro γ id n lead transferee
   wp_start as #Hnode
@@ -31,22 +36,36 @@ theorem node.TransferLeadership.wp_proof :
   imod termLB_zero (GF := GF) γ.bud with #Hlb
   imod rdCred_zero_upd (GF := GF) γ.raft with Hcr
   imod tickCred_zero (GF := GF) γ.bud with Htc
+  rw [show raftpb.MsgTransferLeader = #((W32 13 : raftpb.MessageType)) from rfl]
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_MessageType_Enum (W32 13)
+  iintro %pty Hpty
+  imod cellRO_alloc $$ Hpty with #cTy
+  wp_auto
+  imod cellRO_alloc $$ «$v1» with #cFr
+  imod cellRO_alloc $$ «$v2» with #cTo
   wp_apply +noauto context.wp_background_Done
   wp_auto_lc 3
+  imod msgIn_of_scalar_struct «$v0_ptr» pty «$v2_ptr» «$v1_ptr» null null null null null null null
+      { (zero_val MessageM) with Type' := W32 13, From' := transferee, To' := lead } ⊤
+      $$ [«$v0»] with Hmsg
+  · iframe «$v0» cTy cFr cTo
+    repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
+    iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   wp_apply_core chan.wp_select_blocking_nil
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
     simp only [chan.blockingClausePre]
-    iexists raftpb.Message, inferInstance, inferInstance, inferInstance, inferInstance,
+    iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
       nv.recvc', γ.recvc, _
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
-      $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hcr Htc]
-    · iapply netP_local γ id _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) (by rfl) (by rfl) (by rfl) $$ Hlb Hcr Htc
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
+    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl $$ Hmsg Hlb Hcr Htc
     inext
     iintro -
     wp_auto
