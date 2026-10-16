@@ -3,6 +3,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.node__stepWithWaitOption
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import Spec.context.ErrDone
 
 @[expose] public section
 
@@ -24,16 +25,20 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 fresh result channel (`propP`, `Handoff`), whose result is then awaited. `n.done` never fires.
 `ctx` is any `nodeCtx` (stage R7a, `InvNodeCtx.lean`): its `Done()` is `nil` (the case never
 fires) or a context's channel, from which a receive returns once the context is done, and the
-call returns `ctx.Err()` (`nodeDone_recv_clause`, `isContext_Err_done`); in the last `select`
-the proposal's result is then abandoned (the handoff's consumer token dropped; `run` still
-sends and closes). (Raft v3.7, stage R5: `m` is a pointer, handed on for good; its type read by
-`m.GetType()`, a new callee, over the `msgIn` each case of `stepArg` holds; a network message's
-type is not `MsgProp` by `NetMsgOk`.) -/
+call returns `ctx.Err()` (`nodeDone_recv_clause`, `isContext_Err_done` over the trust-boundary
+spec `context.ErrDone`, a callee since stage R7c: the error is `Canceled` or `DeadlineExceeded`);
+in the last `select` the proposal's result is then abandoned (the handoff's consumer token
+dropped; `run` still sends and closes). (Raft v3.7, stage R5: `m` is a pointer, handed on for
+good; its type read by `m.GetType()`, a new callee, over the `msgIn` each case of `stepArg` holds;
+a network message's type is not `MsgProp` by `NetMsgOk`.) -/
 theorem node.stepWithWaitOption.wp_proof
-    (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG)) :
+    (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) := by
   intro γ id n m wait ctx cd
   wp_start as ⟨#Hnode, #Hctx, Harg⟩
+  ihave #Hpctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold stepArg
@@ -76,7 +81,7 @@ theorem node.stepWithWaitOption.wp_proof
       iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
       iintro ⟨#Hctx', #HPD, #HCC⟩
       wp_auto
-      wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+      wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
       iapply stepErr_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
@@ -159,7 +164,7 @@ theorem node.stepWithWaitOption.wp_proof
         iapply nodeDone_recv_clause ctx cd dch2 _ _ $$ Hd2
         iintro ⟨#Hctx', #HPD, #HCC⟩
         wp_auto
-        wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+        wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
         iapply HΦ
         iapply propErr_of_nodeErr
         iapply nodeErr_ctx $$ Hcerr
@@ -181,7 +186,7 @@ theorem node.stepWithWaitOption.wp_proof
       iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
       iintro ⟨#Hctx', #HPD, #HCC⟩
       wp_auto
-      wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+      wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
       iapply propErr_of_nodeErr
       iapply nodeErr_ctx $$ Hcerr
@@ -242,7 +247,7 @@ theorem node.stepWithWaitOption.wp_proof
       iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
       iintro ⟨#Hctx', #HPD, #HCC⟩
       wp_auto
-      wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+      wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
       iapply nodeErr_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2

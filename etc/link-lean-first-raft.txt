@@ -135,6 +135,9 @@ confchange_Changer__makeVoter: confchange_Changer__initProgress confchange_incom
 confchange_Changer__makeLearner: confchange_Changer__initProgress confchange_Changer__remove confchange_outgoing confchange_nilAwareAdd
 confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming fmt_Errorf raftpb_ConfChangeType__String raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
 fmt_Errorf: @
+# A done context's `Err()` is `Canceled` or `DeadlineExceeded` (etcd-grove's trust boundary of
+# `context`, `Proof/context/Link.lean`; stage R7c): `node.stepWithWaitOption`'s `return ctx.Err()`.
+context_ErrDone: @
 raftpb_ConfChangeType__String:
 confchange_Changer__Simple: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
 confchange_Changer__EnterJoint: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_incoming confchange_outgoingPtr confchange_outgoing confchange_Changer__apply confchange_checkAndReturn
@@ -311,7 +314,7 @@ node__TransferLeadership: raftpb_MessageType__Enum
 needStorageAppendRespMsg: raftLog__hasNextOrInProgressUnstableEnts IsEmptySnap
 newStorageAppendRespMsg: raftLog__hasNextOrInProgressUnstableEnts raftLog__lastEntryID IsEmptySnap raftpb_MessageType__Enum
 newStorageApplyRespMsg: raftpb_MessageType__Enum
-node__stepWithWaitOption: raftpb_Message__GetType
+node__stepWithWaitOption: raftpb_Message__GetType context_ErrDone
 node__step: node__stepWithWaitOption
 node__ForgetLeader: node__step raftpb_MessageType__Enum
 node__stepWait: node__stepWithWaitOption

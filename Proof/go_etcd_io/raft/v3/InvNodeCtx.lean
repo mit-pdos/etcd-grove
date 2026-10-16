@@ -13,15 +13,19 @@ server passes a context with a timeout. The context is now any `nodeCtx ctx cd`:
 * `context.isContext ctx cd`: Perennial's context model (`Perennial/Proof/context/Base.lean`):
   `Done()` returns a channel of `isContextDone cd`, a receive from which returns once the context
   is done (`isContextDone_receive`: `□ cd.PDone ∗ ContextClosed cd.Done_gn`), after which
-  `Err()` returns a non-`nil` error (`"#HErr"` at `Broadcast.Done`).
+  `Err()` returns `context.Canceled` or `context.DeadlineExceeded` (Go's contract of
+  `Context.Err`, this repository's trust-boundary spec `Spec/context/ErrDone.lean`,
+  `context.ErrDone`, a callee of `stepWithWaitOption`; Perennial's `isContext` says only that
+  it is a non-`nil` typed error, `"#HErr"` at `Broadcast.Done`).
 
 What the error is (`nodeErr cd err`): `nil` (the message reached `run`), raft's package variable
 `ErrStopped` (`errStopped err`: the value the read-only global holds, as `isInitialized` states
 it; the `n.done` case, which the Stop premise keeps from firing), or the context's (`ctxErr cd
-err`: non-`nil`, with the context done). `Propose`'s (through `stepWait`, `stepWithWaitOption`
-with `wait`) can also be the proposal's own result, which `run` sends on the result channel
-(`raft.Step`'s error for the proposal: `ErrProposalDropped`, ...): `propErr cd err`, as `propP`'s
-handoff (`InvNode.lean`) says nothing of the value sent, so only that it is non-`nil` is known.
+err`: `Canceled` or `DeadlineExceeded`, `ctxErrVal`, with the context done). `Propose`'s (through
+`stepWait`, `stepWithWaitOption` with `wait`) can also be the proposal's own result, which `run`
+sends on the result channel (`raft.Step`'s error for the proposal: `ErrProposalDropped`, ...):
+`propErr cd err`, as `propP`'s handoff (`InvNode.lean`) says nothing of the value sent, so only
+that it is non-`nil` is known.
 
 `nodeCtx_background`: `context.Background()` is a `nodeCtx` for any descriptor (`bgCd` a
 canonical one), so the register keeps calling with `Background()`.
@@ -29,6 +33,7 @@ canonical one), so the register keeps calling with `Background()`.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
+public import Spec.context.ErrDone
 public import Perennial.Proof.context
 
 @[expose] public section
@@ -127,10 +132,29 @@ theorem nodeCtx_Done (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       iexact Hd
     · iexact Hctx
 
-/-- The error the context returns once done (see the file header): non-`nil`, with the
-context's Done proposition and `ContextClosed`. -/
+/-- The value a done context's `Err()` returns (`context.ErrDone`'s postcondition,
+`Spec/context/ErrDone.lean`): a typed error, the value of `context.Canceled` or of
+`context.DeadlineExceeded`. -/
+def ctxErrVal (err : GoInterface) : IProp GF :=
+  iprop(⌜context.isTypedErr err⌝ ∗
+    (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err))
+
+instance ctxErrVal_persistent (err : GoInterface) : Persistent (ctxErrVal (GF := GF) err) := by
+  unfold ctxErrVal; infer_instance
+
+/-- A typed error is not `nil`. -/
+theorem ctxErrVal_ne_nil (err : GoInterface) : ctxErrVal (GF := GF) err ⊢ ⌜err ≠ interface.nil⌝ := by
+  unfold ctxErrVal
+  iintro ⟨%Hty, -⟩
+  ipureintro
+  intro h
+  subst h
+  simp [context.isTypedErr] at Hty
+
+/-- The error the context returns once done (see the file header): non-`nil`, `Canceled` or
+`DeadlineExceeded` (`ctxErrVal`), with the context's Done proposition and `ContextClosed`. -/
 def ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ interface.nil⌝ ∗ □ cd.PDone ∗ context.ContextClosed cd.Done_gn)
+  iprop(⌜err ≠ interface.nil⌝ ∗ □ cd.PDone ∗ context.ContextClosed cd.Done_gn ∗ ctxErrVal err)
 
 instance ctxErr_persistent (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     Persistent (ctxErr (GF := GF) cd err) := by
@@ -219,20 +243,26 @@ theorem stepErr_ctx (cd : context.ContextDesc (IProp GF)) (err : GoInterface) (w
     iapply nodeErr_ctx $$ H
 
 /-- **`ctx.Err()`** of an `isContext` once a receive from its `Done()` returned
-(`isContextDone_receive`): the context's error (`"#HErr"` at `Broadcast.Done`). -/
-theorem isContext_Err_done (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    {{ context.isContext (GF := GF) ctx cd ∗ □ cd.PDone ∗ context.ContextClosed cd.Done_gn }}
+(`isContextDone_receive`): the context's error, `Canceled` or `DeadlineExceeded`, by the
+trust-boundary spec `context.ErrDone` (a callee hypothesis; stage R7c, until then Perennial's
+`"#HErr"` at `Broadcast.Done`, which names no value). -/
+theorem isContext_Err_done (hED : context.ErrDone.spec (GF := GF) (hG := hG))
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.isContext (GF := GF) ctx cd ∗
+        □ cd.PDone ∗ context.ContextClosed cd.Done_gn }}
       (App (Val #(methods ctx.ty go!"Err" ctx.v)) (Val #()))
     {{ (err : GoInterface), RET #err; ctxErr cd err }} := by
-  iintro %Φ ⟨#Hctx, #HPD, #HCC⟩ HΦ
-  ihave #Hctx' := Hctx
-  iNamed Hctx'
-  ihave #HErrD := HErr $$ %Broadcast.Done
-  iapply HErrD
-  · iexact HCC
+  iintro %Φ ⟨#Hpkg, #Hctx, #HPD, #HCC⟩ HΦ
+  iapply hED ctx cd
+  · iframe #
   inext
-  iintro %err %Hne
+  iintro %err ⟨%Hty, #Hv⟩
   iapply HΦ
+  ihave #Hval : ctxErrVal err $$ []
+  · unfold ctxErrVal
+    iframe Hv
+    ipureintro; exact Hty
+  ihave %Hne := ctxErrVal_ne_nil err $$ Hval
   unfold ctxErr
   iframe #
   ipureintro; exact Hne

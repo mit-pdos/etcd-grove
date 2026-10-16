@@ -9,6 +9,7 @@ hand.
 module
 
 public import Proof.context.Err
+public import Proof.context.ErrDone
 
 @[expose] public section
 
@@ -40,6 +41,10 @@ variable [package_sem : _root_.Perennial.context.Assumptions]
 theorem context.wp_Err :
     context.Err.spec (GF := GF) (hG := hG) :=
   context.Err.wp_proof
+
+theorem context.wp_ErrDone :
+    context.ErrDone.spec (GF := GF) (hG := hG) :=
+  context.ErrDone.wp_proof
 
 end links_hasLC
 

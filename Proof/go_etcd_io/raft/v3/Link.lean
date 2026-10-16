@@ -326,6 +326,7 @@ public import Proof.go_etcd_io.raft.v3.unstable__slice
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Proof.context.Link
 public import Proof.fmt.Link
 
 @[expose] public section
@@ -1577,7 +1578,7 @@ theorem node.wp_ApplyConfChange [StorageModel GF] :
 
 theorem node.wp_stepWithWaitOption [StorageModel GF] :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) :=
-  node.stepWithWaitOption.wp_proof raftpb.Message.wp_GetType
+  node.stepWithWaitOption.wp_proof raftpb.Message.wp_GetType context.wp_ErrDone
 
 theorem node.wp_step [StorageModel GF] :
     node.step.spec (GF := GF) (hG := hG) :=

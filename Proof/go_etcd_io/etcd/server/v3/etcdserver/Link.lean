@@ -134,7 +134,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
-public import Proof.context.ErrDone
 public import Proof.context.ValueStartTime
 public import Proof.context.WithValue
 public import Proof.errors.Is
@@ -247,6 +246,7 @@ public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
+public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Link
@@ -853,10 +853,6 @@ theorem EtcdServer.wp_getLead :
 theorem EtcdServer.wp_parseProposeCtxErr :
     EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdServer.parseProposeCtxErr.wp_proof errors.wp_IsCtxErr time.Time.wp_After EtcdServer.wp_getLead EtcdServer.wp_MemberID membership.RaftCluster.wp_Members wp_isConnectedToQuorumSince wp_isConnectedSince
-
-theorem context.wp_ErrDone :
-    context.ErrDone.spec (GF := GF) (hG := hG) :=
-  context.ErrDone.wp_proof
 
 theorem EtcdServer.wp_processInternalRaftRequestOnce :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) :=

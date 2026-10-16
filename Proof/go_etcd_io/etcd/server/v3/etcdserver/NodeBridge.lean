@@ -12,14 +12,6 @@ What stays a premise (each a persistent predicate below, so that it is visibly t
 assumption):
 - `rnStopOk`: `Stop` returns. Raft's model never stops (`node.Stop` has no spec; `run`'s stop
   case is vacuous: D10, "One premise stays").
-- `rnCtxErrOk`: the error a `node` API call returns once the caller's context is done (raft's
-  `ctxErr cd err`, `InvNodeCtx.lean`) is one the gRPC layer can take (`applyErrIs`). Raft returns
-  `ctx.Err()`, and Perennial's context model (`context.isContext`, `"#HErr"`) says of it only that
-  it is non-`nil` (and, once done, a typed error, `"#HErrDone"`); Go's contract of `Context.Err`
-  (`Canceled` or `DeadlineExceeded`, which are `applyErrIs`: the read package's `errVarLeaf
-  context.Canceled`, `ctxDeadlineLeaf`) is a trust-boundary spec the server states for its own
-  calls (`Spec/context/ErrDone.lean`), which raft's spec does not carry. The general fix is on
-  Perennial's side (the context model naming `Err()`'s value), not here.
 - `rnPropErrOk`: the proposal's own result -- the error `run` answers a `Propose` with
   (`raft.Step`'s for the `MsgProp`: `ErrProposalDropped`, an `errors.New` error) -- is
   `applyErrIs`. Raft's `propErr cd err` has a bare `⌜err ≠ nil⌝` disjunct for it (`propP`'s
@@ -27,9 +19,13 @@ assumption):
   premise is stated over any non-`nil` error. The fix is one change in raft's `InvNode.lean`
   (R7a's note on `propErr`).
 
-The other two error disjuncts are proved: `nil` (`applyErrIs_nil`) and raft's `ErrStopped`
-(a package variable holding an `errors.New` error: the read package's facts, `readInit`'s
-`errVarLeaf go_etcd_io.raft.v3.ErrStopped`).
+The other error disjuncts are proved: `nil` (`applyErrIs_nil`), raft's `ErrStopped` (a package
+variable holding an `errors.New` error: the read package's facts, `readInit`'s `errVarLeaf
+go_etcd_io.raft.v3.ErrStopped`), and the context's (`applyErrIs_of_ctxErr`; stage R7c,
+2026-10-16: raft's `ctxErr` carries the value, `Canceled` or `DeadlineExceeded`, from this
+repository's trust-boundary spec `context.ErrDone`, which `node.stepWithWaitOption` takes as a
+callee; until then the premise `rnCtxErrOk`), by the read package's facts again (`errVarLeaf
+context.Canceled`, `ctxDeadlineLeaf`), as `LinearizableReadNotify`'s own `ctx.Err()` is.
 -/
 module
 
@@ -69,15 +65,6 @@ def rnStopOk (n : Loc) : IProp GF :=
 instance rnStopOk_persistent (n : Loc) : Persistent (rnStopOk (GF := GF) n) := by
   unfold rnStopOk; infer_instance
 
-/-- **A done context's error is one the gRPC layer can take** (persistent): what raft's
-`ctxErr` leaves open (see the file header). -/
-def rnCtxErrOk : IProp GF :=
-  iprop(□ ∀ (cd : context.ContextDesc (IProp GF)) (err : GoInterface),
-    ctxErr cd err -∗ applyErrIs err)
-
-instance rnCtxErrOk_persistent : Persistent (rnCtxErrOk (GF := GF)) := by
-  unfold rnCtxErrOk; infer_instance
-
 /-- **A proposal's own result is one the gRPC layer can take** (persistent): what raft's
 `propErr`'s bare non-`nil` disjunct leaves open (see the file header). -/
 def rnPropErrOk : IProp GF :=
@@ -104,13 +91,43 @@ abbrev rnNodeIface (γ : RNNames) : GoInterface :=
 
 /-! ## The errors -/
 
+/-- **A done context's error is one the gRPC layer can take**: raft's `ctxErr` carries the value
+(`ctxErrVal`: `context.Canceled` or `context.DeadlineExceeded`, by `context.ErrDone`), which the
+read package's facts make `applyErrIs` (`errVarLeaf context.Canceled`, `ctxDeadlineLeaf`), as
+`LinearizableReadNotify`'s own `ctx.Err()` is. -/
+theorem applyErrIs_of_ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
+      ctxErr cd err -∗ applyErrIs err := by
+  iintro #Hpkg #Hcerr
+  ihave #Hprd : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
+  · iPkgInit
+  ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.read.readInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hprd
+  icases Hinit with ⟨-, -, -, -, -, -, -, #HCan, #HDE⟩
+  iunfold ctxErr at Hcerr
+  icases Hcerr with ⟨-, -, -, #Hval⟩
+  iunfold ctxErrVal at Hval
+  icases Hval with ⟨%Hty, #Hcv⟩
+  cases err with
+  | nil => exact absurd Hty (by simp [context.isTypedErr])
+  | ok ce =>
+    icases Hcv with (#Hcv | #Hcv)
+    · iapply errVar_applyErrIs _ (GoInterface.ok ce) $$ HCan
+      iexists ce
+      iframe Hcv
+      ipureintro; rfl
+    · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
+      icombine Hcv HeD gives %Hce
+      cases Hce
+      obtain ⟨hl, hIs, hty, hkey⟩ := HDl
+      iapply applyErrIs_valLeaf _ hl hIs hty hkey $$ HDm
+
 /-- **The error of a `node` call that hands a message to `run`** (`nodeErr`: `nil`, `ErrStopped`,
-or the context's), as the gRPC layer takes it (`applyErrIs`), under `rnCtxErrOk` for the
-context's. -/
+or the context's), as the gRPC layer takes it (`applyErrIs`). -/
 theorem applyErrIs_of_nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗ rnCtxErrOk -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       nodeErr cd err -∗ applyErrIs err := by
-  iintro #Hpkg #Hcx #Herr
+  iintro #Hpkg #Herr
   iunfold nodeErr at Herr
   icases Herr with (%Hnil | #Hstop | #Hcerr)
   · subst Hnil
@@ -126,18 +143,17 @@ theorem applyErrIs_of_nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInt
     icombine He He' gives %Heq
     subst Heq
     iexact Ha
-  · iunfold rnCtxErrOk at Hcx
-    iapply Hcx $$ %cd %err Hcerr
+  · iapply applyErrIs_of_ctxErr cd err $$ Hpkg Hcerr
 
 /-- **The error of a proposal** (`propErr`: `nodeErr`, or the proposal's own result), as the
-gRPC layer takes it, under `rnCtxErrOk` and `rnPropErrOk`. -/
+gRPC layer takes it, under `rnPropErrOk`. -/
 theorem applyErrIs_of_propErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗ rnCtxErrOk -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       rnPropErrOk -∗ propErr cd err -∗ applyErrIs err := by
-  iintro #Hpkg #Hcx #Hpe #Herr
+  iintro #Hpkg #Hpe #Herr
   iunfold propErr at Herr
   icases Herr with (#Hn | %Hne)
-  · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Hcx Hn
+  · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Hn
   · iunfold rnPropErrOk at Hpe
     iapply Hpe $$ %err %Hne
 
@@ -214,10 +230,10 @@ the gRPC layer takes (`applyErrIs_of_propErr`). -/
 theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     (wp_Propose : letI : MemStorReg GF := ⟨γ.reg⟩; node.Propose.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ rnCtxErrOk ∗ rnPropErrOk ⊢
+      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ rnPropErrOk ⊢
       raftPropose E.γr.raft (rnNodeIface γ) := by
   letI : MemStorReg GF := ⟨γ.reg⟩
-  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hcx, #Hpe⟩
+  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hpe⟩
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
@@ -273,7 +289,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     | false =>
       simp only [Bool.false_eq_true, ↓reduceIte]
       itrivial
-  · iapply applyErrIs_of_propErr cd err $$ Hpkg Hcx Hpe Herr
+  · iapply applyErrIs_of_propErr cd err $$ Hpkg Hpe Herr
 
 /-- **The node meets `isRaftNodeIfc`** but for `Stop` (`rnStopOk`, the premise): `Ready` from
 `node.Ready.spec` (`rnReadyP` is raft's `readyP`), `Advance` from `node.Advance.spec` (the
@@ -289,10 +305,10 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     (wp_ReadIndex : letI : MemStorReg GF := ⟨γ.reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ srvCommittedInv s E.γr ∗
-      rnStopOk γ.nl ∗ rnCtxErrOk ⊢
+      rnStopOk γ.nl ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) := by
   letI : MemStorReg GF := ⟨γ.reg⟩
-  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hcinv, #Hstop, #Hcx⟩
+  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hcinv, #Hstop⟩
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
@@ -365,7 +381,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     · iframe #; iframe Hfresh' Hcred
     iapply HΦ
     isplitr
-    · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Hcx Herr
+    · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Herr
     · iintro %_
       rw [HRQ]
       iunfold srvRQ
