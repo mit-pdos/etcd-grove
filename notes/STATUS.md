@@ -4865,7 +4865,7 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
 
 - **K0 (the fork fix; done).** `run`'s `Canceled` case drops the substream from `substreams` after
   closing its `recvc`, so no substream in `substreams` has a closed `recvc` and the broadcast never
-  sends on one: fork commit `1ac646214` (branch `watch-progress-closed-substream`, on upstream
+  sends on one: fork commit `1ac646214` (signed off as `57d502f38`; branch `watch-progress-closed-substream`, on upstream
   `f061acd09`; with the regression test `TestWatchProgressBroadcastAfterServerCancel`, which
   panics on every run without the fix; the issue's 3000-trial reproduction no longer panics),
   cherry-picked onto `goose-lean` as `107edf7e4` (both branches pushed), the etcd pin; the translation changes only
@@ -4892,13 +4892,14 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
   `writeView.{Put,DeleteRange}.spec` (`γ.watchQ = false`), `txn.isKV` (`γ.watchQ = false`),
   `isWatchableStore`, `watchStoreBody`, `body_commit`. Gates: `lake build` 5,104 jobs; trust base and
   every collection unchanged; every `Link.lean` reproduced.
-- **A suspected race found while designing K1b (not yet reproduced).** The server's `recvLoop`
-  answers a progress request by putting the `-1` response on the watch channel, and a later
-  create's `Created` on the control channel; `sendLoop` selects between them, so `Created(X)` can
-  reach the client before the earlier progress response, which the client then broadcasts to X:
-  for a watch X from an old revision, "nothing changed up to `p`" before X's events below `p`. To be
-  confirmed with a Go reproduction, then recorded in `issues/`. Until then K1b claims coverage for
-  per-watcher progress responses only.
+- **A race found while designing K1b** (`issues/etcd-watch-progress-before-created.md`, reproduced
+  by an integration test on upstream `main`, a hit within a few hundred trials). The server's
+  `recvLoop` answers a progress request by putting the `-1` response on the watch channel, and a
+  later create's `Created` on the control channel; `sendLoop` selects between them, so `Created(X)`
+  can reach the client before the earlier progress response, which the client then broadcasts to
+  X: for a watch X from an old revision, "nothing changed up to `p`" before X's events below `p`.
+  A broadcast progress response's coverage cannot be promised to every live watch without a fix;
+  a per-watcher progress response's can. The user's decision is pending.
 - **K1 (mvcc: progress means synced).** `progressIfSync` sends at the store's revision `rev` under
   `s.mu.RLock` only when every watcher of the map is synced with `startRev ≤ rev`: so the
   stream's channel already holds every event `≤ rev` of each of them. Give a progress response

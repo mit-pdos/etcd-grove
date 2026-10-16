@@ -11,7 +11,7 @@ links:
 
 - **Status**: fixed in the verified fork (known upstream, not fixed there: see the front matter;
   etcd-io/etcd#22191 proposes the same fix): `goose-lean` `107edf7e4`, the
-  cherry-pick of `1ac646214` (branch `watch-progress-closed-substream` of the fork, on upstream
+  cherry-pick of `1ac646214` (signed off since as `57d502f38`) (branch `watch-progress-closed-substream` of the fork, on upstream
   `f061acd09`): `run`'s `Canceled` case removes the substream from `substreams` when it closes its
   `recvc`, so `broadcastResponse` never reaches it; the commit adds the regression test
   `TestWatchProgressBroadcastAfterServerCancel` (`client/v3/watch_progress_cancel_test.go`), which
