@@ -90,6 +90,18 @@ whole suffix when `i ≤ b.index + 1`). -/
 def plogFrom (b : entryID) (es : List EntryM) (i : w64) : List EntryM :=
   es.drop (uint.Z i - uint.Z b.index' - 1).toNat
 
+/-- A prefix of the entries from `i` on, `i` past the base (2026-10-16, stage R8a): it ends within
+the log, so `Next + |ents| ≤ lastIndex + 1` after `SentEntries` (`maybeSendAppend`). -/
+theorem plogFrom_prefix_bound (b : entryID) (es es' : List EntryM) (i : w64)
+    (H : es' <+: plogFrom b es i) (Hi : uint.Z b.index' + 1 ≤ uint.Z i)
+    (Hi2 : uint.Z i ≤ plogLastIndexZ b es + 1) :
+    uint.Z i + (es'.length : Int) ≤ plogLastIndexZ b es + 1 := by
+  have Hl := H.length_le
+  unfold plogFrom at Hl
+  rw [List.length_drop] at Hl
+  unfold plogLastIndexZ at *
+  omega
+
 /-- `unstable.truncateAndAppend(ents)` seen at the whole log: keep the entries below
 `ents[0].Index`, then `ents`. Covers all three arms of the Go function (append in
 place, replace the unstable suffix, truncate then append); for an empty batch nothing

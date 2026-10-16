@@ -601,6 +601,114 @@ it as an `Int` equation, and `ownRaftLog`'s `Hnowrap` says the `W64` does not wr
 def logLast (ls : LogState) : w64 :=
   W64 (uint.Z ls.prev.index' + ls.sents.length + ls.uents.length)
 
+/-- `logLast` as an integer, once `ownRaftLog`'s `Hnowrap` says it does not wrap. -/
+theorem logLast_Z (ls : LogState)
+    (Hnw : uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2^64) :
+    uint.Z (logLast ls) = uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) := by
+  unfold logLast; word
+
+/-- `Hnowrap` in terms of `logLast`: `lastIndex() + 1` does not wrap. -/
+theorem logLast_nowrap (ls : LogState)
+    (Hnw : uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2^64) :
+    uint.Z (logLast ls) + 1 < 2^64 := by
+  rw [logLast_Z ls Hnw]; exact Hnw
+
+/-! ### The leader's progress bound (2026-10-16, stage R8a, D11) -/
+
+/-- A leader's view of a peer (`Progress`) against its log (2026-10-16, stage R8a, D11): `Next` at
+least `1` and at most one past the last index, `Match` and a pending snapshot's index at most the
+last index. -/
+def PrOk (ls : LogState) (p : Progress) : Prop :=
+  1 ≤ uint.Z p.next ∧ uint.Z p.next ≤ uint.Z (logLast ls) + 1 ∧
+  uint.Z p.matched ≤ uint.Z (logLast ls) ∧ uint.Z p.pendingSnapshot ≤ uint.Z (logLast ls)
+
+/-- `PrOk` is monotone in the log's last index: a leader's log only grows. -/
+theorem PrOk.mono {ls ls' : LogState} {p : Progress} (H : PrOk ls p)
+    (Hle : uint.Z (logLast ls) ≤ uint.Z (logLast ls')) : PrOk ls' p := by
+  unfold PrOk at *; omega
+
+/-- `PrOk` of a value with the same `Next` and `Match` and no larger pending snapshot. -/
+theorem PrOk.fields {ls : LogState} {p p' : Progress} (H : PrOk ls p)
+    (hn : p'.next = p.next) (hm : p'.matched = p.matched)
+    (hs : uint.Z p'.pendingSnapshot ≤ uint.Z p.pendingSnapshot) : PrOk ls p' := by
+  unfold PrOk at *; rw [hn, hm]; omega
+
+/-- `PrOk` of a value with the same `Next` and `Match` and no pending snapshot. -/
+theorem PrOk.fields0 {ls : LogState} {p p' : Progress} (H : PrOk ls p)
+    (hn : p'.next = p.next) (hm : p'.matched = p.matched)
+    (hs : p'.pendingSnapshot = W64 0) : PrOk ls p' := by
+  unfold PrOk at *; rw [hn, hm, hs]; have := uint_Z_nonneg p.pendingSnapshot; word
+
+/-! One lemma per `Progress` method (`tracker/progress.go`), under `PrOk` of the old value and,
+where `Match + 1` or `Next + k` must not wrap, `logLast + 1 < 2^64` (`ownRaftLog`'s `Hnowrap`,
+`logLast_nowrap`). -/
+
+theorem PrOk.resetState {ls : LogState} {p : Progress} (H : PrOk ls p) (st : PRState) :
+    PrOk ls (progressResetState p st) :=
+  H.fields0 rfl rfl rfl
+
+theorem PrOk.becomeProbe {ls : LogState} {p : Progress} (Hnw : uint.Z (logLast ls) + 1 < 2^64)
+    (H : PrOk ls p) : PrOk ls (progressBecomeProbe p) := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk
+  simp only [progressBecomeProbe, progressResetState, progressBecomeProbeNext, w64Max]
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+theorem PrOk.becomeReplicate {ls : LogState} {p : Progress} (Hnw : uint.Z (logLast ls) + 1 < 2^64)
+    (H : PrOk ls p) : PrOk ls (progressBecomeReplicate p) := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk
+  simp only [progressBecomeReplicate, progressResetState]
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+theorem PrOk.becomeSnapshot {ls : LogState} {p : Progress} {i : w64}
+    (Hnw : uint.Z (logLast ls) + 1 < 2^64) (H : PrOk ls p) (Hi : uint.Z i ≤ uint.Z (logLast ls)) :
+    PrOk ls (progressBecomeSnapshot p i) := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk
+  simp only [progressBecomeSnapshot, progressResetState]
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+/-- `SentEntries(entries, bytes)` of entries from `Next` on, within the log. -/
+theorem PrOk.sentEntries {ls : LogState} {p : Progress} {entries bytes : w64}
+    (Hnw : uint.Z (logLast ls) + 1 < 2^64) (H : PrOk ls p) (He : 0 ≤ sint.Z entries)
+    (Hb : uint.Z p.next + sint.Z entries ≤ uint.Z (logLast ls) + 1) :
+    PrOk ls (progressSentEntries p entries bytes) := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  have He' : uint.Z entries = sint.Z entries := by word
+  unfold PrOk progressSentEntries
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+theorem PrOk.sentCommit {ls : LogState} {p : Progress} (H : PrOk ls p) (c : w64) :
+    PrOk ls (progressSentCommit p c) :=
+  H.fields rfl rfl (Int.le_refl _)
+
+/-- `MaybeUpdate(n)` of an index within the log. -/
+theorem PrOk.maybeUpdate {ls : LogState} {p : Progress} {n : w64}
+    (H : PrOk ls p) (Hn : uint.Z n ≤ uint.Z (logLast ls)) :
+    PrOk ls (progressMaybeUpdate p n) := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk progressMaybeUpdate
+  simp only [w64Max]
+  split <;> (try split) <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+/-- `MaybeDecrTo(rejected, matchHint)`: both arms (in the probe arm `rejected = Next - 1`, within
+the log by `PrOk` itself). -/
+theorem PrOk.maybeDecrTo {ls : LogState} {p : Progress} {rejected matchHint : w64}
+    (Hnw : uint.Z (logLast ls) + 1 < 2^64) (H : PrOk ls p) :
+    PrOk ls (progressMaybeDecrTo p rejected matchHint).2 := by
+  obtain ⟨h1, h2, h3, h4⟩ := H
+  unfold PrOk progressMaybeDecrTo
+  simp only [w64Max, w64Min]
+  split
+  · split <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+  · split
+    · rename_i Hr
+      have Hr' : uint.Z rejected = uint.Z p.next - 1 := by
+        rw [← Hr]; word
+      split <;> split <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+    · refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
 /-- `unstable.offset`, which `ownRaftLog` pins to the end of the stable part
 (`Hoffset`). -/
 def logOffset (ls : LogState) : Int :=
@@ -763,6 +871,83 @@ node's own `Progress` in the new progress map `prs` -- tracked, and outside the 
 (`LearnerFlags`). -/
 def learnerOf (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) : Bool :=
   decide (id ∈ domSet prs ∧ id ∉ cfg)
+
+/-! ### The leader's progress bound on a state (2026-10-16, stage R8a, D11) -/
+
+section prvals_ok
+variable [FfiSyntax]
+
+/-- Every tracked peer of a leader is within its log (vacuous for a non-leader: a follower's log
+may shrink, and `reset` re-initializes the progress on winning). A pure conjunct of `ownRaftPhys`
+(`InvRaftPhys.lean`). -/
+def PrvalsOk (s : NState) : Prop :=
+  s.role = .leader → ∀ v p, s.prvals !! v = some p → PrOk s.logst p
+
+/-- `PrvalsOk` depends on `role`, `prvals` and `logst` only. -/
+theorem PrvalsOk.of_fields {s s' : NState} (H : PrvalsOk s) (hr : s'.role = s.role)
+    (hp : s'.prvals = s.prvals) (hl : s'.logst = s.logst) : PrvalsOk s' := by
+  unfold PrvalsOk at *; rw [hr, hp, hl]; exact H
+
+theorem PrvalsOk.not_leader {s : NState} (h : s.role ≠ .leader) : PrvalsOk s :=
+  fun hl => absurd hl h
+
+/-- One peer's `Progress` written. -/
+theorem PrvalsOk.insert {s : NState} {pvs : GMap w64 Progress}
+    (H : PrvalsOk { s with prvals := pvs }) {k : w64} {p' : Progress}
+    (Hp : s.role = .leader → PrOk s.logst p') :
+    PrvalsOk { s with prvals := <[k := p']> pvs } := by
+  intro Hl v p Hv
+  simp only at Hl Hv ⊢
+  by_cases hk : k = v
+  · subst hk; rw [GMap.lookup_insert_eq] at Hv; cases Hv; exact Hp Hl
+  · rw [GMap.lookup_insert_ne _ _ hk] at Hv; exact H Hl v p Hv
+
+/-- The log changed, its last index not lower at a leader. -/
+theorem PrvalsOk.mono_log {s : NState} {ls' : LogState} (H : PrvalsOk s)
+    (Hle : s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')) :
+    PrvalsOk { s with logst := ls' } :=
+  fun Hl v p Hv => (H Hl v p Hv).mono (Hle Hl)
+
+/-- The bound of one tracked peer. -/
+theorem PrvalsOk.lookup {s : NState} (H : PrvalsOk s) (Hl : s.role = .leader) {v : w64}
+    {p : Progress} (Hv : s.prvals !! v = some p) : PrOk s.logst p :=
+  H Hl v p Hv
+
+/-- What `reset`'s `Visit` closure writes into the peer `v`'s `Progress`, with `li` the log's last
+index (`raft.go`'s `reset`: `*pr = Progress{Match: 0, Next: lastIndex+1, ...}; if id == r.id {
+pr.Match = lastIndex }`): `Next = lastIndex + 1`, `Match = 0` (`lastIndex` for the node itself),
+no pending snapshot, `StateProbe` (the zero `Progress`'s state). -/
+def ResetPr (id li v : w64) (p : Progress) : Prop :=
+  p.next = li + W64 1 ∧ p.matched = (if v = id then li else W64 0) ∧
+  p.pendingSnapshot = W64 0 ∧ p.state = .probe
+
+theorem ResetPr.prOk {id v : w64} {ls : LogState} {p : Progress}
+    (Hnw : uint.Z (logLast ls) + 1 < 2^64) (H : ResetPr id (logLast ls) v p) : PrOk ls p := by
+  obtain ⟨h1, h2, h3, -⟩ := H
+  unfold PrOk; rw [h1, h2, h3]
+  split <;> refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+/-- What a `Changer`'s new progress map holds, given the old one (`InvApplyConfC.lean`,
+`ownResult_transfer`): each `Progress` is a copy of the old one at that id (`Match`, `Next` and the
+pending snapshot kept) or fresh (`initProgress`: `Match = 0`, `Next = max(LastIndex, 1)`, no
+pending snapshot), `li` the `Changer`'s `LastIndex`. -/
+def PrKept (old pvs : GMap w64 Progress) (li : w64) : Prop :=
+  ∀ k p', pvs !! k = some p' →
+    (∃ p, old !! k = some p ∧ p'.matched = p.matched ∧ p'.next = p.next ∧
+      p'.pendingSnapshot = p.pendingSnapshot) ∨
+    (p'.matched = W64 0 ∧ uint.Z p'.next = max (uint.Z li) 1 ∧ p'.pendingSnapshot = W64 0)
+
+/-- `PrKept` at the log's last index keeps `PrOk`. -/
+theorem PrKept.prOk {old pvs : GMap w64 Progress} {ls : LogState}
+    (H : PrKept old pvs (logLast ls)) (Hold : ∀ v p, old !! v = some p → PrOk ls p)
+    (v : w64) (p : Progress) (Hv : pvs !! v = some p) : PrOk ls p := by
+  rcases H v p Hv with ⟨p0, Hp0, hm, hn, hs⟩ | ⟨hm, hn, hs⟩
+  · exact (Hold v p0 Hp0).fields hn hm (by rw [hs]; exact Int.le_refl _)
+  · unfold PrOk; rw [hm, hn, hs]
+    have := uint_Z_nonneg (logLast ls)
+    refine ⟨?_, ?_, ?_, ?_⟩ <;> word
+
+end prvals_ok
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
