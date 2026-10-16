@@ -15,7 +15,9 @@ well formed): `histOf` determines the log (`histOf_prefix_log`), and two lower b
 comparable (`idxSealed_prefix`), so every such statement is about the one log, without any
 lock. The writer seals its pending revision before it notifies (`idxWriter_seal`), so a
 revision's events go on the channels with the seal of the log that commits it (not yet its
-commit certificate, `idxCert`: unit W-M2b).
+commit certificate, `idxCert`: unit W-M2b), and with the store's caller's certificate of that
+log (`certOk`, which `End` takes before it notifies: `evLog`, unit W-M3; for etcd's server, the
+KV model of a committed raft prefix).
 
 **Per watcher** (`WatcherNames`, tied to its pointer by `watcherMeta`, a persistent element of
 the store's ghost map `γ.wmeta`): `evs`, a monotone list of the events delivered (the batches,
