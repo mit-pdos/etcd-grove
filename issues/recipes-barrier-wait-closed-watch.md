@@ -1,5 +1,8 @@
 # clientv3/experimental/recipes: Barrier.Wait returns nil (released) when its watch closes while the barrier is held
 
+**Status**: fixed in the verified fork: `goose-lean` `0df483bee` (the cherry-pick of `0aa6c6af8`, branch
+`recipes-closed-watch-channel`; unit W-Q, 2026-10-16); not yet upstream.
+
 ## Summary
 
 `Barrier.Wait` (`client/v3/experimental/recipes`) blocks until the barrier key is deleted. If the watch it waits on closes first (the client is closed, or etcd cancels the watch because its start revision was compacted), `Wait` returns `nil`, which means "released", although the barrier key is still there. `DoubleBarrier.Enter` likewise returns `nil` before the barrier is full. I found this while formally verifying the recipes package.
@@ -42,3 +45,13 @@ No existing test encodes the old behaviour; the suite passes unchanged with the 
 Branch `recipes-closed-watch-channel`, the same commit as [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) (one cause): `waitEvents` returns the canceled watch's `Err()` (e.g. `ErrCompacted`), and a new `ErrWatchClosed` when the channel closes without the events; `WaitEvents` returns it, and `Wait` and `Enter` already return `WaitEvents`' error. After the fix both tests see `watch channel closed`. `RWMutex.Lock`/`RLock` and `DoubleBarrier.Leave` now also return that error instead of re-reading; with a closed client the re-read failed anyway, and on a compaction they fail instead of retrying.
 
 The commit is one commit off `main` (f061acd09), as the other fix branches are.
+
+## How the proof handles it
+
+Until unit W-Q (2026-10-16) the recipes' proofs took the premise that a watch channel never closes
+(`isEtcdRangeWatcherOpen`, now deleted). Since W-Q the verified code is the fork with the fix
+(`goose-lean` `0df483bee`): `WaitEvents.spec` returns `(ev, nil)` with the awaited event or
+`(nil, err)` with `err ≠ nil`, and `Barrier.Wait`, `DoubleBarrier.Enter`, `DoubleBarrier.Leave`
+and `RWMutex.waitOnLastRev` (so `Lock`/`RLock`) return that error (the error disjuncts of their
+specs, `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/`): `Wait` returns `nil` only after the
+delete event, `Enter` only after the `ready` put.

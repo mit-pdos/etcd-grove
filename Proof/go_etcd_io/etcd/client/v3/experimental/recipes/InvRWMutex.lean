@@ -253,8 +253,8 @@ theorem rwHeldAt_read_write_exclusion (pfx k1 k2 : GoString) (c1 c2 R1 R2 a : w6
 
 /-- **The RWMutex** `m` (persistent): its session `s` (of `client`, with the lease `id`), its
 context (`context.TODO()`) and its prefix `pfx` (with `NewRWMutex`'s `/`), read-only; the client's
-recipes contracts for `pfx` (`isEtcdRecipesClient`: under the premise that a watch channel is
-never closed) and `context`'s package fact `WaitEvents` needs. -/
+recipes contracts for `pfx` (`isEtcdRecipesClient`: its watch channels
+may close) and `context`'s package fact `WaitEvents` needs. -/
 def isRWMutex (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) :
     IProp GF :=
   iprop(structFieldRef RWMutex go!"s" m ↦□ s ∗

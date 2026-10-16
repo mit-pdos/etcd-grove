@@ -24,15 +24,15 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`q.Dequeue()`**, knowing etcd has reached `lo ≥ 0`, for a client whose watch channels never
-close (the bundle's premise, `isEtcdRecipesClient`): as `Queue.Dequeue`, on the items under
+/-- **`q.Dequeue()`**, knowing etcd has reached `lo ≥ 0`, for a client with the recipes' contracts
+(`isEtcdRecipesClient`; its watch channels may close): as `Queue.Dequeue`, on the items under
 `key ++ "/"`, with the get `WithFirstKey()` (the least key):
 * `(v, nil)`: an item `it` under `key ++ "/"` with the value `v` was **dequeued by this call** at
   some `r ≥ lo` etcd has reached (`dequeuedAt`, with the token of the revision `r`), **in order**
   (`dequeueOrder` for `keyLe`: at the last get's revision `r0 < r`, it was there with the least
   key under `key ++ "/"`; or the items under `key ++ "/"` then were all claimed by others by `r`,
   and it was put at or after `r0`);
-* `("", err)` with an error (the get's, a claim's). -/
+* `("", err)` with an error (the get's, a claim's, the wait's: a canceled or closed watch). -/
 abbrev PriorityQueue.Dequeue.spec : Prop :=
   ∀ (q client : Loc) (key : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗

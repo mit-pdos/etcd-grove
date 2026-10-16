@@ -188,8 +188,21 @@ theorem RWMutex.waitOnLastRev.wp_proof
   iintro %esl ⟨Hesl, -⟩
   ipersist Hesl
   wp_apply wp_WaitEvents client pfx w.key st.rev _ [W32 1] (W32 1) $$ [$Hclosed $Hcl $Hesl]
-    as %ev %werr ⟨%Hwnil, -⟩
+    as %ev %werr Hwr
   · ipureintro; exact ⟨rfl, Hwf'.2 w Hws, by omega⟩
+  icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
+  rotate_left
+  · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+      cases werr with
+      | nil => exact absurd rfl Hwne
+      | ok e => exact ⟨e, rfl⟩
+    (try wp_auto)
+    iapply HΦ
+    simp only
+    iframe Hmk Hek Hkv
+    isplitr
+    · ipureintro; exact Hk
+    iright; ipureintro; trivial
   subst Hwnil
   (try wp_auto)
   iapply HΦ

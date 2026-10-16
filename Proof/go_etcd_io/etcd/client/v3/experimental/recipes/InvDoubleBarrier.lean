@@ -209,8 +209,8 @@ theorem enterReady_counted (pfx key : GoString) (count c : w64) :
 
 /-- **The double barrier** `b` (persistent): its session `s` (of `client`, with the lease `id`), its
 context (`context.TODO()`), its `key` and `count` (positive: see the module docstring), read-only;
-the client's recipes contracts for the prefix `key ++ "/"` (`isEtcdRecipesClient`: under the
-premise that a watch channel is never closed) and `context`'s package fact `WaitEvents` needs. -/
+the client's recipes contracts for the prefix `key ++ "/"` (`isEtcdRecipesClient`: its watch
+channels may close) and `context`'s package fact `WaitEvents` needs. -/
 def isDoubleBarrier (b s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (key : GoString)
     (count : w64) : IProp GF :=
   iprop(structFieldRef DoubleBarrier go!"s" b ↦□ s ∗

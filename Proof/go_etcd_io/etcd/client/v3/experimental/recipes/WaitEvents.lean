@@ -65,7 +65,7 @@ theorem WaitEvents.wp_proof (wp_WithRev : EtcdGrove.WithRev.spec (GF := GF) (hG 
     rcases i with _ | i
     · cases Hf'; cases Hg; iexact Hf
     · simp at Hf'
-  iunfold isEtcdRangeWatcherOpen at HW
+  iunfold isEtcdRangeWatcher at HW
   ihave #HWa := HW $$ %ctx' %({ Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } : context.ContextDesc (IProp GF))
     %key %optsSl %([withRevM rev] : List (OpFull → OpFull)) %rev
   (try wp_auto)
@@ -84,18 +84,22 @@ theorem WaitEvents.wp_proof (wp_WithRev : EtcdGrove.WithRev.spec (GF := GF) (hG 
   have Hnn' : wch ≠ chan.nil := Hnn
   rw [decide_eq_false Hnn']
   (try wp_auto)
-  wp_apply hWE wch γw pfx (opWatchModel key [withRevM rev]) rev [] sl ts typ $$ [$Hwch $Hcons $Hsl]
-      as %ev ⟨#Hev, -⟩
+  wp_apply hWE wch γw pfx (opWatchModel key [withRevM rev]) rev [] sl ts typ $$ [$Hpkg $Hwch $Hcons $Hsl]
+      as %ev %werr Hr
   · ipureintro; exact Hp.1
   (try wp_auto)
   wp_apply Hcancel'
   · imodintro; itrivial
   (try wp_auto)
   iapply HΦ
-  isplitr
-  · ipureintro; rfl
-  unfold keyWatchOp
-  iexact Hev
+  icases Hr with (⟨%Hnil, #Hev, -⟩ | %Hne)
+  · ileft
+    isplitr
+    · ipureintro; exact Hnil
+    unfold keyWatchOp
+    iexact Hev
+  · iright
+    ipureintro; exact Hne.1
 
 end proof
 

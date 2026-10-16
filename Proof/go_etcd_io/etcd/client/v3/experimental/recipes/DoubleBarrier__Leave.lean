@@ -323,8 +323,26 @@ theorem DoubleBarrier.Leave.wp_proof
       iintro %esl ⟨Hesl, -⟩
       ipersist Hesl
       wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
-        $$ [$Hclosed $Hcl $Hesl] as %ev %werr ⟨%Hwnil, -⟩
+        $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
       · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; omega⟩
+      icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
+      rotate_left
+      · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+          cases werr with
+          | nil => exact absurd rfl Hwne
+          | ok e => exact ⟨e, rfl⟩
+        (try wp_auto)
+        iapply HΦ
+        isplitl [Hmk Hek]
+        · iexists GoInterface.nil
+          try simp only [dbMyKey]
+          try unfold ownEphemeralKV
+          iframe Hmk Hek
+          isplitr
+          · unfold isRecipesKV; itrivial
+          ipureintro; exact Hk
+        unfold leaveResult
+        iright; ipureintro; exact Hwne
       subst Hwnil
       (try wp_auto)
       wp_method_call
@@ -357,8 +375,24 @@ theorem DoubleBarrier.Leave.wp_proof
       iintro %esl ⟨Hesl, -⟩
       ipersist Hesl
       wp_apply wp_WaitEvents client (key ++ go!"/") wh.key wh.modRev _ [W32 1] (W32 1)
-        $$ [$Hclosed $Hcl $Hesl] as %ev %werr ⟨%Hwnil, -⟩
+        $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
       · ipureintro; exact ⟨rfl, Hwf'.2 wh Hwhs, by have := (Hrevs wh Hwhs).2.1; have := (Hrevs wh Hwhs).1; omega⟩
+      icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
+      rotate_left
+      · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+          cases werr with
+          | nil => exact absurd rfl Hwne
+          | ok e => exact ⟨e, rfl⟩
+        (try wp_auto)
+        iapply HΦ
+        isplitl [Hmk Hek Hkv]
+        · iexists st.kv
+          try simp only [dbMyKey]
+          try unfold ownEphemeralKV
+          iframe Hmk Hek Hkv
+          ipureintro; exact Hk
+        unfold leaveResult
+        iright; ipureintro; exact Hwne
       subst Hwnil
       (try wp_auto)
       wp_method_call
@@ -406,8 +440,26 @@ theorem DoubleBarrier.Leave.wp_proof
       iintro %esl ⟨Hesl, -⟩
       ipersist Hesl
       wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
-        $$ [$Hclosed $Hcl $Hesl] as %ev %werr ⟨%Hwnil, -⟩
+        $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
       · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; omega⟩
+      icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
+      rotate_left
+      · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+          cases werr with
+          | nil => exact absurd rfl Hwne
+          | ok e => exact ⟨e, rfl⟩
+        (try wp_auto)
+        iapply HΦ
+        isplitl [Hmk Hek]
+        · iexists GoInterface.nil
+          try simp only [dbMyKey]
+          try unfold ownEphemeralKV
+          iframe Hmk Hek
+          isplitr
+          · unfold isRecipesKV; itrivial
+          ipureintro; exact Hk
+        unfold leaveResult
+        iright; ipureintro; exact Hwne
       subst Hwnil
       (try wp_auto)
       wp_method_call
