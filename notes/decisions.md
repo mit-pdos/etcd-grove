@@ -7386,4 +7386,6 @@ for field (`EntryModel.toM`). So the pattern is D9's again.
   entry's index, not the whole log's), and `srvIdxOk`'s `2^64` bound on the delivered log is a run
   premise (`rnLogFits`, beside `Append`'s `2^61`). (iii) Two error-value facts stay premises
   (`rnCtxErrOk`, `rnPropErrOk`): raft's `nodeErr`/`propErr` do not name a context's `Err()` nor
-  `Propose`'s result error; R7c retires them on raft's side.
+  `Propose`'s result error; R7c retired them on raft's side the same day (`notes/STATUS.md`,
+  "stage R7c"): `ctxErr` through this repository's `context.ErrDone` spec, `stepErr` through the
+  proposal handoff.
