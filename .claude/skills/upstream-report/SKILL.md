@@ -45,18 +45,18 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
    for the symptom and the root cause; read the plausible matches, comments included. If an open PR fixes it, do
    not compete: test it against the finding locally and tell the user what the finding adds. Record matches in
    `meta.md` and in the finding's front matter (`issues/README.md`).
-4. **The example.** Find it by running it at the base:
-   `.claude/skills/upstream-report/etcdctl-transcript.sh ~/etcd <base-sha> <commands-file>` (prints the version
-   output and a console transcript). Iterate until it is:
+4. **The example**: the reproduction, in whatever form the bug needs (usually a Go test; `etcdctl` commands, a
+   client program, a cluster configuration when that is what shows it). Find it by running it at the base, and
+   iterate until it is:
    - visibly wrong on its own: the same request varied in one parameter, giving answers that contradict each other;
-   - minimal: the fewest commands, keys, values and flags, choosing the variant of the bug that needs least setup;
-   - `etcdctl` if it can show the bug, else a short client program or a unit test.
+   - minimal: the fewest steps, keys, values and options, choosing the variant of the bug that needs least setup.
 
    Then find what promises the behavior it breaks (API docs, Go doc, website, tests, maintainers' decisions) and
    read it. If the sources disagree, the expectation rests on what holds under every reading, and the
    disagreement becomes a question to the maintainers in the issue.
-5. **The test** is the example: same data, same requests, nothing more; next to the package's tests, in their
-   style; a unit test unless the bug only shows end to end. It must fail at the base; keep the output.
+5. **The test** is the example (or, if the example is not a test, does what it does): same data, same requests,
+   nothing more; next to the package's tests, in their style; a unit test unless the bug only shows end to end. It
+   must fail at the base; keep the output.
 6. **The fix**: in the layer where the defect is; the smallest change in the surrounding style; no refactoring, no
    comment that restates the code. Write the alternatives a reviewer may raise (a client-side fix, changing the
    documented behavior instead), the costs and the release branches that share the code into `meta.md`, "If a
@@ -80,19 +80,20 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 The bug-report form's sections, as in `example/issue.md`. Only the symptom, the expectation and the reproduction:
 no root cause, code names, code links, history, or claims about other releases.
 
-- **What happened?** One sentence of when it happens; the transcript; one sentence on who else is affected, as one
-  clause naming the whole condition ("for any client sending X with Y and Z").
+- **What happened?** One sentence of when it happens and what goes wrong, with the example's output when it shows
+  the bug at a glance; one sentence on who else is affected, as one clause naming the whole condition ("for any
+  client sending X with Y and Z").
 - **What did you expect?** One or two sentences, in terms of the example.
-- **How can we reproduce it?** "Run the `etcdctl` commands above against a single-member cluster built from `main`
-  (<sha>)."; then the test, linked on the fork's branch (`https://github.com/upamanyus/etcd/blob/<slug>/<path>`
-  and `.../tree/<slug>`), not described, with its failing assertion.
+- **How can we reproduce it?** Whatever it takes, at `main` (<sha>): the steps, or the test linked on the fork's
+  branch (`https://github.com/upamanyus/etcd/blob/<slug>/<path>` and `.../tree/<slug>`), not described, with its
+  failing assertion.
 - **Anything else?** Impact or workarounds if any; side findings as questions to the maintainers; then, word for
   word: "I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this
   report myself."
-- **Version** and **configuration**: the transcript's `etcd --version` and `etcdctl version`; "Defaults, single
-  member."
+- **Version** and **configuration**: what the reproduction ran on (the base commit; `etcd --version` and `etcdctl
+  version` if it ran binaries) and the configuration it needs.
 
-Outputs are pasted from runs, never typed; only setup `OK` lines and trailing blank lines may go, and test output
+Outputs are pasted from runs, never typed; trivial lines (setup `OK`s, trailing blank lines) may go, and test output
 may be trimmed to the assertion.
 
 ## The PR
@@ -101,7 +102,7 @@ A few plain sentences, as in `example/pr.md`, no sections. `Title:` the commit s
 what each piece of code does and which part is wrong, with permalinks at the base
 (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`); the change as "This PR ..."; `Fixes #<issue>`; one
 line that the new test runs the issue's example, fails on `main` and passes; and, word for word: "This PR was written
-in part with the assistance of generative AI; I have reviewed and tested every change." Nothing else: alternatives,
+in part with the assistance of AI; I have reviewed and tested every change." Nothing else: alternatives,
 costs and backports stay in `meta.md`.
 
 ## Writing

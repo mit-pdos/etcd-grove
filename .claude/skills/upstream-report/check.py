@@ -19,7 +19,7 @@ ISSUE_DISCLOSURE = (
     "I reproduced the bug and reviewed this report myself."
 )
 PR_DISCLOSURE = (
-    "This PR was written in part with the assistance of generative AI; I have reviewed and tested every change."
+    "This PR was written in part with the assistance of AI; I have reviewed and tested every change."
 )
 # Vocabulary of this repository that means nothing upstream.
 LOCAL_WORDS = r"\b(specs?|proofs?|premises?|Goose|Gooseable|ghost|verified code|Lean|Rocq|Perennial|Iris)\b"
@@ -129,8 +129,8 @@ def main():
         for t in set(re.findall(r"\bTest\w+", p)):
             if diff and t not in diff:
                 fail(f"issue: names {t}, which the branch does not add")
-        if "Git SHA:" not in issue:
-            fail("issue: version block is not `etcd --version`'s output (no `Git SHA:` line)")
+        if base and base[:7] not in issue:
+            fail(f"issue: does not name the base commit {base[:9]} the reproduction ran on")
         other = section(issue, "Anything else we need to know?")
         if other is None:
             fail("issue: no 'Anything else we need to know?' section")

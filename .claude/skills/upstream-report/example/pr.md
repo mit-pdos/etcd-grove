@@ -6,4 +6,4 @@ Fixes #<issue>
 
 `TestRangeSortLimit` runs the issue's example; it fails on `main` and passes with this change.
 
-This PR was written in part with the assistance of generative AI; I have reviewed and tested every change.
+This PR was written in part with the assistance of AI; I have reviewed and tested every change.
