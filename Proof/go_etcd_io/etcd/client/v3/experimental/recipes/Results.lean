@@ -576,7 +576,7 @@ end pqorder
   premise).
 * **The queue end to end** (`queue_end_to_end`; `Vertical.lean`): `NewQueue` on such a client;
   `Enqueue`'s spec; `Dequeue`'s `(v, nil)` an item taken by this call in the server's terms
-  (`queueTaken`: certified logs, `stateAt`, the server's revision token), in order.
+  (`queueTaken`: sealed logs, `stateAt`, the server's revision token), in order.
   `queue_end_to_end_once`: two claims of one revision are impossible.
 -/
 

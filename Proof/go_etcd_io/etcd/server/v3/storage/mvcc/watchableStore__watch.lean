@@ -247,10 +247,7 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
     mvcc.WsState.addW_vbs, mvcc.WsState.addW_VB, named]
   have hlb : ∀ (L : mvcc.Log), mvcc.watchEvents L r γw.lo γw.lo = [] :=
     fun L => mvcc.watchEvents_empty _ _ (Nat.le_refl _)
-  ihave #Hlb : monoListLbOwn γ.st.idx.hist (mvcc.histOf C) $$ []
-  · iunfold mvcc.idxCert at HC
-    icases HC with ⟨H, -⟩
-    iexact H
+  ihave #Hlb := mvcc.idxCert_sealed _ _ $$ HC
   iframe Hσ Hwlog Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt
   iframe #
   isplitl [Hsy]
@@ -519,10 +516,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     | some _ => exact absurd (by rw [show (mvcc.regMap L !! w) = (mvcc.regMap L).lookup w from rfl, h]; rfl) this
   imod ghost_map_insert_persist w () hreg $$ Hreg with ⟨Hreg, #Hrw⟩
   imod ghostVar_update_halves (w :: L) γc.regl _ _ $$ Hregl0 Hregl with ⟨Hregl0, Hregl⟩
-  ihave #Hlb : monoListLbOwn γ.st.idx.hist (mvcc.histOf C) $$ []
-  · iunfold mvcc.idxCert at Hcert
-    icases Hcert with ⟨H, -⟩
-    iexact H
+  ihave #Hlb := mvcc.idxCert_sealed _ _ $$ Hcert
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2] with -
   · inext
     iunfold mvcc.watchChanInv

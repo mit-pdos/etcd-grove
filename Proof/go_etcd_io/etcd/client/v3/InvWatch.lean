@@ -36,13 +36,16 @@ consumer's resources, `retcP`).
   dead code in the verified behaviour, verified at its first call only. The premise is there
   because the reconnection can make `run` send on a closed channel
   (`issues/etcd-watch-resume-closing-substream.md`).
-* `srvWatchCert` (S4): a watcher's deliveries are the watch events of a *certified* log (mvcc
-  gives a lower bound of the index's history only: the store notifies its watchers before the
-  write transaction's commit, where its certificate is made). False in real time, and not
-  provable by a certificate issued at the seal either: a certificate is a floor for every later
-  read, a serializable one included (`rangeReplyOk`'s `F <+: log`, from `store.Read`'s), and a
-  serializable read between the notify and the commit answers the revision before (unit W-M2,
-  `notes/STATUS.md`, "W-M2").
+* `srvSealedReached` (S4, narrowed in unit W-M2b): a sealed log's revisions are reached
+  (`etcdReached`). A watcher's deliveries are the watch events of a *sealed* log (`watchRecvOk`
+  carries `mvcc.idxSealed`, and the clients' model's `etcdState`/`EtcdStep` are over sealed logs:
+  the content facts of the events are theorems), but `etcdReached` stays over *certified*
+  (committed) logs: it is a later read's floor (`floor_of_reached`, `rangeReplyOk`'s
+  `F <+: log`, from `store.Read`'s, a serializable read included), and the store notifies its
+  watchers before the write transaction commits. So the premise is false in the gap between the
+  notify and the commit (a serializable read there answers the revision before), as S4 was; it is
+  now only about the events' revisions being reached (`rangeWatchEvOk`'s `etcdReached e.rev`), not
+  about their content (`notes/STATUS.md`, "W-M2", "W-M2b").
 * (no longer premises, unit W-M2) S2 `srvProgressAllAnswers` (a response of watch id `-1` answers
   a progress request) and S3 `srvEventIdsAssigned` (a response with events carries an id the
   stream assigned to its watcher) are theorems (`srvProgressAllAnswers_holds`,
@@ -53,7 +56,7 @@ consumer's resources, `retcP`).
   never do);
 * the watches' prefix is not empty (`V.pfx ≠ []`: the server reads an empty key as `"\x00"`, so a
   watch of the key `""` would be sent the events of `"\x00"`; a non-empty prefix rules it out);
-* the server's store names agree with its environment's (`R.γ.st = R.E.γ`) and its certified
+* the server's store names agree with its environment's (`R.γ.st = R.E.γ`) and its sealed
   logs are small (`srvLogsSmall`, the read path's `storeSmall`);
 * package facts: `io.EOF`, `errors.New`'s errors and every context's `Err()` are errors the
   client's `status` and `errors` calls accept (`eofOk`, `errorsNewOk`, `ctxErrClientAllW`), and
@@ -235,47 +238,36 @@ instance watchTokSupply_persistent (γ : mvcc.WsNames) :
     Persistent (watchTokSupply (GF := GF) γ) := by
   unfold watchTokSupply; infer_instance
 
-/-- **The server's certified logs are small** (persistent; the read path's `storeSmall`). -/
+/-- **The server's sealed logs are small** (persistent; the read path's `storeSmall`, unit
+W-M2b: over `mvcc.idxSealed`, the logs the watch events are of). -/
 def srvLogsSmall (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ log : mvcc.Log, mvcc.idxCert R.γ.st.idx log -∗ ⌜txn.LogSmall log⌝)
+  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed R.γ.st.idx log -∗ ⌜txn.LogSmall log⌝)
 
 instance srvLogsSmall_persistent (R : v3rpc.WSrv GF) : Persistent (srvLogsSmall R) := by
   unfold srvLogsSmall; infer_instance
 
-/-- **What a client knows of a watcher's deliveries, over a certified log**: `watchRecvOk` with
-`idxCert` of the log in place of the lower bound of the index's history. -/
-def watchRecvCert (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) : IProp GF :=
-  iprop(∃ (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice) (L : mvcc.Log)
-      (D : List mvcc.Deliv) (d : Nat),
-    mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ ⌜mvcc.startLo r γw.lo⌝ ∗
-    mvcc.idxCert γ.st.idx L ∗
-    ⌜rs.map mvcc.RespM.evs = (D.filter mvcc.Deliv.sent).map Prod.snd ∧
-      (D.map Prod.fst).flatten = mvcc.watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
-      ∀ x ∈ rs, x.w = w⌝ ∗
-    □ (∀ dl : mvcc.Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, mvcc.filtersImpl fcs fs ∗ ⌜dl.2 = mvcc.filtered fs dl.1⌝) ∗
-    □ (∀ x : mvcc.RespM, ⌜x ∈ rs⌝ -∗ mvcc.respOk x))
+/-- **(S4, narrowed: a sealed log's revisions are reached)** (a premise, persistent; see the file
+header): a revision of a sealed log (`mvcc.idxSealed`) is reached in the server's model
+(`etcdReached`, over certified logs: a later read's floor). False between the store's notify of
+a revision and its commit (unit W-M2b). -/
+def srvSealedReached (R : v3rpc.WSrv GF) : IProp GF :=
+  iprop(□ ∀ (L : mvcc.Log) (j : w64), mvcc.idxSealed R.γ.st.idx L -∗ ⌜sint.Z j < L.length⌝ -∗
+    etcdReached (EM := v3rpc.etcdModelOfServer R.E) j)
 
-instance watchRecvCert_persistent (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) :
-    Persistent (watchRecvCert (GF := GF) γ w rs) := by
-  unfold watchRecvCert; infer_instance
+instance srvSealedReached_persistent (R : v3rpc.WSrv GF) : Persistent (srvSealedReached R) := by
+  unfold srvSealedReached; infer_instance
 
-/-- **(S4) A watcher's deliveries are of a certified log** (a premise, persistent; see the file
-header: mvcc's store notifies its watchers before the write transaction commits, where its
-certificate is made, so `watchRecvOk` carries a lower bound of the index's history only). -/
-def srvWatchCert (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ (w : Loc) (rs : List mvcc.RespM), mvcc.watchRecvOk R.γ w rs -∗ watchRecvCert R.γ w rs)
-
-instance srvWatchCert_persistent (R : v3rpc.WSrv GF) : Persistent (srvWatchCert R) := by
-  unfold srvWatchCert; infer_instance
-
-/-- **No revision of the server writes a key twice** (a premise, persistent): every certified log
-of the server has each revision's keys distinct (`txn.NoDupKeysPerRev`). etcd's check of a
-transaction's requests lets a nested transaction's put and a later sibling's delete of one key
-through (`issues/etcd-txn-check-intervals-sibling.md`); such a revision's put event carries a
-key-value not in the state at its revision, against `rangeWatchEvOk`. The recipes' and the
-cache's transactions never write a key twice: the premise is about other writers. -/
+/-- **No revision of the server writes a key twice** (a premise, persistent): every sealed log
+of the server (`mvcc.idxSealed`, unit W-M2b: the logs the watch events are of) has each
+revision's keys distinct (`txn.NoDupKeysPerRev`). etcd's check of a transaction's requests lets a
+nested transaction's put and a later sibling's delete of one key through
+(`issues/etcd-txn-check-intervals-sibling.md`); such a revision's put event carries a key-value
+not in the state at its revision, against `rangeWatchEvOk`. The justification is per revision,
+of what the transaction writes: whether the revision is committed yet or only sealed does not
+matter. The recipes' and the cache's transactions never write a key twice: the premise is about
+other writers. -/
 def srvNoDupKeys (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ log : mvcc.Log, mvcc.idxCert R.γ.st.idx log -∗ ⌜txn.NoDupKeysPerRev log⌝)
+  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed R.γ.st.idx log -∗ ⌜txn.NoDupKeysPerRev log⌝)
 
 instance srvNoDupKeys_persistent (R : v3rpc.WSrv GF) : Persistent (srvNoDupKeys R) := by
   unfold srvNoDupKeys; infer_instance
@@ -327,7 +319,7 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     v3rpc.watchDescOk ∗ watchTokSupply V.R.γ ∗ noRetryableStreamErr ∗
-    srvWatchCert V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
+    srvSealedReached V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 
 instance watchConnFacts_persistent (V : WEnv GF) : Persistent (watchConnFacts V) := by

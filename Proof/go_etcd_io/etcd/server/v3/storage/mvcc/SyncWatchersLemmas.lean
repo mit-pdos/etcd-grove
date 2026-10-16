@@ -634,10 +634,8 @@ theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List 
   iintro ⟨Hwf, #HC⟩
   iunfold evsWf at Hwf
   icases Hwf with ⟨%L, #HlbL, %HL⟩
-  iunfold idxCert at HC
-  icases HC with ⟨#HlbC, -, -, -⟩
-  ihave %Hcmp := mono_list_lb_valid _ _ _ $$ HlbC HlbL
-  have hcmp := histOf_cmp_log Hcmp
+  ihave #HlbC := idxCert_sealed _ _ $$ HC
+  ihave %hcmp := idxSealed_cmp _ _ _ $$ HlbC HlbL
   iunfold evsWf
   iexists C
   iframe HlbC

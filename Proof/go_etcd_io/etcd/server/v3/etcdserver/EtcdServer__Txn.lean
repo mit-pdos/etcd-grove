@@ -220,7 +220,8 @@ local macro "txn_tail" : tactic => `(tactic| (
         · ipureintro; exact ⟨Hlgn, hro, Hg⟩
         iintro !> %log' - #Hc'
         iunfold storeSmall at Hsmall
-        iapply Hsmall $$ %log' Hc'
+        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
+        iapply Hsmall $$ %log' Hs'
       iapply HΦ'
       iexists respv, errv, log
       iframe Hresp Herr Hsr Hlr Hcert

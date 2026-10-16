@@ -263,7 +263,8 @@ local macro "range_tail" : tactic => `(tactic| (
         · ipureintro; exact Hvst
         iintro !> %log' - #Hc'
         iunfold storeSmall at Hsmall
-        ihave %Hs := Hsmall $$ %log' Hc'
+        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
+        ihave %Hs := Hsmall $$ %log' Hs'
         ipureintro; intro _; exact Hs
       obtain ⟨Hl1, Hl2, Hl3, rfl⟩ := Hlog
       have htv := Hteq trc rfl rfl

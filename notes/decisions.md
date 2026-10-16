@@ -6864,6 +6864,31 @@ proved).
   floor for serializable range replies, and a linearizable-read argument that a floor sealed
   before the request is committed when the read is served (the apply wait): the user's call.
 
+## Sealed logs for the watch path, the clients' model over sealed logs (unit W-M2b, 2026-10-16 · adopted)
+
+- **The watch path carries a seal, not a certificate.** `mvcc.idxSealed γ log` is `idxCert`
+  without the committed log's lower bound (and the events' count): the history's lower bound and
+  the log's well-formedness, both available at the seal (`idxWriter_seal`, from `IdxWf`). Two
+  sealed logs are in prefix order through the history alone (`histOf_cmp_log`), which is all the
+  watch facts and the clients' model's laws need. *Rejected:* a certificate issued at the seal
+  (W-M2: every certificate is a read floor that `store.Read` does not meet in the gap between
+  `notify` and `storeTxnWrite.End`'s commit); `idxSealed ∗ idxLogAuth ⊢ log <+: ilog` (false in
+  the gap; the writer has `histOf_prefix_shape_log`).
+- **Reads keep `idxCert`.** `idxCert` means committed; `store.Read`'s `log₀ <+: log`,
+  `rangeReplyOk`'s `F <+: log` and every floor stay. The model's `etcdState` and `EtcdStep` are
+  over sealed logs (`srvLog`): their laws are about one log's content and are not floors, and the
+  read path reaches them through `idxCert_sealed` (`etcdState_of_cert` a corollary).
+- **`etcdReachedAt` stays over certified logs**, against the brief's design: `etcdReached lo` is
+  the floor of a later read (`floor_of_reached` into `rangeReplyOk`), so over sealed logs it
+  would need the floor the W-M2 failure is about. What a watch event's `etcdReached e.rev` needs
+  is therefore the narrowed premise `srvSealedReached` (a sealed log's revisions are reached),
+  false in the gap as S4 was, now confined to reachedness. Its discharge is W-M2's server-side
+  redesign (committed certificates for reads, no floor for serializable replies, a
+  linearizable-read argument through the apply wait).
+- **The size and no-duplicate premises move to sealed logs** (`storeSmall`, `srvLogsSmall`,
+  `srvNoDupKeys`): their justifications (the store's size; a transaction's writes per revision)
+  do not depend on the revision being committed.
+
 ## Retargeting raft in a parallel tree
 
 **2026-10-15 · accepted (stage R0, branch `raft-retarget`)**

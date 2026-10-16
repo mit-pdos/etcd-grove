@@ -10,11 +10,12 @@ hi` are the events of the revisions `[lo, hi)` of `log` whose key the range `r` 
 revision order; `filtered fs evs` keeps the events no filter predicate of `fs` drops.
 
 **The history determines what a watcher was sent.** A watcher's events are stated over a log
-`L` known by a lower bound of the index's history (`monoListLbOwn γ.idx.hist (histOf L)`,
-`evsWf`): `histOf` determines the log (`histOf_prefix_log`), and two lower bounds are
-comparable, so every such statement is about the one log, without any lock. The writer seals
-its pending revision before it notifies (`idxWriter_seal`), so a revision's events go on the
-channels with the lower bound of the log that commits it.
+`L` that is sealed (`idxSealed γ.idx L`, `evsWf`: a lower bound of the index's history, and
+well formed): `histOf` determines the log (`histOf_prefix_log`), and two lower bounds are
+comparable (`idxSealed_prefix`), so every such statement is about the one log, without any
+lock. The writer seals its pending revision before it notifies (`idxWriter_seal`), so a
+revision's events go on the channels with the seal of the log that commits it (not yet its
+commit certificate, `idxCert`: unit W-M2b).
 
 **Per watcher** (`WatcherNames`, tied to its pointer by `watcherMeta`, a persistent element of
 the store's ghost map `γ.wmeta`): `evs`, a monotone list of the events delivered (the batches,
@@ -455,10 +456,11 @@ def cancelled (γw : WatcherNames) : IProp GF := dghostVar γw.live DFrac.discar
 instance cancelled_persistent (γw : WatcherNames) : Persistent (cancelled (GF := GF) γw) := by
   unfold cancelled; infer_instance
 
-/-- The events `evs` are the range's of the revisions `[lo, d)` of a log the index's history
-has (persistent; `d` past the log only for an empty range). -/
+/-- The events `evs` are the range's of the revisions `[lo, d)` of a sealed log (`idxSealed`:
+the index's history has it, and it is well formed; persistent; `d` past the log only for an
+empty range). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
-  iprop(∃ L : Log, monoListLbOwn γ.st.idx.hist (histOf L) ∗
+  iprop(∃ L : Log, idxSealed γ.st.idx L ∗
     ⌜evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝)
 
 instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :

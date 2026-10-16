@@ -105,7 +105,9 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   rw [if_pos hws]
   icases Hpop with ⟨-, Hwf⟩
   iunfold mvcc.evsWf at Hwf
-  icases Hwf with ⟨%L, #Hlb, %Hf⟩
+  icases Hwf with ⟨%L, #Hs, %Hf⟩
+  iunfold mvcc.idxSealed at Hs
+  icases Hs with ⟨#Hlb, -⟩
   ihave %hp := mono_list_auth_lb_valid _ _ _ _ $$ Hauth Hlb
   ipureintro
   intro _ _ _
