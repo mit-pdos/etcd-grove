@@ -5,7 +5,7 @@ specs. Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12)
 `notes/decisions.md`, "The request path".
 
 **The server, as a reader sees it** (`isServerRead s E γr`, persistent): the fields the read side
-reads besides `isServerReq`'s: the read loop (`read`, its contract `isRead`), the KV (`kv`: the
+reads besides `isServerReq`'s: the read loop (`read`, its contract `isReadNotify`), the KV (`kv`: the
 bare store of the applier's environment `E`, the apply package's standing premise `txn.isKV`;
 its `ReadView` for `KV().Rev()`), the lessor (`apply.isApplyLessor`: `CheckTxnAuth` and the
 txn package's `checkTxn`), the auth store (`apply.isAuthStore`: `IsRangePermitted`,
@@ -101,7 +101,7 @@ structure ReadFields where
 /-- **The server `s` as a reader sees it** at the fields' values `v` (persistent; see the file
 header). -/
 def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFields) : IProp GF :=
-  iprop(srvReadAddr s ↦□ v.read ∗ isRead v.read γr ∗
+  iprop(srvReadAddr s ↦□ v.read ∗ isReadNotify v.read γr ∗
     srvKVAddr s ↦□ v.kv ∗ txn.isKV v.kv E.s E.γ ∗
     E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)

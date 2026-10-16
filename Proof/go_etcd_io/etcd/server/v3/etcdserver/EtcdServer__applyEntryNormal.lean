@@ -218,6 +218,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
+  have hGI := wp_entryAt_GetIndex hGI
+  have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A
   wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, Hka, #HAm,
     %HkA, %Hvi, %Hpo, Hv3⟩
@@ -243,9 +245,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   iunfold srvFieldsAt at Hfv
   icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
-  ihave #He' := He
-  iunfold entryAt at He'
-  icases He' with ⟨%Hnn, %pt, %pi, %pty, %d, #Hft, #Hpt, #Hfi, #Hpi, #Hfty, #Hpty, #Hfd, #Hds⟩
+  ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
   ihave #Pnot : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
   · iPkgInit

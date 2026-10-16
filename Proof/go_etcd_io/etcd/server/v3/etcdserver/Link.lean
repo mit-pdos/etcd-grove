@@ -525,7 +525,7 @@ theorem raftpb.SnapshotMetadata.wp_GetIndex :
     raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG) :=
   raftpb.SnapshotMetadata.GetIndex.wp_proof
 
-theorem wp_IsEmptySnap [StorageModel GF] :
+theorem wp_IsEmptySnap :
     IsEmptySnap.spec (GF := GF) (hG := hG) :=
   IsEmptySnap.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
@@ -617,11 +617,11 @@ theorem raftpb.HardState.wp_GetCommit :
     raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG) :=
   raftpb.HardState.GetCommit.wp_proof
 
-theorem wp_isHardStateEqual [StorageModel GF] :
+theorem wp_isHardStateEqual :
     isHardStateEqual.spec (GF := GF) (hG := hG) :=
   isHardStateEqual.wp_proof raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit
 
-theorem wp_IsEmptyHardState [StorageModel GF] :
+theorem wp_IsEmptyHardState :
     IsEmptyHardState.spec (GF := GF) (hG := hG) :=
   IsEmptyHardState.wp_proof wp_isHardStateEqual
 

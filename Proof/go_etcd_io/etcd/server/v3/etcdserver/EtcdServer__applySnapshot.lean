@@ -38,7 +38,7 @@ theorem EtcdServer.applySnapshot.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hIES $$ [$Hrpkg]
+  wp_apply (wp_IsEmptySnap_nil hIES) $$ [$Hrpkg]
   (try wp_auto)
   iapply HΦ
   itrivial

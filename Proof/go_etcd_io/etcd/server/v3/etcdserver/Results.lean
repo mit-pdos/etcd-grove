@@ -470,7 +470,7 @@ two revisions, the response header's id fields owned (for the gRPC layer to fill
 in the client model's terms (`txn.rangeResultClient`: `rangeKvsOk` of `rangeSel` of the state
 read, for a sort not cut early); linearizable, read after the read index (`readIndexOk γr c`:
 the applied index reached an index at least the committed index `c` the caller knew of, the read
-loop's contract `isRead`) and, since the request path's unit 4b, of a log extending the log the
+loop's contract `isReadNotify`) and, since the request path's unit 4b, of a log extending the log the
 apply thread had applied through some index `ci₀ ≥ c` (`appliedLogAt γr ci₀ L₀`, `L₀ <+: log`; see
 `applied_log_at`). An error is one the
 gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, `ErrFutureRev`, the

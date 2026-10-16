@@ -282,18 +282,20 @@ def compactorOk (c : GoInterface) : IProp GF :=
 instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF := GF) c) := by
   unfold compactorOk; infer_instance
 
-/-- **The raft storage's snapshot when `run` starts** (`*raft.MemoryStorage`, names-only: a
-trust-boundary contract, as `isRNMemStor`; not persistent: the snapshot changes once the server
-takes one): `Snapshot()` returns the snapshot the server started from, with its metadata, a conf
-state, the index `ai₀` and term `at₀`, and no error (so `run`'s `lg.Panic` and its "empty
-confstate" `panic` are not reached: a construction premise, see `notes/STATUS.md`). -/
+/-- **The raft storage's snapshot when `run` starts** (`*raft.MemoryStorage`: a trust-boundary
+contract, as `isRNMemStor`; not persistent: the snapshot changes once the server takes one):
+`Snapshot()` returns the snapshot the server started from, owned (raft's `ownSnapM`, as raft's
+`MemoryStorage.Snapshot` spec hands out a fresh clone), of index `ai₀` and term `at₀`, with a
+conf state that has a voter (so its `ConfState` pointer is not nil: `run`'s "empty confstate"
+`panic` is not reached; nor its `lg.Panic`, the error being nil: a construction premise, see
+`notes/STATUS.md`). Since stage R6 of the raft v3.7 retarget (2026-10-16) over raft's record;
+until then field by field (`optU64`), with the conf-state pointer's non-nilness stated. -/
 def rnSnapOnce (ms : Loc) (ai₀ at₀ : w64) : IProp GF :=
   iprop(∀ Φ : val → IProp GF,
-    ▷ (∀ (sn md cs pi pt : Loc), ⌜sn ≠ null ∧ md ≠ null ∧ cs ≠ null⌝ -∗
-      structFieldRef go_etcd_io.raft.v3.raftpb.Snapshot go!"Metadata" sn ↦□ md -∗
-      structFieldRef go_etcd_io.raft.v3.raftpb.SnapshotMetadata go!"ConfState" md ↦□ cs -∗
-      structFieldRef go_etcd_io.raft.v3.raftpb.SnapshotMetadata go!"Index" md ↦□ pi -∗ optU64 pi ai₀ -∗
-      structFieldRef go_etcd_io.raft.v3.raftpb.SnapshotMetadata go!"Term" md ↦□ pt -∗ optU64 pt at₀ -∗
+    ▷ (∀ (sn : Loc) (sv : SnapshotM),
+      ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧
+        sv.Metadata'.ConfState'.Voters' ≠ []⌝ -∗
+      ownSnapM sn (DFrac.own 1) sv -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})

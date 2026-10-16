@@ -8,7 +8,7 @@ cluster's committed index (`committedAtLeast γr c`). It reads the current notif
 read lock and deposits `c` in `nc`'s need (`read_deposit`: the read invariant keeps a committed
 bound at least the need). The loop swaps `nc` out under the write lock and freezes its need at `n`
 with a committed bound `n` (`read_swap`), then issues `ReadIndex` at `n`: every read state that
-answers one of its requests has an index at least `n` (`isReadRaft`, `readStateOk`), so the
+answers one of its requests has an index at least `n` (`isReadRaft`, `srvReadStateOk`), so the
 confirmed index `ci ≥ n` (`requestCurrentIndex`). It waits until the applied index reaches `ci`
 (`AppliedIndex`, `ApplyWait`), then closes `nc` with `nil`, which tells the waiters the frozen need
 and an applied index at least it (`frozenOk`). So a `nil` from `LinearizableReadNotify` means the
@@ -46,7 +46,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 /-- **`NewRead`'s result meets the read contract** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/read/
-NewRead.lean`): given the server's `Done()`, `NewRead(srv, rf)` returns `r` with `isRead r γr`
+NewRead.lean`): given the server's `Done()`, `NewRead(srv, rf)` returns `r` with `isReadNotify r γr`
 (the contract the server's `Range`/`Txn` take: `LinearizableReadNotify` returns `nil` only with
 `readIndexOk γr c`), the reader slots of `r.mux`, and the loop's precondition from the server's
 and raft's contracts. -/

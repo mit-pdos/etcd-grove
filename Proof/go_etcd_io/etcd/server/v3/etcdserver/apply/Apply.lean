@@ -83,9 +83,7 @@ theorem apply.Apply.wp_proof
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil $$ []
   · iPkgInit
-  ihave #He' := He
-  iunfold entryAt at He'
-  icases He' with ⟨%Hen, %pt, %pi, %pty, %d, -, -, -, -, -, -, #Hfd, #Hds⟩
+  ihave ⟨%Hen, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   wp_auto
   wp_apply (hMU.2 raftReq_ptr _ d m.data DfracDiscarded rq) $$ [raftReq] as ⟨#Hirr, -⟩
   · iframe raftReq Hds

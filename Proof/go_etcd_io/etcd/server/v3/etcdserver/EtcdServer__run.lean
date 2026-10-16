@@ -302,8 +302,30 @@ theorem EtcdServer.run.wp_proof
   iunfold rnSnapOnce at Hsnap
   iapply Hsnap
   inext
-  iintro %sn %md %cs %pi %pt %Hsnn #Hmd #Hcs #Hpi #Hpiv #Hpt #Hptv
-  obtain ⟨Hsn0, Hmd0, Hcs0⟩ := Hsnn
+  iintro %sn %sv %Hsv Hsn
+  obtain ⟨Hsvi, Hsvt, Hsvv⟩ := Hsv
+  -- the snapshot (raft's `ownSnapM`, owned: made read-only, nothing writes it), opened to its
+  -- metadata `md` and the metadata's conf state `cs`, which `run` reads directly (the index and
+  -- term through the getters, over the metadata's `smOpt`); `cs` is not nil, the conf state
+  -- having a voter (a nil pointer reads as the zero record)
+  imod ownSnapM_persist sn (DFrac.own 1) sv $$ Hsn with #Hsn
+  ihave #Hsn' := Hsn
+  iunfold ownSnapM at Hsn'
+  icases Hsn' with ⟨%ds, %md, %uf, %Hsn0, #HD, #Hd, #HM, #Hm, #Hpb⟩
+  ihave #Hm' := Hm
+  iunfold smOpt at Hm'
+  icases Hm' with (⟨%Hmdn, %Hmd0⟩ | #Hm')
+  · exfalso; rw [Hmd0] at Hsvv; exact Hsvv rfl
+  iunfold smPts at Hm'
+  icases Hm' with ⟨%cs, %pi, %pt, %uf', %Hmd0, #HC, #Hc, #HI, #HcI, #HT, #HcT, #Hpb'⟩
+  ihave %Hcs0 : iprop(⌜cs ≠ null⌝) $$ []
+  · iunfold csOptA at Hc
+    icases Hc with (⟨%Hcsn, %Hc0⟩ | Hc | Hc)
+    · exfalso; rw [Hc0] at Hsvv; exact Hsvv rfl
+    · ihave ⟨-, %Hcs0⟩ := csPts_nn _ _ _ _ $$ Hc
+      ipureintro; exact Hcs0
+    · ihave ⟨-, %Hcs0⟩ := csPts_nn _ _ _ _ $$ Hc
+      ipureintro; exact Hcs0
   (try wp_auto)
   -- the FIFO scheduler: its stop token, its queue `[n₀, p₀]` (`p₀` saving `True`)
   wp_apply hFifo fv.lg $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0⟩
@@ -453,23 +475,22 @@ theorem EtcdServer.run.wp_proof
     $$ [Hloop Hrdone Hcomm]
   · rw [HEγr]; iframe #; iframe
   (try wp_auto)
-  -- `ep`: the snapshot's conf state, index and term
-  ihave #HmdI : iprop(⌜md = null ∧ ai₀ = W64 0⌝ ∨ ∃ pi : Loc, ⌜md ≠ null⌝ ∗
-      structFieldRef go_etcd_io.raft.v3.raftpb.SnapshotMetadata go!"Index" md ↦□ pi ∗ optU64 pi ai₀) $$ []
-  · iright; iexists pi; iframe #; ipureintro; exact Hmd0
-  ihave #HmdT : iprop(⌜md = null ∧ at₀ = W64 0⌝ ∨ ∃ pt : Loc, ⌜md ≠ null⌝ ∗
-      structFieldRef go_etcd_io.raft.v3.raftpb.SnapshotMetadata go!"Term" md ↦□ pt ∗ optU64 pt at₀) $$ []
-  · iright; iexists pt; iframe #; ipureintro; exact Hmd0
-  wp_apply hGI md ai₀ $$ []
+  -- `ep`: the snapshot's conf state (the field `cs`, loaded), index and term (the getters, over
+  -- the metadata's `smOpt`, read-only: `ai₀` and `at₀`)
+  have hGI' := hGI md DFrac.discard sv.Metadata'
+  rw [Hsvi] at hGI'
+  have hGT' := hGT md DFrac.discard sv.Metadata'
+  rw [Hsvt] at hGT'
+  wp_apply hGI' $$ [] as -
   · iframe #
   (try wp_auto)
-  wp_apply hGI md ai₀ $$ []
+  wp_apply hGI' $$ [] as -
   · iframe #
   (try wp_auto)
-  wp_apply hGT md at₀ $$ []
+  wp_apply hGT' $$ [] as -
   · iframe #
   (try wp_auto)
-  wp_apply hGI md ai₀ $$ []
+  wp_apply hGI' $$ [] as -
   · iframe #
   (try wp_auto)
   rw [decide_eq_false Hcs0]

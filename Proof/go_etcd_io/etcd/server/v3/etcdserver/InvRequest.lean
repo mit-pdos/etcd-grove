@@ -43,7 +43,7 @@ d`, and proves `resultΨ E rq` of its result. A conf change's id (`ccIdOf`) is n
 `rq` (with `v3`) at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with
 mvcc's certificate of the log after (`idxCert`).
 
-**Reads** (`isRead r γr`): `LinearizableReadNotify(ctx)` (the read-index loop of `read.Read`,
+**Reads** (`isReadNotify r γr`): `LinearizableReadNotify(ctx)` (the read-index loop of `read.Read`,
 proved in unit 4a, `read/Results.lean`, from contracts on the server and raft) returns `nil` only
 once the applied index is at least the committed index the caller knew of (`committedAtLeast γr
 c` in, `appliedAtLeast γr ci₀` with `c ≤ ci₀` out); its caller holds a reader slot of the read
@@ -1417,7 +1417,7 @@ applied index has reached the committed index the caller knew of (`readIndexOk`)
 the gRPC layer can take (`applyErrIs`: the read loop's `ErrStopped`, `ErrLeaderChanged`, ...,
 `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`; 2026-10-12, unit 3b, as
 `raftPropose`). -/
-def isRead (r : Loc) (γr : ReadNames) : IProp GF :=
+def isReadNotify (r : Loc) (γr : ReadNames) : IProp GF :=
   iprop(□ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c : w64) (g : GName)
       (Q : List EntryModel → IProp GF),
     {{ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr ∗
@@ -1427,8 +1427,8 @@ def isRead (r : Loc) (γr : ReadNames) : IProp GF :=
     {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
         (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}))
 
-instance isRead_persistent (r : Loc) (γr : ReadNames) : Persistent (isRead (GF := GF) r γr) := by
-  unfold isRead; infer_instance
+instance isReadNotify_persistent (r : Loc) (γr : ReadNames) : Persistent (isReadNotify (GF := GF) r γr) := by
+  unfold isReadNotify; infer_instance
 
 /-- The `*auth.AuthInfo` `a` (not nil): its `Username` and `Revision`, read-only. -/
 def authInfoIs (a : Loc) (user : GoString) (rev : w64) : IProp GF :=

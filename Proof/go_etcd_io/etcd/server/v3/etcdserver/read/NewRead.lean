@@ -68,7 +68,7 @@ theorem read.NewRead.wp_proof
   wp_auto
   iapply HΦ
   isplitr
-  · iunfold isRead
+  · iunfold isReadNotify
     iintro !> %ctx %cd %c %g %Q %Φ' !> ⟨#Hctx, #Hc, Hrr, #HsQ, #HdQ⟩ HΦ'
     iapply hNotify r γr ctx cd c g Q $$ [Hrr] HΦ'
     iframe #; iframe Hrr

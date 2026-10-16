@@ -27,7 +27,7 @@ resource `LR` (the server's `lgMu` reader slot), the applied index's lower bound
 channel closed once the applied index reached the deadline, a request id for a resource `NR` (the
 id budget, the server's premise), the request timeout) and `isReadRaft rf γr RQ` (the
 `raftInterface`: `ReadIndex` registers a request id at a committed bound, `RQ id n`, and every read
-state on `ReadState()`'s channel answers each registration of its id: `readStateOk`).
+state on `ReadState()`'s channel answers each registration of its id: `srvReadStateOk`).
 -/
 module
 
@@ -248,17 +248,17 @@ bytes, read-only, and its index answers every registration of the id they encode
 `ReadIndex` registered at a committed bound `n` with the read update of result `Qr` (`RQ id n Qr`)
 has `n ≤ rs.Index`, and (2026-10-14, unit T1) raft's witness of the update at the read index
 (`srvReadWit γ Qr rs.Index`). -/
-def readStateOk (γ : ServerRaftNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
+def srvReadStateOk (γ : ServerRaftNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
     (rs : go_etcd_io.raft.v3.ReadState) : IProp GF :=
   iprop(∃ bs : List w8, rs.RequestCtx' ↦*□ bs ∗ ⌜bs.length = 8⌝ ∗
     □ (∀ (id n : w64) (Qr : List EntryModel → IProp GF), ⌜bs = beBytes id⌝ -∗ RQ id n Qr -∗
       ⌜uint.Z n ≤ uint.Z rs.Index'⌝ ∗ srvReadWit γ Qr rs.Index'))
 
-/-- **`ReadState()`'s channel** (persistent): a bag channel of read states, each `readStateOk`
+/-- **`ReadState()`'s channel** (persistent): a bag channel of read states, each `srvReadStateOk`
 (the raft wrapper's `readStateC`, `isRNReadStateC` with content). -/
 def isReadStateC (c : Loc) (γ : ServerRaftNames)
     (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := go_etcd_io.raft.v3.ReadState) (readStateOk γ RQ))
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := go_etcd_io.raft.v3.ReadState) (srvReadStateOk γ RQ))
 
 /-- **The `raftInterface` value `rf`** (persistent; unit 4b discharges it for the server's
 `raftNode`, as `raftPropose`): `ReadState()` returns a channel of answered read states
@@ -282,10 +282,10 @@ def isReadRaft (rf : GoInterface) (γr : ReadNames)
       {{ (err : GoInterface), RET #err; sl ↦*{dq} beBytes id ∗ applyErrIs err ∗
           (⌜err = GoInterface.nil⌝ -∗ □ RQ id n Qr) }}))
 
-instance readStateOk_persistent (γ : ServerRaftNames)
+instance srvReadStateOk_persistent (γ : ServerRaftNames)
     (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
-    (rs : go_etcd_io.raft.v3.ReadState) : Persistent (readStateOk (GF := GF) γ RQ rs) := by
-  unfold readStateOk; infer_instance
+    (rs : go_etcd_io.raft.v3.ReadState) : Persistent (srvReadStateOk (GF := GF) γ RQ rs) := by
+  unfold srvReadStateOk; infer_instance
 instance isReadStateC_persistent (c : Loc) (γ : ServerRaftNames)
     (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) :
     Persistent (isReadStateC (GF := GF) c γ RQ) := by
@@ -313,7 +313,7 @@ def isReadPre (r : Loc) (γr : ReadNames) : IProp GF :=
     readWaitCAddr r ↦□ wc ∗ isChanBag γw wc (V := Unit) (fun _ => iprop(True)) ∗
     readInv γr)
 
-/-- **What `LinearizableReadLoop` needs of `r`** (persistent; `NewRead`'s result, with `isRead`):
+/-- **What `LinearizableReadLoop` needs of `r`** (persistent; `NewRead`'s result, with `isReadNotify`):
 the two contracts (`isReadServer` with the logger's resource `LR` and the id resource `NR`;
 `isReadRaft` with the registrations `RQ`), the wake-up channel, the read invariant, the write
 side of `r.mux` (`sync.isRWMutexGuard`), and `context`'s ghost fact (`closedchan` closed: what

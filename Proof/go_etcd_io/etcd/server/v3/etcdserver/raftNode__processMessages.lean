@@ -37,6 +37,8 @@ theorem raftNode.processMessages.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.processMessages.spec (GF := GF) (hG := hG) := by
+  have wp_GetTo := wp_msgAt_GetTo wp_GetTo
+  have wp_GetType := wp_msgAt_GetType wp_GetType
   intro E γ r sl msL
   wp_start as ⟨#Hr, #Hsl, #Hall⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl

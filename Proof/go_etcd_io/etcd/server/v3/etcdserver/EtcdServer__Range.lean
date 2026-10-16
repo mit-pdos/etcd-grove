@@ -519,7 +519,7 @@ theorem EtcdServer.Range.wp_proof
   icases Hau' with ⟨%aui, %Haui, -, #HIRP, -⟩
   iunfold apply.permCheck3 at HIRP
   ihave #HisRead' := HisRead
-  iunfold isRead at HisRead'
+  iunfold isReadNotify at HisRead'
   have Hser : o.base.serializable = ser := by subst Ho; rfl
   cases ser
   · -- linearizable: the read index first

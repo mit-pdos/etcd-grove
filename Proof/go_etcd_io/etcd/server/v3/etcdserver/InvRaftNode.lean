@@ -8,7 +8,7 @@ server's raft wrapper".
   resource (node.go's term-budget credit); and (2026-10-13, the request path's unit 4b) the read
   names `γr` and the read-index registrations `RQ id n` (`ReadIndex` registered the request id
   `id` at a lower bound `n` of the committed index), which the read states a `Ready` carries
-  answer (`readStateOk`, `read/Inv.lean`).
+  answer (`srvReadStateOk`, `read/Inv.lean`).
 - **The node** (`isRaftNodeIfc E γ n`, the `raft.Node` interface, a trust boundary shaped like
   node.go's verified specs, `Proof/go_etcd_io/raft/v3/InvNode.lean`): `Ready()` is a handshake
   channel whose payload `rnReadyP` carries the node's half of the delivered log `dlv` at `d`,
@@ -130,11 +130,11 @@ instance rnMsgOk_persistent (E : RNEnv GF) (m : Loc) : Persistent (rnMsgOk E m) 
 /-! ## The node's `Ready`/`Advance` exchange -/
 
 /-- The right to append `es` to the `MemoryStorage` (from a `Ready`). -/
-def appendRight (γ : RNNames) (es : List EntryModel) : IProp GF :=
+def rnAppendRight (γ : RNNames) (es : List EntryModel) : IProp GF :=
   dghostVar γ.app (DFrac.own (1 : Qp).half) (es, false)
 
 /-- The receipt of the append of `es` (for `Advance`). -/
-def appendReceipt (γ : RNNames) (es : List EntryModel) : IProp GF :=
+def rnAppendReceipt (γ : RNNames) (es : List EntryModel) : IProp GF :=
   dghostVar γ.app (DFrac.own (1 : Qp).half) (es, true)
 
 /-- A `Ready`'s `SoftState`: nil, or read-only fields. -/
@@ -148,16 +148,16 @@ instance softStateAt_persistent (p : Loc) : Persistent (softStateAt (GF := GF) p
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`C (d ++ ce)`), the entries `es` to append with the right
 to, the messages, each one raft may send; a `SoftState`, a `HardState`; the read states, each
-answering the registrations of its request id (`readStateOk E.RQ`; 2026-10-13, the request path's
+answering the registrations of its request id (`srvReadStateOk E.RQ`; 2026-10-13, the request path's
 unit 4b: they were none until then, as node.go's `readyData`); no snapshot. -/
 def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List EntryModel) :
     IProp GF :=
   iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
     rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (d ++ ce) ∗
-    rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ appendRight γ es ∗
+    rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnAppendRight γ es ∗
     rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗
-    (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, readStateOk E.γr.raft E.RQ rs) ∗
+    (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs) ∗
     ⌜rd.Snapshot' = null⌝)
 
 /-- A `Ready` on the node's channel: the node's half of `dlv` at `d`, its record's other half,
@@ -190,7 +190,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
     □ ({{ True }} (App (Val #(methods ni.ty go!"Ready" ni.v)) (Val #()))
       {{ (ch : Loc), RET #ch; isHandshake (V := Ready) γ.readyc ch (rnReadyP E γ) iprop(True) }}) ∗
     □ (∀ (d ce es : List EntryModel),
-      {{ rnBusy γ d ce es ∗ appendReceipt γ es }}
+      {{ rnBusy γ d ce es ∗ rnAppendReceipt γ es }}
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       {{ RET #(); rnDrv γ (d ++ ce) }}) ∗
     □ ({{ E.T }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
@@ -230,9 +230,9 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
 of the `Ready`'s entries turns the right into the receipt. -/
 def isRNMemStor (γ : RNNames) (ms : Loc) : IProp GF :=
   iprop(□ (∀ (sl : GoSlice) (esL : List Loc) (es : List EntryModel),
-    {{ sl ↦*□ esL ∗ entriesAt esL es ∗ appendRight γ es }}
+    {{ sl ↦*□ esL ∗ entriesAt esL es ∗ rnAppendRight γ es }}
       (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Append")) (Val #sl))
-    {{ RET #(GoInterface.nil); appendReceipt γ es }}))
+    {{ RET #(GoInterface.nil); rnAppendReceipt γ es }}))
 
 instance isRNMemStor_persistent (γ : RNNames) (ms : Loc) :
     Persistent (isRNMemStor (GF := GF) γ ms) := by

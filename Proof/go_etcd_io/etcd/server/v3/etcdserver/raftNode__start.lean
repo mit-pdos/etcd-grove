@@ -54,6 +54,10 @@ theorem raftNode.start.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
+  have wp_IsEmptySnap := wp_IsEmptySnap_nil wp_IsEmptySnap
+  have wp_IsEmptyHardState := wp_hardStateAt_IsEmptyHardState wp_IsEmptyHardState
+  have wp_GetCommit := wp_hardStateAt_GetCommit wp_GetCommit
+  have wp_GetType := wp_entryAt_GetType wp_GetType
   intro E γ r rh L R
   wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, #HT⟩
   ihave #Hr' := Hr
@@ -247,7 +251,7 @@ theorem raftNode.start.wp_proof
           have h1 := Hrsl.1
           omega
         wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
-        ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => readStateOk (GF := GF) E.γr.raft E.RQ rs)
+        ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => srvReadStateOk (GF := GF) E.γr.raft E.RQ rs)
           Hrs_lookup) $$ Hrsok
         wp_apply_core chan.wp_select_blocking
         -- `r.readStateC <- rs`

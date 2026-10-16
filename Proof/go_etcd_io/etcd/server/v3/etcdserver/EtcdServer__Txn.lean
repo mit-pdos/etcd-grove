@@ -412,7 +412,7 @@ theorem EtcdServer.Txn.wp_proof
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨#HtLe, -⟩
   ihave #HisRead' := HisRead
-  iunfold isRead at HisRead'
+  iunfold isReadNotify at HisRead'
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩

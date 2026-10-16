@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 /-- `NewRead(srv, rf)` with the server's `Done()` (`srvDoneOk`, what `LinearizableReadNotify` needs)
-and the read names' notifier meets the read contract (`isRead`) and returns the reader slots of
+and the read names' notifier meets the read contract (`isReadNotify`) and returns the reader slots of
 `r.mux` (`readReader`, as many as Perennial's `RWMutex` admits); the loop's precondition
 (`isReadLoopPre`) follows from the server's and raft's contracts, given later (2026-10-13, the
 request path's unit 4c: the server's `start` calls `NewRead` before it sets `s.leaderChanged`,
@@ -35,7 +35,7 @@ abbrev read.NewRead.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
       srvDoneOk srv ∗ context.isClosedchanInit ∗ ghostVar γr.notifier 1 x }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.read.NewRead)) (Val #srv)) (Val #rf))
-  {{ (r : Loc), RET #r; isRead r γr ∗
+  {{ (r : Loc), RET #r; isReadNotify r γr ∗
       (□ ∀ (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF),
         isReadServer srv γr LR NR -∗ isReadRaft rf γr RQ -∗ readCompose γr -∗
           isReadLoopPre r γr RQ LR NR) ∗

@@ -75,6 +75,9 @@ theorem EtcdServer.apply.wp_proof
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.spec (GF := GF) (hG := hG) := by
+  have hGI := wp_entryAt_GetIndex hGI
+  have hGT := wp_entryAt_GetTerm hGT
+  have hGTy := wp_entryAt_GetType hGTy
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A hne hfrom hok hEok
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, #Hlog0, #Hbc,
     HW, Hka, #Hkb⟩
@@ -364,11 +367,9 @@ theorem EtcdServer.apply.wp_proof
       · -- a conf change
         have hne0 : decide (m.typ = W32 0) = false := by rw [h1]; decide
         simp only [h1]
-        ihave #He2 := He
-        iunfold entryAt at He2
-        icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
+        ihave ⟨%Hnn, %d, #Hd, #Hds⟩ := entryAt_fields _ _ $$ He
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hcid⟩, -⟩
         · iframe cc Hds
         ihave #Hccf : iprop(□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) $$ []
         · have he : entryWaitOk ρ E m =
@@ -385,7 +386,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf⟩ := HE
-        wp_apply (hACC s cc_ptr ep v' csl true ci sv.ua E
+        wp_apply (hACC s cc_ptr ep cm csl true ci sv.ua E
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
             applyBackend γ ci b ∗
             ⌜(stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -397,7 +398,7 @@ theorem EtcdServer.apply.wp_proof
             applyBackend γ ci b)
           iprop(applyThread γ { { stLoaded γ st' with p := m.index } with k := m.index } ∗
             ciApplying ci m.index m.term ∗ applyBackend γ ci b)
-          m.index m.term) $$ [Hcc Hcs Hst Happ Hbe] as %removed %err ⟨⟨%v'', %cs', Hcc, %hIdEq, Hcs⟩, Hpost⟩
+          m.index m.term) $$ [Hcc Hcs Hst Happ Hbe] as %removed %err ⟨⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, Hpost⟩
         · rw [ite_eq_left rfl, HEP, HEf]
           iframe Hcif Hua Happlier Hcc Hcs
           isplitr
@@ -457,8 +458,9 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         rcases sb with _ | _ <;> (
         (try wp_auto)
-        wp_apply (hId cc_ptr v'' (DFrac.own 1) (ccIdOf m.data)) $$ [Hcc] as Hcc
-        · rw [hIdEq]; iframe Hcc Hcid
+        wp_apply (wp_ownCCV1_GetId hId cc_ptr (DFrac.own 1) cm' (ccIdOf m.data)
+          (by rw [hIdEq, Hcid])) $$ [Hcc] as Hcc
+        · iframe Hcc
         (try wp_auto)
         wp_apply hMem sv.cluster $$ [] as %msl -
         · iframe #
@@ -600,11 +602,9 @@ theorem EtcdServer.apply.wp_proof
           by rw [hjs]; exact hOkRest x1 hb1⟩, by omega, ⟨hpend'', hstj'.1, hstj'.2⟩, hlast', by omega⟩
       · -- a conf change
         (try simp only [h1])
-        ihave #He2 := He
-        iunfold entryAt at He2
-        icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
+        ihave ⟨%Hnn, %d, #Hd, #Hds⟩ := entryAt_fields _ _ $$ He
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hcid⟩, -⟩
         · iframe cc Hds
         ihave #Hccf : iprop(□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) $$ []
         · have he : entryWaitOk ρ E m =
@@ -613,9 +613,9 @@ theorem EtcdServer.apply.wp_proof
           rw [he]
           iexact Hewo
         (try wp_auto)
-        wp_apply (hACC s cc_ptr ep v' csl false ci sv.ua E
+        wp_apply (hACC s cc_ptr ep cm csl false ci sv.ua E
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term) $$ [Hcc Hcs]
-          as %removed %err ⟨⟨%v'', %cs', Hcc, %hIdEq, Hcs⟩, -⟩
+          as %removed %err ⟨⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, -⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
           iframe Hcif Hua Happlier Hcc Hcs
           isplit <;> ipureintro <;> trivial
@@ -641,8 +641,9 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         rcases sb with _ | _ <;> (
         (try wp_auto)
-        wp_apply (hId cc_ptr v'' (DFrac.own 1) (ccIdOf m.data)) $$ [Hcc] as Hcc
-        · rw [hIdEq]; iframe Hcc Hcid
+        wp_apply (wp_ownCCV1_GetId hId cc_ptr (DFrac.own 1) cm' (ccIdOf m.data)
+          (by rw [hIdEq, Hcid])) $$ [Hcc] as Hcc
+        · iframe Hcc
         (try wp_auto)
         wp_apply hMem sv.cluster $$ [] as %msl -
         · iframe #

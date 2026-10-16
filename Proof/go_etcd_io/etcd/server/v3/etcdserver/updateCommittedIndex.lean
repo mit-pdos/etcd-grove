@@ -27,6 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem updateCommittedIndex.wp_proof
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     updateCommittedIndex.spec (GF := GF) (hG := hG) := by
+  have hGI := wp_entryAt_GetIndex hGI
   intro ap rh es ceL ce R γr
   wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR⟩
   imod monoNatLbOwn_0 (GF := GF) γr.committed with #H0

@@ -214,7 +214,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
         rci_ret_err HaLC
       · iapply BigAndL.bigAndL_nil.2; itrivial
     · wp_auto
-      iunfold readStateOk at Hrs
+      iunfold srvReadStateOk at Hrs
       icases Hrs with ⟨%bs, #Hbs, %Hbl, #Hans⟩
       ihave %Hsl := ownSlice_len _ _ _ $$ Hbs
       wp_if_destruct
