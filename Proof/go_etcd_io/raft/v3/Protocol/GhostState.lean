@@ -220,8 +220,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          dynOn γ iprop(⌜ConfI1 (fp ++ l) (uint.Z m.commit).toNat⌝)) ∗
       ⌜m.src ≠ W64 0⌝)
   | .appResp =>
+      -- an acceptance: the acknowledgement, and (2026-10-16, stage R8a, D11) its index within
+      -- the term's leader's log, for the leader's `MaybeUpdate` (`ownRaftGhost_ackIn_le`)
       if m.reject then iprop(True)
-      else isAcked γ m.src m.term m.index
+      else iprop(isAcked γ m.src m.term m.index ∗ ackIn γ m.term m.index)
   | .heartbeat =>
       iprop(isLeader γ m.src m.term ∗
       (∃ Fl, leadFull γ m.term Fl ∗ commitIn γ Fl m.commit m.term ∗
@@ -272,12 +274,13 @@ instance isMessage_timeless (γ : RaftNames) (m : Msg) :
     Timeless (isMessage (GF := GF) γ m) := by
   unfold isMessage; split <;> (try split) <;> infer_instance
 
-/-- An accepting `MsgAppResp` acknowledges an index within the leader's log (stage R8a, D11).
-**Stub** (2026-10-16): proved once `isMessage`'s `appResp` clause carries `ackIn`. -/
+/-- An accepting `MsgAppResp` acknowledges an index within the leader's log (stage R8a, D11). -/
 theorem isMessage_appResp_ackIn (γ : RaftNames) (m : Msg) :
     m.ty = .appResp → m.reject = false →
     ⊢ isMessage (GF := GF) γ m -∗ ackIn γ m.term m.index := by
-  sorry
+  intro Hty Hrej
+  unfold isMessage; rw [Hty]; simp only [Hrej, Bool.false_eq_true, ↓reduceIte]
+  iintro ⟨-, #H⟩; iexact H
 
 /-- The message types that carry nothing. -/
 def MsgFree (ty : MsgType) : Bool :=

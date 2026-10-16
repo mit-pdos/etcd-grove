@@ -379,6 +379,87 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List EntryM) (a : w64) 
 section inv
 variable [InvGS GF]
 
+/-- An index of a log past the leader's campaign log `l0` is in the leader's term-log authority
+`M`, hence at most `L` (2026-10-16, stage R8a): the index `z` (in range of `w64`) names an entry of
+`l` past `l0`, which has a fragment of `γt` (`leadFrags`). -/
+private theorem leadFrags_idx_le (γt : GName) (M : GMap w64 (EntryM × w64)) (l0 l : List EntryM)
+    (b : entryID) (L z : Int) :
+    PlogWfR b l → (∀ i, (M !! i).isSome → uint.Z i ≤ L) →
+    uint.Z b.index' + (l0.length : Int) < z → z ≤ plogLastIndexZ b l → z < 2 ^ 64 →
+    ⊢ ghostMapAuth (GF := GF) γt 1 M -∗ leadFrags γt l0 l -∗ ⌜z ≤ L⌝ := by
+  intro Hwf Hdom Hz0 Hzl Hz64
+  iintro Ha #Hlf
+  unfold leadFrags
+  have HbZ := uint_Z_nonneg b.index'
+  unfold plogLastIndexZ at Hzl
+  obtain ⟨e, He⟩ : ∃ e, l[(z - uint.Z b.index' - 1).toNat]? = some e :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  ihave He' := BigSepL.bigSepL_lookup (Φ := fun k e => if l0.length ≤ k then
+      iprop(∃ pt : w64, e.Index' ↪[γt]□ ((e, pt) : EntryM × w64)) else iprop(True)) He
+    $$ Hlf
+  rw [ite_eq_left (show l0.length ≤ (z - uint.Z b.index' - 1).toNat by omega)]
+  icases He' with ⟨%pt, He'⟩
+  icases ghost_map_lookup $$ Ha He' with %HM
+  have Hd := Hdom _ (by rw [HM]; rfl)
+  have Hw := Hwf _ _ He (by omega)
+  ipureintro; omega
+
+/-- A log of the leader of `s.term` (`leadPrefix`) is within the leader's own log (2026-10-16,
+stage R8a, D11; the core of `ownLogGhost_within`, which takes the full log): the prefix names
+the leader's own term log (`isTermLog` against `leadLogOwn`'s entry), whose fragments are all in
+the leader's term-log authority `M`, and nothing in `M` is past the leader's last index. Bounded
+at `2 ^ 64 - 1` because `leadPrefix` has only `PlogWfR` (the entries' indices in range). The ghost
+state is handed back. -/
+theorem ownLogGhost_prefix_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
+    (ldr : w64) (bL : entryID) (l : List EntryM) :
+    s.role = .leader →
+    ⊢ isLeader (GF := GF) γ id s.term -∗ leadPrefix γ ldr s.term bL l -∗ ownLogGhost γ id s kl -∗
+      ⌜min (plogLastIndexZ bL l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝ ∗
+      ownLogGhost γ id s kl := by
+  intro Hr
+  unfold ownLogGhost
+  iintro #Hl #Hp H
+  icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  ihave Hres : iprop(⌜min (plogLastIndexZ bL l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝ ∗
+      leadLogOwn γ s terms ∗ ghostMapAuth γm 1 terms) $$ [Hterms Htlog]
+  · unfold leadPrefix isTermLog
+    unfold leadLogOwn
+    rw [Hr]
+    icases Htlog with ⟨%γt, %M, %l0, %Hγt, Ha, #Hfr, %Hdom, %Hpre, #Hlf⟩
+    icases Hp with ⟨#Hl', %γt', %l0', ⟨%γm', %Hγm', #Htf⟩, %Hwr', -, #Hlf'⟩
+    icases isLeader_unique γ id ldr s.term $$ Hl Hl' with %Hid
+    subst Hid
+    rw [Htname] at Hγm'
+    cases Hγm'
+    ihave %Hlook := ghost_map_lookup $$ Hterms Htf
+    rw [Hγt] at Hlook
+    obtain ⟨⟨rfl, rfl⟩, rfl⟩ : (γt = γt' ∧ s.base = bL) ∧ l0 = l0' := by simpa using Hlook
+    obtain ⟨HwR, -⟩ := Hwr'
+    have Hl0 := Hpre.length_le
+    have HbZ := uint_Z_nonneg s.base.index'
+    have Hb64 := uint_Z_lt s.base.index'
+    ihave %Hle : ⌜min (plogLastIndexZ s.base l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝
+        $$ [Ha]
+    · by_cases Hcase : min (plogLastIndexZ s.base l) (2 ^ 64 - 1) ≤
+          uint.Z s.base.index' + (l0.length : Int)
+      · ipureintro; unfold plogLastIndexZ at Hcase ⊢; omega
+      · iapply leadFrags_idx_le γt M l0 l s.base (plogLastIndexZ s.base s.log)
+          (min (plogLastIndexZ s.base l) (2 ^ 64 - 1)) HwR Hdom
+          (by unfold plogLastIndexZ at Hcase ⊢; omega) (by unfold plogLastIndexZ at *; omega)
+          (by unfold plogLastIndexZ at *; omega) $$ Ha Hlf'
+    isplitr
+    · ipureintro; exact Hle
+    iframe Hterms
+    iexists γt, M, l0
+    iframe Ha Hfr Hlf
+    ipureintro; exact ⟨Hγt, Hdom, Hpre⟩
+  icases Hres with ⟨%Hle, Htlog, Hterms⟩
+  isplitr
+  · ipureintro; exact Hle
+  iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
+  iframe % # ∗
+
 /-- A leader's current log is at least as long as every log of its term (`leadFull`): the
 entries it created are in its term log, whose indices are within its log
 (`leadLogOwn`). -/
@@ -388,40 +469,29 @@ theorem ownLogGhost_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option
     ⊢ isLeader (GF := GF) γ id s.term -∗ leadFull γ s.term G -∗ ownLogGhost γ id s kl -∗
       ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ s.base s.log⌝ := by
   intro Hr
-  unfold ownLogGhost
   iintro #Hl #HG H
-  unfold leadFull leadPrefix lpfull isTermLog leadFrags
-  icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  unfold leadLogOwn
-  rw [Hr]
-  icases Htlog with ⟨%γt, %M, %l0, %Hγt, Ha, -, %Hdom, %Hpre, -⟩
-  icases HG with ⟨%ldr, %bL, %l, %fpG, ⟨#Hl', %γt', %l0', ⟨%γm', %Hγm', #Htf⟩, %Hwr', -, #Hlf'⟩,
-    ⟨%F0, -, -, %HfG⟩, %HG⟩
-  icases isLeader_unique γ id ldr s.term $$ Hl Hl' with %Hid
-  subst Hid
-  rw [Htname] at Hγm'
-  cases Hγm'
-  icases ghost_map_lookup $$ Hterms Htf with %Hlook
-  rw [Hγt] at Hlook
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ : (γt = γt' ∧ s.base = bL) ∧ l0 = l0' := by simpa using Hlook
+  unfold leadFull
+  icases HG with ⟨%ldr, %bL, %l, %fpG, #Hp, #Hpf, %HG⟩
   subst HG
+  unfold lpfull
+  icases Hpf with ⟨%F0, -, -, %HfG⟩
   obtain ⟨HfG, -, HwG, -⟩ := HfG
+  icases ownLogGhost_prefix_within γ id s kl ldr bL l Hr $$ Hl Hp H with ⟨%Hle, -⟩
+  ipureintro
   rw [full_last_index _ _ _ HfG]
-  by_cases Hle : l.length ≤ l0.length
-  · have := Hpre.length_le
-    ipureintro; unfold plogLastIndexZ; omega
-  · obtain ⟨e, He⟩ : ∃ e, l[l.length - 1]? = some e :=
-      ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    ihave He' := BigSepL.bigSepL_lookup (Φ := fun k e => if l0.length ≤ k then
-        iprop(∃ pt : w64, e.Index' ↪[γt]□ ((e, pt) : EntryM × w64)) else iprop(True)) He
-      $$ Hlf'
-    rw [ite_eq_left (show l0.length ≤ l.length - 1 by omega)]
-    icases He' with ⟨%pt, He'⟩
-    icases ghost_map_lookup $$ Ha He' with %HM
-    have Hd := Hdom _ (by rw [HM]; rfl)
-    have Hw := HwG _ _ He
-    ipureintro; unfold plogLastIndexZ at Hd ⊢; omega
+  -- the log's last index is in range (`PlogWf`: its last entry's index is a `w64`)
+  have Hb64 := uint_Z_lt bL.index'
+  have HL : plogLastIndexZ bL l < 2 ^ 64 := by
+    unfold plogLastIndexZ
+    cases hl : l with
+    | nil => simp; omega
+    | cons e0 l' =>
+      obtain ⟨e, He⟩ : ∃ e, (e0 :: l')[l'.length]? = some e :=
+        ⟨_, List.getElem?_eq_getElem (by simp)⟩
+      have := HwG l'.length e (by rw [hl]; exact He)
+      have := uint_Z_lt e.Index'
+      simp only [List.length_cons]; push_cast at *; omega
+  omega
 
 /-- What a leader has: its full log, with records, which extends its campaign log and is
 a `leadFull` of its term; and every log of its term is within it. -/

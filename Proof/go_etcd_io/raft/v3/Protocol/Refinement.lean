@@ -205,14 +205,19 @@ private theorem isMessage_appResp_inv (γ : RaftNames) (m : Msg) :
     ⊢ isMessage (GF := GF) γ m -∗ isAcked γ m.src m.term m.index := by
   intro Hty Hrej
   unfold isMessage; rw [Hty]; simp only [Hrej, Bool.false_eq_true, ↓reduceIte]
-  iintro H; iexact H
+  iintro ⟨H, -⟩; iexact H
 
+/-- An accepting `MsgAppResp`: the acknowledgement and (since 2026-10-16, stage R8a) the witness
+that its index is within the term's leader's log. -/
 private theorem isMessage_appResp (γ : RaftNames) (src dst term idx : w64) :
-    ⊢ isAcked (GF := GF) γ src term idx -∗
+    ⊢ isAcked (GF := GF) γ src term idx -∗ ackIn γ term idx -∗
       isMessage γ (Msg.mk .appResp src dst term false idx (W64 0) (W64 0) (W64 0) []) := by
   unfold isMessage
   simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro H; iexact H
+  iintro H Hi
+  isplitl [H]
+  · iexact H
+  · iexact Hi
 
 private theorem isMessage_appResp_rej (γ : RaftNames) (src dst term idx a b c : w64) :
     ⊢ isMessage (GF := GF) γ (Msg.mk .appResp src dst term true idx a b c []) := by
@@ -290,15 +295,79 @@ private theorem isMessage_leader (γ : RaftNames) (m : Msg) :
     · iexact Hl
     · ipureintro; exact Hnz
 
+/-- What an `app` and a `snap` share: a log of the leader of the term, with its full log. -/
+private theorem isMessage_leadPrefix (γ : RaftNames) (m : Msg) :
+    m.ty = .app ∨ m.ty = .snap →
+    ⊢ isMessage (GF := GF) γ m -∗
+      ∃ bL l fp, leadPrefix γ m.src m.term bL l ∗ lpfull γ m.src m.term bL l fp := by
+  intro Hty
+  iintro #Hm
+  rcases Hty with Hty | Hty
+  · icases isMessage_app_inv γ m Hty $$ Hm with ⟨-, -, ⟨%bL, %l, %fp, #Hp, -, #Hpf, -⟩, -⟩
+    iexists bL, l, fp; iframe Hp Hpf
+  · icases isMessage_snap_inv γ m Hty $$ Hm with ⟨-, -, ⟨%bL, %l, %fp, #Hp, -, #Hpf, -⟩, -⟩
+    iexists bL, l, fp; iframe Hp Hpf
+
+/-- **A commit index is within the log of the leader of any later term** (2026-10-16, stage R8a,
+D11): a commit index `c` justified at a term `tm ≤ t` is at most the last index of a log of the
+term-`t` leader (`ackIn γ t c`). The commit fact `cq γ t' n G` behind it has `c ≤ n` at the
+term-`t'` leader's log `G`; at `t' = t`, `G` is itself a `leadPrefix` of `t`; at `t' < t`, leader
+completeness (`lc_core`, which needs the vote table) puts `n` in the given term-`t` leader's full
+log. What a follower's reply acknowledging its commit index (the stale `MsgApp` and `MsgSnap`
+replies) carries. -/
+theorem commitIn_ackIn (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : List EntryM)
+    (c tm : w64) :
+    uint.Z tm ≤ uint.Z t →
+    ⊢ votesTbl (GF := GF) γ -∗ leadPrefix γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗
+      commitIn γ F c tm -∗ votesTbl γ ∗ ackIn γ t c := by
+  intro Htm
+  iintro Htbl #Hp #Hpf #Hc
+  ihave #Hcj := commitIn_j γ F c tm $$ Hc
+  unfold commitJ
+  icases Hcj with (%H0 | ⟨%t', %n, %G, #Hq, %Hcn⟩)
+  · iframe Htbl; iapply ackIn_zero γ t c H0
+  obtain ⟨Hcn, Htt, -⟩ := Hcn
+  icases cq_base γ t' n G $$ Hq with ⟨%HGn, #HGl⟩
+  have Hn := (plogTermAt_some_range _ _ _ _ HGn).2
+  by_cases Hne : t' = t
+  · subst Hne
+    iunfold leadFull at HGl
+    icases HGl with ⟨%ldr', %bL', %l', %fp', #Hp2, #Hpf2, %HG⟩
+    subst HG
+    icases lpfull_fp $$ Hpf2 with ⟨-, %Hf2⟩
+    rw [full_last_index _ _ _ Hf2.1] at Hn
+    iframe Htbl
+    unfold ackIn; iright
+    iexists ldr', bL', l'; iframe Hp2; ipureintro; omega
+  · have Hlt : uint.Z t' < uint.Z t := by
+      have : uint.Z t' ≠ uint.Z t := fun h => Hne (uint_Z_inj.mp h)
+      omega
+    ihave #HLf := leadFull_intro $$ Hp Hpf
+    icases leadFull_camp γ t (fp ++ l) $$ HLf with ⟨%ldr2, %F0, #Hl2, #Hc0, %Hpre⟩
+    icases leadFull_wf γ t (fp ++ l) $$ HLf with ⟨%HwL, #HrL⟩
+    icases isCamp_ok γ ldr2 t F0 $$ Hc0 with %Hcok
+    have Hcl := camp_last t F0 Hcok
+    icases lc_core γ ((uint.Z t).toNat + 1) t t' n G ldr2 F0 (fp ++ l)
+        (by have := uint_Z_nonneg t; omega) Hlt HwL.1
+        (by rw [plogTermAt_prefix _ F0 _ _ Hpre (by rw [Hcl]; rfl)]; exact Hcl)
+        $$ Htbl Hq Hl2 Hc0 HrL with %HnL
+    icases lpfull_fp $$ Hpf with ⟨-, %Hf⟩
+    have Hn' := (plogTermAt_some_range _ _ _ _ HnL).2
+    rw [full_last_index _ _ _ Hf.1] at Hn'
+    iframe Htbl
+    unfold ackIn; iright
+    iexists ldr, bL, l; iframe Hp; ipureintro; omega
+
 /-- `Step.appStale` and `Step.snapStale`: learn the leader, adopt it, and acknowledge the
-commit index. -/
+commit index -- with the witness that it is within the leader's log (`commitIn_ackIn`, which
+reads the vote table out of the commit invariant: hence the fancy update, 2026-10-16). -/
 private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     (m.ty = .app ∨ m.ty = .snap) →
     m.src ≠ id →
     m.term = s.term →
     s.role ≠ .leader →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s md ==∗
+      ownRaftGhost γ id s md ={⊤ \ ↑raftRegN}=∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
@@ -309,7 +378,21 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   icases isMessage_leader γ m (by rcases Hty with h | h <;> simp [h]) $$ Hm with ⟨#Hl, %Hfnz⟩
+  icases isMessage_leadPrefix γ m Hty $$ Hm with ⟨%bL, %lL, %fpL, #Hp', #Hpf'⟩
   rw [Hterm]
+  -- the commit index is within the leader's log (`ackIn`): the vote table, out of the invariant
+  ihave #HcI := ownLogGhost_commitIn γ id s kl $$ Hlg
+  icases HcI with ⟨%fpw, -, -, -, #Hcom⟩
+  ihave #Hinv := ownLogGhost_inv γ id s kl $$ Hlg
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody
+  iinv Hli with ⟨%P, HP, Hjust, >Htbl, Hwt, Hpo⟩ Hclose
+  icases commitIn_ackIn γ m.src s.term bL lL fpL (fpw ++ s.log) s.commit s.term (Int.le_refl _)
+    $$ Htbl Hp' Hpf' Hcom with ⟨Htbl, #HackIn⟩
+  imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
+  · inext
+    iexists P
+    iframe
   iunfold isLeader at Hl
   icases Hl with ⟨%q, #Hwin⟩
   ihave %Hex := vote_excl γ id s γv voted m.src q Hname Hhist $$ Hvoted Hwin
@@ -332,7 +415,7 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
-    iapply isMessage_appResp $$ Hack
+    iapply isMessage_appResp $$ Hack HackIn
   · iapply tally_empty γ id _ (by rfl)
   · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
   · iapply ownLogGhost_mono γ id (padoptLeader s m.src) _ (some m.src) (by rfl) (by rfl) (by rfl)
@@ -883,14 +966,19 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
       unfold pselfAck
       iapply isMessage_appResp
-      unfold isAcked
-      iright
-      isplitr
-      · iexists γa
+      · unfold isAcked
+        iright
         isplitr
-        · ipureintro; exact Haname
-        · iexact Hk2
-      · iexact Hev2
+        · iexists γa
+          isplitr
+          · ipureintro; exact Haname
+          · iexact Hk2
+        · iexact Hev2
+      · -- the new leader's own log (stage R8a)
+        unfold ackIn; iright
+        iexists id, s2.base, s2.log
+        iframe Hp2
+        ipureintro; rw [HplZ2, HLs2]; exact Int.le_refl _
     · iapply BigSepL.bigSepL_forall_elim
       iintro %k %x %Hk
       iapply replOk_message γ id s2 x fp Hwl2' (Hms x (List.mem_of_getElem? Hk)) Hidnz
@@ -1306,14 +1394,14 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (id : w64)
   · rd_mono
 
 /-- `Step.appStale`: back to follower of `m.src` in the same term, and acknowledge the
-commit index -- which needs no justification. -/
+commit index (within the leader's log by leader completeness: `ownRaftGhost_step_stale`). -/
 theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .app →
     m.src ≠ id →
     m.term = s.term →
     s.role ≠ .leader →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s md ==∗
+      ownRaftGhost γ id s md ={⊤ \ ↑raftRegN}=∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
@@ -1359,13 +1447,35 @@ theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m
 
 /-- At a leader, an `ackIn` of its term is at most its last index: the prefix the witness names is
 of its own term log (`leadLogOwn`: every index in the term log is at most the last index, and the
-campaign log `l0` is a prefix of the log). What the physical `MaybeUpdate` needs (`PrvalsOk`,
-`Defs.lean`). **Stub** (2026-10-16): proved by the ghost side of stage R8a. -/
+campaign log `l0` is a prefix of the log: `ownLogGhost_prefix_within`). What the physical
+`MaybeUpdate` needs (`PrvalsOk`, `Defs.lean`). -/
 theorem ownRaftGhost_ackIn_le (γ : RaftNames) (id : w64) (s : PState) (i : w64) :
     s.role = .leader →
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ackIn γ s.term i -∗
       ⌜uint.Z i ≤ plogLastIndexZ s.base s.log⌝ ∗ ownRaftGhost γ id s md := by
-  sorry
+  intro Hrole
+  iintro Hown #Ha
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ihave #Hl : isLeader γ id s.term $$ []
+  · rw [← leaderWit_leader γ id s Hrole]; iexact Hlead
+  ihave Hres : iprop(⌜uint.Z i ≤ plogLastIndexZ s.base s.log⌝ ∗ ownLogGhost γ id s kl) $$ [Hlg]
+  · unfold ackIn
+    icases Ha with (%H0 | ⟨%ldr, %bL, %l, #Hp, %Hil⟩)
+    · iframe Hlg; ipureintro
+      have := uint_Z_nonneg s.base.index'; unfold plogLastIndexZ; omega
+    · icases ownLogGhost_prefix_within γ id s kl ldr bL l Hrole $$ Hl Hp Hlg with ⟨%Hw, Hlg⟩
+      iframe Hlg; ipureintro
+      have := uint_Z_lt i; omega
+  icases Hres with ⟨%Hle, Hlg⟩
+  isplitr
+  · ipureintro; exact Hle
+  iapply ownRaftGhost_intro γ id s γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally Hlead Hlg [] [] Hvrecs [] Hlcm Hrd
+  · ipureintro; exact Hhist
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
 
 /-! ### Read-index: a node of term `T` dooms no record of `T` (2026-10-13) -/
 
@@ -1920,6 +2030,13 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
     iapply isMessage_appResp $$ Hack
+    -- `lastnewi` is within the leader's log: the batch's last entry is there (stage R8a)
+    unfold ackIn; iright
+    iexists m.src, bL, l'
+    iframe Hp'
+    ipureintro
+    obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp (Hagree lastnewi (by omega) (by omega)).2
+    exact (plogTermAt_some_range _ _ _ _ Hx).2
   · iapply tally_empty γ id _ (by rfl)
   · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
   · iapply ownLogGhost_mono γ id
@@ -2327,6 +2444,11 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     iapply outbox_snoc $$ Hout
     unfold pselfAck
     iapply isMessage_appResp $$ Hack
+    -- the leader's own log after the append (stage R8a)
+    unfold ackIn; iright
+    iexists id, (pappend s nw).base, (pappend s nw).log
+    iframe Hp'
+    ipureintro; rw [Hpl, HLs']; exact Int.le_refl _
   · iapply tally_eq γ id s _ (by rfl) (by rfl) $$ Htally
   · iapply leaderWit_eq γ id s _ (by rfl) (by rfl) $$ Hlead
   · iapply ownLogGhost_mono γ id (pappend s nw) _ kl (by rfl) (by rfl) (by rfl)
@@ -2346,7 +2468,7 @@ theorem ownRaftGhost_step_snap_stale (γ : RaftNames) (id : w64) (s : PState) (m
     m.term = s.term →
     s.role ≠ .leader →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s md ==∗
+      ownRaftGhost γ id s md ={⊤ \ ↑raftRegN}=∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
@@ -2435,6 +2557,11 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
     iapply isMessage_appResp $$ Hack
+    -- the snapshot's index is in the leader's log (stage R8a)
+    unfold ackIn; iright
+    iexists m.src, bL, l'
+    iframe Hp'
+    ipureintro; exact (plogTermAt_some_range _ _ _ _ Hidx').2
   · iapply tally_empty γ id _ (by rfl)
   · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
   · iapply ownLogGhost_mono γ id { padoptLeader s m.src with commit := m.index } _ (some m.src)
@@ -2609,6 +2736,11 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
     iapply isMessage_appResp $$ Hack
+    -- the snapshot's index is in the leader's log (stage R8a)
+    unfold ackIn; iright
+    iexists m.src, bL, l'
+    iframe Hp'
+    ipureintro; exact (plogTermAt_some_range _ _ _ _ Hidx').2
   · iapply tally_empty γ id _ (by rfl)
   · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
   · iapply ownLogGhost_mono γ id
@@ -3881,7 +4013,8 @@ theorem ownRaftGhost_step_zeroAck (γ : RaftNames) (id : w64) (s : PState) (dst 
   · rw [psendMsgs_outbox]
     iapply outbox_snoc $$ Hout
     iapply isMessage_appResp
-    unfold isAcked; ileft; ipureintro; rfl
+    · unfold isAcked; ileft; ipureintro; rfl
+    · iapply ackIn_zero γ s.term (W64 0) rfl
   · iapply tally_eq γ id s (psendMsgs s _) rfl rfl $$ Htally
   · iapply leaderWit_eq γ id s (psendMsgs s _) rfl rfl $$ Hlead
   · iapply ownLogGhost_mono γ id s (psendMsgs s _) kl rfl rfl rfl (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
