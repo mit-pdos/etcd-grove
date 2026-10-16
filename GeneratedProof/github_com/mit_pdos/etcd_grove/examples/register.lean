@@ -6,6 +6,7 @@ public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.encoding.binary
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import Perennial.GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

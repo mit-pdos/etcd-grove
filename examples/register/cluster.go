@@ -37,30 +37,30 @@ func (quietLogger) Panicf(format string, v ...interface{})   { panic(format) }
 // with the follower's term), which the transport drops: a transfer is asked of the leader
 // itself (Register.TransferLeadership). What raft promises of a Ready's messages does not
 // say that it sends nothing else.
-func deliverable(m pb.Message) bool {
-	switch m.Type {
+func deliverable(m *pb.Message) bool {
+	switch m.GetType() {
 	case pb.MsgProp:
 	case pb.MsgReadIndex:
-		if m.Term != 0 {
+		if m.GetTerm() != 0 {
 			return false
 		}
 	case pb.MsgApp, pb.MsgAppResp, pb.MsgVoteResp, pb.MsgReadIndexResp:
-		if m.Term == 0 {
+		if m.GetTerm() == 0 {
 			return false
 		}
 	case pb.MsgTimeoutNow:
-		if m.Term == 0 || m.Entries != nil {
+		if m.GetTerm() == 0 || m.Entries != nil {
 			return false
 		}
 	case pb.MsgVote, pb.MsgHeartbeat, pb.MsgHeartbeatResp:
-		if m.Term == 0 {
+		if m.GetTerm() == 0 {
 			return false
 		}
-		return m.From != 0 && m.From != m.To
+		return m.GetFrom() != 0 && m.GetFrom() != m.GetTo()
 	default:
 		return false
 	}
-	return m.From != 0 && m.From != m.To && m.Context == nil
+	return m.GetFrom() != 0 && m.GetFrom() != m.GetTo() && m.Context == nil
 }
 
 // timeouts bounds the MsgTimeoutNow the transport passes on: each makes its target campaign
@@ -88,19 +88,19 @@ func (t *transfers) take() bool {
 // deliver passes the deliverable messages to their targets among peers, each its own copy
 // (the receiver may adopt the entries slice), and a MsgTimeoutNow only while tr has one
 // left; a message to an unknown node is dropped, as is the error of Step.
-func deliver(peers map[uint64]raft.Node, tr *transfers, ms []pb.Message) {
+func deliver(peers map[uint64]raft.Node, tr *transfers, ms []*pb.Message) {
 	for _, m := range ms {
 		if !deliverable(m) {
 			continue
 		}
-		nd, ok := peers[m.To]
+		nd, ok := peers[m.GetTo()]
 		if !ok {
 			continue
 		}
-		if m.Type == pb.MsgTimeoutNow && !tr.take() {
+		if m.GetType() == pb.MsgTimeoutNow && !tr.take() {
 			continue
 		}
-		m.Entries = append([]pb.Entry(nil), m.Entries...)
+		m.Entries = append([]*pb.Entry(nil), m.Entries...)
 		nd.Step(context.Background(), m)
 	}
 }
@@ -154,7 +154,7 @@ func Main() {
 		storages[id] = st
 	}
 	tr := &transfers{left: timeouts}
-	send := func(ms []pb.Message) {
+	send := func(ms []*pb.Message) {
 		deliver(peers, tr, ms)
 	}
 	regs := make(map[uint64]*Register)

@@ -7,6 +7,7 @@ import (
 
 	"go.etcd.io/raft/v3"
 	pb "go.etcd.io/raft/v3/raftpb"
+	"google.golang.org/protobuf/proto"
 )
 
 // cluster starts n replicas connected in process, with a ticker each.
@@ -17,10 +18,10 @@ func cluster(t *testing.T, n int) ([]*Register, func()) {
 	}
 	nodes := make([]raft.Node, n)
 	regs := make([]*Register, n)
-	send := func(ms []pb.Message) {
+	send := func(ms []*pb.Message) {
 		for _, m := range ms {
 			m := m
-			go nodes[m.To-1].Step(context.Background(), m)
+			go nodes[m.GetTo()-1].Step(context.Background(), m)
 		}
 	}
 	stop := make(chan struct{})
@@ -100,7 +101,7 @@ func TestRead(t *testing.T) {
 		storages[id] = st
 	}
 	tr := &transfers{left: timeouts}
-	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
+	send := func(ms []*pb.Message) { deliver(peers, tr, ms) }
 	stop := make(chan struct{})
 	defer func() {
 		close(stop)
@@ -144,24 +145,24 @@ func TestRead(t *testing.T) {
 func TestDeliverable(t *testing.T) {
 	hb := []byte{1, 0, 0, 0, 0, 0, 0, 0}
 	cases := []struct {
-		m    pb.Message
+		m    *pb.Message
 		want bool
 	}{
-		{pb.Message{Type: pb.MsgReadIndex, From: 2, To: 1}, true},
-		{pb.Message{Type: pb.MsgReadIndex, From: 2, To: 1, Term: 3}, false},
-		{pb.Message{Type: pb.MsgReadIndexResp, From: 1, To: 2, Term: 3}, true},
-		{pb.Message{Type: pb.MsgHeartbeat, From: 1, To: 2, Term: 3, Context: hb}, true},
-		{pb.Message{Type: pb.MsgHeartbeatResp, From: 2, To: 1, Term: 3, Context: hb}, true},
-		{pb.Message{Type: pb.MsgVote, From: 2, To: 1, Term: 3, Context: []byte("CampaignTransfer")}, true},
-		{pb.Message{Type: pb.MsgVote, From: 2, To: 1}, false},
-		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3}, true},
-		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2}, false},
-		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3, Context: hb}, false},
-		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3, Entries: []pb.Entry{}}, false},
-		{pb.Message{Type: pb.MsgTimeoutNow, From: 2, To: 2, Term: 3}, false},
-		{pb.Message{Type: pb.MsgTransferLeader, From: 3, To: 1, Term: 3}, false},
-		{pb.Message{Type: pb.MsgApp, From: 1, To: 2, Term: 3}, true},
-		{pb.Message{Type: pb.MsgApp, From: 1, To: 1, Term: 3}, false},
+		{&pb.Message{Type: pb.MsgReadIndex.Enum(), From: proto.Uint64(2), To: proto.Uint64(1)}, true},
+		{&pb.Message{Type: pb.MsgReadIndex.Enum(), From: proto.Uint64(2), To: proto.Uint64(1), Term: proto.Uint64(3)}, false},
+		{&pb.Message{Type: pb.MsgReadIndexResp.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3)}, true},
+		{&pb.Message{Type: pb.MsgHeartbeat.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3), Context: hb}, true},
+		{&pb.Message{Type: pb.MsgHeartbeatResp.Enum(), From: proto.Uint64(2), To: proto.Uint64(1), Term: proto.Uint64(3), Context: hb}, true},
+		{&pb.Message{Type: pb.MsgVote.Enum(), From: proto.Uint64(2), To: proto.Uint64(1), Term: proto.Uint64(3), Context: []byte("CampaignTransfer")}, true},
+		{&pb.Message{Type: pb.MsgVote.Enum(), From: proto.Uint64(2), To: proto.Uint64(1)}, false},
+		{&pb.Message{Type: pb.MsgTimeoutNow.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3)}, true},
+		{&pb.Message{Type: pb.MsgTimeoutNow.Enum(), From: proto.Uint64(1), To: proto.Uint64(2)}, false},
+		{&pb.Message{Type: pb.MsgTimeoutNow.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3), Context: hb}, false},
+		{&pb.Message{Type: pb.MsgTimeoutNow.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3), Entries: []*pb.Entry{}}, false},
+		{&pb.Message{Type: pb.MsgTimeoutNow.Enum(), From: proto.Uint64(2), To: proto.Uint64(2), Term: proto.Uint64(3)}, false},
+		{&pb.Message{Type: pb.MsgTransferLeader.Enum(), From: proto.Uint64(3), To: proto.Uint64(1), Term: proto.Uint64(3)}, false},
+		{&pb.Message{Type: pb.MsgApp.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3)}, true},
+		{&pb.Message{Type: pb.MsgApp.Enum(), From: proto.Uint64(1), To: proto.Uint64(1), Term: proto.Uint64(3)}, false},
 	}
 	for i, c := range cases {
 		if got := deliverable(c.m); got != c.want {
@@ -201,7 +202,7 @@ func TestTransfer(t *testing.T) {
 		storages[id] = st
 	}
 	tr := &transfers{left: timeouts}
-	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
+	send := func(ms []*pb.Message) { deliver(peers, tr, ms) }
 	stop := make(chan struct{})
 	defer func() {
 		close(stop)
@@ -278,7 +279,7 @@ func TestRemoveMember(t *testing.T) {
 		storages[id] = st
 	}
 	tr := &transfers{left: timeouts}
-	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
+	send := func(ms []*pb.Message) { deliver(peers, tr, ms) }
 	stop := make(chan struct{})
 	defer func() {
 		close(stop)
