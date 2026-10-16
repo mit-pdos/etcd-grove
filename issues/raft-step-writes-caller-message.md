@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/raft#418 pr merged: related, flagged: added the 'treat m as immutable' comment on Step (etcd-io/raft@c1cf9fb); a reviewer found no in-repo path mutating m after Step, which this finding contradicts
+  - etcd-io/raft#441 pr merged: related, not this bug: EnsureSnapshot/EnsureSnapshotMetadata no longer reassign non-nil fields, after a race found in etcd-io/etcd#21778 (ApplySnapshot writing its argument); EnsureConfState still writes AutoLeave
 ---
 
 # raft v3.7: `Step` writes into the caller's message and keeps it; `MemoryStorage.ApplySnapshot` writes into its argument

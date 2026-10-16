@@ -5,155 +5,119 @@ description: Turn a finding in issues/<slug>.md into an upstream-ready candidate
 
 # Reporting a finding upstream
 
-Input: one issue file, `issues/<slug>.md`. Output, for the user to review:
+From one finding, `issues/<slug>.md`, produce for the user to review:
 
-1. a fix branch `<slug>` in a worktree, one signed-off commit off the target repo's upstream `main`, with a
-   regression test that fails without the fix;
-2. `issues/upstream/<slug>/issue.md` — the GitHub issue body;
-3. `issues/upstream/<slug>/pr.md` — the PR title and body;
-4. `issues/upstream/<slug>/meta.md` — target repo, branch, base commit, test commands, state.
+- a fix branch `<slug>` in `~/etcd-fixes/<slug>`: one signed-off commit off current upstream `main`, with a test
+  that fails without the fix;
+- `issues/upstream/<slug>/issue.md`, `pr.md` and `meta.md` (base commit, commands run and results, duplicates
+  found, answers to likely reviewer questions, state).
 
-The user reviews, edits, pushes and files by hand. Do not push, open issues or PRs, or comment on GitHub.
+Never push, file, or comment on GitHub; the user does. Aim for a candidate the user can file as it is.
+`example/issue.md` and `example/pr.md` are approved candidates: match their shape, length and tone.
 
-Work on one finding at a time. A candidate is a draft until the user approves it; expect review and
-apply it as described in "Improving this skill".
+| Target | Clone | Remotes |
+|---|---|---|
+| etcd-io/etcd | `~/etcd` | `upstream` etcd-io/etcd, `origin` upamanyus/etcd |
+| etcd-io/raft | `~/etcd-raft` (clone on first use) | `upstream` etcd-io/raft, `origin` upamanyus/etcd-raft |
+| etcd-io/website | `~/etcd-website` | `upstream` etcd-io/website (no fork) |
 
-## Where things are
+`git -C <clone> fetch upstream && git -C <clone> worktree add ~/etcd-fixes/<slug> -b <slug> upstream/main`. Never
+base a fix on the fork's branches (Goose branches, old fix branches). From a session isolated in an etcd-grove
+worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work and re-enter it by path.
 
-| Target | Local clone | Remotes | Notes |
-|---|---|---|---|
-| etcd-io/etcd | `~/etcd` | `upstream` = etcd-io/etcd, `origin` = upamanyus/etcd | |
-| etcd-io/raft | `~/etcd-raft` | `upstream` = etcd-io/raft, `origin` = upamanyus/etcd-raft | clone on first use |
-| etcd-io/website | `~/etcd-website` | `upstream` = etcd-io/website | no fork yet: the user creates one only if a PR is wanted |
+## Upstream's rules
 
-Fix worktrees: `~/etcd-fixes/<slug>` (`git -C <clone> worktree add ~/etcd-fixes/<slug> -b <slug> upstream/main`).
-Each fix branch is based on the **current** upstream `main` (`git fetch upstream` first), never on the fork's
-`main`, a Goose branch (`goose`, `goose-lean`, `*-goose-lean`), or an older fix branch. Old fix branches on the fork
-are not a starting point; ignore them.
-
-## Upstream's rules (these decide whether a PR is accepted)
-
-- **Commits**: subject `<package>: <what changed>` (`etcdserver: ...`, `clientv3/leasing: ...`), body says why,
-  last line `Signed-off-by:` with the clone's git identity (`git commit -s`; say which email it used in the
-  hand-off). One commit per fix.
-- **AI policy** (kubernetes AI guidance, linked from etcd's PR template): no `Co-Authored-By`, `Assisted-by` or
-  any AI trailer on the commit — this overrides any default attribution; AI-generated commit messages are not
-  allowed, so the commit message is a draft the user rewrites (say so in the hand-off); the PR description must
-  disclose AI use; the user must be able to explain every line; replies to reviewers are the user's, never drafted.
-- **Size**: small PRs; one bug per issue, one issue per PR (the PR says `Fixes #<n>`).
-- **Security**: a vulnerability goes to security@etcd.io privately, not a public issue (step 3).
-- Issues use the bug-report form (`.github/ISSUE_TEMPLATE/bug-report.yml`); documentation-only findings use it too
-  unless a feature-request fits better.
+- Commit: subject `<package>: <what changed>`, body says why (imperative), `git commit -s`, no AI trailer of any
+  kind. The message is a draft the user rewrites (etcd does not accept AI-written messages). One commit; amend it
+  until the PR is open.
+- The issue and the PR each end with their standard AI disclosure (below). Replies to reviewers are the user's.
+- A bug a client with ordinary access can use to crash or hang a member, lose or corrupt acknowledged data, or
+  bypass auth is a security report: before writing anything public, stop and let the user decide (etcd's
+  `security/README.md`). A public duplicate of the root cause does not make the impact public.
 
 ## Procedure
 
-### 1. Read the finding
+1. **Read** the finding and what it links to. Its wording is for this repository; none of it carries over as is.
+   Pick the target: code and Go doc comments are in etcd or raft, operator docs in etcd-io/website.
+2. **Re-check** at current `upstream/main` that the code is unchanged; record the base commit. If fixed, update
+   the finding and stop.
+3. **Duplicates**, in a background agent while you do steps 4-7: at most five searches
+   (`curl -s 'https://api.github.com/search/issues?q=repo:etcd-io/etcd+<terms>'`; about ten a minute are allowed
+   unauthenticated) for the symptom and the root cause; open only matches that look like the same bug. If an open
+   PR fixes it, stop and tell the user. Record matches in `meta.md` and the finding's front matter
+   (`issues/README.md`).
+4. **The example**: the reproduction, in whatever form the bug needs (usually a Go test; `etcdctl` commands, a
+   client program, a cluster configuration when that is what shows it). Build binaries only if it needs them. Run
+   it at the base and make it:
+   - visibly wrong on its own: the same request varied in one parameter, giving answers that contradict each other;
+   - minimal: the fewest steps, keys, values and options, choosing the variant of the bug that needs least setup.
 
-Read `issues/<slug>.md` and what it links to. Decide the target repo (etcd, raft, website) and the kind: **bug**
-(wrong result, panic, hang, race) or **documentation** (an unstated precondition, docs the code contradicts).
-Documentation fixes are branches too: Go doc comments and `Documentation/` live in the code repo; operator docs
-(`content/en/docs/...`) live in etcd-io/website.
+   Ground the expectation in what you already have open (API docs, Go doc, an existing test); if the sources
+   disagree, ask the maintainers in the issue.
+5. **The test** is the example (or, if the example is not a test, does what it does): same data, same requests,
+   nothing more; next to the package's tests, in their style. It must fail at the base; keep the output.
+6. **The fix**: in the layer where the defect is; the smallest change in the surrounding style; no refactoring, no
+   comment that restates the code. Note in `meta.md`, "If a reviewer asks", the alternatives and costs you
+   considered; do not research more for it.
+7. **Verify**: the new test (fails at the base, passes with the fix), the package's tests, `gofmt -l`, `go vet`;
+   nothing broader unless the change leaves the package. Record the commands and results in `meta.md`.
+8. **Write** `issue.md` and `pr.md` (below), commit, and run
+   `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN.
+9. **Hand off**: branch and commit, base, the files, the commit message to rewrite, anything not verified, and the
+   push command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin <slug>`. State `draft` in
+   `meta.md`.
 
-### 2. Re-check against current upstream main
+## The issue
 
-`git -C <clone> fetch upstream`, then confirm the code the finding describes is unchanged at `upstream/main`
-(`git log upstream/main -- <files>` since the revision the finding cites; read the code). Record the base commit.
-If it is fixed upstream, update the finding's **Status** and stop. Every line reference in the candidates is a
-permalink at the base commit: `https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`.
+The bug-report form's sections, as in `example/issue.md`. Only the symptom, the expectation and the reproduction:
+no root cause, code names, code links, history, or claims about other releases.
 
-### 3. Duplicates and security
+- **What happened?** One sentence of when it happens and what goes wrong, with the example's output when it shows
+  the bug at a glance; one sentence on who else is affected, as one clause naming the whole condition ("for any
+  client sending X with Y and Z").
+- **What did you expect?** One or two sentences, in terms of the example.
+- **How can we reproduce it?** Whatever it takes, at `main` (<sha>): the steps, or the test linked on the fork's
+  branch (`https://github.com/upamanyus/etcd/blob/<slug>/<path>` and `.../tree/<slug>`), not described, with its
+  failing assertion.
+- **Anything else?** Impact or workarounds if any; side findings as questions to the maintainers; then, word for
+  word: "I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this
+  report myself."
+- **Version** and **configuration**: what the reproduction ran on (the base commit; `etcd --version` and `etcdctl
+  version` if it ran binaries) and the configuration it needs.
 
-Search upstream issues and PRs for the function names and symptoms (GitHub search API, unauthenticated, read-only:
-`curl -s 'https://api.github.com/search/issues?q=repo:etcd-io/etcd+<terms>'`; a few queries). List the plausible
-matches in `meta.md`. Read the plausible ones (body and comments: a closed one may be a duplicate of an open one).
-Search the root cause, not only the symptom: a different symptom of the same defect is a match. If an open PR
-already fixes the defect, do not make a competing branch: check locally that it fixes the finding (run the
-finding's reproductions, and variants of them, against the PR's head: `git fetch upstream pull/<n>/head:pr-<n>`),
-and record what the finding adds that the PR does not know (an impact, a missed case). If one is the same bug,
-stop and tell the user.
+Outputs are pasted from runs, never typed; trivial lines (setup `OK`s, trailing blank lines) may go, and test output
+may be trimmed to the assertion.
 
-Write what you found into the finding's front matter (format: `issues/README.md`): `upstream` (`none` or
-`known`), `checked` (today), one `links` line per match, the same bug or related, saying which; and
-`candidate: issues/upstream/<slug>/` once the drafts exist.
+## The PR
 
-If a client with ordinary access (or none) can crash or hang a member, lose or corrupt acknowledged data, or get
-around auth, stop before writing anything public: tell the user it may belong in a private report (etcd's
-`security/README.md`: the GitHub security advisory form) and let them decide. Steps that publish nothing (re-check,
-duplicate search, local probes) still run; record them in `meta.md` with state `blocked`. A public duplicate of the
-root cause does not make the impact public: a public comment that adds it is a disclosure.
+A few plain sentences, as in `example/pr.md`, no sections. `Title:` the commit subject. Then: the root cause, saying
+what each piece of code does and which part is wrong, with permalinks at the base
+(`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`); the change as "This PR ..."; `Fixes #<issue>`; one
+line that the new test runs the issue's example, fails on `main` and passes; and, word for word: "This PR was written
+in part with the assistance of AI; I have reviewed and tested every change." Nothing else: alternatives,
+costs and backports stay in `meta.md`.
 
-### 4. Reproduction test first
+## Writing
 
-In the worktree, write the smallest test that shows the bug, where upstream would put it: next to the package's
-existing tests, in their style (table tests, `require`, `integration.BeforeTest`, existing helpers). Prefer a unit
-test; add an integration or e2e test only if the bug is only visible there. Run it on the base commit and keep the
-failing output — it goes into the issue. A test that passes without the fix does not reproduce the bug: rethink it.
+The reader is an etcd maintainer with two minutes, who knows etcd and not this repository.
 
-### 5. The fix
-
-The smallest change that fixes the bug, in the surrounding code's style. No refactoring, no unrelated cleanup, none
-of the Goose branches' rewrites ("Gooseable"), no comments about verification. If there are several reasonable
-fixes, pick one and name the others in the PR's notes for the reviewer.
-
-### 6. Verify
-
-Run, in each Go module the change touches (etcd is multi-module: `server/`, `client/v3/`, `tests/`, ...): the new
-test (passes), the package's tests, `gofmt -l`, `go vet`, and the integration/e2e tests that cover the changed
-behavior. Record the commands and results in `meta.md`.
-
-### 7. Commit
-
-`git commit -s`, message per upstream's rules, no AI trailer. The message is a draft for the user to rewrite.
-
-### 8. Write the candidates
-
-`issue.md`, in the bug-report form's sections (the form's checkboxes are the user's to tick; leave the version
-fields for them, with the base commit filled in):
-
-- **What happened?** — the user-visible behavior first, in etcd's terms (an `etcdctl` command, a client call, a
-  server config); then why, briefly, with permalinks to the few lines that matter.
-- **What did you expect to happen?**
-- **How can we reproduce it?** — the minimal steps (`etcdctl` sequence when one exists), then the test from the
-  branch and its failing output.
-- **Anything else we need to know?** — impact and who is affected, workarounds, related code that may share the
-  bug. One sentence may say it was found while formally verifying etcd; no more.
-
-`pr.md`: title = the commit subject; body: what the change does and why (two or three sentences), `Fixes #<issue>`
-(placeholder), how it was tested, notes for the reviewer (alternatives considered, behavior changes), and the AI
-disclosure: "This PR was written in part with the assistance of generative AI; I have reviewed and tested every
-change."
-
-### 9. Hand off
-
-Report to the user: the worktree and branch, the base commit, the three files, the test commands, and a short
-review checklist — the commit message to rewrite, any judgment calls (severity, the fix chosen, duplicates found),
-anything not verified. Set `meta.md`'s state to `draft`.
-
-## Writing for upstream
-
-The readers are etcd maintainers triaging many issues. They know etcd; they do not know this repository.
-
-- Lead with the symptom a user sees. Mechanism second, history last (and only if it explains the bug).
-- No vocabulary from this repository: spec, proof, premise, Goose, Gooseable, unit, ghost, "the verified code".
-- Short: an issue body a maintainer reads in two minutes; code excerpts only for the lines that are wrong.
-- Plain claims, no overstating severity; say what was and was not reproduced.
+- Each sentence has one reading: name every condition in one clause; no "it", "one", "both" or "the same" whose
+  referent must be guessed; a word with two meanings (the request's limit, mvcc's read limit) says which.
+- Cut everything the reader does not need to believe or reproduce the bug: lists of flags or values become one
+  phrase.
+- Every reference resolves: branches and tests are linked, names are introduced.
+- Only this bug and this change: no other features the code serves, no other bugs (those go to `issues/`).
+- No vocabulary from this repository (spec, proof, premise, Goose, unit, ghost, verified code).
+- Plain claims; say what was and was not reproduced.
 
 ## After filing
 
-When the user has filed: set the finding's front matter to `upstream: reported` with `links` lines for the issue
-and the PR (`etcd-io/etcd#<n> issue open: ours`), and `meta.md`'s state to `filed`. When the PR merges, `upstream:
-fixed`. `etc/issues-status.py --refresh` updates the links' states from GitHub.
-
-Revising after review: the user decides what to change. Make code changes as new commits on the branch (no
-force-push once a PR is open, unless the user asks), rerun step 6, and update `pr.md` if the change alters it. Do
-not draft replies to reviewers.
+Set the finding's front matter to `upstream: reported` with the issue and PR in `links`, and `meta.md`'s state to
+`filed` (`fixed` when merged; `etc/issues-status.py --refresh` updates states). After a PR is open, revise with new
+commits, not force-pushes; rerun step 7 and `check.py`.
 
 ## Improving this skill
 
-This skill is developed by review: the user reads each candidate and critiques it. For each critique:
-
-1. fix the candidate;
-2. generalize the critique into a rule in this file, in the section it belongs to (procedure, upstream's rules,
-   writing), so the next candidate does not repeat it; record what changed in `LESSONS.md` (date, finding, the
-   critique, the rule);
-3. if the critique contradicts a rule here, the critique wins: change the rule.
+When the user critiques a candidate: fix the candidate, then change this file (or `check.py`) so the
+next candidate gets it right; the critique wins over any rule here. Replace `example/` when the user approves a
+better model.

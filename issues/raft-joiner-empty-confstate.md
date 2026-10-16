@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/raft#370 pr merged: related, where it starts: allows the index-0 ConfState-only bootstrap snapshot; the discussion does not consider nodes added later
 ---
 
 # raft: with the initial `ConfState` in an index-0 snapshot, a node added later replays conf changes onto an empty configuration and can win alone

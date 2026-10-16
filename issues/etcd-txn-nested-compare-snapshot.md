@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#8102 pr merged: related, not this bug (introduced nested txns; does not document when a nested guard is evaluated)
 ---
 
 # server/etcdserver/txn: a nested transaction's comparisons see the state before the outer transaction's operations
