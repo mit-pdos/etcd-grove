@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend chs ps sealed P f crev Z
-  wp_start as ⟨Htw, #HhookC, HP, #HokN⟩
+  wp_start as ⟨Htw, #HhookC, HP, #HokN, Hq⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
   obtain ⟨Hps, Hlen⟩ := Hps
@@ -89,7 +89,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe Hmu HrevMu Hti Hrt
       iframe #
     unfold mvcc.commitLog
-    rw [ite_eq_left rfl]
+    rw [ite_eq_left rfl, mvcc.logQPost_nil]
     try rw [if_pos rfl]
     iframe Hcert Htok
 
@@ -125,7 +125,10 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     imod ownTokAuth_delete_S γ.revs n $$ Htoks Htok with Htoks
     icases (mvcc.ownTokAuth_halves γ.revs n).1 $$ Htoks with ⟨HtoksL, Htoks⟩
     imod ghostVar_update_halves (ilog ++ [pend]) γ.clog _ _ $$ HclogL Hclog with ⟨HclogL, Hclog⟩
-    imod mvcc.idxWriterB_commit γ.idx ilog pend sealed (by omega) $$ Hw HlogL with ⟨Hw, HlogL, #Hcert'⟩
+    -- the committed log's authority: `s.revMu`'s fraction and the caller's (`logQPre`)
+    ihave HlogH := mvcc.revQ_commit_pre γ ilog pend hne' $$ [$HlogL $Hq]
+    imod mvcc.idxWriterB_commit γ.idx ilog pend sealed (by omega) $$ Hw HlogH with ⟨Hw, HlogH, #Hcert'⟩
+    icases mvcc.revQ_commit_post γ ilog pend hne' $$ HlogH with ⟨HlogL, Hq⟩
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
         W64 (((ilog ++ [pend]).length : Int) - 1) := by
       rw [← mvcc.W64_add_one]; simp
@@ -194,7 +197,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       unfold mvcc.commitLog
       rw [ite_eq_right hne']
       try rw [ite_eq_right hne']
-      iframe Hcert'
+      iframe Hcert' Hq
 end proof
 
 end EtcdGrove

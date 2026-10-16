@@ -37,7 +37,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro wv s γ P Pre Q Post f key endk k e
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hfree, #Hkey, #Hend, %Hb⟩
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hfree, #Hkey, #Hend, %Hb, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -68,7 +68,9 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   wp_apply (hEnd t mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert, -⟩
   (try wp_auto)
-  · iapply mvcc.txnEndPre_write; iframe Hhook HP; iapply mvcc.certFree_certOkNext $$ Hfree
+  · iapply mvcc.txnEndPre_write; iframe Hhook HP; rw [mvcc.logQPre_plain _ _ _ Hwq]
+    isplitl; · iapply mvcc.certFree_certOkNext $$ Hfree
+    itrivial
   iapply HΦ
   iframe Hrd HPost
   iexists ilog

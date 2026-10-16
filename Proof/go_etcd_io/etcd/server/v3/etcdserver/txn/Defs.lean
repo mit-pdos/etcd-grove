@@ -40,9 +40,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 (`γ.kb`: mvcc's assumed contract, or the real backend; 2026-10-13, unit 6: it carried
 `γ.kb = none` before). A write transaction spends a write token (`mvcc.storeWT γ`: the real
 backend's write-back budget) and changes fewer than `mvcc.putMax γ` keys (`2 ^ 56` for the real
-backend). -/
+backend). The store is not a watchable store's (`γ.watchQ = false`, unit W-K: its commits need no
+outer quarter of the committed log's authority). -/
 def isKV (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗ mvcc.isStore s γ)
+  iprop(⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗ mvcc.isStore s γ ∗
+    ⌜γ.watchQ = false⌝)
 
 /-- Over mvcc's assumed backend a write token is free. -/
 theorem storeWT_none (γ : mvcc.StoreNames) (h : γ.kb = none) : ⊢ mvcc.storeWT (GF := GF) γ := by

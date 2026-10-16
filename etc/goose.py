@@ -126,13 +126,14 @@ PROJECTS = [
     Project(
         name="etcd",
         # Branch `goose-lean`: upstream main (2026-10), the commits that make it
-        # translatable, and the two bug fixes of `cache-ready-after-retry` (64313a1f8; its
-        # two other commits are reverted: no code change unless it fixes a bug) and
-        # `recipes-closed-watch-channel` (0aa6c6af8, cherry-picked as 0df483bee). Branch
+        # translatable, and the three bug fixes of `cache-ready-after-retry` (64313a1f8; its
+        # two other commits are reverted: no code change unless it fixes a bug),
+        # `recipes-closed-watch-channel` (0aa6c6af8, cherry-picked as 0df483bee) and
+        # `watch-progress-closed-substream` (1ac646214, cherry-picked as 107edf7e4). Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="0df483bee6854c84981f5825ab53d5da636ce402",
+        rev="107edf7e492a5cd7e8d958ed8a7ac9dbf1ecf81f",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

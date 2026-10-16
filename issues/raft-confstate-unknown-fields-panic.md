@@ -1,3 +1,9 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+---
+
 # raft v3.7: a `ConfState` with an unknown field makes `newRaft` and snapshot restore panic
 
 - **Status**: open (a reachable panic; not reported). Introduced with the move of raftpb to

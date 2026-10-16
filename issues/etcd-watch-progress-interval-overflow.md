@@ -1,3 +1,9 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+---
+
 # A huge or tiny watch progress interval panics the watch service
 
 - **Status**: open (not reported).
@@ -80,6 +86,40 @@ func TestProgressReportIntervalTiny(t *testing.T) {
   === RUN   TestProgressReportIntervalTiny
       zz_interval_overflow_test.go:42: GetProgressReportInterval panicked: invalid argument to Int63n
   --- PASS: TestProgressReportIntervalTiny (0.00s)
+  ```
+- **How it happens**: each watch stream's `sendLoop` starts a progress ticker with
+  `GetProgressReportInterval()`, which adds up to 10% random jitter to the configured interval.
+  `NewWatchServer` clamps the configured `--watch-progress-notify-interval` below at 100 ms, but
+  not above, and the sum is not checked for overflow:
+
+  1. The server starts with `--watch-progress-notify-interval=2562047h` (about 292 years, a
+     large value meant to disable progress notifications; `time.Duration` parses it). It is
+     `9223369200000000000` ns, about 47 minutes below `math.MaxInt64`. `NewWatchServer` passes
+     it to `SetProgressReportInterval` unchanged.
+  2. A client opens a `Watch` stream. `sendLoop` calls `GetProgressReportInterval`, which draws
+     `jitter` from `[0, interval/10)`, up to about 29 years.
+  3. Any jitter above 47 minutes (practically every draw) makes `interval + jitter` overflow to
+     a negative duration.
+  4. `time.NewTicker` panics with "non-positive interval for NewTicker". Nothing recovers the
+     goroutine, so the server crashes, and again on the first `Watch` after every restart.
+
+  ```go
+  // server/etcdserver/api/v3rpc/watch.go:99-110 and 417-418 (etcd main f061acd09)
+  func GetProgressReportInterval() time.Duration {
+  	progressReportIntervalMu.RLock()
+  	interval := progressReportInterval
+  	progressReportIntervalMu.RUnlock()
+
+  	// add rand(1/10*progressReportInterval) as jitter so that etcdserver will not
+  	// send progress notifications to watchers around the same time even when watchers
+  	// are created around the same time (which is common when a client restarts itself).
+  	jitter := time.Duration(rand.Int63n(int64(interval) / 10)) // <- panics if interval < 10ns
+
+  	return interval + jitter // <- overflows for a huge interval
+  }
+  	// ...
+  	interval := GetProgressReportInterval()
+  	progressTicker := time.NewTicker(interval) // <-
   ```
 - **Expected**: a configured interval is either rejected or clamped (as the lower bound is), and
   `GetProgressReportInterval` never returns a non-positive duration; `SetProgressReportInterval`

@@ -1,3 +1,13 @@
+---
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#21986 issue open: same bug (merge's no-overlap fast path skips dedupe; a single-key read returns the older value)
+  - etcd-io/etcd#21987 pr open: fix for #21986 (dedupe intra-batch duplicates in writeback before merge)
+  - etcd-io/etcd#22298 pr open: same fix (dedupe on every writeback path into an existing read bucket), filed as hardening without an issue
+  - etcd-io/etcd#21985 pr closed: earlier fix attempt for the same bug (dedupe on the merge path), superseded by #21987
+---
+
 # The read buffer keeps both puts of one key: `ReadTx` returns the older value
 
 - **Status**: open (not filed). An unstated precondition of `BatchTx.UnsafePut`; no etcd

@@ -1,3 +1,12 @@
+---
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#21869 pr closed: same bug and fix (delete k, not key, in EvictRange); closed unmerged by serathius citing the AI-contribution policy
+  - etcd-io/etcd#21589 pr closed: same bug and fix, bundled with a lease-freshness fix for #19091; closed unmerged by its author
+  - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
+---
+
 # clientv3/leasing: EvictRange evicts only the range's first key, leaving deleted keys in the cache
 
 ## Summary
@@ -9,7 +18,37 @@
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. `EvictRange` (`client/v3/leasing/cache.go:178-187`) loops over `lc.entries`, and for each `k` with `inRange(k, key, end)` runs `delete(lc.entries, key)` and `lc.revokes[key] = time.Now()` (`cache.go:183-184`): `key`, not `k`. The first key of the range is evicted (and marked revoked even if it was not cached); every other cached key in the range stays.
+
+   ```go
+   // client/v3/leasing/cache.go:178-187 (etcd main f061acd09)
+   func (lc *leaseCache) EvictRange(key, end string) {
+   	lc.mu.Lock()
+   	defer lc.mu.Unlock()
+   	for k := range lc.entries {
+   		if inRange(k, key, end) {
+   			delete(lc.entries, key)      // <- key, not k
+   			lc.revokes[key] = time.Now() // <-
+   		}
+   	}
+   }
+   ```
 2. Its only caller is `deleteRangeRPC` (`client/v3/leasing/kv.go:340-351`): when the range-delete transaction (`If(CreateRevision(pfx+key).WithRange(pfx+end) < maxLeaseRev+1).Then(OpGet(key, WithRange(end), WithKeysOnly()), OpDelete(key, WithRange(end)))`) returns an error, it calls `EvictRange(key, end)` and returns the error. The error does not mean the transaction was not applied; the single-key delete handles the same case by evicting the key (`kv.go:393-395`, "don't know if delete was processed").
+
+   ```go
+   // client/v3/leasing/kv.go:340-351 (etcd main f061acd09)
+   func (lkv *leasingKV) deleteRangeRPC(ctx context.Context, maxLeaseRev int64, key, end string) (*v3.DeleteResponse, error) {
+   	lkey, lend := lkv.pfx+key, lkv.pfx+end
+   	resp, err := lkv.kv.Txn(ctx).If(
+   		v3.Compare(v3.CreateRevision(lkey).WithRange(lend), "<", maxLeaseRev+1),
+   	).Then(
+   		v3.OpGet(key, v3.WithRange(end), v3.WithKeysOnly()),
+   		v3.OpDelete(key, v3.WithRange(end)),
+   	).Commit()
+   	if err != nil {
+   		lkv.leases.EvictRange(key, end) // <- the delete may have been applied
+   		return nil, err
+   	}
+   ```
 3. If the transaction was applied, the keys left in the cache hold values etcd has deleted. Nothing evicts them later: the transaction did not touch this client's leasing keys (`pfx+k`), so `monitorLease` (`kv.go:159-188`) sees no `REVOKE`. A `Get` of such a key through the leasing KV is served from the cache (`leaseCache.Get`, `cache.go:191-210`) and returns the deleted key, until another client writes the key (revoking this client's lease on it) or the leasing session ends.
 
 ## How to reproduce

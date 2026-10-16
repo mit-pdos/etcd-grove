@@ -1,3 +1,9 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+---
+
 # lease: `SetRangeDeleter`/`Recover` must not run concurrently with `Revoke` (undocumented)
 
 - **Status**: open, documentation (an unstated precondition, not a bug: unreachable in etcd's
@@ -49,6 +55,42 @@
 
   reports `WARNING: DATA RACE` between the write at `lessor.go:271` (`SetRangeDeleter`) and the
   read at `lessor.go:339` (`Revoke`) (run 2026-10-13 with go1.27.1).
+- **How it happens**: `Revoke` releases `le.mu` before its external work and then reads `le.rd`
+  twice without it, while `SetRangeDeleter` writes `le.rd` under the lock.
+
+  1. A lessor has a granted lease `1` and a range deleter set.
+  2. Goroutine A calls `Revoke(1)`. It finds the lease and unlocks `le.mu`.
+  3. Goroutine B calls `SetRangeDeleter`, which writes `le.rd` under `le.mu`.
+  4. Goroutine A reads `le.rd` without the lock: a data race with B's write.
+
+  ```go
+  // server/lease/lessor.go:267-272, 326-343 (etcd main f061acd09)
+  func (le *lessor) SetRangeDeleter(rd RangeDeleter) {
+  	le.mu.Lock()
+  	defer le.mu.Unlock()
+
+  	le.rd = rd
+  }
+  	// ...
+  func (le *lessor) Revoke(id LeaseID) error {
+  	le.mu.Lock()
+
+  	l := le.leaseMap[id]
+  	if l == nil {
+  		le.mu.Unlock()
+  		return ErrLeaseNotFound
+  	}
+
+  	defer close(l.revokec)
+  	// unlock before doing external work
+  	le.mu.Unlock()
+
+  	if le.rd == nil { // <- read without le.mu
+  		return nil
+  	}
+
+  	txn := le.rd() // <- read without le.mu
+  ```
 - **Expected**: the `Lessor` interface documents that `SetRangeDeleter` and `Recover` are not
   called concurrently with `Revoke` (in etcd: at construction, or on the goroutine that revokes).
 - **How the proof handles it**: `Revoke` is not proved (out of scope for now: the verification

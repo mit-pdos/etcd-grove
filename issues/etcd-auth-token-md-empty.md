@@ -1,3 +1,9 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+---
+
 # auth: `AuthInfoFromCtx` panics on a token key with no value in the incoming metadata
 
 - **Status**: open, robustness (a reachable panic only through an in-process caller: grpc's
@@ -19,6 +25,32 @@
   	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{"token": {}})
   	as.AuthInfoFromCtx(ctx) // panics
   }
+  ```
+- **How it happens**: the lookup checks that the key is present, not that its value list is
+  non-empty.
+
+  1. Auth is enabled. An in-process caller builds a context with
+     `metadata.NewIncomingContext(ctx, metadata.MD{"token": {}})`.
+  2. `AuthInfoFromCtx` finds the `token` key, so `ok` is true and `ts` is the empty list.
+  3. `ts[0]` panics with an index out of range.
+
+  ```go
+  // server/auth/store.go:1061-1075 (etcd main f061acd09)
+  	md, ok := metadata.FromIncomingContext(ctx)
+  	if !ok {
+  		return nil, nil
+  	}
+
+  	// TODO(mitake|hexfusion) review unifying key names
+  	ts, ok := md[rpctypes.TokenFieldNameGRPC]
+  	if !ok {
+  		ts, ok = md[rpctypes.TokenFieldNameSwagger]
+  	}
+  	if !ok {
+  		return nil, nil
+  	}
+
+  	token := strings.TrimPrefix(ts[0], "Bearer ") // <- ts may be empty
   ```
 - **Expected**: no token (`nil, nil`), or `ErrInvalidAuthToken`.
 - **How the proof handles it**: the axiom of `metadata.FromIncomingContext`

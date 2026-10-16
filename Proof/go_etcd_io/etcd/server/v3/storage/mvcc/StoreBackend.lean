@@ -91,7 +91,7 @@ theorem mvcc.NewStore_backend
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
         (Val #le)) (Val #cfg))
     {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
+        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d ∧ γ.watchQ = false⌝ ∗
         mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
         (∃ rv wv : Loc,
           s.[store, go!"ReadView"] ↦
@@ -107,13 +107,19 @@ theorem mvcc.NewStore_backend
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle⟩ HΦ
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk f hf γb $$ [$Hbpkg $Hsch $Hb $Hhk $Hsz]
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f hcfg) $$ %Φ [Hv Hrg Hw1 Hw2 Hrts Hlrd] HΦ
-  iframe Hpkg Hbk Hle
-  rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
-    show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
-    show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
-    show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
-  iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false hcfg) $$ %Φ [Hv Hrg Hw1 Hw2 Hrts Hlrd]
+  · iframe Hpkg Hbk Hle
+    rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
+      show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
+      show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
+      show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
+    iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
+  inext
+  iintro %s ⟨%γ, %Hγ, Hs, Hok, Hh, Hv, Hr, Ht, Hc, -, Hcl, Hst, Hcr⟩
+  iapply HΦ
+  iexists γ
+  iframe Hs Hok Hh Hv Hr Ht Hc Hcl Hst Hcr
+  ipureintro; exact Hγ
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real
 instance `d`, its write token the backend's write-back budget. -/

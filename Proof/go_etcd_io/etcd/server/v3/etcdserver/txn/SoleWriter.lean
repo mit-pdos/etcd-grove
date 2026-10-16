@@ -166,7 +166,9 @@ theorem soleWriter_close_end (γ : mvcc.StoreNames) (log : Log) (pend : List Cha
     soleWriterOpen (GF := GF) γ log ∗ txnEndPost γ (.write log pend puts deletes putSize) ⊢
       soleWriter γ (commitLog log pend) := by
   unfold txnEndPost
-  exact soleWriter_close γ log pend h
+  iintro ⟨Ho, Hc, Hi, -⟩
+  iapply soleWriter_close γ log pend h
+  iframe Ho Hc Hi
 
 /-! ## The pins -/
 

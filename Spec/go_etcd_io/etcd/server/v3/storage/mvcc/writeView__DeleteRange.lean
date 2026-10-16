@@ -24,7 +24,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `wv.DeleteRange(key, end)`: a write transaction deleting the range, committed if it
 deleted something: the keys deleted (`delKeys` of the committed log `ilog` the transaction
 found) and the revision; the range's keys fit a revision (trivially, for one key). Under the
-batch lock, by the critical-section contract (`csContract`). -/
+batch lock, by the critical-section contract (`csContract`). For a store without watchers
+(`γ.watchQ = false`, unit W-K: the watchable store replaces the views). -/
 abbrev mvcc.writeView.DeleteRange.spec : Prop :=
   ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
     (key endk : GoSlice) (k e : GoString),
@@ -32,7 +33,8 @@ abbrev mvcc.writeView.DeleteRange.spec : Prop :=
       mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
       endk ↦*□ e ∗
-      ⌜∀ ilog : mvcc.Log, (mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).length < mvcc.putMax γ⌝ }}
+      ⌜∀ ilog : mvcc.Log, (mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).length < mvcc.putMax γ⌝ ∗
+      ⌜γ.watchQ = false⌝ }}
     (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"DeleteRange")) (Val #key))
       (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev); mvcc.storeReader s γ ∗ Post ∗

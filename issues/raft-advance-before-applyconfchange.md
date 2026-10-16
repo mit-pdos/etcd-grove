@@ -1,3 +1,14 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#4203 issue closed: related, flagged: asked in 2016 whether a Ready's conf change must be applied before Advance (maintainer: 'probably fair'); closed by etcd-io/etcd#4049, whose Advance comment allows Advance while applying without that exception; the safety consequence was not raised (maintainer called delaying a conf change apply safe)
+  - etcd-io/raft#80 issue open: related, not this bug: the pendingConfIndex > applied proposal check gives false positives; proposes tracking the configuration explicitly
+  - etcd-io/raft#234 issue closed: related, not this bug: split brain with a stalled apply; closed citing hasUnappliedConfChanges (assumes conf changes applied before the applied index moves)
+  - etcd-io/raft#456 issue open: related, not this bug: the TLA+ spec lacks the hasUnappliedConfChanges guard; says the Go code is safe
+  - etcd-io/etcd#12136 issue closed: related, not this bug: pendingConfIndex vs applied with AutoLeave (liveness), fixed by etcd-io/etcd#12137
+---
+
 # raft: calling `Advance` before `ApplyConfChange`, which the documentation allows, breaks safety
 
 - **Status**: open (documentation precondition; not reported upstream yet). Upstream drafts:
@@ -36,6 +47,58 @@
      both with `Commit = 3` and `Advance`s past them without applying either; `x` is
      committed at index 4 with `{3,4,5}`; node 1 (still `C0 = {1,2,3}`) wins term 2 with
      `{1,2}` and overwrites index 4.
+
+  In execution 1, `C2` passes the leader's check because `pendingConfIndex` (2) is not above
+  applied (2), and node 3 may campaign because its applied index equals its commit index. The
+  guards read `applied`; `becomeLeader` assumes the node has a `Progress` (the panic below):
+
+  ```go
+  // raft.go:978-981, 990-993, 1313, 942-943 (etcd-io/raft 40f8be7)
+  // hup (before campaigning):
+  	if r.hasUnappliedConfChanges() {
+  		r.logger.Warningf("%x cannot campaign at term %d since there are still pending configuration changes to apply", r.id, r.Term)
+  		return
+  	}
+  	// ...
+  func (r *raft) hasUnappliedConfChanges() bool {
+  	if r.raftLog.applied >= r.raftLog.committed { // in fact applied == committed // <-
+  		return false
+  	}
+  	// ... scan (applied, committed] for EntryConfChange/EntryConfChangeV2
+  // stepLeader, MsgProp:
+  				alreadyPending := r.pendingConfIndex > r.raftLog.applied // <-
+  // becomeLeader:
+  	pr := r.trk.Progress[r.id] // <-
+  	pr.BecomeReplicate()
+  ```
+
+  The documentation allows `Advance` before step 3's `ApplyConfChange`:
+
+  ```go
+  // doc.go:94-103 (etcd-io/raft 40f8be7)
+  If any committed Entry has Type EntryConfChange, call Node.ApplyConfChange()
+  to apply it to the node. The configuration change may be cancelled at this point
+  by setting the NodeId field to zero before calling ApplyConfChange
+  (but ApplyConfChange must be called one way or the other, and the decision to cancel
+  must be based solely on the state machine and not external information such as
+  the observed health of the node).
+
+  4. Call Node.Advance() to signal readiness for the next batch of updates. // <-
+  This may be done at any time after step 1, although all updates must be processed // <-
+  in the order they were returned by Ready.
+  ```
+
+  ```go
+  // node.go:167-174 (etcd-io/raft 40f8be7), Node.Advance
+  	// It prepares the node to return the next available Ready.
+  	//
+  	// The application should generally call Advance after it applies the entries in last Ready.
+  	//
+  	// However, as an optimization, the application may call Advance while it is applying the // <-
+  	// commands. For example. when the last Ready contains a snapshot, the application might take
+  	// a long time to apply the snapshot data. To continue receiving Ready without blocking raft
+  	// progress, it can call Advance before finishing applying the last ready.
+  ```
 
   Reproduction (an abstract model of the protocol with apply-time configuration switching,
   `raft-conf-lag-model/model.py`; mode `lag` lets applied run ahead of `ApplyConfChange`,

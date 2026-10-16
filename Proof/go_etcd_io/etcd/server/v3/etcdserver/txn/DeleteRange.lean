@@ -70,7 +70,7 @@ theorem txn.DeleteRange.wp_proof
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
   subst Hkv
   (try wp_auto)
   wp_apply (hWrite s γ trace P Pre Q f false) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
@@ -105,8 +105,8 @@ theorem txn.DeleteRange.wp_proof
     (try wp_auto)
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP; iapply Hcok; ipureintro; exact Hpin
-    simp only [mvcc.txnEndPost]
+    · iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ Hwq); iframe Hhook HP; iapply Hcok; ipureintro; exact Hpin
+    ihave Hpost := mvcc.txnEndPost_plain _ _ _ _ _ _ Hwq $$ Hpost
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
     iapply HΦ
@@ -130,8 +130,9 @@ theorem txn.DeleteRange.wp_proof
     (try wp_auto)
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP; iunfold mvcc.certOkNext; ileft; ipureintro; rfl
-    simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
+    · iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ Hwq); iframe Hhook HP; iunfold mvcc.certOkNext; ileft; ipureintro; rfl
+    ihave Hpost := mvcc.txnEndPost_plain _ _ _ _ _ _ Hwq $$ Hpost
+    simp only [mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
     iapply HΦ

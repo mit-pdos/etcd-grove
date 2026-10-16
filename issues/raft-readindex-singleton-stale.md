@@ -1,3 +1,13 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/raft#392 issue closed: related, not this bug (the user's: ReadIndex retries with a reused rctx; not the IsSingleton shortcut)
+  - etcd-io/raft#397 pr closed: related, not this bug (the user's: unique heartbeat ctxes for read-only requests)
+  - etcd-io/raft#398 pr closed: related, not this bug (the user's: document not retrying ReadIndex with the same rctx)
+  - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would remove the removed-leader half of the scenario, not the commit-index half)
+---
+
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change
 
 - **Status**: fixed in a fork commit, verified at `raft.Step` (2026-10-14, stage F): `0560cb7` (etcd-io/raft
@@ -40,6 +50,43 @@
      wins term 2 alone and commits `y` (index 5). A `ReadIndex` at node 2 is answered at once
      with node 2's commit index 3: a stale read with no bound on its staleness (node 2 never
      learns it is deposed, since nothing confirms its leadership).
+
+  A `ReadOnlySafe` leader answers a read only after two checks: it has committed an entry of its
+  own term (so its commit index is current), and a quorum has acknowledged a heartbeat sent after
+  the request arrived (so it is still leader). The shortcut skips both, and `IsSingleton` does not
+  ask who the one voter is:
+
+  ```go
+  // raft.go:1341-1359 (etcd-io/raft 40f8be7)
+  	case pb.MsgReadIndex:
+  		// only one voting member (the leader) in the cluster
+  		if r.trk.IsSingleton() { // <-
+  			if resp := r.responseToReadIndexReq(m, r.raftLog.committed); resp.To != None { // <-
+  				r.send(resp)
+  			}
+  			return nil
+  		}
+
+  		// Postpone read only request when this leader has not committed
+  		// any log entry at its term.
+  		if !r.committedEntryInCurrentTerm() {
+  			r.pendingReadIndexMessages = append(r.pendingReadIndexMessages, m)
+  			return nil
+  		}
+
+  		sendMsgReadIndexResponse(r, m)
+
+  		return nil
+  ```
+
+  ```go
+  // tracker/tracker.go:158-162 (etcd-io/raft 40f8be7)
+  // IsSingleton returns true if (and only if) there is only one voting member
+  // (i.e. the leader) in the current configuration.
+  func (p *ProgressTracker) IsSingleton() bool {
+  	return len(p.Voters[0]) == 1 && len(p.Voters[1]) == 0 // <-
+  }
+  ```
 
   Reproduction: `raft-conf-lag-model/readindex_singleton_test.go` (in package `raft`; public
   `RawNode` API, `discardLogger` aside), which passes by asserting the stale read:

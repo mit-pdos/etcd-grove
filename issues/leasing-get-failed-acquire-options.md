@@ -1,3 +1,10 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
+---
+
 # clientv3/leasing: a Get of a key leased by another client ignores the request's options
 
 ## Summary
@@ -10,8 +17,44 @@ References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. On a cache miss, `leasingKV.get` (`client/v3/leasing/kv.go:301-338`) calls `lkv.acquire(ctx, key, v3.OpGet(key))` (`kv.go:323`): a plain get of the key, not the caller's `op`.
 2. `acquire` (`kv.go:265-299`) commits a transaction that runs that get in both branches: `Then(get, put leasing key with our lease)` if nobody holds the lease, `Else(get, get leasing key)` otherwise; in the `Else` case it reports `Succeeded` only if the leasing key is already ours (`kv.go:282-286`).
+
+   ```go
+   // client/v3/leasing/kv.go:270-286 (etcd main f061acd09)
+   		lcmp := v3.LeaseValue(key)
+   		resp, err := lkv.kv.Txn(ctx).If(
+   			v3.Compare(v3.CreateRevision(lkv.pfx+key), "=", 0),
+   			v3.Compare(lcmp, "=", 0)).
+   			Then(
+   				op, // <-
+   				v3.OpPut(lkv.pfx+key, "", v3.WithLease(lkv.leaseID()))).
+   			Else(
+   				op, // <-
+   				v3.OpGet(lkv.pfx+key),
+   			).Commit()
+   		if err == nil {
+   			if !resp.Succeeded {
+   				kvs := resp.Responses[1].GetResponseRange().Kvs
+   				// if txn failed since already owner, lease is acquired
+   				resp.Succeeded = len(kvs) > 0 && v3.LeaseID(kvs[0].Lease) == lkv.leaseID()
+   			}
+   ```
 3. If the lease is acquired, `get` caches the plain get's response and `leases.Add(key, getResp, op)` (`cache.go:120-130`, through `leaseKey.get`, `cache.go:212-229`) applies `op`'s options to what is returned.
 4. If it is not (another client holds the lease), `get` returns `resp.Responses[0]`, the plain get's response, as is (`kv.go:327-337`). The caller's options are never applied.
+
+   ```go
+   // client/v3/leasing/kv.go:323-337 (etcd main f061acd09)
+   	resp, err := lkv.acquire(ctx, key, v3.OpGet(key)) // <- not op
+   	if err != nil {
+   		return nil, err
+   	}
+   	getResp := (*v3.GetResponse)(resp.Responses[0].GetResponseRange())
+   	getResp.Header = resp.Header
+   	if resp.Succeeded {
+   		getResp = lkv.leases.Add(key, getResp, op)
+   		// ... start monitorLease ...
+   	}
+   	return getResp, nil // <- not acquired: the plain get's answer
+   ```
 
 So, when another client holds the lease on `k = "abc"`:
 
@@ -20,6 +63,8 @@ So, when another client holds the lease on `k = "abc"`:
 | `WithKeysOnly()` | `k = "abc"` | `k`, empty value |
 | `WithCountOnly()` | `Kvs = [k = "abc"]`, `Count == 1` | no `Kvs`, `Count == 1` |
 | `WithMinModRev(modRev+1)` | `Kvs = [k = "abc"]` | no `Kvs` |
+
+The other options that filter or shape a range (`WithMaxModRev`, the create-revision bounds) are dropped the same way.
 
 ## How to reproduce
 

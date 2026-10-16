@@ -1,3 +1,11 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#13508 pr merged: related, not this bug (adds --experimental-enable-lease-checkpoint-persist, the persistence whose atomicity fails here)
+  - etcd-io/etcd#17132 issue closed: related, not this bug (TTLs reset on restart because checkpoints were not persisted at all)
+---
+
 # server: a lease checkpoint entry is not persisted atomically with its consistent index
 
 ## Summary
@@ -9,9 +17,56 @@
 References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 
 1. The server sets `txPostLockInsideApplyHook` (`server/etcdserver/server.go:412`, `getTxPostLockInsideApplyHook` at `server.go:2448-2455`). The hook runs each time the batch lock is taken inside apply (`batchTx.LockInsideApply`, `server/storage/backend/batch_tx.go:111-122`) and sets the consistent index to the entry being applied. A commit (the periodic one, `server/storage/backend/backend.go:475`, or the one at `Unlock` past the batch limit, `batch_tx.go:355`) takes the same lock and saves that index in its pre-commit hook. This is correct only if all of an entry's writes are made in one critical section: the commit then persists the index together with all of the entry's writes, or with none of them. On restart, entries at or below the persisted index are skipped.
+
+   ```go
+   // server/etcdserver/server.go:2448-2455 (etcd main f061acd09)
+   func (s *EtcdServer) getTxPostLockInsideApplyHook() func() {
+   	return func() {
+   		applyingIdx, applyingTerm := s.consistIndex.ConsistentApplyingIndex()
+   		if applyingIdx > s.consistIndex.UnsafeConsistentIndex() {
+   			s.consistIndex.SetConsistentIndex(applyingIdx, applyingTerm) // <- consistent index := the entry being applied
+   		}
+   	}
+   }
+   ```
 2. The lessor's checkpoint scheduler proposes up to `maxLeaseCheckpointBatchSize` = 1000 checkpoints in one request (`server/lease/lessor.go:55`, `:669-683`).
 3. `applierV3backend.LeaseCheckpoint` (`server/etcdserver/apply/backend.go:99-107`) calls `Lessor.Checkpoint(id, remainingTTL)` once per checkpoint. `lessor.Checkpoint` (`lessor.go:367-383`) persists the lease with `Lease.persistTo` (`server/lease/lease.go:55-61`), which takes `BatchTx().LockInsideApply()`, puts the lease, and calls `Unlock()`. A request with `n` checkpoints therefore makes `n` critical sections, and each one runs the hook with the same index.
+
+   ```go
+   // server/etcdserver/apply/backend.go:99-107 (etcd main f061acd09)
+   func (a *applierV3backend) LeaseCheckpoint(lc *pb.LeaseCheckpointRequest) (*pb.LeaseCheckpointResponse, error) {
+   	for _, c := range lc.Checkpoints {
+   		err := a.options.Lessor.Checkpoint(lease.LeaseID(c.ID), c.Remaining_TTL) // <- one call per lease
+   		// ...
+   	}
+   	return &pb.LeaseCheckpointResponse{Header: a.newHeader()}, nil
+   }
+   ```
+
+   ```go
+   // server/lease/lessor.go:367-383 and lease.go:55-61 (etcd main f061acd09)
+   func (le *lessor) Checkpoint(id LeaseID, remainingTTL int64) error {
+   	// ...
+   	if l, ok := le.leaseMap[id]; ok {
+   		// ...
+   		l.remainingTTL = remainingTTL
+   		if le.shouldPersistCheckpoints() {
+   			l.persistTo(le.b) // <-
+   		}
+   		// ...
+
+   // lease.go
+   func (l *Lease) persistTo(b backend.Backend) {
+   	lpb := leasepb.Lease{ID: int64(l.ID), TTL: l.ttl, RemainingTTL: l.remainingTTL}
+   	tx := b.BatchTx()
+   	tx.LockInsideApply() // <- runs the hook: consistent index := this entry
+   	defer tx.Unlock()    // <- a commit may happen here (batch limit) or between sections (periodic)
+   	schema.MustUnsafePutLease(tx, &lpb)
+   }
+   ```
 4. A commit after section `k < n` persists the entry's index, the first `k` remaining TTLs, and the old records of the other leases (their remaining TTL from an earlier checkpoint, or 0 for the full TTL). If etcd crashes before the next commit, the entry is at or below the persisted index after restart, so it is not applied again. The other `n - k` leases are recovered with their old remaining TTL, so they expire later than they should.
+
+   In the branch's crash test below, entry 4 checkpoints leases 1, 2 and 3. The commit after the first section persists consistent index 4 with lease 1's checkpoint only. A crash there leaves a backend that skips entry 4 on restart and recovers leases 2 and 3 with their full TTL.
 
 The window is small: the commit must fall between two sections of one apply, and the crash must come before the next commit. When it happens, though, the leases outlive their TTL with no error reported.
 

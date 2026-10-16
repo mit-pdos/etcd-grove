@@ -1,3 +1,9 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+---
+
 # The stream interceptor's cancellable context reports an error before it is done
 
 - **Status**: open (not reported).
@@ -73,6 +79,36 @@ func TestCancellableContextErrBeforeDone(t *testing.T) {
 
   A test racing a goroutine's `Err()` against `Cancel` would hit the window only sometimes; the
   wrapper above shows the state the window exposes.
+- **How it happens**: `Cancel` publishes the reason under the lock, releases the lock, and only
+  then closes `Done()`. `Err()` reads the reason under the lock, without looking at `Done()`.
+
+  1. A client opens a watch stream with require-leader metadata. The interceptor wraps the
+     stream's context in a `cancellableContext`.
+  2. The member loses its leader. `monitorLeader` calls `Cancel(rpctypes.ErrGRPCNoLeader)`,
+     which stores the reason and unlocks.
+  3. Before `Cancel` reaches `c.cancel()`, the handler calls `ss.Context().Err()`. It returns
+     `ErrGRPCNoLeader`, while `ss.Context().Done()` is still open.
+
+  ```go
+  // server/etcdserver/api/v3rpc/interceptor.go:288-304 (etcd main f061acd09)
+  func (c *cancellableContext) Cancel(reason error) {
+  	c.lock.Lock()
+  	c.cancelReason = reason // <- visible to Err() after the unlock
+  	c.lock.Unlock()
+  	c.cancel()              // <- Done() closes only here
+  }
+
+  // Err will return the preserved cancel reason error if present, and will
+  // otherwise return the underlying error from the parent context.
+  func (c *cancellableContext) Err() error {
+  	c.lock.RLock()
+  	defer c.lock.RUnlock()
+  	if c.cancelReason != nil {
+  		return c.cancelReason
+  	}
+  	return c.Context.Err()
+  }
+  ```
 - **Expected**: `Err()` is `nil` until `Done()` is closed (the `context.Context` contract the
   wrapper implements by embedding).
 - **How the proof handles it**: the require-leader branch, the only place a `cancellableContext`

@@ -1,3 +1,11 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#22408 pr open: related, not this bug (the same getWatchLoop retry path: back-off and GetTimeout are never read)
+  - etcd-io/etcd#21536 issue closed: related, not this bug (the user's cache report: Get(WithRev) with revision gaps; fixed by #21540)
+---
+
 # cache: Cache never becomes ready again after a watch retry that purges the demux
 
 ## Summary
@@ -13,9 +21,65 @@ References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
 3. `watchEvents` (`cache.go:388`) opens the upstream watch at `rev`, and on its first response runs
    `readyOnce.Do(func() { c.demux.Init(rev); c.ready.Set() })` (`cache.go:405-408`).
    So `Init` runs after `storeW` is registered.
+
+   ```go
+   // cache/cache.go:348-370 and 397-421 (etcd main f061acd09), watch and watchEvents
+   func (c *Cache) watch(rev int64) error {
+   	readyOnce := sync.Once{} // <- one Once per watch() call
+   	for {
+   		storeW := newWatcher(c.cfg.PerWatcherBufferSize, nil)
+   		c.demux.Register(storeW, rev) // <- 1. register
+   		// ... go applyStorage(storeW): returns nil when storeW is stopped ...
+   		err := c.watchEvents(rev, applyErr, &readyOnce)
+   		c.demux.Unregister(storeW)
+
+   		if err != nil {
+   			return err
+   		}
+   	} // <- err == nil: loop with the same, spent Once
+   }
+   // ... watchEvents:
+   		case resp, ok := <-watchCh:
+   			// ...
+   			readyOnce.Do(func() {
+   				c.demux.Init(rev) // <- 2. may purge: stops storeW
+   				c.ready.Set()
+   			})
+   			// ...
+   		case err := <-applyErr: // nil, because storeW was stopped
+   			c.ready.Reset() // <-
+   			return err
+   ```
 4. `demux.Init` (`cache/demux.go:119`) purges the demux when the demux was initialized before and either never saw an event (`maxRev == 0`, `demux.go:130-134`) or `rev != maxRev+1` (`demux.go:141`). `purge` (`demux.go:296`) stops every registered watcher (`demux.go:301,304`), including the `storeW` registered in step 2.
+
+   ```go
+   // cache/demux.go:119-143 (etcd main f061acd09)
+   func (d *demux) Init(minRev int64) {
+   	// ...
+   	if d.minRev == 0 {
+   		// Watch started for empty demux
+   		d.minRev = minRev
+   		return
+   	}
+   	if d.maxRev == 0 {
+   		// Watch started on initialized demux that never got any event.
+   		d.purge() // <-
+   		d.minRev = minRev
+   		return
+   	}
+   	if minRev == d.maxRev+1 {
+   		// Watch continuing from last revision it observed.
+   		return
+   	}
+   	// Watch opened on revision mismatching dmux last observed revision.
+   	d.purge() // <- the usual case after a retry: stops every registered watcher
+   	d.minRev = minRev
+   }
+   ```
 5. `applyStorage` sees `storeW`'s channel closed and returns nil (`cache.go:378-379`); the goroutine closes `applyErr`. `watchEvents` receives nil from it, calls `c.ready.Reset()` and returns nil (`cache.go:418-420`). Note that `ready.Set()` ran in step 3 just before this, so the cache is briefly ready.
 6. `watch` unregisters `storeW` and, the error being nil, loops (`cache.go:363-368`): a new `storeW` is registered at the same `rev` and a new upstream watch is opened. This time nothing is purged (the demux now has `minRev == rev`, and `Init` is not called again anyway), so events flow: `Broadcast` succeeds and the new `storeW` applies them to the store. But `readyOnce` is spent, so `ready.Set()` never runs again for this `watch` call, and `watch` only returns on an error. `Ready()` stays false for as long as the upstream watch stays healthy.
+
+For example, in the test below: the first Get answers revision 9, the cache watches from 10, and the demux sees the event at 10 (`maxRev = 10`). The upstream watch fails. The retry's Get answers 12, so `watch(13)` registers a new `storeW` at 13. The retried watch's first response runs `Init(13)`: `13 != maxRev+1 = 11`, so the demux is purged and that `storeW` is stopped. The loop registers another `storeW` and the store reaches revision 13, but `WaitReady` never returns.
 
 The first watch after `New` does not hit this, because the demux is fresh (`minRev == 0`, `demux.go:125-128`) and `Init` does not purge. A retry whose Get returns exactly the last revision the demux saw (`rev == maxRev+1`, `demux.go:136-138`) does not hit it either.
 
