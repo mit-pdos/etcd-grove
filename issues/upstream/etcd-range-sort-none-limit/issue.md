@@ -46,9 +46,7 @@ As a unit test (`TestRangeSortLimit` in `server/etcdserver/txn/range_test.go` on
 
 ### Anything else we need to know?
 
-`release-3.6` and `release-3.5` have the same code, so they are likely affected too (not run there).
-
-`rpc.proto` still documents `NONE` as "default, no sorting". The limited response matches neither that nor the ascending order the server uses without a limit.
+`rpc.proto` documents `NONE` as "default, no sorting", but with a non-key target the server sorts ascending (and `etcdctl get --order`'s help says "ASCEND by default"). Should the documentation of `NONE` be changed to say so?
 
 I found this while formally verifying etcd's range code.
 

@@ -135,8 +135,10 @@ into the version fields. Test output may be trimmed to the failing lines (no log
   the expectation in what holds under every reading.
 - **How can we reproduce it?** — the minimal steps (`etcdctl` sequence when one exists), then the test from the
   branch and its failing output.
-- **Anything else we need to know?** — impact and who is affected, workarounds, other releases affected (said as
-  behavior, and whether it was run there). One sentence may say it was found while formally verifying etcd; no more.
+- **Anything else we need to know?** — impact and who is affected, and workarounds; no claims about other releases (the
+  version fields say what was run; backports are the maintainers' call, and the PR's notes may name them). A side finding the maintainers
+  could act on (documentation that contradicts the behavior) goes here as a question to them ("Should the
+  documentation of `NONE` be changed to say so?"), not as a statement, and not fixed in the PR unless they say so. One sentence may say it was found while formally verifying etcd; no more.
 
 `pr.md`: title = the commit subject; body: what the change does and why (two or three sentences), `Fixes #<issue>`
 (placeholder), how it was tested, notes for the reviewer (alternatives considered, behavior changes), and the AI

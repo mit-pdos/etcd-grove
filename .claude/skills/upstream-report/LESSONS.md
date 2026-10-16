@@ -29,3 +29,6 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   sortRangeResults, etc." Rule (step 8, "What happened"; step 2; "Writing for upstream"): the issue has the symptom,
   the expectation and the reproduction only (no function names, code permalinks or history); the root cause goes in
   the PR and the commit message.
+- 2026-10-16, etcd-range-sort-none-limit: "Get rid of the release comment. The note about the documentation is worth
+  keeping, but since it is potentially actionable, the issue could ask a question." Rule (step 8, "Anything else"):
+  no claims about other releases in the issue; an actionable side finding is a question to the maintainers.
