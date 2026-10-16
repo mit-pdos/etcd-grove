@@ -37,7 +37,7 @@ theorem NewRawNode.wp_proof
     NewRawNode.spec (GF := GF) (hG := hG) := by
   intro c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs Hasync HpvF
     Happ Hprev Hents Hss Hpe Hhs Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
-  wp_start as ⟨Hc, #Hlg, #Hst, HSt, #Hinit⟩
+  wp_start as ⟨Hc, #Hlg, #Hst, HSt, Hinit⟩
   wp_auto
   wp_apply wp_newRaft c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs
     (by rw [Hents]; intro k e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
@@ -70,18 +70,18 @@ theorem NewRawNode.wp_proof
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   iapply HΦ $$ %«$r0_ptr» %interface.nil
   iexists s
-  isplitr
+  isplitl [«$r0» Hphys]
+  · iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
+        s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hrst, Hrpd⟩
+        ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
+          Hsn, Hsg⟩
+        Hgh (by rw [Hpv, HpvF]) Hsdr' Hdom
+      $$ «$r0» Hphys ss Hhp [] []
+    all_goals first
+      | iapply ownSlice_nil
+      | iapply ownSliceCap_nil
+      | (simp only; rw [HAW, Hasync])
   · ipureintro; rfl
-  iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
-      s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr⟩
-      ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
-        Hsn, Hsg⟩
-      Hgh (by rw [Hpv, HpvF]) Hsdr' Hdom
-    $$ «$r0» Hphys ss Hhp [] []
-  all_goals first
-    | iapply ownSlice_nil
-    | iapply ownSliceCap_nil
-    | (simp only; rw [HAW, Hasync])
 
 end proof
 

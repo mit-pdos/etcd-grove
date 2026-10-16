@@ -135,7 +135,7 @@ theorem newRaft.wp_proof
   intro c cv lok si σ hs csm
     Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
-  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
+  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩

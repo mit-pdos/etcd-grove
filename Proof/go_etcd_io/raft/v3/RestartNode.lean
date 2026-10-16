@@ -58,7 +58,7 @@ theorem RestartNode.wp_proof
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
   obtain ⟨Hp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg⟩ := Hlog
-  obtain ⟨Ht0, Hv0, Hr⟩ := Hterm0
+  obtain ⟨Ht0, Hv0, Hr, -, -, -⟩ := Hterm0
   have Hdlen0 : ([] : List EntryM).length = (uint.Z s.logst.applying).toNat := by
     rw [Hapg]; rfl
   ihave Hphys := ownRaftPhys_toC' $$ Hphys

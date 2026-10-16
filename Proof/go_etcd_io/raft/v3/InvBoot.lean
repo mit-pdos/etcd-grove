@@ -64,7 +64,8 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
     "Hsteps" ∷ rnv.stepsOnAdvance' ↦* ([] : List Loc) ∗
     "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
     "%Hrel" ∷ ⌜NStateRel s initPState⌝ ∗
-    "%Hterm0" ∷ ⌜s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower⌝ ∗
+    "%Hterm0" ∷ ⌜s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower ∧ s.outbox = [] ∧
+      s.rd.states = [] ∧ s.rd.pend = []⌝ ∗
     "%Hlog" ∷ ⌜s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
@@ -78,7 +79,8 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
 theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
     (s : NState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
     (Hasync : rnv.asyncStorageWrites' = false) (Hrel : NStateRel s initPState)
-    (Hterm0 : s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower)
+    (Hterm0 : s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower ∧ s.outbox = [] ∧
+      s.rd.states = [] ∧ s.rd.pend = [])
     (Hlog : s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
@@ -112,9 +114,9 @@ instance peersCtx_persistent (pv : List Peer) (ctxs : List (List w8)) :
 `e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the message back. Persistent (one
 call per peer). -/
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : CCV1M) (e : EntryM) (Φ : val → IProp GF),
-    ⌜ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
-      m.type = W32 0 ∧ m.id = W64 0⌝ -∗
+  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : CCV1M) (e : EntryM)
+    (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
+      m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
     ownCCV1 p dq m -∗
     (∀ (d : GoSlice), ownCCV1 p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
     WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
@@ -148,6 +150,14 @@ theorem bootCC_apply (V : GSet w64) (p : w64) (hp : p ≠ W64 0) :
   rw [cfgStateC_simple, ccApplyM_one]
   exact simpleM_cfgState_addNode V ∅ p hp (GMap.not_elem_of_empty _)
     (fun k hk => absurd hk (GMap.not_elem_of_empty _))
+
+/-- The configuration `applyConfChange` returns for the voters `V` and no learner, as a `CfgM`. -/
+theorem cfgState_cfg (V : GSet w64) : (cfgState V ∅).cfg = CfgM.simple V ∅ := rfl
+
+/-- Its tracked ids: the voters. -/
+theorem cfgState_ids (V : GSet w64) : (cfgState V ∅).cfg.ids = V := by
+  rw [cfgState_cfg]; unfold CfgM.ids; rw [CfgM.voters_simple]
+  exact GMap.map_union_empty _
 
 /-- The voters after the `k`-th peer: the previous ones and `ps[k]`. -/
 theorem listToSet_take_succ (ps : List w64) (k : Nat) (p : w64) (h : ps[k]? = some p) :
