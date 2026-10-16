@@ -258,6 +258,27 @@ theorem txnReadonly_wire (t : TxnModel) :
   simp only [← List.map_append, List.all_map]
   exact all_congr_mem _ _ _ (fun op _ => opIsGet_opWire op)
 
+/-- The wire's transaction is serializable iff the model's is not linearizable (unit W-M3). -/
+theorem opIsSerGet_opWire (op : TxnOp) : txn.opIsSerGet (opWire op) = !TxnOp.linearizable op := by
+  cases op <;> simp [txn.opIsSerGet, opWire, TxnOp.linearizable, (wire_fields _).2.2.2.2.2.2.1]
+
+theorem txnSerializable_wire (t : TxnModel) :
+    txn.txnSerializable (txnWireOf t) = !t.linearizable := by
+  unfold txn.txnSerializable txnWireOf TxnModel.linearizable
+  simp only [← List.map_append, List.all_map]
+  induction t.thenOps ++ t.elseOps with
+  | nil => rfl
+  | cons op ops ih =>
+    simp only [List.all_cons, List.any_cons, Function.comp, opIsSerGet_opWire, ih, Bool.not_or]
+
+/-- A transaction that writes is linearizable (an operation not a get is). -/
+theorem linearizable_of_write (t : TxnModel) (h : txn.txnReadonly (txnWireOf t) = false) :
+    t.linearizable = true := by
+  rw [txnReadonly_wire, List.all_eq_false] at h
+  unfold TxnModel.linearizable
+  obtain ⟨op, hop, hng⟩ := h
+  exact List.any_eq_true.2 ⟨op, hop, by cases op <;> simp_all [TxnOp.isGet, TxnOp.linearizable]⟩
+
 theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
     (hng : ∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps)
     (hc : ∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0])
@@ -602,23 +623,38 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **What a transaction's reply gives the clients' model** (`txnReplied` at a floor longer than
-`lo`, for a transaction of plain operations under `pfx` that is `exactGets`): `txnCommitResultTok`,
-the token iff it wrote. -/
+/-- **What a transaction's reply gives the clients' model** (`txnReplied` with its update's floor,
+unit W-M3: if the transaction is linearizable, the state its update fired at, the state of the
+log read or met, is at least a certified log `lf` longer than `lo`; for a transaction of plain
+operations under `pfx` that is `exactGets`): `txnCommitResultTok`, the token iff it wrote. -/
 theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64)
     (F : mvcc.Log) (lo : w64) (pfx : GoString) (t : TxnModel) (cid mid : w64) (resp : Loc)
-    (m : TxnRespM) (hp : TxnModel.plain t) (hu : t.Under pfx) (hx : t.exactGets)
-    (hlo : sint.Z lo < F.length) :
-    storeSmall E.γ ∗ txnRespMsg resp m ∗ txnReplied E γw γr c F (txnWireOf t) cid mid m ⊢
+    (m : TxnRespM) (Q : KVState → IProp GF) (lf : mvcc.Log) (hp : TxnModel.plain t)
+    (hu : t.Under pfx) (hx : t.exactGets) (hlo : sint.Z lo < lf.length) :
+    storeSmall E.γ ∗ txnRespMsg resp m ∗ txnReplied E γw γr c F (txnWireOf t) Q cid mid m ∗
+        □ (⌜t.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝) ⊢
       txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo t resp GoInterface.nil := by
-  iintro ⟨#Hsm, #Hm, Hrep⟩
+  iintro ⟨#Hsm, #Hm, Hrep, #Himp⟩
   unfold txnReplied
+  have hser := txnSerializable_wire t
   rw [txnReadonly_wire]
   cases hro : (t.thenOps ++ t.elseOps).all TxnOp.isGet with
   | true =>
     simp only [↓reduceIte]
-    icases Hrep with ⟨%log, #Hcert, %Hlog, -⟩
+    icases Hrep with ⟨%log, #Hcert, #Hcok, %Hlog, -, #HQl⟩
     obtain ⟨h2, h3, hFl, hrev, -, -, hok, hrel⟩ := Hlog
+    ihave %Hfl : ⌜t.linearizable = true → lf.length ≤ log.length⌝ $$ []
+    · cases hlin : t.linearizable
+      · ipureintro; intro h; cases h
+      · ihave #Himp' := Himp $$ %rfl %(kvStateOf log)
+        rw [hlin] at hser
+        simp only [Bool.not_true] at hser
+        simp only [hser, Bool.false_eq_true, ↓reduceIte]
+        ihave %h := Himp' $$ HQl
+        ipureintro; intro _
+        simp only [kvStateOf] at h
+        omega
+    iclear HQl
     have hall : ∀ op ∈ t.thenOps ++ t.elseOps, TxnOp.isGet op = true := fun op ho =>
       List.all_eq_true.1 hro op ho
     have hnr : ∀ ok, ∀ op ∈ t.branch ok, TxnOp.noRev op := by
@@ -647,7 +683,6 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       unfold runTxn
       exact runOps_gets_noWrite _ _ _ (fun op ho => hall op (branch_mem t _ op ho))
     have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
-    have hFlen := hFl.length_le
     ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $Hcert]
     unfold txnCommitResultTok
     iright
@@ -661,10 +696,10 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
         (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
           subst he; exact ⟨rfl, (hx.1 o (branch_mem t _ _ ho)).2⟩⟩) hrel $$ Hm
     isplitl []
-    · iapply v3rpc.etcdReached_of_cert E log _ (by rw [hr]; omega) $$ Hcert
+    · iapply v3rpc.etcdReached_of_certOk E log _ (by rw [hr]; omega) $$ Hcok
     isplitl []
     · ipureintro
-      exact ⟨fun _ => by rw [hr]; omega, by rw [hr]; omega, by rw [hr]; omega, Hwf⟩
+      exact ⟨fun h => by have := Hfl h; rw [hr]; omega, by rw [hr]; omega, by rw [hr]; omega, Hwf⟩
     isplitl []
     · unfold txnStates
       simp only [hnw, Bool.false_eq_true, ↓reduceIte]
@@ -674,8 +709,11 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     simp only [Bool.false_eq_true, ↓reduceIte]
     obtain ⟨hgx, hwx⟩ := hx
     obtain ⟨hng, hcz, hdz⟩ := hwx hro
-    icases Hrep with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -⟩
+    icases Hrep with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, #HQ⟩
     obtain ⟨Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel⟩ := Hp
+    have hlin : t.linearizable = true :=
+      linearizable_of_write t (by rw [txnReadonly_wire]; exact hro)
+    ihave %Hfl := Himp $$ %hlin %(kvStateOf x.log) HQ
     have ht' : t' = txnWireOf t := Hz (noZeroEnd_wire t hp hng hcz hdz)
     subst ht'
     have hlog := txn_applied_exact (txnWireOf t) (txnWireOf t) hm rq' x x' l skip Hw Ht' Hst
@@ -683,7 +721,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     rw [hw] at hlog hok hrel hrev
     have hfl := srvRunTxn_runTxn_flat (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t (flat_branch t hp _)
     have hS := mvcc.stateAfter_sorted x.log
-    have hFl : F.length ≤ x.log.length := HF.length_le
+    have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf] at Hfl; omega
     have hnil := srvOps_changes_nil (mvcc.stateAfter x.log) (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) _ (plain_branch t hp (txn.txnOk (mvcc.stateAfter x.log) t))
     by_cases hcs : (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t).2.1 = []
     · -- nothing written: the log as it was, the revision its last
@@ -719,7 +757,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
           (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
             subst he; exact absurd (branch_mem t _ _ ho) (hng o)⟩) hrel $$ Hm
       isplitl []
-      · iapply v3rpc.etcdReached_of_cert E x.log _ (by rw [hr]; omega) $$ Hcert
+      · iapply v3rpc.etcdReached_of_certOk E x.log _ (by rw [hr]; omega) $$ Hcok
       isplitl []
       · ipureintro
         exact ⟨fun _ => by rw [hr]; omega, by rw [hr]; omega, by rw [hr]; omega, Hwf1⟩
@@ -769,7 +807,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
           (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
             subst he; exact absurd (branch_mem t _ _ ho) (hng o)⟩) hrel $$ Hm
       isplitl []
-      · iapply v3rpc.etcdReached_of_cert E x'.log _ (by rw [hr, hlog']; simp; omega) $$ Hcert
+      · iapply v3rpc.etcdReached_of_certOk E x'.log _ (by rw [hr, hlog']; simp; omega) $$ Hcok
       isplitl []
       · ipureintro
         exact ⟨fun _ => by rw [hr]; omega, by rw [hr]; omega, by rw [hr]; omega, Hwf1⟩
@@ -879,58 +917,98 @@ theorem etcdReached_zero (E : apply.AEnv GF) :
 
 /-- **A writing transaction with a lease, its `Commit()`** (a premise, persistent; 2026-10-15, unit
 T2: leases are outside the KV model until unit T3, so no server spec covers a writing transaction
-with a lease): `kv_txn_commit`'s triple for such a transaction. -/
-def kvLeasedCommitTodo (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) (addr : GoString) :
-    IProp GF :=
-  iprop(□ ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
-      (F : mvcc.Log),
+with a lease). Unit W-M3: stated in the clients' model, as `kvLeasedPutTodo` (a writing
+transaction is linearizable, and its floor, for a lease-free one its update's result at the state
+of the log it met, has no counterpart without an update): `txnCommitResultTok` from
+`etcdReached lo` under a prefix, with a client error; and, for the builder's commit with any
+result, `txnAnyResult`. -/
+def kvLeasedCommitTodo (E : apply.AEnv GF) (_γw _γr : ReadNames) (_cid _mid : w64)
+    (addr : GoString) : IProp GF :=
+  iprop(□ ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild),
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ txn.txnReadonly (txnWireOf b.model) = false ∧
       ¬ TxnModel.leaseFree b.model⌝ -∗
-    {{ txnObjAt tp addr ci cd b ∗ mvcc.idxCert E.γ.idx F }}
-      (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗
-            txnReplied E γw γr (W64 0) F (txnWireOf b.model) cid mid m) ∨
-          ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ }})
+    ((□ ∀ (lo : w64) (pfx : GoString), ⌜b.model.Under pfx⌝ -∗
+      {{ txnObjAt tp addr ci cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
+        (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+          txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo b.model resp err ∗
+          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }}) ∗
+     {{ txnObjAt tp addr ci cd b }}
+       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
+     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
 
 instance kvLeasedCommitTodo_persistent (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64)
     (addr : GoString) : Persistent (kvLeasedCommitTodo E γw γr cid mid addr) := by
   unfold kvLeasedCommitTodo; infer_instance
 
-/-- **`Commit()` on a real builder, its call** (at a floor `F`, the committed index `0`): the
-reply's message with `txnReplied`, or a client error. 2026-10-15 (unit T2): a read-only or
-lease-free transaction with the caller's update `kvAnyAu` (etcd's `Txn` spec over the whole state),
-a writing one with a lease by the premise `kvLeasedCommitTodo`. -/
+/-- **`Commit()` on a real builder, its call** (at a floor `F`, the committed index `0`; a read-only
+or lease-free transaction): the reply's message with `txnReplied` at the update the call chose,
+or a client error. 2026-10-15 (unit T2): with the caller's update `kvAnyAu` (etcd's `Txn` spec over
+the whole state). Unit W-M3: the update's result is the floor of a certified log `lf` (`kvAnyAu`):
+a writing transaction's at the write names, a linearizable read-only one's read update at the
+read names, none for a serializable one (which is not linearizable). -/
 theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (b : TxnBuild) (F : mvcc.Log) (hp : TxnModel.plain b.model) (hx : b.model.exactGets) :
+    (b : TxnBuild) (F lf : mvcc.Log) (hp : TxnModel.plain b.model) (hx : b.model.exactGets)
+    (hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
-        mvcc.idxCert E.γ.idx F ∗ kvAnyAu γw ∗ kvLeasedCommitTodo E γw γr cid mid addr }}
+        mvcc.idxCert E.γ.idx F ∗ mvcc.certOk E.γ lf ∗ kvAnyAu E γw ∗ kvAnyAu E γr }}
       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗
-            txnReplied E γw γr (W64 0) F (txnWireOf b.model) cid mid m) ∨
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (Q : KVState → IProp GF), txnRespMsg resp m ∗
+            txnReplied E γw γr (W64 0) F (txnWireOf b.model) Q cid mid m ∗
+            □ (⌜b.model.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝)) ∨
           ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hrpc, #HF, #Hnp, #Hlc⟩ HΦ
-  by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model
-  rotate_left
-  · have hk1 : txn.txnReadonly (txnWireOf b.model) = false := by
-      cases h : txn.txnReadonly (txnWireOf b.model)
-      · rfl
-      · exact absurd (Or.inl h) hk
-    have hk2 : ¬ TxnModel.leaseFree b.model := fun h => hk (Or.inr h)
-    iunfold kvLeasedCommitTodo at Hlc
-    ihave #Ht := Hlc $$ %tp %ci %cd %b %F %(⟨hp, hx, hk1, hk2⟩)
-    iapply Ht $$ [Hobj] HΦ
-    iframe Hobj HF
+  iintro %Φ ⟨#Pc, Hobj, #Hrpc, #HF, #Hcl, #Hw, #Hr⟩ HΦ
+  have hser := txnSerializable_wire b.model
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   ihave #Hc0 : committedAtLeast γr (W64 0) $$ []
   · unfold committedAtLeast
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
+  -- the update: a writing transaction's, a linearizable read-only one's read update, or none
+  ihave Hsel : iprop(|={⊤}=> ∃ Q : KVState → IProp GF,
+      (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
+        (⌜txn.txnReadonly (txnWireOf b.model) = true ∧
+          txn.txnSerializable (txnWireOf b.model) = false⌝ ∗ kvReadAu γr.kv Q) ∨
+        (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧
+          txnNoZeroEnd (txnWireOf b.model)⌝ ∗ kvOpAu γw.kv (.txn (txnWireOf b.model)) Q)) ∗
+      □ (⌜b.model.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝)) $$ []
+  · cases hro : txn.txnReadonly (txnWireOf b.model)
+    · have hl : TxnModel.leaseFree b.model := by
+        rcases hk with h | h
+        · rw [hro] at h; cases h
+        · exact h
+      iunfold kvAnyAu at Hw
+      imod Hw $$ %(KVOp.txn (txnWireOf b.model)) %lf Hcl with #Hau
+      imodintro
+      iexists (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝))
+      isplitl
+      · iright; iright
+        iframe Hau
+        ipureintro; exact ⟨rfl, txnPlain_wire _ hp hx hl, txnNoZeroEnd_wire _ hp hx hro⟩
+      · iintro !> - %σ H; iexact H
+    · cases hs : txn.txnSerializable (txnWireOf b.model)
+      · iunfold kvAnyAu at Hr
+        imod Hr $$ %(KVOp.range (opGetModel [] [])) %lf Hcl with #Hau
+        imodintro
+        iexists (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝))
+        isplitl
+        · iright; ileft
+          isplitr
+          · ipureintro; exact ⟨rfl, rfl⟩
+          iapply kvOpAu_range $$ Hau
+        · iintro !> - %σ H; iexact H
+      · imodintro
+        iexists (fun _ => iprop(True))
+        isplitl
+        · ileft; ipureintro; exact ⟨rfl, rfl⟩
+        · iintro !> %h
+          rw [h] at hser; simp at hser; rw [hser] at hs; cases hs
+  imod Hsel with ⟨%Q, #Hdq, #Himp⟩
   iapply (v3.txn.wp_Commit tp addr ci cd b (etcdTxnSpec E γw γr cid mid)
-    (txnReplied E γw γr (W64 0) F (txnWireOf b.model) cid mid)) $$ [Hobj]
+    (txnReplied E γw γr (W64 0) F (txnWireOf b.model) Q cid mid)) $$ [Hobj]
   · iframe
     iframe #
     imodintro
@@ -938,23 +1016,11 @@ theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
     unfold etcdTxnSpec
     isplitl []
     · ipureintro; exact ⟨txnWireOf_plain _ hp, txnModelIn_wire _ hx⟩
-    iexists (fun _ => iprop(True))
-    isplitr
-    · cases hro : txn.txnReadonly (txnWireOf b.model)
-      · iright
-        isplitr
-        · ipureintro
-          have hl : TxnModel.leaseFree b.model := by
-            rcases hk with h | h
-            · rw [hro] at h; cases h
-            · exact h
-          exact ⟨rfl, txnPlain_wire _ hp hx hl, txnNoZeroEnd_wire _ hp hx hro⟩
-        iunfold kvAnyAu at Hnp
-        iapply Hnp
-      · ileft; ipureintro; exact ⟨rfl, rfl⟩
+    iexists Q
+    iframe Hdq
     iexists (W64 0), F
     iframe #
-    iintro %m ⟨Hm, -⟩
+    iintro %m Hm
     iexact Hm
   inext
   iintro %resp %err Hout
@@ -964,8 +1030,9 @@ theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
   · ileft
     isplitl []
     · ipureintro; exact Herr
-    iexists m
+    iexists m, Q
     iframe
+    iframe #
   · iright
     ipureintro; exact ⟨Herr.1, Herr.2.1⟩
 
@@ -978,9 +1045,9 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
-        clientErrsIs ∗ kvAnyAu γw ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
+        clientErrsIs ∗ kvAnyAu E γw ∗ kvAnyAu E γr ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
       isEtcdTxnKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hcei, #Hnp, #Hlc⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hcei, #Hnp, #Hnr, #Hlc⟩
   ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
   unfold isEtcdTxnKVTodo
   iintro !> %Φ !> - HΦ
@@ -996,28 +1063,44 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
   have hcommit : ∀ (b : TxnBuild) (lo : w64), b.model.Under pfx → b.model.exactGets →
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗ storeSmall E.γ ∗
-        kvAnyAu γw ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
+        kvAnyAu E γw ∗ kvAnyAu E γr ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
       {{ txnB tp addr cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo b.model resp err ∗
           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
     intro b lo hu hx
-    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hsm, #Hnp, #Hlc⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
+    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hsm, #Hnp, #Hnr, #Hlc⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
     iunfold txnB at HB
     icases HB with ⟨Hobj, %hp⟩
-    ihave ⟨%F, #HF, %HFl⟩ := floor_of_reached s E γr lo $$ [$Hsrd $Hlo]
-    iapply (kv_txn_commit tp addr E γw γr cid mid todoCtxVal cd b F hp hx) $$ [Hobj]
+    by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model
+    rotate_left
+    · -- a writing transaction with a lease: the premise
+      have hk1 : txn.txnReadonly (txnWireOf b.model) = false := by
+        cases h : txn.txnReadonly (txnWireOf b.model)
+        · rfl
+        · exact absurd (Or.inl h) hk
+      have hk2 : ¬ TxnModel.leaseFree b.model := fun h => hk (Or.inr h)
+      iunfold kvLeasedCommitTodo at Hlc
+      ihave ⟨#Ht, -⟩ := Hlc $$ %tp %todoCtxVal %cd %b %(⟨hp, hx, hk1, hk2⟩)
+      ihave #Ht' := Ht $$ %lo %pfx %hu
+      iapply Ht' $$ [Hobj] HΦ
+      iframe Hobj Hlo
+    -- the floor (unit W-M3): a certified log longer than `lo`, the update's result at the state
+    -- the transaction linearized at
+    ihave ⟨%lf, #Hcl, %Hll⟩ := certOk_of_reached E lo $$ Hlo
+    ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
+    iapply (kv_txn_commit tp addr E γw γr cid mid todoCtxVal cd b F lf hp hx hk) $$ [Hobj]
     · iframe
       iframe #
     inext
     iintro %resp %err Hout
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, #Hm, Hq⟩ | %Herr)
+    icases Hout with (⟨%Herr, %m, %Q, #Hm, Hq, #Himp⟩ | %Herr)
     · subst Herr
       isplitl
-      · iapply txnCommitResultTok_of_reply E γw γr (W64 0) F lo pfx b.model cid mid resp m hp hu hx
-          HFl.1 $$ [$Hsm $Hm $Hq]
+      · iapply txnCommitResultTok_of_reply E γw γr (W64 0) F lo pfx b.model cid mid resp m Q lf
+          hp hu hx Hll $$ [$Hsm $Hm $Hq $Himp]
       · ileft; ipureintro; rfl
     · isplitl []
       · unfold txnCommitResultTok; ileft; ipureintro; exact Herr.1
@@ -1078,25 +1161,38 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
         · exact h2 op h⟩
     isplitl []
     · iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-      iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp $Hlc] [HB]
+      iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp $Hnr $Hlc] [HB]
       · iframe; iframe #
       inext
       iintro %resp %err ⟨Hr, -⟩
       iapply HΦ'
       iexact Hr
     · iintro !> %b %Φ' !> ⟨HB, %hx⟩ HΦ'
-      ihave #H0 := etcdReached_zero E
       iunfold txnB at HB
       icases HB with ⟨Hobj, %hp⟩
-      ihave ⟨%F, #HF, %HFl⟩ := floor_of_reached s E γr (W64 0) $$ [$Hsrd $H0]
-      iapply (kv_txn_commit tp addr E γw γr cid mid todoCtxVal cd b F hp hx) $$ [Hobj]
+      by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model
+      rotate_left
+      · -- a writing transaction with a lease: the premise
+        have hk1 : txn.txnReadonly (txnWireOf b.model) = false := by
+          cases h : txn.txnReadonly (txnWireOf b.model)
+          · rfl
+          · exact absurd (Or.inl h) hk
+        have hk2 : ¬ TxnModel.leaseFree b.model := fun h => hk (Or.inr h)
+        iunfold kvLeasedCommitTodo at Hlc
+        ihave ⟨-, #Ht⟩ := Hlc $$ %tp %todoCtxVal %cd %b %(⟨hp, hx, hk1, hk2⟩)
+        iapply Ht $$ [Hobj] HΦ'
+        iexact Hobj
+      ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
+      ihave #Hcl : mvcc.certOk E.γ ([] : mvcc.Log) $$ []
+      · unfold mvcc.certOk; ileft; ipureintro; simp
+      iapply (kv_txn_commit tp addr E γw γr cid mid todoCtxVal cd b F [] hp hx hk) $$ [Hobj]
       · iframe
         iframe #
       inext
       iintro %resp %err Hout
       iapply HΦ'
       unfold txnAnyResult
-      icases Hout with (⟨%Herr, %m, #Hm, -⟩ | %Herr)
+      icases Hout with (⟨%Herr, %m, %Q, #Hm, -⟩ | %Herr)
       · iright
         isplitl []
         · ipureintro; exact Herr
@@ -1107,7 +1203,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
       · ileft; ipureintro; exact Herr.1
   · unfold txnCommitErrTodo
     iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-    iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp $Hlc] [HB]
+    iapply (hcommit b lo hux.1 hux.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnp $Hnr $Hlc] [HB]
     · iframe; iframe #
     inext
     iintro %resp %err ⟨Hr, Herr⟩
@@ -1119,14 +1215,17 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
       iunfold clientErrsIs at Hcei
       iapply Hcei $$ %err %He.2
 
-/-- **The writes' updates and the operations with a lease** (persistent; 2026-10-15, unit T2: it
-replaces the merge M1's non-plain credit): any operation's update with no result (`kvAnyAu`, which a
-client that does not track etcd's abstract state has, `kvAnyAu_of_inv`) and, until unit T3, the
+/-- **The clients' updates and the operations with a lease** (persistent; 2026-10-15, unit T2: it
+replaces the merge M1's non-plain credit): any operation's update (`kvAnyAu`, which a client that
+does not track etcd's abstract state has, `kvAnyAu_of_inv`; unit W-M3: with the floor of a
+certified log, at the write names and at the read names, a linearizable read's) and, until unit
+T3, the
 clients' triples of a put and of a writing transaction with a lease (`kvLeasedPutTodo`,
 `kvLeasedCommitTodo`), which no server spec covers. -/
 def kvWritesOk (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
     (cid mid : w64) : IProp GF :=
-  iprop(kvAnyAu γw ∗ kvLeasedPutTodo api E ∗ kvLeasedCommitTodo E γw γr cid mid addr)
+  iprop(kvAnyAu E γw ∗ kvAnyAu E γr ∗ kvLeasedPutTodo api E ∗
+    kvLeasedCommitTodo E γw γr cid mid addr)
 
 instance kvWritesOk_persistent (api : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) : Persistent (kvWritesOk api addr E γw γr cid mid) := by

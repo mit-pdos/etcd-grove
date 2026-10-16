@@ -83,14 +83,15 @@ models, in order; persistent): `w`'s names (its first revision `γw.lo`), its fi
 `r`, filters `fcs`), and deliveries `D`: the received responses' events are the kept events of
 the sent deliveries, each delivery's kept events are its events filtered by predicates `fcs`
 implements, and the deliveries' events, concatenated, are the range's events of the revisions
-`[γw.lo, d)` of a sealed log `L` (`idxSealed`; `d` past `L` only for an empty range); the
+`[γw.lo, d)` of a watched log `L` (`evLog`: sealed and certified by the store's caller, unit
+W-M3; `d` past `L` only for an empty range); the
 first revision `γw.lo` is the start revision `r.startRev` unless that is `0` (`startLo`; for `0`,
 what `watchStream.Watch` returns, `watcherIs`, says: the length of a committed log at the
 registration); and what each response says (`respOk`). -/
 def watchRecvOk (γ : WsNames) (w : Loc) (rs : List RespM) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (L : Log) (D : List Deliv) (d : Nat),
     watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜startLo r γw.lo⌝ ∗
-    idxSealed γ.st.idx L ∗
+    evLog γ.st L ∗
     ⌜rs.map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
       (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
       ∀ x ∈ rs, x.w = w⌝ ∗
@@ -415,7 +416,8 @@ theorem watchRecvOk_cert (γ : WsNames) (w : Loc) (rs : List RespM) (log' : Log)
   iunfold watchRecvOk at Hok
   icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, #Hm, #Hf, %Hslo, #Hlb, %HL, #HD, -⟩
   ihave #Hs := idxCert_sealed _ _ $$ Hc
-  ihave %hcmp := idxSealed_cmp _ _ _ $$ Hlb Hs
+  ihave #Hlb' := evLog_sealed _ _ $$ Hlb
+  ihave %hcmp := idxSealed_cmp _ _ _ $$ Hlb' Hs
   iexists γw, r, fcs, D, d
   iframe Hm Hf HD
   isplitr

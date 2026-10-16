@@ -17,7 +17,9 @@ unfold to the same (`srvEtcdState`).
 Premises: `isEtcdRecipesClient_of_kv`'s (the server's read side, the registrations, `kvObjAt`,
 the client's `KV` and `Watcher` fields, the watcher contract `isEtcdRangeWatcherOpen` (unused on
 `Dequeue`'s get path, needed by its wait path: the watch slice's), `sortNamesOk`, `clientErrsIs`,
-`hAs`) and `kp ≠ []` (`NewQueue`'s).
+`hAs`, the clients' updates `kvWritesOk`: unit W-M3, at the write and the read names, with the
+floor of a certified log, which a client holding `etcdKV` in its invariant has, `kvAnyAu_of_inv`)
+and `kp ≠ []` (`NewQueue`'s).
 -/
 module
 

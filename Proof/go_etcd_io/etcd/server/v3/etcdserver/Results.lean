@@ -530,8 +530,8 @@ context's).
 transaction at a certified log (`txnReadOk`, both serializability modes: after the read index
 unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request,
 with its client's update over the whole state, `txnPermit`; 2026-10-15, unit T2): the apply
-thread's application of the request the proposed data decode to (`txnAppliedOk`) and `□ Q` of the
-state the update linearized at,
+thread's application of the request the proposed data decode to (`txnAppliedOk`, with `□ Q` of the
+state the update linearized at: unit W-M3, the state of the log the transaction met),
 possibly with header-only ranges (`SkipRangeExecution`: the apply loops call the wait's
 `IsRegistered` knowing nothing of the id's registration, so the model admits the run of a
 transaction whose waiter had timed out, the plan's suspect 2, here for a waiter that did not;
@@ -583,7 +583,7 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   · ileft
     iunfold rangeReadOk at H
     simp only [hlin, Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%log, #Hc, %Hl, #Hrl, -, #Hres, Hown⟩
+    icases H with ⟨%log, #Hc, -, %Hl, #Hrl, -, #Hres, Hown⟩
     iunfold readLogOk at Hrl
     icases Hrl with ⟨#Hri, #Hlog⟩
     isplitr
@@ -626,7 +626,7 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases H with (⟨%Hok, H⟩ | H)
   · ileft
     iunfold rangeReadOk at H
-    icases H with ⟨%log, #Hcert, %Hlen, -, -, #Hres, Hown⟩
+    icases H with ⟨%log, #Hcert, -, %Hlen, -, -, #Hres, Hown⟩
     isplitr
     · ipureintro; exact Hok
     iexists log
@@ -650,16 +650,17 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t resp) ∨
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t (fun _ => iprop(True)) resp) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t (fun _ => iprop(True)) ot te F
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t (fun _ => iprop(True)) (fun _ => iprop(True))
+    ot te F
   simp only [hro, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot]
   · iframe #; iframe Hlt Hcr Hrc Hct Hot
-    first
-      | (ipureintro; exact fun _ => Hg)
-      | (isplitr; ipureintro; exact fun _ => Hg; itrivial)
+    isplitr
+    · ipureintro; exact fun _ => Hg
+    iunfold kvDep; iright; ipureintro; rfl
   inext
   iintro %resp %err ⟨Hlt, Hrc, Hcr, H⟩
   iapply HΦ
@@ -679,11 +680,10 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp ∗
-            ∃ σ : KVState, □ Q σ) ∨
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q ot te F
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q (fun _ => iprop(True)) ot te F
   simp only [hw, Bool.false_eq_true, ↓reduceIte] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot Hnp]
   · iframe #; iframe Hlt Hcr Hrc Hct Hot Hnp; ipureintro; exact fun h => h.elim

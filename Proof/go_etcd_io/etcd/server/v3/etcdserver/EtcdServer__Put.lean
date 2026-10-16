@@ -140,15 +140,15 @@ theorem EtcdServer.Put.wp_proof
     · iapply putPermit_reqPropOk $$ Hperm
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, %Lq, #HLq, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     have Hrq : rq' = apply.withHeader (irrPut op) hm := by
       refine (Hwire.2.2.2 ?_)
       simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
     subst Hrq
     iunfold appliedOk at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
-    obtain ⟨Hstep, Hfl⟩ := Hstep0
+    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+    obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
     have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
       simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
     have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
@@ -171,10 +171,10 @@ theorem EtcdServer.Put.wp_proof
     isplitr
     · ipureintro; rfl
     iexists hm, x, x', .applied log' false, skip
-    iframe Hpo Hhdr Hcert HMint Hwit
+    iframe Hpo Hhdr Hcert HMint Hwit Hcok
     isplitr
     · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
-    iexists kvStateOf (kvModel ρ.kv Lq)
+    rw [Hxlb, ← HLlb]
     iexact HQq
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)

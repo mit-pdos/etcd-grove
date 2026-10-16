@@ -6878,7 +6878,8 @@ proved).
   `rangeReplyOk`'s `F <+: log` and every floor stay. The model's `etcdState` and `EtcdStep` are
   over sealed logs (`srvLog`): their laws are about one log's content and are not floors, and the
   read path reaches them through `idxCert_sealed` (`etcdState_of_cert` a corollary).
-- **`etcdReachedAt` stays over certified logs**, against the brief's design: `etcdReached lo` is
+- **`etcdReachedAt` stays over certified logs** (superseded by unit W-M3: over `certOk`, with the
+  floors from the clients' updates), against the brief's design: `etcdReached lo` is
   the floor of a later read (`floor_of_reached` into `rangeReplyOk`), so over sealed logs it
   would need the floor the W-M2 failure is about. What a watch event's `etcdReached e.rev` needs
   is therefore the narrowed premise `srvSealedReached` (a sealed log's revisions are reached),
@@ -6888,6 +6889,48 @@ proved).
 - **The size and no-duplicate premises move to sealed logs** (`storeSmall`, `srvLogsSmall`,
   `srvNoDupKeys`): their justifications (the store's size; a transaction's writes per revision)
   do not depend on the revision being committed.
+
+## `etcdReached` as a committed KV certificate; floors from the committed state (unit W-M3, 2026-10-16 · adopted)
+
+- **`etcdReached r` is a certified log's revision**: `srvReachedAt E r := ∃ log, certOk E.γ log ∗
+  ⌜sint.Z r < log.length⌝`, where `certOk` (mvcc's caller's certificate, unit T1) is, for the
+  server, the KV model of a committed raft prefix (`kvCertInv`, `kv_cert_read`). The apply thread
+  mints it for an entry's log before applying the entry, and `watchableStoreTxnWrite.End` takes it
+  (`certOkNext`) before it notifies, so a watch event can carry it (`mvcc.evLog`: `idxSealed` and
+  `certOk`), and S4 (`rangeWatchEvOk`'s `etcdReached e.rev`) is a theorem (`ev_ok`).
+- **Why not mvcc's certificate (`idxCert`) as the floor.** `idxCert` means committed in mvcc:
+  every later read's log extends it (`store.Read`'s `log₀ <+: log`), serializable reads included.
+  A notified revision is not yet committed in mvcc (etcd takes `revMu` only in
+  `storeTxnWrite.End`, after `notify`), so a certificate at the seal (W-M2) or `etcdReached` over
+  sealed logs (W-M2b) made a serializable read's floor false. The clients' model never asked a
+  floor of serializable reads (`kvGetResult`: `serializable = false → lo ≤ r`), and the
+  linearizable floor is a raft fact: a linearizable read linearizes at the committed KV state,
+  which extends every log the server certified. So the floor moves from mvcc to the clients'
+  atomic updates (T1/T2), and the specs' mvcc floor `F <+: log` stays as an mvcc fact for a caller
+  that holds an `idxCert F` (in the derivations, the read side's first certificate).
+- **The floor mechanism: a monotone counter in the client's invariant**, not a snapshot in the KV
+  ghost state. A client holding `etcdKV` keeps it with `monoNatAuthOwn γm 1 σ.rev`
+  (`kvClientInv`); at a request, opening its invariant and the server's (`kvInv`, `kvCertInv`,
+  `srvRaftLogInv`), `etcdKV σ` agrees with the committed log's state, which extends the certified
+  log (`kv_cert_floor`), so the counter's lower bound is at least the certified log's last
+  revision (`kv_client_floor`); at the firing, the counter is at least that bound (every update
+  moves it up, `kvOpStep_rev`), so the update's result is the floor (`kvAnyAu E γ`). *Rejected*:
+  the brief's snapshot authority inside `etcdKV` (a mono list of the state's log in halves with
+  `kvInv`, lower bounds minted with each certificate in `kvCertInv`): it changes `etcdKV`, `kvInv`,
+  `KVNames`, `kvInv_alloc` and every firing of T1/T2 (`kv_prop_au`, `kv_noop_au`, `kv_fire_reads`,
+  `kv_read_compose`) for what a client's own invariant gives without touching them; (a) the
+  snapshot in `kvAu`'s atomic precondition (the same churn in every update's statement); (b) a raft
+  index argument (`committedAtLeast` from `srvRLogLb`): the server's committed index lags raft's,
+  so a certified log's raft prefix gives no `committedAtLeast`.
+- **The update's state is the write's** (needed for the writes' floors): the proposer's witness is
+  collected at the occurrence the reply is of, and the result now names the log the entry met
+  (`resultIsW`, `appliedOk`, `entryWit` take `lb`; the apply thread builds `entryWit` at the entry's
+  position after its applied raft log), so `EtcdServer.Put`/`DeleteRange`/`Txn` give `□ Q (kvStateOf
+  x.log)`, T2's "refinement for the next unit". A read-only `Txn` takes a read deposit as `Range`
+  (the same read loop): its linearizable floor is its read update's result at the state read.
+- **A writing transaction with a lease** has no update (T3), so its premise
+  (`kvLeasedCommitTodo`) is now stated in the clients' model (`txnCommitResultTok` from
+  `etcdReached lo`), as `kvLeasedPutTodo` was.
 
 ## Retargeting raft in a parallel tree
 

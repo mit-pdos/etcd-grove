@@ -788,18 +788,23 @@ the request the proposed data decode to (`rq'`, whose transaction `t'` is `t` un
 is `[0]`), at `x.log` extending `F`, the header's revision the write's; the verdict and the
 responses the run's (ranges header-only if `skip`); mvcc's certificate of the log after and the
 token minted (`revMinted`, exclusive: a reply's `Φ` is delivered once), with the write's witness
-(`appliedWit γw`, unit C2a, at the request path's read names). -/
+(`appliedWit γw`, unit C2a, at the request path's read names); unit W-M3: the caller's
+certificate of the log read or written (`certOk`: its revisions are reached in the clients'
+model) and `□ Q` of the state of the log the write met (the transaction's update fired there) or,
+for a linearizable read-only `t`, of the log read (its read update, deposited with the read index,
+fired there; as `rangeReplyOk`'s). -/
 def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
-    (cid mid : w64) (m : TxnRespM) : IProp GF :=
+    (Q : KVState → IProp GF) (cid mid : w64) (m : TxnRespM) : IProp GF :=
   if txn.txnReadonly t then
-    iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+    iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
       ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧
         m.hdr.revision = W64 ((log.length : Int) - 1) ∧ m.hdr.clusterId = cid ∧
         m.hdr.memberId = mid ∧
         m.succeeded = (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1 ∧
         opRespsRel false (t.branch m.succeeded)
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 m.resps⌝ ∗
-      (if txn.txnSerializable t then iprop(True) else readLogOk γr c log))
+      (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
+      (if txn.txnSerializable t then iprop(True) else □ Q (kvStateOf log)))
   else
     iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
         (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
@@ -813,7 +818,8 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
         m.succeeded = (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').1 ∧
         opRespsRel skip (t'.branch m.succeeded)
           (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps⌝ ∗
-      mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log)
+      mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
+      mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
 
 /-- **etcd's spec of the KV service's `Txn`** (the vertical slice's unit V2; a predicate
 transformer, as `etcdPutSpec`): a caller asking a transaction `t` of plain operations (no nested
@@ -823,17 +829,21 @@ committed index `c` and has the floor `F`, gets a reply message `m` with `txnRep
 transaction (2026-10-15, unit T2) is plain in the KV model (`txn.txnPlain`: its gets at revision
 `0`, its puts with no lease and no `IgnoreLease`), no range end `[0]` (`txnNoZeroEnd`), with the
 caller's persistent update over the whole state `kvOpAu (.txn t) Q`, whose `□ Q` of the state it
-linearized at the reply carries; a read-only one takes none (`Q` trivial). -/
+linearized at the reply carries (unit W-M3: in `txnReplied`, at the state of the log the write
+met); a read-only one takes none (`Q` trivial) or, linearizable (unit W-M3), a read update
+(`kvReadAu`, at the read names, as `etcdRangeSpec`'s), whose `□ Q` at the state of the log read
+the reply carries. -/
 def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
     GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse :=
   fun (t : TxnModel) (Φ : TxnRespM → IProp GF) =>
     iprop(⌜TxnModel.plain t ∧ txnModelIn t⌝ ∗ ∃ Q : KVState → IProp GF,
       (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
+        (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
         (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗
           kvOpAu γw.kv (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log), committedAtLeast γr c ∗
       mvcc.idxCert E.γ.idx F ∗
-      ∀ m : TxnRespM, txnReplied E γw γr c F t cid mid m ∗ (∃ σ, □ Q σ) -∗ Φ m)
+      ∀ m : TxnRespM, txnReplied E γw γr c F t Q cid mid m -∗ Φ m)
 
 end reply
 
@@ -902,7 +912,8 @@ def etcdRunSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
 /-- **What a successful `Put` of `o` tells the client** about the reply's message `m` (persistent;
 see the file header): since 2026-10-14 (unit C2a) with the witness that the log after is applied
 through an index of the committed log at the read names `γr` (`appliedWit`: a linearizable read
-at that index reads a log extending it, `client_get_after_put`). -/
+at that index reads a log extending it, `client_get_after_put`); unit W-M3: the caller's
+certificate of the log after (`certOk`: the put's revision is reached in the clients' model). -/
 def putReplyOk (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull) (cid mid : w64)
     (m : PutRespM) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
@@ -911,7 +922,7 @@ def putReplyOk (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.hdr.revision = W64 (x.log.length : Int) ∧ m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
 
 instance putReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
     (cid mid : w64) (m : PutRespM) : Persistent (putReplyOk E γr F o cid mid m) := by
@@ -921,10 +932,10 @@ instance putReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.L
 (persistent; see the file header); 2026-10-14 (unit T1): a linearizable get's result `□ Q` at the
 log read (its update, deposited with the read index, fired there; 2026-10-15, unit T2: at the
 whole state of the log read, `kvStateOf`); the log read extends the caller's floor `F` (the
-vertical slice's unit V2). -/
+vertical slice's unit V2); unit W-M3: the caller's certificate of the log read (`certOk`). -/
 def rangeReplyOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (cid mid : w64) (Q : KVState → IProp GF) (m : RangeRespM) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧
       m.hdr.revision = W64 ((log.length : Int) - 1) ∧ m.hdr.clusterId = cid ∧
       m.hdr.memberId = mid ∧ sint.Z o.base.rev ≤ sint.Z m.hdr.revision ∧
@@ -944,26 +955,30 @@ instance rangeReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
 (the merge of the generic gRPC specification with the slice's unit V1, 2026-10-14): `putReplyOk`'s
 knowledge (with its witness at the read names `γr`, unit C2a) and the token of the revision the
 put made (`revMinted`, exclusive: a reply's `Φ` is delivered once, so the generic spec carries it;
-`putReplied_ok` drops it). -/
-def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull) (cid mid : w64)
-    (m : PutRespM) : IProp GF :=
+`putReplied_ok` drops it); unit W-M3: `□ Q` of the state of the log the put met (the put's
+update fired there: the state it linearized at). -/
+def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
+    (Q : KVState → IProp GF) (cid mid : w64) (m : PutRespM) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
     ⌜apply.applyStep (apply.withHeader (irrPut o) hm) true x x'
         (.dispatched (.applied l false) skip) ∧
       m.hdr.revision = W64 (x.log.length : Int) ∧ m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗
+    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
 
 open Iris.ProofMode in
-/-- The knowledge of a delivered put (its token dropped; the witness kept). -/
+/-- The knowledge of a delivered put (its token and its update's result dropped; the witness
+kept). -/
 theorem putReplied_ok (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
-    (cid mid : w64) (m : PutRespM) : putReplied E γr F o cid mid m ⊢ putReplyOk E γr F o cid mid m := by
+    (Q : KVState → IProp GF) (cid mid : w64) (m : PutRespM) :
+    putReplied E γr F o Q cid mid m ⊢ putReplyOk E γr F o cid mid m := by
   iintro H
   unfold putReplied putReplyOk
-  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, -, #Hw⟩
+  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, -, #Hw, #Hok, -⟩
   iexists hm, x, x', l, skip
-  iframe Hc Hw
+  iframe Hc Hw Hok
   ipureintro; exact Hp
 
 /-- **etcd's spec of the KV service's `Put`** (a predicate transformer; see the file header): a
@@ -977,7 +992,7 @@ def etcdPutSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
   fun (o : OpFull) (Φ : PutRespM → IProp GF) =>
     iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗ kvOpAu γr.kv (.put o) Q ∗
-          ∀ m : PutRespM, putReplied E γr F o cid mid m ∗ (∃ σ, □ Q σ) -∗ Φ m)
+          ∀ m : PutRespM, putReplied E γr F o Q cid mid m -∗ Φ m)
 
 /-- **A get of `key` after the put of `key ↦ val` read the put** (persistent; unit C2a,
 2026-10-14; `client_get_after_put`): the put's reply `mp` and the get's reply `m` are of two logs of
@@ -1040,7 +1055,7 @@ def deleteReplyOk (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.deleted = W64 ((rangeIn (mvcc.stateAfter x.log) op').length : Int) ∧
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
 
 instance deleteReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
     (cid mid : w64) (m : DelRespM) : Persistent (deleteReplyOk E γr F o cid mid m) := by
@@ -1049,8 +1064,8 @@ instance deleteReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvc
 /-- **What a successful `DeleteRange` of `o` delivers to the client** (as `putReplied`):
 `deleteReplyOk`'s knowledge and the revision's token (`revMinted`; none minted if nothing was
 deleted). -/
-def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull) (cid mid : w64)
-    (m : DelRespM) : IProp GF :=
+def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
+    (Q : KVState → IProp GF) (cid mid : w64) (m : DelRespM) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (op' : OpFull) (x x' : apply.ApplyKV)
       (l : mvcc.Log) (skip : Bool),
     ⌜irrWireOf (apply.withHeader (irrDeleteRange o) hm) rq' ∧ rq'.deleteRange = some op' ∧
@@ -1062,17 +1077,19 @@ def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.deleted = W64 ((rangeIn (mvcc.stateAfter x.log) op').length : Int) ∧
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗
+    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
 
 open Iris.ProofMode in
-/-- The knowledge of a delivered delete (its token dropped). -/
+/-- The knowledge of a delivered delete (its token and its update's result dropped). -/
 theorem deleteReplied_ok (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
-    (cid mid : w64) (m : DelRespM) : deleteReplied E γr F o cid mid m ⊢ deleteReplyOk E γr F o cid mid m := by
+    (Q : KVState → IProp GF) (cid mid : w64) (m : DelRespM) :
+    deleteReplied E γr F o Q cid mid m ⊢ deleteReplyOk E γr F o cid mid m := by
   iintro H
   unfold deleteReplied deleteReplyOk
-  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hc, -, #Hw⟩
+  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hc, -, #Hw, #Hok, -⟩
   iexists hm, rq', op', x, x', l, skip
-  iframe Hc Hw
+  iframe Hc Hw Hok
   ipureintro; exact Hp
 
 /-- **etcd's spec of the KV service's `DeleteRange`**: a caller asking the delete `o` gets a
@@ -1085,7 +1102,7 @@ def etcdDeleteSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
   fun (o : OpFull) (Φ : DelRespM → IProp GF) =>
     iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu γr.kv (.deleteRange o) Q ∗
-      ∀ m : DelRespM, deleteReplied E γr F o cid mid m ∗ (∃ σ, □ Q σ) -∗ Φ m)
+      ∀ m : DelRespM, deleteReplied E γr F o Q cid mid m -∗ Φ m)
 
 /-- **etcd's KV methods** as registered (unit P3b): `Put`, `Range` and `DeleteRange`, the generated
 handlers of `KV_ServiceDesc` (`rpc_grpc.pb.go`) with the service value `RegisterKVServer` is
@@ -1150,14 +1167,14 @@ open Iris.ProofMode in
 /-- **A range's deposit's result at the log read** (2026-10-14, unit T1): the server's answer's
 (`rangeAnsOk`'s, at a committed raft log whose model is the log read) as the client's `□ Q` of the
 state of the log read (2026-10-15, unit T2), for no deposit (`Q` trivial) or the client's read. -/
-theorem rangeQ_of_ans (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KVState → IProp GF)
-    (o : OpFull) (log : mvcc.Log)
+theorem readQ_of_ans (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KVState → IProp GF)
+    (ser : Bool) (log : mvcc.Log)
     (h : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q) :
-    (if o.base.serializable then iprop(True) else
+    (if ser then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗
         □ v3rpc.rangeDepQ γr.kv d L : IProp GF) ⊢
-      (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)) := by
-  cases hs : o.base.serializable
+      (if ser then iprop(True) else □ Q (kvStateOf log)) := by
+  cases hs : ser
   · simp only [Bool.false_eq_true, ↓reduceIte]
     iintro ⟨%L, -, %HL, #HQ⟩
     rcases h with ⟨rfl, rfl⟩ | rfl
@@ -1167,6 +1184,16 @@ theorem rangeQ_of_ans (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KVState → IP
       iintro !>
       iexact HQ
   · simp only [↓reduceIte]; iintro -; itrivial
+
+
+theorem rangeQ_of_ans (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KVState → IProp GF)
+    (o : OpFull) (log : mvcc.Log)
+    (h : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q) :
+    (if o.base.serializable then iprop(True) else
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗
+        □ v3rpc.rangeDepQ γr.kv d L : IProp GF) ⊢
+      (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)) :=
+  readQ_of_ans γr d Q o.base.serializable log h
 
 /-- A run's call resources give back its slot (the committed index dropped). -/
 theorem etcdRunSlot_back (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
@@ -1216,7 +1243,7 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   icases Hspec with ⟨%F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwn ρ γr d ∗
       ⌜v3rpc.kvDepPre d (.put o)⌝ ∗
-      ∀ m : PutRespM, putReplied E ρ.rd F o cid mid m ∗ (∃ σ, □ v3rpc.opDepQ d σ) -∗ Φ m)
+      ∀ m : PutRespM, putReplied E ρ.rd F o (v3rpc.opDepQ d) cid mid m -∗ Φ m)
       $$ [Hspec]
   · icases Hspec with ⟨%Q, %Hpl, #Hau, Hk⟩
     iexists (.op (.put o) Q)
@@ -1225,10 +1252,9 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     · iexact Hau
     isplitr
     · ipureintro; exact ⟨⟨Q, rfl⟩, Hpl⟩
-    iintro %m ⟨Hm, Hq⟩
+    iintro %m Hm
     iapply Hk
-    iframe Hm
-    simp only [v3rpc.opDepQ]; iexact Hq
+    simp only [v3rpc.opDepQ]; iexact Hm
   rw [kvServerAt_srvKVAns p s E ρ γr (W64 0) (W64 0) cid mid n [] F .none d]
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
@@ -1268,14 +1294,14 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     iintro %Hnil
     rw [He'] at Hnil; cases Hnil
   | none =>
-    icases Hpost with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, -, Hc0, Hap, #HQv⟩ | ⟨%Herr, %e, Hc0, Hep⟩)
+    icases Hpost with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, -, Hc0, Hap⟩ | ⟨%Herr, %e, Hc0, Hep⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.putAppliedOk at Hap
       icases Hap with ⟨Hlt, Hap⟩
       iunfold v3rpc.putApplied at Hap
       -- the revision's token (`revMinted`, exclusive) goes to the reply's `Φ` (`putReplied`),
       -- with the witness (`appliedWit`, persistent)
-      icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit⟩
+      icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, #HQv⟩
       iunfold apply.putOutcomeIs at Hout
       icases Hout with ⟨#Hpr, -⟩
       iunfold txn.putResponseIs at Hpr
@@ -1305,14 +1331,12 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe #
         ipureintro; exact Hh2n
       · iapply Hk
-        isplitl [Htok]
-        · unfold putReplied
-          iexists hm, x, x', l, skip
-          iframe Htok
-          iframe #
-          ipureintro
-          exact ⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩
-        iexact HQv
+        unfold putReplied
+        iexists hm, x, x', l, skip
+        iframe Htok
+        iframe #
+        ipureintro
+        exact ⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩
     · iunfold v3rpc.putErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -1398,7 +1422,7 @@ theorem etcd_rangeHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       ⟨%Herr, %e, Hcr, -, Hlt⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.rangeAnsOk at Hans
-      icases Hans with ⟨%log, #Hcert, %Hlog, #Hrl, HQl, Hres⟩
+      icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
       ihave #HQl' := rangeQ_of_ans γr d Q o log Hdd $$ HQl
       iunfold txn.rangeResult at Hres
       icases Hres with (⟨%Hx, -⟩ | ⟨%Hx, -⟩ | ⟨%Hx, %kvs, %more, #Hrr, %Hsel⟩)
@@ -1507,13 +1531,15 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
     iintro %Hnil
     rw [He'] at Hnil; cases Hnil
   | none =>
-    icases Hpost with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, -, Hc0, Hap, #HQv⟩ | ⟨%Herr, %e, Hc0, Hep⟩)
+    icases Hpost with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, -, Hc0, Hap⟩ | ⟨%Herr, %e, Hc0, Hep⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.deleteAppliedOk at Hap
       icases Hap with ⟨Hlt, Hap⟩
       iunfold v3rpc.deleteApplied at Hap
       -- the revision's token (`revMinted`) goes to the reply's `Φ` (`deleteReplied`)
-      icases Hap with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit⟩
+      icases Hap with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok,
+        #HQv⟩
+      simp only [v3rpc.opDepQ] at *
       iunfold apply.deleteOutcomeIs at Hout
       icases Hout with ⟨#Hdr, -⟩
       iunfold txn.deleteRangeResponseIs at Hdr
@@ -1546,15 +1572,12 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         iframe #
         ipureintro; exact Hh2n
       · iapply Hk
-        isplitl [Htok]
-        · unfold deleteReplied
-          iexists hm, rq', op', x, x', l, skip
-          iframe Htok
-          iframe #
-          ipureintro
-          exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩
-        simp only [v3rpc.opDepQ] at *
-        iexact HQv
+        unfold deleteReplied
+        iexists hm, rq', op', x, x', l, skip
+        iframe Htok
+        iframe #
+        ipureintro
+        exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩
     · iunfold v3rpc.deleteErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -1589,22 +1612,32 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   obtain ⟨hp, hin⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
   ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t hp $$ [$Hreq $Hw]
-  -- the deposit (unit T2): none for a read-only transaction, else the client's update
+  -- the deposit (unit T2): none, or (unit W-M3) a linearizable read-only transaction's read
+  -- update, or a writing one's update
   ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwn ρ γr d ∗
       ⌜v3rpc.kvDepPre d (.txn t.cmps ts es)⌝ ∗
-      ⌜(txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)) ∨
+      ⌜(txn.txnReadonly t = true ∧ ((d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q)) ∨
         (txn.txnReadonly t = false ∧ d = .op (.txn t) Q)⌝) $$ [Hnp]
-  · icases Hnp with (%Hro | ⟨%Hw, #Hau⟩)
+  · icases Hnp with (%Hro | ⟨%Hrs, #Hau⟩ | ⟨%Hw, #Hau⟩)
     · iexists .none
       rw [show v3rpc.kvDepOwn (GF := GF) ρ γr .none = iprop(True) from rfl]
       isplitr
       · itrivial
       ipureintro
-      refine ⟨?_, Or.inl Hro⟩
+      refine ⟨?_, Or.inl ⟨Hro.1, Or.inl ⟨rfl, Hro.2⟩⟩⟩
       intro t' ht'
       rw [Hmod] at ht'
       cases ht'
-      left; exact Hro.1
+      left; exact ⟨Hro.1, fun Q' h => by cases h⟩
+    · iexists (.read Q)
+      rw [show v3rpc.kvDepOwn (GF := GF) ρ γr (.read Q) = kvReadAu γr.kv Q from rfl]
+      iframe Hau
+      ipureintro
+      refine ⟨?_, Or.inl ⟨Hrs.1, Or.inr rfl⟩⟩
+      intro t' ht'
+      rw [Hmod] at ht'
+      cases ht'
+      left; exact ⟨Hrs.1, fun Q' _ => Hrs.2⟩
     · iexists (.op (.txn t) Q)
       rw [show v3rpc.kvDepOwn (GF := GF) ρ γr (.op (.txn t) Q) = kvOpAu ρ.kv (.txn t) Q from rfl]
       iframe Hau
@@ -1665,7 +1698,12 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         simp only [hro, ↓reduceIte]
         icases Hans with ⟨-, Hans⟩
         iunfold v3rpc.txnReadAns at Hans
-        icases Hans with ⟨%log, #Hcert, %Hlog, #Hrl, Hres⟩
+        icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
+        have hdq : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q := by
+          rcases HdQ with ⟨-, h⟩ | ⟨h, -⟩
+          · exact h
+          · rw [hro] at h; cases h
+        ihave #HQl' := readQ_of_ans γr d Q (txn.txnSerializable t) log hdq $$ HQl
         imod (txnRespMsg_of_server false resp h _ t _ _ cid mid) $$ [$Hh $Hf $Hres]
           with ⟨%m, #Hm, %Hmm⟩
         imodintro
@@ -1678,11 +1716,6 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         isplitl []
         · simp only [pbTxnResponse]; iexact Hm
         iapply Hspec
-        isplitl
-        rotate_left
-        · rcases HdQ with ⟨-, rfl⟩ | ⟨h, -⟩
-          · iexists ⟨[], 0⟩; iintro !>; itrivial
-          · rw [hro] at h; cases h
         unfold txnReplied
         simp only [hro, ↓reduceIte]
         iexists log
@@ -1694,9 +1727,15 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         · rw [h4]; exact h5
       | false =>
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
-        icases Hans with ⟨Hans, #HQv⟩
         iunfold v3rpc.txnAppliedAns at Hans
-        icases Hans with ⟨%hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit⟩
+        icases Hans with ⟨%hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
+          #Hcok, #HQv⟩
+        have hdq : d = .op (.txn t) Q := by
+          rcases HdQ with ⟨h, -⟩ | ⟨-, h⟩
+          · rw [hro] at h; cases h
+          · exact h
+        subst hdq
+        simp only [v3rpc.opDepQ] at *
         iunfold apply.txnOutcomeIs at Hout
         icases Hout with ⟨#Hres, -⟩
         imod (txnRespMsg_of_server skip resp h _ t'' _ _ cid mid) $$ [$Hh $Hf $Hres]
@@ -1711,15 +1750,10 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         isplitl []
         · simp only [pbTxnResponse]; iexact Hm
         iapply Hspec
-        isplitl
-        rotate_left
-        · rcases HdQ with ⟨h, -⟩ | ⟨-, rfl⟩
-          · rw [hro] at h; cases h
-          · simp only [v3rpc.opDepQ] at *; iexact HQv
         unfold txnReplied
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
         iexists hm, rq', t'', x, x', l, skip
-        iframe Hcert HMint Hwit
+        iframe Hcert HMint Hwit Hcok HQv
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
         obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := Hst
@@ -1974,7 +2008,8 @@ what `NewKV` returns, `v3.wp_NewKV`) whose `Put` is registered with etcd's spec 
 revision's token) for the put
 `key ↦ val` the server decodes (no lease, no previous key-value, value and lease not ignored),
 and (2026-10-15, unit T2) `□ Q` of the state at which the caller's persistent update over the
-whole state, `kvOpAu (.put (putKeyOp key val)) Q`, linearized the put; or an error and no reply.
+whole state, `kvOpAu (.put (putKeyOp key val)) Q`, linearized the put (unit W-M3: in
+`putReplied`, the state of the log the put met); or an error and no reply.
 Premises: the registration, the context's (`ctxErrClient`), the package's. -/
 theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
@@ -1987,15 +2022,14 @@ theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
-            putReplied E γr F (txn.putOpOf key val (W64 0) false false false) cid mid m ∗
-            ∃ σ : KVState, □ Q σ) ∨
+            putReplied E γr F (txn.putOpOf key val (W64 0) false false false) Q cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hau, #HF⟩ HΦ
   ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
   iclear Hctx
   iapply (v3.kv.wp_Put api addr ci cd key val sl [] (etcdPutSpec E γr cid mid)
-    (fun m => iprop(putReplied E γr F (txn.putOpOf key val (W64 0) false false false) cid mid m ∗
-      ∃ σ : KVState, □ Q σ))) $$ []
+    (fun m => iprop(putReplied E γr F (txn.putOpOf key val (W64 0) false false false) Q cid mid m)))
+    $$ []
   · iframe #
     isplitl []
     · ipureintro
@@ -2102,7 +2136,8 @@ theorem client_get_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
 reply's message `m` with `deleteReplied` for the delete of `key` the server decodes (the key
 alone, no previous key-values) and (2026-10-15, unit T2) `□ Q` of the state at which the caller's
 persistent update over the whole state, `kvOpAu (.deleteRange (txn.deleteOpOf key [] false)) Q`,
-linearized the delete; or an error and no reply. -/
+linearized the delete (unit W-M3: in `deleteReplied`, the state of the log the delete met); or an
+error and no reply. -/
 theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
@@ -2114,14 +2149,13 @@ theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv G
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗
-            deleteReplied E γr F (txn.deleteOpOf key [] false) cid mid m ∗ ∃ σ : KVState, □ Q σ) ∨
+            deleteReplied E γr F (txn.deleteOpOf key [] false) Q cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #HF, #Hnp⟩ HΦ
   ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
   iclear Hctx
   iapply (v3.kv.wp_Delete api addr ci cd key sl [] (etcdDeleteSpec E γr cid mid)
-    (fun m => iprop(deleteReplied E γr F (txn.deleteOpOf key [] false) cid mid m ∗
-      ∃ σ : KVState, □ Q σ))) $$ []
+    (fun m => iprop(deleteReplied E γr F (txn.deleteOpOf key [] false) Q cid mid m))) $$ []
   · iframe #
     isplitl []
     · ipureintro
@@ -2164,7 +2198,8 @@ the server at `addr`, then `If`/`Then`/`Else`), whose operations are plain (as `
 the transaction the server decodes (`txnWireOf b.model`), with (2026-10-15, unit T2) `□ Q` of the
 state at which the caller's persistent update over the whole state, `kvOpAu (.txn (txnWireOf
 b.model)) Q`, linearized a writing transaction (plain in the KV model, `txn.txnPlain`, no range end
-`[0]`; a read-only one takes no update, `Q` trivial); or an error and no reply. -/
+`[0]`; a read-only one takes no update, `Q` trivial; unit W-M3: in `txnReplied`, the state of
+the log the transaction met); or an error and no reply. -/
 theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (F : mvcc.Log) (Q : KVState → IProp GF) (hp : TxnModel.plain b.model)
@@ -2179,12 +2214,11 @@ theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (
         (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗
-            txnReplied E γw γr c F (txnWireOf b.model) cid mid m ∗ ∃ σ : KVState, □ Q σ) ∨
+            txnReplied E γw γr c F (txnWireOf b.model) Q cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hrpc, #Hc0, #HF, #Hnp⟩ HΦ
   iapply (v3.txn.wp_Commit tp addr ci cd b (etcdTxnSpec E γw γr cid mid)
-    (fun m => iprop(txnReplied E γw γr c F (txnWireOf b.model) cid mid m ∗
-      ∃ σ : KVState, □ Q σ))) $$ [Hobj]
+    (fun m => iprop(txnReplied E γw γr c F (txnWireOf b.model) Q cid mid m))) $$ [Hobj]
   · iframe
     iframe #
     imodintro
@@ -2194,7 +2228,9 @@ theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (
     · ipureintro; exact ⟨txnWireOf_plain _ hp, hin⟩
     iexists Q
     isplitr
-    · iexact Hnp
+    · icases Hnp with (#H | #H)
+      · ileft; iexact H
+      · iright; iright; iexact H
     iexists c, F
     iframe #
     iintro %m Hm
@@ -2236,7 +2272,7 @@ theorem client_get_after_put (api : Loc) (addr : GoString) (E : apply.AEnv GF) (
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hput⟩ HΦ
   iunfold putReplyOk at Hput
-  icases Hput with ⟨%hm, %x, %x', %lp, %skip, %Hpp, #Hcx, #Hwit⟩
+  icases Hput with ⟨%hm, %x, %x', %lp, %skip, %Hpp, #Hcx, #Hwit, -⟩
   iunfold appliedWit at Hwit
   icases Hwit with ⟨%i, #Hci, #HLi, #Hmono⟩
   have hx' := put_applied_log (putKeyOp key val) hm x x' lp skip Hpp.1
@@ -2252,7 +2288,7 @@ theorem client_get_after_put (api : Loc) (addr : GoString) (E : apply.AEnv GF) (
     rw [show (txn.rangeOpOf key [] (W64 0) (W64 0) (W32 0) (W32 0) false false false (W64 0)
       (W64 0) (W64 0) (W64 0)).base.serializable = false from rfl]
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hq with ⟨%l, #Hcl, %Hl, #Hrl, -⟩
+    icases Hq with ⟨%l, #Hcl, -, %Hl, #Hrl, -⟩
     iunfold readLogOk at Hrl
     icases Hrl with ⟨-, %ci₀, %L₀, %Hci₀, #HL₀, %HpL⟩
     iunfold appliedMono at Hmono
@@ -2302,7 +2338,7 @@ theorem client_get_value (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
         m.hdr.revision = W64 (σ.rev : Int)⌝ := by
   iintro #H
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
   have hs : (getKeyOp key).base.serializable = false := rfl
   have hk : (getKeyOp key).key = key := rfl
   simp only [hs, hk, Bool.false_eq_true, ↓reduceIte]
@@ -2339,7 +2375,7 @@ theorem rangeReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
   iintro #H
   iunfold rangeReplyOk at H
   simp only [hser, Bool.false_eq_true, ↓reduceIte]
-  icases H with ⟨%l, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
   obtain ⟨hlen, hlen', hr, -, -, -, hcount, hsel, -⟩ := Hl
   have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
       mvcc.stateAfter l := by
@@ -2452,11 +2488,12 @@ one, `isEtcdRangeWatcher`, `cache/v3/InvEtcdTxn.lean`) at the server's model
 registration `isGrpcStream … (watchUp V.R.γ) (watchSpec V.R)` at the connection's address, what
 `v3rpc.etcd_watch_served_etcd_chain` gives for etcd's server; of the server facts W-C assumed,
 S2 `srvProgressAllAnswers` and S3 `srvEventIdsAssigned` are theorems since unit W-M2
-(`srvProgressAllAnswers_holds`, `srvEventIdsAssigned_holds`), and S4's content part since unit
-W-M2b (the events are of a sealed log, `mvcc.idxSealed`, over which the clients' model's
-`etcdState`/`EtcdStep` are stated); what remains of S4 is `srvSealedReached` (a sealed log's
-revisions are reached: `etcdReached` is over committed logs, a later read's floor, and is false
-between the store's notify and its commit); `srvNoDupKeys`
+(`srvProgressAllAnswers_holds`, `srvEventIdsAssigned_holds`), and S4 since units W-M2b and W-M3:
+the events are of a watched log (`mvcc.evLog`): sealed (`mvcc.idxSealed`, over which the clients'
+model's `etcdState`/`EtcdStep` are stated) and certified by the apply thread before the store
+notifies it (`certOk`, over which `etcdReached` is stated: the KV model of a committed raft
+prefix), so a watch event's revision is reached (`ev_ok`); the remaining premises are the wire's,
+`srvNoDupKeys`
 (`issues/etcd-txn-check-intervals-sibling.md`), `noRetryableStreamErr` (the reconnection excluded:
 `issues/etcd-watch-resume-closing-substream.md`), the watch-token supply, `srvLogsSmall`
 (`srvLogsSmall_of_read`) and `V.R.γ.st = V.R.E.γ` (`watchSrvLink_of_server`). -/

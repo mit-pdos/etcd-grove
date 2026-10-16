@@ -447,14 +447,17 @@ apply package's (`dispatchAnswer` with no error), mvcc's certificate of the log 
 token of the revision the step appended, if it appended one (`revMinted`, unit V1);
 (2026-10-14, unit C2a) the log after applied through an index of the committed log
 (`appliedWit γr`, the result's witness, `resultIsW`); and (the vertical slice's unit V2) a KV
-write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`). -/
+write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`); and (unit W-M3) the log
+the entry met is `lb` (`x.log`, which the raft request's result ties to the raft prefix the
+proposal's update fired at) and the log after is certified (`certOk`). -/
 def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (F : mvcc.Log)
-    (resp : GoInterface) :
+    (resp : GoInterface) (lb : mvcc.Log) :
     IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
-    ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o⌝ ∗
+    ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
+      x.log = lb⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
-    revMinted E x.log x'.log ∗ appliedWit γr x'.log)
+    revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
 
 /-- **The apply thread's answer to `rq'` carried the error `err`** (`result.Err`): the result
 `ar` of applying `rq'` (`resultIs`), whose `Err` is `err`. -/

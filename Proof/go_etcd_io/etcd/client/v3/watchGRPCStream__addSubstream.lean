@@ -34,7 +34,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
   intro V wgs resp ws id ca rs dq dq' wid0 m M e
   wp_start as ⟨#Hcf, Hid, Hca, Hrs, Hwid, Hsub, Hmap, Hce, Hcl⟩
   iunfold watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, -, -, -, #HeN, -, -, -⟩
+  icases Hcf with ⟨-, -, -, -, -, -, -, -, #HeN, -, -, -⟩
   iunfold errorsNewOk at HeN
   (try wp_auto)
   wp_if_destruct

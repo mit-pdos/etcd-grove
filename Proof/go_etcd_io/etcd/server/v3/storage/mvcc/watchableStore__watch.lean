@@ -240,6 +240,8 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
   iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hst0, Hwo, Hmeta,
     Hwt, #Hmfix, #Hfixed, Hmem, #Hout, #Hmw, #Hwc, #Hfo, He, Hl, #HC⟩
   imod ghostVar_update (σ.addW b w r st0 γw) γ.wst σ $$ Hσ with Hσ
+  -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
+  imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
   imodintro
   iunfold mvcc.watchStoreBody
   simp only [mvcc.WsState.addW_Lmu, mvcc.WsState.addW_Ws, mvcc.WsState.addW_Wu,
@@ -247,7 +249,6 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
     mvcc.WsState.addW_vbs, mvcc.WsState.addW_VB, named]
   have hlb : ∀ (L : mvcc.Log), mvcc.watchEvents L r γw.lo γw.lo = [] :=
     fun L => mvcc.watchEvents_empty _ _ (Nat.le_refl _)
-  ihave #Hlb := mvcc.idxCert_sealed _ _ $$ HC
   iframe Hσ Hwlog Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt
   iframe #
   isplitl [Hsy]
@@ -287,14 +288,14 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
         · ipureintro; refine ⟨by omega, ?_⟩
           rw [show sint.nat st0.minRev = (sint.Z st0.minRev).toNat from rfl]; omega
         isplitr
-        · iunfold mvcc.evsWf; iexists C; iframe Hlb; ipureintro; exact ⟨(hlb C).symm, Or.inr (Nat.le_refl _)⟩
+        · iunfold mvcc.evsWf; iexists []; iframe Hlb; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
         iexists C
         iframe HC
         ipureintro; exact hu rfl
       · simp only [mvcc.WsState.addW, GMap.lookup_insert, Option.isSome_some, ↓reduceIte]
         isplitr
         · ipureintro; omega
-        iunfold mvcc.evsWf; iexists C; iframe Hlb; ipureintro; exact ⟨(hlb C).symm, Or.inr (Nat.le_refl _)⟩
+        iunfold mvcc.evsWf; iexists []; iframe Hlb; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
     iapply BigSepM.bigSepM_mono $$ Hmem
     intro w' st' hw'
     have hne : w ≠ w' := by
@@ -516,7 +517,8 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     | some _ => exact absurd (by rw [show (mvcc.regMap L !! w) = (mvcc.regMap L).lookup w from rfl, h]; rfl) this
   imod ghost_map_insert_persist w () hreg $$ Hreg with ⟨Hreg, #Hrw⟩
   imod ghostVar_update_halves (w :: L) γc.regl _ _ $$ Hregl0 Hregl with ⟨Hregl0, Hregl⟩
-  ihave #Hlb := mvcc.idxCert_sealed _ _ $$ Hcert
+  -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
+  imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2] with -
   · inext
     iunfold mvcc.watchChanInv
@@ -558,13 +560,13 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
       subst hk
       iexists lo
       iunfold mvcc.evsWf
-      iexists C
+      iexists []
       iframe Hlb
       ipureintro
       exact ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
     isplitr
     · iunfold mvcc.evsWf
-      iexists C
+      iexists []
       iframe Hlb
       ipureintro
       exact ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩

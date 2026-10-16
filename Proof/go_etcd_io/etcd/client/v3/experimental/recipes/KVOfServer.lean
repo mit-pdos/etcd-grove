@@ -59,7 +59,7 @@ theorem isRecipesKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
       isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩
   iunfold EtcdGrove.client.kvWritesOk at Hnp
-  icases Hnp with ⟨#Hany, #Hlp, #Hlc⟩
+  icases Hnp with ⟨#Hany, #Hanyr, #Hlp, #Hlc⟩
   unfold isRecipesKV
   simp only
   isplitl []

@@ -263,12 +263,12 @@ local macro "piro_tail" : tactic => `(tactic| (
           ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
           cases Hbad
         iunfold resultΨ at Hres
-        icases Hres with ⟨%ar, %Hx, HTr, Hri, #HeW⟩
+        icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
         subst Hx
         wp_auto_lc 2
         iunfold entryWit at HeW
         icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
-        obtain ⟨hlk, het, hdecw, hidw⟩ := Hew
+        obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
         have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
         subst hidd
         ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
@@ -292,11 +292,14 @@ local macro "piro_tail" : tactic => `(tactic| (
         isplitr
         · ipureintro; rfl
         iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
-        iframe Hri HTr
+        iframe HTr
         isplitr
         · ipureintro; exact Hwire
+        iexists lb
+        iframe Hri
         iexists Lw.take mw
         iframe HLt HQr
+        ipureintro; exact hlbw
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- the context done: give up

@@ -47,7 +47,7 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
           apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
           mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          ∃ σ : KVState, □ Q σ) ∨
+          mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log)) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨

@@ -174,10 +174,12 @@ an index at least `c`; 2026-10-13, unit 4b: `readIndexOk` until then), the respo
 fields owned; and (the vertical slice's unit V2) `log` extends the floor `F`, a certified log
 the caller saw (the read's transaction is opened at a log extending it: linearizability).
 2026-10-14 (unit T1): a linearizable read's `log` is the KV model of a committed raft log `L`, at
-which the read's update (`Q`, deposited with the read index: `kvDep`) gave `□ Q L`. -/
+which the read's update (`Q`, deposited with the read index: `kvDep`) gave `□ Q L`. Unit W-M3:
+the caller's certificate of `log` (`certOk`, what `store.Read` returns), which makes its revisions
+reached in the clients' model. -/
 def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (resp : Loc) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
@@ -189,12 +191,16 @@ def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (
 state after a certified log `log` (`srvRunTxn`: its verdict and results, no change), the
 response's header revision `log`'s last, read after the read index unless every get is
 serializable (`txnSerializable`; `readLogOk`, as `rangeReadOk`'s), the header's id fields owned,
-`log` extending the floor `F` (unit V2, as `rangeReadOk`'s). -/
+`log` extending the floor `F` (unit V2, as `rangeReadOk`'s), the caller's certificate of `log`
+and, if linearizable, the read deposit's result at a committed raft log whose model is `log`
+(unit W-M3, as `rangeReadOk`'s). -/
 def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
-    (resp : Loc) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+    (Q : List EntryModel → IProp GF) (resp : Loc) : IProp GF :=
+  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
+    (if txn.txnSerializable t then iprop(True) else
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L) ∗
     txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
@@ -207,9 +213,11 @@ proposed data decode to (`rq'`, whose transaction `t'` is `t` unless a range end
 loops call `IsRegistered` knowing nothing of the id's registration, so the model admits it; at a
 known registration `request_delivered` excludes it unless the registration is gone), the response the
 transaction's (`txnOutcomeIs` at `x.log`), the header's id fields owned (`appliedHdr`), mvcc's
-certificate of the log after; and (unit V2) `x.log` extends the floor `F`. -/
-def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel) (resp : Loc) :
-    IProp GF :=
+certificate of the log after; and (unit V2) `x.log` extends the floor `F`; and (unit W-M3) the
+caller's certificate of the log after (`certOk`) and `□ Q` of the state of the log the entry met
+(the transaction's update fired there). -/
+def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel)
+    (Q : KVState → IProp GF) (resp : Loc) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
       (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
     ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq' ∧ rq'.txn = some t' ∧
@@ -217,7 +225,8 @@ def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnMo
       apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧ F <+: x.log⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
+    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
 the proposal's (made or not; if made, deposited: it may still be applied). -/

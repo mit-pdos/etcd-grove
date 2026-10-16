@@ -198,6 +198,83 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   refine ⟨Hpl m (by simp), Hch, ?_⟩
   rw [Hch, Hch0]; rfl
 
+/-- The apply thread's KV log is the model of its applied raft log (unit W-M3: for the result's
+tie, `entryWit`). -/
+theorem kvApplied_log (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel)
+    (x : apply.ApplyKV) :
+    kvApplied (GF := GF) γ γk A x ⊢ kvApplied γ γk A x ∗ ⌜x.log = kvModel γk A⌝ := by
+  iintro H
+  iunfold kvApplied at H
+  icases H with ⟨H, %Hch⟩
+  iunfold kvAppliedL at H
+  icases H with ⟨#HB, Hhi, #Hc, %Hl⟩
+  isplitl
+  · iunfold kvApplied
+    iunfold kvAppliedL
+    iframe HB Hhi Hc
+    ipureintro; exact ⟨Hl, Hch⟩
+  · ipureintro; exact Hl
+
+/-- A namespace `nroot.@x` inside `⊤` without two other ones. -/
+theorem mask_ndot_ne2 (x y z : String) (hxy : x ≠ y) (hxz : x ≠ z) :
+    (↑(nroot.@x) : CoPset) ⊆ (⊤ \ ↑(nroot.@y)) \ ↑(nroot.@z) := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot hxy p ⟨hp, h'⟩⟩,
+    fun h' => ndot_ne_disjoint nroot hxz p ⟨hp, h'⟩⟩
+
+/-- **A certified log is below the committed KV state** (unit W-M3): the state `σ` of a holder of
+`etcdKV` is the state of the committed raft log's model (the KV invariant's other half), and a
+log the server certified (`certOk` at the KV's names) is the model of a committed raft prefix
+(`kv_cert_read`), or has at most `NewStore`'s two revisions, so its length is at most `σ`'s
+revision and one. Any mask without the three invariants' namespaces (a client's invariant
+holding `etcdKV` open: `nroot.@x`). -/
+theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNames)
+    (hγ : γs.cok = γk.cok) (x : String) (hx1 : x ≠ "server_kv") (hx2 : x ≠ "server_kv_cert")
+    (hx3 : x ≠ "raft_commit") (l : mvcc.Log) (σ : KVState) :
+    ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗ mvcc.certOk γs l -∗
+      etcdKV γk σ ={⊤ \ ↑(nroot.@x)}=∗ etcdKV γk σ ∗ ⌜l.length ≤ σ.rev + 1⌝ := by
+  have hc : (↑kvcN : CoPset) ⊆ ⊤ \ ↑(nroot.@x) := mask_ndot_ne' nroot "server_kv_cert" x (Ne.symm hx2)
+  have hk : (↑kvN : CoPset) ⊆ ⊤ \ ↑(nroot.@x) := mask_ndot_ne' nroot "server_kv" x (Ne.symm hx1)
+  have hr : (↑srvRaftN : CoPset) ⊆ (⊤ \ ↑(nroot.@x)) \ ↑kvN :=
+    mask_ndot_ne2 "raft_commit" x "server_kv" (Ne.symm hx3) (by decide)
+  iintro #HkI #HcI #HrI #Hc Hσ
+  -- the start log has two revisions (the certificates' invariant)
+  ihave #HcI' := HcI
+  iunfold kvCertInv at HcI'
+  iinv HcI' with >Hi Hclose
+  icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
+  imod Hclose $$ [HC Hhi'] with -
+  · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
+  have h2 := Hok.2
+  imod kv_cert_read γ γk γs hγ (⊤ \ ↑(nroot.@x)) hc l $$ HcI Hc with Hcase
+  ihave #HkI' := HkI
+  iunfold kvInv at HkI'
+  iinv HkI' with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ', %Hok'⟩
+  iunfold etcdKV at Hσ
+  ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ' Hσ
+  have hlen := (kvRaftOf_extends γk.c0 γk.ch0 γk.log0 L).length_le
+  ihave Hp : iprop(|={(⊤ \ ↑(nroot.@x)) \ ↑kvN}=> srvRLog γ L ∗
+      ⌜l.length ≤ (kvModel γk L).length⌝) $$ [HL Hcase]
+  · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+    · imodintro; iframe HL; ipureintro; unfold kvModel; omega
+    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, -, %Hp⟩
+      imodintro; iframe HL; ipureintro
+      have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A L Hp).length_le
+      unfold kvModel at hA ⊢; rw [← hA]; exact this
+  imod Hp with ⟨HL, %Hle⟩
+  imod Hclose $$ [HL Hσ'] with -
+  · inext; iexists L; iframe HL Hσ'; ipureintro; exact Hok'
+  imodintro
+  iunfold etcdKV
+  iframe Hσ
+  ipureintro
+  rw [← Hag]
+  simp only [kvStateOf]
+  unfold kvModel at *
+  omega
+
 /-- The certificate in the apply thread's KV ghost state. -/
 theorem kvAppliedL_cert (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log) :
     kvAppliedL (GF := GF) γ γk B l ⊢ kvAppliedL γ γk B l ∗ kvCert γk l := by

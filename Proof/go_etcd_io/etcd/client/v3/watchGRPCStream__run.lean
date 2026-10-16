@@ -425,7 +425,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
     (hfilt : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm ρ.w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ [])))
     (hps : ps.length = ρ.evs.length) (hkvl : kvs.length = ρ.evs.length)
     (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hst : V.R.γ.st = V.R.E.γ) (hhn : h ≠ null) :
-    srvEventIdsAssigned V.R ∗ srvSealedReached V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
+    srvEventIdsAssigned V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
       v3rpc.mvccOk γs V.R.γ j m ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
       regFacts V γs P ρ.id w rg fcs lo ∗ sl ↦*□ ps ∗
       ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ∗
@@ -441,7 +441,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C'.length = sent.length + 2⌝ ∗ ∃ hi : w64, ⌜C'.getLast? = some hi⌝ ∗
           cursorOk V P (Dm ++ [m]) w rg lo hi) := by
-  iintro ⟨#HS3, #HS4, #Hsm, #Hnd, #Hmv, #Hrecv, #Hrf, #Hsl, #Hevs, #Hea, Hauth, Hst, Hrev⟩
+  iintro ⟨#HS3, #Hsm, #Hnd, #Hmv, #Hrecv, #Hrf, #Hsl, #Hevs, #Hea, Hauth, Hst, Hrev⟩
   ihave Hhdr : iprop(|==> ((⌜m.evs = []⌝ ∗ hdrAt h m.hdr.revision) ∨
       (⌜m.evs ≠ []⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ m.hdr.revision)))
       $$ [Hrev]
@@ -816,7 +816,7 @@ theorem watchGRPCStream.run.wp_proof
   iunfold watchSrvFacts at Hsf'
   icases Hsf' with ⟨#Hstub, #Hconn⟩
   iunfold watchConnFacts at Hconn
-  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, #Htoks, #HnoRetry, #HS4, #Hsmall, #HnoDup,
+  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, #Htoks, #HnoRetry, #Hsmall, #HnoDup,
     #Heof, #HerrNew, #Hcea, #Hvars, %Hpre⟩
   -- S2 and S3, facts of the verified server (unit W-M2)
   ihave #HS2 := srvProgressAllAnswers_holds V.R
