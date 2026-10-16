@@ -34,10 +34,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 /-- `MsgBeat`, `MsgAppResp` and `MsgHeartbeatResp` reach no arm of `stepFollower`. -/
-theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
+theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c') : c = c' ∧ dropped = false ∧ s' = s := by
+    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c = c' ∧ dropped = false ∧ s' = s := by
   unfold FollowerStepResultC at H
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
@@ -46,11 +46,11 @@ theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w6
       MsgHeartbeatResp, W32] at H <;> exact H
 
 /-- Nor of `stepCandidate`. -/
-theorem candidateStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
+theorem candidateStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c') : c = c' ∧ dropped = false ∧ s' = s := by
+    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c = c' ∧ dropped = false ∧ s' = s := by
   unfold CandidateStepResultC at H
   refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2

@@ -224,10 +224,10 @@ theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : MessageM)
 
 /-! ## Taking the `stepX` results apart, by type -/
 
-theorem followerStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
+theorem followerStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgApp →
-    FollowerStepResultC c scfg id s m ents sv dropped s' c' →
+    FollowerStepResultC c scfg id s m ents sv dropped s' c' cl →
     c = c' ∧ dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s' := by
   intro Hty H
   unfold FollowerStepResultC at H
@@ -249,11 +249,11 @@ theorem followerStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
-theorem candidateStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
+theorem candidateStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState) :
     m.Type' = MsgApp →
-    CandidateStepResultC c scfg id s m ents sv dropped s' c' →
+    CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
     c = c' ∧ dropped = false ∧
     ∃ pvs, HandleAppResult id { becomeFollower s s.term m.From' with prvals := pvs }
       m ents s' := by
@@ -513,10 +513,10 @@ theorem nstateWf_handle_snap (id : w64) (t : NState) (m : MessageM)
   unfold HandleSnapResult at Hres
   rcases Hres with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, _, rfl⟩ <;> exact Hwf
 
-theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
+theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgSnap →
-    FollowerStepResultC c scfg id s m ents sv dropped s' c' →
+    FollowerStepResultC c scfg id s m ents sv dropped s' c' cl →
     SnapCfgOk c s sv scfg c' ∧
     dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s' := by
   intro Hty H
@@ -529,11 +529,11 @@ theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w6
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
-theorem candidateStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
+theorem candidateStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState) :
     m.Type' = MsgSnap →
-    CandidateStepResultC c scfg id s m ents sv dropped s' c' →
+    CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
     SnapCfgOk c s sv scfg c' ∧
     dropped = false ∧
     ∃ pvs, HandleSnapResult id { becomeFollower s s.term m.From' with prvals := pvs }
