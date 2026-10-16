@@ -308,6 +308,25 @@ private theorem isMessage_leadPrefix (γ : RaftNames) (m : Msg) :
   · icases isMessage_snap_inv γ m Hty $$ Hm with ⟨-, -, ⟨%bL, %l, %fp, #Hp, -, #Hpf, -⟩, -⟩
     iexists bL, l, fp; iframe Hp Hpf
 
+/-- Two full logs with records agree below an index within the bootstrap log (2026-10-16,
+stage R8b): both start with it (`logRecs_boot_take`). -/
+private theorem boot_take_agree (γ : RaftNames) (F1 F2 : List EntryM) (c : w64) :
+    PlogWf base0 F1 → PlogWf base0 F2 → uint.Z c ≤ γ.reBoot.length →
+    uint.Z c ≤ F1.length → uint.Z c ≤ F2.length →
+    ⊢ logRecs (GF := GF) γ base0 F1 -∗ logRecs γ base0 F2 -∗
+      ⌜F1.take (uint.Z c).toNat = F2.take (uint.Z c).toNat ∧
+        plogTermAt base0 F1 c = plogTermAt base0 F2 c⌝ := by
+  intro Hw1 Hw2 Hcb Hc1 Hc2
+  iintro #H1 #H2
+  icases logRecs_boot_take γ F1 Hw1 $$ H1 with %Ht1
+  icases logRecs_boot_take γ F2 Hw2 $$ H2 with %Ht2
+  icases logRecs_boot_termAt γ F1 Hw1 $$ H1 with %Ha1
+  icases logRecs_boot_termAt γ F2 Hw2 $$ H2 with %Ha2
+  ipureintro
+  refine ⟨?_, ?_⟩
+  · rw [Ht1 _ (by omega) (by omega), Ht2 _ (by omega) (by omega)]
+  · rw [← Ha1 c Hcb Hc1, ← Ha2 c Hcb Hc2]
+
 /-- **A commit index is within the log of the leader of any later term** (2026-10-16, stage R8a,
 D11): a commit index `c` justified at a term `tm ≤ t` is at most the last index of a log of the
 term-`t` leader (`ackIn γ t c`). The commit fact `cq γ t' n G` behind it has `c ≤ n` at the
@@ -325,7 +344,17 @@ theorem commitIn_ackIn (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : L
   ihave #Hcj := commitIn_j γ F c tm $$ Hc
   unfold commitJ
   icases Hcj with (%H0 | ⟨%t', %n, %G, #Hq, %Hcn⟩)
-  · iframe Htbl; iapply ackIn_zero γ t c H0
+  · -- (2026-10-16, stage R8b) a commit index within the bootstrap log, which the leader's log
+    -- starts with
+    iframe Htbl
+    iunfold lpfull at Hpf
+    icases Hpf with ⟨%F0, #Hc0, -, %Hpf⟩
+    icases isCamp_boot γ ldr t F0 $$ Hc0 with %Hb0
+    have Hlen := (Hb0.1.trans Hpf.2.1).length_le
+    have HL := full_last_index _ _ l Hpf.1
+    unfold ackIn; iright
+    iexists ldr, bL, l; iframe Hp; ipureintro
+    rw [← HL]; unfold plogLastIndexZ; rw [base0_index]; omega
   obtain ⟨Hcn, Htt, -⟩ := Hcn
   icases cq_base γ t' n G $$ Hq with ⟨%HGn, #HGl⟩
   have Hn := (plogTermAt_some_range _ _ _ _ HGn).2
@@ -648,6 +677,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     · iexact Htnew
   ihave #He : isEntryR γ e pt0 $$ []
   · unfold isEntryR
+    ileft
     iexists id, γt, s.base, s.log, (fp ++ s.log)
     rw [Heterm]
     iframe Hnewlead Htl Hcown Htel
@@ -939,6 +969,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     · ipureintro; intro _; rfl
   ihave #Hrecs2' : logRecs γ s2.base s2.log $$ []
   · rw [Hs2base]; iexact Hrecs2
+  have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z s2.commit := by rw [Hs2commit]; exact Hboot
   ihave Hlg : ownLogGhost γ id s2 (some id) $$ [Hterms Hacks Hcamps Hvlogs Htlog' Hwins Hevs]
   · unfold ownLogGhost
     iexists γm, (<[s.term := ((γt, s.base), s.log)]> terms), γa, _, fp, γc, camps, γl, vlogs, γw,
@@ -1622,7 +1653,25 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
         ihave #Hmcj := commitIn_j γ _ _ _ $$ Hmc
         iunfold commitJ at Hmcj
         icases Hmcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc', %Ht, %HG⟩)
-        · exfalso; have := uint_Z_nonneg s.commit; omega
+        · -- (2026-10-16, stage R8b) a commit index within the bootstrap log, which both logs
+          -- start with
+          obtain ⟨Hcb, Hct⟩ := H0
+          have HsFl : (plogTermAt base0 Fl m.commit).isSome := by
+            rw [← Hct]
+            exact plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by
+              unfold plogLastIndexZ; rw [base0_index]; omega⟩
+          obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp HsFl
+          have HcFl := (plogTermAt_some_range _ _ _ _ Hx).2
+          unfold plogLastIndexZ at HcFl; rw [base0_index] at HcFl
+          have HcF : uint.Z m.commit ≤ (fp ++ s.log).length := by
+            have HLF := full_last_index _ _ s.log Hf
+            have Hcm' : uint.Z m.commit ≤ plogLastIndexZ s.base s.log := by omega
+            rw [← HLF] at Hcm'
+            unfold plogLastIndexZ at Hcm'; rw [base0_index] at Hcm'; omega
+          icases boot_take_agree γ (fp ++ s.log) Fl m.commit HwF HwFl.1 Hcb HcF (by omega)
+            $$ HrF HrFl with %Hag
+          iapply commitIn_agree γ Fl (fp ++ s.log) m.commit s.term s.term (Int.le_refl _) Hag.2
+            Hag.1 $$ Hmc
         ihave %Hn := cq_term $$ Hq
         have HsG : (plogTermAt base0 G m.commit).isSome :=
           full_term_at_some G m.commit n (by rw [Hn]; rfl) Hc'
@@ -1647,7 +1696,24 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
         ihave #Hmcj := commitIn_j γ _ _ _ $$ Hmc
         iunfold commitJ at Hmcj
         icases Hmcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc', %Ht, %HG⟩)
-        · exfalso; have := uint_Z_nonneg s.commit; omega
+        · -- (2026-10-16, stage R8b) a commit index within the bootstrap log, which both logs
+          -- start with
+          obtain ⟨Hcb, Hct⟩ := H0
+          have HsFl : (plogTermAt base0 Fl m.commit).isSome := by
+            rw [← Hct]
+            exact plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by
+              unfold plogLastIndexZ; rw [base0_index]; omega⟩
+          obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp HsFl
+          have HcFl := (plogTermAt_some_range _ _ _ _ Hx).2
+          unfold plogLastIndexZ at HcFl; rw [base0_index] at HcFl
+          have HcF : uint.Z m.commit ≤ (fp ++ s.log).length := by
+            have HLF := full_last_index _ _ s.log Hf
+            have Hcm' : uint.Z m.commit ≤ plogLastIndexZ s.base s.log := by omega
+            rw [← HLF] at Hcm'
+            unfold plogLastIndexZ at Hcm'; rw [base0_index] at Hcm'; omega
+          icases boot_take_agree γ (fp ++ s.log) Fl m.commit HwF HwFl.1 Hcb HcF (by omega)
+            $$ HrF HrFl with %Hag
+          rw [Hag.1]; iexact Hmcm
         ihave %Hn := cq_term $$ Hq
         have HsG : (plogTermAt base0 G m.commit).isSome :=
           full_term_at_some G m.commit n (by rw [Hn]; rfl) Hc'
@@ -2233,6 +2299,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
           simp only [Option.map_eq_map, Option.map_some]
           rw [(Hnwk _ y Hy').2]
       · unfold isEntryR
+        ileft
         iexists id, γt, s.base, l0, F0
         rw [Hxt]
         iframe Hl Htl Hc0 Hxe
@@ -2384,6 +2451,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       unfold plogLastIndexZ at Hcl
       rw [List.length_append]; push_cast; omega)]
     iexact Hcmt
+  have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z (pappend s nw).commit := Hboot
   ihave Hlg : ownLogGhost γ id (pappend s nw) kl $$ [Hterms Hacks Hcamps Hvlogs Htlog' Hwins Hevs']
   · unfold ownLogGhost
     iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins

@@ -192,6 +192,14 @@ def DynCfg.all [ext : FfiSyntax] (D : DynCfg) : (e : FfiSyntax) → @DynCfg e :=
 theorem DynCfg.all_self [ext : FfiSyntax] (D : DynCfg) : D.all ext = D := by
   unfold DynCfg.all; simp
 
+/-- A bootstrap entry (2026-10-16, stage R8b, D12): `EntryM`'s fields, instance-free, since
+`RaftNames` takes no `FfiSyntax` (as `reDyn`); `BootEntry.toEntry` is the entry. -/
+structure BootEntry where
+  term : w64
+  index : w64
+  type : w32
+  data : List w8
+
 structure RaftNames where
   /-- The voter set this ghost state is about. It lives in `γ` rather than being a
   parameter of `ownRaftGhost_step`: a step free to choose its own `cfg` could choose a
@@ -285,8 +293,8 @@ structure RaftNames where
   `1`, the same on every member of a new cluster); `[]` for a cluster whose log starts empty
   (`ownRaftGhost_alloc`, the register). A record of index `i ≤ |reBoot|` is the boot entry there
   (`isEntryR`), a commit index `≤ |reBoot|` needs no quorum (`commitJ`), and every log holds
-  `reBoot` as a prefix. -/
-  reBoot : List EntryM
+  `reBoot` as a prefix. Instance-free (`BootEntry`); read it as `RaftNames.reBoot`. -/
+  reBootRaw : List BootEntry
   /-- The voter set is not empty (2026-10-14, reconfiguration stage B2). The protocol's
   step at a configuration (`StepC`) reads quorums by Go's convention, under which every
   set is a majority of an empty voter set (`MajQ`); the ghost state needs a real quorum
@@ -345,6 +353,22 @@ earlier term), `rqRecOk_confirm` (a read's confirming quorum and its doom quorum
 `CfgAt.overlap` by the adjacent/far case split (`fold_adjacent` for the adjacent case). -/
 
 /-- The mode's dynamic configurations, at the ambient `FfiSyntax` instance. -/
+def BootEntry.toEntry [FfiSyntax] (b : BootEntry) : EntryM := ⟨b.term, b.index, b.type, b.data⟩
+
+def BootEntry.ofEntry [FfiSyntax] (e : EntryM) : BootEntry := ⟨e.Term', e.Index', e.Type', e.Data'⟩
+
+theorem BootEntry.toEntry_ofEntry [FfiSyntax] (e : EntryM) : (BootEntry.ofEntry e).toEntry = e := rfl
+
+theorem BootEntry.map_toEntry_ofEntry [FfiSyntax] (L : List EntryM) :
+    (L.map BootEntry.ofEntry).map BootEntry.toEntry = L := by
+  induction L with
+  | nil => rfl
+  | cons e L ih => simp only [List.map_cons, BootEntry.toEntry_ofEntry, ih]
+
+/-- The cluster's bootstrap log (2026-10-16, stage R8b, D12; `RaftNames.reBootRaw`). -/
+def RaftNames.reBoot [FfiSyntax] (γ : RaftNames) : List EntryM :=
+  γ.reBootRaw.map BootEntry.toEntry
+
 def RaftNames.dyn [ext : FfiSyntax] (γ : RaftNames) : Option DynCfg :=
   γ.reDyn.map fun f => f ext
 
@@ -558,6 +582,11 @@ theorem ownCommitted_alloc :
                          monoListLbOwn γc ([] : List EntryM) := by
   exact mono_list_own_alloc _
 
+/-- The committed log allocated at `l` (2026-10-16, stage R8b: the bootstrap log). -/
+theorem ownCommitted_alloc_at (l : List EntryM) :
+    ⊢ |==> ∃ γc : GName, monoListAuthOwn (GF := GF) γc 1 l ∗ monoListLbOwn γc l := by
+  exact mono_list_own_alloc _
+
 /-! ### Campaign records -/
 
 /-- `c`'s campaign record of term `T`: its full log (`fp ++ log`, see "Full logs") when
@@ -572,7 +601,10 @@ commit index `k` at the campaign, at most the log's last index, with the committ
 `F.take k` (`isCampK`): the winner's configuration is that prefix's (`isWinCore`, `CfgAt`).
 (B5 adds the witnesses for the conf entries up to `k`.) -/
 def isCampK (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) : IProp GF :=
-  iprop(∃ γc, ⌜γ.reCamp !! c = some γc ∧ CampOk T F ∧ uint.Z k ≤ plogLastIndexZ base0 F⌝ ∗
+  iprop(∃ γc, ⌜γ.reCamp !! c = some γc ∧ CampOk T F ∧ uint.Z k ≤ plogLastIndexZ base0 F ∧
+      -- (2026-10-16, stage R8b, D12) the campaign log starts with the bootstrap log, and a
+      -- non-empty one puts every campaign at a term `≥ 2`: no leader of term `1`
+      γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝ ∗
     T ↪[γc]□ ((F, k) : List EntryM × w64) ∗ isCommitted γ (F.take (uint.Z k).toNat))
 
 def isCamp (γ : RaftNames) (c T : w64) (F : List EntryM) : IProp GF :=
@@ -632,7 +664,21 @@ theorem isCampK_k_le (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) :
     ⊢ isCampK (GF := GF) γ c T F k -∗ ⌜uint.Z k ≤ plogLastIndexZ base0 F⌝ := by
   unfold isCampK
   iintro ⟨%_, %H, -⟩
-  ipureintro; exact H.2.2
+  ipureintro; exact H.2.2.1
+
+/-- A campaign log starts with the bootstrap log, and a non-empty one puts the campaign at a
+term `≥ 2` (2026-10-16, stage R8b, D12). -/
+theorem isCampK_boot (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) :
+    ⊢ isCampK (GF := GF) γ c T F k -∗ ⌜γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝ := by
+  unfold isCampK
+  iintro ⟨%_, %H, -⟩
+  ipureintro; exact H.2.2.2
+
+theorem isCamp_boot (γ : RaftNames) (c T : w64) (F : List EntryM) :
+    ⊢ isCamp (GF := GF) γ c T F -∗ ⌜γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝ := by
+  unfold isCamp
+  iintro ⟨%k, #H⟩
+  iapply isCampK_boot γ c T F k $$ H
 
 theorem isCampK_committed (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) :
     ⊢ isCampK (GF := GF) γ c T F k -∗ isCommitted γ (F.take (uint.Z k).toNat) := by
@@ -756,6 +802,22 @@ theorem isLeader_unique (γ : RaftNames) (id1 id2 term : w64) :
   icases isWin_tbl_agree γ id1 id2 term q1 q2 $$ H1 H2 with %H
   ipureintro; exact H.1
 
+/-- A leader won with a campaign at its term, which the bootstrap log puts at `≥ 2`
+(2026-10-16, stage R8b, D12): with a non-empty bootstrap log, **no leader of term `1`**. -/
+theorem isLeader_boot (γ : RaftNames) (id term : w64) :
+    ⊢ isLeader (GF := GF) γ id term -∗ ⌜γ.reBoot ≠ [] → 2 ≤ uint.Z term⌝ := by
+  unfold isLeader isWin isWinCore
+  iintro ⟨%q, %c, ⟨%γw, %F0, %k, -, #HcK, -, -⟩, -⟩
+  icases isCampK_boot γ id term F0 k $$ HcK with %H
+  ipureintro; exact H.2
+
+theorem isLeader_boot_false (γ : RaftNames) (id : w64) :
+    γ.reBoot ≠ [] → isLeader (GF := GF) γ id (W64 1) ⊢ False := by
+  intro Hne
+  iintro #H
+  icases isLeader_boot γ id (W64 1) $$ H with %Hb
+  exact absurd (Hb Hne) (by decide)
+
 /-! ### Entries, acknowledgements, commitment -/
 
 /-- `v`'s term log of term `t`: the ghost map `γt`, and `v`'s compaction boundary `b` and
@@ -863,20 +925,35 @@ theorem entData_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl e
       · iapply entData_zero
     · iapply ih $$ Hl
 
+/-- The boot entry `e` of the bootstrap log `L` (2026-10-16, stage R8b, D12), with its
+predecessor's term `pt`: `e` is `L`'s entry at its index (`L[i - 1]`), of term `1`; its
+predecessor is the sentinel of term `0` at index `1`, the previous boot entry (term `1`)
+after. -/
+def BootRec (L : List EntryM) (e : EntryM) (pt : w64) : Prop :=
+  1 ≤ uint.Z e.Index' ∧ L[(uint.Z e.Index' - 1).toNat]? = some e ∧ e.Term' = W64 1 ∧
+  pt = (if uint.Z e.Index' = 1 then W64 0 else W64 1)
+
 /-- `e` was created by the leader of its term, after an entry of term `pt`: the term log
 of `e`'s term holds `(e, pt)` at `e`'s index. Since 2026-10-03 also: `e` is past the
 leader's campaign log `F0`, its predecessor is `F0`'s last entry or another entry of
 `e`'s term, and `pt ≤ e.term` (`PtOk`) -- which makes the terms of a log with records
 non-decreasing, and lets Leader Completeness walk a log down from an entry of term `T`
-to where the leader of `T` started. -/
+to where the leader of `T` started.
+
+Since 2026-10-16 (stage R8b, D12) or: `e` is a boot entry of the cluster's bootstrap log
+`γ.reBoot` (`BootRec`), which no leader created -- term `1` has none (`isLeader_boot`) -- with
+its data (a conf-change entry's, admitted by the cluster's policy). A record at an index
+`≤ |reBoot|` is always the boot one (`isEntryR_boot`): a leader's entry sits past its
+campaign log, which starts with `reBoot` (`isCampK`). -/
 def isEntryR (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
-  iprop(∃ ldr γt b l0 F0, isLeader γ ldr e.Term' ∗
+  iprop((∃ ldr γt b l0 F0, isLeader γ ldr e.Term' ∗
                  isTermLog γ ldr e.Term' γt b l0 ∗
                  isCamp γ ldr e.Term' F0 ∗
                  e.Index' ↪[γt]□ ((e, pt) : EntryM × w64) ∗
                  ⌜PtOk F0 e.Term' (uint.Z e.Index') pt⌝ ∗
                  -- what the entry's data is (2026-10-10)
-                 entData γ e)
+                 entData γ e) ∨
+    (⌜BootRec γ.reBoot e pt⌝ ∗ entData γ e))
 
 def isEntry (γ : RaftNames) (e : EntryM) : IProp GF :=
   iprop(∃ pt, isEntryR γ e pt)
@@ -936,6 +1013,22 @@ theorem isTermLog_agree (γ : RaftNames) (v t : w64) (γt1 : GName) (b1 : entryI
   simp only [Prod.mk.injEq] at H
   ipureintro; exact ⟨H.1.1, H.1.2, H.2⟩
 
+/-- A boot record's list is not empty. -/
+theorem BootRec_ne (L : List EntryM) (e : EntryM) (pt : w64) : BootRec L e pt → L ≠ [] := by
+  rintro ⟨-, H, -, -⟩ rfl; simp at H
+
+/-- A boot record and a leader's record of the same term and index cannot both exist: the
+boot entry's term `1` has no leader. -/
+theorem isEntryR_boot_leader (γ : RaftNames) (e1 : EntryM) (pt1 : w64)
+    (e2 : EntryM) (pt2 : w64) (ldr : w64) :
+    e1.Term' = e2.Term' →
+    BootRec γ.reBoot e1 pt1 →
+    isLeader (GF := GF) γ ldr e2.Term' ⊢ False := by
+  intro Ht Hb
+  have Hne := BootRec_ne _ _ _ Hb
+  rw [← Ht, Hb.2.2.1]
+  exact isLeader_boot_false γ ldr Hne
+
 theorem isEntryR_agree (γ : RaftNames) (e1 : EntryM) (pt1 : w64)
     (e2 : EntryM) (pt2 : w64) :
     e1.Term' = e2.Term' →
@@ -943,17 +1036,25 @@ theorem isEntryR_agree (γ : RaftNames) (e1 : EntryM) (pt1 : w64)
     ⊢ isEntryR (GF := GF) γ e1 pt1 -∗ isEntryR γ e2 pt2 -∗ ⌜e1 = e2 ∧ pt1 = pt2⌝ := by
   intro Ht Hi
   unfold isEntryR
-  iintro ⟨%l1, %γ1, %b1, %l01, %F1, #Hl1, #Ht1, -, #He1, -⟩
-    ⟨%l2, %γ2, %b2, %l02, %F2, #Hl2, #Ht2, -, #He2, -⟩
-  rw [Ht]; rw [Hi]
-  icases isLeader_unique γ l1 l2 e2.Term' $$ Hl1 Hl2 with %H
-  subst H
-  icases isTermLog_agree γ l1 e2.Term' γ1 b1 l01 γ2 b2 l02 $$ Ht1 Ht2 with %H
-  obtain ⟨H, -, -⟩ := H
-  subst H
-  icases ghostMapElem_agree $$ He1 He2 with %H
-  simp only [Prod.mk.injEq] at H
-  ipureintro; exact H
+  iintro (⟨%l1, %γ1, %b1, %l01, %F1, #Hl1, #Ht1, -, #He1, -⟩ | ⟨%Hb1, -⟩)
+    (⟨%l2, %γ2, %b2, %l02, %F2, #Hl2, #Ht2, -, #He2, -⟩ | ⟨%Hb2, -⟩)
+  · rw [Ht]; rw [Hi]
+    icases isLeader_unique γ l1 l2 e2.Term' $$ Hl1 Hl2 with %H
+    subst H
+    icases isTermLog_agree γ l1 e2.Term' γ1 b1 l01 γ2 b2 l02 $$ Ht1 Ht2 with %H
+    obtain ⟨H, -, -⟩ := H
+    subst H
+    icases ghostMapElem_agree $$ He1 He2 with %H
+    simp only [Prod.mk.injEq] at H
+    ipureintro; exact H
+  · iexfalso; iapply isEntryR_boot_leader γ e2 pt2 e1 pt1 l1 Ht.symm Hb2 $$ Hl1
+  · iexfalso; iapply isEntryR_boot_leader γ e1 pt1 e2 pt2 l2 Ht Hb1 $$ Hl2
+  · ipureintro
+    obtain ⟨-, H1, -, Hp1⟩ := Hb1
+    obtain ⟨-, H2, -, Hp2⟩ := Hb2
+    rw [Hi] at H1 Hp1
+    rw [H1] at H2
+    exact ⟨Option.some.inj H2, by rw [Hp1, Hp2]⟩
 
 theorem isEntry_agree (γ : RaftNames) (e1 e2 : EntryM) :
     e1.Term' = e2.Term' →
@@ -1250,8 +1351,186 @@ theorem logRecs_lookup (γ : RaftNames) (F : List EntryM) (k : Nat)
 theorem isEntryR_pt (γ : RaftNames) (e : EntryM) (pt : w64) :
     ⊢ isEntryR (GF := GF) γ e pt -∗ ⌜uint.Z pt ≤ uint.Z e.Term'⌝ := by
   unfold isEntryR
-  iintro ⟨%_, %_, %_, %_, %_, -, -, -, -, %Hok, -⟩
-  ipureintro; exact Hok.2.1
+  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, %Hok, -⟩ | ⟨%Hb, -⟩)
+  · ipureintro; exact Hok.2.1
+  · ipureintro
+    obtain ⟨-, -, Ht, Hp⟩ := Hb
+    rw [Ht, Hp]
+    split <;> simp
+
+/-- A record at an index within the bootstrap log is the boot entry there; a leader's entry
+sits past its campaign log, which starts with the bootstrap log (2026-10-16, stage R8b). -/
+theorem isEntryR_boot (γ : RaftNames) (e : EntryM) (pt : w64) :
+    ⊢ isEntryR (GF := GF) γ e pt -∗
+      ⌜BootRec γ.reBoot e pt ∨ (γ.reBoot.length : Int) < uint.Z e.Index'⌝ := by
+  unfold isEntryR
+  iintro (⟨%_, %_, %_, %_, %F0, -, -, #Hc, -, %Hok, -⟩ | ⟨%Hb, -⟩)
+  · icases isCamp_boot γ _ _ F0 $$ Hc with %Hpre
+    ipureintro; right
+    have := Hpre.1.length_le
+    have := Hok.1
+    unfold plogLastIndexZ at this; rw [base0_index] at this
+    omega
+  · ipureintro; left; exact Hb
+
+/-- A record's data (either arm). -/
+theorem isEntryR_data (γ : RaftNames) (e : EntryM) (pt : w64) :
+    ⊢ isEntryR (GF := GF) γ e pt -∗ entData γ e := by
+  unfold isEntryR
+  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, -, #Hd⟩ | ⟨-, #Hd⟩) <;> iexact Hd
+
+/-! ### The bootstrap log in logs with records (2026-10-16, stage R8b, D12)
+
+Every entry of a full log with records at an index within `γ.reBoot` is the boot entry there
+(`isEntryR_boot`): such a log, if long enough, starts with `reBoot` (`logRecs_boot_prefix`),
+agrees with it in term wherever both are defined (`logRecs_boot_termAt`), and shows `reBoot`
+well-formed with every term `1` (`logRecs_boot_wf`). -/
+
+theorem logRecs_boot (γ : RaftNames) (F : List EntryM) :
+    PlogWf base0 F →
+    ⊢ logRecs (GF := GF) γ base0 F -∗
+      ⌜∀ (k : Nat) (e : EntryM), F[k]? = some e → k < γ.reBoot.length →
+          γ.reBoot[k]? = some e ∧ e.Term' = W64 1⌝ := by
+  intro Hwf
+  iintro #H
+  have Hrng := PlogWf_range _ _ Hwf
+  unfold plogLastIndexZ at Hrng; rw [base0_index] at Hrng
+  by_cases Hall : ∀ (k : Nat) (e : EntryM), F[k]? = some e → k < γ.reBoot.length →
+      γ.reBoot[k]? = some e ∧ e.Term' = W64 1
+  · ipureintro; exact Hall
+  simp only [Classical.not_forall] at Hall
+  obtain ⟨k, e, Hk, Hkb, Hne⟩ := Hall
+  have Hlt := (List.getElem?_eq_some_iff.mp Hk).1
+  have Hi := Hwf _ _ Hk
+  rw [base0_index] at Hi
+  push_cast at Hi
+  ihave ⟨%pt, -, #He⟩ := logRecs_lookup γ F k e Hk (by omega) $$ H
+  icases isEntryR_boot γ e pt $$ He with %Hb
+  exfalso
+  rcases Hb with ⟨-, Hl, Ht, -⟩ | Hpast
+  · rw [show (uint.Z e.Index' - 1).toNat = k by omega] at Hl
+    exact Hne ⟨Hl, Ht⟩
+  · omega
+
+/-- The records of the bootstrap log itself, from its entries' data (the allocation,
+2026-10-16): each entry is its own boot record, its predecessor the sentinel or the boot entry
+before. -/
+theorem logRecs_boot_intro (γ : RaftNames) (L : List EntryM) :
+    γ.reBoot = L → PlogWf base0 L → (L.length : Int) < 2 ^ 64 → (∀ e ∈ L, e.Term' = W64 1) →
+    ([∗list] e ∈ L, entData (GF := GF) γ e) ⊢ logRecs γ base0 L := by
+  intro HL Hwf Hlen Hones
+  refine logRecs_intro γ _ base0 L ?_
+  intro k e Hk Hr
+  have Hi := Hwf _ _ Hk
+  rw [base0_index] at Hi
+  push_cast at Hi
+  have Hlt := (List.getElem?_eq_some_iff.mp Hk).1
+  have Hpk : pidx base0 k = W64 (k : Int) := by unfold pidx; rw [base0_index, Int.zero_add]
+  have HW : uint.Z (W64 (k : Int)) = k := uint_Z_W64 _ (by omega) (by omega)
+  iintro #Hd
+  ihave #He := BigSepL.bigSepL_lookup (Φ := fun _ e => entData (GF := GF) γ e) Hk $$ Hd
+  iexists (if k = 0 then W64 0 else W64 1)
+  isplitr
+  · ipureintro
+    rw [Hpk]
+    unfold plogTermAt
+    rw [base0_index, HW]
+    by_cases Hk0 : k = 0
+    · subst Hk0; simp; rfl
+    · simp only [show ¬ ((k : Int) < 0) by omega, show ¬ ((k : Int) = 0) by omega, Hk0,
+        ↓reduceIte]
+      obtain ⟨e', He'⟩ : ∃ e', L[((k : Int) - 0 - 1).toNat]? = some e' :=
+        ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      rw [He']
+      simp only [Option.map_eq_map, Option.map_some, Hones e' (List.mem_of_getElem? He')]
+  · unfold isEntryR
+    iright
+    iframe He
+    ipureintro
+    unfold BootRec
+    rw [HL]
+    refine ⟨by omega, ?_, Hones e (List.mem_of_getElem? Hk), ?_⟩
+    · rw [show (uint.Z e.Index' - 1).toNat = k by omega]; exact Hk
+    · by_cases Hk0 : k = 0
+      · subst Hk0; simp only [show uint.Z e.Index' = 1 by omega, ↓reduceIte]
+      · simp only [show uint.Z e.Index' ≠ 1 by omega, Hk0, ↓reduceIte]
+
+/-- A full log with records that reaches the end of the bootstrap log starts with it. -/
+theorem logRecs_boot_prefix (γ : RaftNames) (F : List EntryM) :
+    PlogWf base0 F →
+    ⊢ logRecs (GF := GF) γ base0 F -∗ ⌜γ.reBoot.length ≤ F.length → γ.reBoot <+: F⌝ := by
+  intro Hwf
+  iintro #H
+  icases logRecs_boot γ F Hwf $$ H with %Hb
+  ipureintro
+  intro Hlen
+  have Heq : γ.reBoot = F.take γ.reBoot.length := by
+    apply List.ext_getElem?
+    intro k
+    rw [List.getElem?_take]
+    by_cases Hk : k < γ.reBoot.length
+    · simp only [Hk, ite_true]
+      obtain ⟨e, He⟩ : ∃ e, F[k]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      rw [He, (Hb k e He Hk).1]
+    · simp only [Hk, ite_false]
+      exact List.getElem?_eq_none_iff.mpr (by omega)
+  rw [Heq]; exact List.take_prefix _ _
+
+/-- The bootstrap log and a full log with records agree in term wherever both are defined. -/
+theorem logRecs_boot_termAt (γ : RaftNames) (F : List EntryM) :
+    PlogWf base0 F →
+    ⊢ logRecs (GF := GF) γ base0 F -∗
+      ⌜∀ c : w64, uint.Z c ≤ γ.reBoot.length → uint.Z c ≤ F.length →
+          plogTermAt base0 γ.reBoot c = plogTermAt base0 F c⌝ := by
+  intro Hwf
+  iintro #H
+  icases logRecs_boot γ F Hwf $$ H with %Hb
+  ipureintro
+  intro c Hcb HcF
+  unfold plogTermAt
+  rw [base0_index]
+  by_cases Hc0 : uint.Z c = 0
+  · simp [Hc0]
+  have := uint_Z_nonneg c
+  simp only [show ¬ (uint.Z c < 0) by omega, Hc0, ↓reduceIte]
+  obtain ⟨e, He⟩ : ∃ e, F[(uint.Z c - 0 - 1).toNat]? = some e :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  rw [He, (Hb _ e He (by omega)).1]
+
+/-- A full log with records has the bootstrap log's first `n` entries, for `n` within both. -/
+theorem logRecs_boot_take (γ : RaftNames) (F : List EntryM) :
+    PlogWf base0 F →
+    ⊢ logRecs (GF := GF) γ base0 F -∗
+      ⌜∀ n : Nat, n ≤ γ.reBoot.length → n ≤ F.length → F.take n = γ.reBoot.take n⌝ := by
+  intro Hwf
+  iintro #H
+  icases logRecs_boot γ F Hwf $$ H with %Hb
+  ipureintro
+  intro n Hnb HnF
+  apply List.ext_getElem?
+  intro k
+  rw [List.getElem?_take, List.getElem?_take]
+  by_cases Hk : k < n
+  · simp only [Hk, ite_true]
+    obtain ⟨e, He⟩ : ∃ e, F[k]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    rw [He, (Hb k e He (by omega)).1]
+  · simp only [Hk, ite_false]
+
+/-- A full log with records that starts with the bootstrap log shows it well-formed, every
+entry of term `1`. -/
+theorem logRecs_boot_wf (γ : RaftNames) (F : List EntryM) :
+    PlogWf base0 F →
+    ⊢ logRecs (GF := GF) γ base0 F -∗
+      ⌜γ.reBoot <+: F → PlogWf base0 γ.reBoot ∧ ∀ e ∈ γ.reBoot, e.Term' = W64 1⌝ := by
+  intro Hwf
+  iintro #H
+  icases logRecs_boot γ F Hwf $$ H with %Hb
+  ipureintro
+  intro Hpre
+  refine ⟨PlogWf_prefix _ _ _ Hpre Hwf, fun e He => ?_⟩
+  obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
+  have Hlt := (List.getElem?_eq_some_iff.mp Hk).1
+  exact (Hb k e (prefix_lookup_Some Hk Hpre) Hlt).2
 
 /-- Full-log matching: two full logs with records that have the same term at `i` agree
 everywhere below. -/
@@ -1458,16 +1737,18 @@ theorem recs_chain (γ : RaftNames) (F : List EntryM) (ldr T : w64)
   subst HT
   ihave ⟨%pt, %Hpt, #He⟩ := logRecs_lookup γ F k e Hk (by omega) $$ H
   unfold isEntryR
-  icases He with ⟨%ldr', %γt, %b, %l0, %F0', #Hl', -, #Hc', -, %Hok, -⟩
-  icases isLeader_unique γ ldr ldr' e.Term' $$ Hl Hl' with %H1
-  subst H1
-  icases isCamp_agree γ ldr e.Term' F0 F0' $$ Hc Hc' with %H2
-  subst H2
-  obtain ⟨H1, -, H2, H3⟩ := Hok
-  rw [Hi] at H1 H2 H3
-  push_cast at H1 H2 H3
-  exact absurd ⟨by omega, fun Heq => by rw [Hpt, H2 (by omega)],
-    fun Hgt => by rw [Hpt, H3 (by omega)]⟩ Hne
+  icases He with (⟨%ldr', %γt, %b, %l0, %F0', #Hl', -, #Hc', -, %Hok, -⟩ | ⟨%Hb, -⟩)
+  · icases isLeader_unique γ ldr ldr' e.Term' $$ Hl Hl' with %H1
+    subst H1
+    icases isCamp_agree γ ldr e.Term' F0 F0' $$ Hc Hc' with %H2
+    subst H2
+    obtain ⟨H1, -, H2, H3⟩ := Hok
+    rw [Hi] at H1 H2 H3
+    push_cast at H1 H2 H3
+    exact absurd ⟨by omega, fun Heq => by rw [Hpt, H2 (by omega)],
+      fun Hgt => by rw [Hpt, H3 (by omega)]⟩ Hne
+  · -- a boot entry of term `1`: no leader of its term (2026-10-16, stage R8b)
+    iexfalso; iapply isEntryR_boot_leader γ e pt e pt ldr rfl Hb $$ Hl
 
 /-! ### Leaders' full logs (2026-10-03)
 
@@ -1529,6 +1810,15 @@ theorem leadFull_camp (γ : RaftNames) (t : w64) (G : List EntryM) :
   subst HG
   iexists ldr, F0
   iframe Hl Hc; ipureintro; exact Hpure.2.1
+
+/-- A leader's full log starts with the bootstrap log, and a non-empty bootstrap log puts the
+leader at a term `≥ 2` (2026-10-16, stage R8b, D12): its campaign log does (`isCampK`). -/
+theorem leadFull_boot (γ : RaftNames) (t : w64) (G : List EntryM) :
+    ⊢ leadFull (GF := GF) γ t G -∗ ⌜γ.reBoot <+: G ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z t)⌝ := by
+  iintro #H
+  icases leadFull_camp γ t G $$ H with ⟨%ldr, %F0, -, #Hc, %Hpre⟩
+  icases isCamp_boot γ ldr t F0 $$ Hc with %Hb
+  ipureintro; exact ⟨Hb.1.trans Hpre, Hb.2⟩
 
 /-- Two full logs of one term's leader agree wherever both have a term. -/
 theorem leadFull_agree (γ : RaftNames) (t : w64) (G1 G2 : List EntryM) (j : w64) :
@@ -1764,6 +2054,14 @@ theorem cq_base (γ : RaftNames) (t n : w64) (G : List EntryM) :
   iframe Hf
   ipureintro; exact Hp.1
 
+/-- A commit fact's log starts with the bootstrap log, and a non-empty bootstrap log puts the
+fact at a term `≥ 2` (2026-10-16, stage R8b, D12). -/
+theorem cq_boot (γ : RaftNames) (t n : w64) (G : List EntryM) :
+    ⊢ cq (GF := GF) γ t n G -∗ ⌜γ.reBoot <+: G ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z t)⌝ := by
+  iintro #H
+  icases cq_base γ t n G $$ H with ⟨-, #Hf⟩
+  iapply leadFull_boot γ t G $$ Hf
+
 /-- The node-local witnesses (2026-10-14, reconfiguration stage B5; the paper's `W`): every
 conf entry of `F` at a position below `lim` has a witness of a term below `B`. -/
 def witsB (γ : RaftNames) (F : List EntryM) (lim : Nat) (B : Int) : IProp GF :=
@@ -1781,9 +2079,11 @@ instance witsB_timeless (γ : RaftNames) (F : List EntryM) (lim : Nat) (B : Int)
   refine @forall_prop_timeless _ _ _ _ (fun hk => ?_)
   infer_instance
 
-/-- `commitIn`'s commit justification (until 2026-10-14 all of `commitIn`). -/
+/-- `commitIn`'s commit justification (until 2026-10-14 all of `commitIn`). Since 2026-10-16
+(stage R8b, D12) the first arm is the bootstrap log's: a commit index within `γ.reBoot`, where
+`F` has the boot entry's term, needs no quorum (it subsumes the former `c = 0` arm). -/
 def commitJ (γ : RaftNames) (F : List EntryM) (c tm : w64) : IProp GF :=
-  iprop(⌜uint.Z c = 0⌝ ∨
+  iprop(⌜uint.Z c ≤ γ.reBoot.length ∧ plogTermAt base0 γ.reBoot c = plogTermAt base0 F c⌝ ∨
     ∃ t n G, cq γ t n G ∗
       ⌜uint.Z c ≤ uint.Z n ∧ uint.Z t ≤ uint.Z tm ∧
         plogTermAt base0 G c = plogTermAt base0 F c⌝)
@@ -1818,7 +2118,7 @@ theorem commitIn_w (γ : RaftNames) (F : List EntryM) (c tm : w64) (Hdyn : γ.re
   iapply dynOn_elim γ _ Hdyn $$ Hd
 
 def isCommittedIdx (γ : RaftNames) (i : w64) : IProp GF :=
-  iprop(⌜uint.Z i = 0⌝ ∨ ∃ t n G, ⌜uint.Z i ≤ uint.Z n⌝ ∗ cq γ t n G)
+  iprop(⌜uint.Z i ≤ γ.reBoot.length⌝ ∨ ∃ t n G, ⌜uint.Z i ≤ uint.Z n⌝ ∗ cq γ t n G)
 
 instance isCommittedIdx_persistent (γ : RaftNames) (i : w64) :
     Persistent (isCommittedIdx (GF := GF) γ i) := by
@@ -1829,7 +2129,15 @@ instance isCommittedIdx_timeless (γ : RaftNames) (i : w64) :
 
 theorem isCommittedIdx_0 (γ : RaftNames) : ⊢ isCommittedIdx (GF := GF) γ (W64 0) := by
   unfold isCommittedIdx
-  ileft; ipureintro; rfl
+  ileft; ipureintro
+  rw [show uint.Z (W64 0) = 0 from rfl]; exact Int.natCast_nonneg _
+
+/-- A commit index within the bootstrap log is committed (2026-10-16, stage R8b). -/
+theorem isCommittedIdx_boot (γ : RaftNames) (i : w64) :
+    uint.Z i ≤ γ.reBoot.length → ⊢ isCommittedIdx (GF := GF) γ i := by
+  intro H
+  unfold isCommittedIdx
+  ileft; ipureintro; exact H
 
 /-- What is committed up to `i` is committed up to anything below. -/
 theorem isCommittedIdx_le (γ : RaftNames) (i j : w64) :
@@ -1837,7 +2145,7 @@ theorem isCommittedIdx_le (γ : RaftNames) (i j : w64) :
   intro Hle
   unfold isCommittedIdx
   iintro (%H0 | ⟨%t, %n, %G, %Hi, #Hq⟩)
-  · ileft; ipureintro; have := uint_Z_nonneg j; omega
+  · ileft; ipureintro; omega
   · iright; iexists t, n, G; iframe Hq; ipureintro; omega
 
 theorem commitIn_committed (γ : RaftNames) (F : List EntryM) (c tm : w64) :
@@ -1846,7 +2154,7 @@ theorem commitIn_committed (γ : RaftNames) (F : List EntryM) (c tm : w64) :
   ihave #Hj := commitIn_j γ F c tm $$ H
   unfold commitJ isCommittedIdx
   icases Hj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
-  · ileft; ipureintro; exact H0
+  · ileft; ipureintro; exact H0.1
   · iright; iexists t, n, G; iframe Hq; ipureintro; exact Hc.1
 
 omit [FfiSyntax] in
@@ -1956,7 +2264,18 @@ theorem commitIn_le (γ : RaftNames) (F : List EntryM) (c c' tm : w64) :
   isplitr
   · unfold commitJ
     icases Hj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
-    · ileft; ipureintro; have := uint_Z_nonneg c'; omega
+    · -- the boot arm: `F` has records, so it agrees with `reBoot` below `c` too
+      obtain ⟨Hcb, Hct⟩ := H0
+      have HsF : (plogTermAt base0 F c).isSome := by
+        rw [← Hct]
+        exact plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg c, by
+          unfold plogLastIndexZ; rw [base0_index]; omega⟩
+      obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp HsF
+      have HcF := (plogTermAt_some_range _ _ _ _ Hx).2
+      unfold plogLastIndexZ at HcF; rw [base0_index] at HcF
+      icases logRecs_boot_termAt γ F Hwf $$ Hr with %Hag
+      ileft; ipureintro
+      exact ⟨by omega, Hag c' (by omega) (by omega)⟩
     ihave ⟨%HwG, #HrG⟩ := cq_full γ t n G $$ Hq
     ihave %Hn := cq_term γ t n G $$ Hq
     have HsG : (plogTermAt base0 G c).isSome :=
@@ -1983,7 +2302,7 @@ theorem commitIn_agree (γ : RaftNames) (F F' : List EntryM) (c tm tm' : w64) :
   isplitr
   · unfold commitJ
     icases Hj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
-    · ileft; ipureintro; exact H0
+    · ileft; ipureintro; exact ⟨H0.1, by rw [Heq]; exact H0.2⟩
     · iright; iexists t, n, G; iframe Hq; ipureintro
       exact ⟨Hc.1, by omega, by rw [Heq]; exact Hc.2.2⟩
   · unfold dynOn
@@ -1998,7 +2317,9 @@ theorem commitIn_zero (γ : RaftNames) (F : List EntryM) (c tm : w64) (h : uint.
     ⊢ commitIn (GF := GF) γ F c tm := by
   unfold commitIn
   isplitr
-  · unfold commitJ; ileft; ipureintro; exact h
+  · unfold commitJ; ileft; ipureintro
+    refine ⟨by rw [h]; exact Int.natCast_nonneg _, ?_⟩
+    unfold plogTermAt; rw [base0_index, h]; simp
   · unfold dynOn; iright
     unfold witsB
     iintro %k %Hk
@@ -2038,7 +2359,9 @@ keeps `hist` of each of its acknowledgements (`ownLogGhost`); the bound `B` is `
 def okL (γ : RaftNames) (t : w64) (B : Int) (j : w64) (X : List EntryM) :
     IProp GF :=
   iprop((∃ t'' : w64, ⌜uint.Z t ≤ uint.Z t'' ∧ uint.Z t'' < B⌝ ∗ leadFull γ t'' X) ∨
-    (∃ t'' n'' : w64, ⌜uint.Z t'' < uint.Z t ∧ uint.Z j ≤ uint.Z n''⌝ ∗ cq γ t'' n'' X))
+    (∃ t'' n'' : w64, ⌜uint.Z t'' < uint.Z t ∧ uint.Z j ≤ uint.Z n''⌝ ∗ cq γ t'' n'' X) ∨
+    -- (2026-10-16, stage R8b, D12) the bootstrap log, at an index within it
+    ⌜uint.Z j ≤ γ.reBoot.length ∧ X = γ.reBoot⌝)
 
 instance okL_persistent (γ : RaftNames) (t : w64) (B : Int) (j : w64)
     (X : List EntryM) : Persistent (okL (GF := GF) γ t B j X) := by
@@ -2079,9 +2402,10 @@ theorem okL_le (γ : RaftNames) (t : w64) (B : Int) (j j' : w64) (X : List Entry
     uint.Z j' ≤ uint.Z j → ⊢ okL (GF := GF) γ t B j X -∗ okL γ t B j' X := by
   intro Hj
   unfold okL
-  iintro (#H | ⟨%t'', %n'', %Ht, #H⟩)
+  iintro (#H | ⟨%t'', %n'', %Ht, #H⟩ | %Hb)
   · ileft; iexact H
-  · iright; iexists t'', n''; iframe H; ipureintro; omega
+  · iright; ileft; iexists t'', n''; iframe H; ipureintro; omega
+  · iright; iright; ipureintro; exact ⟨by omega, Hb.2⟩
 
 theorem hist_mono (γ : RaftNames) (F : List EntryM) (t i : w64) (B B' : Int) :
     B ≤ B' → ⊢ hist (GF := GF) γ F t i B -∗ hist γ F t i B' := by
@@ -2119,17 +2443,20 @@ theorem hist_keep (γ : RaftNames) (F F' : List EntryM) (t i : w64) (B : Int) :
     rw [HXj, Hk j Hj (by rw [← HXj]; exact Hs)]
   · iright; iexact Hc
 
-/-- The log of an `okL` is a full log with records. -/
+/-- The log of an `okL` is a full log with records, or the bootstrap log (2026-10-16). -/
 private theorem okL_full (γ : RaftNames) (t : w64) (B : Int) (j : w64)
     (X : List EntryM) :
-    okL (GF := GF) γ t B j X ⊢ ⌜PlogWf base0 X⌝ ∗ logRecs γ base0 X := by
+    okL (GF := GF) γ t B j X ⊢
+      (⌜PlogWf base0 X⌝ ∗ logRecs γ base0 X) ∨ ⌜uint.Z j ≤ γ.reBoot.length ∧ X = γ.reBoot⌝ := by
   unfold okL
-  iintro (⟨%t'', -, #Hf⟩ | ⟨%t'', %n'', -, #Hq⟩)
+  iintro (⟨%t'', -, #Hf⟩ | ⟨%t'', %n'', -, #Hq⟩ | %Hb)
   · ihave ⟨%H, #Hr⟩ := leadFull_wf γ t'' X $$ Hf
+    ileft
     isplitr
     · ipureintro; exact H.1
     · iexact Hr
-  · iapply cq_full γ t'' n'' X $$ Hq
+  · ileft; iapply cq_full γ t'' n'' X $$ Hq
+  · iright; ipureintro; exact Hb
 
 /-- A full log that agrees with `okL`-log `X` at `i` has a history of `(t, i)`. -/
 theorem hist_of_agree (γ : RaftNames) (F X : List EntryM) (t i : w64) (B : Int) :
@@ -2138,14 +2465,30 @@ theorem hist_of_agree (γ : RaftNames) (F X : List EntryM) (t i : w64) (B : Int)
     ⊢ logRecs (GF := GF) γ base0 F -∗ okL γ t B i X -∗ hist γ F t i B := by
   intro HwF Hs Heq
   iintro #HrF #HX
-  ihave ⟨%HwX, #HrX⟩ := okL_full γ t B i X $$ HX
-  icases full_match γ X F i HwX HwF Hs Heq $$ HrX HrF with %Hm
-  unfold hist
-  iintro %j %Hj
-  ileft; iexists X
-  isplitl
-  · iapply okL_le γ t B i j X Hj.2 $$ HX
-  · ipureintro; exact ⟨full_term_at_some X j i Hs Hj.2, Hm j Hj.2⟩
+  icases okL_full γ t B i X $$ HX with (⟨%HwX, #HrX⟩ | %Hb)
+  · icases full_match γ X F i HwX HwF Hs Heq $$ HrX HrF with %Hm
+    unfold hist
+    iintro %j %Hj
+    ileft; iexists X
+    isplitl
+    · iapply okL_le γ t B i j X Hj.2 $$ HX
+    · ipureintro; exact ⟨full_term_at_some X j i Hs Hj.2, Hm j Hj.2⟩
+  · -- the bootstrap log: `F`, with records, agrees with it up to `i`
+    obtain ⟨Hib, HX⟩ := Hb
+    subst HX
+    have HsF : (plogTermAt base0 F i).isSome := by rw [← Heq]; exact Hs
+    obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp HsF
+    have HiF := (plogTermAt_some_range _ _ _ _ Hx).2
+    unfold plogLastIndexZ at HiF; rw [base0_index] at HiF
+    icases logRecs_boot_termAt γ F HwF $$ HrF with %Hag
+    unfold hist
+    iintro %j %Hj
+    ileft; iexists γ.reBoot
+    isplitl
+    · iapply okL_le γ t B i j γ.reBoot Hj.2 $$ HX
+    · ipureintro
+      refine ⟨plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; omega, by
+        unfold plogLastIndexZ; rw [base0_index]; omega⟩, Hag j (by omega) (by omega)⟩
 
 /-! ### Acknowledgements, justified
 
