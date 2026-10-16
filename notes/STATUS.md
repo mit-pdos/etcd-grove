@@ -45,6 +45,51 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Retargeting raft to v3.7, stage R7b (in progress): the server's contract layer over raft's (2026-10-16, branch `raft-retarget`)
+
+**B1 (done, `2da55192f`, `c6507e049`): the definitions.** `InvRequest.lean`: `ServerRaftNames`
+is `{ raft : RaftNames, pre : List EntryModel, ai0 : w64 }` (`pre` the log before the server's
+start index; `srvLogOf γ L := (γ.pre ++ L).map toM`, injective, with `_prefix/_length/_snoc/
+_take/_lookup`; `EntryModel.ofM`, `HardStateModel.ofM`); `srvRaftN` is raft's `raftN`
+(`abbrev`); `srvRLog γ L := rLog γ.raft (srvLogOf γ L)`, `srvRLogLb γ L := isCommitted γ.raft
+(srvLogOf γ L)`, `srvRaftLogInv γ := raftCommitInv γ.raft ∗ srvRLogLb γ [] ∗ ⌜uint.Z γ.ai0 =
+γ.pre.length ∧ srvCCPolicy γ⌝` with `srvCCPolicy γ := ∀ ty d, γ.raft.reCCOk ty d → ty = W32 1 ∧
+isConfChangeEncoding d` (raft's policy on conf changes restricted to the v1 ones the server
+applies); `srvLift γ Q Lm := ⌜γ.pre.map toM <+: Lm⌝ -∗ Q ((Lm.drop γ.pre.length).map ofM)`.
+The updates' after-clauses are the new entry's facts (raft gives no more; the KV invariant keeps
+`srvIdxOkW`, the entry-wise part of `srvIdxOk`, and `srvIdxOk_snoc` rebuilds it): `srvPropAu`
+`∀∀ e, ⌜e.typ = 0 ∧ e.data = d ∧ uint.Z e.index = ai0 + 1 + |L|⌝ ∗ srvRLog γ (L ++ [e])`;
+`srvNoopAu` one AU `∀∀ e, ⌜srvNoopEntry e ∧ …⌝ ∗ srvRLog γ (L ++ [e]), COMM True`
+(`srvNoopEntry e := typ = 0 ∧ data = [] ∨ typ = 1 ∧ isConfChangeEncoding data`); `srvIdxOk`'s
+`2^64` bound of the delivered log is a run premise now (`rnLogFits`). Conversions
+`srvPropAu_to_propAu`, `srvNoopAu_to_noopAu`, `srvReadAu_to_readAu` (raft's updates built from
+the server's, same mask); `srvPropWits_of_raft` (premise `d ≠ []`), `srvReadWit_of_raft`,
+`srv_rLog_prefix`, `srvRLogLb_mono`; `srvRdCred γ := rdCred γ.raft 1`, `srvRdFresh γ c := rdFresh
+γ.raft c`. `srvCommittedInv` carries the log prefix its index was read from
+(`committedAtLeast_log`); `setCommittedIndex`/`updateCommittedIndex`/`isReadyHandler` take it.
+`InvRaftNode.lean`: `RNNames` is `{ node : NodeNames, id, nl : Loc, pre, ms : Loc, γs :
+MemStorNames, reg : GName, ap, cum, done }` (the storage registry's name a field, `letI :
+MemStorReg GF := ⟨γ.reg⟩` in the node-layer predicates); `rnReadyP E γ := readyP γ.node`, `rnDrv`
+= `nodeDriver` with `nodeCfg`, `rnBusy` = `nodeDriverBusy`, `rnAppendRight γ es := appendRight
+(memStorIface γ.ms) (es.map toM) ∗ ⌜rnFits es⌝`, `softStateAt := softStateRO`, `rnReadCred γ :=
+rdCred γ.node.raft 1`, `srvRQ γs id n Qr := ∃ Lc, isRead γs.raft (beBytes id) (srvLift γs Qr) ∗
+readReq γs.raft (beBytes id) Lc ∗ ⌜n ≤ |Lc|⌝`; `rnEnvOk E γ` (persistent: `E.T = tickCred
+γ.node.bud 1`, `E.γr.raft`'s names raft's, the static mode and `γ.node.stor = memStorIface γ.ms`,
+`E.M` from a persisted message, `E.C` from `srvRLogLb` and back, `E.RQ = srvRQ`); `rnLogFits γ`
+(every `Ready`'s entries fit `Append`'s bound and the delivered log stays below `2^64`: the
+trust-boundary premise of D10); `rnReadStateBridge E γ` (a raft read state is a
+`srvReadStateOk`; `srvReadStateOk_of_raft` proves it given the context's length 8, which B2
+removes from `srvReadStateOk`); `rn_ready_recv` a fancy update over these; `isRaftNodeIfc`'s
+`ReadIndex` clause takes `sl ↦*□ beBytes id`, `rnReadCred γ`, `srvRdFresh E.γr.raft (beBytes
+id)` (so do `raftNode.ReadIndex.spec` and `isReadRaft`); `isRNTicker E tk`'s payload is `E.T`
+and `raftNode.start`/`isServerBuilt`/`isServerRun` lose `□ |==> E.T`; `isRaftNode` gains
+`rnEnvOk`, `rnLogFits`, `rnReadStateBridge`, `memStorReg`; `txnCtx_nodeCtx`. The server's
+sections are pinned to `HeapGS HasLC.hasLC GF` (raft's updates need `InvGS`); `Link.lean`
+regenerated (sections only). The read package does not build until B2 (`isReadRaft`'s clause).
+
+**B2 and B3 (in progress):** the read loop pays the read credit and mints the fresh context;
+the discharge theorems (`NodeBridge.lean`).
+
 ## Retargeting raft to v3.7, stage R7a: raft's side of the server's contract (2026-10-16, branch `raft-retarget`)
 
 Stage R7 (`notes/decisions.md`, "The server's raft contract discharged: the contract layer over
