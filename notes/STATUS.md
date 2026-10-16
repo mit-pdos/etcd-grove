@@ -48,7 +48,7 @@ module system").
 ## PR verification: etcd-io/raft#292, `controlflowLog` (2026-10-16, branch `pr-verify/raft-292`)
 
 The PR's fields of `raftLog` moved into the embedded `controlflowLog`, translated from the fork commit
-`1a63011bf` (not pinned: `etc/goose.py --check` fails on this branch by design). `ownRaftLog` names the
+`6e71bc940` (not pinned: `etc/goose.py --check` fails on this branch by design). `ownRaftLog` names the
 moved fields through `lv.controlflowLog'`, and the specs are unchanged. All proofs rebuild with the same
 trust base. Report: `notes/pr-verify/raft-292.md`.
 

@@ -4,7 +4,7 @@
   controlflowLog" (open, for etcd-io/raft#142), head `1368b97ad8d3aa0a0eb263396ba75fe3feb875ff`,
   one commit, `log.go` only (+13 -6). Its base is `d708de9f1` (April 2025), an ancestor of the
   verified raft. It also merges cleanly with today's `raft-upstream/main` (`638f42739`).
-- Verified at fork commit `1a63011bf` (branch `pr-raft-292-goose-lean` of `~/etcd`, worktree
+- Verified at fork commit `6e71bc940` (branch `pr-raft-292-goose-lean` of `~/etcd`, worktree
   `~/etcd-pr/raft-292`). That commit is the PR's non-test diff applied to the pinned raft
   `509271dac` (`raft37-goose-lean`) with `git apply -3`. It applied cleanly: there were no
   conflicts and no rewrites, so the verified Go code is exactly the PR's.
