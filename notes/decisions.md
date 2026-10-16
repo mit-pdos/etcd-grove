@@ -7506,6 +7506,21 @@ The register sidestepped it with its own `Storage` wrapper (`Snapshot` answers
     `maybeSendAppend` establishes from the bound (`1 ≤ Next ≤ lastIndex + 1` leaves `ErrCompacted`
     as the only failure of `term(Next - 1)`, and that means `prev.index ≥ 1`). The register's
     `Storage` still meets the clause.
+- **Carried out (2026-10-16, R8a; `notes/STATUS.md`, "stage R8a").** As designed, with four
+  details. (i) `raftLog.term`'s spec needed no "which error" clause: its iff already negates the
+  range, and the bound rules out the past-the-end side, so the error branch of `maybeSendAppend`
+  gets `prev.index ≠ 0` from it directly. (ii) The bound is conditional on the role, so
+  `maybeSendAppend`, `sendAppend` and `bcastAppend` take `s.role = .leader` (true at every
+  caller) and, dually, `handleAppendEntries` and `stepFollower`'s `MsgApp` case take `s.role ≠
+  .leader` (a follower's `maybeAppend` may truncate the log, which the bound forbids a leader).
+  (iii) The stale replies (`appStale`, `snapStale`: the follower acknowledges its commit index)
+  are proved by leader completeness (`commitIn_ackIn`), with `votesTbl` reached by opening the
+  log invariant, so those three ghost steps became fancy updates at their callers' mask. (iv)
+  `reset`'s spec now states the progress values its `Visit` closure writes (`ResetPr`), and the
+  `confchange` package's `FreshPr` already stated `Next = max(LastIndex, 1)`. The R8b design
+  study (2026-10-16) found one more blocker of the real composition, independent of R8b: etcd's
+  `raftConfig` sets `CheckQuorum: true` and `PreVote` (on by default), both required `false` by
+  `NewRawNode.spec`; `MsgCheckQuorum` and pre-vote are out of the model's scope.
 - **R8b (planned; its design is written before its proofs):** the cluster's initial log. The
   protocol's initial state becomes the bootstrap log (`n` conf-change entries at term 1, committed,
   the same on every member), the ghost allocation at that log, the certification of the initial
