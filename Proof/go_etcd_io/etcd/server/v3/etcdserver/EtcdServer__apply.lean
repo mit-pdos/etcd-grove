@@ -367,7 +367,7 @@ theorem EtcdServer.apply.wp_proof
         simp only [h1]
         ihave ⟨%Hnn, %d, #Hd, #Hds⟩ := entryAt_fields _ _ $$ He
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hdec⟩, -⟩
         · iframe cc Hds
         ihave #Hccf : iprop(□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) $$ []
         · have he : entryWaitOk ρ E m =
@@ -457,7 +457,7 @@ theorem EtcdServer.apply.wp_proof
         rcases sb with _ | _ <;> (
         (try wp_auto)
         wp_apply (wp_ownCCV1_GetId hId cc_ptr (DFrac.own 1) cm' (ccIdOf m.data)
-          (by rw [hIdEq, Hcid])) $$ [Hcc] as Hcc
+          (by rw [hIdEq, ccIdOf_of_decode Hdec])) $$ [Hcc] as Hcc
         · iframe Hcc
         (try wp_auto)
         wp_apply hMem sv.cluster $$ [] as %msl -
@@ -602,7 +602,7 @@ theorem EtcdServer.apply.wp_proof
         (try simp only [h1])
         ihave ⟨%Hnn, %d, #Hd, #Hds⟩ := entryAt_fields _ _ $$ He
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hdec⟩, -⟩
         · iframe cc Hds
         ihave #Hccf : iprop(□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) $$ []
         · have he : entryWaitOk ρ E m =
@@ -640,7 +640,7 @@ theorem EtcdServer.apply.wp_proof
         rcases sb with _ | _ <;> (
         (try wp_auto)
         wp_apply (wp_ownCCV1_GetId hId cc_ptr (DFrac.own 1) cm' (ccIdOf m.data)
-          (by rw [hIdEq, Hcid])) $$ [Hcc] as Hcc
+          (by rw [hIdEq, ccIdOf_of_decode Hdec])) $$ [Hcc] as Hcc
         · iframe Hcc
         (try wp_auto)
         wp_apply hMem sv.cluster $$ [] as %msl -

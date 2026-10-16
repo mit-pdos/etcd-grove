@@ -39,16 +39,36 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The bytes `bs` are the protobuf encoding of some `raftpb.ConfChange` (what etcd proposes
-as an `EntryConfChange`'s data: `cc.Marshal()` in `configure`); opaque, as the encoding is
-(`mvcc.kvEncode`). `pbutil.MustUnmarshalMessage` panics on any other bytes. -/
-opaque isConfChangeEncoding : List w8 → Prop
+as an `EntryConfChange`'s data: `cc.Marshal()` in `configure`): raft's decoder `ccDecodeV1`
+(`CCModel.lean`, what `proto.Unmarshal` makes of bytes into a `*ConfChange`, opaque) accepts
+them. `pbutil.MustUnmarshalMessage` panics on any other bytes. Until stage R8b of the raft v3.7
+retarget (2026-10-16) an opaque predicate of the server's own; now one notion of a `ConfChange`
+encoding, so that the bootstrap log's entries (`BootLogOk`: bytes decoding to `AddNode`) pass
+the server's `srvIdxOk` and `srvCCPolicy` matches raft's policy. -/
+def isConfChangeEncoding [FfiSyntax] (bs : List w8) : Prop := (ccDecodeV1 bs).isSome
 
-/-- **Trust boundary (the encoding).** The `ID` of the `raftpb.ConfChange` the bytes decode to
-(`pbutil.MustUnmarshalMessage`'s, a function of the bytes): what the apply thread triggers the
-wait with after a conf change (`s.w.Trigger(cc.ID, ...)`). Opaque, as `isConfChangeEncoding`
-(2026-10-12, the request path's unit 2: the decoder's axiom names it, so that the apply loop's
-premise can say the conf change's id is no KV request's). -/
-opaque ccIdOf : List w8 → w64
+/-- **The id of the conf change the bytes decode to** (`pbutil.MustUnmarshalMessage`'s, a
+function of the bytes): what the apply thread triggers the wait with after a conf change
+(`s.w.Trigger(cc.ID, ...)`); `0` when the bytes do not decode (2026-10-12, the request path's unit
+2: the decoder's axiom names it, so that the apply loop's premise can say the conf change's id
+is no KV request's; stage R8b: raft's decoder's `id`, until then opaque). -/
+def ccIdOf [FfiSyntax] (bs : List w8) : w64 :=
+  match ccDecodeV1 bs with
+  | some m => m.id
+  | none => W64 0
+
+theorem isConfChangeEncoding_of_decode [FfiSyntax] {bs : List w8} {m : CCV1M}
+    (h : ccDecodeV1 bs = some m) : isConfChangeEncoding bs := by
+  unfold isConfChangeEncoding; rw [h]; rfl
+
+theorem isConfChangeEncoding_decode [FfiSyntax] {bs : List w8} (h : isConfChangeEncoding bs) :
+    ∃ m : CCV1M, ccDecodeV1 bs = some m := by
+  unfold isConfChangeEncoding at h
+  exact Option.isSome_iff_exists.mp h
+
+theorem ccIdOf_of_decode [FfiSyntax] {bs : List w8} {m : CCV1M} (h : ccDecodeV1 bs = some m) :
+    ccIdOf bs = m.id := by
+  unfold ccIdOf; rw [h]
 
 /-- A raft entry as the apply thread uses it (the server's model; raft's is `EntryM`,
 `Proof/go_etcd_io/raft/v3/PbModel.lean`, the same four values). -/

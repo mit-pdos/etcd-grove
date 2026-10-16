@@ -84,7 +84,7 @@ end addrs
 /-- A batch of committed entries as raft hands them to the apply thread: consecutive indices
 from `f0` (not 0), with no overflow past the last; each a normal entry or a (v1) conf change
 (etcd proposes no others: `apply` panics on any other type). -/
-def entriesFrom (f0 : w64) (ms : List EntryModel) : Prop :=
+def entriesFrom [FfiSyntax] (f0 : w64) (ms : List EntryModel) : Prop :=
   0 < uint.Z f0 ∧ uint.Z f0 + ms.length < 2 ^ 64 ∧
   ∀ (n : Nat) (m : EntryModel), ms[n]? = some m →
     uint.Z m.index = uint.Z f0 + n ∧
