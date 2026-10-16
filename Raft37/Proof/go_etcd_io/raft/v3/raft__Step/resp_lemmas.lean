@@ -166,10 +166,10 @@ theorem readAck_step (c : CfgM) (id : w64) (s1 : NState) (Hr : s1.role = .leader
   exact this
 
 /-- `stepLeader` on `MsgBeat`: the heartbeats are `StepC.beat`'s. -/
-theorem leader_beat_step (c : CfgM) (id : w64) (s : NState) (m : MessageM)
+theorem leader_beat_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgBeat) (Hwf : NStateWf s)
-    (H : LeaderStepResultC c id s m ents dropped s') :
+    (H : LeaderStepResultC c id s m ents dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
@@ -256,11 +256,11 @@ private theorem pstate_commit_same (ps : PState) : { ps with commit := ps.commit
   `Progress` values), then `StepC.commit` if `maybeCommit` moved the commit index
   (its premises, judged at the raised `Match` map), then `StepC.sendApps`
   for what was sent after the commit. -/
-theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : MessageM)
+theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents0 ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgAppResp) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
-    (H : LeaderStepResultC c id s m ents0 dropped s') :
+    (H : LeaderStepResultC c id s m ents0 dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
       StepCD c id m s recv s') ∧

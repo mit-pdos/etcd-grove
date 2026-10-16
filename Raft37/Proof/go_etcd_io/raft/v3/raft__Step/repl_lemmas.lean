@@ -279,10 +279,10 @@ theorem candidateStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (i
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 /-- A leader ignores a `MsgApp` or `MsgHeartbeat` of its own term. -/
-theorem leaderStepResult_app_hb (c : CfgM) (id : w64) (s : NState)
+theorem leaderStepResult_app_hb (c : CfgM) {ctx : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat →
-    LeaderStepResultC c id s m ents dropped s' →
+    LeaderStepResultC c id s m ents dropped s' ctx →
     dropped = false ∧ s' = s := by
   intro Hty H
   have Hnp : m.Type' ≠ MsgProp := by rcases Hty with h | h <;> rw [h] <;> w32_ne

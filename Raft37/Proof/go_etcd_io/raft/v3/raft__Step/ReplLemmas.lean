@@ -71,6 +71,62 @@ theorem msgPtsC_not_null (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
   iframe H
   ipureintro; exact Hnn
 
+/-- The `From` field of a message, lent (`&pb.Message{To: m.From, ...}` reads the pointer: the new
+message shares the read-only cell). -/
+theorem msgPtsC_From_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢
+      ∃ p : Loc, l.[raftpb.Message, go!"From"] ↦{dq} p ∗ cellRO p ms.msg.From' ∗
+        (l.[raftpb.Message, go!"From"] ↦{dq} p -∗ msgPtsC l dq dqe cap ms) := by
+  iintro H
+  iunfold msgPtsC at H
+  iNamed H
+  iexists pfr
+  iframe HFr cFr
+  iintro HFr
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- A fresh cell, frozen: read-only. -/
+theorem cellRO_of_pointsto {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V)
+    (E : CoPset) : (p ↦ v : IProp GF) ⊢ |={E}=> cellRO p v := by
+  iintro H
+  imod (typedPointsto_dfractional (GF := GF) _ v).dfractional_persist _ $$ H with #H
+  imodintro
+  iunfold cellRO
+  iright
+  iexact H
+
+/-- A freshly allocated `&pb.Message{...}` with scalar fields only (`Entries`, `Context`,
+`Responses` nil, `Snapshot` nil): an owned message holding `mm` and nothing else. -/
+theorem msgOwn_of_scalars (l : Loc) (v : raftpb.Message) (mm : MessageM) (E : CoPset) :
+    (⌜v.Entries' = slice.nil ∧ v.Snapshot' = null ∧ v.Context' = slice.nil ∧
+       v.Responses' = slice.nil ∧ v.unknownFields' = slice.nil⌝ ∗ l ↦ v ∗ cellRO v.Type' mm.Type' ∗ cellRO v.To' mm.To' ∗
+      cellRO v.From' mm.From' ∗ cellRO v.Term' mm.Term' ∗
+      cellRO v.LogTerm' mm.LogTerm' ∗ cellRO v.Index' mm.Index' ∗
+      cellRO v.Commit' mm.Commit' ∗ cellRO v.Vote' mm.Vote' ∗
+      cellRO v.Reject' mm.Reject' ∗ cellRO v.RejectHint' mm.RejectHint' : IProp GF) ⊢
+      |={E}=> msgOwn l (DFrac.own 1) ⟨mm, [], none, [], []⟩ := by
+  iintro ⟨%Hv, Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh⟩
+  obtain ⟨Hes, Hsn, Hcx, Hrs, Hu⟩ := Hv
+  ihave Hnil : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnil with #Hnil
+  ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnilb with #Hnilb
+  ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  iapply msgOwn_of_struct l v [] _ E Hu
+  iframe Hl cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh
+  rw [Hes, Hsn, Hcx, Hrs]
+  simp only [snapOpt]
+  iframe Hnil Hnilb Hnilr
+  iapply BigSepL2.bigSepL2_nil.2; itrivial
+
 end StepProof
 
 end base
