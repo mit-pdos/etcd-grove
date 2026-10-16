@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 set_option hygiene false in
-/-- One of the three `Infof`-and-return exits (Rocq `log_exit`). -/
+/-- One of the three log-and-return exits (Rocq `log_exit`). -/
 local macro "log_exit" Hulg:ident : tactic => `(tactic| (
   wp_apply wp_slice_literal
   isplitr

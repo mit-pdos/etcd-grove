@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `u.stableTo(id)` (`log_unstable.go:134`):
 
     gt, ok := u.maybeTerm(id.index)
-    if !ok { Infof; return }
+    if !ok { Debugf; return }                     // Infof before etcd-io/raft#452
     if id.index < u.offset { Infof; return }      // the snapshot's index
     if gt != id.term { Infof; return }
     num := int(id.index + 1 - u.offset)
@@ -46,7 +46,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 On a hit (`UnstableHit`) the suffix loses its first `id.index + 1 - offset` entries and
 `offset` moves past `id`; otherwise nothing changes. The premises are `maybeTerm`'s;
-the `Logger` for the `Infof`s is `ownUnstable`'s. Which entries may be moved -- the persisted ones -- is
+the `Logger` for the log calls is `ownUnstable`'s. Which entries may be moved -- the persisted ones -- is
 the caller's business (`raftLog.stableTo`'s `StableOk`). -/
 abbrev unstable.stableTo.spec : Prop :=
   ∀ (u : Loc) (us : UnstableSt) (id : entryID),

@@ -1,0 +1,6 @@
+# etcd-io/raft#452 (notes/pr-verify/raft-452.md): unstable.stableTo, whose missing-entry exit
+# logs at Debug instead of Info, and its callers raftLog.stableTo and raft.Step.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-452.txt [--check [--update]]
+roots /(unstable|raftLog)__stableTo\.lean$
+roots /raft__Step\.lean$
