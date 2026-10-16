@@ -38,8 +38,8 @@ are not a starting point; ignore them.
   hand-off). One commit per fix.
 - **AI policy** (kubernetes AI guidance, linked from etcd's PR template): no `Co-Authored-By`, `Assisted-by` or
   any AI trailer on the commit — this overrides any default attribution; AI-generated commit messages are not
-  allowed, so the commit message is a draft the user rewrites (say so in the hand-off); the PR description must
-  disclose AI use; the user must be able to explain every line; replies to reviewers are the user's, never drafted.
+  allowed, so the commit message is a draft the user rewrites (say so in the hand-off); the issue and the PR
+  disclose AI use, each with its standard text (step 8); the user must be able to explain every line; replies to reviewers are the user's, never drafted.
 - **Size**: small PRs; one bug per issue, one issue per PR (the PR says `Fixes #<n>`).
 - **Security**: a vulnerability goes to security@etcd.io privately, not a public issue (step 3).
 - Issues use the bug-report form (`.github/ISSUE_TEMPLATE/bug-report.yml`); documentation-only findings use it too
@@ -145,7 +145,11 @@ into the version fields. Test output may be trimmed to the failing lines (no log
 - **Anything else we need to know?** — impact and who is affected, and workarounds; no claims about other releases (the
   version fields say what was run; backports are the maintainers' call, and the PR's notes may name them). A side finding the maintainers
   could act on (documentation that contradicts the behavior) goes here as a question to them ("Should the
-  documentation of `NONE` be changed to say so?"), not as a statement, and not fixed in the PR unless they say so. One sentence may say it was found while formally verifying etcd; no more.
+  documentation of `NONE` be changed to say so?"), not as a statement, and not fixed in the PR unless they say so. It ends with the standard disclosure, word for
+  word, as its own paragraph, and says nothing else about how the bug was found:
+
+  > I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this
+  > report myself.
 
 `pr.md`: title = the commit subject; body: what the change does and why (two or three sentences), `Fixes #<issue>`
 (placeholder), how it was tested, notes for the reviewer (alternatives considered, behavior changes), and the AI

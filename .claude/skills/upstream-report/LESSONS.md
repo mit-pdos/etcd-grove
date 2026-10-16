@@ -45,3 +45,7 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   it"): link the test on the fork's branch, tentative until pushed, and do not describe it; step 4: the test is the
   issue's example, no wider; step 9: hand off the push command. The step-8 rule from the previous critique that let
   the test keep a richer setup is gone.
+- 2026-10-16, etcd-range-sort-none-limit: "Make a standard comment we'll use for all these issue reports that
+  indicate I was verifying etcd and using AI." Rule (step 8, "Anything else"; upstream's rules): every issue ends
+  with the same disclosure, word for word: "I found this while formally verifying etcd, working with AI tools. I
+  reproduced the bug and reviewed this report myself."
