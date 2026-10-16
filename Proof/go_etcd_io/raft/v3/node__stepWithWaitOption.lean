@@ -22,7 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A message from the network goes onto `recvc` (`netP`); a proposal onto `propc` with a
-fresh result channel (`propP`, `Handoff`), whose result is then awaited. `n.done` never fires.
+fresh result channel (`propP`, `Handoff`), whose result, `raft.Step`'s error for the proposal
+(`stepErr`, stage R7c), is then awaited. `n.done` never fires.
 `ctx` is any `nodeCtx` (stage R7a, `InvNodeCtx.lean`): its `Done()` is `nil` (the case never
 fires) or a context's channel, from which a receive returns once the context is done, and the
 call returns `ctx.Err()` (`nodeDone_recv_clause`, `isContext_Err_done` over the trust-boundary
@@ -74,7 +75,7 @@ theorem node.stepWithWaitOption.wp_proof
       iintro -
       wp_auto
       iapply HΦ
-      iapply stepErr_nil
+      iapply waitErr_nil
     iapply BigAndL.bigAndL_cons.2
     isplit
     · -- `case <-ctx.Done(): return ctx.Err()`
@@ -83,7 +84,7 @@ theorem node.stepWithWaitOption.wp_proof
       wp_auto
       wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
-      iapply stepErr_ctx $$ Hcerr
+      iapply waitErr_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit
     · ileft
@@ -107,7 +108,7 @@ theorem node.stepWithWaitOption.wp_proof
     wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %rch %γrc ⟨#Hrch, %_, Hoc⟩
     · ipureintro; decide
     ihave Hoc : ownChan γrc GoInterface (.Buffered []) $$ Hoc
-    imod start_handoff rch (fun (_ : GoInterface) => iprop(True)) iprop(True) iprop(True) γrc
+    imod start_handoff rch stepErr iprop(True) iprop(True) γrc
       $$ Hrch Hoc with ⟨%γr, %Hγr, #Hho, Hprod, Hcons⟩
     subst Hγr
     wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
@@ -148,16 +149,30 @@ theorem node.stepWithWaitOption.wp_proof
           icases Hho with ⟨$, -⟩
         iapply handoff_rcv_au γr rch _ _ _ false $$ Hho Hlc1 Hcons
         inext
-        iintro %v %ok -
-        cases v with
-        | nil =>
+        iintro %v %ok ⟨-, Hgot⟩
+        unfold handoffGot
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        cases ok
+        · -- the channel closed without a value: `run` always sends first, but the handoff's
+          -- consumer, which never took the value, is only promised `Wc` (`True`); the zero
+          -- value is `nil`
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hgot with ⟨%Hv, -⟩
+          subst Hv
           wp_auto
           iapply HΦ
           iapply propErr_nil
-        | ok e =>
-          wp_auto
-          iapply HΦ
-          iapply propErr_ok
+        · simp only [↓reduceIte]
+          icases Hgot with ⟨#Hse, -⟩
+          cases v with
+          | nil =>
+            wp_auto
+            iapply HΦ
+            iapply propErr_nil
+          | ok e =>
+            wp_auto
+            iapply HΦ
+            iapply propErr_of_stepErr $$ Hse
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- `case <-ctx.Done(): return ctx.Err()`, the result abandoned

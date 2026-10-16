@@ -365,17 +365,43 @@ def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp⌝ ∗
     isMessage γ.raft (absMsg .propose st.msg st.ents))
 
+/-- `err` is raft's package variable `ErrProposalDropped` (`raft.go`, an `errors.New` error),
+a read-only global the package initializer sets to a non-`nil` error (`isInitialized`,
+`Base.lean`); the shape of `errStopped` (`InvNodeCtx.lean`). -/
+def errProposalDropped (err : GoInterface) : IProp GF :=
+  iprop((globalAddr ErrProposalDropped ↦□ err : IProp GF) ∗ ⌜err ≠ interface.nil⌝)
+
+instance errProposalDropped_persistent (err : GoInterface) :
+    Persistent (errProposalDropped (GF := GF) err) := by
+  unfold errProposalDropped; infer_instance
+
+/-- **The error `run` answers a proposal with** (stage R7c, 2026-10-16): `raft.Step`'s for the
+`MsgProp` (`raft__Step.lean`'s `"Herr"`), `nil` or `ErrProposalDropped` (`stepFollower`'s and
+`stepCandidate`'s drop; `wp_rn_raft_Step_prop`), what the result channel's handoff promises
+(`propP`) and `Propose` returns (`propErr`, `InvNodeCtx.lean`). -/
+def stepErr (err : GoInterface) : IProp GF :=
+  iprop(⌜err = interface.nil⌝ ∨ errProposalDropped err)
+
+instance stepErr_persistent (err : GoInterface) : Persistent (stepErr (GF := GF) err) := by
+  unfold stepErr; infer_instance
+
+theorem stepErr_nil : ⊢ stepErr (GF := GF) interface.nil := by
+  unfold stepErr
+  ileft
+  ipureintro; rfl
+
 /-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned,
 the data read-only and its record (`entData`, 2026-10-10), and its result channel, of
-which `run` is the producer (a `Handoff`: `run` sends the error and closes); or
+which `run` is the producer (a `Handoff`: `run` sends the error, `stepErr`, and closes); or
 (2026-10-10) a proposal forwarded by a peer (`Node.Step`), with no result channel.
 (2026-10-16, stage R5: the message at `pm.m'`, owned (`msgIn`), holding `propMsgM` and the one
-entry `propEntryM d`, D6: the data's bytes `d`.) -/
+entry `propEntryM d`, D6: the data's bytes `d`. Stage R7c: the result channel's value is
+`stepErr`; until then nothing was promised of it.) -/
 def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
   iprop((∃ (d : List w8) (γr : HandoffNames),
     msgIn pm.m' (DFrac.own 1) ⟨propMsgM, [propEntryM d], none, [], []⟩ ∗
     entData γ.raft (propEntryM d) ∗
-    isHandoff γr pm.result' (fun (_ : GoInterface) => iprop(True)) iprop(True) iprop(True) ∗
+    isHandoff γr pm.result' stepErr iprop(True) iprop(True) ∗
     handoffProducer γr false) ∨
     (⌜pm.result' = zero_val GoChan⌝ ∗ fwdP γ pm.m'))
 

@@ -239,10 +239,12 @@ namespace go_etcd_io.etcd.server.v3.etcdserver
 `parseProposeCtxErr`) hold `errors.New` errors (`EtcdGrove.errVarLeaf`): `etcdserver/errors`'
 `ErrTooManyRequests` (the request limit), `ErrRequestTooLarge` (`MaxRequestBytes`),
 `ErrStopped` (the server stopped while a proposal waited), `ErrCanceled`, `ErrTimeout`,
-`ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` (a proposal's context done), and
-`auth.ErrAuthOldRevision` (`doSerialize`'s stale token). An assumption about those packages'
-initialization (each `var X = errors.New(...)`), stated here rather than in their packages'
-facts, as the apply package's `applyErrVars`. And (2026-10-12, the request path's unit 3b) a
+`ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` (a proposal's context done),
+`auth.ErrAuthOldRevision` (`doSerialize`'s stale token), and raft's `ErrProposalDropped` (the
+result raft's `node.Propose` answers a dropped proposal with, `stepErr`; 2026-10-16, stage R7c).
+An assumption about those packages' initialization (each `var X = errors.New(...)`), stated here
+rather than in their packages' facts, as the apply package's `applyErrVars`. And (2026-10-12,
+the request path's unit 3b) a
 method-set fact: `*errors.errorString` (the dynamic type of an `errors.New` error and, in
 Perennial's model, of a `fmt.Errorf` error: `mvcc.errorfIs`) has no `Is`, `As` or `Unwrap`
 method (`EtcdGrove.errLeaf`), as Go's `errors` package defines it (its only method is
@@ -258,6 +260,7 @@ abbrev srvErrVars : IProp GF :=
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision ∗
+    EtcdGrove.errVarLeaf go_etcd_io.raft.v3.ErrProposalDropped ∗
     ⌜∀ x : Loc, EtcdGrove.errLeaf
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩⌝)
 

@@ -8,24 +8,21 @@ take on `raft.Node` and its storage -- `isRaftNodeIfc` (`Ready`, `Advance`, `Tic
 as hypotheses the way a proof file takes its callees' specs; `Results.lean` instantiates them with
 raft's linked `wp_*`. Lean-first (no Rocq counterpart).
 
-What stays a premise (each a persistent predicate below, so that it is visibly the only
-assumption):
-- `rnStopOk`: `Stop` returns. Raft's model never stops (`node.Stop` has no spec; `run`'s stop
-  case is vacuous: D10, "One premise stays").
-- `rnPropErrOk`: the proposal's own result -- the error `run` answers a `Propose` with
-  (`raft.Step`'s for the `MsgProp`: `ErrProposalDropped`, an `errors.New` error) -- is
-  `applyErrIs`. Raft's `propErr cd err` has a bare `⌜err ≠ nil⌝` disjunct for it (`propP`'s
-  handoff promises nothing of the value sent on the result channel, `InvNode.lean`), so the
-  premise is stated over any non-`nil` error. The fix is one change in raft's `InvNode.lean`
-  (R7a's note on `propErr`).
+What stays a premise (a persistent predicate below, so that it is visibly the only
+assumption): `rnStopOk`, `Stop` returns. Raft's model never stops (`node.Stop` has no spec;
+`run`'s stop case is vacuous: D10, "One premise stays").
 
-The other error disjuncts are proved: `nil` (`applyErrIs_nil`), raft's `ErrStopped` (a package
-variable holding an `errors.New` error: the read package's facts, `readInit`'s `errVarLeaf
-go_etcd_io.raft.v3.ErrStopped`), and the context's (`applyErrIs_of_ctxErr`; stage R7c,
-2026-10-16: raft's `ctxErr` carries the value, `Canceled` or `DeadlineExceeded`, from this
-repository's trust-boundary spec `context.ErrDone`, which `node.stepWithWaitOption` takes as a
-callee; until then the premise `rnCtxErrOk`), by the read package's facts again (`errVarLeaf
-context.Canceled`, `ctxDeadlineLeaf`), as `LinearizableReadNotify`'s own `ctx.Err()` is.
+The errors are proved to be ones the gRPC layer takes (`applyErrIs`): `nil` (`applyErrIs_nil`);
+raft's `ErrStopped` (a package variable holding an `errors.New` error: the read package's facts,
+`readInit`'s `errVarLeaf go_etcd_io.raft.v3.ErrStopped`); the context's (`applyErrIs_of_ctxErr`;
+stage R7c, 2026-10-16: raft's `ctxErr` carries the value, `Canceled` or `DeadlineExceeded`, from
+this repository's trust-boundary spec `context.ErrDone`, which `node.stepWithWaitOption` takes as
+a callee; until then the premise `rnCtxErrOk`), by the read package's facts again (`errVarLeaf
+context.Canceled`, `ctxDeadlineLeaf`), as `LinearizableReadNotify`'s own `ctx.Err()` is; and the
+proposal's own result (`applyErrIs_of_stepErr`; stage R7c: raft's `propErr` carries `raft.Step`'s
+error for the proposal, `stepErr`, `nil` or `ErrProposalDropped`, through the result channel's
+handoff `propP`; until then the premise `rnPropErrOk` over any non-`nil` error), by the server's
+package facts (`srvErrVars`' `errVarLeaf go_etcd_io.raft.v3.ErrProposalDropped`).
 -/
 module
 
@@ -64,14 +61,6 @@ def rnStopOk (n : Loc) : IProp GF :=
 
 instance rnStopOk_persistent (n : Loc) : Persistent (rnStopOk (GF := GF) n) := by
   unfold rnStopOk; infer_instance
-
-/-- **A proposal's own result is one the gRPC layer can take** (persistent): what raft's
-`propErr`'s bare non-`nil` disjunct leaves open (see the file header). -/
-def rnPropErrOk : IProp GF :=
-  iprop(□ ∀ err : GoInterface, ⌜err ≠ interface.nil⌝ -∗ applyErrIs err)
-
-instance rnPropErrOk_persistent : Persistent (rnPropErrOk (GF := GF)) := by
-  unfold rnPropErrOk; infer_instance
 
 /-! ## Raft's node, by the wrapper's names -/
 
@@ -145,17 +134,40 @@ theorem applyErrIs_of_nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInt
     iexact Ha
   · iapply applyErrIs_of_ctxErr cd err $$ Hpkg Hcerr
 
+/-- **A proposal's own result is one the gRPC layer can take**: raft's `stepErr` (`nil` or
+`ErrProposalDropped`), by the server's package facts (`srvErrVars`' `errVarLeaf` of raft's
+`ErrProposalDropped`). -/
+theorem applyErrIs_of_stepErr (err : GoInterface) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
+      stepErr err -∗ applyErrIs err := by
+  iintro #Hpkg #Herr
+  iunfold stepErr at Herr
+  icases Herr with (%Hnil | #Hpd)
+  · subst Hnil
+    iapply applyErrIs_nil
+  · ihave Hinit : (srvInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hpkg
+    icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, -, #HPD, -⟩⟩, -⟩
+    iunfold errProposalDropped at Hpd
+    icases Hpd with ⟨#He, %Hne⟩
+    cases err with
+    | nil => exact absurd rfl Hne
+    | ok e =>
+      iapply errVar_applyErrIs _ (GoInterface.ok e) $$ HPD
+      iexists e
+      iframe He
+      ipureintro; rfl
+
 /-- **The error of a proposal** (`propErr`: `nodeErr`, or the proposal's own result), as the
-gRPC layer takes it, under `rnPropErrOk`. -/
+gRPC layer takes it. -/
 theorem applyErrIs_of_propErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      rnPropErrOk -∗ propErr cd err -∗ applyErrIs err := by
-  iintro #Hpkg #Hpe #Herr
+      propErr cd err -∗ applyErrIs err := by
+  iintro #Hpkg #Herr
   iunfold propErr at Herr
-  icases Herr with (#Hn | %Hne)
+  icases Herr with (#Hn | #Hs)
   · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Hn
-  · iunfold rnPropErrOk at Hpe
-    iapply Hpe $$ %err %Hne
+  · iapply applyErrIs_of_stepErr err $$ Hpkg Hs
 
 /-! ## The entries -/
 
@@ -230,10 +242,10 @@ the gRPC layer takes (`applyErrIs_of_propErr`). -/
 theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     (wp_Propose : letI : MemStorReg GF := ⟨γ.reg⟩; node.Propose.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ rnPropErrOk ⊢
+      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) := by
   letI : MemStorReg GF := ⟨γ.reg⟩
-  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hpe⟩
+  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv⟩
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
@@ -289,7 +301,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     | false =>
       simp only [Bool.false_eq_true, ↓reduceIte]
       itrivial
-  · iapply applyErrIs_of_propErr cd err $$ Hpkg Hpe Herr
+  · iapply applyErrIs_of_propErr cd err $$ Hpkg Herr
 
 /-- **The node meets `isRaftNodeIfc`** but for `Stop` (`rnStopOk`, the premise): `Ready` from
 `node.Ready.spec` (`rnReadyP` is raft's `readyP`), `Advance` from `node.Advance.spec` (the

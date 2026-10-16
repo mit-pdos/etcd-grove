@@ -249,16 +249,16 @@ theorem node.run.wp_proof
       ihave #Hm1 := isMessage_propose_from γ.raft propMsgM [propEntryM d] id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         ⟨{ propMsgM with From' := id }, [propEntryM d], none, [], []⟩ rfl rfl
-        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err Hrn
+        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, #Hstep⟩
       ihave %Hrnn := isChan_not_null $$ [Hho]
       · unfold isHandoff
         icases Hho with ⟨$, -⟩
       wp_if_destruct
       · exact absurd Hif Hrnn
-      wp_apply wp_handoff_send (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
+      wp_apply wp_handoff_send (t := go.error) γr pm.result' stepErr
         iprop(True) iprop(True) err $$ [$Hho $Hprod] as Hprod
-      · isplitl <;> itrivial
-      wp_apply wp_handoff_close (t := go.error) γr pm.result' (fun (_ : GoInterface) => iprop(True))
+      · iframe Hstep
+      wp_apply wp_handoff_close (t := go.error) γr pm.result' stepErr
         iprop(True) iprop(True) true $$ [$Hho $Hprod]
       · simp only [↓reduceIte]
         itrivial
@@ -284,7 +284,7 @@ theorem node.run.wp_proof
       ihave #Hm1 := isMessage_propose_from γ.raft st.msg st.ents id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         { st with msg := { st.msg with From' := id } } Hty rfl
-        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err Hrn
+        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, -⟩
       rw [Hres]
       wp_if_destruct
       rotate_left

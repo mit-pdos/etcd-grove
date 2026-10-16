@@ -23,9 +23,9 @@ What the error is (`nodeErr cd err`): `nil` (the message reached `run`), raft's 
 it; the `n.done` case, which the Stop premise keeps from firing), or the context's (`ctxErr cd
 err`: `Canceled` or `DeadlineExceeded`, `ctxErrVal`, with the context done). `Propose`'s (through
 `stepWait`, `stepWithWaitOption` with `wait`) can also be the proposal's own result, which `run`
-sends on the result channel (`raft.Step`'s error for the proposal: `ErrProposalDropped`, ...):
-`propErr cd err`, as `propP`'s handoff (`InvNode.lean`) says nothing of the value sent, so only
-that it is non-`nil` is known.
+sends on the result channel: `raft.Step`'s error for the proposal, `nil` or `ErrProposalDropped`
+(`stepErr err`, `InvNode.lean`, what the result channel's handoff predicate `propP` promises;
+stage R7c, 2026-10-16): `propErr cd err := nodeErr cd err ∨ stepErr err`.
 
 `nodeCtx_background`: `context.Background()` is a `nodeCtx` for any descriptor (`bgCd` a
 canonical one), so the register keeps calling with `Background()`.
@@ -186,11 +186,12 @@ theorem nodeErr_nil (cd : context.ContextDesc (IProp GF)) :
   ipureintro; rfl
 
 /-- **The error of a proposal that waits for its result** (`Propose`, `stepWait`,
-`stepWithWaitOption` with `wait`; see the file header): `nodeErr`, or the result `run` sent, of
-which only that it is non-`nil` is known. -/
+`stepWithWaitOption` with `wait`; see the file header): `nodeErr`, or the result `run` sent,
+`raft.Step`'s error for the proposal (`stepErr`, `InvNode.lean`: `nil` or
+`ErrProposalDropped`). -/
 def propErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     IProp GF :=
-  iprop(nodeErr cd err ∨ ⌜err ≠ interface.nil⌝)
+  iprop(nodeErr cd err ∨ stepErr err)
 
 instance propErr_persistent (cd : context.ContextDesc (IProp GF))
     (err : GoInterface) : Persistent (propErr (GF := GF) cd err) := by
@@ -208,12 +209,13 @@ theorem propErr_nil (cd : context.ContextDesc (IProp GF)) :
   iapply propErr_of_nodeErr
   iapply nodeErr_nil
 
-/-- The proposal's own result, non-`nil` (see the file header). -/
-theorem propErr_ok (cd : context.ContextDesc (IProp GF)) (e : GoInterfaceOk) :
-    ⊢ propErr (GF := GF) cd (GoInterface.ok e) := by
+/-- The proposal's own result (see the file header). -/
+theorem propErr_of_stepErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    stepErr (GF := GF) err ⊢ propErr cd err := by
   unfold propErr
+  iintro H
   iright
-  ipureintro; intro h; cases h
+  iexact H
 
 theorem nodeErr_ctx (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     ctxErr (GF := GF) cd err ⊢ nodeErr cd err := by
@@ -223,7 +225,7 @@ theorem nodeErr_ctx (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
   iexact H
 
 /-- `stepWithWaitOption`'s error (`propErr` with `wait`, `nodeErr` otherwise): `nil`. -/
-theorem stepErr_nil (cd : context.ContextDesc (IProp GF)) (wait : Bool) :
+theorem waitErr_nil (cd : context.ContextDesc (IProp GF)) (wait : Bool) :
     ⊢ (if wait then propErr (GF := GF) cd interface.nil else nodeErr cd interface.nil) := by
   cases wait
   · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -232,7 +234,7 @@ theorem stepErr_nil (cd : context.ContextDesc (IProp GF)) (wait : Bool) :
     iapply propErr_nil
 
 /-- `stepWithWaitOption`'s error: the context's. -/
-theorem stepErr_ctx (cd : context.ContextDesc (IProp GF)) (err : GoInterface) (wait : Bool) :
+theorem waitErr_ctx (cd : context.ContextDesc (IProp GF)) (err : GoInterface) (wait : Bool) :
     ctxErr (GF := GF) cd err ⊢ (if wait then propErr cd err else nodeErr cd err) := by
   iintro H
   cases wait

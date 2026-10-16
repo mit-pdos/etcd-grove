@@ -43,9 +43,9 @@ and `read_raft` (`isReadRaft` for its `raftNode`); `wait_time` (`pkg/wait`'s `*t
 from raft's linked `node.wp_*`; `Stop` the premise `rnStopOk`), `node_contract_propose`
 (`raftPropose` from `node.wp_Propose`) and `node_contract_memstor` (`isRNMemStor` from raft's
 `memStorage_Append`), over the wrapper's names (`rnEnvOk`, raft's `isNode`, the commit invariant
-and the committed index's) and the error fact raft's specs leave open (`NodeBridge.lean`:
-`rnPropErrOk`, a proposal's own result, is `applyErrIs`; a done context's, `rnCtxErrOk` until
-stage R7c, is raft's `ctxErr` now).
+and the committed index's); the errors are raft's (`NodeBridge.lean`; the two error facts
+`rnCtxErrOk`, a done context's, and `rnPropErrOk`, a proposal's own result, were premises until
+stage R7c).
 -/
 module
 
@@ -228,12 +228,13 @@ theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) :
     node.wp_ReadIndex
 
 /-- **The node meets the request path's `raftPropose`** (stage R7b, D10): from raft's linked
-`node.wp_Propose` (`raftPropose_of_isNode`), over `rnEnvOk`, `rnIsNode`, `srvRaftLogInv`, and the
-error fact `rnPropErrOk` (the proposal's own result, which raft's `propErr` leaves a bare
-non-`nil` error; the context's is raft's since stage R7c). -/
+`node.wp_Propose` (`raftPropose_of_isNode`), over `rnEnvOk`, `rnIsNode` and `srvRaftLogInv`. The
+errors are raft's since stage R7c (`propErr`: `nil`, `ErrStopped`, the context's `Canceled` or
+`DeadlineExceeded`, the proposal's `ErrProposalDropped`), each one the gRPC layer takes
+(`applyErrIs_of_propErr`, by the server's and the read package's facts). -/
 theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ rnPropErrOk ⊢
+      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) :=
   letI : MemStorReg GF := ⟨γ.reg⟩
   raftPropose_of_isNode E γ node.wp_Propose
