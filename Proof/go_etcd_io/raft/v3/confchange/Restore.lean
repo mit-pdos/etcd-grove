@@ -457,7 +457,7 @@ theorem confchange.Restore.wp_proof
     (wp_confchange_chain : confchange.chain.spec (GF := GF) (hG := hG))
     (wp_ConfState_GetAutoLeave : raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG)) :
     confchange.Restore.spec (GF := GF) (hG := hG) := by
-  intro chg cs c dq v0 s' Hvne Hm Hmi Harr Hl Hln Hal
+  intro chg cs c dq v0 s' Hm Hmi Harr Hl Hln Hal
   wp_start as ⟨Hcs, Hv0, #Hpm⟩
   wp_auto
   wp_apply wp_confchange_toConfChangeSingle cs c dq $$ [$Hcs]
@@ -476,11 +476,6 @@ theorem confchange.Restore.wp_proof
         (cfgState ∅ ∅) = some s' := by
       rw [Hvo] at Hm ⊢
       unfold restoreM restoreSimpleOps at Hm; simpa using Hm
-    have hpos : 0 < (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').length := by
-      rw [restoreInCC]
-      simp only [List.length_append, List.length_map]
-      have := Nat.pos_of_ne_zero (fun h => Hvne (List.eq_nil_of_length_eq_zero h))
-      omega
     ihave HI0 : restoreInv chg v0 (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') s' 0 chg.Tracker'.Config' chg.Tracker'.Progress' $$ [Hv0]
     · unfold restoreInv
       iframe Hv0
@@ -577,18 +572,34 @@ theorem confchange.Restore.wp_proof
     wp_apply wp_confchange_chain chg ops' fs _ (restoreInv chg v0 (restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext') s')
         $$ [$Hops $HI0 $Hfs] as %cfg %prs ⟨Hops, HI⟩
     unfold restoreInv
-    icases HI with ⟨Hv0, (⟨%Hj0, -, -⟩ | ⟨%Hpos, %s, %HR, Hst⟩)⟩
-    · exfalso; rw [Hn.2.2, Hn'] at Hj0; omega
+    icases HI with ⟨Hv0, (⟨%Hj0, %Hc1, %Hc2⟩ | ⟨%Hpos, %s, %HR, Hst⟩)⟩
+    · -- no op (no voter, no learner: a new cluster's conf state, 2026-10-16, stage R8b): the
+      -- tracker's own maps come back
+      have Hnil : restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' = [] := by
+        rw [Hn.2.2, Hn'] at Hj0; exact List.eq_nil_of_length_eq_zero Hj0
+      iapply HΦ $$ %cfg %prs %(∅ : GMap w64 Loc)
+      iframe Hcs Hv0 Hpm
+      ileft
+      ipureintro
+      refine ⟨?_, Hc1, Hc2, rfl⟩
+      rw [Hvo] at Hnil
+      unfold restoreSimpleOps; rw [ite_eq_left Hvo]; exact Hnil
     have e : s = s' := by
       rcases HR with ⟨-, h⟩ | ⟨h, -⟩
       · rw [Hn.2.2, Hn', List.take_length, Hfull] at h; exact (Option.some.inj h).symm
       · rw [Hn.2.2, Hn'] at h; omega
     subst e
+    have Hne : restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' ≠ [] := by
+      intro h; rw [Hn.2.2, Hn', h] at Hpos; simp at Hpos
+    rw [Hvo] at Hne
     icases ownCCSt_post cfg prs s $$ Hst with ⟨%prsm, Hc, Hprsm, %Hdom, Hprogs⟩
     iapply HΦ
-    iframe
-    iframe Hpm
-    ipureintro; exact Hdom
+    iframe Hcs Hv0 Hpm
+    iright
+    iframe Hc Hprsm Hprogs
+    ipureintro
+    refine ⟨?_, Hdom⟩
+    unfold restoreSimpleOps; rw [ite_eq_left Hvo]; exact Hne
   · -- joint: one `Simple(AddNode)` per outgoing voter, then `EnterJoint(cs.GetAutoLeave(), in...)`
     have Hvo : c.VotersOutgoing' ≠ [] := by
       intro h; apply Hif
@@ -756,9 +767,13 @@ theorem confchange.Restore.wp_proof
     subst e
     icases ownCCSt_post cfg prs s $$ Hst with ⟨%prsm, Hc, Hprsm, %Hdom, Hprogs⟩
     iapply HΦ
-    iframe
-    iframe Hpm
-    ipureintro; exact Hdom
+    iframe Hcs Hv0 Hpm
+    iright
+    iframe Hc Hprsm Hprogs
+    ipureintro
+    refine ⟨?_, Hdom⟩
+    unfold restoreSimpleOps; rw [ite_eq_right Hvo]
+    intro h; rw [h] at hpos; simp at hpos
 
 end proof
 

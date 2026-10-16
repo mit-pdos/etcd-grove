@@ -43,6 +43,77 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- A set's domain (`domSet`) of the empty map. -/
+theorem domSet_empty_loc : domSet (∅ : GMap w64 Loc) = ∅ := by
+  apply GMap.map_eq; intro k; rfl
+
+/-- `confchange.Restore` on the empty tracker `MakeProgressTracker` built, for a voters-only
+conf state -- possibly with **no** voter (2026-10-16, stage R8b: a new cluster's, before
+`RawNode.Bootstrap` installs the peers): the configuration `switchToConfig` takes (`ownConfig` at
+the voters): fresh maps when there is a voter (`spec_simple`), the tracker's own `v0` and
+(read-only) progress map when there is none (`spec_empty`: no op runs). -/
+theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
+    (chg : confchange.Changer) (cs : Loc) (c : ConfStateM) (dq : DFrac) (v0 : Loc)
+    (Hvnd : c.Voters'.Nodup) (Hv0n : W64 0 ∉ c.Voters') (Hvlen : (c.Voters'.length : Int) ≤ 2 ^ 62)
+    (Hcvo : c.VotersOutgoing' = []) (Hcl : c.Learners' = []) (Hcln : c.LearnersNext' = [])
+    (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
+    (Harr : chg.Tracker'.Config'.Voters'.arr = [v0, map.nil])
+    (Hl : chg.Tracker'.Config'.Learners' = map.nil)
+    (Hln : chg.Tracker'.Config'.LearnersNext' = map.nil)
+    (Hal : chg.Tracker'.Config'.AutoLeave' = false) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
+        ownCSM cs dq c ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
+        chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
+      (App (App (Val #(functions confchange.Restore [])) (Val #chg)) (Val #cs))
+    {{ (cfgv : tracker.Config) (prsm : Loc), RET (PairV (PairV #cfgv #prsm) #interface.nil);
+        |==> (ownCSM cs dq c ∗
+          ∃ prs : GMap w64 Loc, ownConfig (GMap.listToSet c.Voters') cfgv prsm prs ∗
+            ⌜domSet prs = GMap.listToSet c.Voters'⌝) }} := by
+  iintro %Φ ⟨#Hpkg, Hcs, Hv0, #Hpm⟩ HΦ
+  have Hcsz : (GMap.size (GMap.listToSet c.Voters') : Int) ≤ 2 ^ 62 := by
+    rw [GMap.size_list_to_set _ Hvnd]; exact Hvlen
+  by_cases Hvne : c.Voters' = []
+  · -- no voter: no op, the tracker's own maps
+    wp_apply (confchange.Restore.spec_empty H) chg cs c dq v0 Hvne Hcvo Hcl Hcln Hmi Harr Hl Hln Hal
+      $$ [$Hcs $Hv0 $Hpm] as %cfgv %prsm ⟨%Hcp, Hcs, Hv0, -⟩
+    obtain ⟨Hcfgv, Hprsm⟩ := Hcp
+    subst Hcfgv Hprsm
+    iapply HΦ
+    imodintro
+    iframe Hcs
+    iexists ∅
+    have Hv0' : GMap.listToSet c.Voters' = ∅ := by rw [Hvne]; rfl
+    rw [Hv0']
+    isplitl [Hv0]
+    · iapply ownConfig_restore ∅ ∅ chg.Tracker'.Config' chg.Tracker'.Progress' ∅ v0 ∅ Harr Hln Hal
+        (domSet_gset _) (by rw [GMap.map_union_empty]; exact domSet_empty_loc)
+        (fun k hk => absurd hk (GMap.not_elem_of_empty _))
+        (by rw [GMap.map_union_empty, GMap.size_empty]; decide)
+        $$ Hv0 [] Hpm []
+      · rw [Hl]; iapply ownIdsetC_nil
+      · iapply BigSepM.bigSepM_empty.2; iempintro
+    · ipureintro; exact domSet_empty_loc
+  · -- a voter: fresh maps
+    wp_apply (confchange.Restore.spec_simple H) chg cs c dq v0 Hvne Hv0n (by rw [Hcl]; exact List.not_mem_nil)
+      (by rw [Hcl]; intro k hk; cases hk) Hcvo Hcln Hmi Harr Hl Hln Hal
+      $$ [$Hcs $Hv0 $Hpm]
+      as %cfgv %prsm %prs %vref %vm ⟨Hcs, -, -, %Hcfgv, Hlm, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
+    obtain ⟨Hcfgarr, Hcfgln, Hcfgal⟩ := Hcfgv
+    have Hprs' : domSet prs = GMap.listToSet c.Voters' := by
+      rw [Hprs, Hcl]; exact GMap.map_union_empty _
+    iapply HΦ
+    ipersist Hprsm
+    imodintro
+    iframe Hcs
+    iexists prs
+    isplitl [Hvref Hlm Hprogs]
+    · iapply ownConfig_restore (GMap.listToSet c.Voters') (GMap.listToSet c.Learners') cfgv prsm prs
+        vref vm Hcfgarr Hcfgln Hcfgal Hvm Hprs
+        (fun k hk => by rw [Hcl] at hk; exact absurd hk (GMap.not_elem_of_empty _))
+        (by rw [Hcl, show GMap.listToSet ([] : List w64) = ∅ from rfl, GMap.map_union_empty]; exact Hcsz)
+        $$ Hvref Hlm Hprsm Hprogs
+    · ipureintro; exact Hprs'
+
 theorem newRaft.wp_proof
     (wp_Config_validate : Config.validate.spec (GF := GF) (hG := hG))
     (wp_newLogWithSize : newLogWithSize.spec (GF := GF) (hG := hG))
@@ -61,11 +132,10 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
-  have wp_confchange_Restore := confchange.Restore.spec_simple wp_confchange_Restore
   intro c cv lok si σ hs csm
-    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
+    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
-  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
+  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
@@ -98,13 +168,13 @@ theorem newRaft.wp_proof
     rw [Htv0mi, HpMI]; omega
   ipersist Hprs0
   ihave Hcsw := csPts_weaken $$ Hcs
-  wp_apply wp_confchange_Restore ⟨tv0, lastID.index'⟩ cs csm DFrac.discard v0 Hvne Hv0
-    (by simp [Hcs2]) (by simp [Hcs2]) Hcs1 Hcs3 Hmi Htv0arr Htv0l Htv0ln Htv0al
+  -- `confchange.Restore` on the empty tracker: the configuration `switchToConfig` installs
+  -- (fresh maps, or with no voter the tracker's own: `wp_Restore_voters`, 2026-10-16, stage R8b)
+  wp_apply wp_Restore_voters wp_confchange_Restore ⟨tv0, lastID.index'⟩ cs csm DFrac.discard v0
+    Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hmi Htv0arr Htv0l Htv0ln Htv0al
     $$ [$Hcsw $Hv0 $Hprs0]
-    as %cfgv %prsm %prs %vref %vm ⟨-, Hv0, -, %Hcfgv, Hlm, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
-  obtain ⟨Hcfgarr, Hcfgln, Hcfgal⟩ := Hcfgv
-  have Hprs' : domSet prs = GMap.listToSet csm.Voters' := by
-    rw [Hprs, Hcs2]; exact GMap.map_union_empty _
+    as %cfgv %prsm Hres
+  imod Hres with ⟨-, %prs, Hcfg, %Hprs'⟩
   -- the struct, over the empty configuration: its tracker is the empty
   -- one `MakeProgressTracker` built, and its log is at the state
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
@@ -113,7 +183,6 @@ theorem newRaft.wp_proof
     W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote', {}, {}, W64 0, W64 0, false, cv'.StepDownOnRemoval'⟩
-  ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
   · unfold ownRaftMisc
     simp only [named]
@@ -141,23 +210,18 @@ theorem newRaft.wp_proof
   ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
   ihave Hob := outboxRel_nil (GF := GF)
   imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
-  ihave Hphys := ownRaftPhys_intro ∅ «$r0_ptr» cv.ID' s0 _ [] [] lok
+  -- the struct, left open at its tracker (`ownRaftPhys_intro_trk`, 2026-10-16, stage R8b: the
+  -- empty tracker's own maps may be what `switchToConfig` installs, so they cannot also seal the
+  -- struct first); `switchToConfig` installs the configuration and seals it
+  icases ownRaftPhys_intro_trk (GMap.listToSet csm.Voters') «$r0_ptr» cv.ID' s0 _ [] [] lok
     HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s0]; decide)⟩ (by rw [HpDPF, Hdpf]) (by rw [HpDCC, Hdccv]) (by rw [HpCQ, Hcq]) rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
-    (fun h => absurd rfl h) (PrvalsOk.not_leader (by simp only [s0]; decide))
-    $$ «$r0» Hlg0 Htrk0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob
-  -- the configuration `Restore` built, as `switchToConfig` installs it
-  ipersist Hprsm
-  have Hcsz : (GMap.size (GMap.listToSet csm.Voters') : Int) ≤ 2 ^ 62 := by
-    rw [GMap.size_list_to_set _ Hvnd]; exact Hvlen62
-  ihave Hcfg := ownConfig_restore (GF := GF) (GMap.listToSet csm.Voters') (GMap.listToSet csm.Learners') cfgv
-    prsm prs vref vm Hcfgarr Hcfgln Hcfgal Hvm Hprs
-    (fun k hk => by rw [Hcs2] at hk; exact absurd hk (GMap.not_elem_of_empty _))
-    (by rw [Hcs2, show GMap.listToSet ([] : List w64) = ∅ from rfl, GMap.map_union_empty]; exact Hcsz)
-    $$ Hvref Hlm Hprsm Hprogs
-  wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ s0 cfgv prsm prs (by simp only [s0]) Hprs' $$ [$Hphys $Hcfg]
+    (fun h => absurd rfl h)
+    $$ «$r0» Hlg0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob with ⟨Htrkf, Hback⟩
+  wp_apply (raft.switchToConfig.spec_nonleader_open wp_raft_switchToConfig) _ _ _ s0 tv0 cfgv prsm prs
+    (by simp only [s0]) Hprs' Hmi $$ [$Htrkf $Hback $Hvotes $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2⟩
   have Hpermv : csm.Voters' ≡ₚ xs2 := by
     refine List.Perm.trans ?_ Hxs2.symm

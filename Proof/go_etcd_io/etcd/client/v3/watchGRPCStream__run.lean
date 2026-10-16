@@ -595,8 +595,7 @@ theorem M_entry_facts (V : WEnv GF) (γs : StreamNames) {S : RunSt} {U : GMap Lo
     | orphan => exact absurd hM (Hph.1 X)
     | reg Y =>
       have := hg.2.1 X Y ws hM Hph.1; subst this; exact ⟨Hph.2.2.2.1, Hph.2.2.2.2.1⟩
-    | closedRun Y =>
-      have := hg.2.1 X Y ws hM Hph.1; subst this; exact ⟨Hph.2.2.2.1, Hph.2.2.2.2.1⟩
+    | closedRun Y => exact absurd hM (Hph.1.2.1 X)
   isplitr
   · ipureintro; exact Hf
   iapply (BigSepM.bigSepM_delete hU).2
@@ -2028,10 +2027,7 @@ theorem watchGRPCStream.run.wp_proof
               cases ph with
               | queued si => exact absurd hMX (Hph.1 X)
               | orphan => exact absurd hMX (Hph.1 X)
-              | closedRun Y =>
-                have hY : Y = X := HgOk.2.1 Y X P.ws Hph.1 hMX
-                subst hY
-                exact absurd (Hph.2.2.2.2.2.2 i HLi) Hia
+              | closedRun Y => exact absurd hMX (Hph.1.2.1 X)
               | reg Y =>
                 have hY : Y = X := HgOk.2.1 Y X P.ws Hph.1 hMX
                 rw [hY]
@@ -2049,6 +2045,7 @@ theorem watchGRPCStream.run.wp_proof
             · iframe Hrecvc Hprod
             wp_pures
             wp_apply wp_mapInsert $$ Hclm as Hclm
+            wp_apply wp_mapDelete $$ Hm as Hm
             ihave Hels := BigSepM.bigSepM_impl
                 (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.cancelAns m i X (some P.ws)) ws)
                 $$ Hels []
@@ -2084,7 +2081,7 @@ theorem watchGRPCStream.run.wp_proof
             have e3 : (S.cancelAns m i X (some P.ws)).ansd = S.ansd ++ [i] := rfl
             have e4 : (S.cancelAns m i X (some P.ws)).regs = S.regs := rfl
             have e5 : (S.cancelAns m i X (some P.ws)).CS = GMap.delete X S.CS := rfl
-            have e6 : (S.cancelAns m i X (some P.ws)).M = S.M := rfl
+            have e6 : (S.cancelAns m i X (some P.ws)).M = GMap.delete X S.M := rfl
             have e7 : (S.cancelAns m i X (some P.ws)).CL = GMap.insert P.ws () S.CL := rfl
             have e8 : (S.cancelAns m i X (some P.ws)).l = S.l := rfl
             rw [e1, e2, e3, e4, e5, e6, e7, e8]
@@ -2275,7 +2272,11 @@ theorem watchGRPCStream.run.wp_proof
               iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
                 (fun ph' h => Hph2 ws' ph' h
                   (fun X' e => by
-                    subst e; intro eX; subst eX; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1; cases h1)
+                    subst e; intro eX; subst eX
+                    apply h.2.2.2.2.2.1
+                    simp only [client.RunSt.recvMvcc]
+                    rw [client.idLive_snoc, if_neg (fun hc => by rw [hsrc] at hc; cases hc.1)]
+                    exact hlive)
                   (fun e => by subst e; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1; cases h1))) $$ Hw'
             unfold client.runCore
             iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
@@ -2322,7 +2323,11 @@ theorem watchGRPCStream.run.wp_proof
               iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
                 (fun ph' h => Hph2 ws' ph' h
                   (fun X' e => by
-                    subst e; intro eX; subst eX; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1; cases h1)
+                    subst e; intro eX; subst eX
+                    apply h.2.2.2.2.2.1
+                    simp only [client.RunSt.recvMvcc]
+                    rw [client.idLive_snoc, if_neg (fun hc => by rw [hsrc] at hc; cases hc.1)]
+                    exact hlive)
                   (fun e => by subst e; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1; cases h1))) $$ Hw'
             unfold client.runCore
             iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
@@ -2361,9 +2366,7 @@ theorem watchGRPCStream.run.wp_proof
           cases ph with
           | queued si => exact absurd hMX (Hph.1 ρ.id)
           | orphan => exact absurd hMX (Hph.1 ρ.id)
-          | closedRun X =>
-            have hX : X = ρ.id := HgOk.2.1 X ρ.id P.ws Hph.1 hMX
-            subst hX; exact absurd hlive Hph.2.2.2.2.2.1
+          | closedRun X => exact absurd hMX (Hph.1.2.1 ρ.id)
           | reg X =>
             have hX : X = ρ.id := HgOk.2.1 X ρ.id P.ws Hph.1 hMX
             rw [hX]
@@ -2790,6 +2793,8 @@ theorem watchGRPCStream.run.wp_proof
           | orphan => exact absurd rfl hid
         have hM1 : (S.closeWs P.ws ph.id).M !! ph.id = none := by
           unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
+        have hC1 : (S.closeWs P.ws ph.id).CI !! ph.id = none := by
+          unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
         obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.closeWs P.ws ph.id) (U := GMap.delete P.ws U)
           Hg' hXr HL'
         ihave Hels := BigSepM.bigSepM_impl
@@ -2800,7 +2805,7 @@ theorem watchGRPCStream.run.wp_proof
             (S' := (S.closeWs P.ws ph.id).sentCancel ph.id L') ws' rfl
             (fun ph' h => Hph2 ws' ph' h
               (fun X' e => by
-                subst e; intro eX; subst eX; have h1 := h.1; rw [hM1] at h1; cases h1)
+                subst e; intro eX; subst eX; have h1 := h.1.2.2; rw [hC1] at h1; cases h1)
               (fun e => by subst e; have h1 := h.1; rw [hM1] at h1; cases h1))) $$ Hw'
         unfold client.runCore
         iexists (S.closeWs P.ws ph.id).sentCancel ph.id L', GMap.delete P.ws U, rcv, mref, s, e
@@ -2840,6 +2845,8 @@ theorem watchGRPCStream.run.wp_proof
           | orphan => exact absurd rfl hid
         have hM1 : (S.closeWs P.ws ph.id).M !! ph.id = none := by
           unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
+        have hC1 : (S.closeWs P.ws ph.id).CI !! ph.id = none := by
+          unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
         obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.closeWs P.ws ph.id) (U := GMap.delete P.ws U)
           Hg' hXr HL'
         ihave Hels := BigSepM.bigSepM_impl
@@ -2850,7 +2857,7 @@ theorem watchGRPCStream.run.wp_proof
             (S' := (S.closeWs P.ws ph.id).sentCancel ph.id L') ws' rfl
             (fun ph' h => Hph2 ws' ph' h
               (fun X' e => by
-                subst e; intro eX; subst eX; have h1 := h.1; rw [hM1] at h1; cases h1)
+                subst e; intro eX; subst eX; have h1 := h.1.2.2; rw [hC1] at h1; cases h1)
               (fun e => by subst e; have h1 := h.1; rw [hM1] at h1; cases h1))) $$ Hw'
         unfold client.runCore
         iexists (S.closeWs P.ws ph.id).sentCancel ph.id L', GMap.delete P.ws U, rcv, mref, s, e

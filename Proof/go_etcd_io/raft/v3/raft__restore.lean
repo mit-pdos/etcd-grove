@@ -505,9 +505,12 @@ theorem raft.restore.wp_proof
     have Hinv := restoreM_cfgInv Hrm
     ihave HcB := csPts_weaken $$ Hcf
     wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } pc sv.Metadata'.ConfState'
-        _ v0 _ Hvne Hrm Hmi0 Htv0arr Htv0l Htv0ln Htv0al
+        _ v0 _ Hrm Hmi0 Htv0arr Htv0l Htv0ln Htv0al
         $$ [$HcB $Hv0 $Hprs0]
-      as %cfgv %prsm %prs ⟨HcB, Hv0, -, Hcfg, Hprsm, %Hprs, Hprogs⟩
+      as %cfgv %prsm %prs ⟨HcB, Hv0, -, Hres⟩
+    -- a voter, so an op ran: the fresh maps (2026-10-16, stage R8b)
+    icases Hres with (⟨%Hops, -⟩ | ⟨-, Hcfg, Hprsm, %Hprs, Hprogs⟩)
+    · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne Hops
     -- the configuration `Restore` built, as `switchToConfig` takes it
     ipersist Hprsm
     have Hsz' : (GMap.size prs : Int) ≤ 2 ^ 62 :=

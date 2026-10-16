@@ -36,10 +36,11 @@ well-formed `ConfState` the answer is the configuration it denotes (`restoreM_wf
 `cfgStateC (csCfgM ...)`).
 
 Premises: the model answers (`restoreM ... = some s'`: no `Changer` error, which raft's callers
-`panic` on); at least one voter (with none and no outgoing voter there is no op, and `chain`
-returns the tracker's own maps, which the premise owns: see `spec` below; with outgoing voters
-but no voter `EnterJoint` errs anyway); the empty tracker `MakeProgressTracker` builds, as in
-`spec`.
+`panic` on); the empty tracker `MakeProgressTracker` builds, as in `specS`. (Until 2026-10-16,
+stage R8b, also at least one voter: with none and no outgoing voter there is no op, and `chain`
+returns the tracker's own maps, which the premise owns -- the result's first arm now, what a new
+cluster's `newRaft` meets before `RawNode.Bootstrap` installs the peers, `specE`; with outgoing
+voters but no voter `EnterJoint` errs anyway.)
 
 Result: the configuration as `ownCfgCC` at `s'.cfg` (the incoming voter map owned, the other
 three sets canonical, `AutoLeave`), the progress map with domain `s'.prs`'s, each `Progress`
@@ -52,7 +53,6 @@ given back), its lists `c.Voters'`, `c.Learners'`, `c.VotersOutgoing'`, `c.Learn
 abbrev confchange.Restore.spec : Prop :=
   ∀ (chg : confchange.Changer) (cs : Loc) (c : ConfStateM) (dq : DFrac) (v0 : Loc)
     (s' : CCState),
-  c.Voters' ≠ [] →
   restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' = some s' →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   -- the empty configuration
@@ -70,9 +70,79 @@ abbrev confchange.Restore.spec : Prop :=
       ownCSM cs dq c ∗
       v0 ↦$ (∅ : GMap w64 Unit) ∗
       chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
-      ownCfgCC cfgv (DFrac.own 1) s'.cfg ∗
-      prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
-      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜s'.prs !! k = some p.learner⌝) }}
+      -- (2026-10-16, stage R8b) no op (a new cluster's empty conf state): the tracker's own maps
+      -- come back, the premise's; else the fresh ones `chain` built
+      ((⌜restoreSimpleOps c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' = [] ∧
+          cfgv = chg.Tracker'.Config' ∧ prsm = chg.Tracker'.Progress' ∧ prs = ∅⌝) ∨
+       (⌜restoreSimpleOps c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' ≠ []⌝ ∗
+        ownCfgCC cfgv (DFrac.own 1) s'.cfg ∗
+        prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
+        ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜s'.prs !! k = some p.learner⌝))) }}
+
+/-- `Restore` runs an op exactly when the conf state has a voter or an outgoing voter (2026-10-16,
+stage R8b): with a voter, `restoreInCC` (not joint) holds its `AddNode`, `restoreOutCC` (joint)
+the outgoing voters'. -/
+theorem restoreSimpleOps_ne_nil_of_voters (vo v l ln : List w64) (hv : v ≠ []) :
+    restoreSimpleOps vo v l ln ≠ [] := by
+  unfold restoreSimpleOps
+  split
+  · intro h
+    unfold restoreInCC at h
+    simp only [List.append_eq_nil_iff, List.map_eq_nil_iff] at h
+    exact hv h.1.1.2
+  · intro h
+    unfold restoreOutCC at h
+    simp only [List.map_eq_nil_iff] at h
+    exact ‹¬ vo = []› h
+
+/-- No voter, no outgoing voter, no learner: no op. -/
+theorem restoreSimpleOps_nil (vo v l ln : List w64) (hvo : vo = []) (hv : v = []) (hl : l = [])
+    (hln : ln = []) : restoreSimpleOps vo v l ln = [] := by
+  subst hvo hv hl hln; rfl
+
+/-- `confchange.Restore chg cs` on an **empty** conf state (2026-10-16, stage R8b, D12: a new
+cluster's, which `newRaft` reads before `RawNode.Bootstrap` installs the peers): no op runs, and
+`chain` returns the tracker's own configuration and progress map -- the premise's resources,
+unchanged. Derived from `spec`'s no-op arm. -/
+abbrev confchange.Restore.specE : Prop :=
+  ∀ (chg : confchange.Changer) (cs : Loc) (c : ConfStateM) (dq : DFrac) (v0 : Loc),
+  c.Voters' = [] →
+  c.VotersOutgoing' = [] →
+  c.Learners' = [] →
+  c.LearnersNext' = [] →
+  (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  -- the empty configuration
+  chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
+  chg.Tracker'.Config'.Learners' = map.nil →
+  chg.Tracker'.Config'.LearnersNext' = map.nil →
+  chg.Tracker'.Config'.AutoLeave' = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
+      ownCSM cs dq c ∗
+      v0 ↦$ (∅ : GMap w64 Unit) ∗
+      chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
+    (App (App (Val #(functions confchange.Restore [])) (Val #chg)) (Val #cs))
+  {{ (cfgv : tracker.Config) (prsm : Loc),
+      RET (PairV (PairV #cfgv #prsm) #interface.nil);
+      ⌜cfgv = chg.Tracker'.Config' ∧ prsm = chg.Tracker'.Progress'⌝ ∗
+      ownCSM cs dq c ∗
+      v0 ↦$ (∅ : GMap w64 Unit) ∗
+      chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
+
+/-- The empty conf state's statement from the general one: no op, so `spec`'s first arm. -/
+theorem confchange.Restore.spec_empty (H : confchange.Restore.spec (GF := GF) (hG := hG)) :
+    confchange.Restore.specE (GF := GF) (hG := hG) := by
+  intro chg cs c dq v0 Hv Hvo Hl Hln Hmi Harr Hlm Hlnm Hal
+  iintro %Φ ⟨#Hpkg, Hcs, Hv0, #Hpm⟩ HΦ
+  have Hm : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
+      some (cfgState ∅ ∅) := by
+    rw [Hvo, Hv, Hl, Hln]; rfl
+  iapply H chg cs c dq v0 _ Hm Hmi Harr Hlm Hlnm Hal $$ [$Hpkg $Hcs $Hv0 $Hpm]
+  inext
+  iintro %cfgv %prsm %prs ⟨Hcs, Hv0, -, (⟨-, %Hc1, %Hc2, -⟩ | ⟨%Hops, -⟩)⟩
+  · iapply HΦ
+    iframe Hcs Hv0 Hpm
+    ipureintro; exact ⟨Hc1, Hc2⟩
+  · exfalso; exact Hops (restoreSimpleOps_nil _ _ _ _ Hvo Hv Hl Hln)
 
 /-- `confchange.Restore chg cs` replays a `ConfState` onto the empty configuration
 `chg.Tracker` and returns the resulting `Config` and `ProgressMap`.
@@ -166,9 +236,10 @@ theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (
     exact simpleFold_restoreIn c.Voters' c.Learners' Hvne
       (fun x hx => hx.elim (fun h e => Hv0n (e ▸ h)) (fun h e => Hl0n (e ▸ h)))
       (fun x hx => Hdis x hx)
-  iapply H chg cs c dq v0 _ Hvne Hm Hmi Harr Hl Hln Hal $$ [$Hpkg $Hcs $Hv0 $Hpm]
+  iapply H chg cs c dq v0 _ Hm Hmi Harr Hl Hln Hal $$ [$Hpkg $Hcs $Hv0 $Hpm]
   inext
-  iintro %cfgv %prsm %prs ⟨Hcs, Hv0, -, Hc, Hprsm, %Hdom, Hprogs⟩
+  iintro %cfgv %prsm %prs ⟨Hcs, Hv0, -, (⟨%Hops, -⟩ | ⟨-, Hc, Hprsm, %Hdom, Hprogs⟩)⟩
+  · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne Hops
   icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr1, Hin, Hout, Hl1, Hln1, %Hal1⟩
   icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.outgoing rfl $$ Hout with %Hvout
   icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.learnersNext rfl $$ Hln1 with %Hln1'

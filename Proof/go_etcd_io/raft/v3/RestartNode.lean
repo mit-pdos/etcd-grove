@@ -22,10 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `NewRawNode`, `newNode`, then the node's ghost state: the channels' hand-shakes (with
-`P := False` on those nobody sends on), the tick channel's invariant (no credit yet),
-`dlv` and `rof`; `run` takes its halves. (Raft v3.7, stage R5: `NewRawNode`'s premises over the
-conf state's record `csm` and D7's `InitialState`; no proposed slices' invariant (D6).) -/
+/-- `NewRawNode` (its result the node open, `rawNodeFresh`, closed here with the ghost state in
+the mode `md`: 2026-10-16, stage R8b; until then `NewRawNode` closed it), `newNode`, then the
+node's ghost state: the channels' hand-shakes (with `P := False` on those nobody sends on), the
+tick channel's invariant (no credit yet), `dlv` and `rof`; `run` takes its halves. (Raft v3.7,
+stage R5: `NewRawNode`'s premises over the conf state's record `csm` and D7's `InitialState`; no
+proposed slices' invariant (D6).) -/
 theorem RestartNode.wp_proof
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
@@ -46,11 +48,87 @@ theorem RestartNode.wp_proof
       icases Hg with ⟨Hg, -⟩
       iapply ownRaftGhost_inv_md $$ Hg
   wp_auto
-  wp_apply wp_NewRawNode γ md c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P10 P11 P12 P13 P14 P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
-    $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hghost $Hcommitted] as %rn %err H
-  iNamed H
+  wp_apply wp_NewRawNode c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9
+    P10 P11 P12 P13 P14 P15 P16 P17 P19 P20 P21 P22 P23 P24 P25
+    $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
   subst Herr
+  -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
+  -- leaves it open, `rawNodeFresh`)
+  iunfold rawNodeFresh at Hfresh
+  icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
+  iNamed Hfresh
+  obtain ⟨Hp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg⟩ := Hlog
+  obtain ⟨Ht0, Hv0, Hr, -, -, -⟩ := Hterm0
+  have Hdlen0 : ([] : List EntryM).length = (uint.Z s.logst.applying).toNat := by
+    rw [Hapg]; rfl
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
+  ihave Hrn : ownRawNode γ rn cv.ID'
+      { delivered := [], unpersisted := [], steps := [], term := W64 0,
+        storage := interface.ok si, mode := md,
+        cfg := cfgState (GMap.listToSet csm.Voters') ∅ } $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
+  · cases md with
+    | static =>
+      iunfold rnInit at Hghost
+      ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
+      · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro h; cases h
+      ihave Hphys := ownRaftPhysC_toS $$ Hphys
+      ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' cv.ID' s $$ [Hphys]
+      · rw [P26]; iexact Hphys
+      iapply ownRawNode_intro_static γ rn cv.ID'
+          { delivered := [], unpersisted := [], steps := [], term := W64 0,
+            storage := interface.ok si, mode := .static,
+            cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
+          s initPState rnv sv hprev [] rfl Hrel
+          (by rw [P26]; exact (GMap.elem_of_list_to_set _ _).2 P27) Hasync
+          Hdlen0 (by rw [Hun]) Hsn trivial
+          (by rw [Ht0]) (by rw [Hsg]) Hpvoff (by rw [Hgh]) (by rw [Hgh])
+          (uint_Z_nonneg _)
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
+      · iapply pendList_nil
+      · rw [Hsd]; iapply storedRecs_nil
+    | dyn dec c0 h0 h1 =>
+      iunfold rnInit at Hghost
+      icases Hghost with ⟨%HD, Hgr⟩
+      obtain ⟨HD, rfl⟩ := HD
+      ihave #Hsdrf : sdrOk (GF := GF) rnv.raft'
+          (RNMode.dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1) $$ []
+      · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro _; rw [Hsdr]; exact P28 rfl
+      have Hro : rOf s ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, []⟩ =
+          rinit (cfgState (GMap.listToSet csm.Voters') ∅) := by
+        unfold rOf rinit pciR
+        rw [Hrel.1, Hap, Hsn]
+        simp [Hr]
+      have Hdiff : domSet s.progress \ GMap.listToSet csm.Voters' = ∅ := by
+        rw [Hdom]
+        apply GMap.set_eq; intro k
+        rw [GMap.elem_of_difference]
+        constructor
+        · rintro ⟨h1, h2⟩; exact absurd h1 h2
+        · intro h; exact absurd h (GMap.not_elem_of_empty _)
+      ihave Hghost : ownStepGhost γ
+          (RNMode.toG (.dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1)
+            ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, []⟩)
+          (CfgM.simple (GMap.listToSet csm.Voters') (domSet s.progress \ GMap.listToSet csm.Voters'))
+          cv.ID' s $$ [Hgr]
+      · simp only [RNMode.toG]
+        iapply (ownStepGhost_dyn γ dec _ h0 _ _ cv.ID' s).2
+        rw [Hro]
+        iframe Hgr
+        ipureintro
+        refine ⟨HD, ?_⟩
+        rw [Hdiff]; rfl
+      iapply ownRawNode_intro γ rn cv.ID'
+          { delivered := [], unpersisted := [], steps := [], term := W64 0,
+            storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1,
+            cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
+          s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
+          Hdlen0 (by rw [Hun]) Hsn trivial
+          (by rw [Ht0]) (by rw [Hsg]) Hpvoff (by rw [Hgh]) (by rw [Hgh])
+          (uint_Z_nonneg _)
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
+      · iapply pendList_nil
+      · rw [Hsd]; iapply storedRecs_nil
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   ipersist n

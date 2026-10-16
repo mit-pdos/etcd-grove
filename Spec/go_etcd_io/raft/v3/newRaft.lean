@@ -38,13 +38,14 @@ are, in order:
 - `hs.Commit` lies in `[prev.index, lastIndex]` unless `hs` is empty (else `loadState`
   panics), and `Applied` is `0` or lies in `[prev.index, committed]` (else `appliedTo`
   panics).
-- the `ConfState` is **voters-only**, with a non-empty list of **distinct, non-zero**
-  voters. Each clause is needed: learners/joint configurations are out of scope;
-  `Restore` skips a zero id and de-duplicates, after which `assertConfStatesEquivalent`
-  panics; and an empty voter set is what a node joining an existing cluster starts with
-  (etcd's `StartNode` with no peers), which `ownTracker`'s `Hcfg_ne` excludes -- so
-  **such a node is outside the development** until it receives a snapshot, which is out
-  of scope too.
+- the `ConfState` is **voters-only**, with a list of **distinct, non-zero** voters. Each
+  clause is needed: learners/joint configurations are out of scope; `Restore` skips a zero
+  id and de-duplicates, after which `assertConfStatesEquivalent` panics. (Until 2026-10-16,
+  stage R8b, also non-empty: an empty voter set is what a new cluster's node starts with,
+  etcd's `StartNode`, and `confchange.Restore` then returns the empty tracker's own maps
+  (`Restore.spec_empty`), which `switchToConfig` installs; the result is `ownRaftPhys ∅`,
+  which `RawNode.Bootstrap` moves to the peers. A node joining an existing cluster with no
+  peers stays there until it receives a snapshot, out of scope.)
 - **at most `2^62` voters.** The tracker sorts the voter ids with `slices.Sort`, whose
   heapsort fallback overflows `int` past `2^62` elements (`ownTracker`'s `Hcfg_size`).
 
@@ -151,14 +152,16 @@ abbrev newRaft.spec : Prop :=
    uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
      uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
   -- the persisted ConfState: voters only
-  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' → (csm.Voters'.length : Int) ≤ 2 ^ 62 →
+  -- (2026-10-16, stage R8b: no longer at least one voter -- a new cluster's conf state is empty,
+  -- and `ownRaftPhys ∅` is the result; `RawNode.Bootstrap` installs the peers)
+  csm.Voters'.Nodup → W64 0 ∉ csm.Voters' → (csm.Voters'.length : Int) ≤ 2 ^ 62 →
   csm.VotersOutgoing' = [] →
   csm.Learners' = [] →
   csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
             hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗

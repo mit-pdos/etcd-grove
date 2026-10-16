@@ -121,7 +121,7 @@ private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List EntryM)
   icases cq_full γ t n F $$ Hcq with ⟨%HwF, #HrF⟩
   icases cq_base γ _ _ _ $$ Hcq with ⟨%HFn, #HFl⟩
   unfold okL
-  icases HX with (⟨%t'', %Ht12, #HX⟩ | ⟨%t'', %n'', %Htj, #Hq''⟩)
+  icases HX with (⟨%t'', %Ht12, #HX⟩ | ⟨%t'', %n'', %Htj, #Hq''⟩ | %Hb)
   · obtain ⟨Ht1, Ht2⟩ := Ht12
     icases leadFull_wf γ t'' X $$ HX with ⟨%HwX', #HrX⟩
     have HwX := HwX'.1
@@ -151,6 +151,12 @@ private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List EntryM)
     icases full_match γ X F n'' HwX HwF (by rw [HXn'']; rfl) (by rw [HXn'', HFn''])
       $$ HrX HrF with %Hm
     ipureintro; exact Hm j Hjn
+  · -- (2026-10-16, stage R8b) the bootstrap log, which `F` starts with
+    obtain ⟨-, HX⟩ := Hb
+    subst HX
+    icases cq_boot γ t n F $$ Hcq with %Hbf
+    ipureintro
+    exact (plogTermAt_prefix base0 γ.reBoot F j Hbf.1 HsX).symm
 
 /-- `lc_agree` at the bound `T + 1`, given that the logs of `T`'s leader agree with `F` below
 `n` (2026-10-14, stage B5: the `d` branch of a vote cast for a winner not yet in the table, the
@@ -310,11 +316,16 @@ theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
       rw [plogTermAt_lookup base0 G _ _ x Hx (by rw [base0_index]; omega)] at HGl
       exact Option.some.inj HGl
     unfold isEntryR
-    icases Hxr with ⟨%ldr, %γt, %b, %l0, %F0c, #Hlc, -, #Hcc, -, -⟩
-    rw [Hxt]
-    icases recs_chain γ G ldr _ F0c HwG $$ Hlc Hcc HrG with %Hch
-    obtain ⟨-, HGlc, -⟩ := Hch _ Hic0 HGl
-    iapply IH _ t n F ldr F0c G HtcT (by omega) HwG HGlc $$ HS Hcq Hlc Hcc HrG
+    icases Hxr with (⟨%ldr, %γt, %b, %l0, %F0c, #Hlc, -, #Hcc, -, -⟩ | ⟨%Hb, -⟩)
+    · rw [Hxt]
+      icases recs_chain γ G ldr _ F0c HwG $$ Hlc Hcc HrG with %Hch
+      obtain ⟨-, HGlc, -⟩ := Hch _ Hic0 HGl
+      iapply IH _ t n F ldr F0c G HtcT (by omega) HwG HGlc $$ HS Hcq Hlc Hcc HrG
+    · -- (2026-10-16, stage R8b) a boot entry, of term `1`: below every commit fact's term
+      icases cq_boot γ t n F $$ Hcq with %Hbf
+      have H2 := Hbf.2 (BootRec_ne _ _ _ Hb)
+      have Hx1 : uint.Z (plogLast base0 F0).term' = 1 := by rw [← Hxt, Hb.2.2.1]; rfl
+      ipureintro; exfalso; omega
   · -- the same last term: `G` has it down to `Fv`'s last index
     have Hn1 : 1 ≤ uint.Z (plogLast base0 Fv).index' := by omega
     have Hrng := uint_Z_lt (plogLast base0 Fv).index'
@@ -329,20 +340,25 @@ theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
       rw [base0_index] at Hw
       omega
     unfold isEntryR
-    icases Hyr with ⟨%ldr, %γt, %b, %l0, %F0c, #Hlc, -, #Hcc, -, %Hptok, -⟩
-    have HyL := Hptok.1
-    rw [Hyi] at HyL
-    icases recs_chain γ G ldr _ F0c HwG $$ Hlc Hcc HrG with %Hch
-    rw [Heq, ← Hyt] at HGl
-    have Hlic : uint.Z (plogLast base0 Fv).index' ≤ uint.Z (W64 (plogLastIndexZ base0 F0)) := by
-      rw [← Hcli]; exact Hle
-    obtain ⟨-, -, Hall⟩ := Hch _ (by omega) HGl
-    have HGli : plogTermAt base0 G (plogLast base0 Fv).index' = some (plogLast base0 Fv).term' := by
-      rw [← Hyt]; exact Hall _ ⟨HyL, Hlic⟩
-    icases full_match γ G Fv _ HwG HwFv (by rw [HGli]; rfl) (by rw [HGli, HFvli])
-      $$ HrG HrFv with %Hm
-    ipureintro
-    rw [Hm n Hnli]; exact HFvn
+    icases Hyr with (⟨%ldr, %γt, %b, %l0, %F0c, #Hlc, -, #Hcc, -, %Hptok, -⟩ | ⟨%Hb, -⟩)
+    · have HyL := Hptok.1
+      rw [Hyi] at HyL
+      icases recs_chain γ G ldr _ F0c HwG $$ Hlc Hcc HrG with %Hch
+      rw [Heq, ← Hyt] at HGl
+      have Hlic : uint.Z (plogLast base0 Fv).index' ≤ uint.Z (W64 (plogLastIndexZ base0 F0)) := by
+        rw [← Hcli]; exact Hle
+      obtain ⟨-, -, Hall⟩ := Hch _ (by omega) HGl
+      have HGli : plogTermAt base0 G (plogLast base0 Fv).index' = some (plogLast base0 Fv).term' := by
+        rw [← Hyt]; exact Hall _ ⟨HyL, Hlic⟩
+      icases full_match γ G Fv _ HwG HwFv (by rw [HGli]; rfl) (by rw [HGli, HFvli])
+        $$ HrG HrFv with %Hm
+      ipureintro
+      rw [Hm n Hnli]; exact HFvn
+    · -- (2026-10-16, stage R8b) a boot entry, of term `1`: below every commit fact's term
+      icases cq_boot γ t n F $$ Hcq with %Hbf
+      have H2 := Hbf.2 (BootRec_ne _ _ _ Hb)
+      have Hy1 : uint.Z (plogLast base0 Fv).term' = 1 := by rw [← Hyt, Hb.2.2.1]; rfl
+      ipureintro; exfalso; omega
 
 
 /-- `lc_adj_gen` for a winner in the winners table: a vote cast knowing the leader of `T`, who
@@ -466,10 +482,16 @@ theorem lc_far_newer (γ : RaftNames) (T t n : w64) (F : List EntryM) (a : w64)
   ihave #Hcj := commitIn_j γ F0 kw tmc $$ Hcm
   iunfold commitJ at Hcj
   icases Hcj with (%Hk0 | ⟨%tk, %nk, %Gk, #Hqk, %Hk⟩)
-  · exfalso
-    have h0 : (uint.Z kw).toNat = 0 := by omega
-    rw [h0, List.take_zero] at Hcc
-    simp [confCount] at Hcc
+  · -- (2026-10-16, stage R8b) the campaign's commit index within the bootstrap log: the
+    -- commit fact's log and the campaign log both start with it, against I1
+    obtain ⟨Hkb, -⟩ := Hk0
+    icases cq_boot γ t n F $$ Hcq with %Hbf
+    icases logRecs_boot_take γ F0 HwF0 $$ HrF0 with %Htk0
+    have HL0 : plogLastIndexZ base0 F0 = F0.length := by
+      unfold plogLastIndexZ; rw [base0_index]; omega
+    have Htk : F.take (uint.Z kw).toNat = F0.take (uint.Z kw).toNat := by
+      rw [take_of_prefix Hbf.1 (by omega), Htk0 _ (by omega) (by omega)]
+    exact (far_newer HI1 Htk Hcc).elim
   obtain ⟨Hkn, Htk, HGk⟩ := Hk
   icases cq_full γ tk nk Gk $$ Hqk with ⟨%HwGk, #HrGk⟩
   icases cq_base γ tk nk Gk $$ Hqk with ⟨%HGkn, -⟩
@@ -835,8 +857,9 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
   have Hrng := uint_Z_lt e.Index'
   have Hlt := (List.getElem?_eq_some_iff.mp He).1
   icases logRecs_lookup γ G m e He (by omega) $$ Hr with ⟨%pt, -, #Her⟩
-  unfold isEntryR entData
-  icases Her with ⟨%ldr, %γt, %b, %l0, %F0, -, -, -, -, -, %o, #Ho⟩
+  ihave #Hed := isEntryR_data γ e pt $$ Her
+  unfold entData
+  icases Hed with ⟨%o, #Ho⟩
   have Htk : G.take (m + 1) = G.take m ++ [e] := by rw [List.take_add_one, He]; rfl
   have Hidx : uint.Z e.Index' = ((G.take m).length : Int) + 1 := by
     rw [List.length_take]; push_cast; omega
@@ -979,22 +1002,42 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List EntryM) (ldr : w64)
       votesTbl γ ∗ isCommitted γ (G.take (uint.Z n).toNat) $$ [HP Hv Hregs Htbl]
   · unfold committedJust
     icases Hj with (%HP0 | ⟨%t0, %n0, %G0, %ldr0, #Hcq0, %HP0, #Hldr0, #Hclb0⟩)
-    · subst HP0
-      ihave Hst : commitSt γ (G.take 0) $$ [HP Hv Hregs]
-      · unfold commitSt; rw [List.take_zero]; iframe HP Hds Hv Hregs
-      imod fire_upto_open γ G (uint.Z n).toNat 0 HwG (by omega) $$ HrG Hst with Hst
-      rw [Nat.zero_add]
-      ihave #Hc : isCommitted γ (G.take (uint.Z n).toNat) $$ [Hst]
-      · unfold commitSt
-        icases Hst with ⟨HP, -⟩
-        iapply ownCommitted_lb γ _ $$ HP
-      imodintro
-      iexists _
-      iframe Hst Hc Htbl
-      iright
-      iexists t, n, G, ldr
-      iframe Hcq Hldr Hclb
-      ipureintro; rfl
+    · -- (2026-10-16, stage R8b) the global log is the bootstrap log, which `G` starts with:
+      -- extend from its end, or it is already past the new prefix
+      obtain ⟨HP0, HwB⟩ := HP0
+      subst HP0
+      icases cq_boot γ t n G $$ Hcq with %HbG
+      have HbGl := HbG.1.length_le
+      by_cases Hle : (γ.reBoot.length : Int) ≤ uint.Z n
+      · have Htk : G.take γ.reBoot.length = γ.reBoot := by
+          rw [take_of_prefix HbG.1 (Nat.le_refl _)]; exact List.take_length
+        ihave Hst : commitSt γ (G.take γ.reBoot.length) $$ [HP Hv Hregs]
+        · unfold commitSt; rw [Htk]; iframe HP Hds Hv Hregs
+        imod fire_upto_open γ G ((uint.Z n).toNat - γ.reBoot.length) γ.reBoot.length HwG
+          (by omega) $$ HrG Hst with Hst
+        rw [show γ.reBoot.length + ((uint.Z n).toNat - γ.reBoot.length) = (uint.Z n).toNat
+          by omega]
+        ihave #Hc : isCommitted γ (G.take (uint.Z n).toNat) $$ [Hst]
+        · unfold commitSt
+          icases Hst with ⟨HP, -⟩
+          iapply ownCommitted_lb γ _ $$ HP
+        imodintro
+        iexists _
+        iframe Hst Hc Htbl
+        iright
+        iexists t, n, G, ldr
+        iframe Hcq Hldr Hclb
+        ipureintro; rfl
+      · ihave #Hc0 := ownCommitted_lb γ _ $$ HP
+        imodintro
+        iexists γ.reBoot
+        isplitl [HP Hv Hregs]
+        · unfold commitSt; iframe HP Hds Hv Hregs
+        iframe Htbl
+        isplitr
+        · ileft; ipureintro; exact ⟨rfl, HwB⟩
+        iapply isCommitted_mono γ _ _
+          (by rw [take_of_prefix HbG.1 (by omega)]; exact List.take_prefix _ _) $$ Hc0
     · subst HP0
       icases cq_full γ t0 n0 G0 $$ Hcq0 with ⟨%HwG0, #HrG0⟩
       icases cq_base γ _ _ _ $$ Hcq0 with ⟨%HG0n, -⟩

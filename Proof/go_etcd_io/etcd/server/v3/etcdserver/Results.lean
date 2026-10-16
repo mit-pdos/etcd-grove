@@ -54,6 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeListIfc
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
@@ -245,6 +246,21 @@ theorem node_contract_memstor (γ : RNNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnMemStorReg γ ⊢
       isRNMemStor γ γ.ms :=
   isRNMemStor_of_memstorage γ
+
+/-- **The server's raft wrapper from raft's `StartNode`** (stage R8b-C of the raft v3.7 retarget,
+2026-10-16; D12, `NodeStart.lean`): on the new cluster's path, `bootstrappedRaft.newRaftNode`
+(linked: through it raft's `wp_StartNode`, `Bootstrap`'s conf-change entries at term 1, and
+`newRaftNode`) yields the wrapper's struct value with its components, the loop's and the apply
+side's tokens at `[]`, `srvRaftLogInv` at `pre = []`, and the installer of `isRaftNode` at the
+address `NewServer` copies the struct to, from the new cluster's ghost allocation
+(`ownRaftGhost_alloc_boot`: a stub, `sorryAx` below, until stage R8b-A lands), the budget, a fresh
+registered `MemoryStorage`, the server's own invariants and the trust-boundary premises
+(`NodeStart.lean`'s header classifies them). **Not etcd's own configuration**: `CheckQuorum`
+and `PreVote` must be off. -/
+theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
+  letI : MemStorReg GF := ⟨reg⟩
+  raftNode_of_StartNode reg bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance
+    node.wp_Tick node.wp_ReadIndex
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
 `Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
@@ -1095,3 +1111,4 @@ end Perennial
 #print axioms Perennial.EtcdGrove.server_Start
 #print axioms Perennial.EtcdGrove.start_gives_views
 #print axioms Perennial.EtcdGrove.scheduler_fifo
+#print axioms Perennial.EtcdGrove.server_raft_node_start

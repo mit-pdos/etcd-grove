@@ -767,7 +767,10 @@ theorem votesTbl_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap 
   iexact Hf
 
 def committedJust (γ : RaftNames) (l : List EntryM) : IProp GF :=
-  iprop(⌜l = []⌝ ∨ ∃ t n G ldr, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝ ∗
+  -- (2026-10-16, stage R8b, D12) the bootstrap log, committed from the start (`[]` for a
+  -- cluster starting empty)
+  iprop(⌜l = γ.reBoot ∧ PlogWf base0 γ.reBoot⌝ ∨
+    ∃ t n G ldr, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝ ∗
     -- (2026-10-12, read-index) the leader of `t` whose commit extended the log to `n`,
     -- and its commit lower bound for `t`
     isLeader γ ldr t ∗ cmtLb γ ldr t n)
@@ -787,7 +790,7 @@ theorem committedJust_wf (γ : RaftNames) (l : List EntryM) :
   unfold committedJust
   iintro #H
   icases H with (%H0 | ⟨%t, %n, %G, %ldr, #Hcq, %HlG, -, -⟩)
-  · ipureintro; subst H0; intro k e Hk; simp at Hk
+  · ipureintro; rw [H0.1]; exact H0.2
   · icases cq_full γ t n G $$ Hcq with ⟨%Hwf, -⟩
     ipureintro; subst HlG; exact PlogWf_take _ _ _ Hwf
 
@@ -1904,7 +1907,11 @@ def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IPr
     "#Hinv"    ∷ raftCommitInv γ ∗
     "#Hcmt"    ∷ isCommitted γ (cprefix fp s) ∗
     -- 2026-10-14 (stage B5): a candidate's and a leader's acknowledgements of their term
-    "%Hlacks"  ∷ ⌜LeadAcksOk s acks⌝)
+    "%Hlacks"  ∷ ⌜LeadAcksOk s acks⌝ ∗
+    -- 2026-10-16 (stage R8b, D12): the bootstrap log is committed from the start, and the
+    -- commit index only grows. (With the records it puts `reBoot` at the full log's start,
+    -- `ownLogGhost_boot`, and with `TermsLe` a non-empty one puts the term at `≥ 1`.)
+    "%Hboot"   ∷ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝)
 
 -- Not `Timeless` since 2026-10-05: it holds the invariant `raftCommitInv`.
 

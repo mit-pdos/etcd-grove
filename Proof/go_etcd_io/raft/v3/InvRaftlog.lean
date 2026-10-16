@@ -1040,6 +1040,38 @@ macro "reseal_raftLog" : tactic =>
                -- keeps the fields they are stated on
                | exact Hstor | exact Hpend))
 
+section setCommitted
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The raw store `l.committed = n` (2026-10-16, stage R8b: `RawNode.Bootstrap`'s
+`rn.raft.raftLog.committed = uint64(len(ents))`, with no `commitTo` guard), for `n` within the log
+and at or above `applying` (so above `applied`) and the old commit index (`StoredSnapOk` is
+monotone in it): the rest of `ownRaftLog` does not mention the commit index. Stated on the field
+store as `wp_auto` leaves it after loading the `raftLog` pointer. -/
+theorem ownRaftLog_setCommitted (l : Loc) (ls : LogState) (n : w64)
+    (Hlo : uint.Z ls.prev.index' ≤ uint.Z n)
+    (Hhi : uint.Z n ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int))
+    (Happ : uint.Z ls.applying ≤ uint.Z n)
+    (Hcm : uint.Z ls.committed ≤ uint.Z n) (Φ : val → IProp GF) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      (ownRaftLog l { ls with committed := n } -∗ Φ #()) -∗
+      WP (App (Val (GoInstruction (GoStore go.uint64)))
+            (Val (PairV #(l.[raftLog, go!"committed"]) #n))) {{ Φ }} := by
+  iintro Hlog HΦ
+  iNamed Hlog
+  wp_auto
+  iapply HΦ
+  reseal_raftLog
+  all_goals first
+    | word
+    | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ (by word) (Hssnap Hs))
+
+end setCommitted
+
 set_option hygiene false in
 /-- Open `Hun : ownUnstable u us` in the proof of an `unstable` method
 (`ownUnstable_open`): the Goose value `uv`, with the struct at

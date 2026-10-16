@@ -722,9 +722,33 @@ theorem ownLogGhost_commitIn (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   isplitr; · ipureintro; exact ⟨Hfull.1, Hlog_ok⟩
   iframe Hfrecs Hrecs Hcommit
 
+/-- The term at an index of a log whose entries all have term `1` (2026-10-16, stage R8b: the
+bootstrap log). -/
+private theorem plogTermAt_ones (L : List EntryM) (c : w64) :
+    (∀ e ∈ L, e.Term' = W64 1) → 1 ≤ uint.Z c → uint.Z c ≤ L.length →
+    plogTermAt base0 L c = some (W64 1) := by
+  intro Hones H1 Hc
+  unfold plogTermAt
+  rw [base0_index]
+  simp only [show ¬ (uint.Z c < 0) by omega, show ¬ (uint.Z c = 0) by omega, ↓reduceIte]
+  obtain ⟨e, He⟩ : ∃ e, L[(uint.Z c - 0 - 1).toNat]? = some e :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  rw [He]
+  simp only [Option.map_eq_map, Option.map_some, Hones e (List.mem_of_getElem? He)]
+
+/-- The commit index is past the bootstrap log (`ownLogGhost`'s conjunct, 2026-10-16). -/
+private theorem ownLogGhost_boot_commit (γ : RaftNames) (id : w64) (s : PState)
+    (kl : Option w64) :
+    ⊢ ownLogGhost (GF := GF) γ id s kl -∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ := by
+  unfold ownLogGhost
+  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  ipureintro; exact Hboot
+
 /-- The case split at the leader's arrival: the global committed log `P` is justified by a
 commit at a term `t`; above `T` it dooms the request, at `T` it is the leader's own (at most
-its commit index), below `T` it is behind the leader's own committed entry of `T`. -/
+its commit index), below `T` it is behind the leader's own committed entry of `T`. Since
+2026-10-16 (stage R8b): or `P` is the bootstrap log, within the leader's commit index. -/
 theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
     (Lc P fp : List EntryM) :
     s.role = .leader →
@@ -732,10 +756,11 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
     plogTermAt s.base s.log s.commit = some s.term →
     Lc <+: P →
     FullOk s.base fp → LogOk s →
+    (γ.reBoot.length : Int) ≤ uint.Z s.commit →
     ⊢ committedJust (GF := GF) γ P -∗ votesTbl γ -∗ lcmOwn γ id s -∗ isLeader γ id s.term -∗
       commitIn γ (fp ++ s.log) s.commit s.term -∗ readReq γ c Lc -∗
       votesTbl γ ∗ lcmOwn γ id s ∗ ∃ d, rqRecOk γ s.term ((c, s.commit), d) := by
-  intro Hr Htnz Hct HLP Hfull Hlok
+  intro Hr Htnz Hct HLP Hfull Hlok Hboot
   iintro #Hj Htbl Hlcm #Hl #Hcmt #Hrq
   -- a short enough committed log: the request is read at once
   have Hok : ∀ (len : Int), (P.length : Int) ≤ len → len ≤ uint.Z s.commit →
@@ -754,9 +779,11 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
     ipureintro; exact Hle
   unfold committedJust
   icases Hj with (%HP0 | ⟨%t, %n, %G, %ldr, #Hcq, %HP0, #Hldr, #Hclb⟩)
-  · subst HP0
+  · -- the bootstrap log, within the commit index (2026-10-16, stage R8b)
+    obtain ⟨HP0, -⟩ := HP0
+    subst HP0
     iframe Htbl Hlcm
-    iapply Hnone (Hok 0 (by simp) (uint_Z_nonneg _)) $$ Hrq
+    iapply Hnone (Hok _ (Int.le_refl _) Hboot) $$ Hrq
   · have HPn : (P.length : Int) ≤ uint.Z n := by
       rw [HP0, List.length_take]; have := uint_Z_nonneg n; omega
     rcases Int.lt_trichotomy (uint.Z s.term) (uint.Z t) with HtT | HtT | HtT
@@ -789,11 +816,27 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
       ihave #Hcmt' := commitIn_j γ _ _ _ $$ Hcmt
       ieval (unfold commitJ) at Hcmt'
       icases Hcmt' with (%Hc0 | ⟨%t2, %n2, %G2, #Hcq2, %Hc2⟩)
-      · -- commit index `0`: the entry there is the sentinel of term `0`
-        exfalso
-        have Hc : s.commit = W64 0 := uint_Z_inj.mp (by rw [Hc0]; rfl)
-        rw [Hc, show (W64 0 : w64) = (base0 : entryID).index' from rfl, plogTermAt_base] at HFi
-        exact Htnz (Option.some.inj HFi).symm
+      · -- the commit index within the bootstrap log (2026-10-16, stage R8b): the leader's
+        -- entry there is the sentinel of term `0`, or a boot entry of term `1` -- and no
+        -- leader has term `1`
+        obtain ⟨Hcb, Hcbt⟩ := Hc0
+        icases cq_boot γ t n G $$ Hcq with %HbG
+        icases logRecs_boot_wf γ G HwG $$ HrG with %Hbw
+        have Hones := (Hbw HbG.1).2
+        by_cases Hz : uint.Z s.commit = 0
+        · exfalso
+          have Hc : s.commit = W64 0 := uint_Z_inj.mp (by rw [Hz]; rfl)
+          rw [Hc, show (W64 0 : w64) = (base0 : entryID).index' from rfl, plogTermAt_base] at HFi
+          exact Htnz (Option.some.inj HFi).symm
+        · have Hc1 : 1 ≤ uint.Z s.commit := by have := uint_Z_nonneg s.commit; omega
+          have Hne : γ.reBoot ≠ [] := by
+            intro h; rw [h] at Hcb; simp only [List.length_nil, Int.natCast_zero] at Hcb; omega
+          have Hb1 := plogTermAt_ones γ.reBoot s.commit Hones Hc1 Hcb
+          rw [Hb1, HFi] at Hcbt
+          have Ht1 : s.term = W64 1 := (Option.some.inj Hcbt).symm
+          rw [Ht1]
+          iexfalso
+          iapply isLeader_boot_false γ id Hne $$ Hl
       · by_cases Hle : uint.Z n ≤ uint.Z s.commit
         · iframe Htbl Hlcm
           iapply Hnone (Hok (uint.Z n) HPn Hle) $$ Hrq
@@ -826,6 +869,7 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
   ihave #Hl : isLeader γ id s.term $$ []
   · rw [← leaderWit_leader γ id s Hr]; iexact Hlead
   ihave ⟨%fp, %Hfl, #Hfr, #Hrecs, #Hcmt⟩ := ownLogGhost_commitIn γ id s kl $$ Hlg
+  ihave %Hboot := ownLogGhost_boot_commit γ id s kl $$ Hlg
   ihave #Hinv := ownLogGhost_inv $$ Hlg
   ihave #Hrq' := Hrq
   ieval (unfold readReq) at Hrq'
@@ -834,7 +878,7 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
   unfold raftLogInv raftLogInvBody
   iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, Hwt, Hpo⟩ Hclose
   ihave %HLP := isCommitted_prefix γ Lc P $$ HLc HP
-  icases read_arrive_core γ id s c Lc P fp Hr Htnz Hct HLP Hfl.1 Hfl.2
+  icases read_arrive_core γ id s c Lc P fp Hr Htnz Hct HLP Hfl.1 Hfl.2 Hboot
     $$ Hj Htbl Hlcm Hl Hcmt Hrq with ⟨Htbl, Hlcm, #Hres⟩
   imod Hclose $$ [HP Htbl Hpo Hwt] with -
   · inext

@@ -5,10 +5,18 @@
 `NewRawNode(config)` is `newRaft(config)` in a new `RawNode` that records the config's
 `AsyncStorageWrites` and the node's initial `SoftState` and `HardState`. Specified for a
 node of a new cluster: an empty storage (no entries, no `HardState`, nothing applied),
-synchronous storage writes, and the ghost state of the protocol's initial state, which
-`ownRaftGhost_alloc` (`Protocol/Facts.lean`) hands out for every voter of the cluster with
-`isCommitted γ []`. The premises on the `Config` and the storage are `newRaft`'s
+synchronous storage writes. The premises on the `Config` and the storage are `newRaft`'s
 (`Spec/newRaft.lean`).
+
+Since 2026-10-16 (stage R8b, D12) the result is the node **open** (`rawNodeFresh`,
+`InvBoot.lean`: the `RawNode`'s fields, the raft struct at the conf state's voters, at a state
+refining the protocol's initial state), with no ghost state involved -- `NewRawNode` knows
+nothing of the cluster's ghost state -- and the conf state possibly empty (a new cluster's).
+`RestartNode` closes it (`ownRawNode`, in the mode `md`, with the ghost state `rnInit` below:
+statically `ownRaftGhost_alloc`'s initial state, dynamically `raft_dyn_alloc`'s); `setupNode`
+hands it to `RawNode.Bootstrap`, which installs the peers. (Until then the result was
+`ownRawNode` at the initial state, with `rnInit` and `isCommitted γ []` as premises, at least
+one voter, this node among them.)
 
 raft v3.7 (2026-10-16, stage R5): the storage's `InitialState` premise is `newRaft`'s (stage R4,
 D7: two pointers, the hard state `hsOpt hp hs` and the conf state `csPts cs □ csm al` -- its
@@ -23,6 +31,7 @@ Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` 
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import Proof.go_etcd_io.raft.v3.InvBoot
 public import Spec.go_etcd_io.raft.v3.newRaft
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 -- `rinit` (2026-10-14, reconfiguration stage B7 part 2)
@@ -86,7 +95,7 @@ def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :
 
 /-- See the file header. -/
 abbrev NewRawNode.spec : Prop :=
-  ∀ (γ : RaftNames) (md : RNMode) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+  ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
     (hs : HardStateM) (csm : ConfStateM),
   -- the Config, as for `newRaft`
@@ -112,38 +121,31 @@ abbrev NewRawNode.spec : Prop :=
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   σ.pend = [] →
   HsEmpty hs →
-  -- the persisted ConfState: voters only, this node among them, and the cluster's
-  -- (2026-10-16, stage R5: the record `csm`, as `newRaft`'s; until then the Goose value `cs`
-  -- and the list `voters` its slice held)
-  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
+  -- the persisted ConfState: voters only (2026-10-16, stage R5: the record `csm`, as
+  -- `newRaft`'s; until then the Goose value `cs` and the list `voters` its slice held);
+  -- (2026-10-16, stage R8b) possibly none: a new cluster's conf state is empty
+  csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
   (csm.Voters'.length : Int) ≤ 2 ^ 62 →
   csm.VotersOutgoing' = [] →
   csm.Learners' = [] →
   csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
-  γ.reCfg = GMap.listToSet csm.Voters' →
-  cv.ID' ∈ csm.Voters' →
-  -- (2026-10-14) the dynamic mode with `StepDownOnRemoval` (a removed leader steps down)
-  (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `InitialState` in `newRaft`'s shape (stage R4, D7): the hard state
       -- `hsOpt hp hs` and the conf state read-only for good (stage R6b: its `AutoLeave` cell set
       -- or not, `al`), `ownStorage` back at once
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
             hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      "Hghost" ∷ rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗
-      "#Hcommitted" ∷ isCommitted γ [] }}
+           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
-      "Hrn" ∷ ownRawNode γ rn cv.ID'
-        { delivered := [], unpersisted := [], steps := [], term := W64 0,
-          storage := interface.ok si, mode := md,
-          cfg := cfgState (GMap.listToSet csm.Voters') ∅ } ∗
-      "%Herr" ∷ ⌜err = interface.nil⌝ }}
+      -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
+      ∃ s : NState,
+        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' s ∗
+        ⌜err = interface.nil⌝ }}
 
 end spec
 
