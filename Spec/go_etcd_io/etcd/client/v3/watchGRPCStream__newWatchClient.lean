@@ -53,7 +53,7 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
           (cd' : context.ContextDesc (IProp GF)) (γr : SpscNames),
         v3rpc.cliWatchStreamIs wc γs (v3rpc.watchUp V.R.γ) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗ v3rpc.watchSpec V.R γs Dn ∗
-        isSpsc γr G.respc (respcElem γs Dn) (fun _ => iprop(True)) ∗
+        isSpsc γr G.respc (respcElem γs Dn) (fun _ => iprop(False)) ∗
         spscConsumer γr ([] : List Loc)) ∨
        (⌜wc = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err ∗
         isChan G.respc γresp Loc ∗ ownChan γresp Loc .Idle)) }}

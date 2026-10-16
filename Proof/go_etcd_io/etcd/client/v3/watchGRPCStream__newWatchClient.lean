@@ -101,7 +101,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   icases Hopen with (⟨%Herr, %γs, %Dn, %cd', #Hcli, Htok, Hrtok, #Hspec⟩ | ⟨⟨%Hwc, %Herr⟩, #Hse⟩)
   · subst Herr
     wp_auto
-    imod start_spsc (V := Loc) G.respc (respcElem γs Dn) (fun _ => iprop(True)) γresp $$ Hrespc
+    imod start_spsc (V := Loc) G.respc (respcElem γs Dn) (fun _ => iprop(False)) γresp $$ Hrespc
       [Hrespo] with ⟨%γr, #Hsp, Hprod, Hcons⟩
     · ileft; iexact Hrespo
     wp_apply wp_fork $$ [Hrtok Hprod]
