@@ -52,8 +52,7 @@ abbrev EtcdServer.Txn.spec : Prop :=
           ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t resp) ∨
            (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))
       else
-        iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t resp ∗
-            ∃ σ : KVState, □ Q σ) ∨
+        iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }}
 
 end spec

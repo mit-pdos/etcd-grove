@@ -314,7 +314,7 @@ local macro "range_tail" : tactic => `(tactic| (
       · ipureintro; exact ⟨rfl, Hrn1⟩
       iunfold rangeReadOk
       iexists log
-      iframe Hcert Hres
+      iframe Hcert Hrok Hres
       isplitr
       · ipureintro
         have := Hlog.1.length_le

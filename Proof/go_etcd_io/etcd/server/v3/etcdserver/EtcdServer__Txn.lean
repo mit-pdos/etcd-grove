@@ -177,7 +177,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
-      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
+      mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       ((⌜respv = null ∧ errv ≠ GoInterface.nil⌝ ∗ txn.checkErrIs errv) ∨
        (⌜errv = GoInterface.nil⌝ ∗
          txn.txnResponseIs false respv (W64 ((log.length : Int) - 1)) t
@@ -212,7 +212,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
       wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t (some trc) false)
           $$ [Hsr Hnone Hown0]
-        as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, %Hlog, Hres⟩
+        as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, #Hcok, %Hlog, Hres⟩
       · iframe # Hsr Hnone
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
@@ -224,7 +224,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         iapply Hsmall $$ %log' Hs'
       iapply HΦ'
       iexists respv, errv, log
-      iframe Hresp Herr Hsr Hlr Hcert
+      iframe Hresp Herr Hsr Hlr Hcert Hcok
       isplitr
       · ipureintro; exact Hlog
       icases Hres with (⟨%H1, #Hce, %t', %te', Hown, %Hteq⟩ | ⟨%H2, Hown, %Hteq, #Hr, Hh⟩ |
@@ -253,7 +253,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         · iexact Hown
         iright; iright; iframe He Hrd Hh
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, Hres, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
     wp_auto
@@ -298,7 +298,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       · ipureintro; exact ⟨by first | rfl | trivial, Hrn'⟩
       iunfold txnReadOk
       iexists log
-      iframe Hcert Hh
+      iframe Hcert Hcok Hh
       isplitr
       · ipureintro
         have := Hlog.1.length_le
@@ -313,7 +313,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
       · iexact HsE
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, Hres, Hown⟩)
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
@@ -585,11 +585,11 @@ theorem EtcdServer.Txn.wp_proof
         iapply txnPermit_reqPropOk $$ Hnp
       iexists _; iexact Header
     (try wp_auto)
-    icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok, %Lq, #HLq, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
-      obtain ⟨Hstep, Hfl⟩ := Hstep0
+      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+      obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
       have Hk : apply.dispatchKind rq' = .txn := by
         rw [Hwire.2.2.1]
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
@@ -620,13 +620,13 @@ theorem EtcdServer.Txn.wp_proof
       ileft
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
-      isplitl
-      rotate_left
-      · iexists kvStateOf (kvModel ρ.kv Lq); iexact HQq
       iunfold txnAppliedOk
       iexists hm, rq', t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      iframe Hhdr Hcert Hpo HMint Hwit
+      iframe Hhdr Hcert Hpo HMint Hwit Hcok
+      isplitr
+      rotate_left
+      · rw [Hxlb, ← HLlb]; iexact HQq
       ipureintro
       refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl⟩
       have := Hwire.2.2.2 hz

@@ -1594,53 +1594,58 @@ def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (F : mvcc.Log) (ar : Loc)
 /-- **The result `ar` of applying `rq`, with its witness** (2026-10-14, unit C2a): `resultIs`
 (with its minted token, `revMinted`, unit V1, and its floor, the vertical slice's unit V2), and
 the log after is applied through an index of the committed log (`appliedWit γr y'.log`: the apply
-thread deposits it before it hands the result over, `srvAppliedPre`). -/
+thread deposits it before it hands the result over, `srvAppliedPre`); and (unit W-M3) the log the
+entry met is `lb` (`y.log`: the proposer ties it to the raft prefix its update fired at,
+`entryWit`) and the log after is certified (`certOk`: the KV model of a committed raft prefix,
+what makes its revisions reached in the clients' model). -/
 def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
-    (ar : Loc) : IProp GF :=
+    (ar : Loc) (lb : mvcc.Log) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
-      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out⌝ ∗
+      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log)
+      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
+      mvcc.certOk E.γ y'.log)
 
 /-- The witness dropped. -/
 theorem resultIsW_resultIs (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel)
-    (F : mvcc.Log) (ar : Loc) :
-    resultIsW (GF := GF) E γr rq F ar ⊢ resultIs E rq F ar := by
+    (F : mvcc.Log) (ar : Loc) (lb : mvcc.Log) :
+    resultIsW (GF := GF) E γr rq F ar lb ⊢ resultIs E rq F ar := by
   iintro H
   iunfold resultIsW at H
-  icases H with ⟨%Hnn, %y, %y', %out, %Hst, Hres, Hc, Hm, -⟩
+  icases H with ⟨%Hnn, %y, %y', %out, %Hst, Hres, Hc, Hm, -, -⟩
   iunfold resultIs
   isplitr
   · ipureintro; exact Hnn
   iexists y, y', out
   iframe Hres Hc Hm
-  ipureintro; exact Hst
+  ipureintro; exact ⟨Hst.1, Hst.2.1⟩
 
 /-- **The committed entry a result is of** (persistent; 2026-10-14, unit T1): an entry `e` at
 position `m` of a committed log `L`, normal, its data claimed under the id of `rq` (with some
 floor's ghost name, the vertical slice's unit V2), which they decode to (the proposer, who claimed
 its own data under that id, learns `e.data` are its data, and collects its proposal's result there,
-`srvPropWits`). -/
-def entryWit (ρ : ReqNames) (rq : apply.IRRModel) : IProp GF :=
+`srvPropWits`); and (unit W-M3) the KV model of the raft prefix before it is `lb`, the log the
+entry met (`resultIsW`'s): so the proposer's update fired at the state of the log the write met. -/
+def entryWit (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) : IProp GF :=
   iprop(∃ (L : List EntryModel) (m : Nat) (e : EntryModel) (id : w64) (γf : GName),
     srvRLogLb ρ.raft L ∗ idClaim ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
-      apply.irrId rq = some id⌝)
+      apply.irrId rq = some id ∧ kvModel ρ.kv (L.take m) = lb⌝)
 
-instance entryWit_persistent (ρ : ReqNames) (rq : apply.IRRModel) :
-    Persistent (entryWit (GF := GF) ρ rq) := by
+instance entryWit_persistent (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) :
+    Persistent (entryWit (GF := GF) ρ rq lb) := by
   unfold entryWit; infer_instance
 
 /-- **The result the proposer of `rq` (with the floor `F`, the vertical slice's unit V2)
 expects**: the `*apply.Result` `ar` (as an interface value) with `resultIsW E ρ.rd rq F ar`
 (`resultIs` until 2026-10-14, unit C2a), its trace (`apply.resTrace`, unit P1b), and (2026-10-14,
-unit T1) the committed entry it is of (`entryWit`). -/
+unit T1) the committed entry it is of (`entryWit`, unit W-M3: at the log `lb` the entry met). -/
 def resultΨ (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (x : GoInterface) : IProp GF :=
-  iprop(∃ ar : Loc,
+  iprop(∃ (ar : Loc) (lb : mvcc.Log),
     ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
-    apply.resTrace ar ∗ resultIsW E ρ.rd rq F ar ∗ entryWit ρ rq)
+    apply.resTrace ar ∗ resultIsW E ρ.rd rq F ar lb ∗ entryWit ρ rq lb)
 
 /-- **The server's registration condition**: the expectation of a registered id is
 `resultΨ E ρ rq F` for the request `rq` its data decode to, the id claimed for those data with a

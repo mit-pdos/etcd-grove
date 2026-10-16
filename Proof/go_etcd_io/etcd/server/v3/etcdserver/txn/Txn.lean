@@ -395,7 +395,7 @@ theorem txn.Txn_read
   · (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
-  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, -, %Hpin⟩
+  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, #Hcok, %Hpin⟩
   · ipureintro; exact Htr
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩
@@ -450,7 +450,7 @@ theorem txn.Txn_read
       iapply HΦ
       iframe Hrd Htoks
       iexists log
-      iframe Hcert
+      iframe Hcert Hcok
       isplitl []
       · ipureintro; exact ⟨Hpin.1, Hpin.2, Hlog.2.1⟩
       ileft
@@ -549,7 +549,7 @@ theorem txn.Txn_read
   iapply HΦ
   iframe Hrd Htoks
   iexists log
-  iframe Hcert
+  iframe Hcert Hcok
   isplitl []
   · ipureintro; exact ⟨Hpin.1, Hpin.2, Hlog.2.1⟩
   iright

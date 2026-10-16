@@ -16,10 +16,14 @@ whose apply thread's environment is `E` (the store's ghost names `E.γ`, the rev
   W-M2b), small (`LogSmall`, the read path's `storeSmall`), has revision `rev`, and its state at
   `rev` restricted to `pfx` is `s` (`underPfx pfx (stateAt log rev)`). The server's revision of a
   log is its last index: a read at a log answers `log.length - 1`.
-* `etcdReachedAt r` (`srvReachedAt`): some certified log (`idxCert`: committed) has revision `r`.
-  Not a sealed one: `etcdReached lo` is the floor of a later read (`client/v3`'s
-  `floor_of_reached`, into `rangeReplyOk`'s `F <+: log`, which `store.Read`'s `log₀ <+: log`
-  gives only for a committed `F`), and a sealed revision is not yet committed (unit W-M2b).
+* `etcdReachedAt r` (`srvReachedAt`, unit W-M3): some log the server certified (`certOk`, at
+  the store's names: the KV model of a committed raft prefix, `kv_cert_read`) has revision `r`.
+  The apply thread certifies an entry's log before applying it, so a watch event's revision is
+  reached when the store notifies it (`evLog`), and a reply's log is certified. Not mvcc's
+  committed log (`idxCert`): that is a floor of every later read, serializable ones included,
+  which a notified revision is not yet (unit W-M2b); a linearizable read's floor comes instead
+  from the client's atomic update, at the committed KV state, which extends every certified log
+  (`client/v3/InvServerKV.lean`, `kvAnyAu`).
 * `etcdRevToken r` (`revTok E r`, `InvRequest.lean`): the token the apply thread minted when the
   KV's log grew to revision `r` (`revAuth_step`), carried by the entry's result to the proposer.
 * `EtcdStep r0 r1 pfx evs` (`srvStep`): some sealed small log has revision `r1`, no event under
@@ -110,10 +114,10 @@ instance srvEtcdState_persistent (E : apply.AEnv GF) (rev : w64) (pfx : GoString
     (s : List EtcdKv) : Persistent (srvEtcdState E rev pfx s) := by
   unfold srvEtcdState; infer_instance
 
-/-- **etcd has reached `r`, on the server**: a certified log has revision `r` (committed, not
-only sealed: it is a later read's floor; see the file header). -/
+/-- **etcd has reached `r`, on the server** (unit W-M3): a log the server certified (`certOk`:
+the KV model of a committed raft prefix) has revision `r` (see the file header). -/
 def srvReachedAt (E : apply.AEnv GF) (r : w64) : IProp GF :=
-  iprop(∃ log : Log, idxCert E.γ.idx log ∗ ⌜sint.Z r < log.length⌝)
+  iprop(∃ log : Log, certOk E.γ log ∗ ⌜sint.Z r < log.length⌝)
 
 instance srvReachedAt_persistent (E : apply.AEnv GF) (r : w64) :
     Persistent (srvReachedAt E r) := by
@@ -350,11 +354,11 @@ theorem etcdModelOfServer_EtcdStep (E : apply.AEnv GF) :
 
 /-! ## What the server's answers give the clients' model -/
 
-/-- **etcd has reached a certified revision**: a certified log's revisions are reached
-(`etcdReached`, the clients' downward-closed form). -/
-theorem etcdReached_of_cert (E : apply.AEnv GF) (log : Log) (r : w64)
+/-- **etcd has reached a certified revision** (unit W-M3): the revisions of a log the server
+certified (`certOk`) are reached (`etcdReached`, the clients' downward-closed form). -/
+theorem etcdReached_of_certOk (E : apply.AEnv GF) (log : Log) (r : w64)
     (h : sint.Z r < log.length) :
-    idxCert E.γ.idx log ⊢ etcdReached (EM := etcdModelOfServer E) r := by
+    certOk E.γ log ⊢ etcdReached (EM := etcdModelOfServer E) r := by
   iintro #H
   unfold etcdReached
   iright

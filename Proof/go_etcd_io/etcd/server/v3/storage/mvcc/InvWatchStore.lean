@@ -456,11 +456,50 @@ def cancelled (γw : WatcherNames) : IProp GF := dghostVar γw.live DFrac.discar
 instance cancelled_persistent (γw : WatcherNames) : Persistent (cancelled (GF := GF) γw) := by
   unfold cancelled; infer_instance
 
-/-- The events `evs` are the range's of the revisions `[lo, d)` of a sealed log (`idxSealed`:
-the index's history has it, and it is well formed; persistent; `d` past the log only for an
-empty range). -/
+/-- **A watched log** (persistent; unit W-M3): sealed (`idxSealed`: the index's history has it,
+and it is well formed) and certified by the store's caller (`certOk`: the writer's `End` takes the
+certificate of the log it commits before it notifies, `certOkNext`, and the store keeps the
+committed log's, `revMuInv`). The certificate is what makes a watch event's revision reached in
+the server's model (`etcdReached`: a certified log is the KV model of a committed raft log). -/
+def evLog (γ : StoreNames) (L : Log) : IProp GF := iprop(idxSealed γ.idx L ∗ certOk γ L)
+
+instance evLog_persistent (γ : StoreNames) (L : Log) : Persistent (evLog (GF := GF) γ L) := by
+  unfold evLog; infer_instance
+
+theorem evLog_sealed (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ idxSealed γ.idx L := by
+  unfold evLog; iintro ⟨#H, -⟩; iexact H
+
+theorem evLog_certOk (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ certOk γ L := by
+  unfold evLog; iintro ⟨-, #H⟩; iexact H
+
+/-- A committed log the caller certified is watched. -/
+theorem evLog_of_cert (γ : StoreNames) (L : Log) :
+    idxCert (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
+  unfold evLog
+  iintro ⟨#Hc, #Hok⟩
+  ihave #Hs := idxCert_sealed _ _ $$ Hc
+  iframe Hs Hok
+
+/-- Two watched logs are in prefix order. -/
+theorem evLog_cmp (γ : StoreNames) (L L' : Log) :
+    ⊢ evLog (GF := GF) γ L -∗ evLog γ L' -∗ ⌜L <+: L' ∨ L' <+: L⌝ := by
+  iintro #H1 #H2
+  ihave #H1' := evLog_sealed γ L $$ H1
+  ihave #H2' := evLog_sealed γ L' $$ H2
+  iapply idxSealed_cmp $$ H1' H2'
+
+/-- The empty log is watched. -/
+theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
+  imod idxSealed_nil (GF := GF) γ.idx with #H
+  imodintro
+  unfold evLog certOk
+  iframe H
+  ileft; ipureintro; simp
+
+/-- The events `evs` are the range's of the revisions `[lo, d)` of a watched log (`evLog`:
+sealed and certified; persistent; `d` past the log only for an empty range). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
-  iprop(∃ L : Log, idxSealed γ.st.idx L ∗
+  iprop(∃ L : Log, evLog γ.st L ∗
     ⌜evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝)
 
 instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :

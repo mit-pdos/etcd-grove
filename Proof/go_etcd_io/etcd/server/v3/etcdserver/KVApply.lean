@@ -198,6 +198,23 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   refine ⟨Hpl m (by simp), Hch, ?_⟩
   rw [Hch, Hch0]; rfl
 
+/-- The apply thread's KV log is the model of its applied raft log (unit W-M3: for the result's
+tie, `entryWit`). -/
+theorem kvApplied_log (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel)
+    (x : apply.ApplyKV) :
+    kvApplied (GF := GF) γ γk A x ⊢ kvApplied γ γk A x ∗ ⌜x.log = kvModel γk A⌝ := by
+  iintro H
+  iunfold kvApplied at H
+  icases H with ⟨H, %Hch⟩
+  iunfold kvAppliedL at H
+  icases H with ⟨#HB, Hhi, #Hc, %Hl⟩
+  isplitl
+  · iunfold kvApplied
+    iunfold kvAppliedL
+    iframe HB Hhi Hc
+    ipureintro; exact ⟨Hl, Hch⟩
+  · ipureintro; exact Hl
+
 /-- The certificate in the apply thread's KV ghost state. -/
 theorem kvAppliedL_cert (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log) :
     kvAppliedL (GF := GF) γ γk B l ⊢ kvAppliedL γ γk B l ∗ kvCert γk l := by

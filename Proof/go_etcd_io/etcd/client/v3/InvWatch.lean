@@ -36,16 +36,16 @@ consumer's resources, `retcP`).
   dead code in the verified behaviour, verified at its first call only. The premise is there
   because the reconnection can make `run` send on a closed channel
   (`issues/etcd-watch-resume-closing-substream.md`).
-* `srvSealedReached` (S4, narrowed in unit W-M2b): a sealed log's revisions are reached
-  (`etcdReached`). A watcher's deliveries are the watch events of a *sealed* log (`watchRecvOk`
-  carries `mvcc.idxSealed`, and the clients' model's `etcdState`/`EtcdStep` are over sealed logs:
-  the content facts of the events are theorems), but `etcdReached` stays over *certified*
-  (committed) logs: it is a later read's floor (`floor_of_reached`, `rangeReplyOk`'s
-  `F <+: log`, from `store.Read`'s, a serializable read included), and the store notifies its
-  watchers before the write transaction commits. So the premise is false in the gap between the
-  notify and the commit (a serializable read there answers the revision before), as S4 was; it is
-  now only about the events' revisions being reached (`rangeWatchEvOk`'s `etcdReached e.rev`), not
-  about their content (`notes/STATUS.md`, "W-M2", "W-M2b").
+* (no longer a premise, unit W-M3) S4: a watch event's revision is reached (`rangeWatchEvOk`'s
+  `etcdReached e.rev`). A watcher's deliveries are the watch events of a *watched* log
+  (`watchRecvOk` carries `mvcc.evLog`: sealed, so the clients' model's `etcdState`/`EtcdStep` of
+  the events are theorems, unit W-M2b; and certified by the store's caller, `certOk`, which the
+  apply thread mints for a committed entry's log before applying it), and `etcdReached` is over
+  certified logs (`v3rpc.srvReachedAt`), so `ev_ok` proves it (`etcdReached_of_certOk`). A
+  linearizable read's floor comes from the client's atomic update at the committed KV state
+  (`kvAnyAu`), which extends every certified log, not from mvcc's committed log, so a revision
+  notified before mvcc commits it is reached without making a serializable read's floor false
+  (`notes/STATUS.md`, "W-M3").
 * (no longer premises, unit W-M2) S2 `srvProgressAllAnswers` (a response of watch id `-1` answers
   a progress request) and S3 `srvEventIdsAssigned` (a response with events carries an id the
   stream assigned to its watcher) are theorems (`srvProgressAllAnswers_holds`,
@@ -246,17 +246,6 @@ def srvLogsSmall (R : v3rpc.WSrv GF) : IProp GF :=
 instance srvLogsSmall_persistent (R : v3rpc.WSrv GF) : Persistent (srvLogsSmall R) := by
   unfold srvLogsSmall; infer_instance
 
-/-- **(S4, narrowed: a sealed log's revisions are reached)** (a premise, persistent; see the file
-header): a revision of a sealed log (`mvcc.idxSealed`) is reached in the server's model
-(`etcdReached`, over certified logs: a later read's floor). False between the store's notify of
-a revision and its commit (unit W-M2b). -/
-def srvSealedReached (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ (L : mvcc.Log) (j : w64), mvcc.idxSealed R.γ.st.idx L -∗ ⌜sint.Z j < L.length⌝ -∗
-    etcdReached (EM := v3rpc.etcdModelOfServer R.E) j)
-
-instance srvSealedReached_persistent (R : v3rpc.WSrv GF) : Persistent (srvSealedReached R) := by
-  unfold srvSealedReached; infer_instance
-
 /-- **No revision of the server writes a key twice** (a premise, persistent): every sealed log
 of the server (`mvcc.idxSealed`, unit W-M2b: the logs the watch events are of) has each
 revision's keys distinct (`txn.NoDupKeysPerRev`). etcd's check of a transaction's requests lets a
@@ -319,7 +308,7 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     v3rpc.watchDescOk ∗ watchTokSupply V.R.γ ∗ noRetryableStreamErr ∗
-    srvSealedReached V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
+    srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 
 instance watchConnFacts_persistent (V : WEnv GF) : Persistent (watchConnFacts V) := by

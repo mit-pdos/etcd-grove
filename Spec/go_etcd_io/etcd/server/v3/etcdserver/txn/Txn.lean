@@ -94,7 +94,7 @@ path's unit 3b: the server's read-only transaction, `EtcdServer.Txn` through `do
 read-only request `rt` denoting `t` (`txnReadonly`), on the store `kv` with a reader's slots
 (`storeReader`), `m` revision tokens and a certificate of `log₀`, at any context (`txnCtx`: it
 may be done). The read transaction reads a committed log `log` pinned between `log₀` and the
-tokens (`store.Read`), and the answer is one of `checkTxn`'s errors (no response, no trace); or
+tokens (`store.Read`; unit W-M3: with the caller's certificate of it, `certOk`), and the answer is one of `checkTxn`'s errors (no response, no trace); or
 the server's run of `t` on the state after `log` (`srvRunTxn`: no change, a read-only request),
 its response with header revision `log`'s last (`log.length - 1`), its header's id fields owned
 (`respHdrOwn`); or, the context done during a range, `executeTxn`'s `fmt.Errorf` error
@@ -120,7 +120,7 @@ abbrev txn.Txn.specRead : Prop :=
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗
-      ∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗
+      ∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
         ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ txn.checkErrIs err ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
