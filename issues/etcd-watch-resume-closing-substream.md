@@ -4,6 +4,7 @@ checked: 2026-10-16
 links:
   - etcd-io/etcd#21969 issue closed: same root cause (Canceled response closes recvc but leaves the substream registered), different symptom (progress broadcast, not resume after reconnect); closed as stale
   - etcd-io/etcd#22191 pr open: same root cause; its fix (delete from substreams after close(recvc)) also keeps newWatchClient from resuming the closed substream, though it does not mention the resume path
+  - etcd-io/etcd#15539 issue closed: related, not this bug; a transient error converted to Unknown makes openWatchClient halt instead of reconnecting (issues/etcd-client-etcderror-no-grpcstatus.md)
 ---
 
 # The watch client resumes a closing substream and can send on its closed `recvc`

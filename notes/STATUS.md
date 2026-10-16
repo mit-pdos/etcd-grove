@@ -47,18 +47,32 @@ module system").
 
 ## Bug triage: upstream bug reports against the proofs (2026-10-16, branch `bug-triage/2026-10-16`)
 
-Ten upstream correctness reports (five each of etcd-io/etcd and etcd-io/raft) classified against
-the proved specs with `.claude/skills/bug-triage`; index and ranked proposals in
-`notes/bug-triage/README.md`. None is present at the pins; one (etcd#21536) the specs would have
-excluded (F+), four are fixed upstream but the current specs would still admit the buggy code
-(F−: `crevFrozen`, `txnPlain`/`backendStep`'s unconstrained rejection, the unspecified
-`watchableStore.Restore`, no crashes), one is a crash/disk-loss (A-model), three are not bugs. No
-soundness alert. The proposals with the most bugs behind them: `crash-restart-model` (two),
-then `watch-under-compaction`, `txn-exact-check`, `verify-watchable-restore`,
-`readindex-ctx-reuse`. Open small items: `Protocol/ResultsDyn.lean`'s header ("not yet reached
-from Go") is out of date since B7; raft's `rdFresh` premise is stricter than v3.7's documented
-`ReadIndex` contract.
+151 upstream correctness reports (122 etcd-io/etcd, 29 etcd-io/raft) classified against the proved
+specs with `.claude/skills/bug-triage`; reports, index and ranked proposals in
+`notes/bug-triage/README.md`. No report contradicts a proved spec (no X). F+ 12, F− 42, F split 5,
+A 22, O 25, C 11, N 34: of the 59 bugs fixed before the pins, 47 would also pass the current proofs,
+because of scope choices recorded in this file (no snapshot in a `Ready`, the store restored only
+from an empty backend, no compaction under watch, plain transactions, no crashes, auth without
+identities, membership through the `applyConfChange` axiom). 26 new `issues/` files, most with a
+reproducing test beside them.
 
+**Trust-boundary contracts found false or too strong** (to restate; each is a hypothesis of the
+results that the real code does not meet):
+
+- `apply.isCluster`'s `UpdateAttributes` (`apply/Contracts.lean:339-343`) returns for any id; the
+  code panics on an unknown one, reachable from the verified apply chain by a committed
+  `ClusterMemberAttrSet` (reproduced; `issues/etcd-membership-attrset-unknown-member-panic.md`).
+  Fix: a ghost set of known ids and an `rqOk` case (`cluster-attrset-known-member`).
+- `EtcdServer.Cleanup.wp_proof` closes the backend without the `bOpen γ 1` token
+  (`notes/bug-triage/etcd-17223.md`); `EtcdServer.revokeExpiredLeases.wp_proof` proposes without
+  proposal credits (`etcd-15247.md`); `EtcdServer.compactRaftLog`/`snapshot` write `MemoryStorage`
+  outside their frames (`raft-108.md`); `EtcdServer.applyConfChange.wp_proof` holds only because the
+  membership methods now check the member (`etcd-20009.md`). No linked result combines them with the
+  state they break today; the audit is `cleanup-backend-quiescence`: every names-only server axiom
+  with a `True`/`isPkgInit` precondition, against what its function writes or panics on.
+
+Open small items: `Protocol/ResultsDyn.lean`'s header ("not yet reached from Go") is out of date
+since B7; raft's `rdFresh` premise is stricter than v3.7's documented `ReadIndex` contract.
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

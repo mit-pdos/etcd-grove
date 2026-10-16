@@ -3,6 +3,7 @@ upstream: none
 checked: 2026-10-16
 links:
   - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
+  - etcd-io/etcd#10566 issue open: related, not this bug (etcd's own rule, a value comparison on a missing key is always false, which evalCmp departs from; issues/etcd-compare-value-missing-key.md)
 ---
 
 # clientv3/leasing: transactions answered from the cache evaluate comparisons on missing keys and leases differently from etcd

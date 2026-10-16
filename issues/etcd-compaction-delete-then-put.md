@@ -5,6 +5,7 @@ links:
   - etcd-io/etcd#22376 issue open: same bug (compaction at a delete-and-recreate revision loses the live value)
   - etcd-io/etcd#22377 pr open: fix for #22376 (keyIndex.doCompact; a regression from #18274)
   - etcd-io/etcd#22395 pr open: related; closes the gRPC path to the bug (from-key delete then put in one txn)
+  - etcd-io/etcd#19179 issue closed: related, not this bug: another consequence of #18274 keeping a tombstone at the compaction revision (notes/bug-triage/etcd-19179.md)
 ---
 
 # server/storage/mvcc: compacting at a revision that deletes a key and puts it again deletes the live value

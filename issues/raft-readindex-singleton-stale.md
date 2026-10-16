@@ -8,6 +8,8 @@ links:
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would remove the removed-leader half of the scenario, not the commit-index half)
   - etcd-io/etcd#16666 issue closed: related, not this bug: the same unconditional shortcut answers a stale commit index after a crash-restart (HardState.Commit persisted after apply) in a single-member cluster served before ReadyNotify; fixed in etcd by #16677; the fork's fix likely also closes it, argued informally (notes/bug-triage/etcd-16666.md)
   - etcd-io/raft#105 pr closed: related, not this bug: return the actually committed index for ReadIndex (the crash-restart variant)
+  - etcd-io/etcd#7331 issue closed: related, not this bug: the multi-voter original of this finding's first execution (a new leader's read index before its first commit in term), fixed by #7332's committedEntryInCurrentTerm check, which the IsSingleton shortcut ran before
+  - etcd-io/etcd#20418 issue closed: related, not this bug (the user-visible symptom of raft#392: reused ReadIndex contexts on retry; fixed by etcd#21399)
 ---
 
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change

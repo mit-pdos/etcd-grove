@@ -216,7 +216,11 @@ Name the proposal with a short slug, so the index can count bugs per proposal ac
   in `issues/`: add `issues/<project>-<slug>.md` per CLAUDE.md and `issues/README.md`, front matter
   `upstream: known` with the issue in `links:`, `checked:` today. "How the proof handles it" is the
   triage's step 4 conclusion (the premise that excludes it, or the spec that admits it). A reproduction
-  at the pin when one is cheap (the issue's reproduction, adapted).
+  at the pin when one is cheap (the issue's reproduction, adapted). A Go test written for it goes in
+  the repository beside the issue, `issues/<slug>/<name>_test.go` (as
+  `issues/raft-confstate-unknown-fields-panic/`), with a header comment naming the package, repository
+  and revision it is dropped into and the `go test` command that runs it; the issue file links it (and
+  may quote its essential part). Never leave a reproduction only in a scratch directory.
 - A bug in this repository's specs, proofs or trust base (class X, or an A-axiom whose postulate is
   false): `notes/` and the user, at once.
 - A Perennial limitation that blocks a C or A-model proposal: `notes/STATUS.md`, per CLAUDE.md.

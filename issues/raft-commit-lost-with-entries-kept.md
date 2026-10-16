@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
   - etcd-io/raft#300 pr closed: same root cause (HardState.Commit not persisted with the entries), different symptom (force-new-cluster drops a committed entry); closed, resolved on the etcd side
   - etcd-io/raft#234 issue closed: related, not this bug: split brain with a stalled apply; closed citing hasUnappliedConfChanges (assumes conf changes applied before the applied index moves)
+  - etcd-io/etcd#14143 issue closed: related, not this bug: lost committed writes and split brain under loss of un-fsynced data (Jepsen/LazyFS); the thread discusses a stale persisted HardState.Commit (MustSync does not sync commit-only changes); never root-caused, closed stale
+  - etcd-io/etcd#20009 issue closed: same root cause as raft#300 (HardState.Commit not synced); symptom: --force-new-cluster drops applied entries; fixed on the etcd side by #20055 (bootstrap Commit = max(Commit, consistent_index))
 ---
 
 # raft: entries persisted without their `HardState.Commit` can break membership safety

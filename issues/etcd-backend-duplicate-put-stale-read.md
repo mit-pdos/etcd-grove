@@ -6,6 +6,10 @@ links:
   - etcd-io/etcd#21987 pr open: fix for #21986 (dedupe intra-batch duplicates in writeback before merge)
   - etcd-io/etcd#22298 pr open: same fix (dedupe on every writeback path into an existing read bucket), filed as hardening without an issue
   - etcd-io/etcd#21985 pr closed: earlier fix attempt for the same bug (dedupe on the merge path), superseded by #21987
+  - etcd-io/etcd#17228 pr merged: earlier fix of the same class (dedupe duplicate keys within one transaction); caused duplicate watch events (#17247); reverted by #17285
+  - etcd-io/etcd#17285 pr merged: the revert of #17228
+  - etcd-io/etcd#17263 pr merged: related fix (tx buffer inconsistency with unordered key writes in one transaction); in the pinned code
+  - etcd-io/etcd#17247 issue closed: the duplicate watch events caused by #17228
 ---
 
 # The read buffer keeps both puts of one key: `ReadTx` returns the older value
