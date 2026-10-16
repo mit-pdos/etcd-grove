@@ -83,6 +83,27 @@ theorem nonself_take_succ (id : w64) (ms : List QMsg) (n : Nat)
   rw [List.take_add_one, Hl]
   by_cases h : mm.st.msg.To' = id <;> simp [List.filter_append, h, isSelfQ]
 
+/-- The messages of `msgsAfterAppend` that `acceptReady` keeps to step (`To = id`;
+`readyWithoutAccept` hands out the others, `nonself`). (2026-10-16, stage R5: over `QMsg`.) -/
+abbrev selfmsgs (id : w64) (ms : List QMsg) : List QMsg :=
+  ms.filter (fun q => isSelfQ id q)
+
+theorem selfmsgs_take_succ (id : w64) (ms : List QMsg) (n : Nat)
+    (mm : QMsg) (Hl : ms[n]? = some mm) :
+    selfmsgs id (ms.take (n + 1)) =
+      selfmsgs id (ms.take n) ++ (if mm.st.msg.To' = id then [mm] else []) := by
+  unfold selfmsgs
+  rw [List.take_add_one, Hl]
+  by_cases h : mm.st.msg.To' = id <;> simp [List.filter_append, h, isSelfQ]
+
+/-- A response type is not a snapshot's. -/
+theorem mtypeOf_resp_ne_snap (t : w32) (H : RespType t) : mtypeOf t ≠ some .snap := by
+  rcases H with H | H | H <;> rw [H] <;> decide
+
+/-- A response is not a `MsgApp`. -/
+theorem resp_ne_MsgApp (t : w32) (H : RespType t) : t ≠ MsgApp := by
+  rcases H with H | H | H <;> rw [H] <;> decide
+
 /-- The messages a `Ready` hands out at `readyDq` that are responses are at half. -/
 theorem readyDq_resp (st : MsgSt) (h : RespType st.msg.Type') :
     readyDq st = DFrac.own (1 : Qp).half := by
@@ -211,6 +232,63 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QM
     isplitr
     · iapply outboxRelP_isRaftMsg γ o ms1 ms2 q Hp (Hsub q List.mem_cons_self) $$ Ho
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))) $$ Ho
+
+/-- A hard state that may be `nil` and is not empty is a read-only one. -/
+theorem hsRO_of_hsOpt (p : Loc) (h : HardStateM)
+    (Hne : ¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0)) :
+    hsOpt (GF := GF) p h ⊢ hsRO p h := by
+  iintro H
+  unfold hsOpt
+  icases H with (%Hn | H)
+  · exfalso; obtain ⟨-, rfl⟩ := Hn; exact Hne ⟨rfl, rfl, rfl⟩
+  · iexact H
+
+/-- The self-addressed messages of `msgsAfterAppend`, as the pending steps `acceptReady`
+queues (2026-10-16, stage R5): each owned (`selfOwn`) becomes a `msgIn` (a response is not a
+`MsgApp`, `msgOwn_to_msgIn`), `SelfMsgOk` (`AAMsgOk.selfMsgOk`), and its abstraction, at no
+entries and no context, was legitimately sent (its contribution is in the outbox,
+`outboxRelP_isRaftMsg`). -/
+theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms1 ms2 : List QMsg)
+    (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
+    (Hok : ∀ q ∈ l, AAMsgOk id t q.st) :
+    ⊢ ([∗list] x ∈ o, isMessage (GF := GF) γ x) -∗ ([∗list] q ∈ l, selfOwn (GF := GF) id q) -∗
+      pendList γ id ((selfmsgs id l).map QMsg.loc)
+        ((selfmsgs id l).map (fun q => selfPending q.st.msg)) := by
+  induction l with
+  | nil =>
+    iintro _ _
+    simp only [selfmsgs, List.filter_nil, List.map_nil]
+    iapply pendList_nil
+  | cons q l ih =>
+    have Hsub' : ∀ q' ∈ l, q' ∈ ms1 ++ ms2 := fun q' h => Hsub q' (List.mem_cons_of_mem _ h)
+    have Hok' : ∀ q' ∈ l, AAMsgOk id t q'.st := fun q' h => Hok q' (List.mem_cons_of_mem _ h)
+    iintro #Ho H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hq, H⟩
+    by_cases h : isSelfQ id q = true
+    · simp only [selfmsgs, List.filter_cons, h, ↓reduceIte, List.map_cons]
+      have hto : q.st.msg.To' = id := of_decide_eq_true h
+      have Hsm := (Hok q List.mem_cons_self).selfMsgOk hto
+      have Hresp : RespType q.st.msg.Type' := Hsm.1
+      iapply (BigSepL2.bigSepL2_cons (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
+        pendingRel γ id st p))).2
+      isplitl [Hq]
+      · iexists q.st
+        isplitl [Hq]
+        · iapply msgOwn_to_msgIn q.loc q.st (resp_ne_MsgApp _ Hresp)
+          unfold selfOwn; simp only [h, ↓reduceIte]; iexact Hq
+        · ihave #Hr := outboxRelP_isRaftMsg γ o ms1 ms2 q Hp (Hsub q List.mem_cons_self) $$ Ho
+          unfold pendingRel selfPending
+          isplitr
+          · ipureintro; exact ⟨Hsm, rfl, rfl⟩
+          · imodintro
+            iintro %ty %Hty
+            ihave H := isRaftMsg_isMessage γ q.st ty Hty
+              (fun hs => mtypeOf_resp_ne_snap _ Hresp (hs ▸ Hty)) $$ Hr
+            rw [Hsm.2.2.2.2.1, Hsm.2.2.2.2.2.1]
+            iexact H
+      · iapply ih Hsub' Hok' $$ Ho H
+    · simp only [selfmsgs, List.filter_cons, h, Bool.false_eq_true, ↓reduceIte]
+      iapply ih Hsub' Hok' $$ Ho H
 
 end sep
 
