@@ -43,8 +43,8 @@ stale message is only logged, then `return nil`. `StepC.refl`, nothing received.
 theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ty : MsgType) :
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (ty : MsgType) :
     m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp →
     m.Term' ≠ W64 0 →
     uint.Z m.Term' < uint.Z s.term →

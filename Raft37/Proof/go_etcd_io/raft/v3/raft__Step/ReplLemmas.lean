@@ -90,6 +90,12 @@ theorem msgPtsC_From_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
   iframe
   iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
 
+/-- A message `Step` received, off a proposal, as the `stepX` specs take it. -/
+theorem msgIn_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} (h : m.Type' ≠ MsgProp) :
+    msgIn (GF := GF) ml DFrac.discard st ⊢
+      msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+  simp only [h, ↓reduceIte]; exact .rfl
+
 /-- A fresh cell, frozen: read-only. -/
 theorem cellRO_of_pointsto {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V)
     (E : CoPset) : (p ↦ v : IProp GF) ⊢ |={E}=> cellRO p v := by

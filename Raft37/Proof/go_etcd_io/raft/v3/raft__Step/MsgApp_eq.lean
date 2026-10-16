@@ -109,7 +109,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-    · rw [ite_cond_eq_false _ _ (eq_false (by rw [Hty]; w32_ne))]; iexact Hm
+    · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf { s with lead := m.From' } := Hwf
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -133,7 +133,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-    · rw [ite_cond_eq_false _ _ (eq_false (by rw [Hty]; w32_ne))]; iexact Hm
+    · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
         ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := ⟨rfl, rfl⟩
@@ -164,7 +164,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl [Hm]
-      · rw [ite_cond_eq_false _ _ (eq_false (by rw [Hty]; w32_ne))]; iexact Hm
+      · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, rfl⟩ := leaderStepResult_app_hb _ _ _ _ _ _ _ (.inl Hty) Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -185,7 +185,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-    · rw [ite_cond_eq_false _ _ (eq_false (by rw [Hty]; w32_ne))]; iexact Hm
+    · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
         ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := ⟨rfl, rfl⟩
