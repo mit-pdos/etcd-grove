@@ -7675,3 +7675,69 @@ and `PreVote` settings stay premises.
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
   parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
   `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.
+
+## The server's construction: `NewServer` over `bootstrap`'s result (the server-construction unit)
+
+**2026-10-16 · adopted (units N1 and N2 now, N3 and N4 later; branch `raft-retarget`; from the
+design study of 2026-10-16, after R8b)**
+
+Every server result rests on `isServerBuilt` (`InvStart.lean`), the premise `start` takes and
+`NewServer` would discharge. R8b gave the raft rows a composition (`server_raft_node_start`). The
+study of `NewServer` against the premise, row by row, found two things that shape the unit.
+
+1. **The KV rows are false for the real server.** `srvReadBuilt` and `applyBuilt` use `txn.isKV`,
+   which pins the server's `kv` to a plain `*mvcc.store`; `NewServer` sets `srv.kv = mvcc.New(…)`,
+   a `*watchableStore`, whose write transaction is another type (`watchableStoreTxnWrite` over
+   `watchWriter`, notifying watchers at `End`). `mvcc.New` is proved and the watch path states the
+   truth (`watchSrvOk`); the request-path and apply results are thus proved for a server whose
+   store has no watchers. The fix is an abstraction of `txn.isKV` (and `isApplyKV`, `kvOwn`) over
+   the `KV` interface's `Read`/`Write` contracts met by both stores, the txn and apply proofs
+   re-linked, `server_kv_backend` redone for `mvcc.New`, and the hook order (`NewServer` installs
+   the backend's post-lock hook after creating the store; `server_kv_backend` wants it frozen
+   before): **unit N4**, coordinated with the mvcc/watch session, after N1/N2.
+2. **The workload clause of `rnEnvOk` is a cluster-wide premise.** `E.C = srvC …` asks of every
+   committed log `entriesOk c₀ L x₀` (every request meets the apply premises, `rqOk`/`dispatchOk`,
+   at the state it meets) and `batchWaitOk ρ E L` (its id is claimed under *this* server's
+   generator); nothing produces either. For one server `entriesOk` needs log-independent bounds
+   the deposit does not carry; for several members both are facts about the other members'
+   requests (and `issues/etcd-request-id-member-prefix.md` shows id prefixes can collide). The
+   honest form is a named premise `clusterWorkloadOk ρ E c₀ x₀ : □ ∀ L, srvRLogLb L -∗
+   ⌜entriesOk c₀ L x₀⌝ ∗ batchWaitOk ρ E L`, from which the clause follows (N2); discharging it
+   for one server is **unit N3** (may stay a premise).
+
+- **D13: `NewServer` is translated with its body and proved over `bootstrap`'s result as a
+  contract**, its postcondition `isServerBuilt` but a named residual. `bootstrap(cfg)` stays
+  names-only; `NewServer.spec` takes `bOk b` (what the bootstrapped record carries: the
+  consistent index `isCI`/`ciOwner` at `0`, the backend's `isBackendNH`/`plHook`/write tokens,
+  the cluster `isRaftCluster`/`clusterCid`, the snapshotter, the WAL, `b.raft` with
+  `NodeStartSpec`'s premises -- `CheckQuorum`/`PreVote` off among them, the user's decision) and
+  the constructors' contracts (`lease.NewLessor`, `auth.NewTokenProvider`/`NewAuthStore` on a
+  fresh backend giving `E.authOn = false`, `v3alarm.NewAlarmStore` giving no alarm,
+  `v3compactor.New`, `stats.*`, `rafthttp.Transport`'s `Start`/`AddRemote`/`AddPeer`,
+  `SetVersionChangedNotifier`, prometheus). The cluster-level ghost state is a premise too, as
+  `NodeStartSpec`'s: raft's `γ` with this node's `ownRaftGhost` at `bootPState`, `isCommitted γ
+  bootLog`, the commit invariant, the budget, and `allocClientBoot`'s continuation outputs
+  (`rLog γ bootLog`, the `reFresh`/`reRdFresh` authorities, the read credits), from which N2
+  builds `kvInv`/`etcdKV` at the boot log (`kvInv_alloc_boot`), `srvMintInv` and `srvRdFreshInv`.
+  The per-server names are allocated inside (`∃` in the post): the applied and committed
+  indices' invariants, the notifier, `kvCertInv`, `consInv`, the revision authority, the atomics'
+  invariants, the id generator's names. The post is `isServerBuilt` with the rows no `NewServer`
+  proof gives factored into one named residual `srvBuildGap` (the KV rows `txn.isKV`/`applyKV`/
+  `isReadView`/`storeWTs` as stated today, `clusterWorkloadOk`, `rnSnapOnce`, the id budget `□
+  |==> idCred`, `storeSmall`, `threadBound`), with `isServerBuilt_of_gap : built ∗ srvBuildGap ⊢
+  isServerBuilt`; N3 and N4 shrink the gap. The raft rows come from `server_raft_node_start` at
+  `r: *b.raft.newRaftNode(…)` (the struct value copied into the literal) and its installer at
+  `srv.r.transport = tr` after `tr.Start()`. *Rejected:* a contract on `mvcc.New` claiming
+  `txn.isKV` of its result (false); allocating raft's ghost state inside `NewServer` (the members
+  share it).
+- **Translation.** `NewServer`, the five `bootstrapped*` record types, `EtcdServer.restoreAlarms`,
+  `EtcdServer.NewUberApplier` (if not yet with bodies), `AccessController`, with `math` in the
+  imports; `bootstrap`, `bootstrappedServer.Close`, `addFeatureGateMetrics`,
+  `newCorruptionChecker`, `ensureLeadership` and the constructors stay names-only. The two
+  `defer` closures over the named results run only on error paths the spec excludes; the
+  checkpointer closure is an opaque value under `lease.Lessor.SetCheckpointer`'s contract.
+- **Staging.** N1 (translation, `NewServer.spec`, the literal and the field rows, the per-server
+  allocations, `srvBuildGap`) and N2 (the cluster-level lemmas: `kvInv_alloc_boot`, the mints
+  from the continuation, `consInv_alloc`, `kvCertInv_alloc`, the indices' allocations,
+  `rnEnvOk_of_cluster` from `clusterWorkloadOk`) in parallel; then N3 (the workload clause for one
+  server), N4 (the KV abstraction, with the mvcc/watch session).
