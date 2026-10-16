@@ -549,20 +549,21 @@ func TestFollowerCheckMsgApp(t *testing.T) {
 		term        uint64
 		index       uint64
 		windex      uint64
+		wcommit     uint64
 		wreject     bool
 		wrejectHint uint64
 		wlogterm    uint64
 	}{
 		// match with committed entries
-		{0, 0, 1, false, 0, 0},
-		{ents[0].GetTerm(), ents[0].GetIndex(), 1, false, 0, 0},
+		{0, 0, 1, 1, false, 0, 0},
+		{ents[0].GetTerm(), ents[0].GetIndex(), 1, 1, false, 0, 0},
 		// match with uncommitted entries
-		{ents[1].GetTerm(), ents[1].GetIndex(), 2, false, 0, 0},
+		{ents[1].GetTerm(), ents[1].GetIndex(), 2, 1, false, 0, 0},
 
 		// unmatch with existing entry
-		{ents[0].GetTerm(), ents[1].GetIndex(), ents[1].GetIndex(), true, 1, 1},
+		{ents[0].GetTerm(), ents[1].GetIndex(), ents[1].GetIndex(), 0, true, 1, 1},
 		// unexisting entry
-		{ents[1].GetTerm() + 1, ents[1].GetIndex() + 1, ents[1].GetIndex() + 1, true, 2, 2},
+		{ents[1].GetTerm() + 1, ents[1].GetIndex() + 1, ents[1].GetIndex() + 1, 0, true, 2, 2},
 	}
 	for i, tt := range tests {
 		storage := newTestMemoryStorage(withPeers(1, 2, 3))
@@ -578,6 +579,8 @@ func TestFollowerCheckMsgApp(t *testing.T) {
 			expected.Reject = new(true)
 			expected.RejectHint = new(tt.wrejectHint)
 			expected.LogTerm = new(tt.wlogterm)
+		} else {
+			expected.Commit = new(tt.wcommit)
 		}
 		assert.Equal(t, []*pb.Message{expected}, r.readMessages(), "#%d", i)
 	}

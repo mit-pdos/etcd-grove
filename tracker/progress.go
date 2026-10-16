@@ -30,6 +30,8 @@ import (
 type Progress struct {
 	// Match is the index up to which the follower's log is known to match the
 	// leader's.
+	//
+	// Match does not regress.
 	Match uint64
 	// Next is the log index of the next entry to send to this follower. All
 	// entries with indices in (Match, Next) interval are already in flight.
@@ -40,10 +42,18 @@ type Progress struct {
 	// In StateSnapshot, Next == PendingSnapshot + 1.
 	Next uint64
 
+	// Commit is the known commit index of the follower's log.
+	//
+	// Invariant: Commit <= Match.
+	// Invariant: Commit <= leader's commit index.
+	// Commit does not regress.
+	Commit uint64
 	// sentCommit is the highest commit index in flight to the follower.
 	//
 	// Generally, it is monotonic, but con regress in some cases, e.g. when
 	// converting to `StateProbe` or when receiving a rejection from a follower.
+	//
+	// Invariant: sentCommit >= Commit.
 	//
 	// In StateSnapshot, sentCommit == PendingSnapshot == Next-1.
 	sentCommit uint64
@@ -199,6 +209,11 @@ func (pr *Progress) SentCommit(commit uint64) {
 	pr.sentCommit = commit
 }
 
+// UpdateCommit moves the known commit index for this follower forward.
+func (pr *Progress) UpdateCommit(index uint64) {
+	pr.Commit = max(pr.Commit, min(index, pr.Match))
+}
+
 // MaybeUpdate is called when an MsgAppResp arrives from the follower, with the
 // index acked by it. The method returns false if the given n index comes from
 // an outdated message. Otherwise it updates the progress and returns true.
@@ -274,7 +289,7 @@ func (pr *Progress) IsPaused() bool {
 
 func (pr *Progress) String() string {
 	var buf strings.Builder
-	fmt.Fprintf(&buf, "%s match=%d next=%d", pr.State, pr.Match, pr.Next)
+	fmt.Fprintf(&buf, "%s match=%d commit=%d next=%d", pr.State, pr.Match, pr.Commit, pr.Next)
 	if pr.IsLearner {
 		fmt.Fprint(&buf, " learner")
 	}
