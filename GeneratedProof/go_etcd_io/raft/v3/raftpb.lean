@@ -40,6 +40,7 @@ instance Entry_typed_pointsto :
     "Index" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Index" l) v.Index' dq ∗
     "Type'" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Type" l) v.Type' dq ∗
     "Data" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Data" l) v.Data' dq ∗
+    "Subterm" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Subterm" l) v.Subterm' dq ∗
     "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"unknownFields" l) v.unknownFields' dq ∗
     "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
@@ -128,6 +129,22 @@ instance Entry_access_store_Data (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Data" l) Data' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Data' := Data' } : go_etcd_io.raft.v3.raftpb.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_load_Subterm (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Subterm" l) v.Subterm' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Subterm" l) v.Subterm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Entry_access_store_Subterm (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (Subterm' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Subterm" l) v.Subterm' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"Subterm" l) Subterm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Subterm' := Subterm' } : go_etcd_io.raft.v3.raftpb.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -836,6 +853,199 @@ instance HardState_access_store_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raft
 end def_
 end HardState
 
+namespace WitnessHardState
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.raftpb.Assumptions]
+
+instance WitnessHardState_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.raftpb.WitnessHardState where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"state" l) v.state' dq ∗
+    "State" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"State" l) v.State' dq ∗
+    "LastLogIndex" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogIndex" l) v.LastLogIndex' dq ∗
+    "LastLogTerm" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogTerm" l) v.LastLogTerm' dq ∗
+    "LastLogSubterm" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogSubterm" l) v.LastLogSubterm' dq ∗
+    "Lead" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"Lead" l) v.Lead' dq ∗
+    "ReplicationSet" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSet" l) v.ReplicationSet' dq ∗
+    "ReplicationSetOutgoing" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSetOutgoing" l) v.ReplicationSetOutgoing' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance WitnessHardState_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.raftpb.WitnessHardState go_etcd_io.raft.v3.raftpb.WitnessHardState.underlying := by
+  solve_into_val_typed_struct
+
+instance WitnessHardState_access_load_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_State (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"State" l) v.State' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"State" l) v.State' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_State (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (State' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"State" l) v.State' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"State" l) State' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with State' := State' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_LastLogIndex (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogIndex" l) v.LastLogIndex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogIndex" l) v.LastLogIndex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_LastLogIndex (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (LastLogIndex' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogIndex" l) v.LastLogIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogIndex" l) LastLogIndex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastLogIndex' := LastLogIndex' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_LastLogTerm (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogTerm" l) v.LastLogTerm' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogTerm" l) v.LastLogTerm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_LastLogTerm (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (LastLogTerm' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogTerm" l) v.LastLogTerm' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogTerm" l) LastLogTerm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastLogTerm' := LastLogTerm' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_LastLogSubterm (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogSubterm" l) v.LastLogSubterm' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogSubterm" l) v.LastLogSubterm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_LastLogSubterm (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (LastLogSubterm' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogSubterm" l) v.LastLogSubterm' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"LastLogSubterm" l) LastLogSubterm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastLogSubterm' := LastLogSubterm' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_Lead (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"Lead" l) v.Lead' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"Lead" l) v.Lead' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_Lead (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (Lead' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"Lead" l) v.Lead' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"Lead" l) Lead' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lead' := Lead' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_ReplicationSet (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSet" l) v.ReplicationSet' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSet" l) v.ReplicationSet' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_ReplicationSet (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (ReplicationSet' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSet" l) v.ReplicationSet' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSet" l) ReplicationSet' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReplicationSet' := ReplicationSet' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_ReplicationSetOutgoing (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSetOutgoing" l) v.ReplicationSetOutgoing' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSetOutgoing" l) v.ReplicationSetOutgoing' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_ReplicationSetOutgoing (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (ReplicationSetOutgoing' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSetOutgoing" l) v.ReplicationSetOutgoing' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"ReplicationSetOutgoing" l) ReplicationSetOutgoing' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReplicationSetOutgoing' := ReplicationSetOutgoing' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_unknownFields (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_load_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessHardState_access_store_sizeCache (l : Loc) (v : go_etcd_io.raft.v3.raftpb.WitnessHardState) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.WitnessHardState go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.raft.v3.raftpb.WitnessHardState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end WitnessHardState
+
 namespace ConfState
 section def_
 
@@ -853,6 +1063,8 @@ instance ConfState_typed_pointsto :
     "VotersOutgoing" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"VotersOutgoing" l) v.VotersOutgoing' dq ∗
     "LearnersNext" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"LearnersNext" l) v.LearnersNext' dq ∗
     "AutoLeave" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"AutoLeave" l) v.AutoLeave' dq ∗
+    "Witness" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"Witness" l) v.Witness' dq ∗
+    "WitnessOutgoing" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"WitnessOutgoing" l) v.WitnessOutgoing' dq ∗
     "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"unknownFields" l) v.unknownFields' dq ∗
     "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
@@ -957,6 +1169,38 @@ instance ConfState_access_store_AutoLeave (l : Loc) (v : go_etcd_io.raft.v3.raft
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"AutoLeave" l) v.AutoLeave' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"AutoLeave" l) AutoLeave' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AutoLeave' := AutoLeave' } : go_etcd_io.raft.v3.raftpb.ConfState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ConfState_access_load_Witness (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"Witness" l) v.Witness' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"Witness" l) v.Witness' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ConfState_access_store_Witness (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfState) (Witness' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"Witness" l) v.Witness' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"Witness" l) Witness' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Witness' := Witness' } : go_etcd_io.raft.v3.raftpb.ConfState) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ConfState_access_load_WitnessOutgoing (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfState) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"WitnessOutgoing" l) v.WitnessOutgoing' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"WitnessOutgoing" l) v.WitnessOutgoing' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ConfState_access_store_WitnessOutgoing (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfState) (WitnessOutgoing' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"WitnessOutgoing" l) v.WitnessOutgoing' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"WitnessOutgoing" l) WitnessOutgoing' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WitnessOutgoing' := WitnessOutgoing' } : go_etcd_io.raft.v3.raftpb.ConfState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

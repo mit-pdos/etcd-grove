@@ -78,6 +78,11 @@ def HardState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] HardState.ty
 
+def WitnessHardState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.WitnessHardState" [])
+
+attribute [irreducible] WitnessHardState.ty
+
 def ConfState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfState" [])
 
@@ -200,6 +205,9 @@ attribute [irreducible] ConfChangeV2.ty
 @[reducible] noncomputable def ConfChangeAddLearnerNode [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 3)
 
+@[reducible] noncomputable def ConfChangeAddWitness [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 4)
+
 @[reducible] noncomputable def EntryType_EntryNormal [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 0)
 
@@ -303,6 +311,9 @@ attribute [irreducible] ConfChangeV2.ty
 
 @[reducible] noncomputable def ConfChangeType_ConfChangeAddLearnerNode [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 3)
+
+@[reducible] noncomputable def ConfChangeType_ConfChangeAddWitness [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 4)
 
 axiom file_raft_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 
@@ -646,11 +657,15 @@ noncomputable def ConfChangesFromString.impl [FfiSyntax] [GoGlobalContext] : val
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve ConfChangeType.ty go!"Enum"))) (Val ConfChangeUpdateNode)) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ConfChangeType.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ConfChangeSingle.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfChangeSingle.ty)))) (Var "cc"))) (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (Var "$sw") (Val #(W8 119))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve ConfChangeType.ty go!"Enum"))) (Val ConfChangeAddWitness)) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ConfChangeType.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ConfChangeSingle.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfChangeSingle.ty)))) (Var "cc"))) (Var "$r0")))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType ConfChangeSingle.ty))))) (Val UntypedNil)) (Let "$a0" (Val #(go!"unknown input: %s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "tok")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ConfChangeSingle.ty)))) (Pair (Var "cc") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "tok"))
@@ -677,7 +692,7 @@ noncomputable def ConfChangesFromString.impl [FfiSyntax] [GoGlobalContext] : val
 
 /-- ConfChangesToString is the inverse to ConfChangesFromString.
 
-    go: confchange.go:156:6 -/
+    go: confchange.go:158:6 -/
 noncomputable def ConfChangesToString.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ccs"
   (App (Val exceptionDo)
@@ -719,9 +734,13 @@ noncomputable def ConfChangesToString.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Let "$a0" (Val #(W8 117))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteByte"))) (Var "buf")) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals ConfChangeType.ty))) (Pair (Var "$sw") (Val ConfChangeAddWitness)))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W8 119))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteByte"))) (Var "buf")) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"unknown"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteString"))) (Var "buf")) (Var "$a0"))))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteString"))) (Var "buf")) (Var "$a0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W8 32))
@@ -887,7 +906,7 @@ noncomputable def ConfChangeTransition.Enum.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ConfChangeTransition.ty)))) (Pair (Var "p") (Var "$r0")))))))))))
 
-/-- go: raft.pb.go:306:25 -/
+/-- go: raft.pb.go:309:25 -/
 noncomputable def ConfChangeType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -905,7 +924,7 @@ noncomputable def ConfChangeType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ConfChangeType.ty)))) (Pair (Var "p") (Var "$r0")))))))))))
 
-/-- go: raft.pb.go:364:15 -/
+/-- go: raft.pb.go:368:15 -/
 noncomputable def Entry.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -913,7 +932,7 @@ noncomputable def Entry.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:383:17 -/
+/-- go: raft.pb.go:387:17 -/
 noncomputable def Entry.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -928,7 +947,7 @@ noncomputable def Entry.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:390:17 -/
+/-- go: raft.pb.go:394:17 -/
 noncomputable def Entry.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -943,7 +962,7 @@ noncomputable def Entry.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:397:17 -/
+/-- go: raft.pb.go:401:17 -/
 noncomputable def Entry.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -958,7 +977,7 @@ noncomputable def Entry.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:404:17 -/
+/-- go: raft.pb.go:408:17 -/
 noncomputable def Entry.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -973,7 +992,22 @@ noncomputable def Entry.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:431:26 -/
+/-- go: raft.pb.go:415:17 -/
+noncomputable def Entry.GetSubterm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Entry.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Entry.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Entry.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Entry.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Entry.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:442:26 -/
 noncomputable def SnapshotMetadata.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -981,7 +1015,7 @@ noncomputable def SnapshotMetadata.ProtoMessage.impl [FfiSyntax] [GoGlobalContex
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:450:28 -/
+/-- go: raft.pb.go:461:28 -/
 noncomputable def SnapshotMetadata.GetConfState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -996,7 +1030,7 @@ noncomputable def SnapshotMetadata.GetConfState.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:457:28 -/
+/-- go: raft.pb.go:468:28 -/
 noncomputable def SnapshotMetadata.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1011,7 +1045,7 @@ noncomputable def SnapshotMetadata.GetIndex.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:464:28 -/
+/-- go: raft.pb.go:475:28 -/
 noncomputable def SnapshotMetadata.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1026,7 +1060,7 @@ noncomputable def SnapshotMetadata.GetTerm.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:490:18 -/
+/-- go: raft.pb.go:501:18 -/
 noncomputable def Snapshot.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1034,7 +1068,7 @@ noncomputable def Snapshot.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:509:20 -/
+/-- go: raft.pb.go:520:20 -/
 noncomputable def Snapshot.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1049,7 +1083,7 @@ noncomputable def Snapshot.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:516:20 -/
+/-- go: raft.pb.go:527:20 -/
 noncomputable def Snapshot.GetMetadata.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1064,7 +1098,7 @@ noncomputable def Snapshot.GetMetadata.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:576:17 -/
+/-- go: raft.pb.go:587:17 -/
 noncomputable def Message.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1072,7 +1106,7 @@ noncomputable def Message.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:595:19 -/
+/-- go: raft.pb.go:606:19 -/
 noncomputable def Message.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1087,7 +1121,7 @@ noncomputable def Message.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:602:19 -/
+/-- go: raft.pb.go:613:19 -/
 noncomputable def Message.GetTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1102,7 +1136,7 @@ noncomputable def Message.GetTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:609:19 -/
+/-- go: raft.pb.go:620:19 -/
 noncomputable def Message.GetFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1117,7 +1151,7 @@ noncomputable def Message.GetFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:616:19 -/
+/-- go: raft.pb.go:627:19 -/
 noncomputable def Message.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1132,7 +1166,7 @@ noncomputable def Message.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:623:19 -/
+/-- go: raft.pb.go:634:19 -/
 noncomputable def Message.GetLogTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1147,7 +1181,7 @@ noncomputable def Message.GetLogTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:630:19 -/
+/-- go: raft.pb.go:641:19 -/
 noncomputable def Message.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1162,7 +1196,7 @@ noncomputable def Message.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:637:19 -/
+/-- go: raft.pb.go:648:19 -/
 noncomputable def Message.GetEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1177,7 +1211,7 @@ noncomputable def Message.GetEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:644:19 -/
+/-- go: raft.pb.go:655:19 -/
 noncomputable def Message.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1192,7 +1226,7 @@ noncomputable def Message.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:651:19 -/
+/-- go: raft.pb.go:662:19 -/
 noncomputable def Message.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1207,7 +1241,7 @@ noncomputable def Message.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:658:19 -/
+/-- go: raft.pb.go:669:19 -/
 noncomputable def Message.GetSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1222,7 +1256,7 @@ noncomputable def Message.GetSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:665:19 -/
+/-- go: raft.pb.go:676:19 -/
 noncomputable def Message.GetReject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1237,7 +1271,7 @@ noncomputable def Message.GetReject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:672:19 -/
+/-- go: raft.pb.go:683:19 -/
 noncomputable def Message.GetRejectHint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1252,7 +1286,7 @@ noncomputable def Message.GetRejectHint.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:679:19 -/
+/-- go: raft.pb.go:690:19 -/
 noncomputable def Message.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1267,7 +1301,7 @@ noncomputable def Message.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:686:19 -/
+/-- go: raft.pb.go:697:19 -/
 noncomputable def Message.GetResponses.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1282,7 +1316,7 @@ noncomputable def Message.GetResponses.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:713:19 -/
+/-- go: raft.pb.go:724:19 -/
 noncomputable def HardState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1290,7 +1324,7 @@ noncomputable def HardState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:732:21 -/
+/-- go: raft.pb.go:743:21 -/
 noncomputable def HardState.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1305,7 +1339,7 @@ noncomputable def HardState.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:739:21 -/
+/-- go: raft.pb.go:750:21 -/
 noncomputable def HardState.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1320,7 +1354,7 @@ noncomputable def HardState.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:746:21 -/
+/-- go: raft.pb.go:757:21 -/
 noncomputable def HardState.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1335,7 +1369,120 @@ noncomputable def HardState.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:784:19 -/
+/-- go: raft.pb.go:788:26 -/
+noncomputable def WitnessHardState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Val #())))))
+
+/-- go: raft.pb.go:807:28 -/
+noncomputable def WitnessHardState.GetState.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType HardState.ty)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WitnessHardState.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:814:28 -/
+noncomputable def WitnessHardState.GetLastLogIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WitnessHardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"LastLogIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"LastLogIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:821:28 -/
+noncomputable def WitnessHardState.GetLastLogTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WitnessHardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"LastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"LastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:828:28 -/
+noncomputable def WitnessHardState.GetLastLogSubterm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WitnessHardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"LastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"LastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:835:28 -/
+noncomputable def WitnessHardState.GetLead.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WitnessHardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:842:28 -/
+noncomputable def WitnessHardState.GetReplicationSet.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.uint64)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WitnessHardState.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:849:28 -/
+noncomputable def WitnessHardState.GetReplicationSetOutgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WitnessHardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.uint64)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WitnessHardState.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef WitnessHardState.ty go!"ReplicationSetOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WitnessHardState.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:889:19 -/
 noncomputable def ConfState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1343,7 +1490,7 @@ noncomputable def ConfState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:803:21 -/
+/-- go: raft.pb.go:908:21 -/
 noncomputable def ConfState.GetVoters.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1358,7 +1505,7 @@ noncomputable def ConfState.GetVoters.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:810:21 -/
+/-- go: raft.pb.go:915:21 -/
 noncomputable def ConfState.GetLearners.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1373,7 +1520,7 @@ noncomputable def ConfState.GetLearners.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:817:21 -/
+/-- go: raft.pb.go:922:21 -/
 noncomputable def ConfState.GetVotersOutgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1388,7 +1535,7 @@ noncomputable def ConfState.GetVotersOutgoing.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:824:21 -/
+/-- go: raft.pb.go:929:21 -/
 noncomputable def ConfState.GetLearnersNext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1403,7 +1550,7 @@ noncomputable def ConfState.GetLearnersNext.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:831:21 -/
+/-- go: raft.pb.go:936:21 -/
 noncomputable def ConfState.GetAutoLeave.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1418,7 +1565,37 @@ noncomputable def ConfState.GetAutoLeave.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:862:20 -/
+/-- go: raft.pb.go:943:21 -/
+noncomputable def ConfState.GetWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConfState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ConfState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ConfState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"Witness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"Witness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:950:21 -/
+noncomputable def ConfState.GetWitnessOutgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConfState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType ConfState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ConfState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"WitnessOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"WitnessOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:981:20 -/
 noncomputable def ConfChange.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1426,7 +1603,7 @@ noncomputable def ConfChange.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:881:22 -/
+/-- go: raft.pb.go:1000:22 -/
 noncomputable def ConfChange.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1441,7 +1618,7 @@ noncomputable def ConfChange.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:888:22 -/
+/-- go: raft.pb.go:1007:22 -/
 noncomputable def ConfChange.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1456,7 +1633,7 @@ noncomputable def ConfChange.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:895:22 -/
+/-- go: raft.pb.go:1014:22 -/
 noncomputable def ConfChange.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1471,7 +1648,7 @@ noncomputable def ConfChange.GetContext.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:902:22 -/
+/-- go: raft.pb.go:1021:22 -/
 noncomputable def ConfChange.GetId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1486,7 +1663,7 @@ noncomputable def ConfChange.GetId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:930:26 -/
+/-- go: raft.pb.go:1049:26 -/
 noncomputable def ConfChangeSingle.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1494,7 +1671,7 @@ noncomputable def ConfChangeSingle.ProtoMessage.impl [FfiSyntax] [GoGlobalContex
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:949:28 -/
+/-- go: raft.pb.go:1068:28 -/
 noncomputable def ConfChangeSingle.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1509,7 +1686,7 @@ noncomputable def ConfChangeSingle.GetType.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:956:28 -/
+/-- go: raft.pb.go:1075:28 -/
 noncomputable def ConfChangeSingle.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1524,7 +1701,7 @@ noncomputable def ConfChangeSingle.GetNodeId.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:1015:22 -/
+/-- go: raft.pb.go:1134:22 -/
 noncomputable def ConfChangeV2.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1532,7 +1709,7 @@ noncomputable def ConfChangeV2.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doReturn)
   (Val #())))))
 
-/-- go: raft.pb.go:1034:24 -/
+/-- go: raft.pb.go:1153:24 -/
 noncomputable def ConfChangeV2.GetTransition.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1547,7 +1724,7 @@ noncomputable def ConfChangeV2.GetTransition.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:1041:24 -/
+/-- go: raft.pb.go:1160:24 -/
 noncomputable def ConfChangeV2.GetChanges.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1562,7 +1739,7 @@ noncomputable def ConfChangeV2.GetChanges.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.pb.go:1048:24 -/
+/-- go: raft.pb.go:1167:24 -/
 noncomputable def ConfChangeV2.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1843,7 +2020,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v5" (Val #(go!"ConfChangeUpdateNode"))
   (Let "$k6" (Val #(W32 3))
   (Let "$v7" (Val #(go!"ConfChangeAddLearnerNode"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k6"))) (ElementExpression go.string (Var "$v7")))]))))))))))
+  (Let "$k8" (Val #(W32 4))
+  (Let "$v9" (Val #(go!"ConfChangeAddWitness"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k6"))) (ElementExpression go.string (Var "$v7"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k8"))) (ElementExpression go.string (Var "$v9")))]))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$k0" (Val #(go!"ConfChangeAddNode"))
   (Let "$v1" (Val #(W32 0))
@@ -1853,7 +2032,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v5" (Val #(W32 2))
   (Let "$k6" (Val #(go!"ConfChangeAddLearnerNode"))
   (Let "$v7" (Val #(W32 3))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression go.int32 (Var "$v7")))]))))))))))
+  (Let "$k8" (Val #(go!"ConfChangeAddWitness"))
+  (Let "$v9" (Val #(W32 4))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression go.int32 (Var "$v7"))), (KeyedElement (some (KeyExpression go.string (Var "$k8"))) (ElementExpression go.int32 (Var "$v9")))]))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1990,11 +2171,12 @@ structure Entry [FfiSyntax] where
   Index' : Loc
   Type' : Loc
   Data' : GoSlice
+  Subterm' : Loc
   unknownFields' : GoSlice
   sizeCache' : w32
 
 instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
-  ⟨Entry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Entry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def Entry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
@@ -2002,6 +2184,7 @@ instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
 (go.field_decl.FieldDecl go!"Index" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType EntryType.ty)),
 (go.field_decl.FieldDecl go!"Data" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Subterm" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
@@ -2028,12 +2211,15 @@ class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Type : ∀ (x : Entry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Entry)))
   get_Data : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Data") #x (Val #(x.Data'))
   set_Data : ∀ (x : Entry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Entry)))
+  get_Subterm : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Subterm") #x (Val #(x.Subterm'))
+  set_Subterm : ∀ (x : Entry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Subterm") (PairV #x #y) (Val #(({ x with Subterm' := y } : Entry)))
   get_unknownFields : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
   set_unknownFields : ∀ (x : Entry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Entry)))
   get_sizeCache : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Entry) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Entry)))
   ptr_GetData_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetData" Entry.GetData.impl
   ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetIndex" Entry.GetIndex.impl
+  ptr_GetSubterm_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetSubterm" Entry.GetSubterm.impl
   ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetTerm" Entry.GetTerm.impl
   ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetType" Entry.GetType.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"ProtoMessage" Entry.ProtoMessage.impl
@@ -2050,12 +2236,15 @@ attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.set_Type
   Entry.TypeAssumptions.get_Data
   Entry.TypeAssumptions.set_Data
+  Entry.TypeAssumptions.get_Subterm
+  Entry.TypeAssumptions.set_Subterm
   Entry.TypeAssumptions.get_unknownFields
   Entry.TypeAssumptions.set_unknownFields
   Entry.TypeAssumptions.get_sizeCache
   Entry.TypeAssumptions.set_sizeCache
   Entry.TypeAssumptions.ptr_GetData_unfold
   Entry.TypeAssumptions.ptr_GetIndex_unfold
+  Entry.TypeAssumptions.ptr_GetSubterm_unfold
   Entry.TypeAssumptions.ptr_GetTerm_unfold
   Entry.TypeAssumptions.ptr_GetType_unfold
   Entry.TypeAssumptions.ptr_ProtoMessage_unfold
@@ -2416,6 +2605,107 @@ attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.ptr_GetVote_unfold
   HardState.TypeAssumptions.ptr_ProtoMessage_unfold
 
+structure WitnessHardState [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  State' : Loc
+  LastLogIndex' : Loc
+  LastLogTerm' : Loc
+  LastLogSubterm' : Loc
+  Lead' : Loc
+  ReplicationSet' : GoSlice
+  ReplicationSetOutgoing' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance WitnessHardState.zero_val [FfiSyntax] : ZeroVal WitnessHardState :=
+  ⟨WitnessHardState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def WitnessHardState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"State" (go.GoType.PointerType HardState.ty)),
+(go.field_decl.FieldDecl go!"LastLogIndex" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"LastLogTerm" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"LastLogSubterm" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Lead" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"ReplicationSet" (go.GoType.SliceType go.uint64)),
+(go.field_decl.FieldDecl go!"ReplicationSetOutgoing" (go.GoType.SliceType go.uint64)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def WitnessHardState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  WitnessHardState.fieldsUnsealed
+
+instance equals_unfold_WitnessHardState [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold WitnessHardState.fields WitnessHardState.fieldsUnsealed :=
+  ⟨by unfold WitnessHardState.fields; rfl⟩
+
+@[reducible] def WitnessHardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType WitnessHardState.fields)
+
+class WitnessHardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying WitnessHardState.underlying WitnessHardState
+  underlying : go.UnderlyingDirectedEq WitnessHardState.ty WitnessHardState.underlying
+  get_state : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : WitnessHardState) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WitnessHardState)))
+  get_State : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"State") #x (Val #(x.State'))
+  set_State : ∀ (x : WitnessHardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"State") (PairV #x #y) (Val #(({ x with State' := y } : WitnessHardState)))
+  get_LastLogIndex : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"LastLogIndex") #x (Val #(x.LastLogIndex'))
+  set_LastLogIndex : ∀ (x : WitnessHardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"LastLogIndex") (PairV #x #y) (Val #(({ x with LastLogIndex' := y } : WitnessHardState)))
+  get_LastLogTerm : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"LastLogTerm") #x (Val #(x.LastLogTerm'))
+  set_LastLogTerm : ∀ (x : WitnessHardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"LastLogTerm") (PairV #x #y) (Val #(({ x with LastLogTerm' := y } : WitnessHardState)))
+  get_LastLogSubterm : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"LastLogSubterm") #x (Val #(x.LastLogSubterm'))
+  set_LastLogSubterm : ∀ (x : WitnessHardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"LastLogSubterm") (PairV #x #y) (Val #(({ x with LastLogSubterm' := y } : WitnessHardState)))
+  get_Lead : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"Lead") #x (Val #(x.Lead'))
+  set_Lead : ∀ (x : WitnessHardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"Lead") (PairV #x #y) (Val #(({ x with Lead' := y } : WitnessHardState)))
+  get_ReplicationSet : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"ReplicationSet") #x (Val #(x.ReplicationSet'))
+  set_ReplicationSet : ∀ (x : WitnessHardState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"ReplicationSet") (PairV #x #y) (Val #(({ x with ReplicationSet' := y } : WitnessHardState)))
+  get_ReplicationSetOutgoing : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"ReplicationSetOutgoing") #x (Val #(x.ReplicationSetOutgoing'))
+  set_ReplicationSetOutgoing : ∀ (x : WitnessHardState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"ReplicationSetOutgoing") (PairV #x #y) (Val #(({ x with ReplicationSetOutgoing' := y } : WitnessHardState)))
+  get_unknownFields : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : WitnessHardState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : WitnessHardState)))
+  get_sizeCache : ∀ (x : WitnessHardState), go.IsGoStepPureDetTagged under (StructFieldGet WitnessHardState.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : WitnessHardState) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WitnessHardState.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : WitnessHardState)))
+  ptr_GetLastLogIndex_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"GetLastLogIndex" WitnessHardState.GetLastLogIndex.impl
+  ptr_GetLastLogSubterm_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"GetLastLogSubterm" WitnessHardState.GetLastLogSubterm.impl
+  ptr_GetLastLogTerm_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"GetLastLogTerm" WitnessHardState.GetLastLogTerm.impl
+  ptr_GetLead_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"GetLead" WitnessHardState.GetLead.impl
+  ptr_GetReplicationSet_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"GetReplicationSet" WitnessHardState.GetReplicationSet.impl
+  ptr_GetReplicationSetOutgoing_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"GetReplicationSetOutgoing" WitnessHardState.GetReplicationSetOutgoing.impl
+  ptr_GetState_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"GetState" WitnessHardState.GetState.impl
+  ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType WitnessHardState.ty) go!"ProtoMessage" WitnessHardState.ProtoMessage.impl
+
+attribute [instance] WitnessHardState.TypeAssumptions.type_repr
+  WitnessHardState.TypeAssumptions.underlying
+  WitnessHardState.TypeAssumptions.get_state
+  WitnessHardState.TypeAssumptions.set_state
+  WitnessHardState.TypeAssumptions.get_State
+  WitnessHardState.TypeAssumptions.set_State
+  WitnessHardState.TypeAssumptions.get_LastLogIndex
+  WitnessHardState.TypeAssumptions.set_LastLogIndex
+  WitnessHardState.TypeAssumptions.get_LastLogTerm
+  WitnessHardState.TypeAssumptions.set_LastLogTerm
+  WitnessHardState.TypeAssumptions.get_LastLogSubterm
+  WitnessHardState.TypeAssumptions.set_LastLogSubterm
+  WitnessHardState.TypeAssumptions.get_Lead
+  WitnessHardState.TypeAssumptions.set_Lead
+  WitnessHardState.TypeAssumptions.get_ReplicationSet
+  WitnessHardState.TypeAssumptions.set_ReplicationSet
+  WitnessHardState.TypeAssumptions.get_ReplicationSetOutgoing
+  WitnessHardState.TypeAssumptions.set_ReplicationSetOutgoing
+  WitnessHardState.TypeAssumptions.get_unknownFields
+  WitnessHardState.TypeAssumptions.set_unknownFields
+  WitnessHardState.TypeAssumptions.get_sizeCache
+  WitnessHardState.TypeAssumptions.set_sizeCache
+  WitnessHardState.TypeAssumptions.ptr_GetLastLogIndex_unfold
+  WitnessHardState.TypeAssumptions.ptr_GetLastLogSubterm_unfold
+  WitnessHardState.TypeAssumptions.ptr_GetLastLogTerm_unfold
+  WitnessHardState.TypeAssumptions.ptr_GetLead_unfold
+  WitnessHardState.TypeAssumptions.ptr_GetReplicationSet_unfold
+  WitnessHardState.TypeAssumptions.ptr_GetReplicationSetOutgoing_unfold
+  WitnessHardState.TypeAssumptions.ptr_GetState_unfold
+  WitnessHardState.TypeAssumptions.ptr_ProtoMessage_unfold
+
 structure ConfState [FfiSyntax] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
@@ -2424,11 +2714,13 @@ structure ConfState [FfiSyntax] where
   VotersOutgoing' : GoSlice
   LearnersNext' : GoSlice
   AutoLeave' : Loc
+  Witness' : Loc
+  WitnessOutgoing' : Loc
   unknownFields' : GoSlice
   sizeCache' : w32
 
 instance ConfState.zero_val [FfiSyntax] : ZeroVal ConfState :=
-  ⟨ConfState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨ConfState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def ConfState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
@@ -2437,6 +2729,8 @@ instance ConfState.zero_val [FfiSyntax] : ZeroVal ConfState :=
 (go.field_decl.FieldDecl go!"VotersOutgoing" (go.GoType.SliceType go.uint64)),
 (go.field_decl.FieldDecl go!"LearnersNext" (go.GoType.SliceType go.uint64)),
 (go.field_decl.FieldDecl go!"AutoLeave" (go.GoType.PointerType go.bool)),
+(go.field_decl.FieldDecl go!"Witness" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"WitnessOutgoing" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
@@ -2465,6 +2759,10 @@ class ConfState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_LearnersNext : ∀ (x : ConfState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"LearnersNext") (PairV #x #y) (Val #(({ x with LearnersNext' := y } : ConfState)))
   get_AutoLeave : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"AutoLeave") #x (Val #(x.AutoLeave'))
   set_AutoLeave : ∀ (x : ConfState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"AutoLeave") (PairV #x #y) (Val #(({ x with AutoLeave' := y } : ConfState)))
+  get_Witness : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"Witness") #x (Val #(x.Witness'))
+  set_Witness : ∀ (x : ConfState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"Witness") (PairV #x #y) (Val #(({ x with Witness' := y } : ConfState)))
+  get_WitnessOutgoing : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"WitnessOutgoing") #x (Val #(x.WitnessOutgoing'))
+  set_WitnessOutgoing : ∀ (x : ConfState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"WitnessOutgoing") (PairV #x #y) (Val #(({ x with WitnessOutgoing' := y } : ConfState)))
   get_unknownFields : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
   set_unknownFields : ∀ (x : ConfState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ConfState)))
   get_sizeCache : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
@@ -2475,6 +2773,8 @@ class ConfState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   ptr_GetLearnersNext_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"GetLearnersNext" ConfState.GetLearnersNext.impl
   ptr_GetVoters_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"GetVoters" ConfState.GetVoters.impl
   ptr_GetVotersOutgoing_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"GetVotersOutgoing" ConfState.GetVotersOutgoing.impl
+  ptr_GetWitness_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"GetWitness" ConfState.GetWitness.impl
+  ptr_GetWitnessOutgoing_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"GetWitnessOutgoing" ConfState.GetWitnessOutgoing.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"ProtoMessage" ConfState.ProtoMessage.impl
 
 attribute [instance] ConfState.TypeAssumptions.type_repr
@@ -2491,6 +2791,10 @@ attribute [instance] ConfState.TypeAssumptions.type_repr
   ConfState.TypeAssumptions.set_LearnersNext
   ConfState.TypeAssumptions.get_AutoLeave
   ConfState.TypeAssumptions.set_AutoLeave
+  ConfState.TypeAssumptions.get_Witness
+  ConfState.TypeAssumptions.set_Witness
+  ConfState.TypeAssumptions.get_WitnessOutgoing
+  ConfState.TypeAssumptions.set_WitnessOutgoing
   ConfState.TypeAssumptions.get_unknownFields
   ConfState.TypeAssumptions.set_unknownFields
   ConfState.TypeAssumptions.get_sizeCache
@@ -2501,6 +2805,8 @@ attribute [instance] ConfState.TypeAssumptions.type_repr
   ConfState.TypeAssumptions.ptr_GetLearnersNext_unfold
   ConfState.TypeAssumptions.ptr_GetVoters_unfold
   ConfState.TypeAssumptions.ptr_GetVotersOutgoing_unfold
+  ConfState.TypeAssumptions.ptr_GetWitness_unfold
+  ConfState.TypeAssumptions.ptr_GetWitnessOutgoing_unfold
   ConfState.TypeAssumptions.ptr_ProtoMessage_unfold
 
 structure ConfChange [FfiSyntax] where
@@ -2733,6 +3039,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Snapshot_instance : Snapshot.TypeAssumptions
   Message_instance : Message.TypeAssumptions
   HardState_instance : HardState.TypeAssumptions
+  WitnessHardState_instance : WitnessHardState.TypeAssumptions
   ConfState_instance : ConfState.TypeAssumptions
   ConfChange_instance : ConfChange.TypeAssumptions
   ConfChangeSingle_instance : ConfChangeSingle.TypeAssumptions
@@ -2761,6 +3068,7 @@ attribute [instance] Assumptions.ConfChangeI_instance
   Assumptions.Snapshot_instance
   Assumptions.Message_instance
   Assumptions.HardState_instance
+  Assumptions.WitnessHardState_instance
   Assumptions.ConfState_instance
   Assumptions.ConfChange_instance
   Assumptions.ConfChangeSingle_instance
