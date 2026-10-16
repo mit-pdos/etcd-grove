@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#20729 pr merged: related, not this bug (ours: the 2^48 event window comment in idutil; no cross-member collision)
 ---
 
 # etcdserver: request ids of two members collide when their member ids agree in the low 16 bits

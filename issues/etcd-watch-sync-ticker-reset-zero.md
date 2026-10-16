@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked:
+upstream: known
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#22296 issue open: same bug (time.Since zero on Windows' coarse monotonic clock, Ticker.Reset panics); no maintainer response
+  - etcd-io/etcd#22297 pr open: same bug, fix
 ---
 
 # server/storage/mvcc: `syncWatchersLoop` resets its ticker with a zero duration, a panic

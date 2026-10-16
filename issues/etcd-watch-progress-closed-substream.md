@@ -1,7 +1,10 @@
 ---
-upstream: unchecked
-checked:
+upstream: known
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#21969 issue closed: same bug (progress broadcast sends on a canceled substream's closed recvc); closed as stale (not planned), not fixed
+  - etcd-io/etcd#22191 pr open: same bug, fix (delete the substream from substreams after close(recvc)); no review, needs ok-to-test
+  - etcd-io/etcd#21981 pr closed: same fix, closed unmerged
 ---
 
 # The watch client's progress broadcast can send on a canceled substream's closed `recvc`

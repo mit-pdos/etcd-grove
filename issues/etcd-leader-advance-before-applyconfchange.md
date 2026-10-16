@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/raft#354 issue open: related, not this bug (a rejected ConfChange becomes a silent no-op; same pendingConfIndex guard, no Advance/apply ordering)
 ---
 
 # etcdserver: the leader calls raft's Advance before its apply loop has applied a conf change, which lets raft accept an overlapping membership change

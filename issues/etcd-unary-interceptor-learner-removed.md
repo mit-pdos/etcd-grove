@@ -1,7 +1,12 @@
 ---
-upstream: unchecked
-checked:
+upstream: known
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#21966 issue open: same root cause (IsLocalMemberLearner panics after concurrent removal), different caller (Maintenance/Status)
+  - etcd-io/etcd#22188 pr open: same bug; returns false instead of panicking in IsLocalMemberLearner, names the unary/stream interceptors' non-atomic check; awaiting ok-to-test, no review
+  - etcd-io/etcd#22205 pr open: same root cause, fix in IsLocalMemberLearner for #21966; needs rebase, does not mention the interceptor
+  - etcd-io/etcd#21967 pr closed: same root cause, earlier fix attempt, closed unmerged
+  - etcd-io/etcd#18606 pr merged: related, not this bug (the same check-then-act fixed for another caller, 3374e27f1)
 ---
 
 # server: the unary interceptor's learner check panics if the local member is removed meanwhile

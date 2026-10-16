@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - golang/go#26094 issue closed: related, not this bug (the misleading "different packages" wording, now "different scopes", for genuinely different types)
 ---
 
 # Go: a type assertion on an interface value read as another interface type panics
