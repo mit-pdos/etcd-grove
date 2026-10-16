@@ -41,39 +41,31 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
    Pick the target: code and Go doc comments are in etcd or raft, operator docs in etcd-io/website.
 2. **Re-check** at current `upstream/main` that the code is unchanged; record the base commit. If fixed, update
    the finding and stop.
-3. **Duplicates.** Search upstream issues and PRs (`curl -s 'https://api.github.com/search/issues?q=repo:etcd-io/etcd+<terms>'`)
-   for the symptom and the root cause; read the plausible matches, comments included. If an open PR fixes it, do
-   not compete: test it against the finding locally and tell the user what the finding adds. Record matches in
-   `meta.md` and in the finding's front matter (`issues/README.md`).
+3. **Duplicates**, in a background agent while you do steps 4-7: at most five searches
+   (`curl -s 'https://api.github.com/search/issues?q=repo:etcd-io/etcd+<terms>'`; about ten a minute are allowed
+   unauthenticated) for the symptom and the root cause; open only matches that look like the same bug. If an open
+   PR fixes it, stop and tell the user. Record matches in `meta.md` and the finding's front matter
+   (`issues/README.md`).
 4. **The example**: the reproduction, in whatever form the bug needs (usually a Go test; `etcdctl` commands, a
-   client program, a cluster configuration when that is what shows it). Find it by running it at the base, and
-   iterate until it is:
+   client program, a cluster configuration when that is what shows it). Build binaries only if it needs them. Run
+   it at the base and make it:
    - visibly wrong on its own: the same request varied in one parameter, giving answers that contradict each other;
    - minimal: the fewest steps, keys, values and options, choosing the variant of the bug that needs least setup.
 
-   Then find what promises the behavior it breaks (API docs, Go doc, website, tests, maintainers' decisions) and
-   read it. If the sources disagree, the expectation rests on what holds under every reading, and the
-   disagreement becomes a question to the maintainers in the issue.
+   Ground the expectation in what you already have open (API docs, Go doc, an existing test); if the sources
+   disagree, ask the maintainers in the issue.
 5. **The test** is the example (or, if the example is not a test, does what it does): same data, same requests,
-   nothing more; next to the package's tests, in their style; a unit test unless the bug only shows end to end. It
-   must fail at the base; keep the output.
+   nothing more; next to the package's tests, in their style. It must fail at the base; keep the output.
 6. **The fix**: in the layer where the defect is; the smallest change in the surrounding style; no refactoring, no
-   comment that restates the code. Write the alternatives a reviewer may raise (a client-side fix, changing the
-   documented behavior instead), the costs and the release branches that share the code into `meta.md`, "If a
-   reviewer asks".
-7. **Verify** in every Go module touched: the test, the package's tests, `gofmt -l`, `go vet`, the integration/e2e
-   tests of the behavior; rebuild with the fix and rerun the example. Record each command, result and commit.
-8. **Write** `issue.md` and `pr.md` (below), then commit.
-9. **Review rounds**, at most three, until one brings no change:
-   - `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN;
-   - a fresh general-purpose agent with `review.md`, the drafts, the diff (`git show` saved to a file) and a
-     checkout of the base; apply the edits that make the text shorter, clearer or correct, reject any that break
-     a rule here; rerun anything whose output changes.
-
-   Record each round's applied and rejected edits in `meta.md`.
-10. **Hand off**: branch and commit, base, the files, what the rounds changed, the commit message to rewrite, the
-    judgment calls, anything not verified, and the push command the issue's links need:
-    `git -C ~/etcd-fixes/<slug> push origin <slug>`. State `draft` in `meta.md`.
+   comment that restates the code. Note in `meta.md`, "If a reviewer asks", the alternatives and costs you
+   considered; do not research more for it.
+7. **Verify**: the new test (fails at the base, passes with the fix), the package's tests, `gofmt -l`, `go vet`;
+   nothing broader unless the change leaves the package. Record the commands and results in `meta.md`.
+8. **Write** `issue.md` and `pr.md` (below), commit, and run
+   `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN.
+9. **Hand off**: branch and commit, base, the files, the commit message to rewrite, anything not verified, and the
+   push command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin <slug>`. State `draft` in
+   `meta.md`.
 
 ## The issue
 
@@ -126,6 +118,6 @@ commits, not force-pushes; rerun step 7 and `check.py`.
 
 ## Improving this skill
 
-When the user critiques a candidate: fix the candidate, then change this file (or `check.py`, or `review.md`) so the
+When the user critiques a candidate: fix the candidate, then change this file (or `check.py`) so the
 next candidate gets it right; the critique wins over any rule here. Replace `example/` when the user approves a
 better model.

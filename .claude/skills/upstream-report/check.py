@@ -5,7 +5,7 @@ Usage: check.py <slug> [--dir DIR] [--worktree DIR] [--base SHA] [--fork OWNER/R
 
 The worktree and base default to the ones `meta.md` names. Prints FAIL lines (a rule is broken: fix it) and WARN
 lines (a judgment call: look at each and decide), and exits 1 if there is a FAIL. It does not judge the writing;
-the review rounds (SKILL.md, step 9) do.
+the user does.
 """
 
 import argparse
