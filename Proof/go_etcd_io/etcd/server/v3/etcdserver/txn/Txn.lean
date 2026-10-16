@@ -116,7 +116,7 @@ theorem txn.Txn_sole
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
   subst Hkv
   wp_auto
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
@@ -318,7 +318,7 @@ theorem txn.Txn_sole
     ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te5, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP; simp only [hro, Bool.false_eq_true, ↓reduceIte]; isimp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn] at Hcok; iapply Hcok; ipureintro; exact Hign
+    · iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ Hwq); iframe Hhook HP; simp only [hro, Bool.false_eq_true, ↓reduceIte]; isimp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn] at Hcok; iapply Hcok; ipureintro; exact Hign
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
     · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
     ihave #Hresp2 := Hresp
@@ -382,7 +382,7 @@ theorem txn.Txn_read
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
   subst Hkv
   wp_auto
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]

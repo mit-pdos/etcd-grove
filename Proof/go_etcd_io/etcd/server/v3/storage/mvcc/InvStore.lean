@@ -25,7 +25,9 @@ holds half of `compactMainRev` and a quarter of the compaction revision's author
 and the bucket's authority: a reader's snapshot, taken under it, is the committed log's bucket. It also
 holds half the revision budget's authority and half the committed log's (`idxLogAuth`; the
 writer holds the other halves), so a reader knows its log is above every certificate and leaves
-room for the tokens it holds (`store.Read`).
+room for the tokens it holds (`store.Read`). A watchable store's (`γ.watchQ`, unit W-K) keeps a
+quarter of the committed log's, and the watchable store's `s.mu` the other quarter (`logQ`),
+which a commit takes from its caller (`logQPre`/`logQPost`).
 -/
 module
 
@@ -124,6 +126,11 @@ structure StoreNames where
   writer supplies at the commit (`txnEndPre`) and a reader learns of the log it read
   (`store.Read`). The etcd server's elements say a log is the KV model of a committed raft log. -/
   cok : GName
+  /-- the store is a watchable store's (the watch slice's unit W-K, fixed by `NewStore`'s caller):
+  `s.revMu` then holds a quarter of the committed log's authority and the watchable store's
+  `s.mu` the outer quarter (`logQ`), which a commit takes from its caller; otherwise `s.revMu`
+  holds a half and a commit needs nothing more (`revQ`, `logQPre`) -/
+  watchQ : Bool
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -156,10 +163,10 @@ instance kbReal_countable : Pos.Countable KBReal :=
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
     (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb,
-      x.cmeta, x.fin, x.sch, x.cok))
+      x.cmeta, x.fin, x.sch, x.cok, x.watchQ))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 section addrs
@@ -1658,6 +1665,50 @@ instance certOkNext_persistent (γ : StoreNames) (ilog : Log) (pend : List Chang
     Persistent (certOkNext (GF := GF) γ ilog pend) := by
   unfold certOkNext; infer_instance
 
+/-- **The outer quarter of the committed log's authority** (the watch slice's unit W-K):
+`s.revMu` holds a quarter (`revMuInv`), the index writer half (`idxWriter`), and the store's
+owner the last quarter: the watchable store's `s.mu` (`watchStoreBody`, at the notified log, so
+that a reader under `s.mu` finds every certified log a prefix of the notified one), or the sole
+writer (`soleWriter`) of a store used without watchers. A commit (`storeTxnWrite.End` with
+changes) takes it and gives it back at the committed log. -/
+abbrev logQ (γ : StoreNames) (log : Log) : IProp GF := idxLogAuth γ.idx (1 : Qp).half.half log
+
+/-- `s.revMu`'s fraction of the committed log's authority, at its lock's fraction `q`: a quarter
+for a watchable store's (the outer quarter is `s.mu`'s), a half otherwise. -/
+def revQ (γ : StoreNames) (q : Qp) : Qp := if γ.watchQ then q.half.half else q.half
+
+theorem revQ_add (γ : StoreNames) (q1 q2 : Qp) : revQ γ (q1 + q2) = revQ γ q1 + revQ γ q2 := by
+  unfold revQ; split <;> simp [qp_half_add]
+
+/-- What a commit of `pend` after `ilog` takes of the outer quarter: nothing for no change, nor
+for a store without watchers. -/
+def logQPre (γ : StoreNames) (ilog : Log) (pend : List Change) : IProp GF :=
+  if pend = [] ∨ γ.watchQ = false then iprop(True) else logQ γ ilog
+
+/-- What a commit of `pend` after `ilog` gives back: the outer quarter at the committed log. -/
+def logQPost (γ : StoreNames) (ilog : Log) (pend : List Change) : IProp GF :=
+  if pend = [] ∨ γ.watchQ = false then iprop(True) else logQ γ (ilog ++ [pend])
+
+@[simp] theorem logQPre_nil (γ : StoreNames) (ilog : Log) :
+    logQPre (GF := GF) γ ilog [] = iprop(True) := by unfold logQPre; simp
+
+@[simp] theorem logQPost_nil (γ : StoreNames) (ilog : Log) :
+    logQPost (GF := GF) γ ilog [] = iprop(True) := by unfold logQPost; simp
+
+theorem logQPre_plain (γ : StoreNames) (ilog : Log) (pend : List Change) (h : γ.watchQ = false) :
+    logQPre (GF := GF) γ ilog pend = iprop(True) := by unfold logQPre; simp [h]
+
+theorem logQPost_plain (γ : StoreNames) (ilog : Log) (pend : List Change) (h : γ.watchQ = false) :
+    logQPost (GF := GF) γ ilog pend = iprop(True) := by unfold logQPost; simp [h]
+
+theorem logQPre_ne (γ : StoreNames) (ilog : Log) (pend : List Change) (h : pend ≠ [])
+    (hw : γ.watchQ = true) : logQPre (GF := GF) γ ilog pend = logQ γ ilog := by
+  unfold logQPre; simp [h, hw]
+
+theorem logQPost_ne (γ : StoreNames) (ilog : Log) (pend : List Change) (h : pend ≠ [])
+    (hw : γ.watchQ = true) : logQPost (GF := GF) γ ilog pend = logQ γ (ilog ++ [pend]) := by
+  unfold logQPost; simp [h, hw]
+
 open Iris.ProofMode in
 theorem certFree_certOkNext (γ : StoreNames) (ilog : Log) (pend : List Change) :
     certFree (GF := GF) γ ⊢ certOkNext γ ilog pend := by
@@ -1671,7 +1722,7 @@ theorem certFree_certOkNext (γ : StoreNames) (ilog : Log) (pend : List Change) 
 committed-log ghost variable, the index's certificate of `log` and the bucket's authority
 (`bucketMap log`, half of it: the batch lock holds the other half), half the revision
 budget's authority with its bound for `log`, and half the committed log's authority (the index
-writer holds the other half); and the compaction revision `c` (at most the committed log's
+writer holds the other half; a quarter for a watchable store's, `revQ`); and the compaction revision `c` (at most the committed log's
 last revision): half `compactMainRev`'s points-to and a quarter of its authority (`s.mu` holds
 as much: `store.Compact`, holding both locks, updates them; the watchable store's
 `syncWatchers` reads it under `s.revMu`, a transaction's `rangeKeys` under `s.mu`). -/
@@ -1686,7 +1737,7 @@ def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
     "Hbucket" ∷ bucketView γ q.half (bucketMap log) ∗
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
     "%Hbudget" ∷ ⌜log.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
-    "Hlog" ∷ idxLogAuth γ.idx q.half log ∗
+    "Hlog" ∷ idxLogAuth γ.idx (revQ γ q) log ∗
     "Hcmp" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 c : w64) : IProp GF) ∗
     "Hcrev" ∷ crevUB γ.idx q.half.half c ∗
     "%Hc" ∷ ⌜-1 ≤ c ∧ c < log.length⌝)
@@ -1708,7 +1759,7 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
         ownTokAuthDfrac γ.revs (DFrac.own q1.half) n ∗ ownTokAuthDfrac γ.revs (DFrac.own q2.half) n :=
       fun n => ownTokAuthDfrac_split (GF := GF) γ.revs (DFrac.own q1.half) (DFrac.own q2.half) n
     have hlg := fun (log : Log) =>
-      (monoListAuthOwn_fractional (GF := GF) γ.idx.log log).fractional q1.half q2.half
+      (monoListAuthOwn_fractional (GF := GF) γ.idx.log log).fractional (revQ γ q1) (revQ γ q2)
     have hcmp : ∀ v : w64, (s.[store, go!"compactMainRev"] ↦{DFrac.own (q1.half + q2.half)} v :
         IProp GF) ⊣⊢ s.[store, go!"compactMainRev"] ↦{DFrac.own q1.half} v ∗
           s.[store, go!"compactMainRev"] ↦{DFrac.own q2.half} v :=
@@ -1716,7 +1767,7 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
     unfold revMuInv
-    rw [qp_half_add, qp_half_add]
+    rw [revQ_add, qp_half_add, qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro H
       icases H with ⟨%log, %ntok, %c, H⟩
@@ -2506,6 +2557,43 @@ def isTxnWrite (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend :
     "Htw" ∷ storeTxnWriteIs tw s γ trace ilog pend crev Z ∗
     "Htrc" ∷ (∃ te : Bool, traceutil.ownTrace trace te))
 
+open Iris.ProofMode in
+/-- **The outer quarter is at the transaction's log** (unit W-K): the index writer's half and the
+outer quarter are fractions of the committed log's authority, so they agree. -/
+theorem isTxnWrite_logQ (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (L : Log) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ∗ logQ γ L ⊢
+      ⌜L = ilog⌝ ∗ isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ logQ γ L := by
+  iintro ⟨Ht, Hq⟩
+  iunfold isTxnWrite at Ht
+  icases Ht with ⟨%tw, %ranges, Ht⟩
+  iNamed Ht
+  iunfold storeTxnWriteIs at Htw
+  icases Htw with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Htw⟩
+  iNamed Htw
+  iunfold idxWriter at Hw
+  icases Hw with ⟨Hh, #Hn, %Hwf, Hla⟩
+  ihave %Hag := monoListAuthOwn_agree _ _ _ _ _ $$ Hla Hq
+  isplitr
+  · ipureintro; exact Hag.2.symm
+  iframe Hq
+  iunfold isTxnWrite
+  iexists tw, ranges
+  simp only [named]
+  iframe Hmw Htrc
+  iunfold storeTxnWriteIs
+  iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+  simp only [named]
+  iframe
+  iframe #
+  isplitr
+  · ipureintro; exact Hbudget
+  isplitr
+  · ipureintro; exact Hps
+  isplitl [Hh Hla]
+  · iunfold idxWriter; iframe Hh Hla; iframe #; ipureintro; exact Hwf
+  ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
+
 /-- The write transaction at `mw` without its key-values (`storeTxnWriteCore`). -/
 def isTxnWriteCore (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (sealed : Bool)
@@ -2591,6 +2679,62 @@ theorem isTxnWrite_frozen (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : L
 change (else no revision is made). -/
 def commitLog (ilog : Log) (pend : List Change) : Log :=
   if pend = [] then ilog else ilog ++ [pend]
+
+open Iris.ProofMode in
+/-- **The outer quarter around a commit** (unit W-K): what `End` takes of it (`logQPre`), and the
+quarter back at the log committed from what `End` gives back (`logQPost`). -/
+theorem logQ_split (γ : StoreNames) (ilog : Log) (pend : List Change) (hw : γ.watchQ = true) :
+    logQ (GF := GF) γ ilog ⊢
+      logQPre γ ilog pend ∗ (logQPost γ ilog pend -∗ logQ γ (commitLog ilog pend)) := by
+  by_cases h : pend = []
+  · subst h
+    simp only [logQPre_nil, logQPost_nil, commitLog, ↓reduceIte]
+    iintro H
+    isplitr
+    · itrivial
+    iintro -; iexact H
+  · rw [logQPre_ne γ ilog pend h hw, logQPost_ne γ ilog pend h hw]
+    unfold commitLog
+    rw [if_neg h]
+    iintro H
+    iframe H
+    iintro H; iexact H
+
+open Iris.ProofMode in
+/-- **Before a commit**: `s.revMu`'s fraction (`revQ γ 1`) and the caller's `logQPre` make the
+half of the committed log's authority the index writer's commit needs. -/
+theorem revQ_commit_pre (γ : StoreNames) (ilog : Log) (pend : List Change) (h : pend ≠ []) :
+    idxLogAuth (GF := GF) γ.idx (revQ γ 1) ilog ∗ logQPre γ ilog pend ⊢
+      idxLogAuth γ.idx (1 : Qp).half ilog := by
+  have hq := (monoListAuthOwn_fractional (GF := GF) γ.idx.log ilog).fractional (1 : Qp).half.half
+    (1 : Qp).half.half
+  rw [Qp.half_add_half] at hq
+  cases hw : γ.watchQ
+  · rw [logQPre_plain γ ilog pend hw]
+    simp only [revQ, hw, Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨H, -⟩; iexact H
+  · rw [logQPre_ne γ ilog pend h hw]
+    simp only [revQ, logQ, idxLogAuth, hw, ↓reduceIte]
+    iintro ⟨H1, H2⟩
+    iapply hq.2; iframe H1 H2
+
+open Iris.ProofMode in
+/-- **After a commit**: the half back splits into `s.revMu`'s fraction and the caller's
+`logQPost`. -/
+theorem revQ_commit_post (γ : StoreNames) (ilog : Log) (pend : List Change) (h : pend ≠ []) :
+    idxLogAuth (GF := GF) γ.idx (1 : Qp).half (ilog ++ [pend]) ⊢
+      idxLogAuth γ.idx (revQ γ 1) (ilog ++ [pend]) ∗ logQPost γ ilog pend := by
+  have hq := (monoListAuthOwn_fractional (GF := GF) γ.idx.log (ilog ++ [pend])).fractional
+    (1 : Qp).half.half (1 : Qp).half.half
+  rw [Qp.half_add_half] at hq
+  cases hw : γ.watchQ
+  · rw [logQPost_plain γ ilog pend hw]
+    simp only [revQ, hw, Bool.false_eq_true, ↓reduceIte]
+    iintro H; iframe H
+  · rw [logQPost_ne γ ilog pend h hw]
+    simp only [revQ, logQ, idxLogAuth, hw, ↓reduceIte]
+    iintro H
+    iapply hq.1 $$ H
 
 /-- The transaction's revision is the last of the log it would commit. -/
 theorem writeRev_commitLog (ilog : Log) (pend : List Change) :
@@ -2682,22 +2826,45 @@ certificate of the committed log, and the revision token back if no revision was
 def txnEndPost (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
   | .write ilog pend _ _ _ =>
-    iprop(idxCert γ.idx (commitLog ilog pend) ∗ if pend = [] then revToken γ else iprop(True))
+    iprop(idxCert γ.idx (commitLog ilog pend) ∗ (if pend = [] then revToken γ else iprop(True)) ∗
+      logQPost γ ilog pend)
 
 /-- What `End` takes of a transaction: nothing of a read one; of a write one, the batch lock's
-invariant `P` (the store's: `hookIs`), which `Unlock` takes back. -/
+invariant `P` (the store's: `hookIs`), which `Unlock` takes back, and the outer quarter of the
+committed log's authority for a commit (`logQPre`, unit W-K). -/
 def txnEndPre (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
   | .write ilog pend _ _ _ => iprop(∃ (P : IProp GF) (f : val), hookIs γ P f ∗ P ∗
-      certOkNext γ ilog pend)
+      certOkNext γ ilog pend ∗ logQPre γ ilog pend)
 
 theorem txnEndPre_write (γ : StoreNames) (P : IProp GF) (f : val) (ilog : Log)
     (pend : List Change) (puts deletes putSize : w64) :
-    hookIs γ P f ∗ P ∗ certOkNext γ ilog pend ⊢ txnEndPre γ (.write ilog pend puts deletes putSize) := by
-  iintro ⟨#Hh, HP, #Hok⟩
+    hookIs γ P f ∗ P ∗ certOkNext γ ilog pend ∗ logQPre γ ilog pend ⊢
+      txnEndPre γ (.write ilog pend puts deletes putSize) := by
+  iintro ⟨#Hh, HP, #Hok, Hq⟩
   simp only [txnEndPre]
   iexists P, f
+  iframe Hh HP Hok Hq
+
+/-- `txnEndPre_write` for a store without watchers: no outer quarter (unit W-K). -/
+theorem txnEndPre_write_plain (γ : StoreNames) (P : IProp GF) (f : val) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (h : γ.watchQ = false) :
+    hookIs γ P f ∗ P ∗ certOkNext γ ilog pend ⊢
+      txnEndPre γ (.write ilog pend puts deletes putSize) := by
+  iintro ⟨#Hh, HP, #Hok⟩
+  iapply txnEndPre_write
   iframe Hh HP Hok
+  rw [logQPre_plain γ ilog pend h]
+  itrivial
+
+/-- What `End` leaves of a write transaction of a store without watchers (unit W-K). -/
+theorem txnEndPost_plain (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (h : γ.watchQ = false) :
+    txnEndPost (GF := GF) γ (.write ilog pend puts deletes putSize) ⊢
+      idxCert γ.idx (commitLog ilog pend) ∗ (if pend = [] then revToken γ else iprop(True)) := by
+  simp only [txnEndPost]
+  iintro ⟨Hc, Ht, -⟩
+  iframe Hc Ht
 
 /-- The store's `writeView` (`kv_view.go`): its `kv` is the store `s`. -/
 def isWriteView (wv s : Loc) (γ : StoreNames) : IProp GF :=

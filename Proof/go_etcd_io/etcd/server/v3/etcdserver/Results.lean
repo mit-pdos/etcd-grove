@@ -808,14 +808,15 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   iapply HΦ
   iexists γ
   isplitr
-  · ipureintro; exact Hγ
+  · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1⟩
   iframe Hhk' Hrds Hcl Hcok
   isplitr
-  · iunfold txn.isKV; iframe Hst; ipureintro; rfl
+  · iunfold txn.isKV; iframe Hst; isplitr; · ipureintro; rfl
+    ipureintro; exact Hγ.2.2.2
   isplitl [Htoks]
   · iapply txn.soleWriter_of_NewStore γ; iframe Htoks Hc
   unfold txn.storeWTs
-  rw [Hγ.2.2]
+  rw [Hγ.2.2.1]
   iexact Hw
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on

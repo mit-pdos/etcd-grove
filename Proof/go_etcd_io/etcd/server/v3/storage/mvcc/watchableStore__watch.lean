@@ -217,7 +217,7 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
     (hst : st0.compacted = false ∧ st0.restore = false ∧ st0.victim = false ∧ st0.ch ≠ null)
     (hlo : (γw.lo : Int) = sint.Z st0.minRev) (hsr : sint.Z r.startRev ≤ γw.lo)
     (hd : b = true → σ.Lmu.length ≤ γw.lo) (hu : b = false → sint.Z st0.minRev < C.length) :
-    ghostVar (GF := GF) γ.wst 1 σ ∗ ghostVar γ.wlog (1 : Qp).half σ.Lmu ∗
+    ghostVar (GF := GF) γ.wst 1 σ ∗ wlogQ γ 1 σ.Lmu ∗
       mvcc.idxCert γ.st.idx σ.Lmu ∗
       mvcc.ownWatcherGroup (mvcc.syncedAddr s) (if b then <[w := r]> σ.Ws else σ.Ws) ∗
       mvcc.ownWatcherGroup (mvcc.unsyncedAddr s) (if b then σ.Wu else <[w := r]> σ.Wu) ∗

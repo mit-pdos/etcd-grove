@@ -254,10 +254,10 @@ abbrev mvcc.storeTxnWrite.End.specFrozen : Prop :=
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed ∗ mvcc.hookIs γ P f ∗ P ∗
-      mvcc.certOkNext γ ilog pend }}
+      mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-      (if pend = [] then mvcc.revToken γ else iprop(True)) }}
+      (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend }}
 
 open Iris.ProofMode in
 /-- **The frozen statement is a corollary** (`storeReader_of`). -/

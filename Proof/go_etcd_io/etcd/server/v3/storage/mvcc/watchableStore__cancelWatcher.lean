@@ -313,7 +313,7 @@ theorem body_cancel (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
       VB[j]? = some B' → (B !! w).isSome → (B' !! w).isSome → i = j)
     (hσ' : σ' = cancelState σ wa st Ws Wu VB)
     (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (hm : σ.M !! wa = some γw) :
-    ghostVar (GF := GF) γ.wst 1 σ' ∗ ghostVar γ.wlog (1 : Qp).half σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
+    ghostVar (GF := GF) γ.wst 1 σ' ∗ wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
       ownWatcherGroup (syncedAddr s) Ws ∗ ownWatcherGroup (unsyncedAddr s) Wu ∗
       typedPointsto (victimsAddr s) σ.vs (DFrac.own 1) ∗ ownSlice σ.vs σ.vbs (DFrac.own 1) ∗
       ownSliceCap GoMap σ.vs (DFrac.own 1) ∗ ⌜σ.vbs.length = VB.length⌝ ∗

@@ -28,7 +28,9 @@ initial committed log `[[], []]` (revision 0 and `currentRev = 1`, both empty), 
 views (owned: `newWatchableStore` overwrites them), all the reader slots of its locks
 (`storeReaderC`, one per slot) and the revision budget (`2 ^ 63 - 5` tokens: the batch lock's
 resource `writerRes` needs `ilog.length + ntok + 3 ≤ 2 ^ 63`, with the initial log of length 2),
-and the index's certificate of the initial log.
+and the index's certificate of the initial log. The caller says whether the store is a
+watchable store's (`wq`, `γ.watchQ`, unit W-K); if so, it gets the outer quarter of the committed
+log's authority (`logQ`), which the watchable store's `s.mu` keeps.
 
 * The backend is of the instance `kb` (2026-10-13, unit 5): `none`, mvcc's assumed contract over
   the store's own ghost map `γb`; `some d`, the real backend (`BackendBridge.lean`). Its contract
@@ -61,7 +63,7 @@ and the index's certificate of the initial log.
   transactions take (`storeReader_of`). -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
-    (P : IProp GF) (f : val),
+    (P : IProp GF) (f : val) (wq : Bool),
   0 ≤ sint.Z cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P f) ∗
@@ -70,7 +72,8 @@ abbrev mvcc.NewStore.spec : Prop :=
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))
-  {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb⌝ ∗
+  {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
+      ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq⌝ ∗
       mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ P f ∗
       (∃ rv wv : Loc,
         s.[store, go!"ReadView"] ↦
@@ -81,7 +84,8 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.storeReaderC s γ) ∗
-      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s ∗
+      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
+      (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s ∗
       mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }}
 
 end spec

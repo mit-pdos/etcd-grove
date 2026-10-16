@@ -44,8 +44,9 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ _ Hcfg0) $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk⟩, #Hst, -, #HhookP, Hviews, Hreaders, Htoks, #Hcert, Hsclose, -, Hright⟩
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ _ true Hcfg0) $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor] as %st
+    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw⟩, #Hst, -, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, -,
+      Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right
   -- given up, the readers those of a never-compacted store
   imod mvcc.compactRight_freeze γs ⊤ $$ Hright with #Hfrz
@@ -90,14 +91,19 @@ theorem mvcc.newWatchableStore.wp_proof
     ipureintro; rw [GMap.map_size_empty]; omega
   ihave Hsy := Hgs $$ %(mvcc.syncedAddr «$r0_ptr») synced
   ihave Hun := Hgu $$ %(mvcc.unsyncedAddr «$r0_ptr») unsynced
-  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt]
+  -- the outer quarter of the committed log's authority, `s.mu`'s (unit W-K)
+  ihave HlogQ : mvcc.logQ γs [[], []] $$ [HlogQ]
+  · have h : (if true = true then mvcc.logQ (GF := GF) γs [[], []] else iprop(True)) =
+        mvcc.logQ γs [[], []] := by simp
+    rw [← h]; iexact HlogQ
+  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
     iframe Hwst Hsy Hun victims Hmeta Hwt
-    isplitl [Hwl1]
-    · iexact Hwl1
+    isplitl [Hwl1 HlogQ]
+    · iunfold mvcc.wlogQ; iframe Hwl1; iexact HlogQ
     isplitr
     · iexact Hcert
     isplitr
@@ -138,8 +144,10 @@ theorem mvcc.newWatchableStore.wp_proof
     iexists vc, stc, rv, γv
     simp only [named]
     iframe store Hst HRV kv Hmug victimc Hvcb stopc
-    iunfold mvcc.isStopChan
-    iexists γstc; iexact Hstop0
+    isplitr
+    · iunfold mvcc.isStopChan
+      iexists γstc; iexact Hstop0
+    ipureintro; exact hγw
   iframe HhookP Hsclose wg
   isplitr [Hmus Hreaders Hstop Htw]
   · iunfold mvcc.watchWriter

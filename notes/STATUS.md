@@ -4877,6 +4877,28 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
   model changed. Gates: `lake build` 5,083 jobs; trust base (229 axioms, 12 sorries) and every
   collection unchanged; every `Link.lean` reproduced; `etc/goose.py --check --src
   etcd=/shared/etcd-goose-lean-wk` up to date.
+- **K1a (committed ≤ notified, under `s.mu`; done).** The committed log's authority
+  (`idxLogAuth`) is split by the store's mode `γ.watchQ` (a new `StoreNames` field, chosen by
+  `NewStore`'s caller): a plain store's (`watchQ = false`: the txn layer's `isKV`, `NewStore_backend`,
+  the `writeView`s) keeps `s.revMu`'s half; a watchable store's (`newWatchableStore`,
+  `isWatchableStore`'s `γ.st.watchQ = true`) gives `s.revMu` a quarter (`revQ`) and `s.mu`'s body
+  the outer quarter at the notified log (`watchStoreBody`'s `"Hwlog"` is now `wlogQ γ q σ.Lmu`: the
+  `wlog` half and the quarter), which the write `End` takes and gives back at the commit
+  (`logQPre`/`logQPost` in `txnEndPre`/`txnEndPost` and `storeTxnWrite.End.spec`;
+  `revQ_commit_pre`/`_post`; `body_commit` lends it around the inner `End`). So
+  `wlogQ_cert_prefix`: under `s.mu`, every certified log is a prefix of `Lmu`. Statements that
+  changed form: `NewStore.spec` (`wq`, `γ.watchQ = wq`, the quarter when `wq`),
+  `NewStore_backend` (`γ.watchQ = false`), `storeTxnWrite.End.spec`, `txnEndPre`, `txnEndPost`,
+  `writeView.{Put,DeleteRange}.spec` (`γ.watchQ = false`), `txn.isKV` (`γ.watchQ = false`),
+  `isWatchableStore`, `watchStoreBody`, `body_commit`. Gates: `lake build` 5,104 jobs; trust base and
+  every collection unchanged; every `Link.lean` reproduced.
+- **A suspected race found while designing K1b (not yet reproduced).** The server's `recvLoop`
+  answers a progress request by putting the `-1` response on the watch channel, and a later
+  create's `Created` on the control channel; `sendLoop` selects between them, so `Created(X)` can
+  reach the client before the earlier progress response, which the client then broadcasts to X:
+  for a watch X from an old revision, "nothing changed up to `p`" before X's events below `p`. To be
+  confirmed with a Go reproduction, then recorded in `issues/`. Until then K1b claims coverage for
+  per-watcher progress responses only.
 - **K1 (mvcc: progress means synced).** `progressIfSync` sends at the store's revision `rev` under
   `s.mu.RLock` only when every watcher of the map is synced with `startRev ≤ rev`: so the
   stream's channel already holds every event `≤ rev` of each of them. Give a progress response

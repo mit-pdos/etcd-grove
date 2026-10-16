@@ -273,7 +273,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
         (Val #le)) (Val #cfg))
     {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
+        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d ∧ γ.watchQ = false⌝ ∗
         mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
         (∃ rv wv : Loc,
           s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦

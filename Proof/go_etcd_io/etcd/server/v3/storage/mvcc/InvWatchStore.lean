@@ -684,10 +684,25 @@ theorem watchBudget_spend (γ : WsNames) (M : GMap Loc WatcherNames) (w : Loc)
   ipureintro
   rw [GMap.map_size_insert_None _ _ _ hM]; omega
 
+/-- **The notified log's ghosts** at the lock's fraction `q`: half of `γ.wlog` at it (the sole
+writer holds the other half) and `s.mu`'s quarter of the committed log's authority at it (the
+outer quarter, `logQ`; unit W-K: the commit happens under `s.mu` after the notify, so a reader
+under `s.mu` finds every certified log a prefix of the notified one, `wlogQ_cert_prefix`). -/
+def wlogQ (γ : WsNames) (q : Qp) (L : Log) : IProp GF :=
+  iprop(ghostVar γ.wlog q.half L ∗ idxLogAuth γ.st.idx q.half.half L)
+
+/-- **Every certified log is a prefix of the notified one** (unit W-K): under `s.mu`, from the
+lock's quarter of the committed log's authority. -/
+theorem wlogQ_cert_prefix (γ : WsNames) (q : Qp) (L C : Log) :
+    wlogQ (GF := GF) γ q L ∗ idxCert γ.st.idx C ⊢ ⌜C <+: L⌝ := by
+  unfold wlogQ
+  iintro ⟨⟨-, Ha⟩, Hc⟩
+  iapply idxLogAuth_cert_prefix $$ [$Ha $Hc]
+
 /-- The lock invariant at the state `σ` and the fraction `q`. -/
 def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :=
   iprop("Hσ" ∷ ghostVar γ.wst q σ ∗
-    "Hwlog" ∷ ghostVar γ.wlog q.half σ.Lmu ∗
+    "Hwlog" ∷ wlogQ γ q σ.Lmu ∗
     "#Hcert" ∷ idxCert γ.st.idx σ.Lmu ∗
     "Hsynced" ∷ ownWatcherGroup (syncedAddr s) σ.Ws q ∗
     "Hunsynced" ∷ ownWatcherGroup (unsyncedAddr s) σ.Wu q ∗
@@ -720,7 +735,8 @@ def watchReader (s st : Loc) (γ : WsNames) : IProp GF :=
 
 /-- **The watchable store** `s` over the store `st` (persistent): the inner store and its read
 view (`newWatchableStore` points it at `s`: unit 3b; `rev()` reads through it), the lock's guard, the victims' wake-up
-channel (a bag channel, never closed), the stop channel, and the meta map's facts. -/
+channel (a bag channel, never closed), the stop channel, and the meta map's facts; the inner
+store is a watchable store's (`γ.st.watchQ`, unit W-K: `s.mu` holds the outer quarter). -/
 def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
   iprop(∃ (vc stc rv : Loc) (γv : ChanNames),
     "#Hst" ∷ s.[watchableStore, go!"store"] ↦□ st ∗
@@ -733,7 +749,8 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
     "#Hvc" ∷ s.[watchableStore, go!"victimc"] ↦□ vc ∗
     "#Hvcb" ∷ isChanBag (V := Unit) γv vc (fun _ => iprop(True)) ∗
     "#Hstopc" ∷ s.[watchableStore, go!"stopc"] ↦□ stc ∗
-    "#Hstop" ∷ isStopChan stc)
+    "#Hstop" ∷ isStopChan stc ∗
+    "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
 
 instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
     Persistent (isWatchableStore (GF := GF) s st γ) := by

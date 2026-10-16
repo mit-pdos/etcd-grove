@@ -799,7 +799,7 @@ theorem mv_member_to_mover (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vs' : 
 /-- **The victims out**: the lock's body at the state with the victims taken out (the victims
 slice now the nil slice `vnil`), and the mover's per batch (`vbs.zip VB`) victims. -/
 theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil : GoSlice) :
-    ghostVar (GF := GF) γ.wst 1 (takeState σ vnil) ∗ ghostVar γ.wlog (1 : Qp).half σ.Lmu ∗
+    ghostVar (GF := GF) γ.wst 1 (takeState σ vnil) ∗ wlogQ γ 1 σ.Lmu ∗
       idxCert γ.st.idx σ.Lmu ∗
       ownWatcherGroup (syncedAddr s) σ.Ws ∗ ownWatcherGroup (unsyncedAddr s) σ.Wu ∗
       typedPointsto (victimsAddr s) vnil (DFrac.own 1) ∗ ownSlice vnil ([] : List GoMap) (DFrac.own 1) ∗
@@ -908,7 +908,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
     (hd : b = true → max γw.lo σ.Lmu.length ≤ sint.nat st.minRev)
     (hσ' : σ' = readdState σ w r { st with victim := false } b (evsw, sint.nat st.minRev)) :
     ghostVar (GF := GF) γ.wst 1 σ' ∗
-      ghostVar γ.wlog (1 : Qp).half σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
+      wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
       ownWatcherGroup (syncedAddr s) (if b then <[w := r]> σ.Ws else σ.Ws) ∗
       ownWatcherGroup (unsyncedAddr s) (if b then σ.Wu else <[w := r]> σ.Wu) ∗
       typedPointsto (victimsAddr s) σ.vs (DFrac.own 1) ∗ ownSlice σ.vs σ.vbs (DFrac.own 1) ∗
@@ -1052,7 +1052,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     (hNV2 : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st ∧ σ.M !! w = some x.γw)
     (hσ' : σ' = appendState σ NV vs' nvm) :
     ghostVar (GF := GF) γ.wst 1 σ' ∗
-      ghostVar γ.wlog (1 : Qp).half σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
+      wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
       ownWatcherGroup (syncedAddr s) σ.Ws ∗ ownWatcherGroup (unsyncedAddr s) σ.Wu ∗
       typedPointsto (victimsAddr s) vs' (DFrac.own 1) ∗ ownSlice vs' (σ.vbs ++ [nvm]) (DFrac.own 1) ∗
       ownSliceCap GoMap vs' (DFrac.own 1) ∗ ⌜σ.vbs.length = σ.VB.length⌝ ∗

@@ -111,7 +111,7 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f Hcfg0
+  intro lg b le cfg kb γb γl P f wq Hcfg0
   wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -197,11 +197,13 @@ theorem mvcc.NewStore.wp_proof
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm, Hmeta⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin, Hfin, -⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok⟩
-  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok⟩ : ∃ γ : mvcc.StoreNames,
+  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw⟩ :
+      ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
-      γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl⟩
+      γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
+      γ.watchQ = wq :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+      rfl, rfl, rfl, rfl, rfl, rfl⟩
   ihave #Hhook : mvcc.hookIs γ P f $$ []
   · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
   ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin]
@@ -367,6 +369,17 @@ theorem mvcc.NewStore.wp_proof
   -- `s.revMu` initialized with the committed log `[[], []]`: the other halves of
   -- `currentRev`, of the committed log and of the bucket's view, the index's certificate, the
   -- other half of `compactMainRev` and the other quarter of its authority
+  -- the committed log's authority: `s.revMu`'s fraction, and for a watchable store's the outer
+  -- quarter (`logQ`), the caller's (unit W-K)
+  ihave Hsplit : mvcc.idxLogAuth γ.idx (mvcc.revQ γ 1) [[], []] ∗
+      (if wq then mvcc.logQ γ [[], []] else iprop(True)) $$ [Hil]
+  · have hq := (monoListAuthOwn_fractional (GF := GF) γ.idx.log ([[], []] : mvcc.Log)).fractional
+      (1 : Qp).half.half (1 : Qp).half.half
+    rw [Qp.half_add_half] at hq
+    cases wq
+    · simp only [mvcc.revQ, hγw, Bool.false_eq_true, ↓reduceIte]; iframe Hil
+    · simp only [mvcc.revQ, mvcc.logQ, mvcc.idxLogAuth, hγw, ↓reduceIte]; iapply hq.1 $$ Hil
+  icases Hsplit with ⟨Hil, HlogQ⟩
   imod sync.init_RWMutex (mvcc.revMuInv «$r0_ptr» γ) (mvcc.revMuAddr «$r0_ptr»)
     $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR] revMu with Hrevs
   · inext
@@ -405,8 +418,8 @@ theorem mvcc.NewStore.wp_proof
   iapply HΦ
   iexists γ
   isplitr
-  · ipureintro; exact ⟨hγb, hγl, rfl⟩
-  iframe Hs Hok' Hhook Htoks Hcert
+  · ipureintro; exact ⟨hγb, hγl, rfl, hγw⟩
+  iframe Hs Hok' Hhook Htoks Hcert HlogQ
   isplitl [ReadView WriteView]
   · iexists rv, wv
     iunfold mvcc.isReadView

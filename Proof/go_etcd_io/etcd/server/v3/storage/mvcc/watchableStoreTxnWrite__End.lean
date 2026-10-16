@@ -129,6 +129,8 @@ theorem mvcc.body_pin (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (
   iintro ⟨Hb, Hwl, Hc⟩
   iunfold mvcc.watchStoreBody at Hb
   iNamed Hb
+  iunfold mvcc.wlogQ at Hwlog
+  icases Hwlog with ⟨Hwlog, -⟩
   ihave %Hl := ghostVar_agree γ.wlog _ _ _ _ $$ Hwlog Hwl
   iunfold mvcc.storeTxnWriteCore at Hc
   iNamed Hc
@@ -139,21 +141,31 @@ theorem mvcc.body_pin (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (
   ipureintro
   exact ⟨Hl, Hbel⟩
 
-/-- The notified log catches up with the commit. -/
-theorem mvcc.body_commit (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (L : mvcc.Log)
-    (hab : σ.syncedAbove L.length) :
-    mvcc.watchStoreBody (GF := GF) s γ 1 σ ∗ ghostVar γ.wlog (1 : Qp).half σ.Lmu ∗
-      mvcc.idxCert γ.st.idx L ==∗
-      mvcc.watchStoreBody s γ 1 { σ with Lmu := L } ∗ ghostVar γ.wlog (1 : Qp).half L := by
-  iintro ⟨Hb, Hwl, #Hc⟩
+/-- **The notified log catches up with the commit** (unit W-K: around it): the lock's outer
+quarter of the committed log's authority at the notified log, lent to the commit
+(`storeTxnWrite.End`'s `logQPre`), and the body at the committed log `L` from the quarter back
+at `L` (`logQPost`). -/
+theorem mvcc.body_commit (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) :
+    mvcc.watchStoreBody (GF := GF) s γ 1 σ ⊢ mvcc.logQ γ.st σ.Lmu ∗
+      (∀ L : mvcc.Log, ⌜σ.syncedAbove L.length⌝ -∗ ghostVar γ.wlog (1 : Qp).half σ.Lmu -∗
+        mvcc.idxCert γ.st.idx L -∗ mvcc.logQ γ.st L ==∗
+        mvcc.watchStoreBody s γ 1 { σ with Lmu := L } ∗ ghostVar γ.wlog (1 : Qp).half L) := by
+  iintro Hb
   iunfold mvcc.watchStoreBody at Hb
   iNamed Hb
+  iunfold mvcc.wlogQ at Hwlog
+  icases Hwlog with ⟨Hwlog, Hq⟩
+  iframe Hq
+  iintro %L %hab Hwl #Hc Hq
   imod ghostVar_update { σ with Lmu := L } γ.wst σ $$ Hσ with Hσ
   imod ghostVar_update_halves L γ.wlog _ _ $$ Hwlog Hwl with ⟨Hwlog, Hwl⟩
   imodintro
   iframe Hwl
   iunfold mvcc.watchStoreBody
   simp only [named]
+  iframe Hσ
+  isplitl [Hwlog Hq]
+  · iunfold mvcc.wlogQ; iframe Hwlog Hq
   iframe
   iframe #
   isplitr
@@ -199,9 +211,12 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     · simp only [mvcc.isTxnEnd]; iexists chs, ps, false; iexact Hcore
     wp_apply (hEnd trace mw st γ.st (.write ilog [] puts deletes putSize)) $$ [$Hte Hhook HPh]
       as ⟨Hrd, Hpost, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HPh; iunfold mvcc.certOkNext; ileft; ipureintro; rfl
-    simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
-    icases Hpost with ⟨#Hc, Htok⟩
+    · iapply mvcc.txnEndPre_write; iframe Hhook HPh; rw [mvcc.logQPre_nil]
+      isplitl
+      · iunfold mvcc.certOkNext; ileft; ipureintro; rfl
+      itrivial
+    simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte, mvcc.logQPost_nil]
+    icases Hpost with ⟨#Hc, Htok, -⟩
     (try wp_auto)
     iapply HΦ
     iframe Hrd Hc Htrc
@@ -491,16 +506,18 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   (try wp_auto)
   ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog pend puts deletes putSize) $$ [Hcw]
   · simp only [mvcc.isTxnEnd]; iexists chs, ps, true; iexact Hcw
-  wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize)) $$ [$Hte Hhook HPh]
+  -- the lock's outer quarter of the committed log's authority, lent to the commit (unit W-K)
+  icases mvcc.body_commit s γ σ' $$ HP with ⟨Hq, Hcommit⟩
+  wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize)) $$ [$Hte Hhook HPh Hq]
     as ⟨Hrd, Hpost, Htrc⟩
   · iapply mvcc.txnEndPre_write; iframe Hhook HPh HokN
+    rw [mvcc.logQPre_ne γ.st ilog pend hne Hwq, ← hLmu']; iexact Hq
   have hcl : mvcc.commitLog ilog pend = ilog ++ [pend] := by
     unfold mvcc.commitLog; rw [if_neg hne]
-  simp only [mvcc.txnEndPost, hcl]
-  icases Hpost with ⟨#Hc, -⟩
+  simp only [mvcc.txnEndPost, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
+  icases Hpost with ⟨#Hc, -, Hq⟩
   rw [← hLmu'] at *
-  imod mvcc.body_commit s γ σ' (σ'.Lmu ++ [pend]) (by simpa using hab) $$ [$HP $Hwlog $Hc]
-    with ⟨HP, Hwlog⟩
+  imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(by simpa using hab) Hwlog Hc Hq with ⟨HP, Hwlog⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP]
   · inext; iunfold mvcc.watchStoreInv; iexists _; iexact HP
