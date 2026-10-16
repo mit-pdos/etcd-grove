@@ -621,6 +621,48 @@ theorem entsData_lookup (γ : RaftNames) (l : List EntryM) (ods : List (Option (
   iframe Hed
   ipureintro; exact Ho
 
+/-- A committed log is well-formed from `base0` (entry `k` has index `k + 1`,
+`isCommitted_index`): it is a prefix of the invariant's justified log (2026-10-16, stage R7,
+for the server's contract). -/
+theorem isCommitted_wf (γ : RaftNames) (E : CoPset) (L : List EntryM)
+    (HE : ↑raftLogN ⊆ E) :
+    ⊢ raftCommitInv γ -∗ isCommitted γ L ={E}=∗ ⌜PlogWf base0 L⌝ := by
+  iintro #Hinv #HL
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
+  ihave %Hpre := isCommitted_prefix γ L P $$ HL HP
+  ihave %Hwf := committedJust_wf γ P $$ Hj
+  imod Hclose $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imodintro
+  ipureintro
+  exact PlogWf_prefix _ _ _ Hpre Hwf
+
+/-- The client's log is raft's committed log: the client's half of `rLog` and the log half's
+quarter agree (the register's `reg_log_committed`, 2026-10-14, stage R; here since 2026-10-16,
+stage R7, shared with the server). -/
+theorem rLog_committed (γ : RaftNames) (L : List EntryM) (E : CoPset)
+    (HE : ↑raftLogN ⊆ E) :
+    ⊢ raftCommitInv γ -∗ rLog γ L ={E}=∗ rLog γ L ∗ isCommitted γ L := by
+  iintro #Hinv HrL
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
+  iunfold rLog at HrL
+  ihave %HLeq := ghostVar_agree γ.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
+  subst HLeq
+  ihave #HPc := ownCommitted_lb γ _ $$ HP
+  imod Hclose $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imodintro
+  unfold rLog
+  iframe HrL HPc
+
 /-- Depositing a proposal's persistent atomic update (2026-10-14, stage R: no later credit, no
 ticket), for a data never deposited before (its fresh token). The client gets the slot's handle.
 No committed entry holds the data yet (`ods_not_fresh`), so the slot starts with no result. -/

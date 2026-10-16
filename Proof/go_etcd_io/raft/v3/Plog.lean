@@ -155,6 +155,11 @@ theorem PlogWf_take (b : entryID) (es : List EntryM) (n : Nat) :
   · exact H k e Hk
   · cases Hk
 
+theorem PlogWf_prefix (b : entryID) (es es' : List EntryM) :
+    es <+: es' → PlogWf b es' → PlogWf b es := by
+  rintro ⟨s, rfl⟩ H
+  exact ((PlogWf_app _ _ _).1 H).1
+
 /-- In range, `plogTermAt` is the term of the entry stored there. -/
 theorem plogTermAt_lookup (b : entryID) (es : List EntryM) (i : w64) (k : Nat)
     (e : EntryM) :

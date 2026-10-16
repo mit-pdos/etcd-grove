@@ -770,6 +770,17 @@ instance committedJust_persistent (γ : RaftNames) (l : List EntryM) :
     Persistent (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
 
+/-- A justified committed log is well-formed from `base0`: entry `k` has index `k + 1`
+(`cq_full`; 2026-10-16, stage R7). -/
+theorem committedJust_wf (γ : RaftNames) (l : List EntryM) :
+    ⊢ committedJust (GF := GF) γ l -∗ ⌜PlogWf base0 l⌝ := by
+  unfold committedJust
+  iintro #H
+  icases H with (%H0 | ⟨%t, %n, %G, %ldr, #Hcq, %HlG, -, -⟩)
+  · ipureintro; subst H0; intro k e Hk; simp at Hk
+  · icases cq_full γ t n G $$ Hcq with ⟨%Hwf, -⟩
+    ipureintro; subst HlG; exact PlogWf_take _ _ _ Hwf
+
 def raftN : Namespace := nroot .@ "raft_commit"
 
 /-! ### The client's log, the registries and the commit invariant (2026-10-14, stage R)
@@ -917,10 +928,12 @@ instance readAu_persistent (γ : RaftNames) (Qr : List EntryM → IProp GF) :
 
 /-- A proposal's update (see the section header): persistent; raft chooses the entry `e` (a
 normal entry holding the bytes `d`, `entDataIs`); fired at every committed
-occurrence, with the log before it. -/
+occurrence, with the log before it. The entry's index is its position in the committed log
+(entry `k` has index `k + 1`; 2026-10-16, stage R7, for the server's contract). -/
 def propAu (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
-              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d),
+              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
+                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
                  COMM □ Q L }>)
 
 instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
@@ -931,7 +944,8 @@ instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List EntryM → I
 at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
 def noopAu (γ : RaftNames) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
-              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none, COMM True }>)
+              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗
+                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝, COMM True }>)
 
 instance noopAu_persistent (γ : RaftNames) : Persistent (noopAu (GF := GF) γ) := by
   unfold noopAu; infer_instance
@@ -957,10 +971,11 @@ theorem readAu_fire (γ : RaftNames) (Qr : List EntryM → IProp GF) (l : List E
   imodintro
   iframe Hv HQ
 
-/-- Firing a proposal's update at an entry `e` holding its data: the raft half of the client's
-log, at `l`, moves to `l ++ [e]` with the client's half, and the result at `l` comes out. -/
+/-- Firing a proposal's update at an entry `e` holding its data, at the next index: the raft
+half of the client's log, at `l`, moves to `l ++ [e]` with the client's half, and the result
+at `l` comes out. -/
 theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
-    (l : List EntryM) (e : EntryM) :
+    (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
     ⊢ propAu γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ □ Q l := by
   iintro #Hau #He Hv
@@ -978,11 +993,13 @@ theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with HQ
   · iframe HcL He
+    ipureintro; exact Hidx
   imodintro
   iframe Hv HQ
 
-/-- Firing the standing update at an entry `e` of raft's own. -/
-theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM) :
+/-- Firing the standing update at an entry `e` of raft's own, at the next index. -/
+theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
+    (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
     ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) := by
   iintro #Hau #He Hv
@@ -1000,6 +1017,7 @@ theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM) :
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with -
   · iframe HcL He
+    ipureintro; exact Hidx
   imodintro
   iexact Hv
 

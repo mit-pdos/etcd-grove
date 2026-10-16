@@ -376,28 +376,6 @@ theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List EntryM)
   imodintro
   ipureintro; rfl
 
-/-- The register's log is raft's committed log (the client's half of `rLog` and the log
-half's quarter agree, 2026-10-14, stage R). -/
-theorem reg_log_committed (γr : RegNames) (L : List EntryM) (E : CoPset)
-    (HE : ↑raftLogN ⊆ E) :
-    ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L ={E}=∗
-      rLog γr.raft L ∗ isCommitted γr.raft L := by
-  iintro #Hcinv HrL
-  ihave #Hli := raftCommitInv_log γr.raft $$ Hcinv
-  unfold raftLogInv raftLogInvBody logRest
-  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
-  iunfold rLog at HrL
-  ihave %HLeq := ghostVar_agree γr.raft.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
-  subst HLeq
-  ihave #HPc := ownCommitted_lb γr.raft _ $$ HP
-  imod Hclose $$ [HP Htbl Hwt Hq1] with -
-  · inext
-    iexists P
-    iframe HP Hj Htbl Hwt Hds Hq1
-  imodintro
-  unfold rLog
-  iframe HrL HPc
-
 /-- Every committed log is a prefix of the register's log (the global one). -/
 theorem reg_log_prefix (γr : RegNames) (L l : List EntryM) (E : CoPset)
     (HE : ↑raftLogN ⊆ E) :
@@ -434,7 +412,7 @@ theorem regLb_current (γr : RegNames) (x : List w8) (E : CoPset)
   ihave %Hxeq := ghostVar_agree γr.val (regFold (firstOcc ods)) (1 : Qp).half x (1 : Qp).half
     $$ Hv Hx
   have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑regN := raftLogN_of HE2
-  imod reg_log_committed γr L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
+  imod rLog_committed γr.raft L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
   imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
   · inext
     iexists L, ods, M, F, S, Mi, O
@@ -563,7 +541,7 @@ theorem reg_propAu (γr : RegNames) (d : List w8) (γp : GName × GName) :
     imodintro
     iempintro
   · -- commit: the log grows by `e`, holding `d`
-    iintro %e ⟨HrL, #He⟩
+    iintro %e ⟨HrL, #He, -⟩
     imod Hclose2 with -
     ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [some d], entDataIs γr.raft e o) $$ []
     · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2
@@ -678,7 +656,7 @@ theorem reg_noopAu (γr : RegNames) :
       ipureintro; exact ⟨Hok, Hodm⟩
     imodintro
     iempintro
-  · iintro %e ⟨HrL, #He⟩
+  · iintro %e ⟨HrL, #He, -⟩
     imod Hclose2 with -
     ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [none], entDataIs γr.raft e o) $$ []
     · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2

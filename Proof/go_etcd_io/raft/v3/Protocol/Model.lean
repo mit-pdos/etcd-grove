@@ -1112,6 +1112,16 @@ def FullOk (b : entryID) (fp : List EntryM) : Prop :=
 
 theorem base0_index : uint.Z (base0 : entryID).index' = 0 := rfl
 
+/-- Entry `k` of a committed log (well-formed from `base0`: `isCommitted_wf`, `Facts.lean`) has
+index `k + 1` (2026-10-16, stage R7: named for the server's contract). -/
+theorem isCommitted_index (L : List EntryM) (k : Nat) (e : EntryM) :
+    PlogWf base0 L → L[k]? = some e → uint.Z e.Index' = (k : Int) + 1 := by
+  intro Hwf Hk
+  have := Hwf k e Hk
+  rw [base0_index] at this
+  push_cast at this
+  omega
+
 theorem FullOk_base0 : FullOk base0 [] :=
   ⟨rfl, fun _ _ h => by simp at h, rfl⟩
 

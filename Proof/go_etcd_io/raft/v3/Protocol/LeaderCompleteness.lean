@@ -838,6 +838,8 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
   unfold isEntryR entData
   icases Her with ⟨%ldr, %γt, %b, %l0, %F0, -, -, -, -, -, %o, #Ho⟩
   have Htk : G.take (m + 1) = G.take m ++ [e] := by rw [List.take_add_one, He]; rfl
+  have Hidx : uint.Z e.Index' = ((G.take m).length : Int) + 1 := by
+    rw [List.length_take]; push_cast; omega
   rw [Htk]
   imod ownCommitted_extend γ (G.take m) (G.take m ++ [e]) (List.prefix_append _ _) $$ HP
     with ⟨HP, -⟩
@@ -857,7 +859,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       [∗map] d ↦ γq ∈ R, propSlot γ d γq (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
   · cases o with
     | none =>
-      imod noopAu_fire γ (G.take m) e $$ Hnoop Ho Hv with Hv
+      imod noopAu_fire γ (G.take m) e Hidx $$ Hnoop Ho Hv with Hv
       imodintro
       iframe Hv Hra
       iapply BigSepM.bigSepM_impl $$ Hs
@@ -875,7 +877,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
         with ⟨⟨Hsl, Hfr⟩, Hs⟩
       iunfold propSlot at Hsl
       icases Hsl with ⟨%Q, #Hsp, #Hau, #Hres⟩
-      imod propAu_fire γ d Q (G.take m) e $$ Hau Ho Hv with ⟨Hv, #HQ⟩
+      imod propAu_fire γ d Q (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
       imodintro
       iframe Hv Hra
       iapply (BigSepM.bigSepM_delete (Φ := fun d γq =>
