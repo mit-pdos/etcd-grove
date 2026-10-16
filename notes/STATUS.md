@@ -53,8 +53,9 @@ specs with `.claude/skills/bug-triage`; reports, index and ranked proposals in
 A 22, O 25, C 11, N 34: of the 59 bugs fixed before the pins, 47 would also pass the current proofs,
 because of scope choices recorded in this file (no snapshot in a `Ready`, the store restored only
 from an empty backend, no compaction under watch, plain transactions, no crashes, auth without
-identities, membership through the `applyConfChange` axiom). 26 new `issues/` files, most with a
-reproducing test beside them.
+identities, membership through the `applyConfChange` axiom). 34 new `issues/` files (eight
+written afterwards at the user's request, among them bugs in untranslated code and one unconfirmed
+hazard), 25 with a test beside them.
 
 **Trust-boundary contracts found false or too strong** (to restate; each is a hypothesis of the
 results that the real code does not meet):

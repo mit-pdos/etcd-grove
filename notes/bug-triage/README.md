@@ -48,9 +48,11 @@ meet (or met only by accident). Each needs a restated contract; see `notes/STATU
 The audit these suggest (`cleanup-backend-quiescence`): every names-only server axiom whose
 precondition is `True` or `isPkgInit`, against what its Go function writes or panics on.
 
-### Bugs present at the pins (new `issues/` files)
+### Bugs present at the pins (34 new `issues/` files)
 
-Reproduced by a Go test, beside the issue (`issues/<slug>/*_test.go`), unless noted:
+Reproduced by a Go test, beside the issue (`issues/<slug>/*_test.go`), unless noted. The last
+eight were written after the batch, at the user's request, including bugs in untranslated packages
+(which step 7 does not require):
 
 | Issue | Bug | Class | Upstream |
 |---|---|---|---|
@@ -77,16 +79,15 @@ Reproduced by a Go test, beside the issue (`issues/<slug>/*_test.go`), unless no
 | [etcd-backend-close-inflight-rpc](../../issues/etcd-backend-close-inflight-rpc.md) | backend closed under in-flight RPCs (not reproduced) | A-axiom | etcd#17223 |
 | [etcd-snapshot-db-rename-no-dirsync](../../issues/etcd-snapshot-db-rename-no-dirsync.md) | snapshot db renamed without a directory sync (needs a crash) | O-fn | etcd#22498 |
 | [etcd-inproc-watch-shared-auth](../../issues/etcd-inproc-watch-shared-auth.md) | in-process watches authorized with another user's token | O-path | etcd#17502 |
+| [etcd-watch-choose-capped-compacted](../../issues/etcd-watch-choose-capped-compacted.md) | in `choose`'s capped branch a compacted watcher stays unsynced, cancelled again on every resync | C-scope (found triaging etcd#17529) | etcd#22294 |
+| [etcd-election-resign-error-forgets-key](../../issues/etcd-election-resign-error-forgets-key.md) | `Resign` forgets the leadership when its own txn fails; the spec states it | C-err | etcd#22123 |
+| [etcd-grpcproxy-watch-dead-broadcast](../../issues/etcd-grpcproxy-watch-dead-broadcast.md) | proxy watch broadcast dies on a backend close and keeps taking watchers | O-pkg | etcd#18231, #21813 |
+| [etcd-grpcproxy-range-cache-auth](../../issues/etcd-grpcproxy-range-cache-auth.md) | proxy Range cache served regardless of the caller's auth | O-pkg | etcd#22065 |
+| [etcd-rafthttp-snapshot-handler-nil-snapshot](../../issues/etcd-rafthttp-snapshot-handler-nil-snapshot.md) | rafthttp snapshot handler panics on a `MsgSnap` without a Snapshot | O-pkg | etcd#22440 |
+| [etcd-fileutil-windows-trylock-locked](../../issues/etcd-fileutil-windows-trylock-locked.md) | Windows `TryLockFile` returns nil on a held lock; the purger deletes held WAL files (test compiles for Windows, not run) | O-pkg | etcd#14252 |
+| [etcd-peer-members-handler-stale](../../issues/etcd-peer-members-handler-stale.md) | `/members` peer handler not linearizable (no test; harm not shown) | O-pkg | etcd#16687 |
+| [etcd-bootstrap-confstate-zombie-voters](../../issues/etcd-bootstrap-confstate-zombie-voters.md) | **unconfirmed**: zombie members in the members bucket become raft voters at restart (the function shown; the upgrade path not) | O-fn (from triaging etcd#20967) | none |
 | [etcd-compare-value-missing-key](../../issues/etcd-compare-value-missing-key.md), [etcd-watch-progress-request-dropped-unsynced](../../issues/etcd-watch-progress-request-dropped-unsynced.md), [leasing-cached-get-after-lease-expiry](../../issues/leasing-cached-get-after-lease-expiry.md) | documentation | N / C | etcd#10566, #17507, #19091 |
-
-Present at the pins but not written up (the user's call, or outside translated code): etcd#22294
-(a compacted watcher stays unsynced in `choose`'s capped branch; under `watch-under-compaction`),
-etcd#22123 (`Resign` forgets the leadership when its own txn fails; `Election__Resign.lean:45`
-states it), etcd#14252 (Windows `lockFile` returns nil on a held lock; `fileutil` untranslated),
-the grpc-proxy bugs etcd#18231, #21813, #22065, #16687 (`/members` not linearizable), etcd#22440
-(rafthttp nil deref), and one **unconfirmed** hazard reasoned from code only: since etcd#21138 a
-restart builds raft's `ConfState` from the members bucket, so zombie members carried from 3.5
-(< 3.5.26) would become voters (`etcd-20967.md`).
 
 ### The specs that would have excluded the bug (F+)
 
