@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#13508 pr merged: related, not this bug (adds --experimental-enable-lease-checkpoint-persist, the persistence whose atomicity fails here)
+  - etcd-io/etcd#17132 issue closed: related, not this bug (TTLs reset on restart because checkpoints were not persisted at all)
 ---
 
 # server: a lease checkpoint entry is not persisted atomically with its consistent index

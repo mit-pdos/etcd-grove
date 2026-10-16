@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#13777 issue closed: related, not this bug (stabilizing the compaction-batch-limit flag; no validation discussed)
 ---
 
 # server/storage/mvcc: a negative `CompactionBatchLimit` makes every compaction loop forever

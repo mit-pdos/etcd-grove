@@ -1,7 +1,11 @@
 ---
-upstream: unchecked
-checked:
+upstream: known
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#22209 issue open: same bug (keys_only no longer returns lease since #21791), labeled type/bug, proposed for v3.7.4
+  - etcd-io/etcd#22550 pr open: fix for #22209 (records the lease in the key index); ahrtr objects to the design and suggests documenting the limitation
+  - etcd-io/etcd#22212 pr closed: earlier fix for #22209 (lessor lookup at the latest revision), closed by its author without review
+  - etcd-io/etcd#21791 pr merged: introduced the regression (FastKeysOnly)
 ---
 
 # etcdserver: keys-only ranges return lease 0 unless sorted by value (regression in v3.7)

@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#17331 issue closed: related, not this bug (ConcurrentReadTx's stale-cache path copies the buffer redundantly; closed not planned)
 ---
 
 # `ConcurrentReadTx` reuses a read-buffer copy from before a commit: deleted keys come back, old values return
