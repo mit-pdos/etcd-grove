@@ -139,6 +139,8 @@ func ConfChangesFromString(s string) ([]*ConfChangeSingle, error) {
 			cc.Type = ConfChangeRemoveNode.Enum()
 		case 'u':
 			cc.Type = ConfChangeUpdateNode.Enum()
+		case 'w':
+			cc.Type = ConfChangeAddWitness.Enum()
 		default:
 			return nil, fmt.Errorf("unknown input: %s", tok)
 		}
@@ -168,6 +170,8 @@ func ConfChangesToString(ccs []*ConfChangeSingle) string {
 			buf.WriteByte('r')
 		case ConfChangeUpdateNode:
 			buf.WriteByte('u')
+		case ConfChangeAddWitness:
+			buf.WriteByte('w')
 		default:
 			buf.WriteString("unknown")
 		}

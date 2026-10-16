@@ -252,7 +252,10 @@ func TestRawNodeProposeAndConfChange(t *testing.T) {
 						cc = ccc
 					}
 					if cc != nil {
-						cs = rawNode.ApplyConfChange(cc)
+						cs, err = rawNode.ApplyConfChange(cc) // n.b. applying conf change will cause subterm change and appending an empty entry
+						if err != nil {
+							t.Fatal(err)
+						}
 					}
 				}
 				rawNode.Advance(rd)
@@ -294,17 +297,18 @@ func TestRawNodeProposeAndConfChange(t *testing.T) {
 
 			require.Equal(t, tc.exp, cs)
 
-			var maybePlusOne uint64
+			var maybePlusMore uint64
 			if autoLeave, ok := tc.cc.AsV2().EnterJoint(); ok && autoLeave {
 				// If this is an auto-leaving joint conf change, it will have
 				// appended the entry that auto-leaves, so add one to the last
 				// index that forms the basis of our expectations on
 				// pendingConfIndex. (Recall that lastIndex was taken from stable
 				// storage, but this auto-leaving entry isn't on stable storage
-				// yet).
-				maybePlusOne = 1
+				// yet). Also note that there is an empty entry in unstable which
+				// was added after applying conf change.
+				maybePlusMore = 2
 			}
-			require.Equal(t, lastIndex+maybePlusOne, rawNode.raft.pendingConfIndex)
+			require.Equal(t, lastIndex+maybePlusMore, rawNode.raft.pendingConfIndex)
 
 			// Move the RawNode along. If the ConfChange was simple, nothing else
 			// should happen. Otherwise, we're in a joint state, which is either
@@ -313,7 +317,10 @@ func TestRawNodeProposeAndConfChange(t *testing.T) {
 			rd := rawNode.Ready()
 			var context []byte
 			if !tc.exp.GetAutoLeave() {
-				require.Empty(t, rd.Entries)
+				require.Len(t, rd.Entries, 1)
+				require.Equal(t, pb.EntryNormal, rd.Entries[0].GetType())
+				require.Empty(t, rd.Entries[0].GetData())
+				s.Append(rd.Entries)
 				rawNode.Advance(rd)
 				if tc.exp2 == nil {
 					return
@@ -325,15 +332,15 @@ func TestRawNodeProposeAndConfChange(t *testing.T) {
 			}
 
 			// Check that the right ConfChange comes out.
-			require.Len(t, rd.Entries, 1)
-			require.Equal(t, pb.EntryConfChangeV2, rd.Entries[0].GetType())
+			require.Equal(t, pb.EntryConfChangeV2, rd.Entries[len(rd.Entries)-1].GetType())
 			cc := &pb.ConfChangeV2{}
-			require.NoError(t, proto.Unmarshal(rd.Entries[0].GetData(), cc))
+			require.NoError(t, proto.Unmarshal(rd.Entries[len(rd.Entries)-1].GetData(), cc))
 			require.True(t, proto.Equal(&pb.ConfChangeV2{Context: context}, cc))
 
 			// Lie and pretend the ConfChange applied. It won't do so because now
 			// we require the joint quorum and we're only running one node.
-			cs = rawNode.ApplyConfChange(cc)
+			cs, err = rawNode.ApplyConfChange(cc)
+			require.NoError(t, err)
 			require.Equal(t, tc.exp2, cs)
 
 			rawNode.Advance(rd)
@@ -381,7 +388,8 @@ func TestRawNodeJointAutoLeave(t *testing.T) {
 			if cc != nil {
 				// Force it step down.
 				rawNode.Step(&pb.Message{Type: pb.MsgHeartbeatResp.Enum(), From: new(uint64(1)), Term: new(rawNode.raft.Term + 1)})
-				cs = rawNode.ApplyConfChange(cc)
+				cs, err = rawNode.ApplyConfChange(cc)
+				require.NoError(t, err)
 			}
 		}
 		rawNode.Advance(rd)
@@ -443,7 +451,8 @@ func TestRawNodeJointAutoLeave(t *testing.T) {
 	require.True(t, proto.Equal(&pb.ConfChangeV2{}, cc))
 	// Lie and pretend the ConfChange applied. It won't do so because now
 	// we require the joint quorum and we're only running one node.
-	cs = rawNode.ApplyConfChange(cc)
+	cs, err = rawNode.ApplyConfChange(cc)
+	require.NoError(t, err)
 	require.Equal(t, exp2Cs, cs)
 }
 
@@ -500,12 +509,14 @@ func TestRawNodeProposeAddDuplicateNode(t *testing.T) {
 	lastIndex, err := s.LastIndex()
 	require.NoError(t, err)
 
-	// the last three entries should be: ConfChange cc1, cc1, cc2
-	entries, err := s.Entries(lastIndex-2, lastIndex+1, noLimit)
+	// the last 4 entries should be: ConfChange cc1, empty (ignored conf change), empty (by applying cc1), cc2
+	entries, err := s.Entries(lastIndex-3, lastIndex+1, noLimit)
 	require.NoError(t, err)
-	require.Len(t, entries, 3)
+	require.Len(t, entries, 4)
 	assert.Equal(t, ccdata1, entries[0].GetData())
-	assert.Equal(t, ccdata2, entries[2].GetData())
+	assert.Empty(t, entries[1].GetData())
+	assert.Empty(t, entries[2].GetData())
+	assert.Equal(t, ccdata2, entries[3].GetData())
 }
 
 // TestRawNodeReadIndex ensures that Rawnode.ReadIndex sends the MsgReadIndex message

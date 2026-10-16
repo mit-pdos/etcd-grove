@@ -340,6 +340,19 @@ func (c *Config) validate() error {
 	return nil
 }
 
+type WitnessMessage struct {
+	Type           pb.MessageType
+	From           uint64
+	To             uint64
+	Term           uint64
+	LastLogTerm    uint64
+	LastLogSubterm uint64
+	LastLogIndex   uint64
+	ReplicationSet [2][]uint64
+	Votes          map[uint64]bool
+	Context        []byte
+}
+
 type raft struct {
 	id uint64
 
@@ -434,6 +447,8 @@ type raft struct {
 	pendingReadIndexMessages []*pb.Message
 
 	traceLogger TraceLogger
+
+	witnessMsgs []WitnessMessage
 }
 
 func newRaft(c *Config) *raft {
@@ -617,7 +632,7 @@ func (r *raft) sendAppend(to uint64) {
 // message.
 func (r *raft) maybeSendAppend(to uint64, sendIfEmpty bool) bool {
 	pr := r.trk.Progress[to]
-	if pr.IsPaused() {
+	if pr.IsPaused() || pr.IsWitness {
 		return false
 	}
 
@@ -690,6 +705,96 @@ func (r *raft) maybeSendSnapshot(to uint64, pr *tracker.Progress) bool {
 	return true
 }
 
+func (r *raft) sendHeartbeatToWitness(id uint64, ctx []byte) {
+	r.witnessMsgs = append(r.witnessMsgs, WitnessMessage{
+		Context: ctx,
+		From:    r.id,
+		To:      id,
+		Type:    pb.MsgHeartbeat,
+		Term:    r.Term,
+	})
+}
+
+func (r *raft) getWitnessVoteRequestReadiness(votesToWin [2]int) map[uint64]bool {
+	v1 := votesToWin[0]
+	v2 := votesToWin[1]
+	if v1 > 1 && v2 > 1 {
+		return nil
+	}
+
+	w1 := r.trk.Witnesses[0]
+	w2 := r.trk.Witnesses[1]
+	if w1 == 0 && w2 == 0 {
+		return nil
+	}
+
+	w := map[uint64]bool{}
+
+	if w1 == w2 {
+		w[w1] = (v1 == 1 && v2 <= 1) || (v1 <= 1 && v2 == 1)
+	} else {
+		if w1 > 0 {
+			w[w1] = v1 == 1
+		}
+		if w2 > 0 {
+			w[w2] = v2 == 1
+		}
+	}
+
+	return w
+}
+
+func (r *raft) sendRequestVoteToWitness(ctx []byte, witnessID uint64, voteType pb.MessageType, term uint64) {
+	lastEntry := r.raftLog.lastEntry()
+	votes := r.trk.Votes
+	v := make(map[uint64]bool)
+	for id := range votes {
+		v[id] = votes[id]
+	}
+
+	r.witnessMsgs = append(r.witnessMsgs, WitnessMessage{
+		Context:        ctx,
+		From:           r.id,
+		To:             witnessID,
+		Type:           voteType,
+		Term:           term,
+		LastLogTerm:    lastEntry.GetTerm(),
+		LastLogSubterm: lastEntry.GetSubterm(),
+		LastLogIndex:   lastEntry.GetIndex(),
+		Votes:          v,
+	})
+
+	r.logger.Infof("%x [logterm: %d, logsubterm: %d] sent %s request to witness %x at term %d. Message term: %d",
+		r.id, lastEntry.GetTerm(), lastEntry.GetSubterm(), voteType, witnessID, r.Term, term)
+}
+
+func (r *raft) sendAppendToWitness(witnessID uint64, index uint64) {
+	epoch := r.trk.Epoch
+	if epoch == nil {
+		return
+	}
+
+	entries, err := r.raftLog.entries(index, 0)
+	if err != nil {
+		return
+	}
+
+	msg := WitnessMessage{
+		From:           r.id,
+		To:             witnessID,
+		Type:           pb.MsgApp,
+		Term:           r.Term,
+		LastLogTerm:    entries[0].GetTerm(),
+		LastLogSubterm: entries[0].GetSubterm(),
+		LastLogIndex:   entries[0].GetIndex(),
+		ReplicationSet: [2][]uint64{epoch.ReplicationSet[0].GetNonWitnessVoterSlice(), epoch.ReplicationSet[1].GetNonWitnessVoterSlice()},
+	}
+
+	r.witnessMsgs = append(r.witnessMsgs, msg)
+	r.logger.Infof("%x [logterm: %d, logsubterm: %d] sent %s request to witness %x at term %d",
+		r.id, entries[0].GetTerm(), entries[0].GetSubterm(), pb.MsgApp, witnessID, r.Term)
+}
+
 // sendHeartbeat sends a heartbeat RPC to the given peer.
 func (r *raft) sendHeartbeat(to uint64, ctx []byte) {
 	pr := r.trk.Progress[to]
@@ -726,11 +831,15 @@ func (r *raft) bcastHeartbeat() {
 }
 
 func (r *raft) bcastHeartbeatWithCtx(ctx []byte) {
-	r.trk.Visit(func(id uint64, _ *tracker.Progress) {
+	r.trk.Visit(func(id uint64, pr *tracker.Progress) {
 		if id == r.id {
 			return
 		}
-		r.sendHeartbeat(id, ctx)
+		if pr.IsWitness {
+			r.sendHeartbeatToWitness(id, ctx)
+		} else {
+			r.sendHeartbeat(id, ctx)
+		}
 	})
 }
 
@@ -774,6 +883,17 @@ func (r *raft) appliedSnap(snap *pb.Snapshot) {
 // only be called in StateLeader.
 func (r *raft) maybeCommit() bool {
 	defer traceCommit(r)
+	r.trk.Committed()
+	// check if we can commit on q-1 acks in current set
+	idxMap := r.trk.OneLessThanQuorumInReplicationSet()
+	for w, wci := range idxMap {
+		if wci > 0 {
+			e := r.raftLog.entry(uint64(wci))
+			if e.GetTerm() == r.Term && e.GetSubterm() == r.trk.Epoch.Subterm {
+				r.sendAppendToWitness(w, uint64(wci))
+			}
+		}
+	}
 
 	return r.raftLog.maybeCommit(entryID{term: r.Term, index: r.trk.Committed()})
 }
@@ -783,6 +903,7 @@ func (r *raft) reset(term uint64) {
 		r.Term = term
 		r.Vote = None
 	}
+
 	r.lead = None
 
 	r.electionElapsed = 0
@@ -798,6 +919,7 @@ func (r *raft) reset(term uint64) {
 			Next:      r.raftLog.lastIndex() + 1,
 			Inflights: tracker.NewInflights(r.trk.MaxInflight, r.trk.MaxInflightBytes),
 			IsLearner: pr.IsLearner,
+			IsWitness: pr.IsWitness,
 		}
 		if id == r.id {
 			pr.Match = r.raftLog.lastIndex()
@@ -811,12 +933,19 @@ func (r *raft) reset(term uint64) {
 
 func (r *raft) appendEntry(es ...*pb.Entry) (accepted bool) {
 	li := r.raftLog.lastIndex()
+	epoch := r.trk.Epoch
 	cloned := make([]*pb.Entry, len(es))
 	for i := range es {
 		// TODO: Consider whether cloning/copying is necessary at all, and aim to eliminate it if possible.
 		cloned[i] = proto.Clone(es[i]).(*pb.Entry)
 		cloned[i].Term = new(r.Term)
 		cloned[i].Index = new(li + 1 + uint64(i))
+		// A zero subterm is left unset (gogoproto's non-nullable 0).
+		if epoch.Subterm != 0 {
+			cloned[i].Subterm = new(epoch.Subterm)
+		} else {
+			cloned[i].Subterm = nil
+		}
 	}
 	// Track the size of this uncommitted proposal.
 	if !r.increaseUncommittedSize(cloned) {
@@ -958,11 +1087,8 @@ func (r *raft) becomeLeader() {
 	r.pendingConfIndex = r.raftLog.lastIndex()
 
 	traceBecomeLeader(r)
-	emptyEnt := &pb.Entry{Data: nil}
-	if !r.appendEntry(emptyEnt) {
-		// This won't happen because we just called reset() above.
-		r.logger.Panic("empty entry was dropped")
-	}
+	r.maybeStartNewSubterm(true, false)
+
 	// The payloadSize of an empty entry is 0 (see TestPayloadSizeOfEmptyEntry),
 	// so the preceding log append does not count against the uncommitted log
 	// quota of the new leader. In other words, after the call to appendEntry,
@@ -1028,6 +1154,7 @@ func (r *raft) campaign(t CampaignType) {
 		// better safe than sorry.
 		r.logger.Warningf("%x is unpromotable; campaign() should have been called", r.id)
 	}
+
 	var term uint64
 	var voteMsg pb.MessageType
 	if t == campaignPreElection {
@@ -1059,6 +1186,13 @@ func (r *raft) campaign(t CampaignType) {
 			r.send(&pb.Message{To: new(id), Term: new(term), Type: voteRespMsgType(voteMsg).Enum()})
 			continue
 		}
+
+		if id == r.trk.Witnesses[0] || id == r.trk.Witnesses[1] {
+			// Witness will vote for candidate only after candidate gets at least
+			// quorum - 1 votes from other servers.
+			continue
+		}
+
 		// TODO(pav-kv): it should be ok to simply print %+v for the lastEntryID.
 		last := r.raftLog.lastEntryID()
 		r.logger.Infof("%x [logterm: %d, index: %d] sent %s request to %x at term %d",
@@ -1072,14 +1206,14 @@ func (r *raft) campaign(t CampaignType) {
 	}
 }
 
-func (r *raft) poll(id uint64, t pb.MessageType, v bool) (granted int, rejected int, result quorum.VoteResult) {
+func (r *raft) pollAndReportDiff(id uint64, t pb.MessageType, v bool) (granted int, rejected int, result quorum.VoteResult, votesToWin [2]int) {
 	if v {
 		r.logger.Infof("%x received %s from %x at term %d", r.id, t, id, r.Term)
 	} else {
 		r.logger.Infof("%x received %s rejection from %x at term %d", r.id, t, id, r.Term)
 	}
 	r.trk.RecordVote(id, v)
-	return r.trk.TallyVotes()
+	return r.trk.TallyVotesWithDifference()
 }
 
 // Step advances the state machine using the given message.
@@ -1282,6 +1416,8 @@ func stepLeader(r *raft, m *pb.Message) error {
 		if !r.trk.QuorumActive() {
 			r.logger.Warningf("%x stepped down to follower since quorum is not active", r.id)
 			r.becomeFollower(r.Term, None)
+		} else {
+			r.maybeStartNewSubterm(false, false)
 		}
 		// Mark everyone (but ourselves) as inactive in preparation for the next
 		// CheckQuorum.
@@ -1625,9 +1761,14 @@ func stepLeader(r *raft, m *pb.Message) error {
 			pr.BecomeProbe()
 		}
 		r.logger.Debugf("%x failed to send message to %x because it is unreachable [%s]", r.id, m.GetFrom(), pr)
+
 	case pb.MsgTransferLeader:
 		if pr.IsLearner {
 			r.logger.Debugf("%x is learner. Ignored transferring leadership", r.id)
+			return nil
+		}
+		if pr.IsWitness {
+			r.logger.Debugf("%x is witness. Ignored transferring leadership", r.id)
 			return nil
 		}
 		leadTransferee := m.GetFrom()
@@ -1686,8 +1827,8 @@ func stepCandidate(r *raft, m *pb.Message) error {
 		r.becomeFollower(m.GetTerm(), m.GetFrom()) // always m.Term == r.Term
 		r.handleSnapshot(m)
 	case myVoteRespType:
-		gr, rj, res := r.poll(m.GetFrom(), m.GetType(), !m.GetReject())
-		r.logger.Infof("%x has received %d %s votes and %d vote rejections", r.id, gr, m.GetType(), rj)
+		gr, rj, res, rv := r.pollAndReportDiff(m.GetFrom(), m.GetType(), !m.GetReject())
+		r.logger.Infof("%x has received %d %s votes and %d vote rejections. It needs %d votes to win", r.id, gr, m.GetType(), rj, rv)
 		switch res {
 		case quorum.VoteWon:
 			if r.state == StatePreCandidate {
@@ -1700,6 +1841,24 @@ func stepCandidate(r *raft, m *pb.Message) error {
 			// pb.MsgPreVoteResp contains future term of pre-candidate
 			// m.Term > r.Term; reuse r.Term
 			r.becomeFollower(r.Term, None)
+
+		case quorum.VotePending:
+			witnessReadyToVote := r.getWitnessVoteRequestReadiness(rv)
+			for witnessID, ready := range witnessReadyToVote {
+				if ready {
+					// try to get vote from witness
+					var myVoteType pb.MessageType
+					var term uint64
+					if r.state == StatePreCandidate {
+						myVoteType = pb.MsgPreVote
+						term = r.Term + 1
+					} else {
+						myVoteType = pb.MsgVote
+						term = r.Term
+					}
+					r.sendRequestVoteToWitness(nil, witnessID, myVoteType, term)
+				}
+			}
 		}
 	case pb.MsgTimeoutNow:
 		r.logger.Debugf("%x [term %d state %v] ignored MsgTimeoutNow from %x", r.id, r.Term, r.state, m.GetFrom())
@@ -1937,10 +2096,10 @@ func (r *raft) restore(s *pb.Snapshot) bool {
 // which is true when its own id is in progress list.
 func (r *raft) promotable() bool {
 	pr := r.trk.Progress[r.id]
-	return pr != nil && !pr.IsLearner && !r.raftLog.hasNextOrInProgressSnapshot()
+	return pr != nil && !pr.IsLearner && !pr.IsWitness && !r.raftLog.hasNextOrInProgressSnapshot()
 }
 
-func (r *raft) applyConfChange(cc *pb.ConfChangeV2) *pb.ConfState {
+func (r *raft) applyConfChange(cc *pb.ConfChangeV2) (*pb.ConfState, error) {
 	cfg, trk, err := func() (tracker.Config, tracker.ProgressMap, error) {
 		changer := confchange.Changer{
 			Tracker:   r.trk,
@@ -1955,11 +2114,12 @@ func (r *raft) applyConfChange(cc *pb.ConfChangeV2) *pb.ConfState {
 	}()
 
 	if err != nil {
-		// TODO(tbg): return the error to the caller.
-		panic(err)
+		return nil, err
 	}
 
-	return r.switchToConfig(cfg, trk)
+	c := r.switchToConfig(cfg, trk)
+
+	return c, nil
 }
 
 // switchToConfig reconfigures this node to use the provided configuration. It
@@ -1973,6 +2133,10 @@ func (r *raft) switchToConfig(cfg tracker.Config, trk tracker.ProgressMap) *pb.C
 
 	r.trk.Config = cfg
 	r.trk.Progress = trk
+
+	if r.state == StateLeader {
+		r.maybeStartNewSubterm(false, true)
+	}
 
 	r.logger.Infof("%x switched to configuration %s", r.id, r.trk.Config)
 	cs := r.trk.ConfState()
@@ -2114,6 +2278,28 @@ func (r *raft) reduceUncommittedSize(s entryPayloadSize) {
 	} else {
 		r.uncommittedSize -= s
 	}
+}
+
+func (r *raft) maybeStartNewSubterm(newTerm bool, confChange bool) bool {
+	if newTerm || confChange {
+		r.trk.ResetReplicationSet(newTerm)
+		r.logger.Infof("%x resets replication set to %s, %s", r.id, r.trk.Epoch.ReplicationSet[0].String(), r.trk.Epoch.ReplicationSet[1].String())
+	} else {
+		if r.trk.ChangeReplicationSet() {
+			r.logger.Infof("%x changes replication set to %s, %s", r.id, r.trk.Epoch.ReplicationSet[0].String(), r.trk.Epoch.ReplicationSet[1].String())
+		} else {
+			return false
+		}
+	}
+
+	emptyEnt := &pb.Entry{Data: nil}
+	if !r.appendEntry(emptyEnt) {
+		// This won't happen because we just called reset() above.
+		r.logger.Panic("empty entry was dropped")
+	}
+
+	r.logger.Infof("%x starts new subterm. Term: %d, Subterm: %d", r.id, r.Term, r.trk.Epoch.Subterm)
+	return true
 }
 
 func releasePendingReadIndexMessages(r *raft) {

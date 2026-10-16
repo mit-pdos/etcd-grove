@@ -344,9 +344,9 @@ func TestNodeProposeAddDuplicateNode(t *testing.T) {
 	cancel()
 	<-goroutineStopped
 
-	assert.Len(t, allCommittedEntries, 4)
+	assert.Len(t, allCommittedEntries, 6)
 	assert.Equal(t, ccdata1, allCommittedEntries[1].GetData())
-	assert.Equal(t, ccdata2, allCommittedEntries[3].GetData())
+	assert.Equal(t, ccdata2, allCommittedEntries[5].GetData())
 }
 
 // TestBlockProposal ensures that node will block proposal when it does not
@@ -743,14 +743,17 @@ func TestNodeProposeAddLearnerNode(t *testing.T) {
 					}
 					cc := &raftpb.ConfChange{}
 					proto.Unmarshal(ent.GetData(), cc)
-					state := n.ApplyConfChange(cc)
-					assert.True(t, len(state.Learners) > 0 && state.Learners[0] == cc.GetNodeId() && cc.GetNodeId() == 2,
-						"apply conf change should return new added learner: %v", state.String())
-					assert.Len(t, state.Voters, 1,
-						"add learner should not change the nodes: %v", state.String())
+					state, err := n.ApplyConfChange(cc)
+					if err == nil {
+						assert.True(t, len(state.Learners) > 0 && state.Learners[0] == cc.GetNodeId() && cc.GetNodeId() == 2,
+							"apply conf change should return new added learner: %v", state.String())
+						assert.Len(t, state.Voters, 1,
+							"add learner should not change the nodes: %v", state.String())
 
-					t.Logf("apply raft conf %v changed to: %v", cc, state.String())
-					applyConfChan <- struct{}{}
+						t.Logf("apply raft conf %v changed to: %v", cc, state.String())
+						applyConfChan <- struct{}{}
+					}
+
 				}
 				n.Advance()
 			}

@@ -52,4 +52,5 @@ const (
 	ConfChangeRemoveNode     = ConfChangeType_ConfChangeRemoveNode
 	ConfChangeUpdateNode     = ConfChangeType_ConfChangeUpdateNode
 	ConfChangeAddLearnerNode = ConfChangeType_ConfChangeAddLearnerNode
+	ConfChangeAddWitness     = ConfChangeType_ConfChangeAddWitness
 )

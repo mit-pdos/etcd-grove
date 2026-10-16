@@ -282,6 +282,9 @@ func (ms *MemoryStorage) Compact(compactIndex uint64) error {
 	// through slices returned by ms.Entries().
 	ents := make([]*pb.Entry, 1, uint64(len(ms.ents))-i)
 	ents[0] = &pb.Entry{Index: new(ms.ents[i].GetIndex()), Term: new(ms.ents[i].GetTerm())}
+	if st := ms.ents[i].GetSubterm(); st != 0 {
+		ents[0].Subterm = new(st)
+	}
 	ents = append(ents, ms.ents[i+1:]...)
 	ms.ents = ents
 	return nil

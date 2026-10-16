@@ -52,7 +52,13 @@ func (rn *RawNode) Bootstrap(peers []Peer) error {
 	rn.raft.becomeFollower(1, None)
 	ents := make([]*pb.Entry, len(peers))
 	for i, peer := range peers {
-		cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(peer.ID), Context: peer.Context}
+		var cct pb.ConfChangeType
+		if peer.IsWitness {
+			cct = pb.ConfChangeAddWitness
+		} else {
+			cct = pb.ConfChangeAddNode
+		}
+		cc := &pb.ConfChange{Type: cct.Enum(), NodeId: new(peer.ID), Context: peer.Context}
 		data, err := proto.Marshal(cc)
 		if err != nil {
 			return err
@@ -76,7 +82,13 @@ func (rn *RawNode) Bootstrap(peers []Peer) error {
 	// the invariant that committed < unstable?
 	rn.raft.raftLog.committed = uint64(len(ents))
 	for _, peer := range peers {
-		rn.raft.applyConfChange((&pb.ConfChange{NodeId: new(peer.ID), Type: pb.ConfChangeAddNode.Enum()}).AsV2())
+		var cct pb.ConfChangeType
+		if peer.IsWitness {
+			cct = pb.ConfChangeAddWitness
+		} else {
+			cct = pb.ConfChangeAddNode
+		}
+		rn.raft.applyConfChange((&pb.ConfChange{NodeId: new(peer.ID), Type: cct.Enum()}).AsV2())
 	}
 	return nil
 }

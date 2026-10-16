@@ -51,14 +51,20 @@ func toConfChangeSingle(cs *pb.ConfState) (out []*pb.ConfChangeSingle, in []*pb.
 	//   quorum=(1 2 3)&&(1 2 4 6) learners=(5) learners_next=(4)
 	//
 	// as desired.
-
 	for _, id := range cs.VotersOutgoing {
 		// If there are outgoing voters, first add them one by one so that the
 		// (non-joint) config has them all.
-		out = append(out, &pb.ConfChangeSingle{
-			Type:   pb.ConfChangeAddNode.Enum(),
-			NodeId: new(id),
-		})
+		if id == cs.GetWitnessOutgoing() {
+			out = append(out, &pb.ConfChangeSingle{
+				Type:   pb.ConfChangeAddWitness.Enum(),
+				NodeId: new(cs.GetWitnessOutgoing()),
+			})
+		} else {
+			out = append(out, &pb.ConfChangeSingle{
+				Type:   pb.ConfChangeAddNode.Enum(),
+				NodeId: new(id),
+			})
+		}
 
 	}
 
@@ -72,12 +78,20 @@ func toConfChangeSingle(cs *pb.ConfState) (out []*pb.ConfChangeSingle, in []*pb.
 			NodeId: new(id),
 		})
 	}
+
 	// Then we'll add the incoming voters and learners.
 	for _, id := range cs.Voters {
-		in = append(in, &pb.ConfChangeSingle{
-			Type:   pb.ConfChangeAddNode.Enum(),
-			NodeId: new(id),
-		})
+		if id == cs.GetWitness() {
+			in = append(in, &pb.ConfChangeSingle{
+				Type:   pb.ConfChangeAddWitness.Enum(),
+				NodeId: new(cs.GetWitness()),
+			})
+		} else {
+			in = append(in, &pb.ConfChangeSingle{
+				Type:   pb.ConfChangeAddNode.Enum(),
+				NodeId: new(id),
+			})
+		}
 	}
 	for _, id := range cs.Learners {
 		in = append(in, &pb.ConfChangeSingle{
@@ -93,6 +107,7 @@ func toConfChangeSingle(cs *pb.ConfState) (out []*pb.ConfChangeSingle, in []*pb.
 			NodeId: new(id),
 		})
 	}
+
 	return out, in
 }
 

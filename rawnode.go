@@ -108,8 +108,9 @@ func (rn *RawNode) ProposeConfChange(cc pb.ConfChangeI) error {
 // ApplyConfChange applies a config change to the local node. The app must call
 // this when it applies a configuration change, except when it decides to reject
 // the configuration change, in which case no call must take place.
-func (rn *RawNode) ApplyConfChange(cc pb.ConfChangeI) *pb.ConfState {
-	return rn.raft.applyConfChange(cc.AsV2())
+func (rn *RawNode) ApplyConfChange(cc pb.ConfChangeI) (*pb.ConfState, error) {
+	cs, err := rn.raft.applyConfChange(cc.AsV2())
+	return cs, err
 }
 
 // Step advances the state machine using the given message.
@@ -143,6 +144,7 @@ func (rn *RawNode) readyWithoutAccept() Ready {
 		Entries:          r.raftLog.nextUnstableEnts(),
 		CommittedEntries: r.raftLog.nextCommittedEnts(rn.applyUnstableEntries()),
 		Messages:         r.msgs,
+		WitnessMessages:  r.witnessMsgs,
 	}
 	if softSt := r.softState(); !softSt.equal(rn.prevSoftSt) {
 		// Allocate only when SoftState changes.
@@ -426,6 +428,7 @@ func (rn *RawNode) acceptReady(rd Ready) {
 		}
 	}
 	rn.raft.msgs = nil
+	rn.raft.witnessMsgs = nil
 	rn.raft.msgsAfterAppend = nil
 	rn.raft.raftLog.acceptUnstable()
 	if len(rd.CommittedEntries) > 0 {
@@ -457,7 +460,7 @@ func (rn *RawNode) HasReady() bool {
 	if r.raftLog.hasNextUnstableSnapshot() {
 		return true
 	}
-	if len(r.msgs) > 0 || len(r.msgsAfterAppend) > 0 {
+	if len(r.msgs) > 0 || len(r.msgsAfterAppend) > 0 || len(r.witnessMsgs) > 0 {
 		return true
 	}
 	if r.raftLog.hasNextUnstableEnts() || r.raftLog.hasNextCommittedEnts(rn.applyUnstableEntries()) {

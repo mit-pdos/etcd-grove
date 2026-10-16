@@ -285,6 +285,7 @@ const (
 	ConfChangeType_ConfChangeRemoveNode     ConfChangeType = 1
 	ConfChangeType_ConfChangeUpdateNode     ConfChangeType = 2
 	ConfChangeType_ConfChangeAddLearnerNode ConfChangeType = 3
+	ConfChangeType_ConfChangeAddWitness     ConfChangeType = 4
 )
 
 // Enum value maps for ConfChangeType.
@@ -294,12 +295,14 @@ var (
 		1: "ConfChangeRemoveNode",
 		2: "ConfChangeUpdateNode",
 		3: "ConfChangeAddLearnerNode",
+		4: "ConfChangeAddWitness",
 	}
 	ConfChangeType_value = map[string]int32{
 		"ConfChangeAddNode":        0,
 		"ConfChangeRemoveNode":     1,
 		"ConfChangeUpdateNode":     2,
 		"ConfChangeAddLearnerNode": 3,
+		"ConfChangeAddWitness":     4,
 	}
 )
 
@@ -346,6 +349,7 @@ type Entry struct {
 	Index         *uint64                `protobuf:"varint,3,opt,name=Index" json:"Index,omitempty"`
 	Type          *EntryType             `protobuf:"varint,1,opt,name=Type,enum=raftpb.EntryType" json:"Type,omitempty"`
 	Data          []byte                 `protobuf:"bytes,4,opt,name=Data" json:"Data,omitempty"`
+	Subterm       *uint64                `protobuf:"varint,5,opt,name=Subterm" json:"Subterm,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -406,6 +410,13 @@ func (x *Entry) GetData() []byte {
 		return x.Data
 	}
 	return nil
+}
+
+func (x *Entry) GetSubterm() uint64 {
+	if x != nil && x.Subterm != nil {
+		return *x.Subterm
+	}
+	return 0
 }
 
 type SnapshotMetadata struct {
@@ -750,6 +761,98 @@ func (x *HardState) GetCommit() uint64 {
 	return 0
 }
 
+type WitnessHardState struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	State                  *HardState             `protobuf:"bytes,1,opt,name=state" json:"state,omitempty"`
+	LastLogIndex           *uint64                `protobuf:"varint,2,opt,name=lastLogIndex" json:"lastLogIndex,omitempty"`
+	LastLogTerm            *uint64                `protobuf:"varint,3,opt,name=lastLogTerm" json:"lastLogTerm,omitempty"`
+	LastLogSubterm         *uint64                `protobuf:"varint,4,opt,name=lastLogSubterm" json:"lastLogSubterm,omitempty"`
+	Lead                   *uint64                `protobuf:"varint,5,opt,name=lead" json:"lead,omitempty"`
+	ReplicationSet         []uint64               `protobuf:"varint,6,rep,name=replicationSet" json:"replicationSet,omitempty"`
+	ReplicationSetOutgoing []uint64               `protobuf:"varint,7,rep,name=replicationSetOutgoing" json:"replicationSetOutgoing,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *WitnessHardState) Reset() {
+	*x = WitnessHardState{}
+	mi := &file_raft_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WitnessHardState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WitnessHardState) ProtoMessage() {}
+
+func (x *WitnessHardState) ProtoReflect() protoreflect.Message {
+	mi := &file_raft_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WitnessHardState.ProtoReflect.Descriptor instead.
+func (*WitnessHardState) Descriptor() ([]byte, []int) {
+	return file_raft_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *WitnessHardState) GetState() *HardState {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *WitnessHardState) GetLastLogIndex() uint64 {
+	if x != nil && x.LastLogIndex != nil {
+		return *x.LastLogIndex
+	}
+	return 0
+}
+
+func (x *WitnessHardState) GetLastLogTerm() uint64 {
+	if x != nil && x.LastLogTerm != nil {
+		return *x.LastLogTerm
+	}
+	return 0
+}
+
+func (x *WitnessHardState) GetLastLogSubterm() uint64 {
+	if x != nil && x.LastLogSubterm != nil {
+		return *x.LastLogSubterm
+	}
+	return 0
+}
+
+func (x *WitnessHardState) GetLead() uint64 {
+	if x != nil && x.Lead != nil {
+		return *x.Lead
+	}
+	return 0
+}
+
+func (x *WitnessHardState) GetReplicationSet() []uint64 {
+	if x != nil {
+		return x.ReplicationSet
+	}
+	return nil
+}
+
+func (x *WitnessHardState) GetReplicationSetOutgoing() []uint64 {
+	if x != nil {
+		return x.ReplicationSetOutgoing
+	}
+	return nil
+}
+
 type ConfState struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The voters in the incoming config. (If the configuration is not joint,
@@ -765,14 +868,16 @@ type ConfState struct {
 	LearnersNext []uint64 `protobuf:"varint,4,rep,name=learners_next,json=learnersNext" json:"learners_next,omitempty"`
 	// If set, the config is joint and Raft will automatically transition into
 	// the final config (i.e. remove the outgoing config) when this is safe.
-	AutoLeave     *bool `protobuf:"varint,5,opt,name=auto_leave,json=autoLeave" json:"auto_leave,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AutoLeave       *bool   `protobuf:"varint,5,opt,name=auto_leave,json=autoLeave" json:"auto_leave,omitempty"`
+	Witness         *uint64 `protobuf:"varint,6,opt,name=witness" json:"witness,omitempty"`
+	WitnessOutgoing *uint64 `protobuf:"varint,7,opt,name=witness_outgoing,json=witnessOutgoing" json:"witness_outgoing,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ConfState) Reset() {
 	*x = ConfState{}
-	mi := &file_raft_proto_msgTypes[5]
+	mi := &file_raft_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +889,7 @@ func (x *ConfState) String() string {
 func (*ConfState) ProtoMessage() {}
 
 func (x *ConfState) ProtoReflect() protoreflect.Message {
-	mi := &file_raft_proto_msgTypes[5]
+	mi := &file_raft_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +902,7 @@ func (x *ConfState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfState.ProtoReflect.Descriptor instead.
 func (*ConfState) Descriptor() ([]byte, []int) {
-	return file_raft_proto_rawDescGZIP(), []int{5}
+	return file_raft_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ConfState) GetVoters() []uint64 {
@@ -835,6 +940,20 @@ func (x *ConfState) GetAutoLeave() bool {
 	return false
 }
 
+func (x *ConfState) GetWitness() uint64 {
+	if x != nil && x.Witness != nil {
+		return *x.Witness
+	}
+	return 0
+}
+
+func (x *ConfState) GetWitnessOutgoing() uint64 {
+	if x != nil && x.WitnessOutgoing != nil {
+		return *x.WitnessOutgoing
+	}
+	return 0
+}
+
 type ConfChange struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Type    *ConfChangeType        `protobuf:"varint,2,opt,name=type,enum=raftpb.ConfChangeType" json:"type,omitempty"`
@@ -850,7 +969,7 @@ type ConfChange struct {
 
 func (x *ConfChange) Reset() {
 	*x = ConfChange{}
-	mi := &file_raft_proto_msgTypes[6]
+	mi := &file_raft_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -862,7 +981,7 @@ func (x *ConfChange) String() string {
 func (*ConfChange) ProtoMessage() {}
 
 func (x *ConfChange) ProtoReflect() protoreflect.Message {
-	mi := &file_raft_proto_msgTypes[6]
+	mi := &file_raft_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -875,7 +994,7 @@ func (x *ConfChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfChange.ProtoReflect.Descriptor instead.
 func (*ConfChange) Descriptor() ([]byte, []int) {
-	return file_raft_proto_rawDescGZIP(), []int{6}
+	return file_raft_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ConfChange) GetType() ConfChangeType {
@@ -918,7 +1037,7 @@ type ConfChangeSingle struct {
 
 func (x *ConfChangeSingle) Reset() {
 	*x = ConfChangeSingle{}
-	mi := &file_raft_proto_msgTypes[7]
+	mi := &file_raft_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -930,7 +1049,7 @@ func (x *ConfChangeSingle) String() string {
 func (*ConfChangeSingle) ProtoMessage() {}
 
 func (x *ConfChangeSingle) ProtoReflect() protoreflect.Message {
-	mi := &file_raft_proto_msgTypes[7]
+	mi := &file_raft_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -943,7 +1062,7 @@ func (x *ConfChangeSingle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfChangeSingle.ProtoReflect.Descriptor instead.
 func (*ConfChangeSingle) Descriptor() ([]byte, []int) {
-	return file_raft_proto_rawDescGZIP(), []int{7}
+	return file_raft_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ConfChangeSingle) GetType() ConfChangeType {
@@ -1003,7 +1122,7 @@ type ConfChangeV2 struct {
 
 func (x *ConfChangeV2) Reset() {
 	*x = ConfChangeV2{}
-	mi := &file_raft_proto_msgTypes[8]
+	mi := &file_raft_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1015,7 +1134,7 @@ func (x *ConfChangeV2) String() string {
 func (*ConfChangeV2) ProtoMessage() {}
 
 func (x *ConfChangeV2) ProtoReflect() protoreflect.Message {
-	mi := &file_raft_proto_msgTypes[8]
+	mi := &file_raft_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1028,7 +1147,7 @@ func (x *ConfChangeV2) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfChangeV2.ProtoReflect.Descriptor instead.
 func (*ConfChangeV2) Descriptor() ([]byte, []int) {
-	return file_raft_proto_rawDescGZIP(), []int{8}
+	return file_raft_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ConfChangeV2) GetTransition() ConfChangeTransition {
@@ -1057,12 +1176,13 @@ var File_raft_proto protoreflect.FileDescriptor
 const file_raft_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"raft.proto\x12\x06raftpb\"l\n" +
+	"raft.proto\x12\x06raftpb\"\x86\x01\n" +
 	"\x05Entry\x12\x12\n" +
 	"\x04Term\x18\x02 \x01(\x04R\x04Term\x12\x14\n" +
 	"\x05Index\x18\x03 \x01(\x04R\x05Index\x12%\n" +
 	"\x04Type\x18\x01 \x01(\x0e2\x11.raftpb.EntryTypeR\x04Type\x12\x12\n" +
-	"\x04Data\x18\x04 \x01(\fR\x04Data\"n\n" +
+	"\x04Data\x18\x04 \x01(\fR\x04Data\x12\x18\n" +
+	"\aSubterm\x18\x05 \x01(\x04R\aSubterm\"n\n" +
 	"\x10SnapshotMetadata\x120\n" +
 	"\n" +
 	"conf_state\x18\x01 \x01(\v2\x11.raftpb.ConfStateR\tconfState\x12\x14\n" +
@@ -1092,14 +1212,24 @@ const file_raft_proto_rawDesc = "" +
 	"\tHardState\x12\x12\n" +
 	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x12\n" +
 	"\x04vote\x18\x02 \x01(\x04R\x04vote\x12\x16\n" +
-	"\x06commit\x18\x03 \x01(\x04R\x06commit\"\xac\x01\n" +
+	"\x06commit\x18\x03 \x01(\x04R\x06commit\"\x9d\x02\n" +
+	"\x10WitnessHardState\x12'\n" +
+	"\x05state\x18\x01 \x01(\v2\x11.raftpb.HardStateR\x05state\x12\"\n" +
+	"\flastLogIndex\x18\x02 \x01(\x04R\flastLogIndex\x12 \n" +
+	"\vlastLogTerm\x18\x03 \x01(\x04R\vlastLogTerm\x12&\n" +
+	"\x0elastLogSubterm\x18\x04 \x01(\x04R\x0elastLogSubterm\x12\x12\n" +
+	"\x04lead\x18\x05 \x01(\x04R\x04lead\x12&\n" +
+	"\x0ereplicationSet\x18\x06 \x03(\x04R\x0ereplicationSet\x126\n" +
+	"\x16replicationSetOutgoing\x18\a \x03(\x04R\x16replicationSetOutgoing\"\xf1\x01\n" +
 	"\tConfState\x12\x16\n" +
 	"\x06voters\x18\x01 \x03(\x04R\x06voters\x12\x1a\n" +
 	"\blearners\x18\x02 \x03(\x04R\blearners\x12'\n" +
 	"\x0fvoters_outgoing\x18\x03 \x03(\x04R\x0evotersOutgoing\x12#\n" +
 	"\rlearners_next\x18\x04 \x03(\x04R\flearnersNext\x12\x1d\n" +
 	"\n" +
-	"auto_leave\x18\x05 \x01(\bR\tautoLeave\"{\n" +
+	"auto_leave\x18\x05 \x01(\bR\tautoLeave\x12\x18\n" +
+	"\awitness\x18\x06 \x01(\x04R\awitness\x12)\n" +
+	"\x10witness_outgoing\x18\a \x01(\x04R\x0fwitnessOutgoing\"{\n" +
 	"\n" +
 	"ConfChange\x12*\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x16.raftpb.ConfChangeTypeR\x04type\x12\x17\n" +
@@ -1152,12 +1282,13 @@ const file_raft_proto_rawDesc = "" +
 	"\x14ConfChangeTransition\x12\x1c\n" +
 	"\x18ConfChangeTransitionAuto\x10\x00\x12%\n" +
 	"!ConfChangeTransitionJointImplicit\x10\x01\x12%\n" +
-	"!ConfChangeTransitionJointExplicit\x10\x02*y\n" +
+	"!ConfChangeTransitionJointExplicit\x10\x02*\x93\x01\n" +
 	"\x0eConfChangeType\x12\x15\n" +
 	"\x11ConfChangeAddNode\x10\x00\x12\x18\n" +
 	"\x14ConfChangeRemoveNode\x10\x01\x12\x18\n" +
 	"\x14ConfChangeUpdateNode\x10\x02\x12\x1c\n" +
-	"\x18ConfChangeAddLearnerNode\x10\x03B\x1bZ\x19go.etcd.io/raft/v3/raftpb"
+	"\x18ConfChangeAddLearnerNode\x10\x03\x12\x18\n" +
+	"\x14ConfChangeAddWitness\x10\x04B\x1bZ\x19go.etcd.io/raft/v3/raftpb"
 
 var (
 	file_raft_proto_rawDescOnce sync.Once
@@ -1172,7 +1303,7 @@ func file_raft_proto_rawDescGZIP() []byte {
 }
 
 var file_raft_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_raft_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_raft_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_raft_proto_goTypes = []any{
 	(EntryType)(0),            // 0: raftpb.EntryType
 	(MessageType)(0),          // 1: raftpb.MessageType
@@ -1183,28 +1314,30 @@ var file_raft_proto_goTypes = []any{
 	(*Snapshot)(nil),          // 6: raftpb.Snapshot
 	(*Message)(nil),           // 7: raftpb.Message
 	(*HardState)(nil),         // 8: raftpb.HardState
-	(*ConfState)(nil),         // 9: raftpb.ConfState
-	(*ConfChange)(nil),        // 10: raftpb.ConfChange
-	(*ConfChangeSingle)(nil),  // 11: raftpb.ConfChangeSingle
-	(*ConfChangeV2)(nil),      // 12: raftpb.ConfChangeV2
+	(*WitnessHardState)(nil),  // 9: raftpb.WitnessHardState
+	(*ConfState)(nil),         // 10: raftpb.ConfState
+	(*ConfChange)(nil),        // 11: raftpb.ConfChange
+	(*ConfChangeSingle)(nil),  // 12: raftpb.ConfChangeSingle
+	(*ConfChangeV2)(nil),      // 13: raftpb.ConfChangeV2
 }
 var file_raft_proto_depIdxs = []int32{
 	0,  // 0: raftpb.Entry.Type:type_name -> raftpb.EntryType
-	9,  // 1: raftpb.SnapshotMetadata.conf_state:type_name -> raftpb.ConfState
+	10, // 1: raftpb.SnapshotMetadata.conf_state:type_name -> raftpb.ConfState
 	5,  // 2: raftpb.Snapshot.metadata:type_name -> raftpb.SnapshotMetadata
 	1,  // 3: raftpb.Message.type:type_name -> raftpb.MessageType
 	4,  // 4: raftpb.Message.entries:type_name -> raftpb.Entry
 	6,  // 5: raftpb.Message.snapshot:type_name -> raftpb.Snapshot
 	7,  // 6: raftpb.Message.responses:type_name -> raftpb.Message
-	3,  // 7: raftpb.ConfChange.type:type_name -> raftpb.ConfChangeType
-	3,  // 8: raftpb.ConfChangeSingle.type:type_name -> raftpb.ConfChangeType
-	2,  // 9: raftpb.ConfChangeV2.transition:type_name -> raftpb.ConfChangeTransition
-	11, // 10: raftpb.ConfChangeV2.changes:type_name -> raftpb.ConfChangeSingle
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	8,  // 7: raftpb.WitnessHardState.state:type_name -> raftpb.HardState
+	3,  // 8: raftpb.ConfChange.type:type_name -> raftpb.ConfChangeType
+	3,  // 9: raftpb.ConfChangeSingle.type:type_name -> raftpb.ConfChangeType
+	2,  // 10: raftpb.ConfChangeV2.transition:type_name -> raftpb.ConfChangeTransition
+	12, // 11: raftpb.ConfChangeV2.changes:type_name -> raftpb.ConfChangeSingle
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_raft_proto_init() }
@@ -1218,7 +1351,7 @@ func file_raft_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raft_proto_rawDesc), len(file_raft_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
