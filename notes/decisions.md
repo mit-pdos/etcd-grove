@@ -7075,3 +7075,72 @@ instance `dq = 1`); `ownSnapM`/`ownSnapE`/`smPts` keep their signatures, so the 
 (`Ensure*`, `SnapshotMetadata.GetConfState`, the `MemoryStorage` methods, `raft.restore`) gain the
 third case. *Rejected*: a second fraction parameter on `ownSnapM` (every snapshot predicate and
 spec changes); fractions lent by the storage (the storage would have to record a loan forever).
+
+## The node layer over pointer messages: `Ready` hands the messages out, the pending steps owned (stage R5 of the raft v3.7 retarget)
+
+**2026-10-16 · proposed (stage R5, branch `raft-retarget`)**
+
+Raft v3.7's `rawnode.go`/`node.go` (`bootstrap.go` stays out of scope, as before: `Bootstrap` and
+`StartNode` were never proved) differ from the old source in the representation only: `Ready`'s
+`HardState`/`Snapshot` are nil-or-pointer (`hardState()` fresh, `nil` when unchanged; the
+snapshot `nil` in scope), its `Entries`/`CommittedEntries` are `[]*pb.Entry`, its `Messages`
+`[]*pb.Message` (aliasing `r.msgs`, extended by the `msgsAfterAppend` messages to others),
+`prevHardSt` and `stepsOnAdvance` hold pointers, `acceptReady` aliases `rd.HardState` into
+`prevHardSt`, the channels carry `*pb.Message`/`*pb.ConfChangeV2`/`*pb.ConfState`, `Propose` and
+`confChangeToMsg` build their one-entry batch as a slice literal, `node.Step(nil)` is an error,
+`node.ApplyConfChange` returns `nil` if `done` fires (unreachable: `done` never fires in scope).
+
+- **D8, Q2 revised: `readyWithoutAccept` hands the messages out; abandoning gives them back.**
+  R4 made the outbox owned (`msgOwn l 1`), and R0's Q2 proposed a read-only `Ready` view with the
+  transfer at `acceptReady`. That cannot work for `node.go`: `run` sends the `Ready` on `readyc`
+  *before* `acceptReady` runs, and the application may use the messages (etcd rewrites a
+  `MsgSnap`'s snapshot) as soon as it receives them; the resource sent on the channel (`readyP`)
+  must therefore carry full ownership, which only `readyWithoutAccept` can provide. So
+  `readyWithoutAccept`'s post hands out `rd.Messages' ↦* mls ∗ [∗list] l;st ∈ mls;ms, msgOwn l 1
+  st` with `isRaftMsg γ st` (pure `msgAbs` plus `isMessage`), `ownRaftPhysReady` keeps the
+  queues' slices with the pure outbox relation and the `msgOwn`s of the self-addressed
+  `msgsAfterAppend` messages only (those `acceptReady` moves to `stepsOnAdvance`), and the
+  abandon wand (`Habandon`, `ownRawNodeReady_abandon`) takes the handed-out messages back to
+  rebuild `outboxRel`. `acceptReady` with the messages handed out nils both queues as before.
+- **The pending steps are owned messages**: `stepsOnAdvance` holds `[∗list] l;p ∈ steps;rs.steps,
+  msgIn l DFrac.discard (pendSt id p) ∗ pendingRel γ id p` with `pendSt` the message record of a
+  `Pending` (`.self`: existential `st` with `SelfMsgOk id st.msg`, `st.ents = []`, `st.ctx = []`,
+  `st.snap = none`; `.appendAck t e`: `⟨appendAckM id t e, [], none, [], []⟩`; `.applyAck ce`:
+  `⟨applyAckM id, ce, none, [], []⟩`), since `Advance` steps each with `raft.Step` (`msgIn`, Q3)
+  and nils the slot. `pendingOwn` (the apply ack's `Entries` capacity) is inside `msgIn`: the
+  committed entries' slice capacity comes from R3's `nextCommittedEnts`, as before.
+  `newStorageAppendRespMsg`, `newStorageApplyRespMsg` and `needStorageAppendRespMsg` get specs of
+  their own (Lean-first; the old proof inlined them).
+- **`Ready`'s fields**: `rd.HardState'` is `hsOpt rd.HardState' h` (`nil` when unchanged, else
+  `hardState()`'s fresh `hsRO`, which `acceptReady` stores in `prevHardSt` and the application
+  may give to `MemoryStorage.SetHardState`, R3: the `Ready` hands it out, `readyData` includes
+  it); `rd.Snapshot' = null` replaces `= zero_val` (scope: no pending snapshot); `Entries`/
+  `CommittedEntries` are `entsRO` (R3's `nextUnstableEnts`/`nextCommittedEnts`); `ReadStates` as
+  R4's `readStatesPts` (persistent), `readStateOk γ (st : ReadStateM)` over bytes (D6:
+  `readOk γ st.RequestCtx' st.Index'`, no `isPropData`); `SoftState` as before (`↦□`).
+  `prevHardSt` is a `Loc` with `hsRO` (never `nil`: `NewRawNode` sets it; `Bootstrap`'s
+  `emptyState` is `hsRO` too, R4's `isInitialized`).
+- **The node's channels** carry pointers: `propP γ pm` is `msgIn pm.m' 1 ⟨propMsgM,
+  [⟨0, 0, 0, d⟩], none, [], []⟩ ∗ entData γ ⟨0,0,0,d⟩ ∗ …` (D6: the data bytes, `d ≠ []`, frozen
+  inside the entry; no `propDataInv`, which is gone with `isPropData`) or `fwdP γ pm.m'`
+  (`msgIn ml 1 st`, `st.msg.Type' = MsgProp`, `isMessage` of its abstraction); `netP γ id ml`
+  is `∃ st, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st.msg⌝ ∗ …` (the old facts over `st`);
+  `confcP γ (v : Loc)` holds `ownCCV2 v DFrac.discard ccm` (R1) with the old mode facts;
+  `confstateP γ (cs : Loc)` holds the fresh `csPts cs 1 c true` that `applyConfChange` returns
+  (R4), with `confstateOk`/`confstateS` over `ConfStateM` lists (pure) — `node.ApplyConfChange`
+  returns that pointer (its `nil` case needs `done`, which never fires). `readyP`/`readyData`
+  as D8 says, with the hard state. `run` writes `m.From = new(r.id)` into a proposal from
+  `propc` (the struct at `1`).
+- **`RawNode.Propose`/`ReadIndex`/`confChangeToMsg`** build the entry in a slice literal
+  (`wp_slice_literal_ex`, R3) from frozen data (`data_sl ↦*□ d`, the premise as before; D6's
+  `d ≠ []` for a proposal), then `raft.Step` with `msgIn ml 1 …`; `confChangeToMsg` returns
+  `msgIn ml 1 ⟨propMsgM, [ccEntryM o bs], none, [], []⟩` with `CCData o bs` (`ccEntryM o bs :=
+  ⟨0, 0, ccEntryType o, bs⟩`, `propMsgM := {zero with Type' := MsgProp}`: R4 dropped the value
+  builders `ccEntry`/`ccPropMsg`, which return here as records).
+- **`NewRawNode`/`RestartNode`**: the storage's `InitialState` premise in R4's D7 shape
+  (`hsOpt hp hs ∗ csPts cs □ c true ∗ ownStorage` at once); `prevHardSt := r.hardState()`.
+- **What stays**: `RNState` (`delivered unpersisted : List EntryM`, by the rename), `Pending`
+  (`applyAck (ents : List EntryM)`), `StepsOk`/`PendingOk`/`ApplyAckOk`, `RNMode`, the budget
+  and tick machinery (`InvNode`), the run loop's invariants (`InvNodeRun`: `staleOk`, `freshOk`,
+  `runHead`/`runMid` over the new `Ready` fields), `isNode`'s channel protocols, the ghost
+  mode plumbing, `ownRawNode`'s pure facts, every spec's pure statement.
