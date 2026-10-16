@@ -65,7 +65,7 @@ theorem kvModel_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryMo
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- An entry with data that decode to a plain request is plain. -/
@@ -85,10 +85,10 @@ theorem srvIdxOk_last (ai0 : w64) (L : List EntryModel) (e : EntryModel)
 /-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLog L ∧ srvIdxOk γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+    (hok : plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [])
-    (hidx' : srvIdxOk γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
-    plainLog (L ++ [e]) ∧ srvIdxOk γ.ai0 (L ++ [e]) ∧
+    (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
+    plainLog (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 + (L ++ [e]).length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
   obtain ⟨hplog, -, hc0, hch, h0⟩ := hok
@@ -105,8 +105,7 @@ server's half of raft's committed log at the start (empty), a start log not empt
 consistent index at most the start index, the KV invariant at the base chain with auth disabled
 and the client's half of the state at the start log's state. -/
 theorem kvInv_alloc (γ : ServerRaftNames) (c0 : w64) (log0 : mvcc.Log) (cok hi : GName)
-    (E : CoPset) (hc0 : uint.Z c0 ≤ uint.Z γ.ai0) (h0 : log0 ≠ [])
-    (hidx : uint.Z γ.ai0 + 1 < 2 ^ 64) :
+    (E : CoPset) (hc0 : uint.Z c0 ≤ uint.Z γ.ai0) (h0 : log0 ≠ []) :
     ⊢ srvRLog (GF := GF) γ [] ={E}=∗ ∃ st : GName,
       kvInv γ ⟨st, c0, apply.alarmChain false false false, log0, cok, hi⟩ ∗
       etcdKV ⟨st, c0, apply.alarmChain false false false, log0, cok, hi⟩ (kvStateOf log0) := by
@@ -121,7 +120,7 @@ theorem kvInv_alloc (γ : ServerRaftNames) (c0 : w64) (log0 : mvcc.Log) (cok hi 
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γ L ∗ ghostVar st (1 : Qp).half
         (kvStateOf (kvModel ⟨st, c0, apply.alarmChain false false false, log0, cok, hi⟩ L)) ∗
-      ⌜plainLog L ∧ srvIdxOk γ.ai0 L ∧ uint.Z c0 ≤ uint.Z γ.ai0 + L.length ∧
+      ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z c0 ≤ uint.Z γ.ai0 + L.length ∧
         apply.alarmChain false false false = apply.alarmChain false false false ∧ log0 ≠ []⌝))
     $$ [HL Hv1] with #Hinv
   · inext
@@ -130,8 +129,7 @@ theorem kvInv_alloc (γ : ServerRaftNames) (c0 : w64) (log0 : mvcc.Log) (cok hi 
     isplitl [Hv1]
     · simp only [kvModel, kvRaftOf_nil]; iexact Hv1
     ipureintro
-    refine ⟨fun m hm => by simp at hm, ⟨by simpa using hidx, fun n m h => by simp at h⟩,
-      by simpa using hc0, rfl, h0⟩
+    refine ⟨fun m hm => by simp at hm, srvIdxOkW_nil _, by simpa using hc0, rfl, h0⟩
   imodintro
   iexists st
   isplitl []
@@ -172,7 +170,8 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
       itrivial
     · iintro %e ⟨%He, HL⟩
       imod Hmask with -
-      obtain ⟨het, hed, hidx'⟩ := He
+      obtain ⟨het, hed, hidx⟩ := He
+      have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.1 hidx (Or.inl het)
       have hent : kvModel γk (L ++ [e]) = kvModel γk L := by
         apply kvModel_snoc_nonwrite
         right; right
@@ -226,13 +225,13 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     · iintro %e ⟨%He, HL⟩
       icases Hucl with ⟨-, Hcommit⟩
       isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-      obtain ⟨het, hed, hidx'⟩ := He
+      obtain ⟨het, hed, hidx⟩ := He
+      have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.1 hidx (Or.inl het)
       imod ghostVar_update_halves (kvOpStep op σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
       imod Hcommit $$ [Hc] with #HQ
       · iunfold etcdKV; iexact Hc
       have hdata : e.data ≠ [] := by rw [hed]; exact hd
       have hidxe : uint.Z γk.c0 < uint.Z e.index := by
-        have := srvIdxOk_last γ.ai0 L e hidx'
         have := Hok.2.2.1
         omega
       have hst : kvStateOf (kvModel γk (L ++ [e])) = kvOpStep op σ := by
@@ -257,7 +256,7 @@ theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
   have Hdisj := kvN_raftN
   iintro #Hinv
   unfold srvNoopAu
-  iintro !> %e %He
+  iintro !>
   iauintro
   unfold atomic_acc
   iunfold kvInv at Hinv
@@ -275,13 +274,20 @@ theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
     · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro ⟨%hidx', HL⟩
+  · iintro %e ⟨%He, HL⟩
     imod Hmask with -
+    obtain ⟨He, hidx⟩ := He
+    have h10 : W32 1 ≠ W32 0 := by decide
+    have hidx' : srvIdxOkW γ.ai0 (L ++ [e]) := by
+      refine srvIdxOkW_snoc γ.ai0 L e Hok.2.1 hidx ?_
+      rcases He with h | h
+      · left; exact h.1
+      · right; exact h
     have hent : kvModel γk (L ++ [e]) = kvModel γk L := by
       apply kvModel_snoc_nonwrite
       rcases He with h | h
-      · left; exact h
-      · right; left; exact h
+      · left; exact h.2
+      · right; left; rw [h.1]; exact h10
     imod Hclose $$ [HL Hσ] with -
     · inext
       iexists L ++ [e]
@@ -291,8 +297,8 @@ theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
       refine kvInv_facts_snoc γ γk L e Hok hidx' ?_
       intro ht hd'
       rcases He with h | h
-      · exact absurd h hd'
-      · exact absurd ht h
+      · exact absurd h.2 hd'
+      · exact absurd ht (by rw [h.1]; exact h10)
     imodintro
     itrivial
 
@@ -550,7 +556,7 @@ theorem kv_cert_read (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNam
     obtain ⟨-, -, -, A, hA, hm⟩ := Hok.1 _ _ Hm
     iexists A
     isplitr
-    · iunfold srvRLogLb at HLb; iunfold srvRLogLb; iapply monoListLbOwn_le A hA $$ HLb
+    · iapply srvRLogLb_mono γ A Lb hA $$ HLb
     ipureintro; exact hm
   · iunfold kvCertInv at Hinv
     iinv Hinv with >Hi Hclose

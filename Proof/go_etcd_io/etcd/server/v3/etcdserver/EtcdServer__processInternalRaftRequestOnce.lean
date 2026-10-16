@@ -274,11 +274,10 @@ local macro "piro_tail" : tactic => `(tactic| (
         ihave #HWits' := HWits
         iunfold srvPropWits at HWits'
         imod HWits' $$ %bs %Qr %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
-        · ipureintro; exact ⟨hlk, het, Hdd⟩
+        · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
         · iapply (lc_split (n := 1) (m := 1)).2; iframe
         ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
-        · iunfold srvRLogLb; iunfold srvRLogLb at HLw
-          iapply monoListLbOwn_le _ (List.take_prefix _ _) $$ HLw
+        · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
         wp_apply HAddEv
         (try wp_auto)
         wp_apply HGDec

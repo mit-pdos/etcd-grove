@@ -191,9 +191,7 @@ theorem EtcdServer.apply.wp_proof
     have hpfx : A ++ ms.take (sint.nat j) ++ [m] <+: A ++ ms := by
       rw [← htk]; exact (List.prefix_append_right_inj A).mpr (List.take_prefix _ _)
     ihave #HlbJ : iprop(srvRLogLb γr.raft (A ++ ms.take (sint.nat j) ++ [m])) $$ []
-    · iunfold srvRLogLb at HlbB
-      iunfold srvRLogLb
-      iapply monoListLbOwn_le _ hpfx $$ HlbB
+    · iapply srvRLogLb_mono γr.raft _ _ hpfx $$ HlbB
     ihave #Hewo : iprop(entryWaitOk ρ E m) $$ []
     · iunfold batchWaitOk at Hbw
       iapply Hbw

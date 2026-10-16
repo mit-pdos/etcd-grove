@@ -307,10 +307,6 @@ theorem time.Time.wp_After :
     time.Time.After.spec (GF := GF) (hG := hG) :=
   time.Time.After.wp_proof
 
-theorem EtcdServer.wp_getLead :
-    EtcdServer.getLead.spec (GF := GF) (hG := hG) :=
-  EtcdServer.getLead.wp_proof
-
 theorem EtcdServer.wp_MemberID :
     EtcdServer.MemberID.spec (GF := GF) (hG := hG) :=
   EtcdServer.MemberID.wp_proof
@@ -398,14 +394,6 @@ theorem trace.wp_WithAttributes :
 theorem «attribute».wp_String :
     «attribute».String.spec (GF := GF) (hG := hG) :=
   «attribute».String.wp_proof
-
-theorem EtcdServer.wp_Logger :
-    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Logger.wp_proof
-
-theorem EtcdServer.wp_Lead :
-    EtcdServer.Lead.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Lead.wp_proof EtcdServer.wp_getLead
 
 theorem PutRequest.wp_GetKey :
     PutRequest.GetKey.spec (GF := GF) (hG := hG) :=
@@ -515,10 +503,6 @@ theorem consistentIndex.wp_SetConsistentApplyingIndex :
     consistentIndex.SetConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetConsistentApplyingIndex.wp_proof
 
-theorem EtcdServer.wp_isLeader :
-    EtcdServer.isLeader.spec (GF := GF) (hG := hG) :=
-  EtcdServer.isLeader.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Lead
-
 theorem config.ServerConfig.wp_ElectionTimeout :
     config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.ElectionTimeout.wp_proof
@@ -526,14 +510,6 @@ theorem config.ServerConfig.wp_ElectionTimeout :
 theorem errors.wp_Is :
     errors.Is.spec (GF := GF) (hG := hG) :=
   errors.Is.wp_proof
-
-theorem EtcdServer.wp_setAppliedIndex :
-    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.setAppliedIndex.wp_proof
-
-theorem EtcdServer.wp_setTerm :
-    EtcdServer.setTerm.spec (GF := GF) (hG := hG) :=
-  EtcdServer.setTerm.wp_proof
 
 theorem pbutil.wp_MustUnmarshalMessage :
     pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG) :=
@@ -546,10 +522,6 @@ theorem EtcdServer.wp_stopWithDelay :
 theorem backend.wp_VerifyBackendConsistency :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
   backend.VerifyBackendConsistency.wp_proof
-
-theorem EtcdServer.wp_setLead :
-    EtcdServer.setLead.spec (GF := GF) (hG := hG) :=
-  EtcdServer.setLead.wp_proof
 
 theorem proto.wp_Clone :
     proto.Clone.spec (GF := GF) (hG := hG) :=
@@ -874,6 +846,10 @@ theorem errors.wp_IsCtxErr :
     errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
   errors.IsCtxErr.wp_proof
 
+theorem EtcdServer.wp_getLead :
+    EtcdServer.getLead.spec (GF := GF) (hG := hG) :=
+  EtcdServer.getLead.wp_proof
+
 theorem EtcdServer.wp_parseProposeCtxErr :
     EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdServer.parseProposeCtxErr.wp_proof errors.wp_IsCtxErr time.Time.wp_After EtcdServer.wp_getLead EtcdServer.wp_MemberID membership.RaftCluster.wp_Members wp_isConnectedToQuorumSince wp_isConnectedSince
@@ -914,6 +890,10 @@ theorem EtcdServer.wp_FirstCommitInTermNotify :
     EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.FirstCommitInTermNotify.wp_proof notify.Notifier.wp_Receive
 
+theorem EtcdServer.wp_Logger :
+    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Logger.wp_proof
+
 theorem EtcdServer.wp_GoAttach :
     EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
   EtcdServer.GoAttach.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Warn
@@ -921,6 +901,10 @@ theorem EtcdServer.wp_GoAttach :
 theorem EtcdServer.wp_KV :
     EtcdServer.KV.spec (GF := GF) (hG := hG) :=
   EtcdServer.KV.wp_proof
+
+theorem EtcdServer.wp_Lead :
+    EtcdServer.Lead.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Lead.wp_proof EtcdServer.wp_getLead
 
 theorem EtcdServer.wp_Leader :
     EtcdServer.Leader.spec (GF := GF) (hG := hG) :=
@@ -1010,9 +994,21 @@ theorem notify.Notifier.wp_Notify :
     notify.Notifier.Notify.spec (GF := GF) (hG := hG) :=
   notify.Notifier.Notify.wp_proof
 
+theorem EtcdServer.wp_isLeader :
+    EtcdServer.isLeader.spec (GF := GF) (hG := hG) :=
+  EtcdServer.isLeader.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Lead
+
 theorem EtcdServer.wp_applyEntryNormal :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach EtcdServer.wp_MemberID
+
+theorem EtcdServer.wp_setAppliedIndex :
+    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setAppliedIndex.wp_proof
+
+theorem EtcdServer.wp_setTerm :
+    EtcdServer.setTerm.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setTerm.wp_proof
 
 theorem EtcdServer.wp_applyConfChange :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=
@@ -1057,6 +1053,10 @@ theorem EtcdServer.wp_sendMergedSnap :
 theorem EtcdServer.wp_applyAll :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap
+
+theorem EtcdServer.wp_setLead :
+    EtcdServer.setLead.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setLead.wp_proof
 
 theorem v2stats.ServerStats.wp_BecomeLeader :
     v2stats.ServerStats.BecomeLeader.spec (GF := GF) (hG := hG) :=

@@ -282,7 +282,7 @@ end defs
 section typeRepr
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -321,7 +321,7 @@ variable [sem : go.Semantics]
 /-- **The mint** (see the file header): the authority of raft's fresh-data tokens `F`, each
 token's data decoding to a request claimed under its id. -/
 def srvMintInv (ρ : ReqNames) : IProp GF :=
-  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.fresh 1 F ∗
+  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.raft.reFresh 1 F ∗
     [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
       ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim ρ.ids id d γf)
 
