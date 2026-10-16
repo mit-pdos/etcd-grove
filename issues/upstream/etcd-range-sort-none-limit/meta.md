@@ -47,3 +47,12 @@ Round 1 (2026-10-16, a trial of step 10 after the user approved the issue): `che
 - applied: the PR's manual test uses the issue's data (it sorted by version on keys all at version 1);
 - applied: the second alternative says what #6672 did;
 - rejected: drop `--limit=2` from the issue's example (the user chose the limit sweep).
+
+Round 2: `check.py` clean. Reviewer edits:
+
+- applied (shortened): the `RangeStream` note says a stream needing a second chunk is still wrong, a separate bug;
+- applied: the PR's testing bullet points to the issue's example instead of describing the test;
+- rejected: "With `--order=ASCEND` the results are right" → the three outputs with `--order=ASCEND` (the user had
+  approved the issue; longer).
+
+No third round: round 2's edits were PR wording only.
