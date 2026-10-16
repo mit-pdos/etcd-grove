@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#22408 pr open: related, not this bug (the same getWatchLoop retry path: back-off and GetTimeout are never read)
+  - etcd-io/etcd#21536 issue closed: related, not this bug (the user's cache report: Get(WithRev) with revision gaps; fixed by #21540)
 ---
 
 # cache: Cache never becomes ready again after a watch retry that purges the demux

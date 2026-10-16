@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
 ---
 
 # clientv3/leasing: transactions answered from the cache evaluate comparisons on missing keys and leases differently from etcd

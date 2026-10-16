@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: known
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#17198 pr closed: same root cause, different symptom (waitEvents returns nil on a closed watch; its fix makes WaitEvents return an error, which would fix Barrier.Wait too; written for Dequeue); closed unmerged by the stale bot
 ---
 
 # clientv3/experimental/recipes: Barrier.Wait returns nil (released) when its watch closes while the barrier is held

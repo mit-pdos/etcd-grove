@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#22082 issue open: related, not this bug (same-session key recreated with a newer create revision; Unlock deletes it unfenced, here Lock returns without checking myRev)
 ---
 
 # concurrency: Mutex.Lock can return nil while another session holds the lock

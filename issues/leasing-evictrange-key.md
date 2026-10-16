@@ -1,7 +1,10 @@
 ---
-upstream: unchecked
-checked:
+upstream: known
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#21869 pr closed: same bug and fix (delete k, not key, in EvictRange); closed unmerged by serathius citing the AI-contribution policy
+  - etcd-io/etcd#21589 pr closed: same bug and fix, bundled with a lease-freshness fix for #19091; closed unmerged by its author
+  - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
 ---
 
 # clientv3/leasing: EvictRange evicts only the range's first key, leaving deleted keys in the cache

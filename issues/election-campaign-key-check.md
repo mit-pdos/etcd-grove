@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked:
+upstream: known
+checked: 2026-10-16
 links:
+  - etcd-io/etcd#11051 issue closed: same bug (Campaign returns nil after the prior keys go though its own key was deleted); closed by the stale bot, never fixed
+  - etcd-io/etcd#11777 issue closed: same bug (own key deleted before waitDeletes, Campaign still returns nil); closed by the stale bot, never fixed
 ---
 
 # Election.Campaign returns nil after its key was deleted while it waited
