@@ -531,10 +531,15 @@ func (rn *RawNode) ReportUnreachable(id uint64) {
 }
 
 // ReportSnapshot reports the status of the sent snapshot.
-func (rn *RawNode) ReportSnapshot(id uint64, status SnapshotStatus) {
+func (rn *RawNode) ReportSnapshot(id uint64, status SnapshotStatus, appliedSnapshotIndex uint64) {
 	rej := status == SnapshotFailure
 
-	_ = rn.raft.Step(&pb.Message{Type: pb.MsgSnapStatus.Enum(), From: new(id), Reject: new(rej)})
+	_ = rn.raft.Step(&pb.Message{
+		Type:                 pb.MsgSnapStatus.Enum(),
+		From:                 new(id),
+		Reject:               new(rej),
+		AppliedSnapshotIndex: new(appliedSnapshotIndex),
+	})
 }
 
 // TransferLeader tries to transfer leadership to the given transferee.

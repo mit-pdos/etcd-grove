@@ -557,9 +557,11 @@ type Message struct {
 	// responses are populated by a raft node to instruct storage threads on how
 	// to respond and who to respond to when the work associated with a message
 	// is complete. Populated for MsgStorageAppend and MsgStorageApply messages.
-	Responses     []*Message `protobuf:"bytes,14,rep,name=responses" json:"responses,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Responses []*Message `protobuf:"bytes,14,rep,name=responses" json:"responses,omitempty"`
+	// applied_snapshot_index is used for MsgSnapStatus to report back the applied snapshot index.
+	AppliedSnapshotIndex *uint64 `protobuf:"varint,15,opt,name=applied_snapshot_index,json=appliedSnapshotIndex" json:"applied_snapshot_index,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Message) Reset() {
@@ -688,6 +690,13 @@ func (x *Message) GetResponses() []*Message {
 		return x.Responses
 	}
 	return nil
+}
+
+func (x *Message) GetAppliedSnapshotIndex() uint64 {
+	if x != nil && x.AppliedSnapshotIndex != nil {
+		return *x.AppliedSnapshotIndex
+	}
+	return 0
 }
 
 type HardState struct {
@@ -1070,7 +1079,7 @@ const file_raft_proto_rawDesc = "" +
 	"\x04term\x18\x03 \x01(\x04R\x04term\"T\n" +
 	"\bSnapshot\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x124\n" +
-	"\bmetadata\x18\x02 \x01(\v2\x18.raftpb.SnapshotMetadataR\bmetadata\"\x9e\x03\n" +
+	"\bmetadata\x18\x02 \x01(\v2\x18.raftpb.SnapshotMetadataR\bmetadata\"\xd4\x03\n" +
 	"\aMessage\x12'\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x13.raftpb.MessageTypeR\x04type\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\x04R\x02to\x12\x12\n" +
@@ -1088,7 +1097,8 @@ const file_raft_proto_rawDesc = "" +
 	"rejectHint\x18\v \x01(\x04R\n" +
 	"rejectHint\x12\x18\n" +
 	"\acontext\x18\f \x01(\fR\acontext\x12-\n" +
-	"\tresponses\x18\x0e \x03(\v2\x0f.raftpb.MessageR\tresponses\"K\n" +
+	"\tresponses\x18\x0e \x03(\v2\x0f.raftpb.MessageR\tresponses\x124\n" +
+	"\x16applied_snapshot_index\x18\x0f \x01(\x04R\x14appliedSnapshotIndex\"K\n" +
 	"\tHardState\x12\x12\n" +
 	"\x04term\x18\x01 \x01(\x04R\x04term\x12\x12\n" +
 	"\x04vote\x18\x02 \x01(\x04R\x04vote\x12\x16\n" +
