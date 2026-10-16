@@ -7054,3 +7054,24 @@ data must be non-empty (`entDataIs (some d)`: `d ≠ []`; a premise of `Propose`
 returns the bytes' length. *Rejected*: the model's propose step admitting data copies
 (`EntsDataCopy`), which changes the step rule every model theorem inverts and needs the clone's
 slice registered in `isPropData` from inside `appendEntry`.
+
+**D7 (2026-10-16, after phase 3): a snapshot's conf state may be frozen once its `AutoLeave` is
+set.** `smPts`'s nested conf state becomes `csOptA pc dq c := ⌜pc = null ∧ c = zero⌝ ∨ csPts pc dq c
+false ∨ csPts pc DFrac.discard c true`: nil, owned at the snapshot's fraction, or read-only for
+good with its `AutoLeave` cell set. Why: `MemoryStorage.InitialState` returns the storage's own
+conf-state pointer (`storage.go:132`), and `newRaft` uses it (`confchange.Restore`,
+`assertConfStatesEquivalent`) while it also reads the log, which holds the storage (`ownRaftLog`'s
+`HStorage`); so R3's lending of the conf state with a wand back to the storage cannot be met.
+Nothing writes a snapshot's conf state in place once `EnsureConfState` has set its `AutoLeave`:
+`EnsureConfState` writes only a nil `AutoLeave` (`raftpb/util.go`), `EnsureSnapshotMetadata` only
+calls it, `CreateSnapshot` replaces the `ConfState` pointer with a clone (`storage.go:259`),
+`ApplySnapshot` replaces the snapshot. So `InitialState` freezes the storage's conf state and
+returns it persistent (`csPts cs □ (storCS σ) true`) beside `ownMemoryStorage` (no wand), and
+`newRaft`'s `InitialState` premise returns `hsOpt hp hs ∗ csPts cs □ c true ∗ ownStorage`
+at once. `EnsureConfState.spec` is generalized to `{{ csPts p dq c al ∗ ⌜dq ≠ DFrac.own 1 → al =
+true⌝ }} … {{ csPts p dq c true }}` (no write when the cell is set; the old statement is the
+instance `dq = 1`); `ownSnapM`/`ownSnapE`/`smPts` keep their signatures, so the log layer and the
+`proto.*` axioms' statements do not change; proofs that destructure a nested conf state
+(`Ensure*`, `SnapshotMetadata.GetConfState`, the `MemoryStorage` methods, `raft.restore`) gain the
+third case. *Rejected*: a second fraction parameter on `ownSnapM` (every snapshot predicate and
+spec changes); fractions lent by the storage (the storage would have to record a loan forever).
