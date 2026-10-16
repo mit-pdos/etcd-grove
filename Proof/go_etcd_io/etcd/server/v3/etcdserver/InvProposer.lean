@@ -20,7 +20,9 @@ leader's atomic, the cluster and the transport, the applied and committed indice
 some read names, `srvIndexInvs`: 2026-10-13, unit 4b), and two
 invariants of the request path's ghost state: the **mint** (`srvMintInv`: the authority of raft's
 fresh-data tokens; every token is of data that decode to a request claimed under its id, so a
-proposer that claims a fresh id for its data mints the data's token: `srv_claim_mint`), and (2026-10-14,
+proposer that claims a fresh id for its data mints the data's token: `srv_claim_mint`; and, since
+2026-10-16, stage R7b, the read contexts' mint `srvRdFreshInv`: the read loop's request ids mint
+raft's fresh read-context tokens and read credits, `srvRdFresh_mint`), and (2026-10-14,
 unit T1) the **KV invariant** (`kvInv ρ.raft ρ.kv`: the server's half of raft's committed log with
 the KV ghost state; a proposal's update is built from it, `kv_prop_au`; until then the client
 log's other half, `srvCLogInv`, and a trivial update).
@@ -319,11 +321,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The mint** (see the file header): the authority of raft's fresh-data tokens `F`, each
-token's data decoding to a request claimed under its id. -/
+token's data decoding to a request claimed under its id; and (2026-10-16, stage R7b) the read
+contexts' mint (`srvRdFreshInv`, `InvRequest.lean`: the authority of raft's fresh read-context
+tokens and its read credits, both minted from the request ids the read loop takes). -/
 def srvMintInv (ρ : ReqNames) : IProp GF :=
-  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.raft.reFresh 1 F ∗
+  iprop(inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.raft.reFresh 1 F ∗
     [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
-      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim ρ.ids id d γf)
+      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim ρ.ids id d γf) ∗
+    srvRdFreshInv ρ.raft ρ.ids)
 
 instance srvMintInv_persistent (ρ : ReqNames) : Persistent (srvMintInv (GF := GF) ρ) := by
   unfold srvMintInv; infer_instance
