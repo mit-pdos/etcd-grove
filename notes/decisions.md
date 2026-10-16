@@ -7180,3 +7180,57 @@ snapshot `nil` in scope), its `Entries`/`CommittedEntries` are `[]*pb.Entry`, it
   and tick machinery (`InvNode`), the run loop's invariants (`InvNodeRun`: `staleOk`, `freshOk`,
   `runHead`/`runMid` over the new `Ready` fields), `isNode`'s channel protocols, the ghost
   mode plumbing, `ownRawNode`'s pure facts, every spec's pure statement.
+
+## The swap: one raft tree, the server over raft's own predicates (stage R6 of the raft v3.7 retarget)
+
+**2026-10-16 · adopted (stage R6, branch `raft-retarget`)**
+
+R5 took `Raft37/` past the old tree (257 of 327 functions against 251 of 323; `Results.lean`'s
+`#print axioms` cover every result the old `Results.lean` printed). R6 makes it *the* raft tree.
+Three trees named raft's Go path until now: the verified fork (`Code/go_etcd_io/raft/`, gogoproto
+messages, 118 commits behind etcd's dependency), `EtcdDeps/` (etcd's dependency, raft v3.7.0,
+types and names only, for the server's translation) and `Raft37/` (raft v3.7.0 plus the
+single-voter read-index fix, everything translated). After the swap there is one.
+
+- **D9: the server's raft is the verified one.** `EtcdDeps/` was a names-only translation of
+  raft v3.7.0 so that the server could be translated at all; its 15 proofs (the raftpb getters
+  the apply thread reads, `IsEmptySnap`, `IsEmptyHardState`, `isHardStateEqual`) restated what
+  the Raft proof could not yet say about pointer messages. Now it can: the server's translation
+  imports the full translation (`Code.go_etcd_io.raft.v3`, the same Go source but for the
+  read-index fix, `issues/raft-readindex-singleton-stale.md`), its proofs link raft's own
+  getter specs, and `EtcdDeps/` goes. The one difference from etcd's `go.mod`, the fix, is
+  recorded here: the server is verified against raft v3.7.0 *with* the fix, which is what
+  `ReadIndex`'s contract (`isRaftNodeIfc`'s read-index clause) needs to be true at all.
+- **The server keeps its models, raft provides the points-tos.** The server describes the
+  raft objects it reads with `entryAt e m` (`EntryModel`), `msgAt m to ty`, `hardStateAt p hs`
+  (`HardStateModel`): field-level, persistent, written before the Raft proof had pointer
+  messages. They are the same shape as raft's `entPts`/`msgPtsC`/`hsRO` (one `cellRO` per
+  optional field, the data bytes read-only) minus the hidden-field invariant `pbMsg`, which the
+  server cannot produce from nothing. So they become definitions over raft's: `entryAt e m :=
+  entRO e m.toM`, `hardStateAt p hs := hsOpt p m.toM`, `msgAt m to ty := ∃ st, msgOwn m □ st ∗
+  ⌜st.msg.To' = to ∧ st.msg.Type' = ty⌝` (the exact forms are the server files'). The server's
+  own models stay: its ghost logs, `rnReadyP`, the request path's `InvRequest` (55 uses) and the
+  exported `Results` are stated over `EntryModel`, and nothing is gained by renaming their fields.
+  The point of defining the predicates over raft's is R7: `isRaftNodeIfc` discharged from
+  `node.Ready`/`Advance`/`ReadIndex`'s specs hands raft's `entsRO`, `hsOpt`, `msgOwn` straight
+  through.
+- **The register is ported, not patched (R6b).** `examples/register` is this repository's Go
+  code on raft's `Node` API, written for value messages (`send func([]pb.Message)`,
+  `cc.Unmarshal(e.Data)`, `pb.ConfChange{...}` by value). Raft v3.7's API is pointers and
+  getters, and `proto.Unmarshal`; the Go changes (ours to make: it is the example, not etcd), its
+  `go.mod` moves to the fork's `raft37-goose-lean`, the translation is regenerated, and its
+  6,000 lines of proofs (including the whole-program adequacy) are redone over the new node
+  specs (`Ready` hands out owned pointer messages, D8; `Propose` wants non-empty frozen data,
+  D6). Until R6b lands the branch is red at the register only; R6a and R6b merge together.
+- **`isRaftNodeIfc` from the node specs is R7, not R6.** The plan's R6 row listed it; it is a
+  proof-design task of its own (the server's `rnReadyP`, `committedAtLeast`, `E.RQ` against
+  raft's `ownRawNodeReady` and the protocol's read-index results), independent of the swap.
+- **Tooling: one project, no parts.** `etc/goose.py`'s project `etcd-raft` (the fork) goes and
+  `raft37` becomes project `raft` in the root (`root=""`, `go.etcd.io/raft/v3=`); the etcd
+  project loses its `EtcdDeps` part and maps `go.etcd.io/raft/v3` to the root. `etc/gen-link.py`
+  loses the Rocq mode (every raft function is Lean-first now: `--raft` from
+  `etc/link-lean-first-raft.txt`, the old `--raft37`); the server's and v3rpc's spec lookups no
+  longer reach a second root. `etc/proof_roots.py`/`tcb-report.py`/`verified-code.py` are
+  generic over parts and need no change; collection `raft37.txt` becomes `raft.txt`. The old
+  tree's private trust boundary goes with it: `gogoproto.Equal`, `reflect.DeepEqual`, the
+  gogoproto `Marshal`/`Unmarshal` axioms (protobuf-go's `proto.*` axioms replace them, R1).

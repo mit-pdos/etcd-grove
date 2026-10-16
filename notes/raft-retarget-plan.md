@@ -346,7 +346,9 @@ value with slice facts), `Ready`'s fields (nil-or-pointer `HardState`/`Snapshot`
 | R3 **done** | `log_unstable`, `log`, `storage` (`MemoryStorage`), `InvRaftlog`/`InvStorage`/`InvMemstorage`, `entRO` | ~12k | redesign of physical predicates. *Actual*: predicates 3,149 lines (`InvPbLog` new 352: `entsPts`/`entsRO`); 64 functions (`MemoryStorage` 13 + `NewMemoryStorage`, `unstable` 12, `raftLog` 31 + `newLogWithSize`, 6 helpers), specs 3,518 lines, proofs 7,014 (18 / 1,489 as copied after the rename, 46 / 5,525 edited, 1,258 lines new), `MemstorageInstance`; no new axiom |
 | R4 **done** | `raft.go`: `InvRaftPhys` (`msgOwn`, `outboxRel`), `raft__Step/*`, `stepLeader`, per-function | ~35k | redesign + adapt. *Actual*: shared predicates (`msgPtsC`/`msgIn`, `InvPbMsg`, `InvRaftPhys` 3,570 over `QMsg`); 82 spec files (47 by the rename alone); every `raft.go` function proved, `newRaft` included (raft37 135 → 217 of 327 functions, 2,621 of 3,707 lines): 139 proof files / 24,856 lines in phase 3, `raft__Step/` 46 modules / 9,955 and the dispatch 855, `stepLeader` 2,668; D6 (an entry's data its bytes) and D7 (a snapshot's conf state frozen once `AutoLeave` is set); one new axiom, `DescribeConfChange` (a log formatter) |
 | R5 **done** | `rawnode`/`node`/`bootstrap`, `InvRawnode*`, `InvNode*`, the `Ready` predicates | ~15k | redesign. *Actual*: predicates 5,133 lines (`InvRawnode` 1,206, `InvRawnodeC` 126, `InvRawnodeReady` 1,176, `InvNode` 874, `InvNodeRun` 1,751); 40 spec files / 2,539 lines (the 37 of `rawnode.go`/`node.go` and three Lean-first storage-response helpers); 40 functions proved in 44 files / 7,321 lines (raft37 217 → 257 of 327 functions, 3,062 of 3,707 lines, beyond the old tree's 251 of 323): `RawNode` API 18, the `Ready` core 4 (`acceptReady` 659, `Advance` 576), `node` API 17, `node.run` 934; D8 (`Ready` hands the messages out, responses to others at half: `issues/raft-ready-messages-read-after-handout.md`), `msgIn`'s capacity only for a `MsgApp`; `bootstrap.go` out of scope as before; no new axiom |
-| R6 | the swap (`Raft37/*` becomes `Code/`, `Spec/`, `Proof/`), `isRaftNodeIfc` from the new `node`/`RawNode` specs, `EtcdDeps` retired, the register's `go.mod` | — | integration |
+| R6a **in progress** | the swap (`Raft37/*` becomes `Code/`, `Spec/`, `Proof/`), `EtcdDeps` retired (D9: the server's translation imports the verified raft, its proofs link raft's getter specs, `entryAt`/`msgAt`/`hardStateAt` defined over raft's `entRO`/`msgOwn`/`hsOpt`), the tooling to one raft project | — | integration |
+| R6b | the register ported to raft v3.7 (Go: pointer messages, `proto.Unmarshal`; `go.mod` to the fork's `raft37-goose-lean`), retranslated, its proofs redone over the new node specs | ~6k (register) | redesign |
+| R7 | `isRaftNodeIfc` discharged from the new `node` specs (`Ready`, `Advance`, `ReadIndex`): the server's raft contract becomes a theorem | — | proof design |
 
 Bottom-up order as listed; R1's two parts are independent; R3 depends on R1 (D1, D2, D5); R4 on
 R2 and R3; R5 on R4. R4 is the largest and can be split per `raft__Step` case once
@@ -369,7 +371,8 @@ R2 and R3; R5 on R4. R4 is the largest and can be split per `raft__Step` case on
   `EnsureSnapshotMetadata`, `EnsureSnapshot` take their argument at `1`).
 - **Q6**: the storage contract models `MemoryStorage` (no clone required where it gives none);
   `InitialState` is specified for its single call, at construction (`newRaft`) (R3).
-- **Q7**: one swap at the end (R6).
+- **Q7**: one swap at the end (R6; split into R6a the swap and R6b the register, with `isRaftNodeIfc`
+  deferred to R7: `notes/decisions.md`, "The swap").
 - **Q8**: `RdState.pend` stays R0's rename (`List (MessageM × List EntryM)`).
 
 The questions as R0 put them:
