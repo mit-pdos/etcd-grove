@@ -1181,11 +1181,18 @@ func TestHandleMsgApp(t *testing.T) {
 func TestHandleHeartbeat(t *testing.T) {
 	commit := uint64(2)
 	tests := []struct {
-		m       *pb.Message
-		wCommit uint64
+		m         *pb.Message
+		logSynced bool
+		wCommit   uint64
 	}{
-		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 1)}, commit + 1},
-		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit - 1)}, commit}, // do not decrease commit
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 1)}, true, commit + 1},
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit - 1)}, true, commit}, // do not decrease commit
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit - 1)}, false, commit},
+
+		// Increase the commit index only if the log is in sync with the leader.
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 1)}, false, commit},
+		// Do not increase the commit index beyond our log size.
+		{&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Type: pb.MsgHeartbeat.Enum(), Term: new(uint64(2)), Commit: new(commit + 10)}, true, commit + 1},
 	}
 
 	for i, tt := range tests {
@@ -1194,6 +1201,8 @@ func TestHandleHeartbeat(t *testing.T) {
 		sm := newTestRaft(1, 5, 1, storage)
 		sm.becomeFollower(2, 2)
 		sm.raftLog.commitTo(commit)
+		sm.logSynced = tt.logSynced
+
 		sm.handleHeartbeat(tt.m)
 		assert.Equal(t, tt.wCommit, sm.raftLog.committed, "#%d", i)
 		m := sm.readMessages()
@@ -2316,20 +2325,11 @@ func TestBcastBeat(t *testing.T) {
 	msgs := sm.readMessages()
 	require.Len(t, msgs, 2)
 
-	wantCommitMap := map[uint64]uint64{
-		2: min(sm.raftLog.committed, sm.trk.Progress[2].Match),
-		3: min(sm.raftLog.committed, sm.trk.Progress[3].Match),
-	}
 	for i, m := range msgs {
 		require.Equal(t, pb.MsgHeartbeat, m.GetType(), "#%d", i)
 		require.Zero(t, m.GetIndex(), "#%d", i)
 		require.Zero(t, m.GetLogTerm(), "#%d", i)
-
-		commit, ok := wantCommitMap[m.GetTo()]
-		require.True(t, ok, "#%d", i)
-		require.Equal(t, commit, m.GetCommit(), "#%d", i)
-		delete(wantCommitMap, m.GetTo())
-
+		require.Equal(t, sm.raftLog.committed, m.GetCommit(), "#%d", i)
 		require.Empty(t, m.GetEntries(), "#%d", i)
 	}
 }
