@@ -1,4 +1,5 @@
-/- Lean-first (no Rocq counterpart). 
+/- Lean-first (no Rocq counterpart).
+
 raft v3.7 (2026-10-16, stage R5): the message is a fresh `&pb.Message{Type: MsgReadIndex.Enum(),
 Entries: []*pb.Entry{{Data: rctx}}}`: the entry (`propEntryM c`, the context's frozen bytes)
 allocated by the slice literal and frozen; the message `msgIn` with its entries read-only.
