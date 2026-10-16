@@ -49,3 +49,21 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   indicate I was verifying etcd and using AI." Rule (step 8, "Anything else"; upstream's rules): every issue ends
   with the same disclosure, word for word: "I found this while formally verifying etcd, working with AI tools. I
   reproduced the bug and reviewed this report myself."
+- 2026-10-16, etcd-range-sort-none-limit: "'The same happens with the other non-key sort targets, and for any client
+  that sends SortOrder: NONE with one and a limit' is ambiguous ... It should be 'the same happens for any client
+  sending SortOrder NONE with a non-key sort target and a limit'." Rule (step 9, "What happened"; "Writing for
+  upstream"; `review.md` item 1): a list of conditions is one clause naming them all; no "one"/"it" for something
+  earlier.
+- 2026-10-16, after etcd-range-sort-none-limit was approved: "improve the skill so you would automatically make
+  those revisions ... a few internal rounds might help, especially for making the report more concise and clearly
+  written" (the aim: great reports in one shot). Restructured: the example is found first, by running it
+  (`etcdctl-transcript.sh`), and the test and fix follow it (steps 4-6); step 9 is a section-by-section template
+  after the approved issue (`example/issue.md`); step 10 adds review rounds (at most three): `check.py` for the
+  mechanical rules, then a fresh reviewer agent with `review.md` (ambiguity and cuts first), until a round brings
+  no change. The approved issue drops the setup puts' `OK` lines; step 9 now allows that edit (and trailing blank
+  lines) and no other.
+- 2026-10-16, etcd-range-sort-none-limit (trial of step 10 on the approved candidate): the reviewer found four real
+  PR errors the user had not reviewed yet (no permalinks; a relative path; a manual test on other data, with ties;
+  "the behavior since #6672" unexplained) and proposed cutting the user's limit sweep. Rules: `check.py` checks that
+  named paths exist and warns on a PR without permalinks; step 10 rejects edits against the user's critiques;
+  `review.md` keeps the sweep and checks manual claims against the example's data.

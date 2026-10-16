@@ -32,6 +32,18 @@ With the fix, all pass:
   test changed)
 - Base binaries (ea8b59433): after `put c 1; put b 2; put a 3`, `etcdctl get a d --sort-by=CREATE --keys-only` gives
   `c b a`, with `--limit=1` `b`, with `--limit=2` `c b`; `MODIFY` and `VALUE` with `--limit=1` give `b` too. With
-  the fix (built at 9f21608d3, the six-put data), `--limit=1` gives the first key of the unlimited response.
+  the fix (built at 40a6c54fd, `etcdctl-transcript.sh --bin`), the same sequence gives `c b a`, `c`, `c b`.
 
 Not run: `tests/e2e` (`TestCtlV3GetTimeout` covers `--sort-by` without `--order`, needs `make build`), `make verify`.
+
+## Review rounds
+
+Round 1 (2026-10-16, a trial of step 10 after the user approved the issue): `check.py` clean. Reviewer edits:
+
+- applied: permalinks for `sortRangeResults` and `rangeLimit` in the PR's root cause;
+- applied: the `RangeStream` note says what changes for `RangeStream` (each chunk reads the rest of the range),
+  with a permalink (it had a path relative to `server/etcdserver/`); its `RangeStream` sorting bug is
+  `issues/etcd-rangestream-sort-none.md`, not mentioned in the PR;
+- applied: the PR's manual test uses the issue's data (it sorted by version on keys all at version 1);
+- applied: the second alternative says what #6672 did;
+- rejected: drop `--limit=2` from the issue's example (the user chose the limit sweep).

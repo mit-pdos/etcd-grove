@@ -20,7 +20,7 @@ c
 b
 ```
 
-The same happens with the other non-key sort targets, and for any client that sends `SortOrder: NONE` with one and a limit. With `--order=ASCEND` the results are right.
+The same happens for any client sending `SortOrder: NONE` with a non-key sort target and a limit. With `--order=ASCEND` the results are right.
 
 ### What did you expect to happen?
 
