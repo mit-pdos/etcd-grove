@@ -187,15 +187,17 @@ theorem applied_log_at :
 /-- **`*EtcdServer` meets the read loop's `server` contract** (`isReadServer`, the request path's
 unit 4b; its nine methods linked): from the server's facts (`isServerReq`, `isServerRead`), with
 the caller's resource `srvReadLR s` (the logger's and the two notifiers' reader slots) and the id
-resource `idCred ρ.ids 1` (the id budget). -/
-theorem read_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+resource `idCred ρ.ids 1` (the id budget; since R7b the id's `NextRequestID` also mints raft's
+fresh read-context token and read credit from the server's mint, at the read names `ρ.rd = γr`). -/
+theorem read_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
         (idCred ρ.ids 1) :=
   isReadServer_of_server EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping
     EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID
-    EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex EtcdServer.wp_Logger s E ρ γr
+    EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex EtcdServer.wp_Logger s E ρ γr hρ
 
 /-- **The server's raft wrapper meets the read loop's `raftInterface` contract** (`isReadRaft`, the
 request path's unit 4b; `ReadState` and `ReadIndex` linked): over the node contract
@@ -1037,7 +1039,7 @@ theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iintro ⟨%γw, #Hreq, #Hrd, Hst⟩
   iunfold srvStarted at Hst
   iNamed Hst
-  ihave #Hrs := read_server s E { ρ with wait := γw } γr $$ [$Hpkg $Hreq $Hrd]
+  ihave #Hrs := read_server s E { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
   iapply HΦ
   iexists γw
   iframe Hreq Hrd Hrs Hrds
