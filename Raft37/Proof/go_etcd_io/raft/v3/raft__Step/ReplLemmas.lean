@@ -96,6 +96,12 @@ theorem msgIn_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} (h : m.Type' ≠ Ms
       msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
   simp only [h, ↓reduceIte]; exact .rfl
 
+/-- A proposal `Step` received, as the `stepX` specs take it. -/
+theorem msgIn_prop {ml : Loc} {m : MessageM} {st : MsgSt} (h : m.Type' = MsgProp) :
+    msgIn (GF := GF) ml (DFrac.own 1) st ⊢
+      msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+  simp only [h, ↓reduceIte]; exact .rfl
+
 /-- A fresh cell, frozen: read-only. -/
 theorem cellRO_of_pointsto {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V)
     (E : CoPset) : (p ↦ v : IProp GF) ⊢ |={E}=> cellRO p v := by
