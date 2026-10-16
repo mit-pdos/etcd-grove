@@ -34,7 +34,9 @@ the node is composed.
 **The peers**: a `[]Peer` slice at `dq` holding `pv`, their ids `ps` (distinct, non-zero, at most
 `2^62`, this node among them, the ghost configuration) and their `Context` bytes `ctxs`
 (read-only, `peersCtx`). The `Config` premises are `NewRawNode`'s (static mode only: no
-`StepDownOnRemoval` requirement). -/
+`StepDownOnRemoval` requirement). **The term budget** is at least at term `1`, the bootstrap
+term (`budget_alloc_boot`, `InvNode.lean`: a budget allocated for a new cluster; `run` starts
+with `termLB bud term`). -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
@@ -102,7 +104,7 @@ abbrev StartNode.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
             hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
@@ -111,8 +113,8 @@ abbrev StartNode.spec : Prop :=
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       -- this node's ghost state at the bootstrap state, and the committed boot log
       ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog ∗
-      -- the cluster's term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) }}
+      -- the cluster's term budget, at least at the bootstrap term `1` (`budget_alloc_boot`)
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       ∃ (γn : NodeNames) (n : Loc),

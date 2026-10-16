@@ -199,6 +199,30 @@ theorem budget_alloc (N : Nat) (HN : N < 2 ^ 64 - 1) (E : CoPset) :
   iExactEq HMlb
   rfl
 
+/-- The budget of a new cluster (2026-10-16, stage R8b, `StartNode`): its bound at the bootstrap
+term `1` from the start (`RawNode.Bootstrap`'s `becomeFollower(1, None)`), so that `run` starts
+with `termLB bud 1`. -/
+theorem budget_alloc_boot (N : Nat) (HN : N + 1 < 2 ^ 64 - 1) (E : CoPset) :
+    ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗ tickCred bud N ∗
+      termLB bud (W64 1) := by
+  imod mono_nat_own_alloc (GF := GF) 1 with ⟨%γM, HM, #HMlb⟩
+  imod own_alloc ((● N : Auth Nat) • ◯ N)
+    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero N).symm⟩, trivial⟩) with ⟨%γC, HC⟩
+  icases (own_op γC _ _).1 $$ HC with ⟨HCa, HCf⟩
+  imod inv_alloc budgetN E (budgetInv (GF := GF) ⟨γM, γC⟩) $$ [HM HCa] with #Hinv
+  · inext
+    unfold budgetInv
+    iexists 1, N
+    iframe HM HCa
+    ipureintro; omega
+  imodintro
+  iexists ⟨γM, γC⟩
+  iframe Hinv
+  unfold tickCred termLB
+  iframe HCf
+  iExactEq HMlb
+  rfl
+
 /-- Term `0` is within the budget (2026-10-13: a local read-index request's). -/
 theorem termLB_zero (bud : BudgetNames) : ⊢ |==> termLB (GF := GF) bud (W64 0) := by
   unfold termLB
