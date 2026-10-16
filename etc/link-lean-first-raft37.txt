@@ -273,3 +273,4 @@ raft__bcastHeartbeatWithCtx: tracker_ProgressTracker__Visit raft__sendHeartbeat
 raft__bcastHeartbeat: readOnly__heartbeatCtx raft__bcastHeartbeatWithCtx
 raft__sendAppend: raft__maybeSendAppend
 raft__bcastAppend: tracker_ProgressTracker__Visit raft__sendAppend
+raft__hup: raft__campaign raft__promotable raft__hasUnappliedConfChanges
