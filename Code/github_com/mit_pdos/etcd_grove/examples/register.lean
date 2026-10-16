@@ -7,7 +7,7 @@ public import Perennial.Code.time
 public import Code.go_etcd_io.raft.v3
 public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.encoding.binary
-public import Perennial.Code.google_golang_org.protobuf.proto
+public import Code.google_golang_org.protobuf.proto
 public import Perennial.Golang.Defn
 
 @[expose] public section

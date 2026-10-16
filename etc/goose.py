@@ -300,7 +300,9 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "register"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3="],
+        # (raft v3.7, stage R6b: the register reaches protobuf-go's `proto`, which the raft
+        # tree translates into the root, `Code.google_golang_org.protobuf.proto`)
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "register")],
     ),
