@@ -88,6 +88,27 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.featuregate
 
+-- names only (stage R8b of the raft v3.7 retarget, 2026-10-16): the packages the raft wrapper's
+-- construction names (`newRaftNode`'s dead logger branch, the WAL `bootstrappedRaft.newRaftNode`
+-- wraps).
+namespace go_etcd_io.etcd.client.pkg.v3.logutil
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.client.pkg.v3.logutil
+
+namespace go_etcd_io.etcd.server.v3.storage.wal
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.storage.wal
+
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery :=

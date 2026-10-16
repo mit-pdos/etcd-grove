@@ -51,14 +51,14 @@ started at, `c₀`, at the applied index `ai`: unchanged, or both at most `ai`. 
 def ciJ (c c₀ ai : w64) : Prop :=
   c = c₀ ∨ (uint.Z c₀ ≤ uint.Z ai ∧ uint.Z c ≤ uint.Z ai)
 
-theorem srvIdxOk_prefix (ai₀ : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B)) :
+theorem srvIdxOk_prefix [FfiSyntax] (ai₀ : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B)) :
     srvIdxOk ai₀ A := by
   obtain ⟨h1, h2⟩ := h
   refine ⟨by simp only [List.length_append] at h1; push_cast at h1; omega, fun n m hm => h2 n m ?_⟩
   rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp hm).1]; exact hm
 
 /-- A batch after the log `A`: its indices are above `ai₀ + |A|`. -/
-theorem srvIdxOk_batch_above (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_above [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) :
     ∀ m ∈ B, uint.Z ai < uint.Z m.index := by
   intro m hm
@@ -68,7 +68,7 @@ theorem srvIdxOk_batch_above (ai₀ ai : w64) (A B : List EntryModel) (h : srvId
   omega
 
 /-- A non-empty batch after the log `A` counts up from `ai + 1` (`entriesFrom`). -/
-theorem srvIdxOk_batch_from (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_from [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) (hne : B ≠ []) :
     entriesFrom (ai + 1) B ∧ uint.Z (ai + 1) = uint.Z ai + 1 := by
   have h1 : uint.Z ai₀ + 1 + (A.length : Int) + (B.length : Int) < 2 ^ 64 := by
@@ -90,7 +90,7 @@ theorem srvIdxOk_batch_from (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdx
   exact ⟨e3, this.2⟩
 
 /-- The applied index after a non-empty batch: its last index. -/
-theorem srvIdxOk_batch_last (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_last [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) :
     max (uint.Z ai) (((B.getLast?).map (fun m => uint.Z m.index)).getD 0) =
       uint.Z ai₀ + (A ++ B).length := by
@@ -284,18 +284,23 @@ instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF 
 
 /-- **The raft storage's snapshot when `run` starts** (`*raft.MemoryStorage`: a trust-boundary
 contract, as `isRNMemStor`; not persistent: the snapshot changes once the server takes one):
-`Snapshot()` returns the snapshot the server started from, owned (raft's `ownSnapM`, as raft's
-`MemoryStorage.Snapshot` spec hands out a fresh clone), of index `ai₀` and term `at₀`, with a
-conf state that has a voter (so its `ConfState` pointer is not nil: `run`'s "empty confstate"
-`panic` is not reached; nor its `lg.Panic`, the error being nil: a construction premise, see
-`notes/STATUS.md`). Since stage R6 of the raft v3.7 retarget (2026-10-16) over raft's record;
-until then field by field (`optU64`), with the conf-state pointer's non-nilness stated. -/
+`Snapshot()` returns the snapshot the server started from, read-only (raft's `ownSnapM` at `□`:
+raft's `MemoryStorage.Snapshot` spec hands out a fresh clone, owned, which nothing writes), of
+index `ai₀` and term `at₀`, with its metadata and conf-state pointers allocated (`pm`, `cs`:
+`run` reads `sn.Metadata.ConfState` directly, and its "empty confstate" `panic` is not reached;
+nor its `lg.Panic`, the error being nil: a construction premise, see `notes/STATUS.md`). Since
+stage R6 of the raft v3.7 retarget (2026-10-16) over raft's record; until then field by field
+(`optU64`), with the conf-state pointer's non-nilness stated; until stage R8b (2026-10-16) the
+pointers were non-nil by the conf state having a voter (`Voters' ≠ []`), which a new cluster's
+fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`) does not meet:
+`run` uses only the pointers. -/
 def rnSnapOnce (ms : Loc) (ai₀ at₀ : w64) : IProp GF :=
   iprop(∀ Φ : val → IProp GF,
-    ▷ (∀ (sn : Loc) (sv : SnapshotM),
-      ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧
-        sv.Metadata'.ConfState'.Voters' ≠ []⌝ -∗
-      ownSnapM sn (DFrac.own 1) sv -∗
+    ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
+      ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
+      ownSnapM sn DFrac.discard sv -∗
+      sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
+      pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})

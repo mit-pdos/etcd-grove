@@ -302,30 +302,26 @@ theorem EtcdServer.run.wp_proof
   iunfold rnSnapOnce at Hsnap
   iapply Hsnap
   inext
-  iintro %sn %sv %Hsv Hsn
-  obtain ⟨Hsvi, Hsvt, Hsvv⟩ := Hsv
-  -- the snapshot (raft's `ownSnapM`, owned: made read-only, nothing writes it), opened to its
-  -- metadata `md` and the metadata's conf state `cs`, which `run` reads directly (the index and
-  -- term through the getters, over the metadata's `smOpt`); `cs` is not nil, the conf state
-  -- having a voter (a nil pointer reads as the zero record)
-  imod ownSnapM_persist sn (DFrac.own 1) sv $$ Hsn with #Hsn
+  iintro %sn %pm0 %cs0 %sv %Hsv #Hsn #Hpm0 #Hcs0'
+  obtain ⟨Hsvi, Hsvt, Hpm0n, Hcs0n⟩ := Hsv
+  -- the snapshot (raft's `ownSnapM`, read-only: nothing writes it), opened to its metadata `md`
+  -- and the metadata's conf state `cs`, which `run` reads directly (the index and term through
+  -- the getters, over the metadata's `smOpt`); the pointers are the allocated ones the
+  -- contract names (stage R8b: until then non-nil by the conf state having a voter)
   ihave #Hsn' := Hsn
   iunfold ownSnapM at Hsn'
   icases Hsn' with ⟨%ds, %md, %uf, %Hsn0, #HD, #Hd, #HM, #Hm, #Hpb⟩
+  icombine HM Hpm0 gives %Hpmeq
+  subst Hpmeq
   ihave #Hm' := Hm
   iunfold smOpt at Hm'
   icases Hm' with (⟨%Hmdn, %Hmd0⟩ | #Hm')
-  · exfalso; rw [Hmd0] at Hsvv; exact Hsvv rfl
+  · exfalso; exact Hpm0n Hmdn
   iunfold smPts at Hm'
   icases Hm' with ⟨%cs, %pi, %pt, %uf', %Hmd0, #HC, #Hc, #HI, #HcI, #HT, #HcT, #Hpb'⟩
-  ihave %Hcs0 : iprop(⌜cs ≠ null⌝) $$ []
-  · iunfold csOptA at Hc
-    icases Hc with (⟨%Hcsn, %Hc0⟩ | Hc | Hc)
-    · exfalso; rw [Hc0] at Hsvv; exact Hsvv rfl
-    · ihave ⟨-, %Hcs0⟩ := csPts_nn _ _ _ _ $$ Hc
-      ipureintro; exact Hcs0
-    · ihave ⟨-, %Hcs0⟩ := csPts_nn _ _ _ _ $$ Hc
-      ipureintro; exact Hcs0
+  icombine HC Hcs0' gives %Hcseq
+  subst Hcseq
+  have Hcs0 : cs ≠ null := Hcs0n
   (try wp_auto)
   -- the FIFO scheduler: its stop token, its queue `[n₀, p₀]` (`p₀` saving `True`)
   wp_apply hFifo fv.lg $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0⟩

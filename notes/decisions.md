@@ -7574,3 +7574,104 @@ The register sidestepped it with its own `Storage` wrapper (`Snapshot` answers
   state, `Bootstrap` and `StartNode` proved; then the server's composition on the new-cluster path
   (`bootstrapRaftFromCluster` with the member ids, `pre = []`, the conf changes delivered first),
   with `newRaftNode` and `bootstrappedRaft.newRaftNode` translated with their bodies.
+
+## The new cluster's start: the bootstrap log in raft's model (stage R8b of the raft v3.7 retarget)
+
+**2026-10-16 · adopted (branch `raft-retarget`; from the design study of 2026-10-16, after R8a)**
+
+etcd's new cluster starts its raft node with `StartNode(c, peers)`: `NewRawNode` on an empty
+storage whose conf state is empty, then `RawNode.Bootstrap(peers)` -- `becomeFollower(1, None)`,
+one `EntryConfChange` per peer at term 1 and indices `1..n` appended, `raftLog.committed = n`,
+`applyConfChange` of each -- and `go n.run()`. Every member builds the same log, committed from
+the start with no leader of term 1 ever existing (campaigns begin at term 2), and nothing is
+applied: the application sees the conf changes through the first `Ready`. The verified
+`RestartNode` starts at the protocol's initial state (an empty log, the voters known from the
+storage's conf state), so neither `newRaft` at an empty conf state nor a committed initial log is
+in the model. The user's decisions (2026-10-16): route B after A (D11), and etcd's `CheckQuorum`
+and `PreVote` settings stay premises.
+
+- **D12: the cluster's bootstrap log is a base case of the protocol, keyed on `RaftNames.reBoot`.**
+  A committed prefix is justified by a commit quorum of a leader's log (`commitJ` → `cq` →
+  `leadFull`), and a record (`isEntryR`) names the leader that created the entry; term 1 has no
+  leader, and a phantom one is excluded by the vote history (`VoteHistOk`: a node with `Vote =
+  None` holds no vote at its term). So the ghost state gets a pure field `reBoot : List EntryM`
+  (`[]` for a cluster starting empty, so every existing definition collapses to today's) with a
+  boot arm wherever a leader was needed: `isEntryR` (a record at index `i ≤ |reBoot|` is the boot
+  entry there, its predecessor's term `0` at index 1 and `1` after), `commitJ`/`isCommittedIdx`/
+  `committedJust` (`c ≤ |reBoot|` needs no quorum), `isCampK` (every campaign log starts with
+  `reBoot`, and a non-empty `reBoot` puts campaigns at terms `≥ 2`), backed by three conjuncts of
+  `ownLogGhost` -- `reBoot` a prefix of the full log, `|reBoot| ≤ commit`, `reBoot ≠ [] → 1 ≤
+  term` -- kept by every step (a log is never truncated below its commit index, terms and commit
+  indices only grow). Leader completeness keeps its statements; its walk down a log (`lc_adj_gen`)
+  and `commit_extend`'s base gain the boot case. The allocation `ownRaftGhost_alloc_boot` (static
+  mode) puts every node at `bootPState bootLog` (term 1, follower, `bootLog` committed) and hands
+  the client `rLog γ bootLog`/`isCommitted γ bootLog` (`allocClientBoot`); `BootLogOk ccOk ps
+  bootLog` says what the log is (entry `k`: type 1, term 1, index `k + 1`, bytes decoding to
+  `AddNode ps[k]` and admitted by `ccOk`). *Rejected:* the boot entries below the base, as a
+  snapshot at `(1, n)` (the physical log holds them, `NStateRel` would not match); a phantom
+  leader of term 1.
+- **Static mode.** The server runs raft statically (`rnEnvOk`); the dynamic start would need
+  `CfgOk` of an empty `c0` and `RInv_init` with `applied < commit`. With `reCfg = peers` from the
+  start the delivered `AddNode` of a member is a `CCNoop`, hence `CCShrink`, the static arm of
+  `confcP`; `nodeCfg` never moves. A dynamic bootstrap is a later extension (~300 lines).
+- **`newRaft` at an empty conf state, ending open.** `csm.Voters' ≠ []` is needed only by
+  `confchange.Restore`'s spec (with no voter `chain` has no op and the tracker's own maps come
+  back), `cv.ID' ∈ Voters'` only by `ownRawNode`'s `Hin`. New statements `Restore.spec_empty`,
+  `newRaft.spec_empty`, `NewRawNode.spec_empty` leave the node open -- the `RawNode`'s fields and
+  `ownRaftPhys ∅` -- rather than at `ownRawNode`, which demands the ghost's configuration;
+  `Bootstrap` then walks the chain: `becomeFollower(1)` (its spec fits), the conf-change literals
+  and `proto.Marshal` (`MarshalConfChange.spec`), the `Entry` literals, `raftLog.append` (its
+  spec fits: `committed = 0 < 1`), the raw store `raftLog.committed = n` (new
+  `ownRaftLog_setCommitted`: `prev ≤ n ≤ lastIndex`, `applied ≤ applying ≤ n`),
+  `applyConfChange` per peer at a follower (`raft.applyConfChange.spec` at any configuration,
+  the loop at `CfgM.simple (listToSet (ps.take k)) ∅`, fresh `Progress` at `Next = max(lastIndex,
+  1) = n`), and closes with `ownRawNode_intro_static` over `ownRaftGhost γ id (bootPState
+  bootLog)`: `toPState s = bootPState bootLog`, `applying = 0`, nothing unpersisted.
+- **`StartNode.spec` is `RestartNode.spec`'s shape.** The conf state's record empty, the peers
+  `ps` (`Nodup`, `0 ∉ ps`, `|ps| ≤ 2^62`, `cv.ID' ∈ ps`, `γ.reCfg = listToSet ps`), `γ.reBoot =
+  bootLog` with `BootLogOk γ.reCCOk ps bootLog`, `ownRaftGhost γ cv.ID' (bootPState bootLog)` and
+  `isCommitted γ bootLog` in place of `rnInit`/`isCommitted γ []`; the post is `RestartNode`'s:
+  `isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗ nodeCfg γn 0 (cfgState (listToSet ps) ∅)`.
+  **The driver starts at `[]`** (`ownRawNode`: the delivered log's length is the `applying`
+  index, `0`): the first `Ready` delivers the boot entries as committed entries (`applied = 0`,
+  `allowUnstable` since storage writes are synchronous) beside `Entries 1..n` and the hard state
+  `{1, 0, n}`. **The bytes**: `γ.reBoot` is fixed before the call, while `Marshal`'s spec gives
+  only that its bytes decode to the change; `StartNode.spec` takes, as `RestartNode.spec` takes
+  `InitialState`, a premise on `Marshal` at these inputs (`bootMarshal`: the bytes are the boot
+  entry's), a trust-boundary fact of protobuf's determinism, discharged where the node is
+  composed. *Rejected:* allocating the ghost inside `StartNode` (the members share one `γ`).
+- **The server (R8b-C).** `bootstrappedRaft.newRaftNode` and `newRaftNode` (`raft.go`) are
+  translated with their bodies and proved: the former's spec takes `b.peers ≠ []` (the new
+  cluster's path; `RestartNode`'s branch is the join path, out of scope) and **`NewRawNode`'s
+  premises on `b.config` as premises**, among them `CheckQuorum = false` and `PreVote = false`
+  (etcd's `raftConfig` sets `CheckQuorum: true` and `PreVote` by default: the theorem does not
+  cover etcd's own config; `MsgCheckQuorum` and pre-vote are out of the model's scope: the user's
+  decision), and `raft.SetLogger`'s global write as a contract. `rnSnapOnce`'s `Voters' ≠ []`
+  weakens to what `run` uses (the conf-state pointer is not nil; a fresh storage's snapshot has
+  an allocated empty conf state). The server's `isConfChangeEncoding` (opaque) becomes raft's
+  `ccDecodeV1 bs ≠ none` (one notion of a `ConfChange` encoding; `pbutil.MustUnmarshalMessage`'s
+  axiom restated), so the boot entries pass `srvIdxOk` and `srvCCPolicy` matches
+  `BootLogOk`'s `ccOk`. The composition: `isServerBuilt`'s raft rows (`isRaftNode`, the loop and
+  apply tokens at `[]`, `rnSnapOnce`, `srvRaftLogInv` at `pre = []`) from `ownRaftGhost_alloc_boot`,
+  `budget_alloc`, `memStorReg`, `NewMemoryStorage`, `StartNode.spec` and `newRaftNode`.
+- **Carried out (2026-10-16, R8b; `notes/STATUS.md`, "stage R8b").** As designed, with these
+  deviations. (i) `RaftNames.reBoot` is a derived function over an instance-free field
+  `reBootRaw : List BootEntry` (`EntryM` needs `FfiSyntax`, which `RaftNames` does not take);
+  every use reads `γ.reBoot`. (ii) One conjunct of `ownLogGhost` suffices (`|reBoot| ≤ commit`);
+  the prefix and term facts are derived from the records and `TermsLe`. (iii) `NewRawNode.spec`
+  itself ends open at `rawNodeFresh` for any conf state, `newRaft` and `confchange.Restore` drop
+  `Voters' ≠ []` (`Restore`'s post a disjunction), and `RestartNode` closes the node; no separate
+  `spec_empty` statements. (iv) The `InitialState` closure premise is not `□` where the function
+  calls it once (`StartNode`, `setupNode`, `NewRawNode`, `newRaft`); `MemoryStorage.InitialState`
+  consumes `memStorMeta`. (v) The budget enters at `termLB bud 1` (`budget_alloc_boot`). (vi) The
+  wrapper is returned as a struct value (`rnBuilt`), since `NewServer` copies it, with an installer
+  that yields `isRaftNode` once the transport is set. (vii) `rnSnapOnce` stays a construction
+  premise: the server holds no `ownMemoryStorage` once raft owns the storage, and
+  `MemoryStorage.Snapshot`'s spec does not state the clone's pointers non-nil. (viii) Raft's
+  `SetLogger` is a contract (`rnSetLoggerOk`): raft's package initializer drops the logger
+  globals' ownership. D12's risk 3 did not materialize.
+- **Staging.** R8b-A (the protocol: `reBoot`'s arms, the three conjuncts, leader completeness's
+  boot cases, `ownRaftGhost_alloc_boot`) and R8b-B (raft: `Restore`/`newRaft`/`NewRawNode` at an
+  empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
+  parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
+  `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.

@@ -211,6 +211,11 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/wait",
             "go.etcd.io/etcd/client/pkg/v3/types",
             "go.etcd.io/etcd/client/pkg/v3/verify",
+            # names only: what the raft wrapper's construction names (stage R8b of the raft
+            # v3.7 retarget, 2026-10-16: `newRaftNode`'s dead logger branch, the WAL
+            # `bootstrappedRaft.newRaftNode` wraps)
+            "go.etcd.io/etcd/client/pkg/v3/logutil",
+            "go.etcd.io/etcd/server/v3/storage/wal",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",

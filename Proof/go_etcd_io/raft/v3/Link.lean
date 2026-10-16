@@ -34,6 +34,7 @@ public import Proof.go_etcd_io.raft.v3.NewRawNode
 public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__ApplyConfChange
 public import Proof.go_etcd_io.raft.v3.RawNode__BasicStatus
+public import Proof.go_etcd_io.raft.v3.RawNode__Bootstrap
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
@@ -50,6 +51,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
 public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Proof.go_etcd_io.raft.v3.RestartNode
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
+public import Proof.go_etcd_io.raft.v3.StartNode
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
 public import Proof.math.big.NewInt
@@ -266,6 +268,7 @@ public import Proof.go_etcd_io.raft.v3.readOnly__maybeAdvance
 public import Proof.go_etcd_io.raft.v3.readOnly__recvAck
 public import Proof.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Proof.go_etcd_io.raft.v3.sendMsgReadIndexResponse
+public import Proof.go_etcd_io.raft.v3.setupNode
 public import Proof.slices.Sort
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
@@ -1488,6 +1491,10 @@ theorem RawNode.wp_BasicStatus [StorageModel GF] :
     RawNode.BasicStatus.spec (GF := GF) (hG := hG) :=
   RawNode.BasicStatus.wp_proof wp_getBasicStatus
 
+theorem RawNode.wp_Bootstrap [StorageModel GF] :
+    RawNode.Bootstrap.spec (GF := GF) (hG := hG) :=
+  RawNode.Bootstrap.wp_proof raft.wp_becomeFollower raftpb.ConfChangeType.wp_Enum raftpb.EntryType.wp_Enum raftLog.wp_append raftpb.ConfChange.wp_AsV2 raft.wp_applyConfChange
+
 theorem RawNode.wp_Campaign [AllG GF] [StorageModel GF] :
     RawNode.Campaign.spec (GF := GF) (hG := hG) :=
   RawNode.Campaign.wp_proof raft.wp_Step raftpb.MessageType.wp_Enum
@@ -1567,6 +1574,14 @@ theorem node.wp_run [StorageModel GF] :
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=
   RestartNode.wp_proof wp_NewRawNode wp_newNode node.wp_run
+
+theorem wp_setupNode [StorageModel GF] :
+    setupNode.spec (GF := GF) (hG := hG) :=
+  setupNode.wp_proof wp_NewRawNode RawNode.wp_Bootstrap wp_newNode
+
+theorem wp_StartNode [StorageModel GF] :
+    StartNode.spec (GF := GF) (hG := hG) :=
+  StartNode.wp_proof wp_setupNode node.wp_run
 
 theorem node.wp_Advance [StorageModel GF] :
     node.Advance.spec (GF := GF) (hG := hG) :=

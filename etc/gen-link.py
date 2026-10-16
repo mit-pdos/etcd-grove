@@ -481,10 +481,11 @@ variable [package_sem : {assumptions}]
             # are not applied automatically)
             return "(" + result(c) + " " + " ".join(hyp(p) for p in sorted(pending)) + ")"
         # a callee's result named like the theorem's last component (`leaseCache.wp_evalCmp`
-        # calling `wp_evalCmp`) would resolve to the theorem itself: qualify it
+        # calling `wp_evalCmp`; `bootstrappedRaft.wp_newRaftNode` calling `wp_newRaftNode`,
+        # 2026-10-16) would resolve to the theorem itself: qualify it
         r = result(c)
-        if nsd and "." in result(fn) and r == result(fn).split(".")[-1]:
-            return f"EtcdGrove.{nsd}.{r}"
+        if "." in result(fn) and r == result(fn).split(".")[-1]:
+            return f"EtcdGrove.{nsd}.{r}" if nsd else f"EtcdGrove.{r}"
         return r
 
     def emit_cache(fn):
