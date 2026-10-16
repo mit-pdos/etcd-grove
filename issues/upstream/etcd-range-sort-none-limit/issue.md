@@ -5,23 +5,22 @@ Title: Range sorted by a non-key target without an order returns the wrong keys 
 With `--sort-by` set to a target other than `KEY` and no `--order`, `etcdctl get --limit=N` does not return the first `N` results of the same `get` without a limit:
 
 ```console
-$ etcdctl put c v1; etcdctl put b v2; etcdctl put b v3
-$ etcdctl put a v4; etcdctl put a v5; etcdctl put a v6
-$ etcdctl get a d --sort-by=VERSION --keys-only
+$ etcdctl put c 1; etcdctl put b 2; etcdctl put a 3
+$ etcdctl get a d --sort-by=CREATE --keys-only
 c
 
 b
 
 a
-$ etcdctl get a d --sort-by=VERSION --keys-only --limit=1
+$ etcdctl get a d --sort-by=CREATE --keys-only --limit=1
 b
-$ etcdctl get a d --sort-by=VERSION --keys-only --limit=2
+$ etcdctl get a d --sort-by=CREATE --keys-only --limit=2
 c
 
 b
 ```
 
-The same happens with `CREATE`, `MODIFY` and `VALUE`, and for any client that sends `SortOrder: NONE` with a non-key target and a `Limit` (`clientv3.WithSort(target, clientv3.SortNone)` with `clientv3.WithLimit`). With `--order=ASCEND` the limited results are right.
+The same happens with `--sort-by=MODIFY` and `--sort-by=VALUE` on these keys, with `--sort-by=VERSION` on keys whose versions are ordered the same way, and for any client that sends `SortOrder: NONE` with a non-key target and a `Limit` (`clientv3.WithSort(target, clientv3.SortNone)` with `clientv3.WithLimit`). With `--order=ASCEND` the limited results are right.
 
 ### What did you expect to happen?
 
@@ -31,7 +30,7 @@ The same happens with `CREATE`, `MODIFY` and `VALUE`, and for any client that se
 
 Run the `etcdctl` commands above against a single-member cluster built from `main` (ea8b59433).
 
-As a unit test (`TestRangeSortLimit` in `server/etcdserver/txn/range_test.go` on the linked branch): put the keys above; for each sort target and order, compare a range over `[a, d)` with limits 1 to 3 against the same range without a limit. On `main`, the `NONE` cases with a non-key target fail at limit 1 (output trimmed):
+As a unit test (`TestRangeSortLimit` in `server/etcdserver/txn/range_test.go` on the linked branch): put `c` once, `b` twice and `a` three times, so that `c` comes first by every target; for each sort target and order, compare a range over `[a, d)` with limits 1 to 3 against the same range without a limit. On `main`, the `NONE` cases with a non-key target fail at limit 1 (output trimmed):
 
 ```
     --- FAIL: TestRangeSortLimit/VERSION/NONE (0.00s)

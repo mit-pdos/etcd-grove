@@ -127,7 +127,10 @@ into the version fields. Test output may be trimmed to the failing lines (no log
   whose output
   is visibly wrong on its own, without the reader having to accept an expected behavior first: the same request
   varied in one parameter, giving answers that contradict each other (`--limit=1` returns `b` but `--limit=2` and
-  no limit start with `c`), beats one answer set against what the docs are said to promise.
+  no limit start with `c`), beats one answer set against what the docs are said to promise. Then minimize it:
+  the fewest commands and keys that still show the bug, every one necessary (three puts, not six, for a bug that
+  needs three keys), and data on which the targets the text names all reproduce. The test may keep a richer setup
+  to cover more cases; the issue then describes the test's setup in words rather than "the keys above".
 - **What did you expect to happen?** — grounded in a source the reader can check: the API's documentation
   (`rpc.proto`, Go doc, the website), a test that pins the behavior, a maintainer's decision in an issue or PR, or
   consistency with a variant of the same request. Before relying on a documented behavior, read the documentation:

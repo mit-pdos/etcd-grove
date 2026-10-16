@@ -32,3 +32,6 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
 - 2026-10-16, etcd-range-sort-none-limit: "Get rid of the release comment. The note about the documentation is worth
   keeping, but since it is potentially actionable, the issue could ask a question." Rule (step 8, "Anything else"):
   no claims about other releases in the issue; an actionable side finding is a question to the maintainers.
+- 2026-10-16, etcd-range-sort-none-limit: "Can the example that triggers the bug be made simpler?" Six puts (to make
+  versions differ) became three (`put c 1; put b 2; put a 3`, `--sort-by=CREATE`). Rule (step 8, "What happened"):
+  minimize the example to the commands the bug needs, on data where every target the text names reproduces.
