@@ -5,7 +5,9 @@
 # ConfState.Equivalent) and the nine protobuf-go axioms it rests on (proto.*, the trust boundary). Stage
 # R2: confchange (with fmt.Errorf and raftpb.ConfChangeType.String, the old proof's two axioms for
 # the same Go calls, restated for v3.7). Stage R3: the log layer (unstable, raftLog, MemoryStorage,
-# the size helpers), on R1's proto axioms only.
+# the size helpers), on R1's proto axioms only. Stage R4: raft.go over pointer messages (newRaft
+# included), adding DescribeConfChange (a log formatter at the trust boundary, stepLeader's
+# refusal string).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/raft37.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/raft37.txt --check    against the lines below
@@ -14,6 +16,7 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Raft37/Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
+axiom DescribeConfChange.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof

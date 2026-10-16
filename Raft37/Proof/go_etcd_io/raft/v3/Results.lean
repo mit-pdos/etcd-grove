@@ -5,8 +5,13 @@ retarget, `notes/raft-retarget-plan.md`): `quorum`, `tracker` and `slices.Sort`;
 nine protobuf-go axioms (`proto.*`, the trust boundary); since stage R2 `confchange` (with
 etcd-grove's `fmt.Errorf` axiom and `raftpb.ConfChangeType.String` at the trust boundary); since
 stage R3 the log layer (`unstable`, `raftLog`, `MemoryStorage`, the size helpers, over read-only
-entries) and `MemoryStorage`'s instance of the `Storage` contract, as
-`Proof/go_etcd_io/raft/v3/Link.lean` links them for the verified raft. `#print axioms` of each
+entries) and `MemoryStorage`'s instance of the `Storage` contract; since stage R4 `raft.go` over
+pointer messages (every function of the layer: the struct's helpers, the `Step` dispatch and its
+branches, `stepLeader`/`stepCandidate`/`stepFollower`, the constructor `newRaft`, with
+`fmt.Sprintf` and `strings.Join` copied from the old tree and `DescribeConfChange` at the trust
+boundary), as `Proof/go_etcd_io/raft/v3/Link.lean` links them for the verified raft. The old
+tree's raft-level results are `raft.wp_Step` and `wp_newRaft` (its other results are `RawNode`'s
+and `node`'s, stage R5). `#print axioms` of each
 is its trust base (in the build log); `etc/tcb-report.py --collection
 etc/tcb-collections/raft37.txt` reports on them. The tree replaces the old raft proof's when
 it reaches its results (`Proof/go_etcd_io/raft/v3/Results.lean`).
@@ -229,6 +234,96 @@ namespace EtcdGrove
 #print axioms MemoryStorage.wp_CreateSnapshot
 #print axioms MemoryStorage.wp_Append
 #print axioms is_Storage_MemoryStorage
+
+-- raft.go over pointer messages (stage R4); the old tree's raft-level results first
+#print axioms raft.wp_Step
+#print axioms wp_newRaft
+#print axioms big.wp_NewInt
+#print axioms big.Int.wp_Int64
+#print axioms rand.wp_Int
+#print axioms wp_IsLocalMsgTarget
+#print axioms Config.wp_validate
+#print axioms wp_isMsgInArray
+#print axioms wp_IsLocalMsg
+#print axioms wp_IsResponseMsg
+#print axioms wp_newReadOnly
+#print axioms wp_traceInitState
+#print axioms wp_traceConfChangeEvent
+#print axioms wp_traceCommit
+#print axioms wp_traceSendMessage
+#print axioms wp_traceBecomeFollower
+#print axioms wp_traceBecomeCandidate
+#print axioms wp_traceBecomeLeader
+#print axioms wp_traceReplicate
+#print axioms wp_traceChangeConfEvent
+#print axioms wp_traceReceiveMessage
+#print axioms wp_traceReady
+#print axioms lockedRand.wp_Intn
+#print axioms raft.wp_resetRandomizedElectionTimeout
+#print axioms raft.wp_abortLeaderTransfer
+#print axioms raft.wp_softState
+#print axioms raft.wp_hasLeader
+#print axioms raft.wp_pastElectionTimeout
+#print axioms raft.wp_promotable
+#print axioms raft.wp_committedEntryInCurrentTerm
+#print axioms raft.wp_increaseUncommittedSize
+#print axioms raft.wp_reduceUncommittedSize
+#print axioms raft.wp_appliedTo
+#print axioms raft.wp_maybeCommit
+#print axioms raft.wp_poll
+#print axioms readOnly.wp_heartbeatCtx
+#print axioms readOnly.wp_recvAck
+#print axioms readOnly.wp_AckedIndex
+#print axioms readOnly.wp_maybeAdvance
+#print axioms wp_voteRespMsgType
+#print axioms SoftState.wp_equal
+#print axioms wp_needStorageApplyMsg
+#print axioms wp_needStorageApplyRespMsg
+#print axioms wp_stepFollower
+#print axioms wp_isHardStateEqual
+#print axioms wp_IsEmptyHardState
+#print axioms wp_MustSync
+#print axioms wp_IsEmptySnap
+#print axioms wp_assertConfStatesEquivalent
+#print axioms raft.wp_hardState
+#print axioms raft.wp_loadState
+#print axioms wp_getBasicStatus
+#print axioms wp_logSliceFromMsgApp
+#print axioms wp_stepCandidate
+#print axioms readOnly.wp_addRequest
+#print axioms raft.wp_hasUnappliedConfChanges
+#print axioms raft.wp_responseToReadIndexReq
+#print axioms wp_sendMsgReadIndexResponse
+#print axioms wp_releasePendingReadIndexMessages
+#print axioms raft.wp_tickElection
+#print axioms raft.wp_tickHeartbeat
+#print axioms raft.wp_send
+#print axioms raft.wp_sendTimeoutNow
+#print axioms raft.wp_sendHeartbeat
+#print axioms raft.wp_reset
+#print axioms raft.wp_becomeFollower
+#print axioms raft.wp_becomeCandidate
+#print axioms raft.wp_becomePreCandidate
+#print axioms raft.wp_bcastHeartbeatWithCtx
+#print axioms raft.wp_bcastHeartbeat
+#print axioms raft.wp_sendAppend
+#print axioms raft.wp_bcastAppend
+#print axioms raft.wp_hup
+#print axioms raft.wp_handleHeartbeat
+#print axioms raft.wp_switchToConfig
+#print axioms raft.wp_maybeSendSnapshot
+#print axioms raft.wp_applyConfChange
+#print axioms raft.wp_becomeLeader
+#print axioms raft.wp_handleSnapshot
+#print axioms raft.wp_maybeSendAppend
+#print axioms raft.wp_campaign
+#print axioms raft.wp_handleAppendEntries
+#print axioms raft.wp_appendEntry
+#print axioms raft.wp_restore
+#print axioms fmt.wp_Sprintf
+#print axioms wp_DescribeConfChange
+#print axioms wp_stepLeader
+#print axioms strings.wp_Join
 
 -- the protocol model (stage R1)
 #print axioms raft_dyn_alloc
