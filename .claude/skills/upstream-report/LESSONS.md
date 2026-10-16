@@ -83,3 +83,6 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
   `NONE` as unsorted and lets mvcc stop reading after `limit + 1` keys. So only the first keys in key order are
   sorted, not the whole range." (the commit message too). Rule (step 9 `pr.md`; `review.md` item 7): say what each
   piece of code does and which is wrong; a word with two meanings says which every time.
+- 2026-10-16, etcd-range-sort-none-limit: "PRs should in general say 'This PR uses the order..'" (it said "Use the
+  order the results are sorted in for both."). Rule (step 9 `pr.md`; `check.py`): the change is a "This PR ..."
+  sentence, not an imperative, naming what "both" stands for.

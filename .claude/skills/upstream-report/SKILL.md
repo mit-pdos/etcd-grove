@@ -187,7 +187,9 @@ assertion; nothing is reworded.
    mvcc stop reading after `limit + 1` keys"), not a shorthand of its conditions ("checked the order as sent and
    kept the limit", which a reader takes to describe correct behavior). A word with two meanings in the code (the
    request's limit and mvcc's read limit; the order sent and the order sorted in) says which it is every time;
-   the same goes for the commit message;
+   the same goes for the commit message. The change itself is a sentence starting "This PR ..." ("This PR uses
+   the order the results are sorted in for both `rangeLimit` and `sortRangeResults`."), not an imperative ("Use
+   ..."), which is the commit message's style, and it names what "both" or "it" stands for;
 2. `Fixes #<issue>`;
 3. one line on testing: the new test runs the issue's example, fails on `main` and passes with the change;
 4. word for word: "This PR was written in part with the assistance of generative AI; I have reviewed and tested

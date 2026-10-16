@@ -169,6 +169,8 @@ def main():
             warn(f"pr: {len(body.split())} words; etcd fix PRs are a few sentences (aim for under {MAX_PR_WORDS})")
         if re.search(r"^\*\*|^#+ ", pr, flags=re.M):
             fail("pr: has sections (headings or bold labels); etcd fix PRs are a few plain sentences")
+        if not re.search(r"\bThis PR (?!was written in part)", pr):
+            fail("pr: no 'This PR ...' sentence saying what the change does (not an imperative 'Use ...')")
         if "Fixes #" not in pr:
             fail("pr: no 'Fixes #<issue>'")
         if PR_DISCLOSURE not in norm(pr):
