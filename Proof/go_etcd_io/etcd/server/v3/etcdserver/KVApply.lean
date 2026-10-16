@@ -134,7 +134,7 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok⟩
-  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "server_raft_commit" "server_kv" (by decide))
+  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok

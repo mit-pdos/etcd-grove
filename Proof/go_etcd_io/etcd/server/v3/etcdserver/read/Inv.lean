@@ -25,9 +25,11 @@ path's unit 4b: `ReadServer.lean`, `ReadRaft.lean`, the server's `read_server`, 
 first-commit channels (`bcastChan`, closed and never sent on), the logger with the caller's
 resource `LR` (the server's `lgMu` reader slot), the applied index's lower bound, `ApplyWait`'s
 channel closed once the applied index reached the deadline, a request id for a resource `NR` (the
-id budget, the server's premise), the request timeout) and `isReadRaft rf γr RQ` (the
-`raftInterface`: `ReadIndex` registers a request id at a committed bound, `RQ id n`, and every read
-state on `ReadState()`'s channel answers each registration of its id: `srvReadStateOk`).
+id budget, the server's premise) with its context's fresh token and a read credit (2026-10-16,
+stage R7b: the server mints both from the id, `srvRdFreshInv`), the request timeout) and
+`isReadRaft rf γr RQ` (the `raftInterface`: `ReadIndex`, with the fresh token and the credit,
+registers a request id at a committed bound, `RQ id n`, and every read state on `ReadState()`'s
+channel answers each registration of its id: `srvReadStateOk`).
 -/
 module
 
@@ -66,23 +68,8 @@ abbrev readWaitCAddr (r : Loc) : Loc := structFieldRef go_etcd_io.etcd.server.v3
 
 end addrs
 
-/-! ## Request ids as bytes -/
-
-/-- The big-endian bytes of `id` (`binary.BigEndian.PutUint64`, `uint64ToBigEndianBytes`). -/
-def beBytes (id : w64) : List w8 := (u64Le id).reverse
-
-theorem beBytes_length (id : w64) : (beBytes id).length = 8 := by
-  simp [beBytes, u64Le_length]
-
-/-- Eight bytes are the big-endian bytes of what `binary.BigEndian.Uint64` reads from them. -/
-theorem beBytes_of_length (bs : List w8) (h : bs.length = 8) : bs = beBytes (leToU64 bs.reverse) := by
-  unfold beBytes
-  rw [leToU64_le _ (by simp [h]), List.reverse_reverse]
-
-/-- `binary.BigEndian.Uint64` reads `id` back from its big-endian bytes. -/
-theorem leToU64_beBytes (id : w64) : leToU64 (beBytes id).reverse = id := by
-  unfold beBytes
-  rw [List.reverse_reverse, u64Le_to_word]
+/-! ## Request ids as bytes: `beBytes` (`InvRequest.lean`, since 2026-10-16, stage R7b: the read
+contexts' mint, `srvRdFreshInv`, is stated over it) -/
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -208,8 +195,11 @@ def srvDoneOk (srv : GoInterface) : IProp GF :=
 * `ApplyWait(d)`: a channel closed once the applied index has reached `d`: its close tells some `Q`
   from which `appliedAtLeast γr d` follows (2026-10-13, unit 4b: `WaitTime.Wait` returns the
   package's `closec`, closed with nothing, when `d` was already triggered);
-* `NextRequestID()`: some id, for a resource `NR` (the id generator's credit: the id budget, the
-  server's premise; the loop asks for one per `ReadIndex` request, unboundedly);
+* `NextRequestID()`: an id, for a resource `NR` (the id generator's credit: the id budget, the
+  server's premise; the loop asks for one per `ReadIndex` request, unboundedly), with (2026-10-16,
+  stage R7b) the fresh token of the id's context (raft's `rdFresh`, `srvRdFresh`) and one of
+  raft's read credits (`srvRdCred`): the server mints both from the id (`srvRdFresh_mint`), so
+  raft's read budget is paid by the id budget, one `ReadIndex` per id;
 * `RequestTimeout()`: some duration. -/
 def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IProp GF :=
   iprop(srvDoneOk srv ∗ ∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗
@@ -222,7 +212,7 @@ def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IPro
     □ (∀ d : w64, {{ True }} (App (Val #(methods si.ty go!"ApplyWait" si.v)) (Val #d))
       {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, bcastChan ch Q ∗ □ (Q -∗ appliedAtLeast γr d) }}) ∗
     □ ({{ NR }} (App (Val #(methods si.ty go!"NextRequestID" si.v)) (Val #()))
-      {{ (id : w64), RET #id; True }}) ∗
+      {{ (id : w64), RET #id; srvRdFresh γr.raft (beBytes id) ∗ srvRdCred γr.raft }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"RequestTimeout" si.v)) (Val #()))
       {{ (d : _root_.Perennial.time.Duration), RET #d; True }}))
 
@@ -243,14 +233,16 @@ instance isReadServer_persistent (srv : GoInterface) (γr : ReadNames) (LR NR : 
 
 /-! ## Raft, as the read loop sees it (`raftInterface`) -/
 
-/-- **A read state `rs` on raft's `ReadState()` channel** (persistent): its request context, eight
-bytes, read-only, and its index answers every registration of the id they encode: a request
-`ReadIndex` registered at a committed bound `n` with the read update of result `Qr` (`RQ id n Qr`)
-has `n ≤ rs.Index`, and (2026-10-14, unit T1) raft's witness of the update at the read index
-(`srvReadWit γ Qr rs.Index`). -/
+/-- **A read state `rs` on raft's `ReadState()` channel** (persistent): its request context,
+read-only, a context deposited with raft (`srvCtxDeposited`; 2026-10-16, stage R7b: until then
+`⌜bs.length = 8⌝`, which raft's read states do not carry; the loop derives it, `readCtxMinted`:
+every deposited context is a minted `beBytes id`), and its index answers every registration of
+the id they encode: a request `ReadIndex` registered at a committed bound `n` with the read update
+of result `Qr` (`RQ id n Qr`) has `n ≤ rs.Index`, and (2026-10-14, unit T1) raft's witness of the
+update at the read index (`srvReadWit γ Qr rs.Index`). -/
 def srvReadStateOk (γ : ServerRaftNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
     (rs : go_etcd_io.raft.v3.ReadState) : IProp GF :=
-  iprop(∃ bs : List w8, rs.RequestCtx' ↦*□ bs ∗ ⌜bs.length = 8⌝ ∗
+  iprop(∃ bs : List w8, rs.RequestCtx' ↦*□ bs ∗ srvCtxDeposited γ bs ∗
     □ (∀ (id n : w64) (Qr : List EntryModel → IProp GF), ⌜bs = beBytes id⌝ -∗ RQ id n Qr -∗
       ⌜uint.Z n ≤ uint.Z rs.Index'⌝ ∗ srvReadWit γ Qr rs.Index'))
 
@@ -273,13 +265,15 @@ def isReadRaft (rf : GoInterface) (γr : ReadNames)
   iprop(∃ ri : GoInterfaceOk, ⌜rf = GoInterface.ok ri⌝ ∗
     □ ({{ True }} (App (Val #(methods ri.ty go!"ReadState" ri.v)) (Val #()))
       {{ (c : Loc), RET #c; isReadStateC c γr.raft RQ }}) ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
+    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
         (id n : w64) (Qr : List EntryModel → IProp GF),
-      {{ context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast γr n ∗
-          srvReadAu γr.raft Qr }}
+      {{ context.isContext ctx cd ∗ sl ↦*□ beBytes id ∗ committedAtLeast γr n ∗
+          srvReadAu γr.raft Qr ∗
+          -- (2026-10-16, stage R7b) raft's read credit and the context's fresh token
+          srvRdCred γr.raft ∗ srvRdFresh γr.raft (beBytes id) }}
         (App (App (Val #(methods ri.ty go!"ReadIndex" ri.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
-      {{ (err : GoInterface), RET #err; sl ↦*{dq} beBytes id ∗ applyErrIs err ∗
+      {{ (err : GoInterface), RET #err; applyErrIs err ∗
           (⌜err = GoInterface.nil⌝ -∗ □ RQ id n Qr) }}))
 
 instance srvReadStateOk_persistent (γ : ServerRaftNames)
@@ -303,6 +297,27 @@ def readCompose (γr : ReadNames) : IProp GF :=
 instance readCompose_persistent (γr : ReadNames) : Persistent (readCompose (GF := GF) γr) := by
   unfold readCompose; infer_instance
 
+/-- **Every context raft registered is a minted one** (persistent; 2026-10-16, stage R7b; the
+read loop's view of the read contexts' mint, `srvRdFreshInv`, which the server's composition
+proves from it, `readCtxMinted_of_mint`): a deposited context (`srvCtxDeposited`, what a read
+state carries) is the big-endian bytes of a request id, so eight bytes long: `read.go`'s
+`len(rs.RequestCtx) == 8` guard never fails. -/
+def readCtxMinted (γr : ReadNames) : IProp GF :=
+  iprop(□ ∀ c : List w8, srvCtxDeposited γr.raft c ={⊤}=∗ ⌜∃ id : w64, c = beBytes id⌝)
+
+instance readCtxMinted_persistent (γr : ReadNames) : Persistent (readCtxMinted (GF := GF) γr) := by
+  unfold readCtxMinted; infer_instance
+
+/-- `readCtxMinted` from the mint and raft's commit invariant (`srvCtxDeposited_minted`). -/
+theorem readCtxMinted_of_mint (γr : ReadNames) (γi : IdNames) :
+    srvRdFreshInv (GF := GF) γr.raft γi ∗ srvRaftLogInv γr.raft ⊢ readCtxMinted γr := by
+  iintro ⟨#Hm, #Hli⟩
+  iunfold srvRaftLogInv at Hli
+  icases Hli with ⟨#Hci, -⟩
+  iunfold readCtxMinted
+  iintro !> %c #Hd
+  iapply srvCtxDeposited_minted γr.raft γi c $$ Hm Hci Hd
+
 /-! ## The `*Read` -/
 
 /-- **What `LinearizableReadNotify` needs of `r`** (persistent): the server's `Done()`, the
@@ -316,8 +331,9 @@ def isReadPre (r : Loc) (γr : ReadNames) : IProp GF :=
 /-- **What `LinearizableReadLoop` needs of `r`** (persistent; `NewRead`'s result, with `isReadNotify`):
 the two contracts (`isReadServer` with the logger's resource `LR` and the id resource `NR`;
 `isReadRaft` with the registrations `RQ`), the wake-up channel, the read invariant, the write
-side of `r.mux` (`sync.isRWMutexGuard`), and `context`'s ghost fact (`closedchan` closed: what
-`sendReadIndex`'s `context.WithTimeout` of `Background()` needs). -/
+side of `r.mux` (`sync.isRWMutexGuard`), `context`'s ghost fact (`closedchan` closed: what
+`sendReadIndex`'s `context.WithTimeout` of `Background()` needs), the clients' read update
+(`readCompose`) and (2026-10-16, stage R7b) the minted contexts (`readCtxMinted`). -/
 def isReadLoopPre (r : Loc) (γr : ReadNames)
     (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) : IProp GF :=
   iprop(∃ (srv rf : GoInterface) (wc : Loc) (γw : ChanNames),
@@ -325,7 +341,7 @@ def isReadLoopPre (r : Loc) (γr : ReadNames)
     readRaftAddr r ↦□ rf ∗ isReadRaft rf γr RQ ∗
     readWaitCAddr r ↦□ wc ∗ isChanBag γw wc (V := Unit) (fun _ => iprop(True)) ∗
     readInv γr ∗ sync.isRWMutexGuard (readMuAddr r) (readMuP r γr) ∗ context.isClosedchanInit ∗
-    readCompose γr)
+    readCompose γr ∗ readCtxMinted γr)
 
 instance isReadPre_persistent (r : Loc) (γr : ReadNames) : Persistent (isReadPre (GF := GF) r γr) := by
   unfold isReadPre; infer_instance
@@ -347,7 +363,7 @@ theorem isReadLoopPre_pre (r : Loc) (γr : ReadNames)
     (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) :
     isReadLoopPre r γr RQ LR NR ⊢ isReadPre r γr := by
   iunfold isReadLoopPre
-  iintro ⟨%srv, %rf, %wc, %γw, #Hs, #Hsrv, -, -, #Hw, #Hb, #Hi, -, -, -⟩
+  iintro ⟨%srv, %rf, %wc, %γw, #Hs, #Hsrv, -, -, #Hw, #Hb, #Hi, -, -, -, -⟩
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨#Hd, -⟩
   iunfold isReadPre

@@ -66,8 +66,10 @@ theorem Register.RemoveMember.wp_proof
     iframe Hcc
     ipureintro; rfl
   wp_auto
+  ihave #Hbg := nodeCtx_background (GF := GF) bgCd
   wp_apply wp_node_ProposeConfChange γp.node id0 n _ (.v1 (rmCC id)) (DFrac.own 1)
-      (by rw [Hraft]; exact Hok) $$ [$Hraftinit $HisNode $Hcci] as %err -
+      context.backgroundCtxVal bgCd (by rw [Hraft]; exact Hok)
+      $$ [$Hraftinit $HisNode $Hbg $Hcci] as %err -
   iapply HΦ
   itrivial
 

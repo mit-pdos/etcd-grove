@@ -3,7 +3,11 @@
 ## `node.Propose(ctx, data)` (node.go:469)
 
 A proposal of `data` from any goroutine: `stepWait` of a one-entry `MsgProp`, which `run`
-steps as `RawNode.Propose` does. Specified for `context.Background()`.
+steps as `RawNode.Propose` does. Until stage R7a specified for `context.Background()`.
+(2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`:
+`Done()` nil, or Perennial's `isContext`), and the error `propErr cd err`: `nodeErr` (`nil`,
+raft's `ErrStopped`, the context's once its `Done()` fired) or the proposal's own result from
+`run` (`ErrProposalDropped`, ...; non-`nil`).
 
 **Logically atomic (2026-10-10; persistent since 2026-10-14, stage R).** The full committed
 log `rLog γ L` (`Protocol/GhostState.lean`) is the client's: a first proposal of `data`
@@ -24,7 +28,7 @@ raft v3.7 (2026-10-16, stage R5): the message is a fresh `*pb.Message` whose one
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 
 @[expose] public section
@@ -46,15 +50,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.Propose.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8)
-    (Q : List EntryM → IProp GF) (fresh : Bool),
+    (Q : List EntryM → IProp GF) (fresh : Bool)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+      nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗
       -- (2026-10-16, stage R5, D6) non-empty data (`node_propose_ghost`)
       ⌜data ≠ []⌝ ∗
       propArg γ.raft data Q fresh }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
-      (Val #(interface.ok context.backgroundCtxVal))) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; propRes γ.raft data Q fresh }}
+      (Val #(interface.ok ctx))) (Val #data_sl))
+  {{ (err : GoInterface), RET #err; propRes γ.raft data Q fresh ∗ propErr cd err }}
 
 end spec
 

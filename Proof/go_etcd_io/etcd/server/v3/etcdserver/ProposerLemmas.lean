@@ -50,6 +50,7 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
   ihave #Hfl : floorAt (GF := GF) γf F $$ []
   · iunfold floorAt; iexact Hγ
   iunfold srvMintInv at Hm
+  icases Hm with ⟨#Hm, -⟩
   iinv Hm with >Hi Hclose
   icases Hi with ⟨%Fm, HF', HFs⟩
   cases hF : Fm !! d with
@@ -87,6 +88,7 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
     iexists γf
     iframe Hc Hfl
     iunfold srvPropFresh
+    iunfold propFresh
     iexact Hfr
 
 end lemmas

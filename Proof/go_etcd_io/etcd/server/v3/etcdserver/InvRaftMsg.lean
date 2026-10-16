@@ -45,6 +45,14 @@ def HardStateModel.toM (hs : HardStateModel) : HardStateM := ⟨hs.term, hs.vote
 -- Projection lemmas, `@[simp, word_unfold]` (`Proof/go_etcd_io/raft/v3/ProjSimps.lean`).
 proj_simps Perennial.EtcdGrove.HardStateModel.toM
 
+/-- Raft's record as the server's hard state (2026-10-16, stage R7b). -/
+def HardStateModel.ofM (h : HardStateM) : HardStateModel := ⟨h.Term', h.Vote', h.Commit'⟩
+
+proj_simps Perennial.EtcdGrove.HardStateModel.ofM
+
+@[simp] theorem HardStateModel.toM_ofM (h : HardStateM) : (HardStateModel.ofM h).toM = h := by
+  cases h; rfl
+
 theorem HardStateModel.toM_zero_iff (hs : HardStateModel) :
     hs.toM = HardStateM.mk (W64 0) (W64 0) (W64 0) ↔ hs = HardStateModel.empty := by
   cases hs

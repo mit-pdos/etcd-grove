@@ -38,7 +38,9 @@ theorem Register.TransferLeadership.wp_proof
   · iPkgInit
   wp_auto
   wp_apply context.wp_Background
-  wp_apply wp_node_TransferLeadership γp.node id n id to $$ [$Hraftinit $HisNode]
+  ihave #Hbg := nodeCtx_background (GF := GF) bgCd
+  wp_apply wp_node_TransferLeadership γp.node id n id to context.backgroundCtxVal bgCd
+    $$ [$Hraftinit $HisNode $Hbg]
   iapply HΦ
   itrivial
 

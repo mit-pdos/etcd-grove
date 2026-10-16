@@ -24,12 +24,39 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- A batch's last index (or 0 for none) is at most the index of the log after it. -/
+theorem srvIdxOk_last_le (ai0 : w64) (A ce : List EntryModel) (ci : w64)
+    (h : srvIdxOk ai0 (A ++ ce))
+    (hci : (ce.getLast?).map EntryModel.index = some ci ∨ (ce = [] ∧ ci = W64 0)) :
+    uint.Z ci ≤ uint.Z ai0 + (A ++ ce).length := by
+  have hai0 : 0 ≤ uint.Z ai0 := by word
+  rcases hci with h1 | ⟨-, rfl⟩
+  · cases hl : ce.getLast? with
+    | none => rw [hl] at h1; cases h1
+    | some m =>
+      rw [hl] at h1
+      simp only [Option.map_some, Option.some.injEq] at h1
+      subst h1
+      have hne : ce ≠ [] := by intro he; subst he; cases hl
+      have hpos : 0 < ce.length := List.length_pos_iff.mpr hne
+      rw [List.getLast?_eq_getElem?] at hl
+      have hk : (A ++ ce)[A.length + (ce.length - 1)]? = some m := by
+        rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]; exact hl
+      have := (h.2 _ m hk).1
+      simp only [List.length_append]
+      push_cast at this ⊢
+      omega
+  · rw [show uint.Z (W64 0) = 0 from rfl]
+    simp only [List.length_append]
+    push_cast
+    omega
+
 theorem updateCommittedIndex.wp_proof
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     updateCommittedIndex.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
-  intro ap rh es ceL ce R γr
-  wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR⟩
+  intro ap rh es ceL A ce R γr
+  wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR, #Hlog, %Hidx⟩
   imod monoNatLbOwn_0 (GF := GF) γr.committed with #H0
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   iunfold entriesAt at Hents
@@ -100,11 +127,13 @@ theorem updateCommittedIndex.wp_proof
         rw [show uint.nat (W64 0) = 0 from rfl]
         iexact H0
     · subst h; simp only [List.getLast?_nil]; itrivial
-  · ispecialize Hucit $$ %ci
+  · ispecialize Hucit $$ %ci %(A ++ ce)
     -- (`wp_bind` then `iapply`: a `wp_apply` of the hypothesis triple inside `exceptionDo` can
     -- close the goal with a synthetic `sorry`)
     wp_bind (App (Val #uci) (Val #ci))
-    iapply Hucit $$ HR
+    iapply Hucit $$ [HR]
+    · iframe HR Hlog
+      ipureintro; exact srvIdxOk_last_le γr.raft.ai0 A ce ci Hidx Hci
     inext
     iintro ⟨HR, #Hca⟩
     wp_auto

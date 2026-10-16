@@ -7292,3 +7292,98 @@ single-voter read-index fix, everything translated). After the swap there is one
   generic over parts and need no change; collection `raft37.txt` becomes `raft.txt`. The old
   tree's private trust boundary goes with it: `gogoproto.Equal`, `reflect.DeepEqual`, the
   gogoproto `Marshal`/`Unmarshal` axioms (protobuf-go's `proto.*` axioms replace them, R1).
+
+## The server's raft contract discharged: the contract layer over raft's protocol (stage R7 of the raft v3.7 retarget)
+
+**2026-10-16 · adopted (stage R7, branch `raft-retarget`)**
+
+After R6 the server's raft is the verified one, but what the server assumes of it is still a
+premise of its results: `isRaftNodeIfc` (`Ready`, `Advance`, `Tick`, `Stop`, `ReadIndex`),
+`raftPropose` (`Propose`), `isRNMemStor` (the storage's `Append`), stated over the server's own
+ghost log `srvRLog` and its atomic updates (`InvRequest.lean`, "Raft's committed log, at the
+server"; `InvRaftNode.lean`). R7 proves them from raft's node and storage specs. The server's
+contract was written (2026-10-12/14) as a copy of raft's protocol interface in the server's
+terms, and the copy is nearly exact: `srvRLog`/`rLog` (the client's half of the committed log),
+`srvRLogLb`/`isCommitted`, `srvRaftLogInv`/`raftCommitInv`, `srvPropFresh`/`propFresh`,
+`srvIsProp`/`isProp`, `srvPropAu`/`propAu`, `srvNoopAu`/`noopAu`, `srvPropWits`/`prop_collect`,
+`srvReadAu`/`readAu`, `srvReadWit`/`readWit` with `read_collect`; `EntryModel` is `EntryM` field
+for field (`EntryModel.toM`). So the pattern is D9's again.
+
+- **D10: the server's contract layer is defined over raft's protocol predicates; the three
+  contracts become theorems.** `ServerRaftNames` gains raft's names (`raft : RaftNames`) and the
+  log the server's view starts after (`pre : List EntryM`, with `ai0 = pre.length`: raft's
+  `rLog` is the full committed log from index 1, the server's the entries after its start index;
+  today the composition starts at `[]`, since raft's `RestartNode` takes an empty storage). Then
+  `srvRLog γ L := rLog γ.raft (γ.pre ++ L.map toM)`, `srvRLogLb γ L := isCommitted γ.raft (γ.pre
+  ++ L.map toM)`, `srvRaftN := raftN` (the server's updates are fired by raft at `⊤ ∖ raftN`),
+  `srvRaftLogInv γ := raftCommitInv γ.raft ∗ isCommitted γ.raft γ.pre ∗ ⌜…⌝`, the fresh tokens,
+  deposits and handles raft's (`rdFresh`, `deposited`, `isProp`, `isRead`); `srvPropAu`,
+  `srvNoopAu`, `srvReadAu` keep their statements (the server's KV invariant builds them) and
+  conversion lemmas turn them into raft's `propAu`/`noopAu`/`readAu` of the shifted predicate
+  (`fun Lm => Q (ofM (Lm.drop |pre|))`, trivial when `pre` is not a prefix of `Lm`, which never
+  happens); `srvPropWits` and `srvReadWit` are theorems (`node_collect`, `node_read_collect`,
+  `£ 2` for the two laters). `RNNames` gains the node's names (`node : NodeNames`, its `id`, its
+  pointer, static mode) and `rnDrv`/`rnBusy`/`rnReadyP`/`rnAppendRight`/`rnAppendReceipt` are
+  `nodeDriver`/`nodeDriverBusy` (with `nodeCfg`)/`readyP γ.node`/`memAppendTok`-based;
+  `rnReadyData` keeps the server's shape and `rn_ready_recv` becomes a fancy update that derives
+  it (messages persisted, `E.C` from the committed log). `E` stays a parameter: the discharge
+  takes `rnEnvOk E γ` (persistent, in `isRaftNode`): `E.T = tickCred γ.node.bud 1`, `E.M m` the
+  persistent part of a handed-out message (`msgOwn m □ st ∗ isRaftMsg ∗ termLB`), `E.RQ id n Qr`
+  raft's read registration of `beBytes id` (`isRead` and `readReq` at a log of length `≥ n`),
+  and `□ (∀ L, srvRLogLb L ={⊤}=∗ □ E.C L)`, which the server's composition proves from its KV
+  invariant (`srvC`'s workload facts are the KV invariant's, not raft's). *Rejected:* a bridge
+  invariant holding `srvRLog` beside `rLog` (the server's updates must run at raft's commit
+  step, under raft's mask, so they must be raft's updates); making `EntryModel` an abbreviation
+  of `EntryM` (280 uses; the conversion is one function).
+- **Four gaps on raft's side, closed in R7a.** (1) `readyData` says nothing of `rd.SoftState`,
+  which the server reads: it gains `softStateRO rd.SoftState'` (nil, or `Lead`/`RaftState`
+  read-only; `prevSoftSt` a read-only pointer). (2) `node.Propose`, `node.ReadIndex` and the
+  `step*` chain are specified for `context.Background()` only; the server passes a context with
+  a timeout: they take `nodeCtx ctx cd` (`Done()` nil, or Perennial's `context.isContext`), and
+  say what the error is (`nil`, raft's `ErrStopped`, the context's). (3) The committed entries'
+  indices: raft's protocol knows them (`cq_full`: `PlogWf base0 G`, entry `k` has index `k + 1`)
+  but neither `isCommitted` nor the updates expose it, and the server's `srvIdxOk` needs it in
+  the update (`srvPropAu`'s after-clause): `propAu`/`noopAu` gain `⌜uint.Z e.Index' = L.length +
+  1⌝` in their after-clause (the firing step has `cq_full`), and `isCommitted_wf` states it for
+  a committed log. (4) `rLog_committed` (the register's `reg_log_committed`) and the
+  `MemoryStorage` instance of `StorageModel` (the register's `RegStorageInstance`) move into
+  raft's tree, shared.
+- **Two budgets the server did not pay, now paid where the premise belongs.** Raft's `Tick`
+  spends a term-budget credit and `ReadIndex` a read credit, both from finite budgets (`< 2^64 -
+  1`); the server's `start` took `□ |==> E.T` (a free tick), its `ReadIndex` no credit, and
+  neither can be derived (`□ |==> tickCred 1` contradicts the budget invariant). The tick's credit
+  comes with the tick: the ticker's channel payload is `E.T` (`isRNTicker E`; `time.Ticker` is a
+  trust-boundary contract, and "fewer than `2^64 - 1` ticks in a run" is its premise). The read's
+  credit comes with the request: `isRaftNodeIfc`'s `ReadIndex` clause, `raftNode.ReadIndex`,
+  `isReadRaft` and the read loop take `rnReadCred` (`rdCred γ.node.raft 1`) per `ReadIndex`, paid
+  by the request that wakes the loop (`readwaitc`'s payload, from `LinearizableReadNotify`'s
+  caller: the premise moves to the gRPC layer, "fewer than `2^64 - 1` linearizable reads in a
+  run"). The clause also takes the fresh-context token raft needs (`rdFresh γ.raft (beBytes
+  id)`, minted by the server from the id generator's `idFresh`) and the context's bytes
+  read-only (`sl ↦*□ beBytes id`: raft keeps them in the entry).
+- **One premise stays, one is new.** `Stop` stays a premise: raft's model never stops (`run`'s
+  stop case is vacuous, `done` never closes) and `node.Stop` has no spec; modelling stop touches
+  `node.run` and every `<-n.done` case, a stage of its own (the user's decision, 2026-10-16).
+  New: `Append`'s index bound. Raft's `MemoryStorage.Append` needs the appended entries' last
+  index `≤ 2^61` (its arithmetic, and the storage contract's `Hbounded`), which raft's node layer
+  cannot establish for the unstable entries it hands out (`|uents| < 2^63` only); the register
+  checks it in Go (`fits`), etcd does not. So `isRaftNode` gains `rnLogFits γ` (persistent, a
+  trust-boundary premise on the run: every `Ready`'s entries fit), recorded in `notes/STATUS.md`.
+- **The committed index and the log.** `isRaftNodeIfc`'s `ReadIndex` takes `committedAtLeast
+  E.γr n` and raft's needs a committed log of length `≥ n`: `srvCommittedInv` (the committed
+  index's invariant) gains the log prefix the index was read from (`∃ L, srvRLogLb L ∗ ⌜v ≤ ai0 +
+  |L|⌝`; its writer, the ready handler's `updateCommittedIndex`, has it from `srvC`).
+- **Mode.** The node is in raft's static mode: the server's conf changes go through
+  `EtcdServer.applyConfChange`, a trust-boundary spec (R6), so `Advance`'s dynamic-mode premise
+  is vacuous.
+- **Carried out (2026-10-16, R7a/R7b; `notes/STATUS.md`).** Three deviations from the plan
+  above. (i) The read credit comes with the request *id*, not the request: `requestCurrentIndex`
+  retries `ReadIndex` on a timer, unboundedly in the model, so a per-request credit cannot pay
+  for the retries; each call has a fresh id, and the id budget (`2^48`) is below raft's
+  (`2^64 - 2`), so the server's mint of read contexts (`srvRdFreshInv`) hands out raft's fresh
+  token and credit with every `NextRequestID`: no new premise at the gRPC layer. (ii) The updates'
+  after-clauses are the new entry's facts only (`srvPropAu`, `srvNoopAu`: raft gives the appended
+  entry's index, not the whole log's), and `srvIdxOk`'s `2^64` bound on the delivered log is a run
+  premise (`rnLogFits`, beside `Append`'s `2^61`). (iii) Two error-value facts stay premises
+  (`rnCtxErrOk`, `rnPropErrOk`): raft's `nodeErr`/`propErr` do not name a context's `Err()` nor
+  `Propose`'s result error; R7c retires them on raft's side.

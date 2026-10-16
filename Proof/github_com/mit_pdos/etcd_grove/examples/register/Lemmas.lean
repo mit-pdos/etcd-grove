@@ -376,28 +376,6 @@ theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List EntryM)
   imodintro
   ipureintro; rfl
 
-/-- The register's log is raft's committed log (the client's half of `rLog` and the log
-half's quarter agree, 2026-10-14, stage R). -/
-theorem reg_log_committed (γr : RegNames) (L : List EntryM) (E : CoPset)
-    (HE : ↑raftLogN ⊆ E) :
-    ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L ={E}=∗
-      rLog γr.raft L ∗ isCommitted γr.raft L := by
-  iintro #Hcinv HrL
-  ihave #Hli := raftCommitInv_log γr.raft $$ Hcinv
-  unfold raftLogInv raftLogInvBody logRest
-  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
-  iunfold rLog at HrL
-  ihave %HLeq := ghostVar_agree γr.raft.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
-  subst HLeq
-  ihave #HPc := ownCommitted_lb γr.raft _ $$ HP
-  imod Hclose $$ [HP Htbl Hwt Hq1] with -
-  · inext
-    iexists P
-    iframe HP Hj Htbl Hwt Hds Hq1
-  imodintro
-  unfold rLog
-  iframe HrL HPc
-
 /-- Every committed log is a prefix of the register's log (the global one). -/
 theorem reg_log_prefix (γr : RegNames) (L l : List EntryM) (E : CoPset)
     (HE : ↑raftLogN ⊆ E) :
@@ -434,7 +412,7 @@ theorem regLb_current (γr : RegNames) (x : List w8) (E : CoPset)
   ihave %Hxeq := ghostVar_agree γr.val (regFold (firstOcc ods)) (1 : Qp).half x (1 : Qp).half
     $$ Hv Hx
   have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑regN := raftLogN_of HE2
-  imod reg_log_committed γr L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
+  imod rLog_committed γr.raft L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
   imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
   · inext
     iexists L, ods, M, F, S, Mi, O
@@ -563,7 +541,7 @@ theorem reg_propAu (γr : RegNames) (d : List w8) (γp : GName × GName) :
     imodintro
     iempintro
   · -- commit: the log grows by `e`, holding `d`
-    iintro %e ⟨HrL, #He⟩
+    iintro %e ⟨HrL, #He, -⟩
     imod Hclose2 with -
     ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [some d], entDataIs γr.raft e o) $$ []
     · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2
@@ -678,7 +656,7 @@ theorem reg_noopAu (γr : RegNames) :
       ipureintro; exact ⟨Hok, Hodm⟩
     imodintro
     iempintro
-  · iintro %e ⟨HrL, #He⟩
+  · iintro %e ⟨HrL, #He, -⟩
     imod Hclose2 with -
     ihave #Hods' : iprop([∗list] e;o ∈ L ++ [e];ods ++ [none], entDataIs γr.raft e o) $$ []
     · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γr.raft e o)).2
@@ -912,10 +890,13 @@ theorem regCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegC
 
 end confs
 
-/-! ## Raft's pointer messages and read states, at the register (raft v3.7, 2026-10-16, stage R6b)
+/-! ## Raft's read states, at the register (raft v3.7, 2026-10-16, stage R6b)
 
-What the register's proofs need of `InvPb.lean`'s predicates beyond raft's own lemmas: candidates
-for raft's shared files (`InvPbMsg.lean`, `InvMisc.lean`, `InvPb.lean`). -/
+The register's own view of a `Ready`'s read states (`rsOk`). What the register needed of
+`InvPb.lean`'s message predicates moved to raft's shared files on 2026-10-16 (stage R7a):
+`msgPtsC_persist_els`, `msgPtsC_store_Entries`, `msgPtsC_fields_acc`, `entsPts_elim`
+(`InvPbMsg.lean`), `csPts_of_struct_ro`, `ownCCV1_persistent`, `ownCCV1_persist`
+(`InvPb.lean`). -/
 
 section pb
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -965,145 +946,6 @@ theorem readStatesPts_rsOk (γ : RaftNames) (rs : GoSlice) (sts : List ReadState
   ihave H := rsOk_of_readStates γ vs sts $$ [Hb Hok]
   · iframe Hb Hok
   iexact H
-
-/-- A message's `Entries` elements frozen, its capacity kept (`msgPtsC_to_msgOwn` drops it): a
-received message's entries, read-only for `Node.Step` (`netP`'s `msgIn ml □`). -/
-theorem msgPtsC_persist_els (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
-    msgPtsC (GF := GF) l dq dqe cap ms ⊢ |==> msgPtsC l dq DFrac.discard cap ms := by
-  iintro H
-  iNamed H
-  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hes with #Hes
-  imodintro
-  iunfold msgPtsC
-  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
-  isplitr
-  · ipureintro; exact Hnn
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs Hpb
-
-/-- An owned message's `Entries` field, to replace its slice (`deliver`'s copy, `m.Entries =
-append([]*pb.Entry(nil), m.Entries...)`): the field, the slice's elements (the pointers `els` of
-the entries `ms.ents`), and the message back once a fresh slice holding the same pointers, with
-its capacity, is stored, at the new slice's fraction. -/
-theorem msgPtsC_store_Entries (l : Loc) (dqe : DFrac) (cap : Bool) (ms : MsgSt) :
-    msgPtsC (GF := GF) l (DFrac.own 1) dqe cap ms ⊢
-      ∃ (es : GoSlice) (els : List Loc),
-        l.[raftpb.Message, go!"Entries"] ↦ es ∗ es ↦*{dqe} els ∗
-        ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
-        (∀ (es' : GoSlice) (dqe' : DFrac),
-          l.[raftpb.Message, go!"Entries"] ↦ es' -∗ es' ↦*{dqe'} els -∗
-          ownSliceCap Loc es' (DFrac.own 1) -∗
-          msgPtsC l (DFrac.own 1) dqe' true ms) := by
-  iintro H
-  iNamed H
-  iclear Hes_cap
-  iexists es, els
-  iframe HEs Hes Hents
-  iintro %es' %dqe' HEs Hes Hcap
-  iunfold msgPtsC
-  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es', els, ps, cs, rs, uf
-  isplitr
-  · ipureintro; exact Hnn
-  simp only [named, ↓reduceIte]
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
-
-/-- A message's `Entries` and `Context` fields, read in place (`deliverable`'s `m.Entries != nil`,
-`m.Context == nil`): a `nil` slice holds no entries, no bytes. -/
-theorem msgPtsC_fields_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
-    msgPtsC (GF := GF) l dq dqe cap ms ⊢
-      ∃ (es cs : GoSlice),
-        l.[raftpb.Message, go!"Entries"] ↦{dq} es ∗ l.[raftpb.Message, go!"Context"] ↦{dq} cs ∗
-        ⌜(es = slice.nil → ms.ents = []) ∧ (cs = slice.nil → ms.ctx = [])⌝ ∗
-        (l.[raftpb.Message, go!"Entries"] ↦{dq} es -∗ l.[raftpb.Message, go!"Context"] ↦{dq} cs -∗
-          msgPtsC l dq dqe cap ms) := by
-  iintro H
-  iNamed H
-  ihave %Hel : ⌜els.length = sint.nat es.len ∧ 0 ≤ sint.Z es.len⌝ $$ [Hes]
-  · iapply ownSlice_len $$ Hes
-  ihave %Hbl := entsBig_length $$ Hents
-  ihave %Hcl := ownSlice_len $$ Hcs
-  iexists es, cs
-  iframe HEs HCx
-  isplitr
-  · ipureintro
-    refine ⟨fun h => ?_, fun h => ?_⟩
-    · subst h
-      apply List.eq_nil_of_length_eq_zero
-      rw [← Hbl, Hel.1]; rfl
-    · subst h
-      apply List.eq_nil_of_length_eq_zero
-      rw [Hcl.1]; rfl
-  iintro HEs HCx
-  iunfold msgPtsC
-  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
-  isplitr
-  · ipureintro; exact Hnn
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
-
-/-- A freshly allocated `*pb.ConfState` (hidden fields zero) whose slices hold `c`'s lists
-read-only and whose `AutoLeave` is a cell holding `c.AutoLeave'`, frozen read-only for good: the
-conf state the register's `InitialState` returns (`&pb.ConfState{Voters: s.voters}`, the voters
-slice shared by the cluster's storages). `csPts_of_struct` at owned slices; `al` as there. -/
-theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : CoPset)
-    (Hu : v.unknownFields' = slice.nil) :
-    (p ↦ v ∗ v.Voters' ↦*□ c.Voters' ∗ v.Learners' ↦*□ c.Learners' ∗
-      v.VotersOutgoing' ↦*□ c.VotersOutgoing' ∗ v.LearnersNext' ↦*□ c.LearnersNext' ∗
-      cellRO v.AutoLeave' c.AutoLeave' : IProp GF) ⊢
-      |={E}=> csPts p DFrac.discard c (decide (v.AutoLeave' ≠ null)) := by
-  iintro ⟨Hp, #Hv, #Hl, #Ho, #Hn, #cA⟩
-  ihave %Hnn := typedPointsto_not_null $$ Hp
-  icases typedPointsto_split _ _ _ $$ Hp with Hp
-  simp only [TypedPointsto.typedPointstoDef]
-  icases Hp with ⟨state, Voters, Learners, VotersOutgoing, LearnersNext, AutoLeave, unknownFields, sizeCache, -⟩
-  rw [Hu]
-  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
-  · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfState p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
-  · iframe
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Voters with #Voters
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Learners with #Learners
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ VotersOutgoing with #VotersOutgoing
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ LearnersNext with #LearnersNext
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ AutoLeave with #AutoLeave
-  imodintro
-  iunfold csPts
-  iexists v.Voters', v.Learners', v.VotersOutgoing', v.LearnersNext', v.AutoLeave'
-  isplitr
-  · ipureintro; exact Hnn
-  iframe Voters Hv Learners Hl VotersOutgoing Ho LearnersNext Hn AutoLeave cA Hpb
-  ipureintro; intro h; simpa using h
-
-/-- An entry slice, taken apart (`entsPts` is a definition: `icases` does not see its
-existential). -/
-theorem entsPts_elim (s : GoSlice) (dq : DFrac) (es : List EntryM) :
-    entsPts (GF := GF) s dq es ⊢
-      ∃ ls : List Loc, s ↦*{dq} ls ∗ [∗list] l;e ∈ ls;es, entRO l e := by
-  iintro H
-  iunfold entsPts at H
-  iexact H
-
-instance ownCCV1_persistent (p : Loc) (m : CCV1M) :
-    Persistent (ownCCV1 (GF := GF) p DFrac.discard m) := by
-  unfold ownCCV1; infer_instance
-
-/-- A `*pb.ConfChange` frozen read-only (what `run` sends on `confc` through
-`node.ApplyConfChange`, `confcP`: raft reads it on its own goroutine). -/
-theorem ownCCV1_persist (p : Loc) (dq : DFrac) (m : CCV1M) :
-    ownCCV1 (GF := GF) p dq m ⊢ |==> ownCCV1 p DFrac.discard m := by
-  iintro H
-  iNamed H
-  imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
-  imod (typedPointsto_dfractional (GF := GF) _ pn).dfractional_persist _ $$ HN with #HN
-  imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
-  imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HC with #HC
-  imodintro
-  iunfold ownCCV1
-  iexists pt, pn, pi, cs, uf
-  isplitr
-  · ipureintro; exact Hnn
-  iframe HT cT HN cN HI cI HC Hcs Hpb
 
 end pb
 

@@ -81,6 +81,29 @@ theorem EntryModel.toM_inj [FfiSyntax] {m m' : EntryModel} (h : m.toM = m'.toM) 
   obtain ⟨rfl, rfl, rfl, rfl⟩ := h
   rfl
 
+/-- Raft's record as the server's entry (2026-10-16, stage R7b: the server's contract is defined
+over raft's protocol, whose logs are of `EntryM`). -/
+def EntryModel.ofM [FfiSyntax] (e : EntryM) : EntryModel := ⟨e.Term', e.Index', e.Type', e.Data'⟩
+
+proj_simps Perennial.EtcdGrove.EntryModel.ofM
+
+@[simp] theorem EntryModel.toM_ofM [FfiSyntax] (e : EntryM) : (EntryModel.ofM e).toM = e := by
+  cases e; rfl
+
+@[simp] theorem EntryModel.ofM_toM [FfiSyntax] (m : EntryModel) : EntryModel.ofM m.toM = m := by
+  cases m; rfl
+
+theorem EntryModel.toM_injective [FfiSyntax] : Function.Injective (EntryModel.toM) :=
+  fun _ _ h => EntryModel.toM_inj h
+
+@[simp] theorem EntryModel.map_toM_ofM [FfiSyntax] (l : List EntryM) :
+    (l.map EntryModel.ofM).map EntryModel.toM = l := by
+  rw [List.map_map]; exact List.map_id'' (fun e => EntryModel.toM_ofM e) l
+
+@[simp] theorem EntryModel.map_ofM_toM [FfiSyntax] (L : List EntryModel) :
+    (L.map EntryModel.toM).map EntryModel.ofM = L := by
+  rw [List.map_map]; exact List.map_id'' (fun m => EntryModel.ofM_toM m) L
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

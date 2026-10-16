@@ -443,7 +443,7 @@ theorem EtcdServer.run.wp_proof
             · iframe #
             ul_stats
     · -- `updateCommittedIndex`: the writer's half of the committed index
-      iintro %ci' !> %Φ' !> ⟨%c, Hown⟩ HΦ'
+      iintro %ci' %Lc !> %Φ' !> ⟨⟨%c, Hown⟩, #HLc, %HciL⟩ HΦ'
       wp_auto
       wp_apply hGCI s γr (some c) $$ [Hown] as %cci ⟨-, Hown, %Hcci⟩
       · iframe #; iunfold srvCommittedOwnOpt; iexact Hown
@@ -452,8 +452,8 @@ theorem EtcdServer.run.wp_proof
       subst hc
       (try wp_auto)
       wp_if_destruct
-      · wp_apply hSCI s γr cci ci' (by word) $$ [Hown] as ⟨Hown, #Hca⟩
-        · iframe #; iexact Hown
+      · wp_apply hSCI s γr cci ci' Lc (by word) $$ [Hown] as ⟨Hown, #Hca⟩
+        · iframe #; iframe Hown; ipureintro; exact HciL
         (try wp_auto)
         iapply HΦ'
         iframe Hca

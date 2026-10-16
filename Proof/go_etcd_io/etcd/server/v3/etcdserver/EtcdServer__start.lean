@@ -447,7 +447,19 @@ theorem EtcdServer.start.wp_proof
     iexact HsgU
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_server hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
-    { ρ with wait := γw } γr $$ [$Hpkg $Hreq $Hrd]
+    { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
+  -- the minted contexts (2026-10-16, stage R7b): from the mint and raft's commit invariant
+  ihave #Hmint : readCtxMinted (GF := GF) γr $$ []
+  · ihave #Hkvi3 := Hkvi
+    iunfold srvKVInvs at Hkvi3
+    icases Hkvi3 with ⟨-, -, #Hli, -⟩
+    ihave #Hq17 := Q17
+    iunfold srvMintInv at Hq17
+    icases Hq17 with ⟨-, #Hrf⟩
+    iapply readCtxMinted_of_mint γr ρ.ids
+    iframe Hli
+    rw [show γr.raft = ρ.raft by subst Hρrd; rfl]
+    iexact Hrf
   ihave #Hrr : isReadRaft (interface.mkOk (go.GoType.PointerType raftNode.ty) #(srvRAddr s)) γr
       Er.RQ $$ []
   · rw [← HEr.2]
@@ -459,9 +471,11 @@ theorem EtcdServer.start.wp_proof
   iunfold srvStarted
   iframe Hwg2 Hwgs HNR
   isplitr
+  · ipureintro; exact Hρrd
+  isplitr
   · iexists rd
     iframe Hread
-    iapply Hrlp $$ Hrs Hrr
+    iapply Hrlp $$ Hrs Hrr [] Hmint
     iunfold readCompose
     iintro !> %gs #Hgs
     ihave #Hkvi2 := Hkvi

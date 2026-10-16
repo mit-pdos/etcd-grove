@@ -3,9 +3,13 @@
 ## `node.stepWithWaitOption(ctx, m, wait)` (node.go:508)
 
 A message to `run`: a proposal on `propc`, with a result channel if `wait` (then waits for
-the result), anything else on `recvc`. Specified for `context.Background()` (its `Done()`
-is `nil`, so the `ctx` cases never fire) and for the two uses `Propose` and `Step` make of
-it: `Propose`'s message (`propMsg`, with `wait`), and a message from the network
+the result), anything else on `recvc`. Until stage R7a specified for `context.Background()` (its
+`Done()` is `nil`, so the `ctx` cases never fire); since (2026-10-16, D10 gap (2)) for any `nodeCtx ctx cd`
+(`InvNodeCtx.lean`): a `case <-ctx.Done()` fires once the context is done, returning `ctx.Err()`
+(`ctxErr`), in the second `select` abandoning the proposal's result channel (the handoff's consumer
+token is dropped). The error is `nodeErr cd err` (`nil`, `ErrStopped`, the context's), or, with
+`wait`, the proposal's result from `run` too (`propErr`). Specified for the two uses `Propose` and
+`Step` make of it: `Propose`'s message (`propMsg`, with `wait`), and a message from the network
 (`netP`).
 
 raft v3.7 (2026-10-16, stage R5): `m` is a `*pb.Message` (`ml`), handed to `run` for good.
@@ -17,7 +21,7 @@ its capacity and the data slice). A message from the network is `netP` alone: it
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 
 @[expose] public section
@@ -47,12 +51,14 @@ def stepArg (γ : NodeNames) (id : w64) (ml : Loc) (wait : Bool) : IProp GF :=
 
 /-- See the file header. -/
 abbrev node.stepWithWaitOption.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (wait : Bool),
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (wait : Bool)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+      nodeCtx ctx cd ∗
       stepArg γ id ml wait }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWithWaitOption"))
-      (Val #(interface.ok context.backgroundCtxVal))) (Val #ml)) (Val #wait))
-  {{ (err : GoInterface), RET #err; True }}
+      (Val #(interface.ok ctx))) (Val #ml)) (Val #wait))
+  {{ (err : GoInterface), RET #err; if wait then propErr cd err else nodeErr cd err }}
 
 end spec
 

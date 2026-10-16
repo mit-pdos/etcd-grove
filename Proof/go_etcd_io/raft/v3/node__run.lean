@@ -783,6 +783,9 @@ theorem node.run.wp_proof
         %Hfacts⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
+    -- (2026-10-16, stage R7a) the `Ready`'s soft state, read-only for the application
+    icases ownRawNodeReady_softStateRO γ.raft nv.rn' id rs rdv' ce es ms false $$ Hrn
+      with ⟨#Hss, Hrn⟩
     -- the append right goes with the `Ready`, and `rof` records it
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver
@@ -798,7 +801,7 @@ theorem node.run.wp_proof
       iexists rs.delivered, ce, es, ms
       iframe Hdlv Hr1 Hdlb
       unfold readyData
-      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Hrsts Hhd
+      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Hrsts Hhd Hss
       isplitl [Happ]
       · rw [← Hstor]
         iexact Happ

@@ -73,9 +73,12 @@ module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.Protocol.ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
+public import Perennial.Std.Word.LittleEndian
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
@@ -95,45 +98,140 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-! ## Raft's committed log, at the server (2026-10-14, unit T1) -/
+/-! ## Raft's committed log, at the server (2026-10-14, unit T1; 2026-10-16, stage R7b: defined
+over raft's protocol)
+
+The server's contract predicates are definitions over raft's protocol predicates
+(`Proof/go_etcd_io/raft/v3/Protocol/`; `notes/decisions.md`, "The server's raft contract
+discharged", D10): raft's committed log is the full log from index 1 (`rLog`, the client's half;
+`isCommitted`, its prefixes), the server's view is what follows its start index `ai0` after the
+log `pre` it started with (`uint.Z ai0 = |pre|`, `srvRaftLogInv`): `srvRLog γ L := rLog γ.raft
+(srvLogOf γ L)`, `srvLogOf γ L = (pre ++ L).map toM`. The updates keep the server's shape (the
+KV invariant builds them, `KVLemmas.lean`) and the conversion lemmas (`srvPropAu_to_propAu`,
+`srvNoopAu_to_noopAu`, `srvReadAu_to_readAu`) turn them into raft's, of the lifted predicate
+`srvLift γ Q` (the server's `Q` on the entries after `pre`); the witnesses are theorems
+(`srvPropWits_of_raft`, `srvReadWit_of_raft`, by raft's `prop_collect`/`read_collect`). The
+after-clauses carry the appended entry's facts alone (its type, data and index: what raft's
+commit step knows); the KV invariant derives its own entry-wise `srvIdxOkW` from them. -/
 
 section ghost
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The ghost names of the server's raft contract (2026-10-14, unit T1: the full committed raft
-log; until then the register's first-occurrence client log): the committed log after the start
-index `ai0` (a ghost variable, halves: raft's, in its commit invariant, and the server's KV
-invariant's, `srvRLog`), its lower bounds (a mono list, `srvRLogLb`; the authority raft's), the
-fresh-data tokens and the deposited proposals (ghost maps keyed by the data). -/
+/-- The ghost names of the server's raft contract (2026-10-16, stage R7b, D10): raft's names,
+the committed log before the server's start index (raft's log is the full one from index 1;
+`uint.Z ai0 = pre.length`, carried by `srvRaftLogInv`; the composition starts at `[]`), and the
+start index itself. -/
 structure ServerRaftNames where
-  rlog : GName
-  rlb : GName
-  fresh : GName
-  props : GName
+  raft : RaftNames
+  /-- raft's committed log before the server's start index (the server's record type: the
+  names stay free of `FfiSyntax`) -/
+  pre : List EntryModel
   /-- the index the log starts after (the snapshot's: the server's `ai₀`) -/
   ai0 : w64
 
-/-- The namespace of raft's commit invariant (the register's `raftN`): the deposited updates
-are fired with it closed. -/
-def srvRaftN : Namespace := nroot .@ "server_raft_commit"
+/-- The namespace of raft's commit invariant: raft's own (`raftN`, `Protocol/GhostState.lean`;
+an `abbrev`, so that the masks `⊤ \ ↑srvRaftN` are raft's). -/
+abbrev srvRaftN : Namespace := raftN
+
+/-- Raft's full committed log holding the server's `L` after its start: `pre ++ L`, as raft's
+records. -/
+def srvLogOf (γ : ServerRaftNames) (L : List EntryModel) : List EntryM :=
+  (γ.pre ++ L).map EntryModel.toM
+
+theorem srvLogOf_inj (γ : ServerRaftNames) {A B : List EntryModel}
+    (h : srvLogOf γ A = srvLogOf γ B) : A = B := by
+  unfold srvLogOf at h
+  exact List.append_cancel_left ((List.map_inj_right EntryModel.toM_injective).mp h)
+
+theorem srvLogOf_prefix (γ : ServerRaftNames) (A B : List EntryModel) :
+    srvLogOf γ A <+: srvLogOf γ B ↔ A <+: B := by
+  unfold srvLogOf
+  rw [List.prefix_map_iff_of_injective EntryModel.toM_injective, List.prefix_append_right_inj]
+
+theorem srvLogOf_length (γ : ServerRaftNames) (L : List EntryModel) :
+    (srvLogOf γ L).length = γ.pre.length + L.length := by
+  simp [srvLogOf]
+
+theorem srvLogOf_nil (γ : ServerRaftNames) : srvLogOf γ [] = γ.pre.map EntryModel.toM := by
+  simp [srvLogOf]
+
+theorem srvLogOf_snoc (γ : ServerRaftNames) (L : List EntryModel) (e : EntryModel) :
+    srvLogOf γ (L ++ [e]) = srvLogOf γ L ++ [e.toM] := by
+  simp [srvLogOf]
+
+theorem srvLogOf_append (γ : ServerRaftNames) (A B : List EntryModel) :
+    srvLogOf γ (A ++ B) = srvLogOf γ A ++ B.map EntryModel.toM := by
+  simp [srvLogOf]
+
+theorem srvLogOf_drop (γ : ServerRaftNames) (L : List EntryModel) :
+    (srvLogOf γ L).drop γ.pre.length = L.map EntryModel.toM := by
+  unfold srvLogOf
+  rw [List.map_append, List.drop_left' (by simp)]
+
+theorem srvLogOf_take (γ : ServerRaftNames) (L : List EntryModel) (m : Nat) :
+    (srvLogOf γ L).take (γ.pre.length + m) = srvLogOf γ (L.take m) := by
+  unfold srvLogOf
+  rw [List.map_append, List.map_append, List.map_take]
+  have h : γ.pre.length = (γ.pre.map EntryModel.toM).length := by simp
+  rw [h, List.take_length_add_append]
+
+theorem srvLogOf_pre_prefix (γ : ServerRaftNames) (L : List EntryModel) :
+    γ.pre.map EntryModel.toM <+: srvLogOf γ L := by
+  unfold srvLogOf; rw [List.map_append]; exact List.prefix_append _ _
+
+theorem srvLogOf_lookup (γ : ServerRaftNames) (L : List EntryModel) (m : Nat) (e : EntryModel)
+    (h : L[m]? = some e) : (srvLogOf γ L)[γ.pre.length + m]? = some e.toM := by
+  unfold srvLogOf
+  rw [List.getElem?_map, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left, h]
+  rfl
+
+/-- **A server predicate on raft's log** (2026-10-16, stage R7b): `Q` of the entries after
+`pre`, under the premise that `pre` is a prefix (which every log raft fires the update at
+has: `srvLift_of`/`srvLift_to` at `srvLogOf`). -/
+def srvLift (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) (Lm : List EntryM) :
+    IProp GF :=
+  iprop(⌜γ.pre.map EntryModel.toM <+: Lm⌝ -∗ Q ((Lm.drop γ.pre.length).map EntryModel.ofM))
+
+theorem srvLift_of (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) (L : List EntryModel) :
+    Q L ⊢ srvLift γ Q (srvLogOf γ L) := by
+  unfold srvLift
+  rw [srvLogOf_drop, EntryModel.map_ofM_toM]
+  iintro HQ -
+  iexact HQ
+
+theorem srvLift_to (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) (L : List EntryModel) :
+    srvLift γ Q (srvLogOf γ L) ⊢ Q L := by
+  unfold srvLift
+  rw [srvLogOf_drop, EntryModel.map_ofM_toM]
+  iintro HQ
+  iapply HQ
+  ipureintro; exact srvLogOf_pre_prefix γ L
+
+theorem srvLift_of_box (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) (L : List EntryModel) :
+    □ Q L ⊢ □ srvLift γ Q (srvLogOf γ L) :=
+  intuitionistically_mono (srvLift_of γ Q L)
+
+theorem srvLift_to_box (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) (L : List EntryModel) :
+    □ srvLift γ Q (srvLogOf γ L) ⊢ □ Q L :=
+  intuitionistically_mono (srvLift_to γ Q L)
 
 /-- **The server's half of the committed raft log** `L` (every entry after `ai0`, consecutive
-raft indices; 2026-10-14, unit T1). -/
+raft indices; 2026-10-14, unit T1): raft's `rLog` at `pre ++ L`. -/
 def srvRLog (γ : ServerRaftNames) (L : List EntryModel) : IProp GF :=
-  ghostVar γ.rlog (1 : Qp).half L
+  rLog γ.raft (srvLogOf γ L)
 
 instance srvRLog_timeless (γ : ServerRaftNames) (L : List EntryModel) :
     Timeless (srvRLog (GF := GF) γ L) := by
   unfold srvRLog; infer_instance
 
-/-- **A prefix of the committed raft log** (persistent). -/
+/-- **A prefix of the committed raft log** (persistent): raft's `isCommitted` at `pre ++ L`. -/
 def srvRLogLb (γ : ServerRaftNames) (L : List EntryModel) : IProp GF :=
-  monoListLbOwn γ.rlb L
+  isCommitted γ.raft (srvLogOf γ L)
 
 instance srvRLogLb_persistent (γ : ServerRaftNames) (L : List EntryModel) :
     Persistent (srvRLogLb (GF := GF) γ L) := by
@@ -147,18 +245,59 @@ instance srvRLogLb_timeless (γ : ServerRaftNames) (L : List EntryModel) :
 theorem srvRLogLb_prefix (γ : ServerRaftNames) (A B : List EntryModel) :
     srvRLogLb (GF := GF) γ A ∗ srvRLogLb γ B ⊢ ⌜A <+: B ∨ B <+: A⌝ := by
   unfold srvRLogLb
-  iintro ⟨HA, HB⟩
-  iapply mono_list_lb_valid γ.rlb A B $$ HA HB
+  iintro ⟨#HA, #HB⟩
+  icases isCommitted_agree γ.raft _ _ $$ HA HB with %H
+  ipureintro
+  rw [srvLogOf_prefix, srvLogOf_prefix] at H
+  exact H
 
-/-- **Raft's committed log** (the contract's ghost interface; an invariant of raft's commit, at
-`srvRaftN`): raft's half of the log and the lower bounds' authority, at one log. -/
+/-- A prefix of a committed prefix. -/
+theorem srvRLogLb_mono (γ : ServerRaftNames) (A B : List EntryModel) (h : A <+: B) :
+    srvRLogLb (GF := GF) γ B ⊢ srvRLogLb γ A := by
+  unfold srvRLogLb
+  iintro #HB
+  iapply isCommitted_mono γ.raft _ _ ((srvLogOf_prefix γ A B).2 h) $$ HB
+
+/-- **The application's policy on the conf changes raft may commit** (raft's `reCCOk`,
+`Protocol/Ghost.lean`): a v1 conf change, its bytes a `ConfChange` encoding (the server's
+`srvIdxOk` admits no other). -/
+def srvCCPolicy (γ : ServerRaftNames) : Prop :=
+  ∀ (ty : w32) (d : List w8), γ.raft.reCCOk ty d → ty = W32 1 ∧ isConfChangeEncoding d
+
+/-- **Raft's committed log** (the contract's ghost interface): raft's commit invariant, the
+start log committed, the start index its length, and the conf-change policy. -/
 def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
-  inv srvRaftN iprop(∃ L : List EntryModel, ghostVar γ.rlog (1 : Qp).half L ∗
-    monoListAuthOwn γ.rlb 1 L)
+  iprop(raftCommitInv γ.raft ∗ srvRLogLb γ [] ∗
+    ⌜uint.Z γ.ai0 = γ.pre.length ∧ srvCCPolicy γ⌝)
 
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
   unfold srvRaftLogInv; infer_instance
+
+/-- The client's log is raft's committed log, and every committed prefix is a prefix of it (the
+log half of raft's commit invariant opened, as raft's `rLog_committed`; shared-lemma candidate
+for raft's `Protocol/Facts.lean`). -/
+theorem srv_rLog_prefix (γ : RaftNames) (L A : List EntryM) (E : CoPset)
+    (HE : ↑raftLogN ⊆ E) :
+    ⊢ raftCommitInv γ -∗ rLog γ L -∗ isCommitted γ A ={E}=∗
+      rLog γ L ∗ isCommitted γ L ∗ ⌜A <+: L⌝ := by
+  iintro #Hinv HrL #HA
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
+  iunfold rLog at HrL
+  ihave %HLeq := ghostVar_agree γ.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
+  subst HLeq
+  ihave #HPc := ownCommitted_lb γ _ $$ HP
+  ihave %Hpre := isCommitted_prefix γ A P $$ HA HP
+  imod Hclose $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imodintro
+  unfold rLog
+  iframe HrL HPc
+  ipureintro; exact Hpre
 
 /-- **The server's half bounds every prefix of the committed log.** -/
 theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvRaftN ⊆ E)
@@ -167,65 +306,76 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvRaftN ⊆ E)
       srvRLog γ L ∗ srvRLogLb γ L ∗ ⌜A <+: L⌝ := by
   iintro #Hinv HL #HA
   iunfold srvRaftLogInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L', Hh, Ha⟩
+  icases Hinv with ⟨#Hcinv, -, -⟩
   iunfold srvRLog at HL
-  ihave %Hag := ghostVar_agree γ.rlog _ _ _ _ $$ HL Hh
-  subst Hag
   iunfold srvRLogLb at HA
-  ihave %Hp := mono_list_auth_lb_valid γ.rlb _ _ _ $$ Ha HA
-  ihave #HLb := monoListLbOwn_get γ.rlb _ _ $$ Ha
-  imod Hclose $$ [Hh Ha] with -
-  · inext; iexists L; iframe Hh Ha
+  imod srv_rLog_prefix γ.raft _ _ E (raftLogN_of hE) $$ Hcinv HL HA with ⟨HL, #HLc, %Hp⟩
   imodintro
   iunfold srvRLog
   iframe HL
   iunfold srvRLogLb
-  iframe HLb
-  ipureintro; exact Hp.2
+  iframe HLc
+  ipureintro; exact (srvLogOf_prefix γ A L).1 Hp
 
-/-- The token for depositing `d` the first time: `propFresh`. -/
+/-- The token for depositing `d` the first time: raft's `propFresh`. -/
 def srvPropFresh (γ : ServerRaftNames) (d : List w8) : IProp GF :=
-  d ↪[γ.fresh] ()
+  propFresh γ.raft d
 
-/-- `d`'s update was deposited (persistent): `deposited`. -/
+/-- `d`'s update was deposited (persistent): raft's `deposited`. -/
 def srvDeposited (γ : ServerRaftNames) (d : List w8) : IProp GF :=
-  iprop(∃ γp : GName, d ↪[γ.props]□ γp)
+  deposited γ.raft d
 
 instance srvDeposited_persistent (γ : ServerRaftNames) (d : List w8) :
     Persistent (srvDeposited (GF := GF) γ d) := by
   unfold srvDeposited; infer_instance
 
-/-- **The proposer's handle on its deposited proposal**, with result `Q` (persistent; the
-update's result predicate, a saved predicate; 2026-10-14, unit T1: no ticket, the results are
-persistent). -/
+/-- **The proposer's handle on its deposited proposal**, with result `Q` (persistent): raft's
+`isProp`, of the lifted predicate. -/
 def srvIsProp (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop(∃ γp : GName, d ↪[γ.props]□ γp ∗ savedPredOwn γp DFrac.discard Q)
+  iprop(∃ γq : GName, isProp γ.raft d γq (srvLift γ Q))
 
 instance srvIsProp_persistent (γ : ServerRaftNames) (d : List w8)
     (Q : List EntryModel → IProp GF) : Persistent (srvIsProp (GF := GF) γ d Q) := by
   unfold srvIsProp; infer_instance
 
+theorem srvIsProp_deposited (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
+    srvIsProp (GF := GF) γ d Q ⊢ srvDeposited γ d := by
+  unfold srvIsProp srvDeposited
+  iintro ⟨%γq, #H⟩
+  iapply isProp_deposited $$ H
+
 /-- **The proposer's persistent update for `d`** (2026-10-14, unit T1): fired by raft at **every**
-committed occurrence of `d` (an entry `e` raft appends, normal, with data `d`, at the next index),
-its result persistent and of the log before the entry. -/
+committed occurrence of `d` (an entry `e` raft appends, normal, with data `d`, at the next
+index; 2026-10-16, stage R7b: the entry's facts alone), its result persistent and of the log
+before the entry. -/
 def srvPropAu (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
-          <{ ∀∀ (e : EntryModel), ⌜e.typ = W32 0 ∧ e.data = d ∧ srvIdxOk γ.ai0 (L ++ [e])⌝ ∗
+          <{ ∀∀ (e : EntryModel),
+               ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
                srvRLog γ (L ++ [e]), COMM □ Q L }>)
 
 instance srvPropAu_persistent (γ : ServerRaftNames) (d : List w8)
     (Q : List EntryModel → IProp GF) : Persistent (srvPropAu (GF := GF) γ d Q) := by
   unfold srvPropAu; infer_instance
 
+/-- An entry of raft's own: an empty normal entry, or a v1 conf change (what raft's
+`entDataIs … none` says under `srvCCPolicy`). -/
+def srvNoopEntry (e : EntryModel) : Prop :=
+  (e.typ = W32 0 ∧ e.data = []) ∨ (e.typ = W32 1 ∧ isConfChangeEncoding e.data)
+
 /-- **The standing update for raft's own entries** (empty entries, conf changes; 2026-10-14, unit
-T1): the server gives it to raft at the node's start (`kv_noop_au`). -/
+T1): the server gives it to raft at the node's start (`kv_noop_au`). (2026-10-16, stage R7b: one
+update, the entry chosen in its after-clause, as raft's `noopAu`.) -/
 def srvNoopAu (γ : ServerRaftNames) : IProp GF :=
-  iprop(□ ∀ e : EntryModel, ⌜e.data = [] ∨ e.typ ≠ W32 0⌝ -∗
-    AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
-       <{ ⌜srvIdxOk γ.ai0 (L ++ [e])⌝ ∗ srvRLog γ (L ++ [e]), COMM True }>)
+  iprop(□ AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
+          <{ ∀∀ (e : EntryModel),
+               ⌜srvNoopEntry e ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
+               srvRLog γ (L ++ [e]), COMM True }>)
+
+instance srvNoopAu_persistent (γ : ServerRaftNames) : Persistent (srvNoopAu (GF := GF) γ) := by
+  unfold srvNoopAu; infer_instance
 
 /-- What `Propose` takes for `d` (`propArg`): a first proposal's fresh token and update, or a
 retry's `srvDeposited`. -/
@@ -239,13 +389,14 @@ def srvPropRes (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IPr
   iprop(srvDeposited γ d ∗ if fresh then srvIsProp γ d Q else iprop(True))
 
 /-- **The proposals' witnesses** (persistent; the contract's: raft's proof records every firing):
-for a deposited proposal of `d` with result `Q` and an entry `e` of data `d` at position `m` of
-a committed log `L`, `□ Q` of the log before it (`L.take m`), for two later credits (raft's
-collection is under its invariant's later and the saved predicate's). -/
+for a deposited proposal of `d` with result `Q` and an entry `e` of data `d` (not empty: raft
+fires no update at an empty entry) at position `m` of a committed log `L`, `□ Q` of the log
+before it (`L.take m`), for two later credits (raft's collection is under its invariant's later
+and the saved predicate's). A theorem since stage R7b (`srvPropWits_of_raft`). -/
 def srvPropWits (γ : ServerRaftNames) : IProp GF :=
   iprop(□ ∀ (d : List w8) (Q : List EntryModel → IProp GF) (L : List EntryModel) (m : Nat)
       (e : EntryModel),
-    srvIsProp γ d Q -∗ srvRLogLb γ L -∗ ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ e.data = d⌝ -∗
+    srvIsProp γ d Q -∗ srvRLogLb γ L -∗ ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ e.data = d ∧ d ≠ []⌝ -∗
       £ 2 ={⊤}=∗ □ Q (L.take m))
 
 instance srvPropWits_persistent (γ : ServerRaftNames) : Persistent (srvPropWits (GF := GF) γ) := by
@@ -265,7 +416,8 @@ instance srvReadAu_persistent (γ : ServerRaftNames) (Qr : List EntryModel → I
 /-- **A read's witness at the read index `i`** (persistent; 2026-10-14, unit T1): `□ Qr L` of
 every committed log `L` through a raft index at least `i` (each was the committed log at some
 moment after the deposit, the committed log at the deposit being at most `i` long: raft's read
-index), for two later credits (raft's collection, `▷ ▷`, as the proposals'). -/
+index), for two later credits (raft's collection, `▷ ▷`, as the proposals'). A theorem since
+stage R7b (`srvReadWit_of_raft`). -/
 def srvReadWit (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF) (i : w64) : IProp GF :=
   iprop(□ ∀ L : List EntryModel, srvRLogLb γ L -∗ ⌜uint.Z i ≤ uint.Z γ.ai0 + L.length⌝ -∗
     £ 2 ={⊤}=∗ □ Qr L)
@@ -273,6 +425,490 @@ def srvReadWit (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF) (i : w
 instance srvReadWit_persistent (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
     (i : w64) : Persistent (srvReadWit (GF := GF) γ Qr i) := by
   unfold srvReadWit; infer_instance
+
+/-- **A read credit** for one `ReadIndex` (raft's `rdCred`, from a finite budget: the request
+that wakes the read loop pays it; 2026-10-16, stage R7b). -/
+def srvRdCred (γ : ServerRaftNames) : IProp GF := rdCred γ.raft 1
+
+/-- **The fresh token of a read context** `c` (raft's `rdFresh`: a context is deposited once;
+the server mints it from its id generator; 2026-10-16, stage R7b). -/
+def srvRdFresh (γ : ServerRaftNames) (c : List w8) : IProp GF := rdFresh γ.raft c
+
+/-! ### The read contexts' mint (2026-10-16, stage R7b, B2) -/
+
+/-- The big-endian bytes of `id` (`binary.BigEndian.PutUint64`, `read.uint64ToBigEndianBytes`):
+the read loop's request contexts (until stage R7b in `read/Inv.lean`). -/
+def beBytes (id : w64) : List w8 := (u64Le id).reverse
+
+theorem beBytes_length (id : w64) : (beBytes id).length = 8 := by
+  simp [beBytes, u64Le_length]
+
+/-- Eight bytes are the big-endian bytes of what `binary.BigEndian.Uint64` reads from them. -/
+theorem beBytes_of_length (bs : List w8) (h : bs.length = 8) : bs = beBytes (leToU64 bs.reverse) := by
+  unfold beBytes
+  rw [leToU64_le _ (by simp [h]), List.reverse_reverse]
+
+/-- `binary.BigEndian.Uint64` reads `id` back from its big-endian bytes. -/
+theorem leToU64_beBytes (id : w64) : leToU64 (beBytes id).reverse = id := by
+  unfold beBytes
+  rw [List.reverse_reverse, u64Le_to_word]
+
+theorem beBytes_inj {id id' : w64} (h : beBytes id = beBytes id') : id = id' := by
+  have h' := congrArg (fun bs => leToU64 bs.reverse) h
+  simp only [leToU64_beBytes] at h'
+  exact h'
+
+/-- The fresh-token map of the contexts of the ids `U` (`beBytes` of each). -/
+def ctxMap (U : List w64) : GMap (List w8) Unit :=
+  U.foldr (fun id m => <[beBytes id := ()]> m) ∅
+
+theorem ctxMap_nil : ctxMap [] = ∅ := rfl
+
+theorem ctxMap_cons (id : w64) (U : List w64) :
+    ctxMap (id :: U) = <[beBytes id := ()]> (ctxMap U) := rfl
+
+theorem ctxMap_lookup_some (U : List w64) (c : List w8) (h : (ctxMap U) !! c = some ()) :
+    ∃ id, id ∈ U ∧ c = beBytes id := by
+  induction U with
+  | nil => simp [ctxMap_nil] at h
+  | cons id U ih =>
+    rw [ctxMap_cons, GMap.lookup_insert_eq_iff] at h
+    by_cases hc : beBytes id = c
+    · exact ⟨id, List.mem_cons.2 (Or.inl rfl), hc.symm⟩
+    · simp only [hc, ↓reduceIte] at h
+      obtain ⟨id', hm, hc'⟩ := ih h
+      exact ⟨id', List.mem_cons.2 (Or.inr hm), hc'⟩
+
+theorem ctxMap_lookup_none (U : List w64) (id : w64) (h : id ∉ U) :
+    (ctxMap U) !! beBytes id = none := by
+  induction U with
+  | nil => simp [ctxMap_nil]
+  | cons id' U ih =>
+    rw [ctxMap_cons, GMap.lookup_insert_eq_iff]
+    have hne : beBytes id' ≠ beBytes id := fun e =>
+      h (by rw [← beBytes_inj e]; exact List.mem_cons.2 (Or.inl rfl))
+    simp only [hne, ↓reduceIte]
+    exact ih (fun hm => h (List.mem_cons.2 (Or.inr hm)))
+
+/-- A list of issued ids of the generator (`idIssued`: the first `k`) with no duplicates has at
+most `k` elements. -/
+theorem idIssued_length_le (pfx s0 : w64) (k : Nat) (U : List w64) (Hnd : U.Nodup)
+    (H : ∀ id ∈ U, idIssued pfx s0 k id) : U.length ≤ k := by
+  have hsub : U ⊆ (List.range k).map
+      (fun j => pfx ||| ((s0 + W64 ((j + 1 : Nat) : Int)) &&& W64 (2 ^ 48 - 1))) := by
+    intro id hid
+    obtain ⟨j, hj1, hjk, hid'⟩ := H id hid
+    rw [List.mem_map]
+    refine ⟨j - 1, List.mem_range.2 (by omega), ?_⟩
+    rw [Nat.sub_add_cancel hj1]
+    exact hid'.symm
+  have := Hnd.length_le_of_subset hsub
+  simpa using this
+
+/-- The namespace of the read contexts' mint. -/
+def srvRdFreshN : Namespace := nroot .@ "server_rdfresh"
+
+instance srv_rdCred_timeless (γ : RaftNames) (n : Nat) : Timeless (rdCred (GF := GF) γ n) := by
+  unfold rdCred; infer_instance
+instance srv_idUnclaimed_timeless (γi : IdNames) (id : w64) :
+    Timeless (idUnclaimed (GF := GF) γi id) := by
+  unfold idUnclaimed; infer_instance
+instance srv_idSlot_timeless (γi : IdNames) (id : w64) : Timeless (idSlot (GF := GF) γi id) := by
+  unfold idSlot; infer_instance
+instance srv_idFresh_timeless (γi : IdNames) (id : w64) : Timeless (idFresh (GF := GF) γi id) := by
+  unfold idFresh; infer_instance
+
+/-- Opening the id generator's invariant with the mint's open (`iinv`'s side condition). -/
+@[simp] theorem idN_rdFreshN : (↑idN : CoPset) ⊆ ⊤ \ ↑srvRdFreshN :=
+  mask_ndot_ne' nroot "idutil" "server_rdfresh" (by decide)
+
+/-- Opening raft's registry half with the mint's open. -/
+@[simp] theorem raftRegN_rdFreshN : (↑raftRegN : CoPset) ⊆ ⊤ \ ↑srvRdFreshN := by
+  intro p hp
+  exact mask_ndot_ne' nroot "raft_commit" "server_rdfresh" (by decide) p
+    (nclose_subseteq raftN "reg" p hp)
+
+/-- **The read contexts' mint** (persistent; 2026-10-16, stage R7b): the authority of raft's
+fresh read-context tokens (`rdFresh`, `srvRdFresh`), minted for the contexts `beBytes id` of
+the request ids `U` the read loop took from its generator `γi` (their `idFresh` tokens kept, so
+an id is minted once: `U` has no duplicates), with raft's read credits not yet spent: one per
+id, out of raft's budget of `2 ^ 64 - 2` (`rdCredInv`), which the generator's own budget (fewer
+than `2 ^ 48` ids, `idGen`) keeps from running out (`srvRdFresh_mint`). So raft's read credit
+comes with the request id: the read loop's one `ReadIndex` per id (`sendReadIndex`) is paid by
+the id budget the server already assumes (`idCred`), and no premise on the number of
+linearizable reads is added at the gRPC layer. -/
+def srvRdFreshInv (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
+  inv srvRdFreshN iprop(∃ U : List w64, ghostMapAuth γ.raft.reRdFresh 1 (ctxMap U) ∗
+    rdCred γ.raft (2 ^ 64 - 2 - U.length) ∗ ⌜U.Nodup⌝ ∗ [∗list] id ∈ U, idFresh γi id)
+
+instance srvRdFreshInv_persistent (γ : ServerRaftNames) (γi : IdNames) :
+    Persistent (srvRdFreshInv (GF := GF) γ γi) := by
+  unfold srvRdFreshInv; infer_instance
+
+/-- **The mint's allocation**: from raft's authority of the fresh read-context tokens and its
+whole read budget (`ownRaftGhost_alloc_gen`'s `allocClient` and `rdCred γ (2 ^ 64 - 2)`). -/
+theorem srvRdFreshInv_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
+    ⊢ ghostMapAuth γ.raft.reRdFresh 1 (∅ : GMap (List w8) Unit) -∗
+      rdCred γ.raft (2 ^ 64 - 2) ={E}=∗ srvRdFreshInv (GF := GF) γ γi := by
+  iintro Ha Hc
+  unfold srvRdFreshInv
+  imod inv_alloc srvRdFreshN E iprop(∃ U : List w64, ghostMapAuth γ.raft.reRdFresh 1 (ctxMap U) ∗
+      rdCred γ.raft (2 ^ 64 - 2 - U.length) ∗ ⌜U.Nodup⌝ ∗ [∗list] id ∈ U, idFresh γi id)
+      $$ [Ha Hc] with #Hi
+  · inext
+    iexists []
+    rw [ctxMap_nil]
+    simp only [List.length_nil, Nat.sub_zero]
+    iframe Ha Hc
+    isplitr
+    · ipureintro; exact List.nodup_nil
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    itrivial
+  imodintro
+  iexact Hi
+
+/-- The unclaimed ids of a list are issued ids of the generator's map `I`. -/
+theorem idFresh_issued (γi : IdNames) (I : GMap w64 (Option (List w8 × GName))) (U : List w64) :
+    ⊢ ghostMapAuth γi.issued 1 I -∗ ([∗list] id ∈ U, idFresh (GF := GF) γi id) -∗
+      ⌜∀ id ∈ U, I !! id = some none⌝ := by
+  induction U with
+  | nil =>
+    iintro - -
+    ipureintro
+    intro id h
+    simp at h
+  | cons id U ih =>
+    iintro Ha Hus
+    icases BigSepL.bigSepL_cons.1 $$ Hus with ⟨Hf, Hus⟩
+    iunfold idFresh at Hf
+    icases Hf with ⟨Hu, -⟩
+    iunfold idUnclaimed at Hu
+    ihave %Hl := ghost_map_lookup $$ Ha Hu
+    ihave %Hrest := ih $$ Ha Hus
+    ipureintro
+    intro x hx
+    rcases List.mem_cons.1 hx with rfl | hx
+    · exact Hl
+    · exact Hrest x hx
+
+/-- **An id mints its context's token and a read credit**: the id is fresh (its slot is
+exclusive, so it is not among the minted ids), so its context is not in the map (`beBytes` is
+injective); and the minted ids are issued ids of the generator, fewer than `2 ^ 48`, so a credit
+of raft's budget is left. -/
+theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
+    (Φ : w64 → List w8 → GName → IProp GF) (id : w64) :
+    ⊢ idGen γi g Φ -∗ srvRdFreshInv (GF := GF) γ γi -∗ idFresh γi id ={⊤}=∗
+      srvRdFresh γ (beBytes id) ∗ srvRdCred γ := by
+  iintro #Hg #Hinv Hf
+  iunfold srvRdFreshInv at Hinv
+  iinv Hinv with ⟨%U, >Ha, >Hc, >%Hnd, >Hus⟩ Hclose
+  -- `id ∉ U`: its slot is exclusive
+  by_cases hin : id ∈ U
+  · iexfalso
+    icases BigSepL.bigSepL_mem_acc (Φ := fun id => idFresh (GF := GF) γi id) hin $$ Hus
+      with ⟨Hf', -⟩
+    iunfold idFresh at Hf Hf'
+    icases Hf with ⟨-, Hs⟩
+    icases Hf' with ⟨-, Hs'⟩
+    iunfold idSlot at Hs Hs'
+    ihave %Hne := ghostMapElem_ne γi.slot id id (DFrac.own 1) () () $$ Hs Hs'
+    exact absurd rfl Hne
+  -- the bound: the minted ids are issued ids
+  iunfold idGen at Hg
+  icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hgi⟩
+  iinv Hgi with ⟨%k, %I, %S, >Hsuf, >Hcred, >%Hk, >HI, >HS, >%HIS, Hfacts⟩ Hclose2
+  ihave %Hiss := idFresh_issued γi I U $$ HI Hus
+  have Hlen : U.length ≤ k := idIssued_length_le pfx s0 k U Hnd
+    (fun id' hid' => (HIS id').1.1 (by rw [Hiss id' hid']; rfl))
+  imod Hclose2 $$ [Hsuf Hcred HI HS Hfacts] with -
+  · inext
+    iexists k, I, S
+    iframe Hsuf Hcred HI HS Hfacts
+    ipureintro
+    exact ⟨Hk, HIS⟩
+  -- the token and the credit
+  imod ghost_map_insert (beBytes id) () (ctxMap_lookup_none U id hin) $$ Ha with ⟨Ha, Hfr⟩
+  ihave Hc' : iprop(rdCred γ.raft ((2 ^ 64 - 2 - (U.length + 1)) + 1)) $$ [Hc]
+  · rw [show (2 ^ 64 - 2 - (U.length + 1)) + 1 = 2 ^ 64 - 2 - U.length by omega]
+    iexact Hc
+  icases (rdCred_split γ.raft _ 1).1 $$ Hc' with ⟨Hc, Hc1⟩
+  imod Hclose $$ [Ha Hc Hus Hf] with -
+  · inext
+    iexists (id :: U)
+    rw [ctxMap_cons]
+    simp only [List.length_cons]
+    iframe Ha Hc
+    isplitr
+    · ipureintro; exact List.nodup_cons.2 ⟨hin, Hnd⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hf Hus
+  imodintro
+  unfold srvRdFresh srvRdCred rdFresh
+  iframe Hfr Hc1
+
+/-- **The context `c` was deposited with raft** (persistent): raft registered a read of it
+(`readReq`; what a `ReadState`'s context carries, `readStateOk`'s `readOk`). -/
+def srvCtxDeposited (γ : ServerRaftNames) (c : List w8) : IProp GF :=
+  iprop(∃ Lc : List EntryM, readReq γ.raft c Lc)
+
+instance srvCtxDeposited_persistent (γ : ServerRaftNames) (c : List w8) :
+    Persistent (srvCtxDeposited (GF := GF) γ c) := by
+  unfold srvCtxDeposited; infer_instance
+
+/-- **A deposited context is a minted one**: raft's registry keeps the fresh token of every
+registered context (`readsReg`), and the mint's authority says every token is of a `beBytes id`.
+(So a `ReadState`'s context is eight bytes long: `read.go`'s `len(rs.RequestCtx) == 8` guard
+never fails.) -/
+theorem srvCtxDeposited_minted (γ : ServerRaftNames) (γi : IdNames) (c : List w8) :
+    ⊢ srvRdFreshInv (GF := GF) γ γi -∗ raftCommitInv γ.raft -∗ srvCtxDeposited γ c ={⊤}=∗
+      ⌜∃ id : w64, c = beBytes id⌝ := by
+  iintro #Hinv #Hci #Hd
+  iunfold srvCtxDeposited at Hd
+  icases Hd with ⟨%Lc, #Hrq⟩
+  iunfold readReq at Hrq
+  icases Hrq with ⟨%γq, #Hel, -⟩
+  ihave #Hri := raftCommitInv_reg γ.raft $$ Hci
+  iunfold srvRdFreshInv at Hinv
+  iinv Hinv with ⟨%U, >Ha, Hrest⟩ Hclose
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold readsReg at Hreads
+  icases Hreads with ⟨>Hra, Hs⟩
+  ihave %HRc := ghost_map_lookup $$ Hra Hel
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun c r =>
+    iprop(▷ (readSlot (GF := GF) γ.raft r l ∗ rdFresh γ.raft c))) HRc).1 $$ Hs with ⟨Hc, Hacc⟩
+  icases Hc with ⟨Hslot, >Hfr⟩
+  iunfold rdFresh at Hfr
+  ihave %HF := ghost_map_lookup $$ Ha Hfr
+  have hid := ctxMap_lookup_some U c HF
+  ihave Hc : iprop(▷ (readSlot (GF := GF) γ.raft (γq, Lc) l ∗ rdFresh γ.raft c)) $$ [Hslot Hfr]
+  · inext
+    unfold rdFresh
+    iframe Hslot Hfr
+  ihave Hs := Hacc $$ Hc
+  ihave Hs := (BigSepM.bigSepM_later).2 $$ Hs
+  imod Hclose2 $$ [Hq2 Hprops Hra Hs] with -
+  · iexists l
+    iframe Hq2
+    unfold regsAt readsReg
+    inext
+    iexists R, RR
+    iframe Hprops Hnoop Hra Hs
+  imod Hclose $$ [Ha Hrest] with -
+  · inext
+    iexists U
+    iframe Ha Hrest
+  imodintro
+  ipureintro
+  obtain ⟨id, -, hc⟩ := hid
+  exact ⟨id, hc⟩
+
+/-! ### The conversions (2026-10-16, stage R7b): the server's updates as raft's -/
+
+/-- `srvRaftLogInv`'s pure facts. -/
+theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length ∧ srvCCPolicy γ⌝ := by
+  unfold srvRaftLogInv
+  iintro ⟨-, -, %H⟩
+  ipureintro; exact H
+
+theorem srvRaftLogInv_commit (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ raftCommitInv γ.raft := by
+  unfold srvRaftLogInv
+  iintro ⟨#H, -, -⟩
+  iexact H
+
+/-- The appended entry's index, in the server's terms. -/
+theorem srvLogOf_index (γ : ServerRaftNames) (L : List EntryModel) (e : EntryM)
+    (Hai0 : uint.Z γ.ai0 = γ.pre.length)
+    (Hidx : uint.Z e.Index' = ((srvLogOf γ L).length : Int) + 1) :
+    uint.Z (EntryModel.ofM e).index = uint.Z γ.ai0 + 1 + L.length := by
+  rw [srvLogOf_length] at Hidx
+  simp only [EntryModel.ofM]
+  push_cast at Hidx ⊢
+  omega
+
+/-- **A proposal's update, as raft's** (of the lifted predicate). -/
+theorem srvPropAu_to_propAu (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvPropAu γ d Q -∗ propAu γ.raft d (srvLift γ Q) := by
+  iintro #Hinv #Hau
+  icases srvRaftLogInv_facts γ $$ Hinv with %Hf
+  obtain ⟨Hai0, -⟩ := Hf
+  unfold propAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold srvPropAu at Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L, HL, Hcl⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  imodintro
+  iexists srvLogOf γ L
+  iunfold srvRLog at HL
+  iframe HL
+  isplit
+  · iintro HL
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [HL] with -
+    · iunfold srvRLog; iexact HL
+    imodintro
+    itrivial
+  · iintro %e ⟨HL, #He, %Hidx⟩
+    icases Hcl with ⟨-, Hcommit⟩
+    iunfold entDataIs at He
+    icases He with ⟨%Hed, -⟩
+    obtain ⟨Hed, -, Het⟩ := Hed
+    imod Hcommit $$ %(EntryModel.ofM e) [HL] with #HQ
+    · isplitr
+      · ipureintro
+        refine ⟨?_, ?_, srvLogOf_index γ L e Hai0 Hidx⟩
+        · simp only [EntryModel.ofM]; exact Het
+        · simp only [EntryModel.ofM]; exact Hed
+      iunfold srvRLog
+      rw [srvLogOf_snoc, EntryModel.toM_ofM]
+      iexact HL
+    imodintro
+    iapply srvLift_of_box γ Q L $$ HQ
+
+/-- **The standing update, as raft's.** -/
+theorem srvNoopAu_to_noopAu (γ : ServerRaftNames) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvNoopAu γ -∗ noopAu γ.raft := by
+  iintro #Hinv #Hau
+  icases srvRaftLogInv_facts γ $$ Hinv with %Hf
+  obtain ⟨Hai0, Hcc⟩ := Hf
+  unfold noopAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold srvNoopAu at Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L, HL, Hcl⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  imodintro
+  iexists srvLogOf γ L
+  iunfold srvRLog at HL
+  iframe HL
+  isplit
+  · iintro HL
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [HL] with -
+    · iunfold srvRLog; iexact HL
+    imodintro
+    itrivial
+  · iintro %e ⟨HL, #He, %Hidx⟩
+    icases Hcl with ⟨-, Hcommit⟩
+    iunfold entDataIs at He
+    icases He with (%Hn | %Hc)
+    · imod Hcommit $$ %(EntryModel.ofM e) [HL] with -
+      · isplitr
+        · ipureintro
+          refine ⟨Or.inl ?_, srvLogOf_index γ L e Hai0 Hidx⟩
+          simp only [EntryModel.ofM]; exact Hn
+        iunfold srvRLog
+        rw [srvLogOf_snoc, EntryModel.toM_ofM]
+        iexact HL
+      imodintro
+      itrivial
+    · imod Hcommit $$ %(EntryModel.ofM e) [HL] with -
+      · isplitr
+        · ipureintro
+          refine ⟨Or.inr ?_, srvLogOf_index γ L e Hai0 Hidx⟩
+          simp only [EntryModel.ofM]; exact Hcc _ _ Hc.2.2
+        iunfold srvRLog
+        rw [srvLogOf_snoc, EntryModel.toM_ofM]
+        iexact HL
+      imodintro
+      itrivial
+
+/-- **A read's update, as raft's** (of the lifted predicate). -/
+theorem srvReadAu_to_readAu (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvReadAu γ Qr -∗ readAu γ.raft (srvLift γ Qr) := by
+  iintro - #Hau
+  unfold readAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold srvReadAu at Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L, HL, Hcl⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  imodintro
+  iexists srvLogOf γ L
+  iunfold srvRLog at HL
+  iframe HL
+  isplit
+  · iintro HL
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [HL] with -
+    · iunfold srvRLog; iexact HL
+    imodintro
+    itrivial
+  · iintro HL
+    icases Hcl with ⟨-, Hcommit⟩
+    imod Hcommit $$ [HL] with #HQ
+    · iunfold srvRLog
+      iexact HL
+    imodintro
+    iapply srvLift_of_box γ Qr L $$ HQ
+
+/-- **The proposals' witnesses, from raft** (`prop_collect`). -/
+theorem srvPropWits_of_raft (γ : ServerRaftNames) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvPropWits γ := by
+  iintro #Hinv
+  ihave #Hcinv := srvRaftLogInv_commit γ $$ Hinv
+  unfold srvPropWits
+  iintro !> %d %Q %L %m %e #Hp #HL %Hf Hlc
+  obtain ⟨Hlk, Het, Hed, Hne⟩ := Hf
+  iunfold srvIsProp at Hp
+  icases Hp with ⟨%γq, #Hp⟩
+  ihave #Hdep := isProp_deposited γ.raft d γq _ $$ Hp
+  iunfold srvRLogLb at HL
+  imod prop_collect γ.raft ⊤ d γq (srvLift γ Q) (srvLogOf γ L) (γ.pre.length + m) e.toM
+    CoPset.subseteq_top (srvLogOf_lookup γ L m e Hlk) $$ Hcinv Hp HL [] with HQ
+  · unfold entDataIs
+    isplitr
+    · ipureintro
+      simp only [EntryModel.toM]
+      exact ⟨Hed, Hne, Het⟩
+    iexact Hdep
+  icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
+  imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
+  imod lc_fupd_elim_later $$ Hlc2 HQ with #HQ
+  imodintro
+  iapply srvLift_to_box γ Q (L.take m)
+  rw [← srvLogOf_take]
+  iexact HQ
+
+/-- **A read's witness, from raft's** (`read_collect`). -/
+theorem srvReadWit_of_raft (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel → IProp GF)
+    (i : w64) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ readWit γ.raft c (srvLift γ Qr) i -∗ srvReadWit γ Qr i := by
+  iintro #Hinv #Hw
+  ihave #Hcinv := srvRaftLogInv_commit γ $$ Hinv
+  icases srvRaftLogInv_facts γ $$ Hinv with %Hf
+  obtain ⟨Hai0, -⟩ := Hf
+  unfold srvReadWit
+  iintro !> %L #HL %Hi Hlc
+  iunfold srvRLogLb at HL
+  imod read_collect γ.raft ⊤ c (srvLift γ Qr) i (srvLogOf γ L) CoPset.subseteq_top
+    (by rw [srvLogOf_length]; push_cast; omega) $$ Hcinv Hw HL with HQ
+  icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
+  imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
+  imod lc_fupd_elim_later $$ Hlc2 HQ with #HQ
+  imodintro
+  iapply srvLift_to_box γ Qr L $$ HQ
 
 end ghost
 
@@ -290,7 +926,7 @@ from it (`kv_prop_au`, `kv_noop_au`), which check. -/
 section kvGhost
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The KV ghost state's names and the start state the model is folded from: the state's ghost
@@ -311,7 +947,7 @@ structure KVNames where
 def kvN : Namespace := nroot .@ "server_kv"
 
 theorem kvN_raftN : (↑kvN : CoPset) ⊆ ⊤ \ ↑srvRaftN :=
-  mask_ndot_ne' nroot "server_kv" "server_raft_commit" (by decide)
+  mask_ndot_ne' nroot "server_kv" "raft_commit" (by decide)
 
 /-- Key-values are countable (for the state's ghost variable). -/
 instance kvStateKvCountable : Pos.Countable EtcdKv :=
@@ -340,7 +976,7 @@ with auth disabled and no alarm, the start log not empty. -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
-    ⌜plainLog L ∧ srvIdxOk γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+    ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
@@ -387,7 +1023,7 @@ one (`hi`). -/
 def kvcN : Namespace := nroot .@ "server_kv_cert"
 
 theorem kvcN_raftN : (↑kvcN : CoPset) ⊆ ⊤ \ ↑srvRaftN :=
-  mask_ndot_ne' nroot "server_kv_cert" "server_raft_commit" (by decide)
+  mask_ndot_ne' nroot "server_kv_cert" "raft_commit" (by decide)
 
 /-- The certificates' map `C` (length ↦ log), below `hi`, each the KV model of a prefix of the
 committed raft log `Lb`. -/
@@ -498,7 +1134,7 @@ end kvGhost
 section readGhost
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- Raft's `ReadState` (v3.7) is countable (a channel's element type: the raft wrapper's
@@ -1061,12 +1697,15 @@ its `Propose(ctx, data)`, from any goroutine, at any context, with `data`'s slic
 the verified `node.Propose`'s statement over the server's ghost names (see the file header), and
 its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStopped`,
 `ErrProposalDropped`, `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`;
-2026-10-12, unit 3a). -/
+2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`). -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
         (data : List w8) (Q : List EntryModel → IProp GF) (fresh : Bool),
-      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ srvPropArg γ data Q fresh }}
+      -- (2026-10-16, stage R7b, B3) non-empty data: raft's `node.Propose` wants it (D6: an empty
+      -- proposal would be a leader's own entry); the server's request marshals to a non-empty
+      -- string (`irrWireOf`, `processInternalRaftRequestOnce`)
+      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q fresh }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
       {{ (err : GoInterface), RET #err; srvPropRes γ data Q fresh ∗ applyErrIs err }}))
@@ -1115,7 +1754,7 @@ end raftNode
 section applied
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The server's atomics' invariants' namespace (moved here from `InvApplier.lean`, 2026-10-13). -/
@@ -1304,7 +1943,7 @@ theorem appliedLogAt_kvLogAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (i 
   iunfold kvLogAt
   iexists A
   isplitr
-  · iunfold srvRLogLb at Hlb; iunfold srvRLogLb; iapply monoListLbOwn_le A hA $$ Hlb
+  · iapply srvRLogLb_mono γr.raft A Lb hA $$ Hlb
   ipureintro; exact ⟨hi, hL⟩
 
 /-- **The committed index's invariant** (persistent; unit 4b, symmetric to `srvAppliedInv`, no
@@ -1314,11 +1953,37 @@ handler, unit 4c) holds the other half, `srvCommittedOwn`. -/
 def srvCommittedInv (s : Loc) (γr : ReadNames) : IProp GF :=
   inv srvN iprop(∃ v : w64,
     sync.atomic.ownUint64 (srvCommittedIndexAddr s) (DFrac.own 1) v ∗
-    monoNatAuthOwn γr.committed (1 : Qp).half (uint.nat v))
+    monoNatAuthOwn γr.committed (1 : Qp).half (uint.nat v) ∗
+    -- (2026-10-16, stage R7b) the committed log the index was read from: raft's `ReadIndex`
+    -- needs a committed log of length at least the bound a caller passes
+    (∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z v ≤ uint.Z γr.raft.ai0 + L.length⌝))
 
 instance srvCommittedInv_persistent (s : Loc) (γr : ReadNames) :
     Persistent (srvCommittedInv (GF := GF) s γr) := by
   unfold srvCommittedInv; infer_instance
+
+/-- **A lower bound of the committed index has a committed log at least that long** (2026-10-16,
+stage R7b: what raft's `ReadIndex` takes for the bound). -/
+theorem committedAtLeast_log (s : Loc) (γr : ReadNames) (n : w64) (E : CoPset)
+    (hE : ↑srvN ⊆ E) :
+    ⊢ srvCommittedInv (GF := GF) s γr -∗ committedAtLeast γr n ={E}=∗
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z n ≤ uint.Z γr.raft.ai0 + L.length⌝ := by
+  iintro #Hinv #Hn
+  iunfold srvCommittedInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%v, Hv, Hauth, ⟨%L, #HL, %HvL⟩⟩
+  iunfold committedAtLeast at Hn
+  ihave %Hle := monoNatLbOwn_valid γr.committed _ _ _ $$ Hauth Hn
+  imod Hclose $$ [Hv Hauth] with -
+  · inext; iexists v; iframe Hv Hauth; iexists L; iframe HL; ipureintro; exact HvL
+  imodintro
+  iexists L
+  iframe HL
+  ipureintro
+  have h := Hle.2
+  have h1 := uint_nat_eq n
+  have h2 := uint_nat_eq v
+  omega
 
 /-- **The writer's half of the committed index's authority** at `v` (unit 4c's
 `updateCommittedIndex`; unused in 4b). -/

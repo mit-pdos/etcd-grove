@@ -28,13 +28,13 @@ a message from the network (`netP`) as far as `run` is concerned. (Raft v3.7, st
 message is `&pb.Message{Type: pb.MsgReadIndex.Enum(), Entries: []*pb.Entry{{Data: rctx}}}`, its
 entry allocated by the slice literal (`wp_slice_literal_ex`), holding the frozen bytes
 `rctx ↦*□ c` (D6), frozen, the entries' slice frozen; the message `msgIn ml □`;
-`MsgReadIndex.Enum()` is a new callee.) -/
+`MsgReadIndex.Enum()` is a new callee. Stage R7a: any `nodeCtx`, the error `nodeErr`.) -/
 theorem node.ReadIndex.wp_proof
     (wp_node_step : node.step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReadIndex.spec (GF := GF) (hG := hG) := by
-  intro γ id n rctx c Qr L0
-  wp_start as ⟨#Hnode, #Hrctx, Hfr, #Hau, #HL0, Hcred⟩
+  intro γ id n rctx c Qr L0 ctx cd
+  wp_start as ⟨#Hnode, #Hctx, #Hrctx, Hfr, #Hau, #HL0, Hcred⟩
   -- the deposit (2026-10-14, stage R), before the request leaves for `run`
   imod node_read_deposit γ id n c Qr L0 $$ Hnode Hfr Hau HL0 with ⟨%Lc, %HL0c, #Hrq, #Hrd⟩
   wp_auto
@@ -78,8 +78,8 @@ theorem node.ReadIndex.wp_proof
   imod termLB_zero (GF := GF) γ.bud with #Hlb
   imod tickCred_zero (GF := GF) γ.bud with Hz
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
-  wp_apply wp_node_step γ id n _ $$ [Hm Hcred Hz]
-  · iframe Hnode
+  wp_apply wp_node_step γ id n _ ctx cd $$ [Hm Hcred Hz]
+  · iframe Hnode Hctx
     unfold stepP
     ileft
     unfold netP
@@ -115,9 +115,10 @@ theorem node.ReadIndex.wp_proof
     · iexact Hcred
     rw [ite_eq_right (show (W32 15 : w32) ≠ MsgTimeoutNow by simp [MsgTimeoutNow])]
     iexact Hz
-  iintro %err -
+  iintro %err #Herr
   wp_auto
   iapply HΦ
+  iframe Herr
   iexists Lc
   iframe Hrq Hrd
   ipureintro; exact HL0c

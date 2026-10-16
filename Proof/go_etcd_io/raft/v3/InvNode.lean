@@ -459,7 +459,8 @@ the messages handed out, `ms : List QMsg` -- the pointers `rd.Messages` holds an
 states -- each owned at `readyDq` (a response at half: `acceptReady` reads the other half);
 the entries `entsRO`; the read states `readStatesPts`, their contexts bytes (D6); the hard
 state `hsOpt` (`nil`, or `hardState()`'s fresh one the application may persist); the snapshot
-`nil`.) -/
+`nil`.) (2026-10-16, stage R7a, D10: the soft state `softStateRO`, `nil` or its `Lead`/`RaftState`
+read-only, which the server reads.) -/
 def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (ms : List QMsg) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
@@ -471,6 +472,8 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     (∃ h : HardStateM, hsOpt rd.HardState' h) ∗
+    -- (2026-10-16, stage R7a, D10) the soft state: `nil`, or `Lead`/`RaftState` read-only
+    softStateRO rd.SoftState' ∗
     ⌜rd.Snapshot' = null⌝)
 
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half

@@ -17,7 +17,11 @@ applied index has passed a `ReadIndex` issued after the call began, hence at lea
 
 **The contracts** (`read/Inv.lean`): the `server` interface (`isReadServer srv γr LR NR`) and the
 `raftInterface` (`isReadRaft rf γr RQ`), which the request path's unit 4b discharges for
-`*EtcdServer` and its `raftNode`.
+`*EtcdServer` and its `raftNode`. Since 2026-10-16 (stage R7b of the raft v3.7 retarget) raft's
+`ReadIndex` takes a read credit and the fresh token of its context: both come with the request id
+(`NextRequestID`'s clause of `isReadServer`; the server mints them from the id, `srvRdFreshInv`),
+so one `ReadIndex` per id, paid by the id budget; and the loop's precondition carries the minted
+contexts' fact (`readCtxMinted`: a read state's context is a minted id's, eight bytes long).
 -/
 module
 

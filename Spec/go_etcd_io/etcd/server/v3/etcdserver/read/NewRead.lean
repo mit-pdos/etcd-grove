@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 /-- `NewRead(srv, rf)` with the server's `Done()` (`srvDoneOk`, what `LinearizableReadNotify` needs)
 and the read names' notifier meets the read contract (`isReadNotify`) and returns the reader slots of
 `r.mux` (`readReader`, as many as Perennial's `RWMutex` admits); the loop's precondition
-(`isReadLoopPre`) follows from the server's and raft's contracts, given later (2026-10-13, the
+(`isReadLoopPre`) follows from the server's and raft's contracts, the clients' read update and
+(2026-10-16, stage R7b) the minted contexts (`readCtxMinted`), given later (2026-10-13, the
 request path's unit 4c: the server's `start` calls `NewRead` before it sets `s.leaderChanged`,
 which `isReadServer`'s `LeaderChanged()` reads; until then they were `NewRead`'s premises). -/
 abbrev read.NewRead.spec : Prop :=
@@ -38,7 +39,7 @@ abbrev read.NewRead.spec : Prop :=
   {{ (r : Loc), RET #r; isReadNotify r γr ∗
       (□ ∀ (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF),
         isReadServer srv γr LR NR -∗ isReadRaft rf γr RQ -∗ readCompose γr -∗
-          isReadLoopPre r γr RQ LR NR) ∗
+          readCtxMinted γr -∗ isReadLoopPre r γr RQ LR NR) ∗
       [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), readReader r γr }}
 
 end spec

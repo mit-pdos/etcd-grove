@@ -73,7 +73,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
   ihave #Hpre' := Hpre
   iunfold isReadLoopPre at Hpre'
   icases Hpre' with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, #Hwcf, #Hbag, #Hinv, #Hguard,
-    #Hcci, #Hcomp⟩
+    #Hcci, #Hcomp, -⟩
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨-, %si, %Hsi, #HStopping, #HLC, -, #HLg, #HAI, #HAW, -, -⟩
   subst Hsi

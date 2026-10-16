@@ -304,7 +304,7 @@ theorem entriesStep_trace (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 -- The server's wait: `waitInv` (`InvRequest.lean`, the registry's contract, in `srvFieldsAt`);

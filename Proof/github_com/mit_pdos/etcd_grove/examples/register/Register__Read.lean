@@ -109,8 +109,9 @@ theorem Register.Read.wp_proof
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hrau := reg_readAu γr $$ Hinv
-  wp_apply wp_node_ReadIndex γp.node id n b cx (fun _ => iprop(True)) l0
-    $$ [$Hraftinit $HisNode $Hb Hrf Hrdc] as %err ⟨%Lc, %Hl0Lc, #Hrq, -⟩
+  ihave #Hbg := nodeCtx_background (GF := GF) bgCd
+  wp_apply wp_node_ReadIndex γp.node id n b cx (fun _ => iprop(True)) l0 context.backgroundCtxVal
+    bgCd $$ [$Hraftinit $HisNode $Hbg $Hb Hrf Hrdc] as %err ⟨⟨%Lc, %Hl0Lc, #Hrq, -⟩, -⟩
   · rw [Hraft]; iframe Hrf Hrdc Hrau Hl0
   -- the answer: a read index of the context, and the value after a committed log at least
   -- that long, which extends the log of the deposit (`readOk_prefix`) and so `l0`

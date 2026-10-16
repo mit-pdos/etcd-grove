@@ -81,13 +81,62 @@ theorem plainLog_append (A B : List EntryModel) :
     · exact h1 m hm
     · exact h2 m hm
 
-/-- The log `L` after the applied index `ai₀`: consecutive indices from `ai₀ + 1`, no overflow,
-normal entries and v1 conf changes. -/
-def srvIdxOk (ai₀ : w64) (L : List EntryModel) : Prop :=
-  uint.Z ai₀ + 1 + L.length < 2 ^ 64 ∧
+/-- The log `L` after the applied index `ai₀`, entry by entry (2026-10-16, stage R7b: what raft's
+commit step establishes, `srvIdxOk` without its overflow bound): consecutive indices from
+`ai₀ + 1`, normal entries and v1 conf changes. -/
+abbrev srvIdxOkW (ai₀ : w64) (L : List EntryModel) : Prop :=
   ∀ (n : Nat) (m : EntryModel), L[n]? = some m →
     uint.Z m.index = uint.Z ai₀ + 1 + n ∧
       (m.typ = W32 0 ∨ (m.typ = W32 1 ∧ isConfChangeEncoding m.data))
+
+/-- The log `L` after the applied index `ai₀`: consecutive indices from `ai₀ + 1`, no overflow,
+normal entries and v1 conf changes. (The overflow bound is on the *next* index, `ai₀ + 1 + |L|`,
+which raft's commit step cannot promise: the KV invariant keeps `srvIdxOkW`, and the bound comes
+with a `Ready`'s batch, a premise on the run, `rnLogFits`; 2026-10-16, stage R7b.) -/
+def srvIdxOk (ai₀ : w64) (L : List EntryModel) : Prop :=
+  uint.Z ai₀ + 1 + L.length < 2 ^ 64 ∧ srvIdxOkW ai₀ L
+
+theorem srvIdxOkW_nil (ai₀ : w64) : srvIdxOkW ai₀ [] := fun n m h => by simp at h
+
+/-- A prefix of a consecutive log is consecutive. -/
+theorem srvIdxOkW_prefix (ai₀ : w64) (A B : List EntryModel) (h : srvIdxOkW ai₀ B) (hp : A <+: B) :
+    srvIdxOkW ai₀ A := by
+  intro n m hm
+  obtain ⟨r, rfl⟩ := hp
+  exact h n m (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp hm).1]; exact hm)
+
+/-- **One entry on** (2026-10-16, stage R7b: what a firing of the server's update gives): the
+entry at the next index, normal or a v1 conf change. -/
+theorem srvIdxOkW_snoc (ai₀ : w64) (L : List EntryModel) (e : EntryModel) (h : srvIdxOkW ai₀ L)
+    (hidx : uint.Z e.index = uint.Z ai₀ + 1 + L.length)
+    (hty : e.typ = W32 0 ∨ (e.typ = W32 1 ∧ isConfChangeEncoding e.data)) :
+    srvIdxOkW ai₀ (L ++ [e]) := by
+  intro n m hm
+  rcases Nat.lt_or_ge n L.length with hn | hn
+  · rw [List.getElem?_append_left hn] at hm
+    exact h n m hm
+  · rw [List.getElem?_append_right hn] at hm
+    have hn' : n = L.length := by
+      have := (List.getElem?_eq_some_iff.mp hm).1
+      simp only [List.length_singleton] at this
+      omega
+    subst hn'
+    simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at hm
+    subst hm
+    exact ⟨hidx, hty⟩
+
+/-- `srvIdxOk` one entry on, under the bound on the index after it. -/
+theorem srvIdxOk_snoc (ai₀ : w64) (L : List EntryModel) (e : EntryModel) (h : srvIdxOk ai₀ L)
+    (hidx : uint.Z e.index = uint.Z ai₀ + 1 + L.length)
+    (hty : e.typ = W32 0 ∨ (e.typ = W32 1 ∧ isConfChangeEncoding e.data))
+    (hb : uint.Z ai₀ + 2 + L.length < 2 ^ 64) :
+    srvIdxOk ai₀ (L ++ [e]) :=
+  ⟨by simp only [List.length_append, List.length_singleton]; push_cast; omega,
+    srvIdxOkW_snoc ai₀ L e h.2 hidx hty⟩
+
+/-- `srvIdxOk` from the entry-wise facts and the bound. -/
+theorem srvIdxOk_of_W (ai₀ : w64) (L : List EntryModel) (h : srvIdxOkW ai₀ L)
+    (hb : uint.Z ai₀ + 1 + L.length < 2 ^ 64) : srvIdxOk ai₀ L := ⟨hb, h⟩
 
 /-! ## The deterministic step -/
 
