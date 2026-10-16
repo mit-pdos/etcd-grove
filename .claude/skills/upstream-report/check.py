@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check an upstream candidate (issues/upstream/<slug>/) against the rules of SKILL.md that a script can check.
 
-Usage: check.py <slug> [--worktree DIR] [--base SHA] [--fork OWNER/REPO]
+Usage: check.py <slug> [--dir DIR] [--worktree DIR] [--base SHA] [--fork OWNER/REPO]
 
 The worktree and base default to the ones `meta.md` names. Prints FAIL lines (a rule is broken: fix it) and WARN
 lines (a judgment call: look at each and decide), and exits 1 if there is a FAIL. It does not judge the writing;
@@ -64,11 +64,12 @@ def main():
     ap.add_argument("slug")
     ap.add_argument("--worktree")
     ap.add_argument("--base")
+    ap.add_argument("--dir", help="the candidate's directory (default: issues/upstream/<slug>)")
     ap.add_argument("--fork", default=None, help="OWNER/REPO of the fork (default: from the worktree's origin)")
     a = ap.parse_args()
 
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    d = os.path.join(root, "issues", "upstream", a.slug)
+    d = a.dir or os.path.join(root, "issues", "upstream", a.slug)
     read = lambda f: open(os.path.join(d, f)).read() if os.path.exists(os.path.join(d, f)) else None
     issue, pr, meta = read("issue.md"), read("pr.md"), read("meta.md") or ""
 
