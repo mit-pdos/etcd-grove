@@ -273,13 +273,15 @@ def isReadRaft (rf : GoInterface) (γr : ReadNames)
   iprop(∃ ri : GoInterfaceOk, ⌜rf = GoInterface.ok ri⌝ ∗
     □ ({{ True }} (App (Val #(methods ri.ty go!"ReadState" ri.v)) (Val #()))
       {{ (c : Loc), RET #c; isReadStateC c γr.raft RQ }}) ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
+    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
         (id n : w64) (Qr : List EntryModel → IProp GF),
-      {{ context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast γr n ∗
-          srvReadAu γr.raft Qr }}
+      {{ context.isContext ctx cd ∗ sl ↦*□ beBytes id ∗ committedAtLeast γr n ∗
+          srvReadAu γr.raft Qr ∗
+          -- (2026-10-16, stage R7b) raft's read credit and the context's fresh token
+          srvRdCred γr.raft ∗ srvRdFresh γr.raft (beBytes id) }}
         (App (App (Val #(methods ri.ty go!"ReadIndex" ri.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
-      {{ (err : GoInterface), RET #err; sl ↦*{dq} beBytes id ∗ applyErrIs err ∗
+      {{ (err : GoInterface), RET #err; applyErrIs err ∗
           (⌜err = GoInterface.nil⌝ -∗ □ RQ id n Qr) }}))
 
 instance srvReadStateOk_persistent (γ : ServerRaftNames)
