@@ -167,7 +167,7 @@ theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
               hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗ srvRdCall s E γr c ∗
-              putAppliedOk s E ρ.rd F o resp rv ∗ ∃ σ, □ opDepQ d σ) ∨
+              putAppliedOk s E ρ.rd F o (opDepQ d) resp rv) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ putErrOk s E ρ F o e) }} := by
   iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #HF, #Hr, Hdep, %Hpre⟩ HΦ
@@ -206,7 +206,7 @@ theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
               hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
-              srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o resp rv ∗ ∃ σ, □ opDepQ d σ) ∨
+              srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o (opDepQ d) resp rv) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e) }} := by
   iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #HF, #Hr, Hdep, %Hpre⟩ HΦ
@@ -298,8 +298,8 @@ theorem txn_end_to_end
               hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
               srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
               ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
-                if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗ txnReadAns E γr c F t resp rv)
-                else iprop(txnAppliedAns E ρ.rd F t resp rv ∗ ∃ σ, □ opDepQ d σ)) ∨
+                if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗ txnReadAns E γr c F t (rangeDepQ γr.kv d) resp rv)
+                else txnAppliedAns E ρ.rd F t (opDepQ d) resp rv) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
             ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
@@ -375,7 +375,7 @@ end endToEnd
 `ClientModel.lean`: the clients' class `EtcdModel` (`cache/v3/EtcdModel.lean`, fourteen axioms
 until V1) instantiated by the server (`etcdModelOfServer`), each law a theorem; what the
 server's answers give the model (`etcdState_of_range`, `etcdState_of_txnRead`,
-`etcdReached_of_cert`, `revToken_of_put`). (V1's wire, the generated stub's four axioms and
+`etcdReached_of_certOk`, `revToken_of_put`). (V1's wire, the generated stub's four axioms and
 `isKVClient`, was superseded at the merge of unit C1 by the client's own proof down to grpc's
 `ClientConn.Invoke`: `client/v3/InvKVConn.lean`, `client/v3/Results.lean`.) -/
 
@@ -390,19 +390,20 @@ open Iris.ProofMode go_etcd_io.etcd.api.v3 mvcc txn
 
 /-- **The server implements the clients' model of etcd** (`etcdModelOfServer`, every law a
 theorem): its predicates are the server's facts about its sealed logs (`srvEtcdState`, `srvStep`:
-`idxSealed`, unit W-M2b) and certified logs (`srvReachedAt`: `idxCert`) and the revisions' tokens the apply thread mints (`revTok`). -/
+`idxSealed`, unit W-M2b) and the logs it certified (`srvReachedAt`: `certOk`, unit W-M3: the KV
+model of a committed raft prefix) and the revisions' tokens the apply thread mints (`revTok`). -/
 theorem etcd_model_of_server (E : apply.AEnv GF) :
     ∃ M : EtcdModel GF, M.etcdState = srvEtcdState E ∧ M.etcdReachedAt = srvReachedAt E ∧
       M.etcdRevToken = revTok E ∧ M.EtcdStep = srvStep E :=
   ⟨etcdModelOfServer E, rfl, rfl, rfl, rfl⟩
 
-/-- **A header's revision is reached**: the revision of a certified log (every answer's header
-revision is one: `rangeAnsOk`'s, `txnReadAns`'s, the writes' `idxCert` of the log after) gives
-`etcdReached` in the server's model (`etcdReached_of_cert`). -/
+/-- **A header's revision is reached**: the revision of a log the server certified (every
+answer's header revision is one: `rangeAnsOk`'s, `txnReadAns`'s, the writes' `certOk` of the log
+after; unit W-M3) gives `etcdReached` in the server's model (`etcdReached_of_certOk`). -/
 theorem etcdReached_of_hdr (E : apply.AEnv GF) (log : mvcc.Log) (r : w64)
     (h : sint.Z r < log.length) :
-    mvcc.idxCert E.γ.idx log ⊢ etcdReached (EM := etcdModelOfServer E) r :=
-  etcdReached_of_cert E log r h
+    mvcc.certOk E.γ log ⊢ etcdReached (EM := etcdModelOfServer E) r :=
+  etcdReached_of_certOk E log r h
 
 /-- **What a successful `Range` gives the clients' model** (`range_end_to_end`'s `rangeAnsOk`):
 the header's revision `r` is the certified log's last (reached), and etcd's state at `r` under any
@@ -421,7 +422,7 @@ theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
         txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true := by
   iintro ⟨#Hsm, Hok⟩
   iunfold rangeAnsOk at Hok
-  icases Hok with ⟨%log, #H, %Hl, Hlin, -, Hres⟩
+  icases Hok with ⟨%log, #H, #Hcok, %Hl, Hlin, -, Hres⟩
   obtain ⟨h2, h3, rfl, hF⟩ := Hl
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
   ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $H]
@@ -431,14 +432,14 @@ theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
   · ipureintro; exact ⟨rfl, h2, h3, hF⟩
   isplitr
   · ipureintro; exact Hwf
-  iapply etcdReached_of_cert E log _ (by omega) $$ H
+  iapply etcdReached_of_certOk E log _ (by omega) $$ Hcok
 
 /-- **What a successful read-only `Txn` gives the clients' model** (`txn_end_to_end`'s
 `txnReadAns`): as `etcdState_of_range`, the response the server's run of the transaction at the
 log's last revision. -/
 theorem etcdState_of_txnRead (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : Log)
-    (t : TxnModel) (resp : Loc) (r : w64) (pfx : GoString) :
-    storeSmall E.γ ∗ txnReadAns E γr c F t resp r ⊢
+    (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) (r : w64) (pfx : GoString) :
+    storeSmall E.γ ∗ txnReadAns E γr c F t Q resp r ⊢
       ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
           log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
         □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAfter log)) ∗
@@ -450,7 +451,7 @@ theorem etcdState_of_txnRead (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F 
           (txn.srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.2 := by
   iintro ⟨#Hsm, Hok⟩
   iunfold txnReadAns at Hok
-  icases Hok with ⟨%log, #H, %Hl, Hlin, Hres⟩
+  icases Hok with ⟨%log, #H, #Hcok, %Hl, Hlin, -, Hres⟩
   obtain ⟨h2, h3, rfl, hF⟩ := Hl
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
   ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $H]
@@ -460,18 +461,18 @@ theorem etcdState_of_txnRead (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F 
   · ipureintro; exact ⟨rfl, h2, h3, hF⟩
   isplitr
   · ipureintro; exact Hwf
-  iapply etcdReached_of_cert E log _ (by omega) $$ H
+  iapply etcdReached_of_certOk E log _ (by omega) $$ Hcok
 
 /-- **What a successful `Put` gives the clients' model** (`put_end_to_end`'s `putAppliedOk`, the
 client's `putApplied`): the token of the header's revision `r` (`etcdRevToken r`: the apply thread
 minted it when the put's revision committed) and that etcd has reached `r`. -/
-theorem revToken_of_put (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (o : OpFull) (resp : Loc)
-    (r : w64) :
-    putApplied E γw F o resp r ⊢
+theorem revToken_of_put (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (o : OpFull)
+    (Q : KVState → IProp GF) (resp : Loc) (r : w64) :
+    putApplied E γw F o Q resp r ⊢
       etcdRevToken (self := etcdModelOfServer E) r ∗ etcdReached (EM := etcdModelOfServer E) r := by
   iintro Hok
   iunfold putApplied at Hok
-  icases Hok with ⟨%hm, %x, %x', %l, %skip, %Hp, -, #Hcert, HMint, -⟩
+  icases Hok with ⟨%hm, %x, %x', %l, %skip, %Hp, -, #Hcert, HMint, -, #Hcok, -⟩
   obtain ⟨Hstep, rfl, -⟩ := Hp
   obtain ⟨cs, hcs⟩ := put_appended o hm x x' l skip Hstep
   ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
@@ -482,7 +483,7 @@ theorem revToken_of_put (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (o : OpF
   isplitl [Ht]
   · rw [etcdModelOfServer_etcdRevToken]
     iexact Ht
-  iapply etcdReached_of_cert E x'.log _ (by rw [hcs] at Hlen ⊢; simp at Hlen ⊢; word) $$ Hcert
+  iapply etcdReached_of_certOk E x'.log _ (by rw [hcs] at Hlen ⊢; simp at Hlen ⊢; word) $$ Hcok
 
 end slice
 

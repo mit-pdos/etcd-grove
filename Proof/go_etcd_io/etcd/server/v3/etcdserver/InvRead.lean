@@ -192,12 +192,15 @@ state after a certified log `log` (`srvRunTxn`: its verdict and results, no chan
 response's header revision `log`'s last, read after the read index unless every get is
 serializable (`txnSerializable`; `readLogOk`, as `rangeReadOk`'s), the header's id fields owned,
 `log` extending the floor `F` (unit V2, as `rangeReadOk`'s), the caller's certificate of `log`
+and, if linearizable, the read deposit's result at a committed raft log whose model is `log`
 (unit W-M3, as `rangeReadOk`'s). -/
 def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
-    (resp : Loc) : IProp GF :=
+    (Q : List EntryModel → IProp GF) (resp : Loc) : IProp GF :=
   iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
+    (if txn.txnSerializable t then iprop(True) else
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L) ∗
     txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
