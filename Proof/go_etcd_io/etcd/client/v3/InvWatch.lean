@@ -36,14 +36,18 @@ consumer's resources, `retcP`).
   dead code in the verified behaviour, verified at its first call only. The premise is there
   because the reconnection can make `run` send on a closed channel
   (`issues/etcd-watch-resume-closing-substream.md`).
-* `srvProgressAllAnswers` (S2) and `srvEventIdsAssigned` (S3): two facts of etcd's server that
-  the verified server does not state yet (they need the mvcc channel invariant to name the
-  stream's requests and ids; the next mvcc unit's job, `notes/STATUS.md`, "W-C"): a response of
-  watch id `-1` answers a progress request; a response with events carries an id the stream
-  assigned to its watcher.
 * `srvWatchCert` (S4): a watcher's deliveries are the watch events of a *certified* log (mvcc
   gives a lower bound of the index's history only: the store notifies its watchers before the
-  write transaction's commit, where its certificate is made; the next mvcc unit's job too);
+  write transaction's commit, where its certificate is made). False in real time, and not
+  provable by a certificate issued at the seal either: a certificate is a floor for every later
+  read, a serializable one included (`rangeReplyOk`'s `F <+: log`, from `store.Read`'s), and a
+  serializable read between the notify and the commit answers the revision before (unit W-M2,
+  `notes/STATUS.md`, "W-M2").
+* (no longer premises, unit W-M2) S2 `srvProgressAllAnswers` (a response of watch id `-1` answers
+  a progress request) and S3 `srvEventIdsAssigned` (a response with events carries an id the
+  stream assigned to its watcher) are theorems (`srvProgressAllAnswers_holds`,
+  `srvEventIdsAssigned_holds`: projections of `v3rpc.mvccOk`'s `mvccExtra`, which the send loop
+  establishes from mvcc's channel invariant);
 * `srvNoDupKeys`: no revision of the server writes a key twice (etcd's check lets some
   transactions do it: `issues/etcd-txn-check-intervals-sibling.md`; the recipes' and the cache's
   never do);
@@ -166,10 +170,8 @@ def noRetryableStreamErr : IProp GF :=
 instance noRetryableStreamErr_persistent : Persistent (noRetryableStreamErr (GF := GF)) := by
   unfold noRetryableStreamErr; infer_instance
 
-/-- **(S2) A response of watch id `-1` answers a progress request** (a premise, persistent; a
-fact of etcd's server the verified server does not state: mvcc's responses with no events may
-carry any id, and the one of id `-1`, `progressAll`'s, is not tied to the stream's progress
-request; see the file header). -/
+/-- **(S2) A response of watch id `-1` answers a progress request** (persistent; a premise until
+unit W-M2, now a theorem: `srvProgressAllAnswers_holds`). -/
 def srvProgressAllAnswers (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(□ ∀ (γs : StreamNames) (j : Nat) (m : v3rpc.WatchRespM), v3rpc.mvccOk γs R.γ j m -∗
     ⌜m.watchId = W64 (-1)⌝ -∗ ∃ i : Nat, v3rpc.upAtW γs i .progress)
@@ -178,11 +180,9 @@ instance srvProgressAllAnswers_persistent (R : v3rpc.WSrv GF) :
     Persistent (srvProgressAllAnswers R) := by
   unfold srvProgressAllAnswers; infer_instance
 
-/-- **(S3) A response with events carries an id the stream assigned to its watcher** (a premise,
-persistent; a fact of etcd's server, every create being auto-id, `watchReqOk`, that the verified
-server does not state: the send loop learns of a response's watcher from mvcc's channel only,
-and nothing ties a watcher registered on the channel to the stream's ids; see the file
-header). -/
+/-- **(S3) A response with events carries an id the stream assigned to its watcher** (persistent;
+every create being auto-id, `watchReqOk`; a premise until unit W-M2, now a theorem:
+`srvEventIdsAssigned_holds`). -/
 def srvEventIdsAssigned (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(□ ∀ (γs : StreamNames) (j : Nat) (m : v3rpc.WatchRespM) (r : mvcc.RespM),
     v3rpc.mvccOk γs R.γ j m -∗ ⌜m.src = some r ∧ r.evs ≠ []⌝ -∗
@@ -192,6 +192,40 @@ def srvEventIdsAssigned (R : v3rpc.WSrv GF) : IProp GF :=
 instance srvEventIdsAssigned_persistent (R : v3rpc.WSrv GF) :
     Persistent (srvEventIdsAssigned R) := by
   unfold srvEventIdsAssigned; infer_instance
+
+/-- **(S2) holds of the verified server** (unit W-M2): `mvccOk`'s `mvccExtra` (the channel's
+progress fact, saved by the handler as its progress request, `v3rpc.progQ`). -/
+theorem srvProgressAllAnswers_holds (R : v3rpc.WSrv GF) : ⊢ srvProgressAllAnswers R := by
+  iunfold srvProgressAllAnswers
+  iintro !> %γs %j %m #Hok %Hid
+  iunfold v3rpc.mvccOk at Hok
+  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx⟩
+  iunfold v3rpc.mvccExtra at Hx
+  icases Hx with ⟨-, #Hp⟩
+  have hr : r.id = W64 (-1) := by
+    have := congrArg v3rpc.WatchRespM.watchId Hm.1
+    simp only [v3rpc.mvccResp] at this
+    rw [← this]; exact Hid
+  ihave #Hq := Hp $$ %hr
+  iunfold v3rpc.progQ at Hq
+  iexact Hq
+
+/-- **(S3) holds of the verified server** (unit W-M2): `mvccOk`'s `mvccExtra` (the registration
+fact the channel's invariant keeps, recorded by the stream's callback at the registration). -/
+theorem srvEventIdsAssigned_holds (R : v3rpc.WSrv GF) : ⊢ srvEventIdsAssigned R := by
+  iunfold srvEventIdsAssigned
+  iintro !> %γs %j %m %r0 #Hok %Hs
+  iunfold v3rpc.mvccOk at Hok
+  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx⟩
+  iunfold v3rpc.mvccExtra at Hx
+  icases Hx with ⟨#He, -⟩
+  have hr : r = r0 := by
+    have := congrArg v3rpc.WatchRespM.src Hm.1
+    simp only [v3rpc.mvccResp] at this
+    rw [Hs.1] at this; exact (Option.some.inj this).symm
+  subst hr
+  iapply He
+  ipureintro; exact Hs.2
 
 /-- **The watch-token supply** (a premise, persistent; the user's decision): a watch token of the
 store whenever one is needed (every create, so every `Watch`, spends one). -/
@@ -293,8 +327,7 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     v3rpc.watchDescOk ∗ watchTokSupply V.R.γ ∗ noRetryableStreamErr ∗
-    srvProgressAllAnswers V.R ∗ srvEventIdsAssigned V.R ∗ srvWatchCert V.R ∗ srvLogsSmall V.R ∗
-    srvNoDupKeys V.R ∗
+    srvWatchCert V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 
 instance watchConnFacts_persistent (V : WEnv GF) : Persistent (watchConnFacts V) := by
