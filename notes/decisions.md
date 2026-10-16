@@ -7741,3 +7741,30 @@ study of `NewServer` against the premise, row by row, found two things that shap
   from the continuation, `consInv_alloc`, `kvCertInv_alloc`, the indices' allocations,
   `rnEnvOk_of_cluster` from `clusterWorkloadOk`) in parallel; then N3 (the workload clause for one
   server), N4 (the KV abstraction, with the mvcc/watch session).
+
+**Addendum (2026-10-16, after the N0 survey; adopted).** D13 as first written cannot be carried
+out: `newRaftNode` runs inside the `EtcdServer{…}` literal (`server.go:324`), before
+`idutil.NewGenerator` (331) and `mvcc.New` (370), and `newRaftNode.spec` fixes the raft
+environment's `C`/`T`/`RQ` in its channels' predicates at the call, while `isServerBuilt` needs
+`Er.C = srvC ρ E …` over the generator's names, the store's `γ.idx`/`γ.cok` and `γrev`.
+
+- **D13a: the names are chosen before the call (route B).** The proof allocates the ghost names
+  first and passes them in: `idutil.NewGenerator.spec` and `mvcc.New`/`newWatchableStore`/
+  `NewStore` take the caller's names (and `mvcc.New` returns the certificate authority
+  `ghostMapAuth γ.cok 1 ∅` it now drops); a lemma gives `srvC ρ E = srvC ρ E'` when the two agree
+  on `γ.idx`, `γ.cok`, `γrev` (the store's location is known only after `mvcc.New`).
+  `isServerBuilt` and the `run`/`start` proofs are unchanged. *Rejected:* route A, a late-bound
+  `C` through a one-shot saved predicate set after `mvcc.New` (changes `isServerBuilt`'s `%HEr`
+  and the proofs that rewrite with it). The mvcc/idutil spec changes are coordinated with the
+  mvcc/watch session.
+- **D13b: `bootstrap`'s contract is a premise of `NewServer.spec`**, a triple in its
+  precondition, not an axiom: `raftConfig` sets `CheckQuorum: true` on both bootstrap paths
+  (`bootstrap.go:572`), and `NodeStartSpec` needs it off, so an axiom giving `bOk` would be false.
+  The raft start result as proved thus does not cover etcd's actual configuration
+  (`CheckQuorum` on); this was already a premise, now made concrete.
+- **D13c: `clusterWorkloadOk` is a premise of `NewServer.spec`**, not part of `srvBuildGap`:
+  the raft installer `NewServer` runs needs `rnEnvOk`, whose `E.C` clause is the workload clause.
+- **D13d: `NewServer.spec` has an error case** (`srv = nil`, `err ≠ nil`): `NewTokenProvider`,
+  `v3compactor.New`, `restoreAlarms`, `tr.Start` can fail, so their contracts do not promise
+  success, and the proof steps through the two deferred closures (`b.Close()`,
+  `newSrv.kv.Close()`).
