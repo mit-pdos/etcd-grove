@@ -1,5 +1,5 @@
 # The raft v3.7 proofs ported so far into the parallel tree Raft37/ (stage R0:
-# quorum, tracker and slices.Sort; stage R1: raftpb; stage R2: confchange; stage R3: the log layer, unstable, MemoryStorage and the size helpers; notes/raft-retarget-plan.md), with their callees in the
+# quorum, tracker and slices.Sort; stage R1: raftpb; stage R2: confchange; stage R3: the log layer, unstable, MemoryStorage and the size helpers; stage R4: raft.go; stage R5: rawnode.go and node.go; notes/raft-retarget-plan.md), with their callees in the
 # order of each wp_proof's hypotheses (as Proof/go_etcd_io/raft/v3/Link.lean links them).
 # `etc/gen-link.py --raft37 > Raft37/Proof/go_etcd_io/raft/v3/Link.lean`.
 quorum_JointConfig__CommittedIndex: quorum_MajorityConfig__CommittedIndex

@@ -9,9 +9,14 @@ entries) and `MemoryStorage`'s instance of the `Storage` contract; since stage R
 pointer messages (every function of the layer: the struct's helpers, the `Step` dispatch and its
 branches, `stepLeader`/`stepCandidate`/`stepFollower`, the constructor `newRaft`, with
 `fmt.Sprintf` and `strings.Join` copied from the old tree and `DescribeConfChange` at the trust
-boundary), as `Proof/go_etcd_io/raft/v3/Link.lean` links them for the verified raft. The old
-tree's raft-level results are `raft.wp_Step` and `wp_newRaft` (its other results are `RawNode`'s
-and `node`'s, stage R5). `#print axioms` of each
+boundary); since stage R5 the node layer over pointer messages (`rawnode.go` and `node.go`:
+every `RawNode` method, `readyWithoutAccept`/`acceptReady` and their composition `Ready`,
+`Advance`, the `node` API and its `run` loop, `NewRawNode`, `newNode`, `RestartNode`,
+`confChangeToMsg`, and the storage-response helpers `needStorageAppendRespMsg`/
+`newStorageAppendRespMsg`/`newStorageApplyRespMsg`), as `Proof/go_etcd_io/raft/v3/Link.lean`
+links them for the verified raft. The old tree's results (`raft.wp_Step`, `wp_newRaft`, the
+`RawNode` and `node` results) all have their counterparts here; its `Results.lean` restates no
+theorem beyond their `#print axioms`. `#print axioms` of each
 is its trust base (in the build log); `etc/tcb-report.py --collection
 etc/tcb-collections/raft37.txt` reports on them. The tree replaces the old raft proof's when
 it reaches its results (`Proof/go_etcd_io/raft/v3/Results.lean`).
@@ -324,6 +329,48 @@ namespace EtcdGrove
 #print axioms wp_DescribeConfChange
 #print axioms wp_stepLeader
 #print axioms strings.wp_Join
+
+-- the node layer, rawnode.go and node.go (stage R5)
+#print axioms RawNode.wp_Ready
+#print axioms RawNode.wp_Advance
+#print axioms node.wp_run
+#print axioms wp_RestartNode
+#print axioms RawNode.wp_readyWithoutAccept
+#print axioms RawNode.wp_acceptReady
+#print axioms RawNode.wp_HasReady
+#print axioms RawNode.wp_Propose
+#print axioms RawNode.wp_ProposeConfChange
+#print axioms RawNode.wp_ReadIndex
+#print axioms RawNode.wp_Step
+#print axioms RawNode.wp_Tick
+#print axioms RawNode.wp_Campaign
+#print axioms RawNode.wp_ApplyConfChange
+#print axioms RawNode.wp_BasicStatus
+#print axioms RawNode.wp_ForgetLeader
+#print axioms RawNode.wp_TransferLeader
+#print axioms RawNode.wp_ReportSnapshot
+#print axioms RawNode.wp_ReportUnreachable
+#print axioms wp_NewRawNode
+#print axioms wp_confChangeToMsg
+#print axioms wp_needStorageAppendRespMsg
+#print axioms wp_newStorageAppendRespMsg
+#print axioms wp_newStorageApplyRespMsg
+#print axioms wp_newNode
+#print axioms node.wp_Propose
+#print axioms node.wp_ProposeConfChange
+#print axioms node.wp_ReadIndex
+#print axioms node.wp_Step
+#print axioms node.wp_step
+#print axioms node.wp_stepWait
+#print axioms node.wp_stepWithWaitOption
+#print axioms node.wp_Tick
+#print axioms node.wp_Ready
+#print axioms node.wp_Advance
+#print axioms node.wp_ApplyConfChange
+#print axioms node.wp_ForgetLeader
+#print axioms node.wp_TransferLeadership
+#print axioms node.wp_ReportSnapshot
+#print axioms node.wp_ReportUnreachable
 
 -- the protocol model (stage R1)
 #print axioms raft_dyn_alloc

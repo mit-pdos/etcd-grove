@@ -114,7 +114,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem csPts_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bool) :
+-- Named apart from `LemmasSendRD.csPts_combine` (which keeps the first `AutoLeave`): both reach `Link.lean`.
+theorem csPts_combine_open (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bool) :
     csPts (GF := GF) p dq1 c al1 ∗ csPts p dq2 c al2 ⊢ csPts p (dq1 • dq2) c false := by
   iintro ⟨H1, H2⟩
   iunfold csPts at H1 H2
@@ -148,7 +149,7 @@ theorem csOptA_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :
     | (icases csPts_nn _ _ _ _ $$ H1 with ⟨-, %Hn⟩; exact absurd H2.1 Hn)
     | (iunfold csOptA; iright; iright; iexact H2)
     | (iunfold csOptA; iright; iright; iexact H1)
-    | (iunfold csOptA; iright; ileft; iapply csPts_combine p dq1 dq2 c false false; isplitl [H1]
+    | (iunfold csOptA; iright; ileft; iapply csPts_combine_open p dq1 dq2 c false false; isplitl [H1]
        · iexact H1
        · iexact H2)
 

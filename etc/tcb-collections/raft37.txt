@@ -7,7 +7,8 @@
 # the same Go calls, restated for v3.7). Stage R3: the log layer (unstable, raftLog, MemoryStorage,
 # the size helpers), on R1's proto axioms only. Stage R4: raft.go over pointer messages (newRaft
 # included), adding DescribeConfChange (a log formatter at the trust boundary, stepLeader's
-# refusal string).
+# refusal string). Stage R5: the node layer (rawnode.go, node.go, NewRawNode/newNode/RestartNode),
+# no new axiom.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/raft37.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/raft37.txt --check    against the lines below
