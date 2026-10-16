@@ -25,8 +25,10 @@ them and a leader decodes them from the record (`entData_cc`, `ccEntsOk_cc`, pur
 recording and `"#Hreg"` are gone.)
 
 Not stated: whether the change is appended or refused (a pending conf change, an empty
-`ConfChangeV2`), which `Step`'s postcondition does not expose and the error does not tell
-(a refused conf change is appended as an empty normal entry, `nil` returned); and the order
+`ConfChangeV2`), which `Step`'s postcondition does not expose (a refused conf change is appended
+as an empty normal entry; since etcd-io/raft PR #453, `notes/pr-verify/raft-453.md`, the error is
+then `ErrConfChangeRejected`, which this spec admits but does not tie to the refusal: that is
+`stepLeader.spec`'s, below the `RawNode`'s abstraction); and the order
 in which the application must apply committed conf changes (`ApplyConfChange`) relative to
 `Advance`, which is `RawNode.ApplyConfChange`'s concern (its spec's documentation).
 
@@ -123,7 +125,11 @@ abbrev RawNode.ProposeConfChange.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) ∗
-      "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }}
+      -- (etcd-io/raft PR #453) or `ErrConfChangeRejected`: at a leader whose conf-change loop
+      -- refused the change (`raft.Step.spec`'s `"Herr"`; when, `stepLeader.spec`), appended as an
+      -- empty normal entry
+      "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err ∨
+                globalAddr ErrConfChangeRejected ↦□ err) }}
 
 end spec
 

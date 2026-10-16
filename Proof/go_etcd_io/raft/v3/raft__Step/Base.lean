@@ -147,7 +147,10 @@ structure raft.Step.Postulates : Prop where
   of the three depending on the role -- on `m.Term > r.Term` the term preamble has
   already run `becomeFollower`. -/
   stepFollower : stepFollower.spec (GF := GF) (hG := hG)
-  stepLeader : stepLeader.spec (GF := GF) (hG := hG)
+  /-- (etcd-io/raft PR #453) for `MsgProp`; `stepLeader` for the other types, in the statement's
+  old shape (`stepLeader.spec_np`). -/
+  stepLeaderProp : stepLeader.spec (GF := GF) (hG := hG)
+  stepLeader : stepLeader.specNP (GF := GF) (hG := hG)
   traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG)
   lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)
   isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)

@@ -75,7 +75,7 @@ theorem stepCandidate.wp_proof
   have Hcfg : id ∈ c.voters := Hvoter (by rcases Hrole with h | h <;> rw [h] <;> decide)
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
-  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
+  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %_, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
   -- `myVoteRespType`: `MsgPreVoteResp` for a pre-candidate, `MsgVoteResp` for a

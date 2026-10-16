@@ -23,6 +23,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+open Classical in
 /-- By the message type, one lemma each. The non-`MsgProp` lemmas are stated at
 `LeaderNonpropResult` with `err = nil`; `HΦ'` turns that into the postcondition with
 `dropped = false`.
@@ -98,10 +99,18 @@ theorem stepLeader.wp_proof
     inext
     iintro %err %s' %dropped ⟨Hphys, %Hres, Herr⟩
     iapply HΦ
-    iframe Hphys Herr
-    ipureintro
-    simp only [LeaderStepResultC, Hp, ↓reduceIte]
-    exact Hres
+    iframe Hphys
+    isplitr
+    · ipureintro
+      simp only [LeaderStepResultC, Hp, ↓reduceIte]
+      exact Hres
+    -- (etcd-io/raft PR #453) the error: `ErrConfChangeRejected` exactly when a change was refused
+    cases dropped
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      by_cases Hrj : LeaderPropRejects s ents c.joint
+      · rw [if_pos Hrj, if_pos ⟨Hp, Hrj⟩]; iexact Herr
+      · rw [if_neg Hrj, if_neg (fun h => Hrj h.2)]; iexact Herr
+    · simp only [↓reduceIte]; iexact Herr
   ihave HΦ' : iprop(▷ ∀ (err : GoInterface) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
       ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦ]
@@ -114,6 +123,7 @@ theorem stepLeader.wp_proof
       simp only [LeaderStepResultC, Hp, ↓reduceIte]
       exact ⟨trivial, Hres⟩
     · simp only [Bool.false_eq_true, ↓reduceIte]
+      rw [if_neg (fun h => Hp h.1)]
       ipureintro; exact Herr
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
     Hty | Hty

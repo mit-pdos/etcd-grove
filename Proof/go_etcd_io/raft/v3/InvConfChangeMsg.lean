@@ -23,6 +23,66 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+section pure
+variable [FfiSyntax]
+
+/-- The conf change an entry's bytes decode to (etcd-io/raft PR #453, 2026-10-16): `none` for an
+entry that is no conf change. Where `ccEntsOk ents cs` holds (the batch's conf-change entries
+decode, `stepLeader`'s premise `"Hcc"`), `cs = ents.map ccOf` (`ccEntsOk_ccOf`). -/
+def ccOf (e : EntryM) : Option CCMsg :=
+  if e.Type' = W32 1 then (ccDecodeV1 e.Data').map CCMsg.v1
+  else if e.Type' = W32 2 then (ccDecodeV2 e.Data').map CCMsg.v2
+  else none
+
+/-- (etcd-io/raft PR #453, 2026-10-16) `stepLeader`'s conf-change loop refuses one of the
+batch's conf changes: the batch it leaves differs from the proposed one -- a refused change is
+overwritten by the empty normal entry, which no conf-change entry is, and nothing else is
+changed (`PropRepl`). The loop's batch is `leaderPropConf`'s (`Spec/stepLeader.lean`), `joint`
+as there. -/
+def LeaderPropRejects (s : NState) (ents : List EntryM) (joint : Bool := false) : Prop :=
+  (propConf s.logst.applied (logLast s.logst) s.pci ents (ents.map ccOf) joint).1 ≠ ents
+
+theorem ccOf_noconf (e : EntryM) (H : ¬ IsConfEnt e) : ccOf e = none := by
+  unfold IsConfEnt at H
+  unfold ccOf
+  rw [if_neg (fun h => H (.inl h)), if_neg (fun h => H (.inr h))]
+
+/-- A replacement of a batch without conf-change entries is the batch. -/
+theorem PropRepl.eq_of_noconf {es es' : List EntryM} (Hr : PropRepl es es')
+    (H : ∀ e ∈ es, ¬ IsConfEnt e) : es' = es := by
+  induction Hr with
+  | nil => rfl
+  | @cons a b l l' h _ ih =>
+    rcases h with rfl | ⟨hc, _⟩
+    · rw [ih (fun e he => H e (List.mem_cons_of_mem _ he))]
+    · exact absurd hc (H a List.mem_cons_self)
+
+/-- (etcd-io/raft PR #453) A batch with no conf-change entry has nothing to refuse. -/
+theorem LeaderPropRejects_noconf (s : NState) (ents : List EntryM) (joint : Bool)
+    (H : ∀ e ∈ ents, ¬ IsConfEnt e) : ¬ LeaderPropRejects s ents joint := by
+  unfold LeaderPropRejects
+  have Hct : CCTypesOk ents (ents.map ccOf) := by
+    unfold CCTypesOk
+    induction ents with
+    | nil => exact .nil
+    | cons e es ih =>
+      simp only [List.map_cons]
+      refine .cons ?_ (ih (fun e' h => H e' (List.mem_cons_of_mem _ h)))
+      have He := H e List.mem_cons_self
+      rw [ccOf_noconf e He]; simp [He]
+  have Hr := propConf_repl (joint := joint) s.logst.applied (logLast s.logst) s.pci ents _ Hct
+  intro Hne
+  exact Hne (Hr.eq_of_noconf H)
+
+/-- So a refusal names a conf-change entry of the batch. -/
+theorem LeaderPropRejects_conf {s : NState} {ents : List EntryM} {joint : Bool}
+    (H : LeaderPropRejects s ents joint) : ∃ e ∈ ents, IsConfEnt e := by
+  apply Classical.byContradiction
+  intro Hn
+  exact LeaderPropRejects_noconf s ents joint (fun e he hc => Hn ⟨e, he, hc⟩) H
+
+end pure
+
 section own
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -102,6 +162,47 @@ theorem ccEntsOk_normal (ents : List EntryM) (H : ∀ e ∈ ents, e.Type' = W32 
       unfold IsConfEnt; rw [He]
       rintro (h | h) <;> revert h <;> word
     · iapply ih (fun e' h => H e' (List.mem_cons_of_mem _ h))
+
+/-- A conf-change entry's decoding is `ccOf`'s. -/
+theorem ccEntOk_ccOf (e : EntryM) (o : Option CCMsg) :
+    ccEntOk (GF := GF) e o ⊢ ⌜o = ccOf e⌝ := by
+  rcases o with _ | (m | m) <;> unfold ccEntOk
+  · iintro %H; ipureintro
+    unfold IsConfEnt at H
+    unfold ccOf
+    rw [if_neg (fun h => H (.inl h)), if_neg (fun h => H (.inr h))]
+  · iintro %H; ipureintro
+    obtain ⟨H1, H2⟩ := H
+    unfold ccOf; rw [if_pos H1, H2]; rfl
+  · iintro %H; ipureintro
+    obtain ⟨H1, H2⟩ := H
+    unfold ccOf; rw [if_neg (by rw [H1]; word), if_pos H1, H2]; rfl
+
+/-- The decoded conf changes of a batch are `ccOf`'s. -/
+theorem ccEntsOk_ccOf (ents : List EntryM) (cs : List (Option CCMsg)) :
+    ccEntsOk (GF := GF) ents cs ⊢ ⌜cs = ents.map ccOf⌝ := by
+  unfold ccEntsOk
+  induction ents generalizing cs with
+  | nil =>
+    cases cs with
+    | nil => iintro _; ipureintro; rfl
+    | cons c cs =>
+      iintro H
+      ihave %Hl := BigSepL2.bigSepL2_length $$ H
+      simp at Hl
+  | cons e ents ih =>
+    cases cs with
+    | nil =>
+      iintro H
+      ihave %Hl := BigSepL2.bigSepL2_length $$ H
+      simp at Hl
+    | cons c cs =>
+      iintro H
+      icases (BigSepL2.bigSepL2_cons (Φ := fun _ e o => ccEntOk (GF := GF) e o)).1 $$ H with ⟨He, Hr⟩
+      ihave %H1 := ccEntOk_ccOf e c $$ He
+      ihave %H2 := ih cs $$ Hr
+      ipureintro
+      rw [H1, H2]; rfl
 
 end own
 

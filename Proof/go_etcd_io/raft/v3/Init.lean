@@ -244,6 +244,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) errBreak go.error as HEB
   wp_apply wp_GlobalAlloc (V := GoArray GoString 4) stmap _ as _
   wp_apply wp_GlobalAlloc (V := Loc) globalRand _ as HGR
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrConfChangeRejected go.error as HECR
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrProposalDropped go.error as HEPD
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStopped go.error as HES
   wp_apply wp_GlobalAlloc (V := Loc) emptyState _ as HEmpty
@@ -299,6 +300,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     iframe Hst Hesc Heuf Hnil
   ipersist HES
   ipersist HEPD
+  ipersist HECR
   ipersist HGR
   ipersist HEmpty
   ipersist HeT
@@ -320,7 +322,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   imodintro
   unfold isInitialized isLockedRand
-  iexists _, _, _, _, _, _, _, _, _, _
+  iexists _, _, _, _, _, _, _, _, _, _, _
   ihave #HEB' : iprop(∃ eb : GoInterface, (globalAddr errBreak ↦□ eb : IProp GF) ∗
       ⌜eb ≠ interface.nil ∧ IsNewError eb⌝) $$ [HEB]
   · iexists _
@@ -341,10 +343,10 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   · iexists _
     iframe HEmpty HeT HeV HeC HesPb
     ipureintro; exact HesNN
-  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
+  iframe HES HEPD HECR HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
   ipureintro
   exact ⟨nofun, nofun, isNewError_of_ptr (by assumption), nofun, nofun,
-    isNewError_of_ptr (by assumption), isNewError_of_ptr (by assumption), nofun⟩
+    isNewError_of_ptr (by assumption), isNewError_of_ptr (by assumption), nofun, nofun⟩
 
 end raft_init
 

@@ -168,7 +168,7 @@ initializer; a proof that reads one needs the points-to, the load being through
 global RNG, and `emptyState`. -/
 def isInitialized : IProp GF :=
   iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail errPropDropped : GoInterface)
-      (globalRand' : Loc) (localMsgs responseMsgs : GoArray Bool 23)
+      (errCCRejected : GoInterface) (globalRand' : Loc) (localMsgs responseMsgs : GoArray Bool 23)
       (errStepLocal errStepPeer : GoInterface),
     "ErrStopped" ∷ (globalAddr ErrStopped ↦□ errStopped : IProp GF) ∗
     "%HErrStopped" ∷ ⌜errStopped ≠ interface.nil⌝ ∗
@@ -194,6 +194,11 @@ def isInitialized : IProp GF :=
     -- loaded and returned, never compared, so no `IsNewError`. Added 2026-10-01.
     "ErrPropDropped" ∷ (globalAddr ErrProposalDropped ↦□ errPropDropped : IProp GF) ∗
     "%HErrPropDropped" ∷ ⌜errPropDropped ≠ interface.nil⌝ ∗
+    -- `ErrConfChangeRejected = errors.New("raft conf change rejected")` (`raft.go`; etcd-io/raft
+    -- PR #453, `notes/pr-verify/raft-453.md`), which `stepLeader` returns for a proposal whose
+    -- conf change it refused. Only loaded and returned, never compared.
+    "ErrCCRejected" ∷ (globalAddr ErrConfChangeRejected ↦□ errCCRejected : IProp GF) ∗
+    "%HErrCCRejected" ∷ ⌜errCCRejected ≠ interface.nil⌝ ∗
     -- the global RNG: the pointer, and the mutex behind it
     "#globalRand" ∷ (globalAddr globalRand ↦□ globalRand' : IProp GF) ∗
     "#HglobalRand" ∷ isLockedRand globalRand' ∗

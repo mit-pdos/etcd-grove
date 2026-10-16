@@ -58,7 +58,26 @@ private theorem list_set_self {A : Type} (l : List A) (i : Int) (x : A)
   obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 H
   rw [← hget]; exact List.set_getElem_self hlt
 
+/-! (etcd-io/raft PR #453, 2026-10-16) What the loop's `rejectedConfChange` tracks. -/
 
+/-- One more entry kept: the batches differ as before. -/
+theorem rej_keep {A T : List EntryM} (e : EntryM) : (A ++ [e] ≠ T ++ [e]) ↔ (A ≠ T) := by
+  constructor
+  · intro h h'; exact h (by rw [h'])
+  · intro h h'; exact h (List.append_cancel_right h')
+
+/-- A conf-change entry overwritten by the empty normal entry: the batches differ. -/
+theorem rej_zero {A T : List EntryM} (e : EntryM) (He : IsConfEnt e) :
+    A ++ [zero_val EntryM] ≠ T ++ [e] := by
+  intro h
+  have h2 := congrArg List.getLast? h
+  simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or] at h2
+  have h3 : zero_val EntryM = e := Option.some.inj h2
+  subst h3
+  unfold IsConfEnt at He
+  rcases He with h | h <;> revert h <;> (show (W32 0 : w32) = W32 _ → False; word)
+
+open Classical in
 set_option maxHeartbeats 1600000 in
 /-- **`MsgProp`**
 
@@ -108,15 +127,18 @@ theorem wp_stepLeader_prop
     {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
         ⌜LeaderProposeResult id s ents dropped s' c.joint⌝ ∗
+        -- (etcd-io/raft PR #453) `ErrConfChangeRejected` when the loop refused a conf change
         (if dropped then globalAddr ErrProposalDropped ↦□ err
+         else if LeaderPropRejects s ents c.joint then globalAddr ErrConfChangeRejected ↦□ err
          else ⌜err = interface.nil⌝) }} := by
   wp_start as ⟨Hphys, Hm, #Hcc⟩
   ihave %Hct := ccEntsOk_types ents cs $$ Hcc
+  ihave %Hcof := ccEntsOk_ccOf ents cs $$ Hcc
   have Hcslen : cs.length = ents.length := (List.Forall₂.length_eq Hct).symm
   iunfold ccEntsOk at Hcc
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
-  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
+  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %errCCR, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -183,21 +205,24 @@ theorem wp_stepLeader_prop
     intro n hn
     simp only [lpc]
     rw [propConf_length]; simp only [List.length_take]; omega
-  ihave IH : iprop(∃ (n k : w64) (els : List Loc),
+  ihave IH : iprop(∃ (n k : w64) (els : List Loc) (b : Bool),
       "Hj" ∷ i_ptr ↦ n ∗
+      -- (etcd-io/raft PR #453) `rejectedConfChange`: whether the loop has refused a change
+      "Hrj" ∷ rejectedConfChange_ptr ↦ b ∗
+      "%Hb" ∷ ⌜b = true ↔ (lpc (sint.nat n)).1 ≠ ents.take (sint.nat n)⌝ ∗
       "Hgi" ∷ gi_ptr ↦ k ∗
       "Hes" ∷ es0 ↦* els ∗
       "#Hents" ∷ ([∗list] p;e ∈ els;((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n)), entRO p e) ∗
       "HEs" ∷ ml.[raftpb.Message, go!"Entries"] ↦ es0 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with pci := (lpc (sint.nat n)).2 } ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi Hes HEs Hphys]
-  · iexists W64 0, zero_val w64, els0
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi Hes HEs Hphys rejectedConfChange]
+  · iexists W64 0, zero_val w64, els0, false
     simp only [lpc, show sint.nat (W64 0) = 0 from rfl, propConf_take_zero, List.nil_append,
       List.drop_zero]
     iframe
     iframe Hents
     ipureintro
-    word
+    refine ⟨by simp, by word⟩
   wp_for IH
   ihave %Hl' := ownSlice_len _ _ _ $$ Hes
   ihave %Hlen' := BigSepL2.bigSepL2_length $$ Hents
@@ -251,6 +276,27 @@ theorem wp_stepLeader_prop
       rw [Hp, show (sint.Z n).toNat = sint.nat n by word,
         list_set_mid _ ents (sint.nat n) _ e (by simpa [lpc] using Hlpcn) He_lookup]
       simp
+    -- (etcd-io/raft PR #453) the loop's batch one entry on, and the proposed one
+    have Htk : ents.take (sint.nat (n + W64 1)) = ents.take (sint.nat n) ++ [e] := by
+      rw [Hnext, List.take_succ, He_lookup]; rfl
+    have Hlpc1 : ∀ x p', propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
+        ((lpc (sint.nat n)).1 ++ [x], p') → (lpc (sint.nat (n + W64 1))).1 = (lpc (sint.nat n)).1 ++ [x] := by
+      intro x p' Hp
+      simp only [lpc, Hnext, Hstep] at Hp ⊢
+      rw [Hp]
+    -- kept: `rejectedConfChange` unchanged
+    have Hbkeep : ∀ p', propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
+        ((lpc (sint.nat n)).1 ++ [e], p') →
+        (b = true ↔ (lpc (sint.nat (n + W64 1))).1 ≠ ents.take (sint.nat (n + W64 1))) := by
+      intro p' Hp
+      rw [Hlpc1 e p' Hp, Htk, rej_keep]; exact Hb
+    -- refused: `rejectedConfChange` set
+    have Hbzero : IsConfEnt e → ∀ p', propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
+        ((lpc (sint.nat n)).1 ++ [zero_val EntryM], p') →
+        (true = true ↔ (lpc (sint.nat (n + W64 1))).1 ≠ ents.take (sint.nat (n + W64 1))) := by
+      intro Hce p' Hp
+      rw [Hlpc1 _ p' Hp, Htk]
+      exact ⟨fun _ => rej_zero e Hce, fun _ => rfl⟩
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]
     wp_apply wp_load_slice_index es0 (sint.Z n) els (DFrac.own 1) l0 Hn.1 $$ [Hes] as Hes
     · iframe; ipureintro; exact Hl0'
@@ -268,7 +314,7 @@ theorem wp_stepLeader_prop
       wp_auto
       wp_for_post
       iframe
-      iexists n + W64 1, n, els
+      iexists n + W64 1, n, els, b
       have Hcur' : (lpc (sint.nat (n + W64 1))).1 ++ ents.drop (sint.nat (n + W64 1)) =
           (lpc (sint.nat n)).1 ++ ents.drop (sint.nat n) := by
         simp only [lpc, Hnext, Hstep, propConfStep, List.append_assoc, List.singleton_append]
@@ -279,8 +325,7 @@ theorem wp_stepLeader_prop
       rw [Hpci']
       iframe
       iframe Hents
-      ipureintro
-      word
+      ipureintro; exact ⟨Hbkeep _ rfl, by word⟩
     · -- a `ConfChange`
       iunfold ccEntOk at Heo
       icases Heo with ⟨%H1, %Hdec⟩
@@ -396,11 +441,11 @@ theorem wp_stepLeader_prop
         obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
         wp_for_post
         iframe
-        iexists n + W64 1, n, _
+        iexists n + W64 1, n, _, true
         rw [Hcur', Hpci']
         iframe
         iframe Hents'
-        ipureintro; word
+        ipureintro; exact ⟨Hbzero (by unfold IsConfEnt; first | exact .inl H1 | exact .inr H2) _ Hstep0, by word⟩
       · -- no conf change pending, one change (`wantsLeaveJoint` false)
         have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
@@ -430,14 +475,14 @@ theorem wp_stepLeader_prop
           obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
           wp_for_post
           iframe
-          iexists n + W64 1, n, els
+          iexists n + W64 1, n, els, b
           rw [Hcur', Hpci']
           ihave Hphys := ownRaftPhysC_eq c r id _
             { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
             (by rw [Hli']; congr 2; word) $$ Hphys
           iframe
           iframe Hents
-          ipureintro; word
+          ipureintro; exact ⟨Hbkeep _ Hstep1, by word⟩
         · -- inside one (`must transition out of joint config first`): refused
           rw [Hjv]
           wp_auto
@@ -474,11 +519,11 @@ theorem wp_stepLeader_prop
           obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
           wp_for_post
           iframe
-          iexists n + W64 1, n, _
+          iexists n + W64 1, n, _, true
           rw [Hcur', Hpci']
           iframe
           iframe Hents'
-          ipureintro; word
+          ipureintro; exact ⟨Hbzero (by unfold IsConfEnt; first | exact .inl H1 | exact .inr H2) _ Hstep0, by word⟩
     · -- a `ConfChangeV2`
       iunfold ccEntOk at Heo
       icases Heo with ⟨%H2, %Hdec⟩
@@ -597,11 +642,11 @@ theorem wp_stepLeader_prop
         obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
         wp_for_post
         iframe
-        iexists n + W64 1, n, _
+        iexists n + W64 1, n, _, true
         rw [Hcur', Hpci']
         iframe
         iframe Hents'
-        ipureintro; word
+        ipureintro; exact ⟨Hbzero (by unfold IsConfEnt; first | exact .inl H1 | exact .inr H2) _ Hstep0, by word⟩
       · have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
         have Hlv0 : chs.len = W64 0 ↔ c2.changes = [] := by
@@ -650,11 +695,11 @@ theorem wp_stepLeader_prop
             obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
             wp_for_post
             iframe
-            iexists n + W64 1, n, _
+            iexists n + W64 1, n, _, true
             rw [Hcur', Hpci']
             iframe
             iframe Hents'
-            ipureintro; word
+            ipureintro; exact ⟨Hbzero (by unfold IsConfEnt; first | exact .inl H1 | exact .inr H2) _ Hstep0, by word⟩
           · -- a request to leave the joint configuration: accepted
             rw [Hjv]
             try wp_auto
@@ -675,14 +720,14 @@ theorem wp_stepLeader_prop
             obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
             wp_for_post
             iframe
-            iexists n + W64 1, n, els
+            iexists n + W64 1, n, els, b
             rw [Hcur', Hpci']
             ihave Hphys := ownRaftPhysC_eq c r id _
               { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
               (by rw [Hli']; congr 2; word) $$ Hphys
             iframe
             iframe Hents
-            ipureintro; word
+            ipureintro; exact ⟨Hbkeep _ Hstep1, by word⟩
         · rw [decide_eq_false (fun h => Hcw (Hlv0.1 h))]
           try wp_auto
           have Hne : c2.changes.isEmpty = false := by
@@ -711,14 +756,14 @@ theorem wp_stepLeader_prop
             obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
             wp_for_post
             iframe
-            iexists n + W64 1, n, els
+            iexists n + W64 1, n, els, b
             rw [Hcur', Hpci']
             ihave Hphys := ownRaftPhysC_eq c r id _
               { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
               (by rw [Hli']; congr 2; word) $$ Hphys
             iframe
             iframe Hents
-            ipureintro; word
+            ipureintro; exact ⟨Hbkeep _ Hstep1, by word⟩
           · -- a change inside one: refused
             rw [Hjv]
             wp_auto
@@ -755,11 +800,11 @@ theorem wp_stepLeader_prop
             obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
             wp_for_post
             iframe
-            iexists n + W64 1, n, _
+            iexists n + W64 1, n, _, true
             rw [Hcur', Hpci']
             iframe
             iframe Hents'
-            ipureintro; word
+            ipureintro; exact ⟨Hbzero (by unfold IsConfEnt; first | exact .inl H1 | exact .inr H2) _ Hstep0, by word⟩
   · -- the loop is done: `appendEntry` of the loop's batch
     have Hnend : sint.nat n = ents.length := by
       have := Hl'.1; rw [Hlen', Hcurlen] at this; word
@@ -768,6 +813,10 @@ theorem wp_stepLeader_prop
     have Hfin : lpc (sint.nat n) = leaderPropConf s ents cs c.joint := by
       simp only [lpc, leaderPropConf, Htake ents rfl, Htake cs Hcslen]
     rw [Hnend] at Hfin
+    -- (etcd-io/raft PR #453) `rejectedConfChange` at the end: a refusal
+    have Hrej : b = true ↔ LeaderPropRejects s ents c.joint := by
+      rw [Hnend, Hfin, List.take_length] at Hb
+      unfold LeaderPropRejects; rw [← Hcof]; exact Hb
     rw [Hnend, List.drop_length, List.append_nil, Hfin]
     wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
     have Hlen' : ((leaderPropConf s ents cs c.joint).1.length : Int) < 2^61 := by
@@ -792,15 +841,30 @@ theorem wp_stepLeader_prop
     · wp_auto
       wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
-      iapply HΦ $$ %interface.nil %_ %false
-      iframe Hphys
-      isplitr
-      · ipureintro
-        refine ⟨cs, Hct, ?_⟩
+      -- (etcd-io/raft PR #453) `if rejectedConfChange { return ErrConfChangeRejected }`
+      cases b
+      · wp_auto
+        iapply HΦ $$ %interface.nil %_ %false
+        iframe Hphys
+        isplitr
+        · ipureintro
+          refine ⟨cs, Hct, ?_⟩
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          exact ⟨ms, pvs, rfl, Hms, Hmm⟩
         simp only [Bool.false_eq_true, ↓reduceIte]
-        exact ⟨ms, pvs, rfl, Hms, Hmm⟩
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro; trivial
+        rw [if_neg (fun h => absurd (Hrej.2 h) (by simp))]
+        ipureintro; trivial
+      · wp_auto
+        iapply HΦ $$ %errCCR %_ %false
+        iframe Hphys
+        isplitr
+        · ipureintro
+          refine ⟨cs, Hct, ?_⟩
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          exact ⟨ms, pvs, rfl, Hms, Hmm⟩
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        rw [if_pos (Hrej.1 rfl)]
+        iexact ErrCCRejected
 
 
 end proof

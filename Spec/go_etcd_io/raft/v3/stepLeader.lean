@@ -138,6 +138,8 @@ def leaderPropConf (s : NState) (ents : List EntryM) (cs : List (Option CCMsg))
     (joint : Bool := false) : List EntryM × w64 :=
   propConf s.logst.applied (logLast s.logst) s.pci ents cs joint
 
+-- (etcd-io/raft PR #453) `ccOf` and `LeaderPropRejects` are in `InvConfChangeMsg.lean`.
+
 /-- `MsgProp` at the leader: dropped -- unchanged (a leader transfer in progress, before
 the conf-change loop), or with only `pendingConfIndex` moved by the loop (`appendEntry`
 refused the batch) -- or the loop's batch appended and then `bcastAppend`'s sends, judged
@@ -282,6 +284,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+open Classical in
 /-- Premises, each tied to the exit it rules out:
 - `s.role = .leader`: `r.step = stepLeader` means it (`NStateWf`), and `toPState`'s
   `matched` is `Match` only for a leader;
@@ -360,8 +363,114 @@ abbrev stepLeader.spec : Prop :=
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗
       ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
+      -- (etcd-io/raft PR #453, 2026-10-16) a proposal that is not dropped and one of whose conf
+      -- changes the loop refused returns `ErrConfChangeRejected` (the batch, with the refused
+      -- change replaced by an empty entry, is still appended); every other undropped step `nil`
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else if m.Type' = MsgProp ∧ LeaderPropRejects s ents c.joint then
+         globalAddr ErrConfChangeRejected ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- (etcd-io/raft PR #453, 2026-10-16) `stepLeader.spec` on the types other than `MsgProp`, in
+the statement's shape before the PR (the `MsgProp` disjunct of the type premise `False`): the
+error is `nil` (nothing is dropped). What `Step`'s branches for those types use
+(`raft.Step.Postulates.stepLeader`); `MsgProp`'s uses `stepLeader.spec` itself. -/
+abbrev stepLeader.specNP : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
+   m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
+   False ∨ m.Type' = MsgApp ∨
+   m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
+    m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)) →
+  s.role = .leader →
+  (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
+  (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →
+   m.From' ≠ id) →
+  (m.Type' = MsgProp →
+   ents ≠ [] ∧
+   (ents.length : Int) < 2^61 ∧
+   -- the leader's term is nonzero (2026-10-10; `appendEntry`'s premise, from the
+   -- ghost state: `ownRaftGhost_term_nz`)
+   s.term ≠ W64 0) →
+  -- read-index (2026-10-12): the read-only state as the ghost state keeps it, the
+  -- leader's term nonzero (`committedEntryInCurrentTerm`), a request with entries, and a
+  -- heartbeat response's context a position sent (eight bytes)
+  -- (2026-10-13: only for the three types whose paths read them; until 2026-10-14 also not
+  -- at a single voter)
+  (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgReadIndex →
+   RdOk c.voters s.rd ∧ s.term ≠ W64 0) →
+  (m.Type' = MsgReadIndex → ents ≠ []) →
+  (m.Type' = MsgHeartbeatResp →
+   (ctx = [] ∨ 8 ≤ ctx.length) ∧
+   (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
+                 ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))) →
+  -- (2026-10-16, stage R8a, D11) an accepted `MsgAppResp` acknowledges an index within the
+  -- leader's log, so `MaybeUpdate` keeps the leader's progress bound (`PrvalsOk`): `Step` has it
+  -- from the message's ghost witness (`ackIn`, `ownRaftGhost_ackIn_le`)
+  (m.Type' = MsgAppResp → m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
+      -- `MsgProp`, read-only otherwise
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, ctx, rs⟩ ∗
+      -- (2026-10-13) and its conf-change entries' bytes, which decode
+      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) }}
+    (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
+      ownRaftPhysCV c c.voters r id s' ∗
+      ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
+
+open Classical in
+open Iris.ProofMode in
+theorem stepLeader.spec_np (H : stepLeader.spec (GF := GF) (hG := hG)) :
+    stepLeader.specNP (GF := GF) (hG := hG) := by
+  intro c r id s ml m ents sn ctx rs Hty H1 H2 H3 H4 H5 H6 H7 H8
+  have Hnp : m.Type' ≠ MsgProp := by
+    intro Hp
+    rw [Hp] at Hty
+    simp only [MsgBeat, MsgProp, MsgApp, MsgAppResp, MsgVoteResp, MsgHeartbeat,
+      MsgHeartbeatResp, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader,
+      MsgTimeoutNow, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, false_or] at Hty
+    rcases Hty with h | h | h | h | h | h | h | h | h | h | h | h | h | h <;>
+      exact absurd h (by word)
+  have Hty' : (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
+      m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
+      m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
+      m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
+      m.Type' = MsgReadIndex ∨
+      (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
+       m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)) := by
+    rcases Hty with h | h | h | h | h | h | h | h | h | h
+    · exact .inl h
+    · exact .inr (.inl h)
+    · exact .inr (.inr (.inl h))
+    · exact .inr (.inr (.inr (.inl h)))
+    · exact h.elim
+    · exact .inr (.inr (.inr (.inr (.inr (.inl h)))))
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inl h))))))
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl h)))))))
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl h))))))))
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr h))))))))
+  iintro %Φ Hpre HΦ
+  iapply H c r id s ml m ents sn ctx rs Hty' H1 H2 H3 H4 H5 H6 H7 H8 $$ Hpre
+  inext
+  iintro %err %s' %dropped ⟨Hphys, %Hres, Herr⟩
+  iapply HΦ $$ %err %s' %dropped
+  iframe Hphys
+  isplitr
+  · ipureintro; exact Hres
+  cases dropped
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    rw [if_neg (fun h => Hnp h.1)] at *
+    iexact Herr
+  · simp only [↓reduceIte]
+    iexact Herr
 
 
 end spec

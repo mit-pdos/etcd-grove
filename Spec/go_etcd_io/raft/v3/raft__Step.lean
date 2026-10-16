@@ -491,10 +491,14 @@ abbrev raft.Step.spec : Prop :=
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-      -- only a proposal can be dropped, with `ErrProposalDropped`
+      -- only a proposal can be dropped, with `ErrProposalDropped`; (etcd-io/raft PR #453) or,
+      -- at a leader whose conf-change loop refused one of the batch's conf changes
+      -- (`LeaderPropRejects`, `Spec/stepLeader.lean`), answered `ErrConfChangeRejected`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) }}
+                 (globalAddr ErrProposalDropped ↦□ err ∨
+                  (⌜s.role = .leader ∧ LeaderPropRejects s ents c.joint⌝ ∗
+                   globalAddr ErrConfChangeRejected ↦□ err)))) }}
 
 /-- The statement on `ownRaftPhys cfg` until 2026-10-14 (stage B7). -/
 abbrev raft.Step.specS : Prop :=
@@ -701,10 +705,13 @@ abbrev raft.Step.specS : Prop :=
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-      -- only a proposal can be dropped, with `ErrProposalDropped`
+      -- only a proposal can be dropped, with `ErrProposalDropped`; (etcd-io/raft PR #453) or
+      -- answered `ErrConfChangeRejected`, as in `raft.Step.spec`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) }}
+                 (globalAddr ErrProposalDropped ↦□ err ∨
+                  (⌜s.role = .leader ∧ LeaderPropRejects s ents⌝ ∗
+                   globalAddr ErrConfChangeRejected ↦□ err)))) }}
 
 open Iris.ProofMode in
 theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
@@ -753,6 +760,7 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
   icases ownRaftPhysC_toPhys c' r id s' Ho $$ Hphys with ⟨Hphys, -⟩
   rw [Hi]
   iapply HΦ $$ %err %s' %(toPState s')
+  rw [CfgM.joint_simple] -- (etcd-io/raft PR #453) `Herr`'s configuration is simple
   iframe Hphys Hghost Herr
   ipureintro
   refine ⟨⟨rfl, Hwf'⟩,

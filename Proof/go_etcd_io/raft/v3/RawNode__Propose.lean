@@ -167,9 +167,16 @@ theorem RawNode.Propose.wp_proof
       (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
-  icases Herr with (%Herr | ⟨-, #Hd⟩)
+  -- (etcd-io/raft PR #453) a normal entry is never refused: no `ErrConfChangeRejected`
+  icases Herr with (%Herr | ⟨-, (#Hd | ⟨%Hrj, -⟩)⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd
+  · exfalso
+    obtain ⟨e, he, hc⟩ := LeaderPropRejects_conf Hrj.2
+    simp only [List.mem_singleton] at he
+    subst he
+    unfold IsConfEnt propEntryM at hc
+    rcases hc with h | h <;> revert h <;> word
 
 end proof
 

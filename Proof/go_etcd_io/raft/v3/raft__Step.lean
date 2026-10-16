@@ -568,7 +568,7 @@ theorem raft.Step.wp_proof
     raft.Step.spec (GF := GF) (hG := hG) := by
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨wp_raft_hup, wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
-     wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
+     wp_stepFollower, wp_stepLeader, stepLeader.spec_np wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   have Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG) :=
@@ -646,7 +646,7 @@ theorem raft.Step.wp_proof
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
     · ipureintro; resp_other
-    icases Herr with (%Herr | #Hd)
+    icases Herr with (%Herr | Hd)
     · ileft; ipureintro; exact Herr
     · iright; iframe Hd; ipureintro; exact Hty
   -- every other type: the postcondition is `stepPost`
@@ -720,8 +720,19 @@ theorem raft.Step.wp_proof
     unfold stepPost
     iframe Hlc
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hfr', %Htm', %Hresp', Herr⟩
+    -- (etcd-io/raft PR #453) `stepPost`'s error (no `MsgProp` here) in `Step`'s shape
+    ihave Herr' : (⌜err = interface.nil⌝ ∨
+        (⌜m.Type' = MsgProp⌝ ∗ (globalAddr ErrProposalDropped ↦□ err ∨
+          (⌜s.role = .leader ∧ LeaderPropRejects s ents c.joint⌝ ∗
+           globalAddr ErrConfChangeRejected ↦□ err))) : IProp GF) $$ [Herr]
+    · icases Herr with (%Herr | ⟨%Hc, #Hd⟩)
+      · ileft; ipureintro; exact Herr
+      · iright
+        isplitr
+        · ipureintro; exact Hc
+        · ileft; iexact Hd
     iapply HΦ $$ %err %s' %c' %md'
-    iframe Hphys Hghost Herr
+    iframe Hphys Hghost Herr'
     ipureintro
     -- `LocalStepOk` is about the three types handled above
     exact ⟨Hwf', Href, Hc', fun Hl => by rcases Hl with h | h | h <;> contradiction,

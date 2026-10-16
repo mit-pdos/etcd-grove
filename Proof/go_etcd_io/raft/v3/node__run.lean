@@ -249,7 +249,17 @@ theorem node.run.wp_proof
       ihave #Hm1 := isMessage_propose_from γ.raft propMsgM [propEntryM d] id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         ⟨{ propMsgM with From' := id }, [propEntryM d], none, [], []⟩ rfl rfl
-        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, #Hstep⟩
+        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, #Hstep0⟩
+      -- (etcd-io/raft PR #453) `Propose`'s normal entry is never refused
+      ihave #Hstep : stepErr err $$ [Hstep0]
+      · icases Hstep0 with (#H | ⟨%Hc, -⟩)
+        · iexact H
+        · exfalso
+          obtain ⟨e, he, hc⟩ := Hc
+          simp only [List.mem_singleton] at he
+          subst he
+          unfold IsConfEnt propEntryM at hc
+          rcases hc with h | h <;> revert h <;> word
       ihave %Hrnn := isChan_not_null $$ [Hho]
       · unfold isHandoff
         icases Hho with ⟨$, -⟩
