@@ -130,7 +130,9 @@ into the version fields. Test output may be trimmed to the failing lines (no log
   no limit start with `c`), beats one answer set against what the docs are said to promise. Then minimize it:
   the fewest commands and keys that still show the bug, every one necessary (three puts, not six, for a bug that
   needs three keys), and data on which the targets the text names all reproduce. The test may keep a richer setup
-  to cover more cases; the issue then describes the test's setup in words rather than "the keys above".
+  to cover more cases; the issue then describes the test's setup in words rather than "the keys above". Say what
+  else is affected in one plain sentence ("the other non-key sort targets", "any client that sends ..."), not as a
+  list of flags, enum values or client calls.
 - **What did you expect to happen?** — grounded in a source the reader can check: the API's documentation
   (`rpc.proto`, Go doc, the website), a test that pins the behavior, a maintainer's decision in an issue or PR, or
   consistency with a variant of the same request. Before relying on a documented behavior, read the documentation:

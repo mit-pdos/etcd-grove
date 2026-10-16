@@ -20,7 +20,7 @@ c
 b
 ```
 
-The same happens with `--sort-by=MODIFY` and `--sort-by=VALUE` on these keys, with `--sort-by=VERSION` on keys whose versions are ordered the same way, and for any client that sends `SortOrder: NONE` with a non-key target and a `Limit` (`clientv3.WithSort(target, clientv3.SortNone)` with `clientv3.WithLimit`). With `--order=ASCEND` the limited results are right.
+The same happens with the other non-key sort targets, and for any client that sends `SortOrder: NONE` with one and a limit. With `--order=ASCEND` the results are right.
 
 ### What did you expect to happen?
 

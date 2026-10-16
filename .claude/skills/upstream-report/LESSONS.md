@@ -35,3 +35,6 @@ One entry per critique of a candidate: date, finding, what the user said, the ru
 - 2026-10-16, etcd-range-sort-none-limit: "Can the example that triggers the bug be made simpler?" Six puts (to make
   versions differ) became three (`put c 1; put b 2; put a 3`, `--sort-by=CREATE`). Rule (step 8, "What happened"):
   minimize the example to the commands the bug needs, on data where every target the text names reproduces.
+- 2026-10-16, etcd-range-sort-none-limit: "Make the 'the same happens with' sentence more concise; we don't need to
+  list all the command line flags in excruciating detail." Rule (step 8, "What happened"): what else is affected is
+  one plain sentence, not a list of flags, enum values or client calls.
