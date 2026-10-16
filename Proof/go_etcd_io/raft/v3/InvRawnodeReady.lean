@@ -744,6 +744,31 @@ theorem rdCred_msgs (γ : RaftNames) (ms : List QMsg) :
     · iexact H1
     · iapply IH $$ H2
 
+/-- A `Ready`'s `SoftState` as the application reads it (2026-10-16, stage R7a, D10): `nil`, or a
+`*SoftState` whose `Lead` and `RaftState` are read-only (raft never writes a `SoftState` after
+`r.softState()` allocates it: `readyWithoutAccept` hands it out and `acceptReady` keeps it as
+`prevSoftSt`). The server's `softStateAt` has this form, so it can be defined over it. -/
+def softStateRO (p : Loc) : IProp GF :=
+  iprop(⌜p = null⌝ ∨ ∃ (lead : w64) (rs : StateType),
+    structFieldRef SoftState go!"Lead" p ↦□ lead ∗ structFieldRef SoftState go!"RaftState" p ↦□ rs)
+
+instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p) := by
+  unfold softStateRO; infer_instance
+
+/-- From the whole struct read-only (how the node holds it). -/
+theorem softStateRO_of_opt (p : Loc) :
+    (⌜p = null⌝ ∨ ∃ v : SoftState, p ↦□ v : IProp GF) ⊢ softStateRO p := by
+  iintro H
+  unfold softStateRO
+  icases H with (%Hn | ⟨%v, H⟩)
+  · ileft; ipureintro; exact Hn
+  iright
+  icases typedPointsto_split _ _ _ $$ H with H
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed H
+  iexists v.Lead', v.RaftState'
+  iframe Lead RaftState
+
 /-- The node between `readyWithoutAccept` and `acceptReady` (see the file header): the
 conjuncts of `ownRawNode γ rn id rs` at a state `s` with an empty queue and nothing
 unpersisted (`Ready`'s premises), the struct open with the outbox's messages handed out
@@ -802,6 +827,20 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hceok" ∷ ⌜CeOk s.logst ce⌝ ∗
   "%Hes" ∷ ⌜es = nextUnstable s.logst⌝ ∗
   "%Hrdc" ∷ ⌜rdCountM (ms.map QMsg.st) ≤ rdCount s.outbox⌝)
+
+/-- The `Ready`'s `SoftState`, read-only for the application (`softStateRO`; 2026-10-16, stage R7a):
+from `Hrdsoft`, keeping the node. -/
+theorem ownRawNodeReady_softStateRO (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) :
+    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h ⊢
+      softStateRO rd.SoftState' ∗ ownRawNodeReady γ rn id rs rd ce es ms h := by
+  iintro H
+  ihave #Hss : softStateRO rd.SoftState' $$ [H]
+  · iunfold ownRawNodeReady at H
+    icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+    iNamed H
+    iapply softStateRO_of_opt $$ Hrdsoft
+  iframe Hss H
 
 /-- Abandoning a computed `Ready` (2026-10-10; see the file header): with the messages it
 handed out given back, the node is as before `readyWithoutAccept` (which changed nothing:
