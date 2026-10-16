@@ -1380,6 +1380,31 @@ theorem idxKnows_writer_events (γ : IdxNames) (kn : IdxKnow) (ilog : Log) (pend
     iframe #
     ipureintro; exact Hwwf
 
+/-- **Fresh index names** (2026-10-16, D13a: the names chosen before the call): the history's,
+the events' counter's, the committed log's and the compaction revision's authorities at their
+start (with their lower bounds), and the compactor's state (no compaction). `newTreeIndex` takes
+them, so that its caller (the etcd server, through `NewStore`/`mvcc.New`) knows the index's names
+before the call (`idxFresh_alloc`). -/
+def idxFresh (γ : IdxNames) : IProp GF :=
+  iprop(monoListAuthOwn γ.hist 1 ([] : List HistItem) ∗ monoListLbOwn γ.hist ([] : List HistItem) ∗
+    monoNatAuthOwn γ.nev 1 0 ∗ monoNatLbOwn γ.nev 0 ∗
+    monoListAuthOwn γ.log 1 ([] : Log) ∗ monoListLbOwn γ.log ([] : Log) ∗
+    monoNatAuthOwn γ.crev 1 0 ∗ monoNatLbOwn γ.crev 0 ∗
+    ghostVar γ.cmp 1 ((-1 : Int), ([] : List Loc)))
+
+/-- Fresh index names are allocated. -/
+theorem idxFresh_alloc : ⊢ |==> ∃ γ : IdxNames, idxFresh (GF := GF) γ := by
+  istart
+  imod mono_list_own_alloc (GF := GF) ([] : List HistItem) with ⟨%γh, Hhauth, #Hhlb⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γn, Hnauth, #Hnlb⟩
+  imod mono_list_own_alloc (GF := GF) ([] : Log) with ⟨%γl, Hlauth, #Hllb⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hcauth, #Hclb⟩
+  imod ghostVar_alloc (GF := GF) ((-1 : Int), ([] : List Loc)) with ⟨%γm, Hcmp⟩
+  imodintro
+  iexists ⟨γh, γn, γl, γc, γm⟩
+  iunfold idxFresh
+  iframe Hhauth Hhlb Hnauth Hnlb Hlauth Hllb Hcauth Hclb Hcmp
+
 end reprs2
 
 end mvcc
