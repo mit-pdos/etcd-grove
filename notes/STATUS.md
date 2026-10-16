@@ -173,6 +173,8 @@ capacity a self-addressed `msgsAfterAppend` response does not carry in R4's outb
 `Entries` is `nil`, but neither `AAMsgOk` nor `msgQ` records it): R4's outbox needs the capacity
 (or `nil`-ness) of `msgsAfterAppend`'s messages, e.g. `msgPtsC q.loc 1 □ true` there, which `send`
 can give (`ownSliceCap_nil`).
+**Resolved (2026-10-16):** `msgIn`'s capacity is now conditional, `needsCap m` (`InvPb.lean`: only a `MsgApp`'s, the one path that reads it, `maybeAppend`), so an owned non-`MsgApp` message is a `msgIn` (`msgOwn_to_msgIn`) and `Hpend` needs nothing new from R4's outbox; `raft.handleAppendEntries.spec` gained the premise `m.Type' = MsgApp` (both callers are in their `MsgApp` arm).
+The lemmas that take a `msgIn` apart over generic `msgPtsC` lemmas (`msgIn_to_msgOwn`, `msgIn_nonprop`/`msgIn_prop`) are stated over any capacity flag: unification cannot solve `needsCap ?st.msg =?= needsCap m` before `?st` is known.
 
 ## Retargeting raft to v3.7, stage R4: raft.go over pointer messages (2026-10-16, branch `raft-retarget`)
 

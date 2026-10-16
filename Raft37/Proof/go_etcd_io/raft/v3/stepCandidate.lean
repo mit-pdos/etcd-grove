@@ -231,7 +231,7 @@ theorem stepCandidate.wp_proof
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-      ml m ents sn cl rs Hwf Hnw Hconf Hfid $$ [$Hphys $Hm]
+      ml m ents sn cl rs Hwf Hnw Hconf Hfid Hty $$ [$Hphys $Hm]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys

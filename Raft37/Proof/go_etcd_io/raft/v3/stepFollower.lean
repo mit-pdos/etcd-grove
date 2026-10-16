@@ -144,7 +144,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs
-        Hwf Hnw Hconf Hfid $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
+        Hwf Hnw Hconf Hfid Hty $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -256,8 +256,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetEntries.1 ml _ _ _ _ $$ [$Hm] as %es %els ⟨Hes, #Hents, Hcap, Hback⟩
     ihave %Hlen := ownSlice_len _ _ _ $$ Hes
     ihave %Hlen2 := BigSepL2.bigSepL2_length $$ Hents
-    ihave Hm := Hback $$ %true %els %ents Hes Hents [Hcap]
-    · simp only [↓reduceIte]; iexact Hcap
+    ihave Hm := Hback $$ %(needsCap m) %els %ents Hes Hents Hcap
     wp_if_destruct
     · -- one entry: `r.readStates = append(r.readStates, ReadState{m.GetIndex(),
       -- m.GetEntries()[0].GetData()})`

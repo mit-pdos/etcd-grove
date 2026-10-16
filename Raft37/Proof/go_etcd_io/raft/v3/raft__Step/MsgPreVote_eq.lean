@@ -218,7 +218,7 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `canVote`, whatever it is; the evaluation is joined
   wp_join (Q := fun v => iprop(⌜∃ b : Bool, v = #b⌝ ∗ ownRaftPhysCV c c.voters r id s ∗
       r_ptr ↦ r ∗ m_ptr ↦ ml ∗
-      msgPtsC ml (DFrac.own 1) DFrac.discard true ⟨m, ents, sn, ctx, rs⟩)) at (if: _ then _ else _)
+      msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap m) ⟨m, ents, sn, ctx, rs⟩)) at (if: _ then _ else _)
     with [Hphys r m Hm] as ⟨%Hv, Hphys, r, m, Hm⟩
   · repeat (any_goals cv_step)
     all_goals (iframe; ipureintro; exact ⟨_, rfl⟩)

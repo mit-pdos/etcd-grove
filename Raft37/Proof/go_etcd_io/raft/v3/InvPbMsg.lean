@@ -96,10 +96,35 @@ theorem msgPtsC_to_msgOwn (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
   simp only [named, Bool.false_eq_true, ↓reduceIte]; iempintro
 
 /-- A received message (`Step`'s `msgIn`) as an owned message (stage R4, Q3): forwarded by
-`stepFollower`, queued by `send`. -/
-theorem msgIn_to_msgOwn (l : Loc) (dqe : DFrac) (ms : MsgSt) :
-    msgIn (GF := GF) l dqe ms ⊢ |==> msgOwn l (DFrac.own 1) ms :=
-  msgPtsC_to_msgOwn l _ dqe true ms
+`stepFollower`, queued by `send`. Over any capacity flag (`msgIn`'s `needsCap ms.msg`), so that
+it applies to a `msgIn` unfolded by a generic `msgPtsC` lemma. -/
+theorem msgIn_to_msgOwn {cap : Bool} (l : Loc) (dqe : DFrac) (ms : MsgSt) :
+    msgPtsC (GF := GF) l (DFrac.own 1) dqe cap ms ⊢ |==> msgOwn l (DFrac.own 1) ms :=
+  msgPtsC_to_msgOwn l _ dqe cap ms
+
+/-- A message with its capacity holds any capacity flag. -/
+theorem msgPtsC_cap_any (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe true ms ⊢ msgPtsC l dq dqe cap ms := by
+  cases cap
+  · exact msgPtsC_drop_cap l dq dqe true ms
+  · exact .rfl
+
+/-- A message holding its capacity is a received message, whatever its type (stage R5). -/
+theorem msgIn_of_msgPtsC_cap (l : Loc) (dqe : DFrac) (ms : MsgSt) :
+    msgPtsC (GF := GF) l (DFrac.own 1) dqe true ms ⊢ msgIn l dqe ms :=
+  msgPtsC_cap_any l _ dqe _ ms
+
+/-- A received message of a type other than `MsgApp` carries no capacity (stage R5): an owned
+message is one (`RawNode.Advance` steps the self-addressed responses and the storage
+acknowledgements, built as `msgOwn`). -/
+theorem msgOwn_to_msgIn (l : Loc) (ms : MsgSt) (h : ms.msg.Type' ≠ MsgApp) :
+    msgOwn (GF := GF) l (DFrac.own 1) ms ⊢ msgIn l DFrac.discard ms := by
+  simp only [msgOwn, msgPts, msgIn, needsCap_of_ne h]; exact .rfl
+
+/-- A received `MsgApp` holds its capacity. -/
+theorem msgIn_MsgApp (l : Loc) (dqe : DFrac) (ms : MsgSt) (h : ms.msg.Type' = MsgApp) :
+    msgIn (GF := GF) l dqe ms ⊣⊢ msgPtsC l (DFrac.own 1) dqe true ms := by
+  simp only [msgIn, needsCap_of_eq h]; exact .rfl
 
 /-- An owned message frozen read-only for good (a stored read-index request: nothing writes it
 after, `responseToReadIndexReq` reads `From` and shares `Entries`). -/

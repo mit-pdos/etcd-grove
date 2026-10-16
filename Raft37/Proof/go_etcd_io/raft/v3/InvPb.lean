@@ -328,12 +328,27 @@ abbrev msgPts (l : Loc) (dq dqe : DFrac) (ms : MsgSt) : IProp GF := msgPtsC l dq
 /-- A message whose entries slice is read-only (every message raft builds, D3). -/
 abbrev msgOwn (l : Loc) (dq : DFrac) (ms : MsgSt) : IProp GF := msgPts l dq DFrac.discard ms
 
+/-- Whether a received message of type `ty` carries its `Entries` slice's capacity (stage R5):
+only a `MsgApp`, whose array `unstable.truncateAndAppend` may adopt (`handleAppendEntries` →
+`logSliceFromMsgApp` → `raftLog.maybeAppend`); no other path reads the capacity.
+Stated on the message, not its type, so that rewriting `m.Type'` (by a hypothesis
+`m.Type' = MsgBeat`) leaves a `msgIn` intact. -/
+@[reducible] def needsCap (m : MessageM) : Bool := decide (m.Type' = MsgApp)
+
+theorem needsCap_of_eq {m : MessageM} (h : m.Type' = MsgApp) : needsCap m = true := by
+  simp [needsCap, h]
+
+theorem needsCap_of_ne {m : MessageM} (h : m.Type' ≠ MsgApp) : needsCap m = false := by
+  simp [needsCap, h]
+
 /-- A message `raft.Step` receives (stage R4, Q3): the struct at `1` (`stepFollower` replaces
 `To`, `send` `From`/`Term`), the `Entries` slice's elements at `dqe` (`1` for a `MsgProp`,
-whose slots `stepLeader` replaces; `□` otherwise) and the slice's capacity at `1` (a `MsgApp`'s
-array is adopted by `unstable.truncateAndAppend`), the snapshot at `1` (`EnsureSnapshot`/
-`EnsureConfState` write its nil fields). Taken for good. -/
-abbrev msgIn (l : Loc) (dqe : DFrac) (ms : MsgSt) : IProp GF := msgPtsC l (DFrac.own 1) dqe true ms
+whose slots `stepLeader` replaces; `□` otherwise) and, for a `MsgApp` only (`needsCap`, stage
+R5), the slice's capacity at `1` (a `MsgApp`'s array is adopted by
+`unstable.truncateAndAppend`), the snapshot at `1` (`EnsureSnapshot`/`EnsureConfState` write
+its nil fields). Taken for good. -/
+abbrev msgIn (l : Loc) (dqe : DFrac) (ms : MsgSt) : IProp GF :=
+  msgPtsC l (DFrac.own 1) dqe (needsCap ms.msg) ms
 
 /-! ## Conf changes -/
 

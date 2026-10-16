@@ -108,9 +108,10 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid
+  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp
   wp_start as Hpre
   iNamed Hpre
+  simp only [msgIn, needsCap_of_eq Htyapp]
   wp_auto
   wp_apply wp_logSliceFromMsgApp $$ [$Hm] as %es %els ⟨#Hes, #Hents, Hcap, Hmback⟩
   ihave Hm := Hmback $$ %false %els %ents Hes Hents []

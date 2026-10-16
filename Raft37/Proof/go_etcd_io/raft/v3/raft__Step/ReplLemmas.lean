@@ -92,16 +92,18 @@ theorem msgPtsC_From_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
   iframe
   iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
 
-/-- A message `Step` received, off a proposal, as the `stepX` specs take it. -/
-theorem msgIn_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} (h : m.Type' ≠ MsgProp) :
-    msgIn (GF := GF) ml DFrac.discard st ⊢
-      msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+/-- A message `Step` received, off a proposal, as the `stepX` specs take it. (Over any
+capacity flag `cap`, `msgIn`'s `needsCap st.msg`, so that it applies to a `msgIn` unfolded by a
+generic `msgPtsC` lemma.) -/
+theorem msgIn_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} {cap : Bool} (h : m.Type' ≠ MsgProp) :
+    msgPtsC (GF := GF) ml (DFrac.own 1) DFrac.discard cap st ⊢
+      msgPtsC ml (DFrac.own 1) (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) cap st := by
   simp only [h, ↓reduceIte]; exact .rfl
 
 /-- A proposal `Step` received, as the `stepX` specs take it. -/
-theorem msgIn_prop {ml : Loc} {m : MessageM} {st : MsgSt} (h : m.Type' = MsgProp) :
-    msgIn (GF := GF) ml (DFrac.own 1) st ⊢
-      msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+theorem msgIn_prop {ml : Loc} {m : MessageM} {st : MsgSt} {cap : Bool} (h : m.Type' = MsgProp) :
+    msgPtsC (GF := GF) ml (DFrac.own 1) (DFrac.own 1) cap st ⊢
+      msgPtsC ml (DFrac.own 1) (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) cap st := by
   simp only [h, ↓reduceIte]; exact .rfl
 
 /-- `m.GetSnapshot()` of a message holding no snapshot: `nil`. -/

@@ -163,6 +163,7 @@ theorem raft.tickHeartbeat.wp_proof
         (GMode.Pre.of_other (by msg_ne) (fun h => by rw [Hrole1]; exact Hpc h) (by msg_ne) (by msg_ne))
       $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
     · simp only [hP, ↓reduceIte, named]
+      ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
       isplitl [Hmsg]
       · iframe Hmsg
         repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))

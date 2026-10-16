@@ -126,7 +126,11 @@ m.Index), entries: m.Entries}`:
   adopt it as the unstable suffix. On the other two exits the capacity is simply
   dropped. (Stage R4: the message, `msgIn ml □`, holds both.)
 
-Not needed, and so not premises: `m.Type = MsgApp` (the body never reads it), `m.From ≠
+`m.Type = MsgApp` (stage R5): the body never reads it, but a received message holds its
+`Entries` capacity only when it is a `MsgApp` (`msgIn`'s `needsCap`), and `maybeAppend` needs it;
+both callers are in their `MsgApp` arm.
+
+Not needed, and so not premises: `m.From ≠
 0` and `m.To = id` (no panic depends on them; `send`'s `MsgAppResp` clause allows any
 `To`, the node itself included), `m.Term` (only `a.term`, which nothing reads). -/
 abbrev raft.handleAppendEntries.spec : Prop :=
@@ -144,6 +148,8 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   -- from another node (2026-10-10; `Step`'s premise): every reply goes to `m.From`, and
   -- a self-addressed rejection would not be steppable (`AAMsgOk`)
   m.From' ≠ id →
+  -- a `MsgApp` (stage R5): only then does `msgIn` hold the `Entries` capacity
+  m.Type' = MsgApp →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -166,6 +172,7 @@ abbrev raft.handleAppendEntries.specS : Prop :=
    plogFindConflict ls.prev es ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) →
   m.From' ≠ id →
+  m.Type' = MsgApp →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -177,10 +184,10 @@ open Iris.ProofMode in
 theorem raft.handleAppendEntries.spec_simple
     (H : raft.handleAppendEntries.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom
+  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom $$ [$Hpkg $Hphys $Hm]
+  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty $$ [$Hpkg $Hphys $Hm]
   inext
   iintro %s' ⟨Hphys, %Hres⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
