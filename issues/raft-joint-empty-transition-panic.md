@@ -2,6 +2,7 @@
 upstream: none
 checked: 2026-10-16
 links:
+candidate: issues/upstream/raft-joint-empty-transition-panic/
 ---
 
 # raft: an empty `ConfChangeV2` with a non-`Auto` transition is accepted while joint, then panics every node that applies it

@@ -2,6 +2,7 @@
 upstream: none
 checked: 2026-10-16
 links:
+candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
 ---
 
 # raft: a snapshot restored while a `Ready`'s conf changes are being applied makes `ApplyConfChange` apply them on top of the snapshot's configuration

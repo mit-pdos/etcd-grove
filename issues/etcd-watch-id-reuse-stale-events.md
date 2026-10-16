@@ -2,11 +2,18 @@
 upstream: none
 checked: 2026-10-16
 links:
+  - etcd-io/etcd#21880 pr open: grpc-proxy honors the client's WatchId (#12819); related, not a fix: with it the bug would also reach clients behind the proxy
+candidate: issues/upstream/etcd-watch-id-reuse-stale-events/
 ---
 
 # A reused watch id can deliver the canceled watcher's events on the new watch
 
-- **Status**: open (not reported; not reproduced: the analysis below, from the proof).
+- **Status**: bug, reproduced (2026-10-16) at upstream `main` b25719d10 by the integration test
+  `TestV3WatchReuseCanceledID` on the fork branch `etcd-watch-id-reuse-stale-events` (the upstream
+  candidate): one raw watch stream, watch id 1 on `a`, ten 100 KiB puts of `a` while the client does
+  not read (gRPC flow control holds them in mvcc's channel), cancel, re-create id 1 on `b` from the
+  next revision, put `b`: the new watch receives 3-7 events of `a` before `b` (failed 10 of 10 runs).
+  The auto-assigned-id variant below is not reproduced.
 - **Where**: `server/etcdserver/api/v3rpc/watch.go` at the pinned revision (`upamanyus/etcd`
   `bc8b52a50`): `serverWatchStream.sendLoop`, the buffering of a response whose id is not
   announced (lines 470–476: `pending[wresp.WatchID] = append(...)`), the cancel case
@@ -85,8 +92,14 @@ links:
   orders each watcher's responses, whatever ids they share). A client of `watchStreamSpec` must
   not identify a watch by its id across a cancel (the client hop, `notes/STATUS.md`, "The watch
   slice").
-- **Possible fixes**: on a cancel, drop `pending[X]` (`delete(pending, X)` with the
-  `delete(ids, X)`, reporting the dropped events), or reject a create whose explicit id was
-  canceled while its responses may still be in flight.
+- **Possible fixes**: dropping `pending[X]` on a cancel (`delete(pending, X)` with the
+  `delete(ids, X)`) is not enough: tried on the reproduction, it still fails 10 of 10, since most of
+  the old watcher's responses are taken from mvcc's channel after the new created response, when `X`
+  is announced again, and are sent directly. The upstream candidate makes every create in `recvLoop`
+  wait until `sendLoop` has taken the responses queued when the cancels before it were taken (at most
+  the channel's 128), and drops a canceled watcher's responses taken after its canceled response
+  (`issues/upstream/etcd-watch-id-reuse-stale-events/meta.md` has its costs and the alternatives:
+  tagging mvcc's responses with the watcher, rejecting a create of a canceled id). Also noticed:
+  [etcd-watch-canceled-pending-retained](etcd-watch-canceled-pending-retained.md).
 - **Found**: 2026-10-14, the watch slice's unit W-S (`sendLoop`'s proof: the per-id model of the
   buffering, `SendInv`).

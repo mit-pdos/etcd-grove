@@ -2,6 +2,9 @@
 upstream: none
 checked: 2026-10-16
 links:
+  - etcd-io/raft#423 pr closed: removed gogoproto.nullable from ConfState; not about unknown fields
+  - etcd-io/raft#432 pr closed: passes ConfState as a pointer; not about unknown fields
+candidate: issues/upstream/raft-confstate-unknown-fields-panic/
 ---
 
 # raft v3.7: a `ConfState` with an unknown field makes `newRaft` and snapshot restore panic

@@ -4,6 +4,7 @@ checked: 2026-10-16
 links:
   - etcd-io/etcd#21631 pr merged: related, not this bug (the RangeStream server, whose IsDefaultOrdering check is the defect)
   - etcd-io/etcd@9acc0ebe3: related, not this bug (clones the chunk's last key before appending \x00 in rangeStream; does not touch the sort check)
+candidate: issues/upstream/etcd-rangestream-sort-none/
 ---
 
 # server: RangeStream accepts a sort by a non-key target with no order and returns duplicated and missing keys
