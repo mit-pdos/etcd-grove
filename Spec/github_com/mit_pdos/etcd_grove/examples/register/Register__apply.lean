@@ -1,8 +1,11 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Register).apply(e)` (register.go:172): one committed entry, after the committed prefix
+`(*Register).apply(e)` (register.go:179): one committed entry, after the committed prefix
 `ap` the replica applied (`runOwn`); a waiter of the entry's operation, if this replica
 proposed it and the entry is the operation's first, gets the value after it (`waitP`).
+
+raft v3.7 (2026-10-16, stage R6b): `e` is a `*pb.Entry` holding the log entry `em` (`entRO`,
+read-only for good, D2: what `Ready.CommittedEntries` hands out), read through its getters.
 -/
 module
 
@@ -29,11 +32,12 @@ variable [RegStor GF]
 /-- See the file header. -/
 abbrev Register.apply.spec : Prop :=
   ∀ (γr : RegNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
-    (ap : List raftpb.Entry) (e : raftpb.Entry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ isReplica γr γp r id n st ∗ runOwn γr r ap ∗
-      isCommitted γr.raft (ap ++ [e]) }}
+    (ap : List EntryM) (e : Loc) (em : EntryM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗
+      isReplica γr γp r id n st ∗ runOwn γr r ap ∗ entRO e em ∗
+      isCommitted γr.raft (ap ++ [em]) }}
     (App (Val (r @!! go.GoType.PointerType rRegisterTy @!! go!"apply")) (Val #e))
-  {{ RET #(); runOwn γr r (ap ++ [e]) }}
+  {{ RET #(); runOwn γr r (ap ++ [em]) }}
 
 end spec
 

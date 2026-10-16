@@ -22,6 +22,13 @@ two clients on it.
   (2026-10-13); raft sends nothing it drops but a follower's forwarded transfer request
   (stamped, which `Node.Step` does not take). Since 2026-10-13 a vote request's context
   may be the leader-transfer marker (a transfer's campaign; `Node.Step` takes it).
+  Raft v3.7 (2026-10-16, stage R6b): the messages are `*pb.Message`s a `Ready` hands out owned
+  (D8, `readyDq`: whole, but a response at half), and `Node.Step` takes the pointer for good
+  (Q3, `msgIn`): `Deliverable` is over the message's state `st : MsgSt`, `stepP_deliverable`
+  takes the message at `1` with its entries slice fresh (`deliver`'s copy). A response
+  (`MsgAppResp`, `MsgVoteResp`) comes at half, so the in-process transport cannot write its
+  `Entries` nor hand it to `Step`: a gap between D8 and the register's transport, left as a
+  `sorry` in `deliver.wp_proof` (see there).
 * **The transfer budget** (`isTransfers`, 2026-10-13): a `MsgTimeoutNow` makes its target
   campaign at once, one term past its own or the message's, so `Node.Step` takes it with a
   tick credit of the term budget (`netP`). The transport holds `timeouts` of them in a
@@ -39,8 +46,7 @@ two clients on it.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Defs
-public import Spec.go_etcd_io.raft.v3.RawNode__Step
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Lemmas
 
 @[expose] public section
 
@@ -72,14 +78,16 @@ transfer and local types). -/
 def regNetTypes : List w32 :=
   [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp]
 
-/-- What `deliverable` checks of a message (see the file header). -/
-def Deliverable [FfiSyntax] (m : raftpb.Message) : Prop :=
-  (m.Type' = MsgProp ∨ (m.Type' = MsgReadIndex ∧ m.Term' = W64 0) ∨
-    (m.Type' ∈ regNetTypes ∧ m.Term' ≠ W64 0) ∨
-    (m.Type' = MsgTimeoutNow ∧ m.Term' ≠ W64 0 ∧ m.Entries' = slice.nil)) ∧
-  m.From' ≠ W64 0 ∧ m.From' ≠ m.To' ∧
-  (m.Context' = slice.nil ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgHeartbeatResp ∨
-    m.Type' = MsgVote)
+/-- What `deliverable` checks of a message holding `st` (see the file header; raft v3.7, stage
+R6b: over the message's state, `m.Entries != nil` and `m.Context == nil` read as its entries and
+context bytes being empty, `msgPtsC_fields_acc`). -/
+def Deliverable [FfiSyntax] (st : MsgSt) : Prop :=
+  (st.msg.Type' = MsgProp ∨ (st.msg.Type' = MsgReadIndex ∧ st.msg.Term' = W64 0) ∨
+    (st.msg.Type' ∈ regNetTypes ∧ st.msg.Term' ≠ W64 0) ∨
+    (st.msg.Type' = MsgTimeoutNow ∧ st.msg.Term' ≠ W64 0 ∧ st.ents = [])) ∧
+  st.msg.From' ≠ W64 0 ∧ st.msg.From' ≠ st.msg.To' ∧
+  (st.ctx = [] ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
+    st.msg.Type' = MsgVote)
 
 /-- A node's ticks (`ticks`). -/
 def ticksN : Nat := 2 ^ 20
@@ -141,8 +149,8 @@ instance isTransfers_persistent (bud : BudgetNames) (tr : Loc) :
 
 /-- A deliverable message is a `MsgTimeoutNow` or of a type the protocol describes, not a
 snapshot. -/
-theorem deliverable_mtype (m : raftpb.Message) (Hd : Deliverable m) :
-    m.Type' = MsgTimeoutNow ∨ ∃ ty, mtypeOf m.Type' = some ty ∧ ty ≠ .snap := by
+theorem deliverable_mtype (st : MsgSt) (Hd : Deliverable st) :
+    st.msg.Type' = MsgTimeoutNow ∨ ∃ ty, mtypeOf st.msg.Type' = some ty ∧ ty ≠ .snap := by
   obtain ⟨Hty, -⟩ := Hd
   unfold regNetTypes at Hty
   rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
@@ -160,74 +168,42 @@ theorem deliverable_mtype (m : raftpb.Message) (Hd : Deliverable m) :
     · exact ⟨.readIndexResp, rfl, by decide⟩
   · exact .inl h
 
-/-- What `Ready` says of a deliverable message: its entries and context, read-only (the
-context empty if the slice is nil), and its abstraction sent (none for a `MsgTimeoutNow`,
-which carries nothing). -/
-theorem raftMsg_deliverable (γ : RaftNames) (m : raftpb.Message) (Hd : Deliverable m) :
-    isRaftMsg (GF := GF) γ m ⊢ ∃ (ents : List raftpb.Entry) (ctx : List w8),
-      ⌜m.Context' = slice.nil → ctx = []⌝ ∗
-      m.Entries' ↦*□ ents ∗ m.Context' ↦*□ ctx ∗
-      □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) := by
-  rcases deliverable_mtype m Hd with Htn | ⟨ty0, Hty0, Hns⟩
-  · -- a `MsgTimeoutNow`: no entries, no context
-    obtain ⟨Hty, -, -, Hctx⟩ := Hd
-    have He : m.Entries' = slice.nil := by
-      rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨-, -, h⟩
-      · rw [Htn] at h; simp [MsgTimeoutNow, MsgProp] at h
-      · rw [Htn] at h; simp [MsgTimeoutNow, MsgReadIndex] at h
-      · rw [Htn] at h
-        simp [regNetTypes, MsgTimeoutNow, MsgApp, MsgAppResp, MsgVote, MsgVoteResp,
-          MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp] at h
-      · exact h
-    have Hc : m.Context' = slice.nil := by
-      rcases Hctx with h | h | h | h
-      · exact h
-      all_goals (rw [Htn] at h; simp [MsgTimeoutNow, MsgHeartbeat, MsgHeartbeatResp, MsgVote] at h)
+/-- What `Ready` says of a deliverable message holding `st`: its abstraction sent (none for a
+`MsgTimeoutNow`, which carries nothing). -/
+theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) :
+    isRaftMsg (GF := GF) γ st ⊢
+      □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ isMessage γ (absMsg ty st.msg st.ents st.ctx)) := by
+  rcases deliverable_mtype st Hd with Htn | ⟨ty0, Hty0, Hns⟩
+  · -- a `MsgTimeoutNow`: no protocol message
     iintro -
-    iexists [], []
-    rw [He, Hc]
-    isplitr
-    · ipureintro; intro _; rfl
-    isplitr
-    · iapply ownSlice_nil
-    isplitr
-    · iapply ownSlice_nil
     imodintro
     iintro %ty %Hty'
     rw [Htn] at Hty'
     cases Hty'
   iintro Hm
-  unfold isRaftMsg msgAbs
-  icases Hm with ⟨%a, (⟨%Hn, -⟩ | ⟨%ty, %ents, %ctx, %H, #He, #Hc⟩ | ⟨%sv, %voters, %H, -⟩), #Hl⟩
+  unfold isRaftMsg
+  icases Hm with ⟨%a, %Habs, #Hl⟩
+  unfold msgAbs at Habs
+  rcases Habs with ⟨Hn, -⟩ | ⟨ty, Hty, -, rfl⟩ | ⟨sv, Hsn, -, -⟩
   · rw [Hty0] at Hn; cases Hn
-  · obtain ⟨H1, -, rfl⟩ := H
-    ihave #Hmsg : isMessage (GF := GF) γ (absMsg ty m ents ctx) $$ [Hl]
+  · ihave #Hmsg : isMessage (GF := GF) γ (absMsg ty st.msg st.ents st.ctx) $$ [Hl]
     · simp only [Option.toList_some]
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl
-    ihave %Hlc := ownSlice_len _ _ _ $$ Hc
-    have Hnil : m.Context' = slice.nil → ctx = [] := by
-      intro h
-      rw [h] at Hlc
-      exact List.eq_nil_of_length_eq_zero Hlc.1
-    iexists ents, ctx
-    iframe He Hc
-    isplitr
-    · ipureintro; exact Hnil
     imodintro
     iintro %ty' %Hty'
-    rw [H1] at Hty'
+    rw [Hty] at Hty'
     cases Hty'
     iexact Hmsg
-  · rw [Hty0] at H; cases H.1; exact absurd rfl Hns
+  · rw [Hty0] at Hsn; cases Hsn; exact absurd rfl Hns
 
 /-- A deliverable message other than a proposal, addressed to `id`, is what `RawNode.Step`
-takes from the network (`NetMsgOk`), with its entries copied (`s'`). -/
-theorem deliverable_netMsgOk (id : w64) (m : raftpb.Message) (s' : GoSlice) (Hd : Deliverable m)
-    (Hnp : m.Type' ≠ MsgProp) (Hto : m.To' = id) :
-    NetMsgOk id { m with Entries' := s' } := by
+takes from the network (`NetMsgOk`). -/
+theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
+    (Hnp : st.msg.Type' ≠ MsgProp) (Hto : st.msg.To' = id) :
+    NetMsgOk id st := by
   obtain ⟨Hty, HF, HFT, -⟩ := Hd
-  have HF' : m.From' ≠ id := Hto ▸ HFT
-  have Hntl : m.Type' ≠ MsgTransferLeader := by
+  have HF' : st.msg.From' ≠ id := Hto ▸ HFT
+  have Hntl : st.msg.Type' ≠ MsgTransferLeader := by
     rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
     · exact absurd h Hnp
     · rw [h]; simp [MsgReadIndex, MsgTransferLeader]
@@ -236,80 +212,78 @@ theorem deliverable_netMsgOk (id : w64) (m : raftpb.Message) (s' : GoSlice) (Hd 
         simp [MsgTransferLeader, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
           MsgHeartbeatResp, MsgReadIndexResp]
     · rw [h]; simp [MsgTimeoutNow, MsgTransferLeader]
-  show m.Type' ∈ netStepTypes ∧
-    (¬ UnstampedType m.Type' → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0) ∧
-    (UnstampedType m.Type' → m.Term' = W64 0) ∧
-    (m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨ m.Type' = MsgHeartbeatResp ∨
-       m.Type' = MsgReadIndexResp → m.From' ≠ id) ∧
-    (m.Type' = MsgAppResp → m.Reject' = true → m.From' ≠ id) ∧
-    (m.Type' = MsgTransferLeader → s' = slice.nil ∧ m.Context' = slice.nil)
+  show st.msg.Type' ∈ netStepTypes ∧
+    (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
+    (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
+    (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
+       st.msg.Type' = MsgReadIndexResp → st.msg.From' ≠ id) ∧
+    (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
+    (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = [])
   rcases Hty with h | ⟨Hri, Ht0⟩ | ⟨Hn, Ht⟩ | ⟨Htn, Ht, -⟩
   · exact absurd h Hnp
   · refine ⟨by rw [Hri]; simp [netStepTypes], fun h => absurd (.inl Hri) h, fun _ => Ht0,
       fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl⟩
-  · have Hun : ¬ UnstampedType m.Type' := by
+  · have Hun : ¬ UnstampedType st.msg.Type' := by
       simp only [regNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
       rcases Hn with h | h | h | h | h | h | h <;> rw [h] <;>
         simp [UnstampedType, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
           MsgHeartbeatResp, MsgReadIndexResp, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
           MsgUnreachable, MsgSnapStatus]
-    have Hnet : m.Type' ∈ netStepTypes := by
+    have Hnet : st.msg.Type' ∈ netStepTypes := by
       simp only [regNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
       simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false]
       rcases Hn with h | h | h | h | h | h | h <;> simp [h]
     exact ⟨Hnet, fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun, fun _ => HF', fun _ _ => HF',
       fun h => absurd h Hntl⟩
-  · have Hun : ¬ UnstampedType m.Type' := by
+  · have Hun : ¬ UnstampedType st.msg.Type' := by
       rw [Htn]
       simp [UnstampedType, MsgTimeoutNow, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
         MsgUnreachable, MsgSnapStatus]
     exact ⟨by rw [Htn]; simp [netStepTypes], fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun,
       fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl⟩
 
-/-- ... and with its entries copied (`s'`), its read credit and its tick credit (one for a
-`MsgTimeoutNow`, 2026-10-13), what `Node.Step` takes, at the node `id` it is addressed to. -/
-theorem stepP_deliverable (γn : NodeNames) (id : w64) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) (s' : GoSlice) (Hd : Deliverable m)
-    (Hto : m.To' = id) (Hnil : m.Context' = slice.nil → ctx = []) :
-    ⊢ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage (GF := GF) γn.raft (absMsg ty m ents ctx)) -∗
-      m.Context' ↦*□ ctx -∗
-      termLB γn.bud m.Term' -∗ s' ↦* ents -∗ ownSliceCap raftpb.Entry s' (DFrac.own 1) -∗
-      rdCred γn.raft (if m.Type' = MsgReadIndex then 1 else 0) -∗
-      tickCred γn.bud (if m.Type' = MsgTimeoutNow then 1 else 0) ==∗
-      stepP γn id { m with Entries' := s' } := by
-  iintro #Hmsg #Hctx' #Hlb Hs Hcap Hcr Htc
-  have Habs : ∀ ty' c', absMsg ty' { m with Entries' := s' } ents c' = absMsg ty' m ents c' :=
-    fun _ _ => rfl
+/-- A deliverable message holding `st` at `l`, owned with its entries slice fresh (the elements
+at `1`, the capacity: `deliver`'s copy, `msgPtsC_store_Entries`), with its read credit and its
+tick credit (one for a `MsgTimeoutNow`, 2026-10-13), is what `Node.Step` takes (`stepP`), at the
+node `id` it is addressed to: a forwarded proposal (`fwdP`, the entries' slots owned) or a
+network message (`netP`, the entries frozen). -/
+theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
+    (Hd : Deliverable st) (Hto : st.msg.To' = id) :
+    ⊢ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
+          isMessage (GF := GF) γn.raft (absMsg ty st.msg st.ents st.ctx)) -∗
+      termLB γn.bud st.msg.Term' -∗ msgPtsC l (DFrac.own 1) (DFrac.own 1) true st -∗
+      rdCred γn.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗
+      tickCred γn.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ==∗
+      stepP γn id l := by
+  iintro #Hmsg #Hlb Hm Hcr Htc
   unfold stepP
-  by_cases Hp : m.Type' = MsgProp
+  by_cases Hp : st.msg.Type' = MsgProp
   · -- a forwarded proposal: no context
-    have Hcn : m.Context' = slice.nil := by
+    have Hcn : st.ctx = [] := by
       rcases Hd.2.2.2 with h | h | h | h
       · exact h
       all_goals (rw [Hp] at h; simp [MsgProp, MsgHeartbeat, MsgHeartbeatResp, MsgVote] at h)
-    have Hc0 := Hnil Hcn
-    subst Hc0
     imodintro
     iright
     unfold fwdP
+    iexists st
+    isplitl [Hm]
+    · iapply msgPtsC_cap_any $$ Hm
     isplitr
     · ipureintro; exact Hp
-    iexists ents, []
-    iframe Hs Hcap Hctx'
-    rw [Habs]
-    iapply Hmsg $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
-  · imod ownSlice_persist s' _ _ $$ Hs with #Hs
+    ihave #H := Hmsg $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
+    iExactEq H
+    rw [Hcn]
+  · imod msgPtsC_persist_els $$ Hm with Hm
     imodintro
     ileft
     unfold netP
+    iexists st
+    isplitl [Hm]
+    · iapply msgPtsC_cap_any $$ Hm
     isplitr
-    · ipureintro; exact deliverable_netMsgOk id m s' Hd Hp Hto
-    iexists ents, ctx
-    iframe Hs Hcap Hctx' Hlb Hcr Htc
-    imodintro
-    iintro %ty' %Hty2
-    rw [Habs]
-    iapply Hmsg $$ %ty' %Hty2
+    · ipureintro; exact deliverable_netMsgOk id st Hd Hp Hto
+    iframe Hmsg Hlb Hcr Htc
 
 end defs
 

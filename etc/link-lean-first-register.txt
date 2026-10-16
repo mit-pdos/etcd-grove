@@ -2,7 +2,10 @@
 # (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --register`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
 #
-# raft's functions the register calls, linked in raft's `Link.lean`.
+# raft's functions the register calls, linked in raft's `Link.lean` (raft v3.7, stage R6b:
+# the getters of raftpb's pointer messages, the `Enum` of a conf-change type, and the
+# trust-boundary `proto.Unmarshal` into a `*pb.ConfChange`, which replaces gogoproto's
+# `ConfChange.Unmarshal`).
 NewMemoryStorage: @
 MemoryStorage__Snapshot: @
 MemoryStorage__Append: @
@@ -15,32 +18,42 @@ RestartNode: @
 node__Step: @
 node__ApplyConfChange: @
 node__ProposeConfChange: @
-ConfChange__Unmarshal: @
+proto_UnmarshalConfChange: @
 node__Tick: @
+raftpb_Entry__GetType: @
+raftpb_Entry__GetData: @
+raftpb_Entry__GetIndex: @
+raftpb_Message__GetType: @
+raftpb_Message__GetTerm: @
+raftpb_Message__GetFrom: @
+raftpb_Message__GetTo: @
+raftpb_Snapshot__GetMetadata: @
+raftpb_SnapshotMetadata__GetIndex: @
+raftpb_ConfChangeType__Enum: @
 # the register (examples/register/register.go)
 encode:
 decode:
-fits:
+fits: raftpb_Entry__GetIndex
 NewStorage: NewMemoryStorage
 Storage__InitialState:
-Storage__Snapshot: MemoryStorage__Snapshot
-Register__apply: decode
+Storage__Snapshot: MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+Register__apply: decode raftpb_Entry__GetType raftpb_Entry__GetData
 Register__do: encode node__Propose
 Register__Put: Register__do
 Register__Get: Register__do
 Register__Read: encode node__ReadIndex
 Register__TransferLeadership: node__TransferLeadership
-Register__RemoveMember: node__ProposeConfChange
+Register__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 Register__answer: decode
-Register__run: fits Register__apply Register__answer node__Ready node__Advance MemoryStorage__Append ConfChange__Unmarshal node__ApplyConfChange
+Register__run: fits Register__apply Register__answer node__Ready node__Advance MemoryStorage__Append proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
 register_New: Register__run
 # the cluster driver (examples/register/cluster.go)
 register_quietLogger__Debugf:
 register_quietLogger__Errorf:
 register_quietLogger__Infof:
 register_quietLogger__Warningf:
-register_deliverable:
+register_deliverable: raftpb_Message__GetType raftpb_Message__GetTerm raftpb_Message__GetFrom raftpb_Message__GetTo
 register_transfers__take:
-register_deliver: register_deliverable register_transfers__take node__Step
+register_deliver: register_deliverable register_transfers__take node__Step raftpb_Message__GetType raftpb_Message__GetTo
 register_tick: node__Tick
 register_Main: NewStorage Storage__InitialState Storage__Snapshot register_New Register__Put Register__Get Register__Read Register__TransferLeadership Register__RemoveMember register_deliver register_tick register_quietLogger__Debugf register_quietLogger__Errorf register_quietLogger__Infof register_quietLogger__Warningf RestartNode

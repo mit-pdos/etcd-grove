@@ -29,7 +29,8 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
   the configuration: the voters may change at any time.
 * **The storage** (`register_NewStorage`, `register_storage_isStorage`,
   `register_storage_initialState`): `*register.Storage` meets raft's `Storage` contract
-  (`isStorage`), and its `InitialState` is what `RestartNode` asks of its storage.
+  (`isStorage`), and its `InitialState` is the empty hard state and the voters' conf state, as
+  `newRaft` reads them.
 * **The ghost state's allocation** (`regStorInv_alloc`, `regInv_alloc`, `Alloc.lean`): the
   invariants the above assume, from raft's allocation (`raft_dyn_alloc` since 2026-10-15;
   `ownRaftGhost_alloc` before).
@@ -43,6 +44,16 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
 * **Adequacy** (`register_cluster_safe`, `Adequacy.lean`'s `register_adequate`): the same in
   the operational semantics, with package initialization proved (`Init.lean`): every
   execution of `initialize'(); Main()` from a fresh state has no stuck thread and no panic.
+
+**Raft v3.7 (2026-10-16, stage R6b).** The statements are the ones above over raft v3.7's
+node specs (pointer messages, getters, `proto.Unmarshal`). Two of raft's specs are not met by
+the register as its Go code stands, each a `sorry` with its reasons at the spot (`#print axioms`
+below shows which results rest on them): `RestartNode`'s `InitialState` premise asks the conf
+state's `AutoLeave` cell set, which `newRaft` never needs (`Main.lean`, `RestartNode_weakCS`:
+`register_Main`, `register_adequate`, `register_cluster_safe`); `Ready` hands a response out at
+half while `Node.Step` takes the message whole, so the in-process transport cannot step a
+`MsgAppResp`/`MsgVoteResp` (`deliver.lean`: `register_deliver` and, through `New`'s `sendSpec`,
+`register_Main`).
 -/
 module
 
@@ -116,19 +127,19 @@ theorem register_storage_isStorage (s ms : Loc) (γs : MemStorNames) :
       regStorRec (GF := GF) s ms γs -∗ isStorage (regStorIface s) :=
   regStorage_isStorage register.Storage.wp_Snapshot s ms γs
 
-/-- ... and its `InitialState` is the empty hard state and the voters, as `RestartNode` asks. -/
+/-- ... and its `InitialState` is a fresh empty hard state and the voters' conf state, read-only
+for good, as `newRaft` reads them (raft v3.7: the shape of `RestartNode.spec`'s premise but for
+the conf state's `AutoLeave` flag, `Main.lean`). -/
 theorem register_storage_initialState (s : Loc) (vsl : GoSlice) (voters : List w64)
     (σ : StorState) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register -∗
       s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (regStorIface s) { σ with ss := ss' } -∗
-           (ownStorage (regStorIface s) { σ with ss := ss' } -∗
-            ({ (zero_val raftpb.ConfState) with Voters' := vsl } : raftpb.ConfState).Voters'
-              ↦*□ voters -∗
-            Φ (PairV (PairV #(zero_val raftpb.HardState)
-              #({ (zero_val raftpb.ConfState) with Voters' := vsl } : raftpb.ConfState))
-              #interface.nil)) -∗
+           (∀ (hp cs : Loc), ownStorage (regStorIface s) { σ with ss := ss' } -∗
+            hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
+            csPts cs DFrac.discard (register.regConfState voters) false -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType rStorageTy) go!"InitialState" #s))
              (Val #())) {{ Φ }}) :=
   regStorage_initialState register.Storage.wp_InitialState s vsl voters σ

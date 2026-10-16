@@ -1,6 +1,11 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/register/Register__run.lean`. Lean-first (no
-Rocq counterpart).
+Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): a `Ready`'s entries and committed entries
+are read-only entry pointers (`entsRO`), its messages owned pointers (`sendSpec`), its read
+states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its hard state `hsOpt`
+(unused: the register persists no hard state); a conf-change entry is decoded with
+`proto.Unmarshal` into a fresh `pb.ConfChange`, applied by pointer (`ownCCV1_persist`:
+`node.ApplyConfChange` reads it on raft's goroutine).
 -/
 module
 
@@ -13,7 +18,9 @@ public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
 -- (2026-10-15, stage N) conf changes
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__Unmarshal
+public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Lemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.RegStorageInstance
 
@@ -42,8 +49,10 @@ theorem Register.run.wp_proof
     (wp_node_Ready : node.Ready.spec (GF := GF) (hG := hG))
     (wp_node_Advance : node.Advance.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_Append : MemoryStorage.Append.spec (GF := GF) (hG := hG))
-    (wp_ConfChange_Unmarshal : raftpb.ConfChange.Unmarshal.spec (GF := GF) (hG := hG))
-    (wp_node_ApplyConfChange : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
+    (wp_proto_UnmarshalConfChange : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
+    (wp_node_ApplyConfChange : node.ApplyConfChange.spec (GF := GF) (hG := hG))
+    (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
+    (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     Register.run.spec (GF := GF) (hG := hG) := by
   intro γr γp r id n st send op c0 c1
   wp_start as ⟨#Hrep, %Hcc, Hncfg, Hdrv, Hrun, #Hsend⟩
@@ -52,14 +61,18 @@ theorem Register.run.wp_proof
   iNamed Hrep'
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
+  ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
+  ihave #Hprotoinit : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
   wp_auto
   wp_apply wp_node_Ready γp.node id n $$ [$HisNode] as %ch #Hch
-  ihave IH : iprop(∃ (ds : List raftpb.Entry) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
+  ihave IH : iprop(∃ (ds : List EntryM) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
       (a : w64) (ca : Nat) (cfg : CCState),
       "Hrd" ∷ rd_ptr ↦ rdv ∗ "Hdrv" ∷ nodeDriver γp.node id n ds ∗ "Hrun" ∷ runOwn γr r ds ∗
       "pending" ∷ pending_ptr ↦ pv ∗ "Hpv" ∷ pv ↦* ps ∗
       "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
-      "Hps" ∷ ([∗list] s ∈ ps, readStateOk γr.raft s) ∗
+      "Hps" ∷ ([∗list] v ∈ ps, rsOk γr.raft v) ∗
       "applied" ∷ applied_ptr ↦ a ∗ "%Ha" ∷ ⌜uint.Z a ≤ (ds.length : Int)⌝ ∗
       "Hncfg" ∷ nodeCfg γp.node ca cfg ∗ "%Hrc" ∷ ⌜RunCfg ds ds.length ca cfg c0 c1⌝)
     $$ [rd Hdrv Hrun pending applied Hncfg]
@@ -77,7 +90,8 @@ theorem Register.run.wp_proof
   wp_apply node_ready_receive γp.node id n ch ds $$ [$Hch $Hdrv] as %rdv' ⟨%ce, %es, %msgs, Hdata, Hbusy⟩
   ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es $$ Hbusy
   unfold readyData
-  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, ⟨%sts, #Hsts, #Hstsok⟩, %Hsnap⟩
+  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, ⟨%sts, #Hsts, #Hstsok⟩, ⟨%hs, #Hhs⟩,
+    %Hsnap⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
   cases b
   · -- a log past `maxIndex`: the replica stops
@@ -123,22 +137,28 @@ theorem Register.run.wp_proof
       iframe Hrec Hd
       ipureintro; rfl
     iexact H
+  -- `send(rd.Messages)`: the messages as `Ready` hands them out
   wp_bind (App (Val #send) _)
   iunfold sendSpec at Hsend
   iapply Hsend $$ [Hms Hmsok Hcr]
   · iframe
   iintro !> -
   wp_auto
-  -- the read states, noted
-  wp_apply wp_slice_append $$ [$Hpv $Hpcap $Hsts] as %pv' ⟨Hpv, Hpcap, -⟩
-  ihave Hps : iprop([∗list] s ∈ ps ++ sts, readStateOk γr.raft s) $$ [Hps]
-  · iapply (BigSepL.bigSepL_append (Φ := fun _ s => readStateOk (GF := GF) γr.raft s)).2
+  -- the read states, noted (`rsOk` of each value)
+  ihave Hvs := readStatesPts_rsOk γp.node.raft rdv'.ReadStates' sts $$ [Hsts Hstsok]
+  · iframe Hsts Hstsok
+  icases Hvs with ⟨%vs, #Hvs, #Hvsok⟩
+  wp_apply wp_slice_append $$ [$Hpv $Hpcap $Hvs] as %pv' ⟨Hpv, Hpcap, -⟩
+  ihave Hps : iprop([∗list] v ∈ ps ++ vs, rsOk γr.raft v) $$ [Hps]
+  · iapply (BigSepL.bigSepL_append (Φ := fun _ v => rsOk (GF := GF) γr.raft v)).2
     iframe Hps
     rw [← Hraft]
-    iexact Hstsok
+    iexact Hvsok
   -- applying the committed entries, in order
+  icases entsPts_elim _ _ _ $$ Hce with ⟨%cls, #Hce, #Hceb⟩
   ihave %Hcelen := ownSlice_len $$ Hce
-  ihave IHa : iprop(∃ (k : w64) (ev : raftpb.Entry) (a' : w64) (ca' : Nat) (cfg' : CCState),
+  ihave %Hcebl := entsBig_length $$ Hceb
+  ihave IHa : iprop(∃ (k : w64) (ev : Loc) (a' : w64) (ca' : Nat) (cfg' : CCState),
       "i" ∷ i_ptr ↦ k ∗ "e" ∷ e_ptr ↦ ev ∗ "Hrun" ∷ runOwn γr r (ds ++ ce.take (sint.nat k)) ∗
       "applied" ∷ applied_ptr ↦ a' ∗
       "%Ha" ∷ ⌜uint.Z a' ≤ ((ds ++ ce.take (sint.nat k)).length : Int)⌝ ∗
@@ -158,10 +178,11 @@ theorem Register.run.wp_proof
   wp_if_destruct
   · have Hlt : sint.nat k < ce.length := by word
     obtain ⟨en, Hen⟩ : ∃ en, ce[sint.nat k]? = some en := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    ihave ⟨%ln, %Hln, #Hent⟩ := entsBig_lookup cls ce (sint.nat k) en Hen $$ Hceb
     have Hbnd' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z rdv'.CommittedEntries'.len := ⟨Hk.1, by word⟩
     simp only [Hbnd', _root_.and_self]
-    wp_apply wp_load_slice_index rdv'.CommittedEntries' (sint.Z k) _ DFrac.discard en Hk.1 $$ [Hce] as -
-    · iframe Hce; ipureintro; exact Hen
+    wp_apply wp_load_slice_index rdv'.CommittedEntries' (sint.Z k) _ DFrac.discard ln Hk.1 $$ [Hce] as -
+    · iframe Hce; ipureintro; exact Hln
     have Htk : ce.take (sint.nat k + 1) = ce.take (sint.nat k) ++ [en] := by
       rw [List.take_add_one, Hen]; rfl
     ihave #Hc1 := isCommitted_mono γp.node.raft (ds ++ ce.take (sint.nat k) ++ [en]) (ds ++ ce)
@@ -177,29 +198,26 @@ theorem Register.run.wp_proof
       exact Hen
     have Hlen : (ds ++ ce.take (sint.nat k)).length < (ds ++ ce).length := by
       simp only [List.length_append, List.length_take]; omega
-    -- `if e.Type == pb.EntryConfChange { ... r.node.ApplyConfChange(cc) }`
+    -- `if e.GetType() == pb.EntryConfChange { ... r.node.ApplyConfChange(&cc) }`
+    wp_apply wp_Entry_GetType.1 ln DFrac.discard en $$ [$Hpbinit $Hent] as -
     wp_join iprop(∃ (ca'' : Nat) (cfg'' : CCState), nodeCfg γp.node ca'' cfg'' ∗
         ⌜RunCfg (ds ++ ce) ((ds ++ ce.take (sint.nat k)).length + 1) ca'' cfg'' c0 c1⌝ ∗
-        e_ptr ↦ en ∗ r_ptr ↦ r)
+        e_ptr ↦ ln ∗ r_ptr ↦ r)
       at next with [Hncfg e r] as ⟨%ca'', %cfg'', Hncfg, %Hrc', e, r⟩
     · by_cases Hty1 : en.Type' = W32 1
       · rw [decide_eq_true Hty1]
-        icases regCC_confData γp.node op c0 c1 Hcc en o Hty1 $$ Ho with ⟨%bs, %m, #Hpd, %Hm⟩
-        imod node_propData_heap γp.node id n en.Data' bs ⊤ CoPset.subseteq_top $$ HisNode Hpd
-          with #Hbs
-        ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
-        · iPkgInit
+        ihave %Hm := regCC_confData γp.node op c0 c1 Hcc en o Hty1 $$ Ho
+        obtain ⟨m, Hm, Hop⟩ := Hm
         wp_auto
-        -- `cc.Unmarshal(e.Data)`: the bytes decode (the error is nil)
-        wp_apply wp_ConfChange_Unmarshal cc_ptr en.Data' bs DFrac.discard $$ [$Hpbinit $cc $Hbs]
-          as %err ⟨-, %v, cc, Hres⟩
-        rw [Hm.1]
+        -- `proto.Unmarshal(e.GetData(), &cc)`: the bytes decode (the error is nil)
+        wp_apply wp_Entry_GetData.1 ln DFrac.discard en $$ [$Hpbinit $Hent] as %ds1 ⟨#Hds1, -⟩
+        wp_apply wp_proto_UnmarshalConfChange ds1 en.Data' DFrac.discard cc_ptr _
+          $$ [$Hprotoinit $Hds1 $cc] as %err ⟨-, Hres⟩
+        rw [Hm]
         icases Hres with ⟨%Herr, Hown⟩
-        unfold ownCCV1
-        icases Hown with ⟨%Hvm, Hctx⟩
-        imod ownSlice_persist $$ Hctx with #Hctx
+        imod ownCCV1_persist $$ Hown with #Hown
         try wp_auto
-        -- `r.node.ApplyConfChange(cc)`: the next conf entry's change, `op`
+        -- `r.node.ApplyConfChange(&cc)`: the next conf entry's change, `op`
         have Hpre : ∀ dec c0' h0' h1', γp.node.mode = .dyn dec c0' h0' h1' →
             DynCCPreOp dec (ds ++ ce) ca' cfg' (ccV2Of (.v1 m))
               (ds ++ ce.take (sint.nat k)).length en c1 := by
@@ -208,21 +226,20 @@ theorem Register.run.wp_proof
           rw [hm] at hm'
           cases hm'
           refine ⟨Hrc.1, Hlen, Hpos, .inl Hty1, Hrc.2.1, ?_, ?_, Hal⟩
-          · show some op = some (ccV2Of (.v1 m)); rw [Hm.2]
-          · rw [Hm.2]; rcases Hrc.2.2 with rfl | rfl
+          · show some op = some (ccV2Of (.v1 m)); rw [Hop]
+          · rw [Hop]; rcases Hrc.2.2 with rfl | rfl
             · exact Hs0
             · exact Hs1
         have Hnst : γp.node.mode ≠ .static := by
           obtain ⟨⟨h0, h1, hm⟩, -⟩ := Hcc; rw [hm]; intro h; cases h
-        ihave Hcci : ownCCI (interface.mkOk raftpb.ConfChange.ty #v) DFrac.discard (some (.v1 m))
-          $$ []
-        · simp only [ownCCI, ownCCV1]
-          iexists v
-          isplitr
-          · ipureintro; rfl
-          iframe Hctx
-          ipureintro; exact Hvm
-        wp_apply wp_node_ApplyConfChange γp.node id n (interface.mkOk raftpb.ConfChange.ty #v) (.v1 m)
+        ihave Hcci : ownCCI (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc_ptr)
+            DFrac.discard (some (.v1 m)) $$ []
+        · simp only [ownCCI]
+          iexists cc_ptr
+          iframe Hown
+          ipureintro; rfl
+        wp_apply wp_node_ApplyConfChange γp.node id n
+            (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc_ptr) (.v1 m)
             (ds ++ ce) ca' cfg' (ds ++ ce.take (sint.nat k)).length en c1
             (fun h => absurd h Hnst) Hpre
           $$ [$Hraftinit $HisNode $Hcci Hncfg] as %csp %cs ⟨-, Hpost⟩
@@ -254,10 +271,11 @@ theorem Register.run.wp_proof
           cases hx
           exact Hnc Hty1
     rw [Hraft]
-    wp_apply wp_apply γr γp r id n st (ds ++ ce.take (sint.nat k)) en $$ [$Hpkg $Hrep $Hrun $Hc1] as Hrun
+    wp_apply wp_apply γr γp r id n st (ds ++ ce.take (sint.nat k)) ln en
+      $$ [$Hpkg $Hrep $Hrun $Hent $Hc1] as Hrun
     wp_for_post
     iframe
-    iexists k + W64 1, en, a' + W64 1, ca'', cfg''
+    iexists k + W64 1, ln, a' + W64 1, ca'', cfg''
     rw [show sint.nat (k + W64 1) = sint.nat k + 1 by word, Htk, List.append_assoc]
     iframe
     ipureintro
@@ -270,7 +288,7 @@ theorem Register.run.wp_proof
   · have Hfull : sint.nat k = ce.length := by word
     rw [Hfull, List.take_of_length_le (by omega)] at Ha Hrc ⊢
     -- the reads whose index is applied, answered
-    wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ sts) (DFrac.own 1) a' Ha
+    wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ vs) (DFrac.own 1) a' Ha
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap, Hps'⟩
     wp_apply wp_node_Advance γp.node id n (ds ++ ce) es ca' cfg' (fun _ => Hrc.2.1)
       $$ [$Hraftinit $Hbusy $Hrcpt $Hncfg] as ⟨Hdrv, Hncfg⟩

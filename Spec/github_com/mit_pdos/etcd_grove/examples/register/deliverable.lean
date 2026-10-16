@@ -1,7 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
 `deliverable(m)` (cluster.go): whether the transport passes `m` on; `true` only for a
-message that is `Deliverable` (`Cluster.lean`).
+message that is `Deliverable` (`Cluster.lean`). raft v3.7 (2026-10-16, stage R6b): `m` is a
+`*pb.Message` holding `st` (`msgPtsC`, at any fractions: the getters read it; `m.Entries` and
+`m.Context` are read in place), given back.
 -/
 module
 
@@ -26,10 +28,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumpt
 
 /-- See the file header. -/
 abbrev deliverable.spec : Prop :=
-  ∀ (m : raftpb.Message),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register }}
+  ∀ (m : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗
+      msgPtsC m dq dqe cap st }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.deliverable)) (Val #m))
-  {{ (b : Bool), RET #b; ⌜b = true → Deliverable m⌝ }}
+  {{ (b : Bool), RET #b; msgPtsC m dq dqe cap st ∗ ⌜b = true → Deliverable st⌝ }}
 
 end spec
 

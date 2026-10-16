@@ -34,6 +34,12 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+-- Raft's ghost logs (`rLog`, `ghostVar γ.reRLog`) are stated at `Protocol/Ghost.lean`'s
+-- countability instance of `EntryM`; `InvMemstorage.lean` declares a second one
+-- (`entryM_countable`), which instance synthesis prefers here and which makes the two
+-- `ghostVar`s differ (an `IntoWand` failure on `ghostVar_agree`). The former takes precedence.
+attribute [local instance high] raftpbEntry_countable
+
 /-! ## The applier's table, pure -/
 
 theorem occStep_mem (L : List (List w8)) (d : List w8) (h : d ∈ L) : occStep L (some d) = L := by
@@ -324,7 +330,7 @@ theorem reg_mint_read (γr : RegNames) (id ns : w64) (E : CoPset)
 
 /-- A deposited read context with a minted key is the one minted there (2026-10-13; since
 2026-10-14, stage R, through its fresh token, which raft's read registry keeps). -/
-theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List raftpb.Entry)
+theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List EntryM)
     (k : w64 × w64) (E : CoPset) (HE1 : ↑regN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑regN)
     (Hk : opKey c = some k) :
     ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ readReq γr.raft c Lc -∗
@@ -378,7 +384,7 @@ theorem reg_read_minted (γr : RegNames) (c c0 : List w8) (Lc : List raftpb.Entr
 
 /-- The register's log is raft's committed log (the client's half of `rLog` and the log
 half's quarter agree, 2026-10-14, stage R). -/
-theorem reg_log_committed (γr : RegNames) (L : List raftpb.Entry) (E : CoPset)
+theorem reg_log_committed (γr : RegNames) (L : List EntryM) (E : CoPset)
     (HE : ↑raftLogN ⊆ E) :
     ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L ={E}=∗
       rLog γr.raft L ∗ isCommitted γr.raft L := by
@@ -399,7 +405,7 @@ theorem reg_log_committed (γr : RegNames) (L : List raftpb.Entry) (E : CoPset)
   iframe HrL HPc
 
 /-- Every committed log is a prefix of the register's log (the global one). -/
-theorem reg_log_prefix (γr : RegNames) (L l : List raftpb.Entry) (E : CoPset)
+theorem reg_log_prefix (γr : RegNames) (L l : List EntryM) (E : CoPset)
     (HE : ↑raftLogN ⊆ E) :
     ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L -∗ isCommitted γr.raft l ={E}=∗
       rLog γr.raft L ∗ ⌜l <+: L⌝ := by
@@ -747,7 +753,7 @@ position `m`, the ticket buys the result of the client's update at the value aft
 history before it and `d`, under two laters (the invariant it was stored in; the saved
 predicate naming it). -/
 theorem reg_collect (γr : RegNames) (d : List w8) (γp : GName × GName) (Ψ : List w8 → IProp GF)
-    (l : List raftpb.Entry) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
+    (l : List EntryM) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
     (HE1 : ↑regN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑regN) :
     ods[m]? = some (some d) → d ∉ firstOcc (ods.take m) →
     ⊢ regInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ d ↪[γr.ops]□ γp -∗
@@ -852,8 +858,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The data of the last entry of a committed log. -/
-theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.Entry)
-    (e : raftpb.Entry) (E : CoPset) (HE : ↑raftN ⊆ E) :
+theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List EntryM)
+    (e : EntryM) (E : CoPset) (HE : ↑raftN ⊆ E) :
     ⊢ isNode γ id n -∗ isCommitted γ.raft (l ++ [e]) ={E}=∗ ∃ o, entDataIs (GF := GF) γ.raft e o := by
   iintro #Hnode #Hc
   imod node_committed_data γ id n (l ++ [e]) E HE $$ Hnode Hc with ⟨%ods, #Hl⟩
@@ -863,18 +869,10 @@ theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.E
   iexists o
   iexact Ho
 
-/-- A recorded slice holds its bytes, at the node. -/
-theorem node_propData_heap (γ : NodeNames) (id : w64) (n : Loc) (sl : GoSlice) (bs : List w8)
-    (E : CoPset) (HE : ↑propDataN ⊆ E) :
-    ⊢ isNode γ id n -∗ isPropData (GF := GF) γ.raft sl bs ={E}=∗ sl ↦*□ bs := by
-  iintro #Hnode #Hpd
-  ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
-  iapply propData_heap γ.raft sl bs E HE $$ Hpdi Hpd
-
 /-- An entry of a type other than `EntryConfChange` is no conf-change entry, in the cluster: its
 conf-change entries are all of that type (`RegCC`). -/
 theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
-    (e : raftpb.Entry) (o : Option (List w8)) :
+    (e : EntryM) (o : Option (List w8)) :
     ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜e.Type' ≠ W32 1 → ¬ IsConfEnt e⌝ := by
   iintro He
   cases o with
@@ -884,11 +882,11 @@ theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC
     ipureintro
     intro _ hc
     unfold IsConfEnt at hc
-    rw [Hd.2] at hc
+    rw [Hd.2.2] at hc
     rcases hc with h | h <;> revert h <;> word
   | none =>
     unfold entDataIs
-    icases He with (%Hz | ⟨%Hty, %bs, -, %Hdec⟩)
+    icases He with (%Hz | %Hcc)
     · ipureintro
       intro _ hc
       unfold IsConfEnt at hc
@@ -896,30 +894,224 @@ theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC
       rcases hc with h | h <;> revert h <;> word
     · ipureintro
       intro hn _
-      exact hn (H.2.1 _ _ Hdec.2).1
+      exact hn (H.2.1 _ _ Hcc.2.2).1
 
-/-- A conf-change entry of the cluster carries `op` (`RegCC`): its bytes, recorded, decode to a
-`ConfChange` whose change is `op`. -/
+/-- A conf-change entry of the cluster carries `op` (`RegCC`): its bytes decode to a `ConfChange`
+whose change is `op` (raft v3.7, stage R6b: pure, over the record's bytes, D6; until then the
+entry's slice was read through the proposed slices' invariant). -/
 theorem regCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC γn op c0 c1)
-    (e : raftpb.Entry) (o : Option (List w8)) (Hty : e.Type' = W32 1) :
-    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ∃ (bs : List w8) (m : CCV1M),
-      isPropData γn.raft e.Data' bs ∗ ⌜ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op⌝ := by
+    (e : EntryM) (o : Option (List w8)) (Hty : e.Type' = W32 1) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗
+      ⌜∃ m : CCV1M, ccDecodeV1 e.Data' = some m ∧ ccV2Of (.v1 m) = op⌝ := by
   iintro He
   cases o with
   | some d =>
     unfold entDataIs
     icases He with ⟨%Hd, -⟩
-    exfalso; rw [Hd.2] at Hty; revert Hty; word
+    exfalso; rw [Hd.2.2] at Hty; revert Hty; word
   | none =>
     unfold entDataIs
-    icases He with (%Hz | ⟨%Hty', %bs, #Hpd, %Hdec⟩)
+    icases He with (%Hz | %Hcc)
     · exfalso; rw [Hz.1] at Hty; revert Hty; word
-    · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hdec.2
-      iexists bs, m
-      iframe Hpd
-      ipureintro; exact ⟨Hm, Hop⟩
+    · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hcc.2.2
+      ipureintro; exact ⟨m, Hm, Hop⟩
 
 end confs
+
+/-! ## Raft's pointer messages and read states, at the register (raft v3.7, 2026-10-16, stage R6b)
+
+What the register's proofs need of `InvPb.lean`'s predicates beyond raft's own lemmas: candidates
+for raft's shared files (`InvPbMsg.lean`, `InvMisc.lean`, `InvPb.lean`). -/
+
+section pb
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The `ReadState` values of a `Ready`'s read states (`readStatesPts`'s big separating
+conjunction), each `rsOk`. -/
+theorem rsOk_of_readStates (γ : RaftNames) :
+    ∀ (vs : List ReadState) (sts : List ReadStateM),
+    ([∗list] v;st ∈ vs;sts, ⌜v.Index' = st.Index'⌝ ∗ v.RequestCtx' ↦*□ st.RequestCtx') ∗
+      ([∗list] st ∈ sts, readStateOk (GF := GF) γ st) ⊢ [∗list] v ∈ vs, rsOk γ v
+  | [], _ => by
+    iintro ⟨-, -⟩
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ v => rsOk (GF := GF) γ v)).2; iempintro
+  | v :: vs, [] => by
+    iintro ⟨Hb, -⟩
+    ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+    simp at Hl
+  | v :: vs, st :: sts => by
+    iintro ⟨Hb, #Hok⟩
+    icases (BigSepL2.bigSepL2_cons).1 $$ Hb with ⟨⟨%Hi, #Hc⟩, #Hb'⟩
+    icases (BigSepL.bigSepL_cons).1 $$ Hok with ⟨#Hok1, #Hok'⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ v => rsOk (GF := GF) γ v)).2
+    isplitl []
+    · unfold rsOk
+      iexists st.RequestCtx'
+      iframe Hc
+      rw [Hi]
+      iexact Hok1
+    · ihave H := rsOk_of_readStates γ vs sts $$ [Hb' Hok']
+      · iframe Hb' Hok'
+      iexact H
+
+/-- The `ReadState` values a `Ready` hands out (`readStatesPts`, persistent), each `rsOk`: what
+`run` appends to its pending read states and `answer` takes. -/
+theorem readStatesPts_rsOk (γ : RaftNames) (rs : GoSlice) (sts : List ReadStateM) :
+    readStatesPts (GF := GF) rs sts ∗ ([∗list] st ∈ sts, readStateOk γ st) ⊢
+      ∃ vs : List ReadState, rs ↦*□ vs ∗ [∗list] v ∈ vs, rsOk γ v := by
+  iintro ⟨H, #Hok⟩
+  iunfold readStatesPts at H
+  icases H with ⟨%vs, #Hs, #Hb⟩
+  iexists vs
+  iframe Hs
+  ihave H := rsOk_of_readStates γ vs sts $$ [Hb Hok]
+  · iframe Hb Hok
+  iexact H
+
+/-- A message's `Entries` elements frozen, its capacity kept (`msgPtsC_to_msgOwn` drops it): a
+received message's entries, read-only for `Node.Step` (`netP`'s `msgIn ml □`). -/
+theorem msgPtsC_persist_els (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢ |==> msgPtsC l dq DFrac.discard cap ms := by
+  iintro H
+  iNamed H
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hes with #Hes
+  imodintro
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs Hpb
+
+/-- An owned message's `Entries` field, to replace its slice (`deliver`'s copy, `m.Entries =
+append([]*pb.Entry(nil), m.Entries...)`): the field, the slice's elements (the pointers `els` of
+the entries `ms.ents`), and the message back once a fresh slice holding the same pointers, with
+its capacity, is stored, at the new slice's fraction. -/
+theorem msgPtsC_store_Entries (l : Loc) (dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l (DFrac.own 1) dqe cap ms ⊢
+      ∃ (es : GoSlice) (els : List Loc),
+        l.[raftpb.Message, go!"Entries"] ↦ es ∗ es ↦*{dqe} els ∗
+        ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
+        (∀ (es' : GoSlice) (dqe' : DFrac),
+          l.[raftpb.Message, go!"Entries"] ↦ es' -∗ es' ↦*{dqe'} els -∗
+          ownSliceCap Loc es' (DFrac.own 1) -∗
+          msgPtsC l (DFrac.own 1) dqe' true ms) := by
+  iintro H
+  iNamed H
+  iclear Hes_cap
+  iexists es, els
+  iframe HEs Hes Hents
+  iintro %es' %dqe' HEs Hes Hcap
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es', els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  simp only [named, ↓reduceIte]
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- A message's `Entries` and `Context` fields, read in place (`deliverable`'s `m.Entries != nil`,
+`m.Context == nil`): a `nil` slice holds no entries, no bytes. -/
+theorem msgPtsC_fields_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢
+      ∃ (es cs : GoSlice),
+        l.[raftpb.Message, go!"Entries"] ↦{dq} es ∗ l.[raftpb.Message, go!"Context"] ↦{dq} cs ∗
+        ⌜(es = slice.nil → ms.ents = []) ∧ (cs = slice.nil → ms.ctx = [])⌝ ∗
+        (l.[raftpb.Message, go!"Entries"] ↦{dq} es -∗ l.[raftpb.Message, go!"Context"] ↦{dq} cs -∗
+          msgPtsC l dq dqe cap ms) := by
+  iintro H
+  iNamed H
+  ihave %Hel : ⌜els.length = sint.nat es.len ∧ 0 ≤ sint.Z es.len⌝ $$ [Hes]
+  · iapply ownSlice_len $$ Hes
+  ihave %Hbl := entsBig_length $$ Hents
+  ihave %Hcl := ownSlice_len $$ Hcs
+  iexists es, cs
+  iframe HEs HCx
+  isplitr
+  · ipureintro
+    refine ⟨fun h => ?_, fun h => ?_⟩
+    · subst h
+      apply List.eq_nil_of_length_eq_zero
+      rw [← Hbl, Hel.1]; rfl
+    · subst h
+      apply List.eq_nil_of_length_eq_zero
+      rw [Hcl.1]; rfl
+  iintro HEs HCx
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- A freshly allocated `*pb.ConfState` (hidden fields zero) whose slices hold `c`'s lists
+read-only and whose `AutoLeave` is a cell holding `c.AutoLeave'`, frozen read-only for good: the
+conf state the register's `InitialState` returns (`&pb.ConfState{Voters: s.voters}`, the voters
+slice shared by the cluster's storages). `csPts_of_struct` at owned slices; `al` as there. -/
+theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) :
+    (p ↦ v ∗ v.Voters' ↦*□ c.Voters' ∗ v.Learners' ↦*□ c.Learners' ∗
+      v.VotersOutgoing' ↦*□ c.VotersOutgoing' ∗ v.LearnersNext' ↦*□ c.LearnersNext' ∗
+      cellRO v.AutoLeave' c.AutoLeave' : IProp GF) ⊢
+      |={E}=> csPts p DFrac.discard c (decide (v.AutoLeave' ≠ null)) := by
+  iintro ⟨Hp, #Hv, #Hl, #Ho, #Hn, #cA⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, Voters, Learners, VotersOutgoing, LearnersNext, AutoLeave, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.ConfState p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Voters with #Voters
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Learners with #Learners
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ VotersOutgoing with #VotersOutgoing
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ LearnersNext with #LearnersNext
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ AutoLeave with #AutoLeave
+  imodintro
+  iunfold csPts
+  iexists v.Voters', v.Learners', v.VotersOutgoing', v.LearnersNext', v.AutoLeave'
+  isplitr
+  · ipureintro; exact Hnn
+  iframe Voters Hv Learners Hl VotersOutgoing Ho LearnersNext Hn AutoLeave cA Hpb
+  ipureintro; intro h; simpa using h
+
+/-- An entry slice, taken apart (`entsPts` is a definition: `icases` does not see its
+existential). -/
+theorem entsPts_elim (s : GoSlice) (dq : DFrac) (es : List EntryM) :
+    entsPts (GF := GF) s dq es ⊢
+      ∃ ls : List Loc, s ↦*{dq} ls ∗ [∗list] l;e ∈ ls;es, entRO l e := by
+  iintro H
+  iunfold entsPts at H
+  iexact H
+
+instance ownCCV1_persistent (p : Loc) (m : CCV1M) :
+    Persistent (ownCCV1 (GF := GF) p DFrac.discard m) := by
+  unfold ownCCV1; infer_instance
+
+/-- A `*pb.ConfChange` frozen read-only (what `run` sends on `confc` through
+`node.ApplyConfChange`, `confcP`: raft reads it on its own goroutine). -/
+theorem ownCCV1_persist (p : Loc) (dq : DFrac) (m : CCV1M) :
+    ownCCV1 (GF := GF) p dq m ⊢ |==> ownCCV1 p DFrac.discard m := by
+  iintro H
+  iNamed H
+  imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
+  imod (typedPointsto_dfractional (GF := GF) _ pn).dfractional_persist _ $$ HN with #HN
+  imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
+  imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HC with #HC
+  imodintro
+  iunfold ownCCV1
+  iexists pt, pn, pi, cs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HT cT HN cN HI cI HC Hcs Hpb
+
+end pb
 
 end EtcdGrove
 end Perennial

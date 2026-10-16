@@ -88,7 +88,7 @@ theorem register.Register.wp_Read [RegStor GF] :
 
 theorem register.Register.wp_RemoveMember [RegStor GF] :
     register.Register.RemoveMember.spec (GF := GF) (hG := hG) :=
-  register.Register.RemoveMember.wp_proof node.wp_ProposeConfChange
+  register.Register.RemoveMember.wp_proof node.wp_ProposeConfChange raftpb.ConfChangeType.wp_Enum
 
 theorem register.Register.wp_TransferLeadership [RegStor GF] :
     register.Register.TransferLeadership.spec (GF := GF) (hG := hG) :=
@@ -104,15 +104,15 @@ theorem register.Register.wp_answer [RegStor GF] :
 
 theorem register.Register.wp_apply [RegStor GF] :
     register.Register.apply.spec (GF := GF) (hG := hG) :=
-  register.Register.apply.wp_proof register.wp_decode
+  register.Register.apply.wp_proof register.wp_decode raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
 
 theorem register.wp_fits [RegStor GF] :
     register.fits.spec (GF := GF) (hG := hG) :=
-  register.fits.wp_proof
+  register.fits.wp_proof raftpb.Entry.wp_GetIndex
 
 theorem register.Register.wp_run [RegStor GF] :
     register.Register.run.spec (GF := GF) (hG := hG) :=
-  register.Register.run.wp_proof register.wp_fits register.Register.wp_apply register.Register.wp_answer node.wp_Ready node.wp_Advance MemoryStorage.wp_Append raftpb.ConfChange.wp_Unmarshal node.wp_ApplyConfChange
+  register.Register.run.wp_proof register.wp_fits register.Register.wp_apply register.Register.wp_answer node.wp_Ready node.wp_Advance MemoryStorage.wp_Append proto.wp_UnmarshalConfChange node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
 
 theorem register.Storage.wp_InitialState [RegStor GF] :
     register.Storage.InitialState.spec (GF := GF) (hG := hG) :=
@@ -120,7 +120,7 @@ theorem register.Storage.wp_InitialState [RegStor GF] :
 
 theorem register.Storage.wp_Snapshot [RegStor GF] :
     register.Storage.Snapshot.spec (GF := GF) (hG := hG) :=
-  register.Storage.Snapshot.wp_proof MemoryStorage.wp_Snapshot
+  register.Storage.Snapshot.wp_proof MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
 theorem register.wp_New [RegStor GF] :
     register.New.spec (GF := GF) (hG := hG) :=
@@ -128,7 +128,7 @@ theorem register.wp_New [RegStor GF] :
 
 theorem register.wp_deliverable :
     register.deliverable.spec (GF := GF) (hG := hG) :=
-  register.deliverable.wp_proof
+  register.deliverable.wp_proof raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo
 
 theorem register.transfers.wp_take [StorageModel GF] :
     register.transfers.take.spec (GF := GF) (hG := hG) :=
@@ -136,7 +136,7 @@ theorem register.transfers.wp_take [StorageModel GF] :
 
 theorem register.wp_deliver [StorageModel GF] :
     register.deliver.spec (GF := GF) (hG := hG) :=
-  register.deliver.wp_proof register.wp_deliverable register.transfers.wp_take node.wp_Step
+  register.deliver.wp_proof register.wp_deliverable register.transfers.wp_take node.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetTo
 
 theorem register.wp_tick [StorageModel GF] :
     register.tick.spec (GF := GF) (hG := hG) :=

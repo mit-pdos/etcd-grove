@@ -1,14 +1,15 @@
 /- Lean-first (no Rocq counterpart).
 
-`deliver(peers, tr, ms)` (cluster.go): the transport. For the messages of a `Ready` (each
-legitimately sent, `isRaftMsg`, and of a term within the budget, `termLB`: what `Ready`
-gives with them) and a read-only peer table whose node at each id is that id's (`peerOk`),
-it steps each deliverable message into its target, which takes it (`Node.Step`'s `stepP`).
-(2026-10-13) It takes each message's read credit (`Ready`'s) and passes a delivered
-message's on to `Step`, dropping the others' with their messages (any number of voters since
-2026-10-14: raft's single-voter fix, stage F). And
-(2026-10-13) a `MsgTimeoutNow` is stepped only with a tick credit taken from the transfer
-budget `tr` (`isTransfers`, `transfers.take`).
+`deliver(peers, tr, ms)` (cluster.go): the transport. For the messages of a `Ready` as `Ready`
+hands them out (raft v3.7, 2026-10-16, stage R6b, D8: the pointers' slice, owned; each message
+owned at `readyDq` -- whole, but a response at half --, legitimately sent, `isRaftMsg`, of a term
+within the budget, `termLB`) and a read-only peer table whose node at each id is that id's
+(`peerOk`), it steps each deliverable message into its target, which takes it for good
+(`Node.Step`'s `stepP`: the message at `1`, Q3; its entries slice a fresh copy with its
+capacity, which a `MsgApp`'s receiver may adopt). (2026-10-13) It takes each message's read
+credit (`Ready`'s) and passes a delivered message's on to `Step`, dropping the others' with
+their messages. And (2026-10-13) a `MsgTimeoutNow` is stepped only with a tick credit taken
+from the transfer budget `tr` (`isTransfers`, `transfers.take`).
 -/
 module
 
@@ -35,11 +36,14 @@ variable [StorageModel GF]
 /-- See the file header. -/
 abbrev deliver.spec : Prop :=
   ∀ (γ : RaftNames) (bud : BudgetNames) (peers tr : Loc) (P : GMap w64 GoInterface)
-    (msl : GoSlice) (ms : List raftpb.Message),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ peers ↦${DFrac.discard} P ∗ ([∗map] id ↦ nd ∈ P, peerOk γ bud id nd) ∗
+    (msl : GoSlice) (ms : List QMsg),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗
+      peers ↦${DFrac.discard} P ∗ ([∗map] id ↦ nd ∈ P, peerOk γ bud id nd) ∗
       isTransfers bud tr ∗
-      msl ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ m ∗ termLB bud m.Term') ∗
-      [∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) }}
+      msl ↦* ms.map QMsg.loc ∗
+      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ q.st ∗
+        termLB bud q.st.msg.Term') ∗
+      [∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.deliver))
       (Val #peers)) (Val #tr)) (Val #msl))
   {{ RET #(); True }}

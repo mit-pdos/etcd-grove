@@ -4,6 +4,12 @@ Rocq counterpart).
 
 Every callee's spec is taken at any storage registry (`∀ [RegStor GF]`): the proof allocates
 the registry and instantiates them at it.
+
+**Raft v3.7 (2026-10-16, stage R6b).** `RestartNode` takes the register's storage under the
+register's `StorageModel` (`regStorage_isStorage`) and its `InitialState` closure
+(`regStorage_initialState`); the conf state it returns is `regConfState clusterIds` (the voters,
+no `AutoLeave`). `RestartNode.spec`'s premise asks that conf state frozen *with its `AutoLeave`
+cell set* (`csPts cs □ csm true`), which the register's cannot be: `RestartNode_weakCS`, below.
 -/
 module
 
@@ -259,6 +265,83 @@ theorem nodeConfig_valid (id : w64) (st : Loc) (h : id ∈ clusterIds) :
   unfold ConfigValid
   rcases h with rfl | rfl | rfl <;> simp <;> decide
 
+/-! ## `RestartNode` with the `InitialState` premise `newRaft` uses (raft v3.7, stage R6b)
+
+`RestartNode.spec` (`Spec/go_etcd_io/raft/v3/RestartNode.lean`, through `NewRawNode` and
+`newRaft`) asks the storage's `InitialState` for its conf state frozen read-only *with its
+`AutoLeave` cell set*, `csPts cs □ csm true`: the shape of `MemoryStorage.InitialState`'s post
+(D7: `EnsureConfState` sets the cell before the conf state is frozen). `newRaft`'s proof uses
+only `csPts cs □ csm false` (`csPts_weaken`, `Proof/go_etcd_io/raft/v3/newRaft.lean`: both
+`confchange.Restore` and `ConfState.Equivalent` take `ownCSM`), and `newRaft` does not call
+`EnsureConfState` on it (`raft.go:444-472`; `restore` does, on a snapshot's, `raft.go:1874`);
+raft's `Storage` interface asks no implementation to set `AutoLeave` (`storage.go:52-55`). The
+register's `InitialState` returns `&pb.ConfState{Voters: s.voters}`, whose `AutoLeave` is `nil`
+(`Storage.InitialState.spec`: `csPts cs □ (regConfState voters) false`), so the premise as
+stated cannot be met by a conforming storage that sets no `AutoLeave`.
+
+`RestartNodeW.spec` is `RestartNode.spec` with the premise `newRaft` uses. It holds (raft's
+proof with `csPts_weaken` moved into the premise), but this repository's rules keep the raft
+tree out of stage R6b, so `RestartNode_weakCS` is a `sorry` until `newRaft`'s, `NewRawNode`'s
+and `RestartNode`'s specs state the weaker premise (notes/STATUS.md, stage R6b). -/
+
+/-- See the section header. -/
+abbrev RestartNodeW.spec [StorageModel GF] : Prop :=
+  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
+    (lok si : GoInterfaceOk)
+    (σ : StorState)
+    (hs : HardStateM) (csm : ConfStateM),
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.CheckQuorum' = false →
+  cv.DisableProposalForwarding' = false →
+  cv.ReadOnlyOption' = W64 0 →
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  cv.PreVote' = false →
+  cv.Applied' = W64 0 →
+  σ.prev = entryID.mk (W64 0) (W64 0) →
+  σ.ents = [] →
+  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] →
+  HsEmpty hs →
+  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
+  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
+  csm.VotersOutgoing' = [] →
+  csm.Learners' = [] →
+  csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  γ.reCfg = GMap.listToSet csm.Voters' →
+  cv.ID' ∈ csm.Voters' →
+  (md.isDyn = true → cv.StepDownOnRemoval' = true) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- the `InitialState` premise `newRaft` uses: the conf state frozen, its `AutoLeave`
+      -- cell set or not (`csPts … false`; `RestartNode.spec` asks `true`)
+      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc), ownStorage (interface.ok si) { σ with ss := ss' } -∗ hsOpt hp hs -∗
+            csPts cs DFrac.discard csm false -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+      rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) }}
+    (App (Val #(functions RestartNode [])) (Val #c))
+  {{ (nd : GoInterface), RET #nd;
+      ∃ (γn : NodeNames) (n : Loc),
+        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
+         nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
+        nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
+
+/-- **Raft spec gap (stage R6b; see the section header).** `RestartNode` with the `InitialState`
+premise `newRaft` uses. A `sorry`: raft's own proof, with `csPts_weaken` moved into the premise,
+which the raft tree's specs (`newRaft`, `NewRawNode`, `RestartNode`) do not state yet. -/
+theorem RestartNode_weakCS [StorageModel GF] (_h : RestartNode.spec (GF := GF) (hG := hG)) :
+    RestartNodeW.spec (GF := GF) (hG := hG) := by
+  sorry
+
 section reg
 variable [RegStor GF]
 
@@ -320,19 +403,18 @@ theorem Main.wp_proof
       (sint.nat (W64 (0 + 1 + 1))) (W64 3)) = clusterIds := rfl
   rw [Hsz, Hl]
   imod ownSlice_persist _ _ _ $$ Hvsl with #Hvsl
-  -- raft's ghost state for the cluster, the term budget, the proposed slices
-  -- (2026-10-14, stage R) with the register's invariant, the client's half of the value and the
-  -- sequence-number tokens, allocated from the client's share once raft's names exist: the
-  -- register builds the standing update for raft's own entries (`reg_noopAu`)
+  -- raft's ghost state for the cluster and the term budget (2026-10-14, stage R) with the
+  -- register's invariant, the client's half of the value and the sequence-number tokens,
+  -- allocated from the client's share once raft's names exist: the register builds the standing
+  -- update for raft's own entries (`reg_noopAu`)
   imod raft_dyn_alloc (GF := GF) ⊤ (ccDecOf opR) c0R c0R_ok (GMap.listToSet clusterIds) ccOkR
     (fun γ => iprop(∃ γr : RegNames, ⌜γr.raft = γ⌝ ∗ regInv γr ∗ regVal γr [] ∗
-      ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s) ∗
-      ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8))))
+      ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s)))
     (by rw [GMap.elem_of_list_to_set]; decide) $$ []
-    with ⟨%γ, %Hcfg', #Hcinv, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs, HreSl⟩, Hghosts, #Hc0,
+    with ⟨%γ, %Hcfg', #Hcinv, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩, Hghosts, #Hc0,
       HrdC, #HrdI⟩
   · unfold allocClient
-    iintro %γ0 %_ #_ HcL Hfresh HreSl HrdF
+    iintro %γ0 %_ #_ HcL Hfresh HrdF
     imod regInv_alloc (GF := GF) ⊤ γ0 (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdF
       with ⟨%γr0, %Hγr0, #Hreg0, Hval0, Hseqs0⟩
     ihave #Hnoop := reg_noopAu γr0 $$ Hreg0
@@ -340,7 +422,7 @@ theorem Main.wp_proof
     imodintro
     iframe Hnoop
     iexists γr0
-    iframe Hreg0 Hval0 Hseqs0 HreSl
+    iframe Hreg0 Hval0 Hseqs0
     ipureintro; rfl
   have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2
   have Hdyn := Hcfg'.1
@@ -348,7 +430,6 @@ theorem Main.wp_proof
   imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
   icases (tickCred_split bud (3 * ticksN) timeoutsN).1 $$ Hcred with ⟨Hcred, Htcred⟩
-  imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd
   -- the clients' invariant
   imod ghostVar_alloc (GF := GF) false with ⟨%γf, Hf⟩
   icases ghostVar_halves γf false $$ Hf with ⟨Hf1, Hf2⟩
@@ -428,17 +509,18 @@ theorem Main.wp_proof
       isplitr
       · ipureintro; exact ⟨Hdyn, rfl⟩
       iexact Hghost
-    wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) bud _
-      (nodeConfig id0 st) qLogger
-      ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (zero_val raftpb.HardState)
-      { (zero_val raftpb.ConfState) with Voters' := slice.mk vsl (W64 3) (W64 3) } clusterIds
-      DFrac.discard (nodeConfig_valid id0 st Hid0m) rfl rfl
+    -- `RestartNode`, with the `InitialState` premise `newRaft` uses (`RestartNode_weakCS`)
+    wp_apply (RestartNode_weakCS wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
+      bud _ (nodeConfig id0 st) qLogger
+      ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
+      (register.regConfState clusterIds)
+      (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
-      rfl rfl rfl rfl rfl (by left; rfl) rfl (by unfold HsEmpty; exact ⟨rfl, rfl, rfl⟩)
+      rfl rfl rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
       (fun _ => rfl))
-      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hpd]
+      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
     obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
@@ -581,11 +663,11 @@ theorem Main.wp_proof
         imodintro
         iintro %msl %ms %Φ'
         imodintro
-        iintro ⟨Hmsl, #Hok, Hcr⟩ HΦ'
+        iintro ⟨Hmsl, Hmsok, Hcr⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
         wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms)
-          $$ [$Hmsl $Hcr]
+          $$ [$Hmsl $Hmsok $Hcr]
         · iframe #
         iapply HΦ'
         itrivial

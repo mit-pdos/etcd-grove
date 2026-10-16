@@ -448,8 +448,11 @@ hand.
                if fn not in external and fn not in pending and fn not in reused)
     out.extend(f"public import {m}" for m in EXTRA_IMPORTS.get(sys.argv[1], []))
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
-    out.extend(sorted({"public import " + external_link(fn) for fn in external}
-                       | {f"public import {mod}" for mod in reused.values()}))
+    # an `@` callee whose package has no `Link.lean` of its own is linked by one of the other
+    # imported Links (raft's links protobuf-go's `proto` axioms, which the register names)
+    out.extend(sorted({"public import " + external_link(fn) for fn in external
+                       if os.path.exists(os.path.join(root, *external_link(fn).split(".")) + ".lean")}
+                      | {f"public import {mod}" for mod in reused.values()}))
     out.append(f"""
 @[expose] public section
 

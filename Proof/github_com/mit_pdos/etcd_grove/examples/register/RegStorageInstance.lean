@@ -1,18 +1,25 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# `*register.Storage` meets raft's `Storage` contract (2026-10-10)
+# `*register.Storage` meets raft's `Storage` contract (2026-10-10; raft v3.7, 2026-10-16, stage R6b)
 
 A registered register storage (`regStorRec s ms γs`) is a raft `Storage` under the
 register's storage model (`regStorageModel`, `Defs.lean`): `isStorage (regStorIface s)`,
 the contract `RestartNode` takes (`regStorage_isStorage`), and its `InitialState` is what
-`RestartNode` asks of it (`regStorage_initialState`). The methods raft calls are the
+`newRaft` reads of it (`regStorage_initialState`). The methods raft calls are the
 embedded `MemoryStorage`'s (promoted: the field read, then `MemoryStorage`'s method),
 but for `Snapshot` (`Storage.Snapshot`), which says `ErrSnapshotTemporarilyUnavailable`
 for the empty snapshot of a new storage: the contract's `Snapshot` clause (a non-empty
 snapshot or that error), which a bare new `MemoryStorage` does not meet. The two laws
 are `MemoryStorage`'s (`memStorage_handout`, `memStorage_absorb`), its tokens being of
 the registered names.
+
+Raft v3.7: the contract's `Entries` hands out read-only entry pointers (`entsRO`) and its
+`Snapshot` a fresh owned clone (`ownSnapM`), both `MemoryStorage`'s own results; `InitialState`
+returns two fresh pointers, the hard state `hsOpt hp ⟨0, 0, 0⟩` and the conf state of the voters
+frozen read-only (`csPts cs □ (regConfState voters) false`: its `AutoLeave` is `nil`, so not
+D7's `true` of `MemoryStorage.InitialState`, which `RestartNode.spec` asks -- `Main.lean`,
+`RestartNode_weakCS`).
 -/
 module
 
@@ -187,8 +194,10 @@ theorem regStorage_isStorage
   iframe Hown
   ipureintro; exact Heq
 
-/-- `InitialState`, as `RestartNode` asks of its storage: the empty hard state and the
-voters, read-only, the owner's state unchanged. -/
+/-- `InitialState`, as `newRaft` reads its storage's: a fresh empty hard state (`hsOpt`) and the
+voters' conf state, read-only for good, the owner's state unchanged. The shape of
+`RestartNode.spec`'s `InitialState` premise but for the conf state's `AutoLeave` flag
+(`csPts cs □ _ false`: the register sets no `AutoLeave`; `Main.lean`, `RestartNode_weakCS`). -/
 theorem regStorage_initialState
     (wp_InitialState : register.Storage.InitialState.spec (GF := GF) (hG := hG))
     (s : Loc) (vsl : GoSlice) (voters : List w64) (σ : StorState) :
@@ -196,20 +205,17 @@ theorem regStorage_initialState
       s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (regStorIface s) { σ with ss := ss' } -∗
-           (ownStorage (regStorIface s) { σ with ss := ss' } -∗
-            ({ (zero_val raftpb.ConfState) with Voters' := vsl } : raftpb.ConfState).Voters'
-              ↦*□ voters -∗
-            Φ (PairV (PairV #(zero_val raftpb.HardState)
-              #({ (zero_val raftpb.ConfState) with Voters' := vsl } : raftpb.ConfState))
-              #interface.nil)) -∗
+           (∀ (hp cs : Loc), ownStorage (regStorIface s) { σ with ss := ss' } -∗
+            hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
+            csPts cs DFrac.discard (register.regConfState voters) false -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType rStorageTy) go!"InitialState" #s))
              (Val #())) {{ Φ }}) := by
   iintro #Hpkg #Hfield #Hv
   imodintro
   iintro %Φ %ss' Hown HΦ
-  wp_apply wp_InitialState s vsl $$ [$Hfield]
-  iapply HΦ $$ Hown
-  iexact Hv
+  wp_apply wp_InitialState s vsl voters $$ [$Hfield $Hv] as %hp %cs ⟨#Hhs, #Hcs⟩
+  iapply HΦ $$ Hown Hhs Hcs
 
 end inst
 
