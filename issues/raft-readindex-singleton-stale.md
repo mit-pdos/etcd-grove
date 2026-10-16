@@ -6,6 +6,8 @@ links:
   - etcd-io/raft#397 pr closed: related, not this bug (the user's: unique heartbeat ctxes for read-only requests)
   - etcd-io/raft#398 pr closed: related, not this bug (the user's: document not retrying ReadIndex with the same rctx)
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would remove the removed-leader half of the scenario, not the commit-index half)
+  - etcd-io/etcd#16666 issue closed: related, not this bug: the same unconditional shortcut answers a stale commit index after a crash-restart (HardState.Commit persisted after apply) in a single-member cluster served before ReadyNotify; fixed in etcd by #16677; the fork's fix likely also closes it, argued informally (notes/bug-triage/etcd-16666.md)
+  - etcd-io/raft#105 pr closed: related, not this bug: return the actually committed index for ReadIndex (the crash-restart variant)
 ---
 
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change

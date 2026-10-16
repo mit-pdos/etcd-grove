@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Bug triage: upstream bug reports against the proofs (2026-10-16, branch `bug-triage/2026-10-16`)
+
+Ten upstream correctness reports (five each of etcd-io/etcd and etcd-io/raft) classified against
+the proved specs with `.claude/skills/bug-triage`; index and ranked proposals in
+`notes/bug-triage/README.md`. None is present at the pins; one (etcd#21536) the specs would have
+excluded (F+), four are fixed upstream but the current specs would still admit the buggy code
+(F−: `crevFrozen`, `txnPlain`/`backendStep`'s unconstrained rejection, the unspecified
+`watchableStore.Restore`, no crashes), one is a crash/disk-loss (A-model), three are not bugs. No
+soundness alert. The proposals with the most bugs behind them: `crash-restart-model` (two),
+then `watch-under-compaction`, `txn-exact-check`, `verify-watchable-restore`,
+`readindex-ctx-reuse`. Open small items: `Protocol/ResultsDyn.lean`'s header ("not yet reached
+from Go") is out of date since B7; raft's `rdFresh` premise is stricter than v3.7's documented
+`ReadIndex` contract.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
