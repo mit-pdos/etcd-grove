@@ -67,7 +67,7 @@ theorem raft.sendHeartbeat.wp_proof
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   wp_apply wp_min2_uint64
-  let cm := w64Min p.matched lv.committed'
+  let cm := w64Min p.matched lv.controlflowLog'.committed'
   rw [show raftpb.MsgHeartbeat = #((W32 8 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 8)
@@ -92,7 +92,7 @@ theorem raft.sendHeartbeat.wp_proof
   iapply HΦ $$ %cm %_
   iframe Hphys
   obtain ⟨Hlv1, -⟩ := Hlv
-  have Hmin : uint.Z cm = min (uint.Z p.matched) (uint.Z lv.committed') := w64Min_spec _ _
+  have Hmin : uint.Z cm = min (uint.Z p.matched) (uint.Z lv.controlflowLog'.committed') := w64Min_spec _ _
   ipureintro
   refine ⟨?_, ?_, ?_⟩
   · rw [← Hlv1]; omega

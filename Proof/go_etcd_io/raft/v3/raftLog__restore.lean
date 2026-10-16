@@ -62,7 +62,7 @@ theorem raftLog.restore.wp_proof
   wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
   try wp_auto
-  icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip
+  icases raftLog_lend_unstable l { lv with controlflowLog'.committed' := sv.Metadata'.Index' } ls Hip
     $$ Hl Huents_cap Huents Husnap Hpksn Hu_logger with ⟨Hun, Hlback⟩
   wp_apply wp_unstable_restore _ _ sp dq sv $$ [$Hun $Hback] as ⟨Hsnap, Hun⟩
   iclear Hu_logger
@@ -72,7 +72,7 @@ theorem raftLog.restore.wp_proof
   iframe Hsnap
   rw [← Hlg]
   simp only [snapId] at Hcmlt Hlt
-  iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
+  iapply ownRaftLog_intro l { lv with controlflowLog'.committed' := sv.Metadata'.Index', unstable' := uv' }
       lv.storage' σ _ _ (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists))
       rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩

@@ -45,6 +45,11 @@ def raftLog.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] raftLog.ty
 
+def controlflowLog.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.controlflowLog" [])
+
+attribute [irreducible] controlflowLog.ty
+
 def unstable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3.unstable" [])
 
@@ -598,7 +603,7 @@ noncomputable def RawNode.Bootstrap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Peer.ty))) (Pair (Var "peer") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn")))))))) (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"append"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))))) (Var "$a0")))))))
@@ -684,7 +689,7 @@ noncomputable def RawNode.Bootstrap.impl [FfiSyntax] [GoGlobalContext] : val :=
     recovers the log to the state that it just commits and applies the
     latest snapshot.
 
-    go: log.go:69:6 -/
+    go: log.go:74:6 -/
 noncomputable def newLog.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "storage"
   (Lam "logger"
@@ -700,7 +705,7 @@ noncomputable def newLog.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- newLogWithSize returns a log using the given storage and max
     message size.
 
-    go: log.go:75:6 -/
+    go: log.go:80:6 -/
 noncomputable def newLogWithSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "storage"
   (Lam "logger"
@@ -734,12 +739,13 @@ noncomputable def newLogWithSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lastIndex")) (Val #(W64 1))))
   (Let "$v2" (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "logger"))
   (App (Val (GoInstruction (CompositeLiteral unstable.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"offset")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"offsetInProgress")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"logger")) (ElementExpression Logger.ty (Var "$v2")))])))))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "maxApplyingEntsSize"))
+  (Let "$v2" (Let "$v0" (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "maxApplyingEntsSize"))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "firstIndex")) (Val #(W64 1))))
+  (Let "$v2" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "firstIndex")) (Val #(W64 1))))
   (Let "$v3" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "firstIndex")) (Val #(W64 1))))
-  (Let "$v4" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "firstIndex")) (Val #(W64 1))))
-  (Let "$v5" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "firstIndex")) (Val #(W64 1))))
-  (Let "$v6" (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "logger"))
-  (App (Val (GoInstruction (CompositeLiteral raftLog.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"storage")) (ElementExpression Storage.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"unstable")) (ElementExpression unstable.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"maxApplyingEntsSize")) (ElementExpression entryEncodingSize.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"committed")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"applying")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"applied")) (ElementExpression go.uint64 (Var "$v5"))), (KeyedElement (some (KeyField go!"logger")) (ElementExpression Logger.ty (Var "$v6")))])))))))))))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "logger"))
+  (App (Val (GoInstruction (CompositeLiteral controlflowLog.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"maxApplyingEntsSize")) (ElementExpression entryEncodingSize.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"committed")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"applying")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"applied")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"logger")) (ElementExpression Logger.ty (Var "$v4")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral raftLog.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"storage")) (ElementExpression Storage.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"unstable")) (ElementExpression unstable.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"controlflowLog")) (ElementExpression controlflowLog.ty (Var "$v2")))])))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
@@ -761,7 +767,7 @@ noncomputable def newLogWithSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "firstIndex") (Var "$r0")))))))))))))))))))
 
-/-- go: log.go:102:19 -/
+/-- go: log.go:109:19 -/
 noncomputable def raftLog.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -769,9 +775,9 @@ noncomputable def raftLog.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raftLog.ty)))) (Var "l"))
   (App (Val doReturn)
   (Let "$a0" (Val #(go!"committed=%d, applied=%d, applying=%d, unstable.offset=%d, unstable.offsetInProgress=%d, len(unstable.Entries)=%d"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
-  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applying"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applying"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef unstable.ty go!"offset"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef unstable.ty go!"offsetInProgress"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (Let "$sl5" (App (Val (GoInstruction (Convert go.int go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef unstable.ty go!"entries"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
@@ -782,7 +788,7 @@ noncomputable def raftLog.String.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- maybeAppend returns (0, false) if the entries cannot be appended. Otherwise,
     it returns (last index of new entries, true).
 
-    go: log.go:109:19 -/
+    go: log.go:116:19 -/
 noncomputable def raftLog.maybeAppend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "a"
@@ -814,13 +820,13 @@ noncomputable def raftLog.maybeAppend.impl [FfiSyntax] [GoGlobalContext] : val :
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (Val #(W64 0))))))
   (App (Val doExecute)
   (Val #()))
-  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"entry %d conflict with committed entry [committed(%d)]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a")))) (Val #(W64 1))))
   (Let "offset" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -837,7 +843,7 @@ noncomputable def raftLog.maybeAppend.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$sl1" (App (Val (GoInstruction (Convert go.int (go.GoType.InterfaceType [])))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -853,7 +859,7 @@ noncomputable def raftLog.maybeAppend.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: log.go:133:19 -/
+/-- go: log.go:140:19 -/
 noncomputable def raftLog.append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "ents"
@@ -871,13 +877,13 @@ noncomputable def raftLog.append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #())) (Val #(W64 1))))
   (Let "after" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "after")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "after")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"after(%d) is out of range [committed(%d)]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "after")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -900,7 +906,7 @@ noncomputable def raftLog.append.impl [FfiSyntax] [GoGlobalContext] : val :=
     a different term.
     The index of the given entries MUST be continuously increasing.
 
-    go: log.go:154:19 -/
+    go: log.go:161:19 -/
 noncomputable def raftLog.findConflict.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "ents"
@@ -938,7 +944,7 @@ noncomputable def raftLog.findConflict.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"zeroTermOnOutOfBounds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0")) (Var "$a1"))))))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "id"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
@@ -962,7 +968,7 @@ noncomputable def raftLog.findConflict.impl [FfiSyntax] [GoGlobalContext] : val 
     an unsuccessful append to a follower, and ultimately restore the steady flow
     of appends.
 
-    go: log.go:182:19 -/
+    go: log.go:189:19 -/
 noncomputable def raftLog.findConflictByTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "index"
@@ -1005,7 +1011,7 @@ noncomputable def raftLog.findConflictByTerm.impl [FfiSyntax] [GoGlobalContext] 
 /-- nextUnstableEnts returns all entries that are available to be written to the
     local stable log and are not already in-progress.
 
-    go: log.go:198:19 -/
+    go: log.go:205:19 -/
 noncomputable def raftLog.nextUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1017,7 +1023,7 @@ noncomputable def raftLog.nextUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : 
 /-- hasNextUnstableEnts returns if there are any entries that are available to be
     written to the local stable log and are not already in-progress.
 
-    go: log.go:204:19 -/
+    go: log.go:211:19 -/
 noncomputable def raftLog.hasNextUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1031,7 +1037,7 @@ noncomputable def raftLog.hasNextUnstableEnts.impl [FfiSyntax] [GoGlobalContext]
     available to be written to the local stable log or in the process of being
     written to the local stable log.
 
-    go: log.go:211:19 -/
+    go: log.go:218:19 -/
 noncomputable def raftLog.hasNextOrInProgressUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1047,7 +1053,7 @@ noncomputable def raftLog.hasNextOrInProgressUnstableEnts.impl [FfiSyntax] [GoGl
     entries from the unstable log may be returned; otherwise, only entries known
     to reside locally on stable storage will be returned.
 
-    go: log.go:220:19 -/
+    go: log.go:227:19 -/
 noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "allowUnstable"
@@ -1057,7 +1063,7 @@ noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] :
   (Let "allowUnstable" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "allowUnstable"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applying"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Val #(W64 1))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applying"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Val #(W64 1))))
   (Let "$r1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "allowUnstable"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"maxAppliableIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))) (Val #(W64 1))))
   (Let "hi" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -1065,7 +1071,7 @@ noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))))
   (Let "maxSize" (App (Val (GoInstruction (GoAlloc entryEncodingSize.ty))) (App (Val (GoInstruction (GoZeroVal entryEncodingSize.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1088,7 +1094,7 @@ noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] :
   (Let "$a0" (Val #(go!"unexpected error when getting unapplied entries (%v)"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1098,11 +1104,11 @@ noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] :
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "maxSize")) (Val #(W64 0)))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"applying entry size (%d-%d)=%d not positive"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert entryEncodingSize.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert entryEncodingSize.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert entryEncodingSize.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert entryEncodingSize.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (Let "$sl2" (App (Val (GoInstruction (Convert entryEncodingSize.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "maxSize")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1121,7 +1127,7 @@ noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Val UntypedNil)))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Val UntypedNil)))
   (App (Val doExecute)
@@ -1130,7 +1136,7 @@ noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] :
 /-- hasNextCommittedEnts returns if there is any available entries for execution.
     This is a fast check without heavy raftLog.slice() in nextCommittedEnts().
 
-    go: log.go:248:19 -/
+    go: log.go:255:19 -/
 noncomputable def raftLog.hasNextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "allowUnstable"
@@ -1139,7 +1145,7 @@ noncomputable def raftLog.hasNextCommittedEnts.impl [FfiSyntax] [GoGlobalContext
   (Let "allowUnstable" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "allowUnstable"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applying"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Val #(W64 1))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applying"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Val #(W64 1))))
   (Let "$r1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "allowUnstable"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"maxAppliableIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))) (Val #(W64 1))))
   (Let "hi" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -1157,7 +1163,7 @@ noncomputable def raftLog.hasNextCommittedEnts.impl [FfiSyntax] [GoGlobalContext
   (Val #false))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
   (App (Val doReturn)
   (Val #false))
   (App (Val doExecute)
@@ -1168,14 +1174,14 @@ noncomputable def raftLog.hasNextCommittedEnts.impl [FfiSyntax] [GoGlobalContext
     applied; otherwise, only entries known to reside locally on stable storage
     can be applied.
 
-    go: log.go:267:19 -/
+    go: log.go:274:19 -/
 noncomputable def raftLog.maxAppliableIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "allowUnstable"
   (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raftLog.ty)))) (Var "l"))
   (Let "allowUnstable" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "allowUnstable"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
   (Let "hi" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1195,7 +1201,7 @@ noncomputable def raftLog.maxAppliableIndex.impl [FfiSyntax] [GoGlobalContext] :
 /-- nextUnstableSnapshot returns the snapshot, if present, that is available to
     be applied to the local storage and is not already in-progress.
 
-    go: log.go:277:19 -/
+    go: log.go:284:19 -/
 noncomputable def raftLog.nextUnstableSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1207,7 +1213,7 @@ noncomputable def raftLog.nextUnstableSnapshot.impl [FfiSyntax] [GoGlobalContext
 /-- hasNextUnstableSnapshot returns if there is a snapshot that is available to
     be applied to the local storage and is not already in-progress.
 
-    go: log.go:283:19 -/
+    go: log.go:290:19 -/
 noncomputable def raftLog.hasNextUnstableSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1219,7 +1225,7 @@ noncomputable def raftLog.hasNextUnstableSnapshot.impl [FfiSyntax] [GoGlobalCont
 /-- hasNextOrInProgressSnapshot returns if there is pending snapshot waiting for
     applying or in the process of being applied.
 
-    go: log.go:289:19 -/
+    go: log.go:296:19 -/
 noncomputable def raftLog.hasNextOrInProgressSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1228,7 +1234,7 @@ noncomputable def raftLog.hasNextOrInProgressSnapshot.impl [FfiSyntax] [GoGlobal
   (App (Val doReturn)
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (StructFieldRef unstable.ty go!"snapshot"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Val UntypedNil))))))))))
 
-/-- go: log.go:293:19 -/
+/-- go: log.go:300:19 -/
 noncomputable def raftLog.snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1247,7 +1253,7 @@ noncomputable def raftLog.snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: log.go:300:19 -/
+/-- go: log.go:307:19 -/
 noncomputable def raftLog.firstIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1295,7 +1301,7 @@ noncomputable def raftLog.firstIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:311:19 -/
+/-- go: log.go:318:19 -/
 noncomputable def raftLog.lastIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1343,7 +1349,7 @@ noncomputable def raftLog.lastIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:322:19 -/
+/-- go: log.go:329:19 -/
 noncomputable def raftLog.commitTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "tocommit"
@@ -1353,24 +1359,24 @@ noncomputable def raftLog.commitTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "tocommit")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "tocommit")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "tocommit"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "tocommit")))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"tocommit(%d) is out of range [lastIndex(%d)]. Was the raft log corrupted, truncated, or lost?"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "tocommit")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:332:19 -/
+/-- go: log.go:339:19 -/
 noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1385,36 +1391,36 @@ noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applying"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applying"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
   (App (App (App (Val (GoInstruction (FuncResolve go.max [go.uint64, go.uint64]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoGe entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGe entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size")))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (App (Val (GoInstruction (GoOp GoSub entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size")))))))
+  (App (Val (GoInstruction (GoStore entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoOp GoSub entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size")))))))
   (Let "$r0" (Val #(W64 0))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applying"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applying"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"applied(%d) is out of range [prevApplied(%d), committed(%d)]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
-  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: log.go:347:19 -/
+/-- go: log.go:354:19 -/
 noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1432,26 +1438,26 @@ noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoGe entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "allowUnstable"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoGe entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "allowUnstable"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"maxAppliableIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsPaused"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (App (Val (GoInstruction (GoOp GoPlus entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size"))))))))))
+  (App (Val (GoInstruction (GoStore entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoOp GoPlus entryEncodingSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (Var "size"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applying"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applying"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"applying(%d) is out of range [prevApplying(%d), committed(%d)]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applying"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
-  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applying"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))))))))))
 
-/-- go: log.go:367:19 -/
+/-- go: log.go:374:19 -/
 noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1465,7 +1471,7 @@ noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "id"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType unstable.ty) go!"stableTo"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$a0"))))))))))
 
-/-- go: log.go:369:19 -/
+/-- go: log.go:376:19 -/
 noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1484,7 +1490,7 @@ noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val 
     to be marked as being in-progress, to avoid returning them with future calls
     to Ready().
 
-    go: log.go:375:19 -/
+    go: log.go:382:19 -/
 noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1498,7 +1504,7 @@ noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- lastEntryID returns the ID of the last entry in the log.
 
-    go: log.go:378:19 -/
+    go: log.go:385:19 -/
 noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1528,7 +1534,7 @@ noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1538,7 +1544,7 @@ noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))))
 
-/-- go: log.go:387:19 -/
+/-- go: log.go:394:19 -/
 noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1607,7 +1613,7 @@ noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0"))))))))))))))))))
 
-/-- go: log.go:415:19 -/
+/-- go: log.go:422:19 -/
 noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1633,7 +1639,7 @@ noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- allEntries returns all entries in the log.
 
-    go: log.go:423:19 -/
+    go: log.go:430:19 -/
 noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1678,7 +1684,7 @@ noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
     whichever log has the larger lastIndex is more up-to-date. If the logs are
     the same, the given log is up-to-date.
 
-    go: log.go:442:19 -/
+    go: log.go:449:19 -/
 noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "their"
@@ -1693,7 +1699,7 @@ noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "our") (Var "$r0"))))))))))))
 
-/-- go: log.go:447:19 -/
+/-- go: log.go:454:19 -/
 noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1723,7 +1729,7 @@ noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:455:19 -/
+/-- go: log.go:462:19 -/
 noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "at"
@@ -1733,7 +1739,7 @@ noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #false))))
-  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "at"))) (Val #(W64 0))))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "at"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "at"))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "at"))) (Val #(W64 0))))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "at"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "at"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"matchTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1744,7 +1750,7 @@ noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:466:19 -/
+/-- go: log.go:473:19 -/
 noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "s"
@@ -1761,14 +1767,14 @@ noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "s"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType unstable.ty) go!"restore"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$a0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"log [%s] starts to restore snapshot [index: %d, term: %d]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType raftLog.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "s"))) (Val #()))) (Val #())))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "s"))) (Val #()))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1"))))))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1"))))))))))))
 
 /-- scan visits all log entries in the [lo, hi) range, returning them via the
     given callback. The callback can be invoked multiple times, with consecutive
@@ -1781,7 +1787,7 @@ noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the callback returns an error, scan terminates and returns this error
     immediately. This can be used to stop the scan early ("break" the loop).
 
-    go: log.go:482:19 -/
+    go: log.go:489:19 -/
 noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1849,7 +1855,7 @@ noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- slice returns a slice of log entries from lo through hi-1, inclusive.
 
-    go: log.go:499:19 -/
+    go: log.go:506:19 -/
 noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1936,7 +1942,7 @@ noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lo")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "cut")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
@@ -1986,7 +1992,7 @@ noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- l.firstIndex <= lo <= hi <= l.firstIndex + len(l.entries)
 
-    go: log.go:551:19 -/
+    go: log.go:558:19 -/
 noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -2014,7 +2020,7 @@ noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "fi")))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3")))]))))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2032,11 +2038,11 @@ noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lo")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "hi")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: log.go:567:19 -/
+/-- go: log.go:574:19 -/
 noncomputable def raftLog.zeroTermOnOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "t"
@@ -2054,7 +2060,7 @@ noncomputable def raftLog.zeroTermOnOutOfBounds.impl [FfiSyntax] [GoGlobalContex
   (Let "$a0" (Val #(go!"unexpected error (%v)"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"logger"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrCompacted))) (Val #()))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrUnavailable))) (Val #())))))))
   (App (Val doReturn)
   (Val #(W64 0)))
@@ -4057,8 +4063,8 @@ noncomputable def newRaft.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (Val #(go!","))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Join []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
-  (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
-  (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
+  (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$sl5" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "lastID"))))
   (Let "$sl6" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "lastID"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl4"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl5"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl6")))])))))))))
@@ -4182,7 +4188,7 @@ noncomputable def raft.hardState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
-  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Vote")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Commit")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2")))])))))))))))
 
 /-- send schedules persisting state to a stable storage and AFTER that
@@ -4329,7 +4335,7 @@ noncomputable def raft.maybeSendAppend.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (Val #true))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"SentCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
@@ -4343,7 +4349,7 @@ noncomputable def raft.maybeSendAppend.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "prevIndex")))
   (Let "$v3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "prevTerm")))
   (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
-  (Let "$v5" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$v5" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Index")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2"))), (KeyedElement (some (KeyField go!"LogTerm")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v3"))), (KeyedElement (some (KeyField go!"Entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v4"))), (KeyedElement (some (KeyField go!"Commit")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v5")))])))))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -4451,7 +4457,7 @@ noncomputable def raft.maybeSendSnapshot.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "$a0" (Val #(go!"%x [firstindex: %d, commit: %d] sent snapshot[index: %d, term: %d] to %x [%s]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"firstIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #())))
-  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sindex")))
   (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sterm")))
   (Let "$sl5" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "to")))
@@ -4522,7 +4528,7 @@ noncomputable def raft.sendHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (App (Val (GoInstruction (FuncResolve go.min [go.uint64, go.uint64]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "commit" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4630,7 +4636,7 @@ noncomputable def raft.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (Let "oldApplied" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
@@ -5291,13 +5297,13 @@ noncomputable def raft.hasUnappliedConfChanges.impl [FfiSyntax] [GoGlobalContext
   (Let "$r0" (Val #false)
   (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #(W64 1))))
-  (Let "$r1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #(W64 1))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))) (Val #(W64 1))))
+  (Let "$r1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))) (Val #(W64 1))))
   (Let "hi" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (Let "lo" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad entryEncodingSize.ty))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"maxApplyingEntsSize"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (Let "pageSize" (App (Val (GoInstruction (GoAlloc entryEncodingSize.ty))) (App (Val (GoInstruction (GoZeroVal entryEncodingSize.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5352,7 +5358,7 @@ noncomputable def raft.hasUnappliedConfChanges.impl [FfiSyntax] [GoGlobalContext
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "lo") (Var "$r0")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))))
   (App (Val doReturn)
   (Val #false))
   (App (Val doExecute)
@@ -5945,7 +5951,7 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (App (Val (GoInstruction (FuncResolve releasePendingReadIndexMessages []))) (Val #())) (Var "$a0")))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"CanBumpCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$a0"))) (Val #false))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
@@ -6269,7 +6275,7 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Var "cc")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"pendingConfIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"pendingConfIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))))
   (Let "alreadyPending" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 1)))))
@@ -6308,7 +6314,7 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "alreadyPending"))
   (Let "$r0" (Let "$a0" (Val #(go!"possible unapplied conf change at index %d (applied to %d)"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"pendingConfIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
@@ -6851,14 +6857,14 @@ noncomputable def raft.handleAppendEntries.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "mlastIndex") (Var "$r0")))))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"From"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))))
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgAppResp)) (Val #()))
-  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Index")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2")))]))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")))))
   (App (Val doExecute)
@@ -6921,7 +6927,7 @@ noncomputable def raft.handleSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x [commit: %d] restored snapshot [index: %d, term: %d]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sindex")))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sterm")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3")))]))))))
@@ -6930,13 +6936,13 @@ noncomputable def raft.handleSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"From"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))))
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgAppResp)) (Val #()))
-  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Index")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2")))]))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x [commit: %d] ignored snapshot [index: %d, term: %d]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sindex")))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sterm")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3")))]))))))
@@ -7013,7 +7019,7 @@ noncomputable def raft.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x [commit: %d, lastindex: %d, lastterm: %d] restored snapshot [index: %d, term: %d]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "last"))))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "last"))))
   (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "id"))))
@@ -7065,7 +7071,7 @@ noncomputable def raft.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x [commit: %d, lastindex: %d, lastterm: %d] fast-forwarded commit to snapshot [index: %d, term: %d]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "last"))))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "last"))))
   (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "id"))))
@@ -7150,7 +7156,7 @@ noncomputable def raft.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Warningf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "s"))) (Val #()))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "s"))) (Val #()))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))))
   (App (Val doReturn)
   (Val #false))
   (App (Val doExecute)
@@ -7402,13 +7408,13 @@ noncomputable def raft.loadState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "state"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "state"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "state"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "state"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x state.commit %d is out of range [%d, %d]"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "state"))) (Val #())))
-  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3")))]))))))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))
@@ -7480,7 +7486,7 @@ noncomputable def raft.committedEntryInCurrentTerm.impl [FfiSyntax] [GoGlobalCon
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -7649,12 +7655,12 @@ noncomputable def sendMsgReadIndexResponse.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readOnly.ty) go!"heartbeatCtx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readOnly.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"readOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readOnly.ty) go!"recvAck"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readOnly.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"readOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readOnly.ty) go!"addRequest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readOnly.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"readOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))
   (If (App (Val (GoInstruction (GoOp GoEquals ReadOnlyOption.ty))) (Pair (Var "$sw") (Val ReadOnlyLeaseBased)))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"responseToReadIndexReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7681,7 +7687,7 @@ noncomputable def sendMsgReadIndexResponse.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doReturn)
   (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"committed"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"responseToReadIndexReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9034,7 +9040,7 @@ noncomputable def getBasicStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"softState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef controlflowLog.ty go!"applied"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"controlflowLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad BasicStatus.ty))) (Var "s")))))
@@ -11086,10 +11092,8 @@ class entryEncodingSize.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
 
 attribute [instance] entryEncodingSize.TypeAssumptions.underlying
 
-structure raftLog [FfiSyntax] where
+structure controlflowLog [FfiSyntax] where
   mk ::
-  storage' : Storage
-  unstable' : unstable
   committed' : w64
   applying' : w64
   applied' : w64
@@ -11098,19 +11102,76 @@ structure raftLog [FfiSyntax] where
   applyingEntsSize' : entryEncodingSize
   applyingEntsPaused' : Bool
 
-instance raftLog.zero_val [FfiSyntax] : ZeroVal raftLog :=
-  ⟨raftLog.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+instance controlflowLog.zero_val [FfiSyntax] : ZeroVal controlflowLog :=
+  ⟨controlflowLog.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def raftLog.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"storage" Storage.ty),
-(go.field_decl.FieldDecl go!"unstable" unstable.ty),
-(go.field_decl.FieldDecl go!"committed" go.uint64),
+@[reducible] def controlflowLog.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"committed" go.uint64),
 (go.field_decl.FieldDecl go!"applying" go.uint64),
 (go.field_decl.FieldDecl go!"applied" go.uint64),
 (go.field_decl.FieldDecl go!"logger" Logger.ty),
 (go.field_decl.FieldDecl go!"maxApplyingEntsSize" entryEncodingSize.ty),
 (go.field_decl.FieldDecl go!"applyingEntsSize" entryEncodingSize.ty),
 (go.field_decl.FieldDecl go!"applyingEntsPaused" go.bool)]
+
+@[irreducible] def controlflowLog.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  controlflowLog.fieldsUnsealed
+
+instance equals_unfold_controlflowLog [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold controlflowLog.fields controlflowLog.fieldsUnsealed :=
+  ⟨by unfold controlflowLog.fields; rfl⟩
+
+@[reducible] def controlflowLog.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType controlflowLog.fields)
+
+class controlflowLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying controlflowLog.underlying controlflowLog
+  underlying : go.UnderlyingDirectedEq controlflowLog.ty controlflowLog.underlying
+  get_committed : ∀ (x : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldGet controlflowLog.underlying go!"committed") #x (Val #(x.committed'))
+  set_committed : ∀ (x : controlflowLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet controlflowLog.underlying go!"committed") (PairV #x #y) (Val #(({ x with committed' := y } : controlflowLog)))
+  get_applying : ∀ (x : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldGet controlflowLog.underlying go!"applying") #x (Val #(x.applying'))
+  set_applying : ∀ (x : controlflowLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet controlflowLog.underlying go!"applying") (PairV #x #y) (Val #(({ x with applying' := y } : controlflowLog)))
+  get_applied : ∀ (x : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldGet controlflowLog.underlying go!"applied") #x (Val #(x.applied'))
+  set_applied : ∀ (x : controlflowLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet controlflowLog.underlying go!"applied") (PairV #x #y) (Val #(({ x with applied' := y } : controlflowLog)))
+  get_logger : ∀ (x : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldGet controlflowLog.underlying go!"logger") #x (Val #(x.logger'))
+  set_logger : ∀ (x : controlflowLog) (y : Logger), go.IsGoStepPureDetTagged under (StructFieldSet controlflowLog.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : controlflowLog)))
+  get_maxApplyingEntsSize : ∀ (x : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldGet controlflowLog.underlying go!"maxApplyingEntsSize") #x (Val #(x.maxApplyingEntsSize'))
+  set_maxApplyingEntsSize : ∀ (x : controlflowLog) (y : entryEncodingSize), go.IsGoStepPureDetTagged under (StructFieldSet controlflowLog.underlying go!"maxApplyingEntsSize") (PairV #x #y) (Val #(({ x with maxApplyingEntsSize' := y } : controlflowLog)))
+  get_applyingEntsSize : ∀ (x : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldGet controlflowLog.underlying go!"applyingEntsSize") #x (Val #(x.applyingEntsSize'))
+  set_applyingEntsSize : ∀ (x : controlflowLog) (y : entryEncodingSize), go.IsGoStepPureDetTagged under (StructFieldSet controlflowLog.underlying go!"applyingEntsSize") (PairV #x #y) (Val #(({ x with applyingEntsSize' := y } : controlflowLog)))
+  get_applyingEntsPaused : ∀ (x : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldGet controlflowLog.underlying go!"applyingEntsPaused") #x (Val #(x.applyingEntsPaused'))
+  set_applyingEntsPaused : ∀ (x : controlflowLog) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet controlflowLog.underlying go!"applyingEntsPaused") (PairV #x #y) (Val #(({ x with applyingEntsPaused' := y } : controlflowLog)))
+
+attribute [instance] controlflowLog.TypeAssumptions.type_repr
+  controlflowLog.TypeAssumptions.underlying
+  controlflowLog.TypeAssumptions.get_committed
+  controlflowLog.TypeAssumptions.set_committed
+  controlflowLog.TypeAssumptions.get_applying
+  controlflowLog.TypeAssumptions.set_applying
+  controlflowLog.TypeAssumptions.get_applied
+  controlflowLog.TypeAssumptions.set_applied
+  controlflowLog.TypeAssumptions.get_logger
+  controlflowLog.TypeAssumptions.set_logger
+  controlflowLog.TypeAssumptions.get_maxApplyingEntsSize
+  controlflowLog.TypeAssumptions.set_maxApplyingEntsSize
+  controlflowLog.TypeAssumptions.get_applyingEntsSize
+  controlflowLog.TypeAssumptions.set_applyingEntsSize
+  controlflowLog.TypeAssumptions.get_applyingEntsPaused
+  controlflowLog.TypeAssumptions.set_applyingEntsPaused
+
+structure raftLog [FfiSyntax] where
+  mk ::
+  storage' : Storage
+  unstable' : unstable
+  controlflowLog' : controlflowLog
+
+instance raftLog.zero_val [FfiSyntax] : ZeroVal raftLog :=
+  ⟨raftLog.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def raftLog.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"storage" Storage.ty),
+(go.field_decl.FieldDecl go!"unstable" unstable.ty),
+(go.field_decl.EmbeddedField go!"controlflowLog" controlflowLog.ty)]
 
 @[irreducible] def raftLog.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   raftLog.fieldsUnsealed
@@ -11129,20 +11190,8 @@ class raftLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_storage : ∀ (x : raftLog) (y : Storage), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : raftLog)))
   get_unstable : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"unstable") #x (Val #(x.unstable'))
   set_unstable : ∀ (x : raftLog) (y : unstable), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"unstable") (PairV #x #y) (Val #(({ x with unstable' := y } : raftLog)))
-  get_committed : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"committed") #x (Val #(x.committed'))
-  set_committed : ∀ (x : raftLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"committed") (PairV #x #y) (Val #(({ x with committed' := y } : raftLog)))
-  get_applying : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"applying") #x (Val #(x.applying'))
-  set_applying : ∀ (x : raftLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"applying") (PairV #x #y) (Val #(({ x with applying' := y } : raftLog)))
-  get_applied : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"applied") #x (Val #(x.applied'))
-  set_applied : ∀ (x : raftLog) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"applied") (PairV #x #y) (Val #(({ x with applied' := y } : raftLog)))
-  get_logger : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"logger") #x (Val #(x.logger'))
-  set_logger : ∀ (x : raftLog) (y : Logger), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : raftLog)))
-  get_maxApplyingEntsSize : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"maxApplyingEntsSize") #x (Val #(x.maxApplyingEntsSize'))
-  set_maxApplyingEntsSize : ∀ (x : raftLog) (y : entryEncodingSize), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"maxApplyingEntsSize") (PairV #x #y) (Val #(({ x with maxApplyingEntsSize' := y } : raftLog)))
-  get_applyingEntsSize : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"applyingEntsSize") #x (Val #(x.applyingEntsSize'))
-  set_applyingEntsSize : ∀ (x : raftLog) (y : entryEncodingSize), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"applyingEntsSize") (PairV #x #y) (Val #(({ x with applyingEntsSize' := y } : raftLog)))
-  get_applyingEntsPaused : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"applyingEntsPaused") #x (Val #(x.applyingEntsPaused'))
-  set_applyingEntsPaused : ∀ (x : raftLog) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"applyingEntsPaused") (PairV #x #y) (Val #(({ x with applyingEntsPaused' := y } : raftLog)))
+  get_controlflowLog : ∀ (x : raftLog), go.IsGoStepPureDetTagged under (StructFieldGet raftLog.underlying go!"controlflowLog") #x (Val #(x.controlflowLog'))
+  set_controlflowLog : ∀ (x : raftLog) (y : controlflowLog), go.IsGoStepPureDetTagged under (StructFieldSet raftLog.underlying go!"controlflowLog") (PairV #x #y) (Val #(({ x with controlflowLog' := y } : raftLog)))
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"String" raftLog.String.impl
   ptr_acceptApplying_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"acceptApplying" raftLog.acceptApplying.impl
   ptr_acceptUnstable_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"acceptUnstable" raftLog.acceptUnstable.impl
@@ -11185,20 +11234,8 @@ attribute [instance] raftLog.TypeAssumptions.type_repr
   raftLog.TypeAssumptions.set_storage
   raftLog.TypeAssumptions.get_unstable
   raftLog.TypeAssumptions.set_unstable
-  raftLog.TypeAssumptions.get_committed
-  raftLog.TypeAssumptions.set_committed
-  raftLog.TypeAssumptions.get_applying
-  raftLog.TypeAssumptions.set_applying
-  raftLog.TypeAssumptions.get_applied
-  raftLog.TypeAssumptions.set_applied
-  raftLog.TypeAssumptions.get_logger
-  raftLog.TypeAssumptions.set_logger
-  raftLog.TypeAssumptions.get_maxApplyingEntsSize
-  raftLog.TypeAssumptions.set_maxApplyingEntsSize
-  raftLog.TypeAssumptions.get_applyingEntsSize
-  raftLog.TypeAssumptions.set_applyingEntsSize
-  raftLog.TypeAssumptions.get_applyingEntsPaused
-  raftLog.TypeAssumptions.set_applyingEntsPaused
+  raftLog.TypeAssumptions.get_controlflowLog
+  raftLog.TypeAssumptions.set_controlflowLog
   raftLog.TypeAssumptions.ptr_String_unfold
   raftLog.TypeAssumptions.ptr_acceptApplying_unfold
   raftLog.TypeAssumptions.ptr_acceptUnstable_unfold
@@ -13044,6 +13081,7 @@ attribute [instance] EntryFormatter.TypeAssumptions.underlying
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   raftLog_instance : raftLog.TypeAssumptions
+  controlflowLog_instance : controlflowLog.TypeAssumptions
   unstable_instance : unstable.TypeAssumptions
   Logger_instance : Logger.TypeAssumptions
   DefaultLogger_instance : DefaultLogger.TypeAssumptions
@@ -13169,6 +13207,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
 
 attribute [instance] Assumptions.raftLog_instance
+  Assumptions.controlflowLog_instance
   Assumptions.unstable_instance
   Assumptions.Logger_instance
   Assumptions.DefaultLogger_instance

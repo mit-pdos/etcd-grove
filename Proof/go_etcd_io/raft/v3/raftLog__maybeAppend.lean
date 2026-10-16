@@ -204,7 +204,7 @@ theorem raftLog.maybeAppend.wp_proof
       icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hback⟩
       obtain ⟨Hcm, -⟩ := Hlv
       wp_auto
-      have Hnle : ¬ uint.Z e.Index' ≤ uint.Z lv.committed' := by rw [Hcm]; omega
+      have Hnle : ¬ uint.Z e.Index' ≤ uint.Z lv.controlflowLog'.committed' := by rw [Hcm]; omega
       simp only [Hnle, decide_false]
       ihave Hlog := Hback $$ Hl
       wp_auto

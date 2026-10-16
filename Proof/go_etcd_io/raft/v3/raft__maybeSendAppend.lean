@@ -135,15 +135,15 @@ local macro "msa_send" : tactic => `(tactic| (
       LogTerm' := «$v3_ptr», Index' := «$v2_ptr», Entries' := sl_e, Commit' := «$v5_ptr»,
       Vote' := null, Snapshot' := null, Reject' := null, RejectHint' := null,
       Context' := slice.nil, Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
-    els ⟨⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩, es_e, none, [], []⟩
+    els ⟨⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.controlflowLog'.committed', 0, false, 0⟩, es_e, none, [], []⟩
     ⊤ rfl $$ [«$a0» Hnilr] with Hm
   · iframe «$a0» cTy cTo cIx cLt cCo Hsl Hbig Hnilb Hnilr
     simp only [snapOpt]
     msg_nulls
     try itrivial
   wp_apply wp_raft_send c r id s «$a0_ptr»
-      ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
-      [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
+      ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.controlflowLog'.committed', 0, false, 0⟩ es_e none [] []
+      [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.controlflowLog'.committed' (W64 0) es_e]
       (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) $$ [Hphys Hm] as Hphys
   · iframe
@@ -171,9 +171,9 @@ local macro "msa_send" : tactic => `(tactic| (
   · iframe
   ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok2 Hl).sentCommit _)
   iapply HΦ $$ %true
-    %([Msg.mk MsgType.app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0)
+    %([Msg.mk MsgType.app id to s.term false (p.next - W64 1) pterm lvc.controlflowLog'.committed' (W64 0)
         es_e] : List Msg)
-    %(<[to := progressSentCommit (progressSentEntries p sl_e.len psz) lvc2.committed']>
+    %(<[to := progressSentCommit (progressSentEntries p sl_e.len psz) lvc2.controlflowLog'.committed']>
         (<[to := progressSentEntries p sl_e.len psz]> s.prvals))
   isplitl
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
@@ -187,7 +187,7 @@ local macro "msa_send" : tactic => `(tactic| (
     left
     have Hn1 : p.next - W64 1 + W64 1 = p.next := by word
     refine ⟨rfl, rfl, rfl, Hto, Hterm_at, ?_, Hpkgin, by rw [Hn1]; exact Hpkgpre, ?_⟩
-    · show uint.Z lvc.committed' ≤ uint.Z s.logst.committed
+    · show uint.Z lvc.controlflowLog'.committed' ≤ uint.Z s.logst.committed
       rw [Hlvc.1]; exact Int.le_refl _
     · refine app_payload_from_log s.logst.prev (s.logst.sents ++ s.logst.uents) pterm
         (p.next - W64 1) es_e Hlwf (by simp only [List.length_append]; push_cast; omega)

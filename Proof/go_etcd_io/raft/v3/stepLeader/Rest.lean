@@ -1356,7 +1356,7 @@ theorem wp_stepLeader_appresp
           wp_apply wp_Progress_CanBumpCommit $$ [$Hpa] as Hpa
           ihave Hphys := Hpback $$ %p3 Hpa %(by first | rfl | simp) %(by prok)
           ihave Hphys := ownRaftPhys_ins_id c r id s pvs3 m.From' p3 Hpvs3' $$ Hphys
-          cases Hcb : progressCanBumpCommit p3 lv.committed'
+          cases Hcb : progressCanBumpCommit p3 lv.controlflowLog'.committed'
           · wp_auto
             wp_join_done
             iexists s.logst.committed,

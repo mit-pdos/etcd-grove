@@ -1,0 +1,14 @@
+# etcd-io/raft#292 (controlflowLog embedded in raftLog), pr-verify/raft-292: the functions whose
+# translation the PR changes (every raftLog method reading the moved fields, and their raft
+# callers). Report: notes/pr-verify/raft-292.md.
+roots ^Spec/go_etcd_io/raft/v3/(raft__appliedTo|RawNode__Bootstrap|getBasicStatus|newLogWithSize|newRaft|raft__committedEntryInCurrentTerm|raft__handleAppendEntries|raft__handleSnapshot|raft__hardState|raft__hasUnappliedConfChanges|raft__loadState|raft__maybeSendAppend|raft__maybeSendSnapshot|raft__restore|raft__sendHeartbeat|raftLog__|sendMsgReadIndexResponse|stepLeader)
+axiom DescribeConfChange.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof

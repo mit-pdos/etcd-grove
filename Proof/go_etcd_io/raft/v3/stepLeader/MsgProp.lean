@@ -335,7 +335,7 @@ theorem wp_stepLeader_prop
       wp_apply wp_ConfChange_AsV2 _ _ _ $$ [$Hown] as %v2 ⟨Hown, Hv2⟩
       icases ownCCV2_changes _ _ _ $$ Hv2 with ⟨%chs, HCh, %Hchl, -⟩
       try wp_auto
-      have Happ : lv.applied' = s.logst.applied := Hlv.2
+      have Happ : lv.controlflowLog'.applied' = s.logst.applied := Hlv.2
       wp_if_destruct
       · -- a conf change is pending: refused
         have Hpend : uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
@@ -348,7 +348,7 @@ theorem wp_stepLeader_prop
         ihave Hlog := Hlb $$ Hl
         ihave Hphys := Hback $$ Hlog
         wp_apply wp_slice_literal (V := GoInterface)
-          [interface.mkOk go.uint64 #(lpc (sint.nat n)).2, interface.mkOk go.uint64 #lv2.applied']
+          [interface.mkOk go.uint64 #(lpc (sint.nat n)).2, interface.mkOk go.uint64 #lv2.controlflowLog'.applied']
         isplitr
         · ipureintro; rfl
         iintro %sla Hargs0
@@ -536,7 +536,7 @@ theorem wp_stepLeader_prop
       -- `wantsLeaveJoint := len(cc.AsV2().Changes) == 0`: `AsV2` is the change itself
       wp_apply wp_ConfChangeV2_AsV2
       try wp_auto
-      have Happ : lv.applied' = s.logst.applied := Hlv.2
+      have Happ : lv.controlflowLog'.applied' = s.logst.applied := Hlv.2
       wp_if_destruct
       · -- a conf change is pending: refused
         have Hpend : uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
@@ -549,7 +549,7 @@ theorem wp_stepLeader_prop
         ihave Hlog := Hlb $$ Hl
         ihave Hphys := Hback $$ Hlog
         wp_apply wp_slice_literal (V := GoInterface)
-          [interface.mkOk go.uint64 #(lpc (sint.nat n)).2, interface.mkOk go.uint64 #lv2.applied']
+          [interface.mkOk go.uint64 #(lpc (sint.nat n)).2, interface.mkOk go.uint64 #lv2.controlflowLog'.applied']
         isplitr
         · ipureintro; rfl
         iintro %sla Hargs0

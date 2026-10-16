@@ -43,7 +43,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
   icases ownRaftLog_nowrap l _ $$ Hlog with ⟨%Hnw, Hlog⟩
   iNamed Hlog
   wp_auto
-  cases Hpz : lv.applyingEntsPaused'
+  cases Hpz : lv.controlflowLog'.applyingEntsPaused'
   case true =>
     -- paused: nothing
     wp_auto

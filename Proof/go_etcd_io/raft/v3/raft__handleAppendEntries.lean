@@ -136,7 +136,7 @@ theorem raft.handleAppendEntries.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     imod cellRO_alloc $$ «$v2» with #cIx
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
+    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.controlflowLog'.committed', 0, 0, false, 0⟩ ⊤
       $$ [«$a0»] with Hr
     · iframe «$a0» cTy cFr cIx
       isplitr

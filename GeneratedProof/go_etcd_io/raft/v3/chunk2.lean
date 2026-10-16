@@ -162,6 +162,148 @@ instance unstable_access_store_logger (l : Loc) (v : go_etcd_io.raft.v3.unstable
 end def_
 end unstable
 
+namespace controlflowLog
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
+
+instance controlflowLog_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.controlflowLog where
+  typedPointstoDef l v dq := iprop(
+    "committed" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"committed" l) v.committed' dq ∗
+    "applying" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applying" l) v.applying' dq ∗
+    "applied" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applied" l) v.applied' dq ∗
+    "logger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"logger" l) v.logger' dq ∗
+    "maxApplyingEntsSize" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq ∗
+    "applyingEntsSize" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsSize" l) v.applyingEntsSize' dq ∗
+    "applyingEntsPaused" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance controlflowLog_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.controlflowLog go_etcd_io.raft.v3.controlflowLog.underlying := by
+  solve_into_val_typed_struct
+
+instance controlflowLog_access_load_committed (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"committed" l) v.committed' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"committed" l) v.committed' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_store_committed (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (committed' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"committed" l) v.committed' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"committed" l) committed' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with committed' := committed' } : go_etcd_io.raft.v3.controlflowLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_load_applying (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applying" l) v.applying' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applying" l) v.applying' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_store_applying (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (applying' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applying" l) v.applying' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applying" l) applying' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applying' := applying' } : go_etcd_io.raft.v3.controlflowLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_load_applied (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applied" l) v.applied' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applied" l) v.applied' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_store_applied (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (applied' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applied" l) v.applied' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applied" l) applied' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := applied' } : go_etcd_io.raft.v3.controlflowLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_load_logger (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"logger" l) v.logger' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"logger" l) v.logger' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_store_logger (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (logger' : go_etcd_io.raft.v3.Logger) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"logger" l) v.logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"logger" l) logger' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := logger' } : go_etcd_io.raft.v3.controlflowLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_load_maxApplyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_store_maxApplyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (maxApplyingEntsSize' : go_etcd_io.raft.v3.entryEncodingSize) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"maxApplyingEntsSize" l) maxApplyingEntsSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxApplyingEntsSize' := maxApplyingEntsSize' } : go_etcd_io.raft.v3.controlflowLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_load_applyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsSize" l) v.applyingEntsSize' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsSize" l) v.applyingEntsSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_store_applyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (applyingEntsSize' : go_etcd_io.raft.v3.entryEncodingSize) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsSize" l) v.applyingEntsSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsSize" l) applyingEntsSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyingEntsSize' := applyingEntsSize' } : go_etcd_io.raft.v3.controlflowLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_load_applyingEntsPaused (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance controlflowLog_access_store_applyingEntsPaused (l : Loc) (v : go_etcd_io.raft.v3.controlflowLog) (applyingEntsPaused' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsPaused" l) v.applyingEntsPaused' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.controlflowLog go!"applyingEntsPaused" l) applyingEntsPaused' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyingEntsPaused' := applyingEntsPaused' } : go_etcd_io.raft.v3.controlflowLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end controlflowLog
+
 namespace SoftState
 section def_
 
@@ -1222,188 +1364,6 @@ instance readOnly_access_store_confirmedReads (l : Loc) (v : go_etcd_io.raft.v3.
 
 end def_
 end readOnly
-
-namespace MemoryStorage
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
-
-instance MemoryStorage_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.MemoryStorage where
-  typedPointstoDef l v dq := iprop(
-    "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' dq ∗
-    "hardState" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' dq ∗
-    "snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' dq ∗
-    "ents" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' dq ∗
-    "callStats" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance MemoryStorage_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.MemoryStorage go_etcd_io.raft.v3.MemoryStorage.underlying := by
-  solve_into_val_typed_struct
-
-instance MemoryStorage_access_load_Mutex (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_store_Mutex (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (Mutex' : sync.Mutex) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) Mutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_load_hardState (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_store_hardState (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (hardState' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) hardState' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hardState' := hardState' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_load_snapshot (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_store_snapshot (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (snapshot' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) snapshot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshot' := snapshot' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_load_ents (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_store_ents (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (ents' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) ents' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ents' := ents' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_load_callStats (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance MemoryStorage_access_store_callStats (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (callStats' : go_etcd_io.raft.v3.inMemStorageCallStats) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) callStats' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callStats' := callStats' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end MemoryStorage
-
-namespace logSlice
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
-
-instance logSlice_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.logSlice where
-  typedPointstoDef l v dq := iprop(
-    "term" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq ∗
-    "prev" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq ∗
-    "entries" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance logSlice_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.logSlice go_etcd_io.raft.v3.logSlice.underlying := by
-  solve_into_val_typed_struct
-
-instance logSlice_access_load_term (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_store_term (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (term' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) term' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with term' := term' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_load_prev (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_store_prev (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (prev' : go_etcd_io.raft.v3.entryID) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) prev' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prev' := prev' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_load_entries (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_store_entries (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (entries' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) entries' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with entries' := entries' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end logSlice
 
 end go_etcd_io.raft.v3
 end

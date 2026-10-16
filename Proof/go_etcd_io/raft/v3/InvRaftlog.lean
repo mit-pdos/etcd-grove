@@ -510,12 +510,12 @@ ls.unpersisted`, with the storage as `∃ sprev stored ss` and the facts on `lv`
 def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   iprop(∃ (lv : raftLog) (σ : StorState),
   "Hl" ∷ l ↦ lv ∗
-  "%Hcm" ∷ ⌜lv.committed' = ls.committed⌝ ∗
-  "%Hap" ∷ ⌜lv.applied' = ls.applied⌝ ∗
-  "%Hapg" ∷ ⌜lv.applying' = ls.applying⌝ ∗
+  "%Hcm" ∷ ⌜lv.controlflowLog'.committed' = ls.committed⌝ ∗
+  "%Hap" ∷ ⌜lv.controlflowLog'.applied' = ls.applied⌝ ∗
+  "%Hapg" ∷ ⌜lv.controlflowLog'.applying' = ls.applying⌝ ∗
   "%Hip" ∷ ⌜lv.unstable'.offsetInProgress' = ls.inprogress⌝ ∗
-  "%Hasz" ∷ ⌜lv.applyingEntsSize' = ls.apsize⌝ ∗
-  "%Hamx" ∷ ⌜lv.maxApplyingEntsSize' = ls.apmax⌝ ∗
+  "%Hasz" ∷ ⌜lv.controlflowLog'.applyingEntsSize' = ls.apsize⌝ ∗
+  "%Hamx" ∷ ⌜lv.controlflowLog'.maxApplyingEntsSize' = ls.apmax⌝ ∗
   "%Hidx" ∷ ⌜LogIndicesOk ls.prev (ls.sents ++ ls.uents)⌝ ∗
   "%Hnowrap" ∷ ⌜uint.Z ls.prev.index' + (ls.sents.length : Int)
                   + (ls.uents.length : Int) + 1 < 2^64⌝ ∗
@@ -538,7 +538,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
                     ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
                       + (ls.uents.length : Int)⌝ ∗
   "%Hssnap" ∷ ⌜ls.snap = none → StoredSnapOk σ ls.committed ls.prev (ls.sents ++ ls.uents)⌝ ∗
-  "#Hl_logger" ∷ isLoggerVal lv.logger' ∗
+  "#Hl_logger" ∷ isLoggerVal lv.controlflowLog'.logger' ∗
   "#Hu_logger" ∷ isLoggerVal lv.unstable'.logger' ∗
   -- what `Ready`/`Advance` need (2026-10-05): `offsetInProgress` lies between `offset`
   -- and the end of the log (`nextEntries` slices at it); the persistence invariant
@@ -553,7 +553,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
                     ls.stored⌝ ∗
   "%Happlying" ∷ ⌜uint.Z ls.applied ≤ uint.Z ls.applying ∧
                    uint.Z ls.applying ≤ uint.Z ls.committed⌝ ∗
-  "%Hpaused" ∷ ⌜lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
+  "%Hpaused" ∷ ⌜lv.controlflowLog'.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
   -- the storage, as the state names it, and its pending batch (2026-10-10)
   "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
   "%Hpend" ∷ ⌜PendLogOk σ ls⌝)
@@ -573,8 +573,8 @@ three.) -/
 theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState)
     (snap : Option entryID) (uents : List EntryM) (ls : LogState) {K : List SnapTrip} :
     lv.storage' = st →
-    lv.committed' = ls.committed →
-    lv.applied' = ls.applied →
+    lv.controlflowLog'.committed' = ls.committed →
+    lv.controlflowLog'.applied' = ls.applied →
     LogIndicesOk ls.prev (ls.sents ++ ls.uents) →
     uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2^64 →
     LogStoreOk ls.snap σ ls.prev ls.sents ls.uents →
@@ -584,7 +584,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     uint.Z ls.committed ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
       + (ls.uents.length : Int) →
     (ls.snap = none → StoredSnapOk σ ls.committed ls.prev (ls.sents ++ ls.uents)) →
-    lv.applying' = ls.applying →
+    lv.controlflowLog'.applying' = ls.applying →
     lv.unstable'.offsetInProgress' = ls.inprogress →
     uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧
       uint.Z ls.inprogress ≤ uint.Z lv.unstable'.offset' + (ls.uents.length : Int) →
@@ -592,9 +592,9 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       LogPersistOk σ ls.sents ls.uents
         (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted ls.stored) →
     uint.Z ls.applied ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed →
-    (lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax) →
-    lv.applyingEntsSize' = ls.apsize →
-    lv.maxApplyingEntsSize' = ls.apmax →
+    (lv.controlflowLog'.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax) →
+    lv.controlflowLog'.applyingEntsSize' = ls.apsize →
+    lv.controlflowLog'.maxApplyingEntsSize' = ls.apmax →
     lv.storage' = ls.storage →
     PendLogOk σ ls →
     (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn) →
@@ -608,7 +608,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       pendKsn lv.unstable'.snapshot' snap K -∗
       entsRO lv.unstable'.entries' uents -∗
       ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
-      isLoggerVal lv.logger' -∗
+      isLoggerVal lv.controlflowLog'.logger' -∗
       isLoggerVal lv.unstable'.logger' -∗
       ownRaftLog l ls := by
   intro Hst Hcm Hap Hidx Hnowrap Hstore Hoffset Happlied Hpapplied
@@ -628,7 +628,7 @@ they are. -/
 theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
     ⊢ ownRaftLog (GF := GF) l ls -∗
       ∃ lv : raftLog, l ↦ lv ∗
-            ⌜lv.committed' = ls.committed ∧ lv.applied' = ls.applied⌝ ∗
+            ⌜lv.controlflowLog'.committed' = ls.committed ∧ lv.controlflowLog'.applied' = ls.applied⌝ ∗
             (l ↦ lv -∗ ownRaftLog l ls) := by
   iintro H
   iNamed H
@@ -1060,7 +1060,7 @@ theorem ownRaftLog_setCommitted (l : Loc) (ls : LogState) (n : w64)
     ⊢ ownRaftLog (GF := GF) l ls -∗
       (ownRaftLog l { ls with committed := n } -∗ Φ #()) -∗
       WP (App (Val (GoInstruction (GoStore go.uint64)))
-            (Val (PairV #(l.[raftLog, go!"committed"]) #n))) {{ Φ }} := by
+            (Val (PairV #((l.[raftLog, go!"controlflowLog"]).[controlflowLog, go!"committed"]) #n))) {{ Φ }} := by
   iintro Hlog HΦ
   iNamed Hlog
   wp_auto
