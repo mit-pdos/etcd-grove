@@ -418,6 +418,10 @@ instance ccsRO_persistent (p : Loc) (c : ConfChangeSingleM) :
     Persistent (ccsRO (GF := GF) p c) := by
   unfold ccsRO ccsPts; infer_instance
 
+instance ownCCV1_persistent (p : Loc) (m : CCV1M) :
+    Persistent (ownCCV1 (GF := GF) p DFrac.discard m) := by
+  unfold ownCCV1; infer_instance
+
 theorem cellRO_agree {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v1 v2 : V) :
     cellRO (GF := GF) p v1 ∗ cellRO p v2 ⊢ ⌜v1 = v2⌝ := by
   iintro ⟨#H1, #H2⟩
@@ -557,6 +561,39 @@ theorem csPts_of_struct (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : C
   · ipureintro; exact Hnn
   iframe
   iframe cA Hpb
+  ipureintro; intro h; simpa using h
+
+/-- `csPts_of_struct` at read-only slices, the conf state frozen read-only for good: a conf state
+built once from shared lists (the register's `InitialState` returns `&pb.ConfState{Voters:
+s.voters}`, the voters slice shared by a cluster's storages). `al` as there. (2026-10-16, from the
+register's `Lemmas.lean`.) -/
+theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) :
+    (p ↦ v ∗ v.Voters' ↦*□ c.Voters' ∗ v.Learners' ↦*□ c.Learners' ∗
+      v.VotersOutgoing' ↦*□ c.VotersOutgoing' ∗ v.LearnersNext' ↦*□ c.LearnersNext' ∗
+      cellRO v.AutoLeave' c.AutoLeave' : IProp GF) ⊢
+      |={E}=> csPts p DFrac.discard c (decide (v.AutoLeave' ≠ null)) := by
+  iintro ⟨Hp, #Hv, #Hl, #Ho, #Hn, #cA⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, Voters, Learners, VotersOutgoing, LearnersNext, AutoLeave, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.ConfState p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Voters with #Voters
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Learners with #Learners
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ VotersOutgoing with #VotersOutgoing
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ LearnersNext with #LearnersNext
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ AutoLeave with #AutoLeave
+  imodintro
+  iunfold csPts
+  iexists v.Voters', v.Learners', v.VotersOutgoing', v.LearnersNext', v.AutoLeave'
+  isplitr
+  · ipureintro; exact Hnn
+  iframe Voters Hv Learners Hl VotersOutgoing Ho LearnersNext Hn AutoLeave cA Hpb
   ipureintro; intro h; simpa using h
 
 theorem csPts_nn (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
@@ -731,6 +768,24 @@ theorem ownCCV1_of_struct (p : Loc) (v : raftpb.ConfChange) (m : CCV1M) (E : CoP
   · ipureintro; exact Hnn
   iframe
   iframe cT cN cI Hcs Hpb
+
+/-- A `*pb.ConfChange` frozen read-only for good (what the register's `run` sends on `confc`
+through `node.ApplyConfChange`: raft reads it on its own goroutine). (2026-10-16, from the
+register's `Lemmas.lean`.) -/
+theorem ownCCV1_persist (p : Loc) (dq : DFrac) (m : CCV1M) :
+    ownCCV1 (GF := GF) p dq m ⊢ |==> ownCCV1 p DFrac.discard m := by
+  iintro H
+  iNamed H
+  imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
+  imod (typedPointsto_dfractional (GF := GF) _ pn).dfractional_persist _ $$ HN with #HN
+  imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
+  imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HC with #HC
+  imodintro
+  iunfold ownCCV1
+  iexists pt, pn, pi, cs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HT cT HN cN HI cI HC Hcs Hpb
 
 /-! ### Splitting a fraction -/
 

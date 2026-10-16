@@ -6,8 +6,16 @@ The message predicates of the raft layer (raft v3.7 retarget, stage R4: `notes/d
 * a message built by raft (`&pb.Message{...}`) is owned (`msgPtsC_of_struct`, `msgOwn_of_struct`);
 * a message `Step` receives, `msgIn`, becomes an owned message (`msgIn_to_msgOwn`: its capacity
   dropped, its `Entries` elements frozen), e.g. to be forwarded (`stepFollower`);
-* an owned message is frozen read-only for good (`msgOwn_persist`; `msgOwn l □ st` is
-  persistent): a stored read-index request (`readOnly`'s, `pendingReadIndexMessages`);
+* an owned message is frozen read-only for good (`msgOwn_persist`, at any fraction, a basic
+  update; `msgOwn_persist_fupd` the same under a fancy update, for a client's invariant;
+  `msgOwn l □ st` is persistent): a stored read-index request (`readOnly`'s,
+  `pendingReadIndexMessages`), a `Ready`'s messages at the application, which forwards them
+  read-only (the register's `deliver`, the server's transport);
+* a message's `Entries` elements frozen with its capacity kept (`msgPtsC_persist_els`), its
+  `Entries`/`Context` fields read in place (`msgPtsC_fields_acc`), its `Entries` slice replaced
+  (`msgPtsC_store_Entries`: a client's copy of the slice), an entry slice taken apart
+  (`entsPts_elim`) -- what an application does with the messages (2026-10-16, stage R7a, from
+  the register's `Lemmas.lean`);
 * the field stores raft makes into a message it owns: `From` and `Term` (`send`), `To`
   (`stepFollower`), each a fresh cell (`msgPtsC_store_From`, `_Term`, `_To`). The `Entries`
   slots `stepLeader` replaces go through `GetEntries`' spec (its wand takes any entries back).
@@ -158,6 +166,101 @@ theorem msgOwn_persist (l : Loc) (dq : DFrac) (ms : MsgSt) :
   iframe HTy cTy HTo cTo HFr cFr HTe cTe HLt cLt HIx cIx HCo cCo HVo cVo HRj cRj HRh cRh
     HEs Hes Hents HSn Hsn HCx Hcs HRs Hrs Hpb
   simp only [named, Bool.false_eq_true, ↓reduceIte]; iempintro
+
+/-- `msgOwn_persist` under a fancy update at any mask: the form a client's invariant takes it in
+(a `Ready` hands its messages out at a fraction, `readyDq`; the application forwards them
+read-only and persistent). -/
+theorem msgOwn_persist_fupd (l : Loc) (dq : DFrac) (ms : MsgSt) (E : CoPset) :
+    msgOwn (GF := GF) l dq ms ⊢ |={E}=> msgOwn l DFrac.discard ms := by
+  iintro H
+  imod msgOwn_persist l dq ms $$ H with #H
+  imodintro
+  iexact H
+
+/-- A message's `Entries` elements frozen, its capacity kept (`msgPtsC_to_msgOwn` drops it): a
+received message's entries, read-only for `node.Step` (the register's `netP`, `msgIn ml □`). -/
+theorem msgPtsC_persist_els (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢ |==> msgPtsC l dq DFrac.discard cap ms := by
+  iintro H
+  iNamed H
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hes with #Hes
+  imodintro
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs Hpb
+
+/-- An owned message's `Entries` field, to replace its slice (the register's `deliver` copies it,
+`m.Entries = append([]*pb.Entry(nil), m.Entries...)`): the field, the slice's elements (the
+pointers `els` of the entries `ms.ents`), and the message back once a fresh slice holding the
+same pointers, with its capacity, is stored, at the new slice's fraction. -/
+theorem msgPtsC_store_Entries (l : Loc) (dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l (DFrac.own 1) dqe cap ms ⊢
+      ∃ (es : GoSlice) (els : List Loc),
+        l.[raftpb.Message, go!"Entries"] ↦ es ∗ es ↦*{dqe} els ∗
+        ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
+        (∀ (es' : GoSlice) (dqe' : DFrac),
+          l.[raftpb.Message, go!"Entries"] ↦ es' -∗ es' ↦*{dqe'} els -∗
+          ownSliceCap Loc es' (DFrac.own 1) -∗
+          msgPtsC l (DFrac.own 1) dqe' true ms) := by
+  iintro H
+  iNamed H
+  iclear Hes_cap
+  iexists es, els
+  iframe HEs Hes Hents
+  iintro %es' %dqe' HEs Hes Hcap
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es', els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  simp only [named, ↓reduceIte]
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- A message's `Entries` and `Context` fields, read in place (the register's `deliverable`,
+`m.Entries != nil`, `m.Context == nil`): a `nil` slice holds no entries, no bytes. -/
+theorem msgPtsC_fields_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢
+      ∃ (es cs : GoSlice),
+        l.[raftpb.Message, go!"Entries"] ↦{dq} es ∗ l.[raftpb.Message, go!"Context"] ↦{dq} cs ∗
+        ⌜(es = slice.nil → ms.ents = []) ∧ (cs = slice.nil → ms.ctx = [])⌝ ∗
+        (l.[raftpb.Message, go!"Entries"] ↦{dq} es -∗ l.[raftpb.Message, go!"Context"] ↦{dq} cs -∗
+          msgPtsC l dq dqe cap ms) := by
+  iintro H
+  iNamed H
+  ihave %Hel : ⌜els.length = sint.nat es.len ∧ 0 ≤ sint.Z es.len⌝ $$ [Hes]
+  · iapply ownSlice_len $$ Hes
+  ihave %Hbl := entsBig_length $$ Hents
+  ihave %Hcl := ownSlice_len $$ Hcs
+  iexists es, cs
+  iframe HEs HCx
+  isplitr
+  · ipureintro
+    refine ⟨fun h => ?_, fun h => ?_⟩
+    · subst h
+      apply List.eq_nil_of_length_eq_zero
+      rw [← Hbl, Hel.1]; rfl
+    · subst h
+      apply List.eq_nil_of_length_eq_zero
+      rw [Hcl.1]; rfl
+  iintro HEs HCx
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- An entry slice, taken apart (`entsPts` is a definition: `icases` does not see its
+existential). -/
+theorem entsPts_elim (s : GoSlice) (dq : DFrac) (es : List EntryM) :
+    entsPts (GF := GF) s dq es ⊢
+      ∃ ls : List Loc, s ↦*{dq} ls ∗ [∗list] l;e ∈ ls;es, entRO l e := by
+  iintro H
+  iunfold entsPts at H
+  iexact H
 
 /-- A freshly allocated `*pb.Message` (`&pb.Message{...}`, its hidden fields zero), its pointer
 fields set to cells holding `ms.msg`'s scalars, its `Entries` to a slice of read-only entries

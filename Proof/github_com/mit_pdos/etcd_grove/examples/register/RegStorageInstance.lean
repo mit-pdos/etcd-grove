@@ -19,6 +19,15 @@ Raft v3.7: the contract's `Entries` hands out read-only entry pointers (`entsRO`
 returns two fresh pointers, the hard state `hsOpt hp ⟨0, 0, 0⟩` and the conf state of the voters
 frozen read-only (`csPts cs □ (regConfState voters) false`: its `AutoLeave` is `nil`, which
 `RestartNode.spec` admits since stage R6b, `al`).
+
+Raft's own instance for a bare `*MemoryStorage` (`memStorageModel`, `memStorage_isStorage`,
+`Proof/go_etcd_io/raft/v3/MemstorageInstance.lean`, 2026-10-16, stage R7a: a registry from the
+storage's pointer to its names, the snapshot premise `ss.index ≠ 0` in `ownStorage`) does not
+serve the register: its `Storage` is its own struct (another interface value, the promoted
+methods behind a field read), its registry is keyed by that struct (its `MemoryStorage` field
+holds the registration's exclusivity), and its `Snapshot` override is what lets it start with no
+snapshot. Everything here is register-specific; the method clauses are proved as raft's are
+(`is_Storage_MemoryStorage`), one `wp_apply` of `MemoryStorage`'s collection each.
 -/
 module
 
