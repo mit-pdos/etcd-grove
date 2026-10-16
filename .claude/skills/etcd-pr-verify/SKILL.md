@@ -94,8 +94,14 @@ the verified ones).
 
 ### 4. Translate
 
-In the worktree of this repository (seed its `.lake/` from the main checkout's `build` and
-`packages`, as `notes/parallel-work.md` says, so builds are incremental):
+In the worktree of this repository, build through Lake's local artifact cache, which every
+worktree shares (content-addressed, per toolchain), so that only what the PR changes is rebuilt:
+run every `lake` (and the scripts that call it) with `LAKE_ARTIFACT_CACHE=true
+LAKE_RESTORE_ARTIFACTS=true` (the second copies artifacts into `.lake/build`, where
+`etc/tcb-report.py` and `etc/verified-code.py` look). Symlink the worktree's `.lake/packages` to the
+main checkout's (do not change the dependencies). The cache is filled by a build of `lean` with the
+same variables in the main checkout; if it is empty, run that first. When done, delete the worktree's
+`.lake/build` (the cache keeps the artifacts). Then:
 
 - if a changed or new function is in a package translated names-only, or excluded by its `.toml`, add
   it to the `.toml`'s `translate` list (the minimum: the function and what its body needs);
