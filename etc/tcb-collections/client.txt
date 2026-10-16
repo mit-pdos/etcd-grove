@@ -24,6 +24,7 @@ axiom backend.rtxStats
 axiom backend.txLive
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
+axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
@@ -59,6 +60,7 @@ axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom strconv.FormatBool.wp_proof
+axiom streamKeyFromCtx.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
@@ -71,9 +73,11 @@ axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
