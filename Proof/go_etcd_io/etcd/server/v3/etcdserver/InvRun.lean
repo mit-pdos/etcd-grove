@@ -299,8 +299,8 @@ def rnSnapOnce (ms : Loc) (ai₀ at₀ : w64) : IProp GF :=
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
       ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
       ownSnapM sn DFrac.discard sv -∗
-      sn.[raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
-      pm.[raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
+      sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
+      pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
