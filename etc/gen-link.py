@@ -505,6 +505,10 @@ variable [package_sem : {assumptions}]
         # ... or, stated over any raft storage model, that (the register's transport)
         if "[RegStor GF]" not in src and "[StorageModel GF]" in src:
             allg += " [StorageModel GF]"
+        # ... or over the `MemoryStorage` registry (the server's `NewServer`, 2026-10-16: its raft
+        # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)
+        elif "[MemStorReg GF]" in src:
+            allg += " [MemStorReg GF]"
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 

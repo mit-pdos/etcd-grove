@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChang
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LinearizableReadNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
@@ -69,6 +70,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInte
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
@@ -88,6 +90,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersB
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Swap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.NewNotifier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
@@ -105,6 +108,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetCompare
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetFailure
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetSuccess
 public import Proof.github_com.Masterminds.semver.v3.Version__String
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.addFeatureGateMetrics
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
@@ -127,6 +131,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
@@ -179,9 +184,14 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
+public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetVersionChangedNotifier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__String
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newCorruptionChecker
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
@@ -203,6 +213,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.NewAlarmBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.NewAuthBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
@@ -229,7 +241,10 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlice
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewLeaderStats
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewServerStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
 public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
@@ -248,6 +263,14 @@ public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
+public import Spec.go_etcd_io.etcd.server.v3.auth.NewAuthStore
+public import Spec.go_etcd_io.etcd.server.v3.auth.NewTokenProvider
+public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessor
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddPeer
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddRemote
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.NewAlarmStore
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
@@ -569,9 +592,41 @@ theorem EtcdServer.wp_getTxPostLockInsideApplyHook :
     EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG) :=
   EtcdServer.getTxPostLockInsideApplyHook.wp_proof consistentIndex.wp_ConsistentApplyingIndex consistentIndex.wp_UnsafeConsistentIndex consistentIndex.wp_SetConsistentIndex
 
+theorem schema.wp_NewAlarmBackend :
+    schema.NewAlarmBackend.spec (GF := GF) (hG := hG) :=
+  schema.NewAlarmBackend.wp_proof
+
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
+
+theorem v2stats.wp_NewServerStats :
+    v2stats.NewServerStats.spec (GF := GF) (hG := hG) :=
+  v2stats.NewServerStats.wp_proof
+
+theorem v2stats.wp_NewLeaderStats :
+    v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
+  v2stats.NewLeaderStats.wp_proof
+
+theorem types.URLs.wp_StringSlice :
+    types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
+  types.URLs.StringSlice.wp_proof
+
+theorem idutil.wp_NewGenerator :
+    idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
+  idutil.NewGenerator.wp_proof idutil.wp_lowbit
+
+theorem math.wp_Ceil :
+    math.Ceil.spec (GF := GF) (hG := hG) :=
+  math.Ceil.wp_proof
+
+theorem schema.wp_NewAuthBackend :
+    schema.NewAuthBackend.spec (GF := GF) (hG := hG) :=
+  schema.NewAuthBackend.wp_proof
+
+theorem config.ServerConfig.wp_PeerDialTimeout :
+    config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.PeerDialTimeout.wp_proof
 
 theorem auth.authStore.wp_IsAuthEnabled :
     auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
@@ -668,10 +723,6 @@ theorem heap.wp_Fix :
 theorem heap.wp_Push :
     heap.Push.spec (GF := GF) (hG := hG) :=
   heap.Push.wp_proof
-
-theorem idutil.wp_NewGenerator :
-    idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
-  idutil.NewGenerator.wp_proof idutil.wp_lowbit
 
 theorem lease.LeaseQueue.wp_Len :
     lease.LeaseQueue.Len.spec (GF := GF) (hG := hG) :=
@@ -915,6 +966,10 @@ theorem EtcdServer.wp_LeaderChanged :
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
+
+theorem EtcdServer.wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) :=
+  EtcdServer.NewUberApplier.wp_proof EtcdServer.wp_KV apply.wp_NewUberApplier
 
 theorem EtcdServer.wp_NextRequestID :
     EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) :=
@@ -1196,6 +1251,10 @@ theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
 
+theorem membership.RaftCluster.wp_String :
+    membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.String.wp_proof
+
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=
   newRaftNode.wp_proof
@@ -1203,6 +1262,22 @@ theorem wp_newRaftNode :
 theorem bootstrappedRaft.wp_newRaftNode [StorageModel GF] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
   bootstrappedRaft.newRaftNode.wp_proof wp_StartNode EtcdGrove.wp_newRaftNode
+
+theorem wp_addFeatureGateMetrics :
+    addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=
+  addFeatureGateMetrics.wp_proof
+
+theorem membership.RaftCluster.wp_SetVersionChangedNotifier :
+    membership.RaftCluster.SetVersionChangedNotifier.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.SetVersionChangedNotifier.wp_proof
+
+theorem wp_newCorruptionChecker :
+    newCorruptionChecker.spec (GF := GF) (hG := hG) :=
+  newCorruptionChecker.wp_proof
+
+theorem mvcc.store.wp_HashStorage :
+    mvcc.store.HashStorage.spec (GF := GF) (hG := hG) :=
+  mvcc.store.HashStorage.wp_proof
 
 theorem lease.Lease.wp_persistTo :
     lease.Lease.persistTo.spec (GF := GF) (hG := hG) :=
@@ -1245,6 +1320,34 @@ theorem wait.waitWithResponse.wp_Trigger :
   wait.waitWithResponse.Trigger.wp_proof
 
 end links_hasLC
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable (h_auth_NewAuthStore : auth.NewAuthStore.spec (GF := GF) (hG := hG))
+variable (h_auth_NewTokenProvider : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
+variable (h_lease_NewLessor : lease.NewLessor.spec (GF := GF) (hG := hG))
+variable (h_rafthttp_Transport__AddPeer : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
+variable (h_rafthttp_Transport__AddRemote : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
+variable (h_rafthttp_Transport__Start : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
+variable (h_v3alarm_NewAlarmStore : v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG))
+variable (h_v3compactor_New : v3compactor.New.spec (GF := GF) (hG := hG))
+include h_auth_NewAuthStore h_auth_NewTokenProvider h_lease_NewLessor h_rafthttp_Transport__AddPeer h_rafthttp_Transport__AddRemote h_rafthttp_Transport__Start h_v3alarm_NewAlarmStore h_v3compactor_New
+
+theorem EtcdServer.wp_restoreAlarms :
+    EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) :=
+  EtcdServer.restoreAlarms.wp_proof schema.wp_NewAlarmBackend h_v3alarm_NewAlarmStore
+
+theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] :
+    NewServer.spec (GF := GF) (hG := hG) :=
+  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds math.wp_Ceil h_lease_NewLessor h_auth_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend h_auth_NewAuthStore h_v3compactor_New (EtcdServer.wp_restoreAlarms h_auth_NewAuthStore h_auth_NewTokenProvider h_lease_NewLessor h_rafthttp_Transport__AddPeer h_rafthttp_Transport__AddRemote h_rafthttp_Transport__Start h_v3alarm_NewAlarmStore h_v3compactor_New) EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID h_rafthttp_Transport__Start h_rafthttp_Transport__AddRemote membership.RaftCluster.wp_Members h_rafthttp_Transport__AddPeer mvcc.watchableStore.wp_Close
+
+end links_pending
 
 end EtcdGrove
 end Perennial
