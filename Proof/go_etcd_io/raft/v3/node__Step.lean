@@ -28,7 +28,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A local message from a remote sender is dropped; anything else goes to `step`. (Raft v3.7,
 stage R5: `m` a pointer, not `nil` (`stepP`'s `msgIn`, so the `nil` check's error is
 unreachable); its type and sender read by `m.GetType()`/`m.GetFrom()`, new callees, over the
-message `stepP_split` opens.) -/
+message `stepP_split` opens. Stage R7a: any `nodeCtx`, the error `nodeErr`, `nil` for a dropped
+message.) -/
 theorem node.Step.wp_proof
     (wp_IsLocalMsg : IsLocalMsg.spec (GF := GF) (hG := hG))
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
@@ -36,8 +37,8 @@ theorem node.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     node.Step.spec (GF := GF) (hG := hG) := by
-  intro γ id n m
-  wp_start as ⟨#Hnode, Hstep⟩
+  intro γ id n m ctx cd
+  wp_start as ⟨#Hnode, #Hctx, Hstep⟩
   icases stepP_split γ id m $$ Hstep with ⟨%dqe, %st, Hm, %Hty, Hclose⟩
   icases msgPtsC_nonnull $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
@@ -48,25 +49,25 @@ theorem node.Step.wp_proof
   wp_apply wp_IsLocalMsg st.msg.Type' Hty as %b -
   cases b
   · wp_auto
-    wp_apply wp_node_step γ id n m $$ [$Hnode Hm Hclose]
+    wp_apply wp_node_step γ id n m ctx cd $$ [$Hnode $Hctx Hm Hclose]
     · iapply Hclose $$ Hm
-    iintro %err -
+    iintro %err #Herr
     wp_auto
     iapply HΦ
-    itrivial
+    iexact Herr
   · wp_auto
     wp_apply wp_GetFrom.1 $$ [Hm] as Hm
     · iexact Hm
     wp_apply wp_IsLocalMsgTarget st.msg.From'
     wp_if_destruct
-    · wp_apply wp_node_step γ id n m $$ [$Hnode Hm Hclose]
+    · wp_apply wp_node_step γ id n m ctx cd $$ [$Hnode $Hctx Hm Hclose]
       · iapply Hclose $$ Hm
-      iintro %err -
+      iintro %err #Herr
       wp_auto
       iapply HΦ
-      itrivial
+      iexact Herr
     · iapply HΦ
-      itrivial
+      iapply nodeErr_nil
 
 end proof
 

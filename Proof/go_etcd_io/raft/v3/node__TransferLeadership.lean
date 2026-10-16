@@ -21,15 +21,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `recvc <- m` (a local message, `netP_local`); `n.done` never fires, and `ctx` is
-`Background()`, whose `Done()` is `nil`. (Raft v3.7, stage R5: the message is
+/-- `recvc <- m` (a local message, `netP_local`); `n.done` never fires, and `ctx` is any
+`nodeCtx` (stage R7a): its `Done()` is `nil`, or a context's channel, from which a receive returns
+once the context is done (`nodeDone_recv_clause`), and the call returns. (Raft v3.7, stage R5: the message is
 `&pb.Message{Type: pb.MsgTransferLeader.Enum(), From: new(transferee), To: new(lead)}`, built
 into `msgIn` by `msgIn_of_scalar_struct`; `MsgTransferLeader.Enum()` is a new callee.) -/
 theorem node.TransferLeadership.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.TransferLeadership.spec (GF := GF) (hG := hG) := by
-  intro γ id n lead transferee
-  wp_start as #Hnode
+  intro γ id n lead transferee ctx cd
+  wp_start as ⟨#Hnode, #Hctx⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
   wp_auto
@@ -44,7 +45,7 @@ theorem node.TransferLeadership.wp_proof
   wp_auto
   imod cellRO_alloc $$ «$v1» with #cFr
   imod cellRO_alloc $$ «$v2» with #cTo
-  wp_apply +noauto context.wp_background_Done
+  wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
   wp_auto_lc 3
   imod msgIn_of_scalar_struct «$v0_ptr» pty «$v2_ptr» «$v1_ptr» null null null null null null null
       { (zero_val MessageM) with Type' := W32 13, From' := transferee, To' := lead } ⊤
@@ -83,8 +84,12 @@ theorem node.TransferLeadership.wp_proof
     iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
   iapply BigAndL.bigAndL_cons.2
   isplit
-  · iright
-    iapply chan.nilClausePre_recv Unit _ _ rfl
+  · -- `case <-ctx.Done():` returns
+    iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+    iintro ⟨-, -, -⟩
+    wp_auto
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

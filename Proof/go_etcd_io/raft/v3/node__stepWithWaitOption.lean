@@ -21,15 +21,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A message from the network goes onto `recvc` (`netP`); a proposal onto `propc` with a
-fresh result channel (`propP`, `Handoff`), whose result is then awaited. `ctx` is
-`Background()`, whose `Done()` is `nil`; `n.done` never fires. (Raft v3.7, stage R5: `m` is a
-pointer, handed on for good; its type read by `m.GetType()`, a new callee, over the `msgIn` each
-case of `stepArg` holds; a network message's type is not `MsgProp` by `NetMsgOk`.) -/
+fresh result channel (`propP`, `Handoff`), whose result is then awaited. `n.done` never fires.
+`ctx` is any `nodeCtx` (stage R7a, `InvNodeCtx.lean`): its `Done()` is `nil` (the case never
+fires) or a context's channel, from which a receive returns once the context is done, and the
+call returns `ctx.Err()` (`nodeDone_recv_clause`, `isContext_Err_done`); in the last `select`
+the proposal's result is then abandoned (the handoff's consumer token dropped; `run` still
+sends and closes). (Raft v3.7, stage R5: `m` is a pointer, handed on for good; its type read by
+`m.GetType()`, a new callee, over the `msgIn` each case of `stepArg` holds; a network message's
+type is not `MsgProp` by `NetMsgOk`.) -/
 theorem node.stepWithWaitOption.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG)) :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) := by
-  intro γ id n m wait
-  wp_start as ⟨#Hnode, Harg⟩
+  intro γ id n m wait ctx cd
+  wp_start as ⟨#Hnode, #Hctx, Harg⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold stepArg
@@ -42,7 +46,7 @@ theorem node.stepWithWaitOption.wp_proof
     · iexact Hm
     wp_if_destruct
     · exact absurd Hif (netStepTypes_ne_prop Hok.1)
-    wp_apply +noauto context.wp_background_Done
+    wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking_nil
     iapply BigAndL.bigAndL_cons.2
@@ -65,11 +69,16 @@ theorem node.stepWithWaitOption.wp_proof
       iintro -
       wp_auto
       iapply HΦ
-      itrivial
+      iapply stepErr_nil
     iapply BigAndL.bigAndL_cons.2
     isplit
-    · iright
-      iapply chan.nilClausePre_recv Unit _ _ rfl
+    · -- `case <-ctx.Done(): return ctx.Err()`
+      iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+      iintro ⟨#Hctx', #HPD, #HCC⟩
+      wp_auto
+      wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+      iapply HΦ
+      iapply stepErr_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit
     · ileft
@@ -96,7 +105,7 @@ theorem node.stepWithWaitOption.wp_proof
     imod start_handoff rch (fun (_ : GoInterface) => iprop(True)) iprop(True) iprop(True) γrc
       $$ Hrch Hoc with ⟨%γr, %Hγr, #Hho, Hprod, Hcons⟩
     subst Hγr
-    wp_apply +noauto context.wp_background_Done
+    wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking_nil
     iapply BigAndL.bigAndL_cons.2
@@ -118,7 +127,7 @@ theorem node.stepWithWaitOption.wp_proof
       inext
       iintro -
       wp_auto
-      wp_apply +noauto context.wp_background_Done
+      wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch2 #Hd2
       wp_auto_lc 3
       wp_apply_core chan.wp_select_blocking_nil
       iapply BigAndL.bigAndL_cons.2
@@ -135,12 +144,25 @@ theorem node.stepWithWaitOption.wp_proof
         iapply handoff_rcv_au γr rch _ _ _ false $$ Hho Hlc1 Hcons
         inext
         iintro %v %ok -
-        wp_auto
-        cases v <;> wp_auto <;> (iapply HΦ; itrivial)
+        cases v with
+        | nil =>
+          wp_auto
+          iapply HΦ
+          iapply propErr_nil
+        | ok e =>
+          wp_auto
+          iapply HΦ
+          iapply propErr_ok
       iapply BigAndL.bigAndL_cons.2
       isplit
-      · iright
-        iapply chan.nilClausePre_recv Unit _ _ rfl
+      · -- `case <-ctx.Done(): return ctx.Err()`, the result abandoned
+        iapply nodeDone_recv_clause ctx cd dch2 _ _ $$ Hd2
+        iintro ⟨#Hctx', #HPD, #HCC⟩
+        wp_auto
+        wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+        iapply HΦ
+        iapply propErr_of_nodeErr
+        iapply nodeErr_ctx $$ Hcerr
       iapply BigAndL.bigAndL_cons.2
       isplit
       · ileft
@@ -155,8 +177,14 @@ theorem node.stepWithWaitOption.wp_proof
       itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
-    · iright
-      iapply chan.nilClausePre_recv Unit _ _ rfl
+    · -- `case <-ctx.Done(): return ctx.Err()`
+      iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+      iintro ⟨#Hctx', #HPD, #HCC⟩
+      wp_auto
+      wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+      iapply HΦ
+      iapply propErr_of_nodeErr
+      iapply nodeErr_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit
     · ileft
@@ -180,7 +208,7 @@ theorem node.stepWithWaitOption.wp_proof
     wp_if_destruct
     rotate_left
     · exact absurd Hty Hif
-    wp_apply +noauto context.wp_background_Done
+    wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking_nil
     iapply BigAndL.bigAndL_cons.2
@@ -207,11 +235,16 @@ theorem node.stepWithWaitOption.wp_proof
       iintro -
       wp_auto
       iapply HΦ
-      itrivial
+      iapply nodeErr_nil
     iapply BigAndL.bigAndL_cons.2
     isplit
-    · iright
-      iapply chan.nilClausePre_recv Unit _ _ rfl
+    · -- `case <-ctx.Done(): return ctx.Err()`
+      iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+      iintro ⟨#Hctx', #HPD, #HCC⟩
+      wp_auto
+      wp_apply isContext_Err_done ctx cd $$ [$Hctx' $HPD $HCC] as %cerr #Hcerr
+      iapply HΦ
+      iapply nodeErr_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit
     · ileft

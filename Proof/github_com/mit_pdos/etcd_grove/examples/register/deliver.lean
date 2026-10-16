@@ -71,11 +71,13 @@ local macro "deliver_step" : tactic =>
       iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs
       iapply ownSlice_nil
     wp_apply context.wp_Background
+    ihave #Hbg := nodeCtx_background (GF := GF) bgCd
     imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ Hd rfl
       $$ Hmsg Hmlb Hmc Hc1 Htc with Hstep
-    wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» $$ [Hstep] as %err -
+    wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» context.backgroundCtxVal bgCd
+      $$ [Hstep] as %err -
     · iframe
-      iexact HisNode
+      iframe HisNode Hbg
     wp_auto
     wp_for_post
     iframe

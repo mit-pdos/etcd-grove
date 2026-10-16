@@ -21,37 +21,40 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `stepWithWaitOption(ctx, m, false)`: `m` is not a proposal (`NetMsgOk`). (Raft v3.7, stage
-R5: `stepP` passed on whole, `stepArg`'s network branch being `netP` alone.) -/
+R5: `stepP` passed on whole, `stepArg`'s network branch being `netP` alone. Stage R7a: any
+`nodeCtx`, the error `nodeErr`.) -/
 theorem node.step.wp_proof
     (wp_node_stepWithWaitOption : node.stepWithWaitOption.spec (GF := GF) (hG := hG)) :
     node.step.spec (GF := GF) (hG := hG) := by
-  intro γ id n m
-  wp_start as ⟨#Hnode, Hstep⟩
+  intro γ id n m ctx cd
+  wp_start as ⟨#Hnode, #Hctx, Hstep⟩
   unfold stepP
   icases Hstep with (Hnet | Hfwd)
   rotate_left
   · -- a forwarded proposal (2026-10-10)
     wp_auto
-    wp_apply wp_node_stepWithWaitOption γ id n m false $$ [Hfwd]
-    · iframe Hnode
+    wp_apply wp_node_stepWithWaitOption γ id n m false ctx cd $$ [Hfwd]
+    · iframe Hnode Hctx
       unfold stepArg
       iright; iright
       iframe Hfwd
       ipureintro; rfl
-    iintro %err -
+    iintro %err #Herr
     wp_auto
     iapply HΦ
-    itrivial
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexact Herr
   wp_auto
-  wp_apply wp_node_stepWithWaitOption γ id n m false $$ [Hnet]
-  · iframe Hnode
+  wp_apply wp_node_stepWithWaitOption γ id n m false ctx cd $$ [Hnet]
+  · iframe Hnode Hctx
     unfold stepArg
     ileft
     iexact Hnet
-  iintro %err -
+  iintro %err #Herr
   wp_auto
   iapply HΦ
-  itrivial
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iexact Herr
 
 end proof
 

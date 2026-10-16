@@ -109,7 +109,9 @@ theorem Register.do.wp_proof
         unfold propArg
         simp only [Bool.false_eq_true, ↓reduceIte]
         iexact Hdep) $$ HI with ⟨%fresh, Harg⟩
-  wp_apply wp_node_Propose γp.node id n b d _ fresh $$ [$Hraftinit $HisNode $Hb $Harg] as %err Hres
+  ihave #Hbg := nodeCtx_background (GF := GF) bgCd
+  wp_apply wp_node_Propose γp.node id n b d _ fresh context.backgroundCtxVal bgCd
+    $$ [$Hraftinit $HisNode $Hbg $Hb $Harg] as %err ⟨Hres, -⟩
   · ipureintro; exact Hdne
   ihave #Hdep : deposited γp.node.raft d $$ [Hres]
   · unfold propRes

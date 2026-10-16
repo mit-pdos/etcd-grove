@@ -4,7 +4,11 @@
 
 `step` of `pb.Message{Type: MsgReadIndex, Entries: []pb.Entry{{Data: rctx}}}`, from any
 goroutine: the request goes onto `recvc` (`netP`), and `run` steps it as
-`RawNode.ReadIndex` does. Specified for `context.Background()`. What the client supplies is
+`RawNode.ReadIndex` does. Until stage R7a specified for `context.Background()`.
+(2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`:
+`Done()` nil, or Perennial's `isContext`), and the error `nodeErr cd err`: `nil`, raft's
+`ErrStopped`, or the context's once its `Done()` fired (`ctxErr`).
+The deposit happens at the call, whatever the error. What the client supplies is
 as for `RawNode.ReadIndex` (`Spec/RawNode__ReadIndex.lean`): its context's slice recorded
 (`isPropData`, `node_read_register`), the context's fresh token (`rdFresh`), its persistent
 atomic update (`readAu`, 2026-10-14, stage R), a committed log it knows (`L0`) and one read
@@ -23,7 +27,7 @@ rather than the proposed slice.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 
 @[expose] public section
@@ -45,16 +49,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.ReadIndex.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8)
-    (Qr : List EntryM → IProp GF) (L0 : List EntryM),
+    (Qr : List EntryM → IProp GF) (L0 : List EntryM)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+      nodeCtx ctx cd ∗
       -- (2026-10-16, stage R5, D6) the context's bytes, read-only (until then `isPropData γ.raft
       -- rctx c`)
       rctx ↦*□ c ∗ rdFresh γ.raft c ∗ readAu γ.raft Qr ∗
       isCommitted γ.raft L0 ∗ rdCred γ.raft 1 }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
-      (Val #(interface.ok context.backgroundCtxVal))) (Val #rctx))
+      (Val #(interface.ok ctx))) (Val #rctx))
   {{ (err : GoInterface), RET #err;
-      ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr }}
+      (∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr) ∗ nodeErr cd err }}
 
 end spec
 

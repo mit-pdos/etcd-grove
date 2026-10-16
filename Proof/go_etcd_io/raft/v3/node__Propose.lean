@@ -27,13 +27,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 message is `&pb.Message{Type: pb.MsgProp.Enum(), Entries: []*pb.Entry{{Data: data}}}`, its entry
 allocated by the slice literal (`wp_slice_literal_ex`, as `confChangeToMsg`), holding the frozen
 bytes `data_sl ↦*□ data` (D6: `propEntryM data`, `data ≠ []` for `node_propose_ghost`), frozen
-(`entOwn_freeze`); the message owned (`msgIn ml 1`); `MsgProp.Enum()` is a new callee.) -/
+(`entOwn_freeze`); the message owned (`msgIn ml 1`); `MsgProp.Enum()` is a new callee. Stage R7a:
+any `nodeCtx`, the error `propErr`.) -/
 theorem node.Propose.wp_proof
     (wp_node_stepWait : node.stepWait.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.Propose.spec (GF := GF) (hG := hG) := by
-  intro γ id n data_sl data Q fresh
-  wp_start as ⟨#Hnode, #Hdata, %Hne, Harg⟩
+  intro γ id n data_sl data Q fresh ctx cd
+  wp_start as ⟨#Hnode, #Hctx, #Hdata, %Hne, Harg⟩
   wp_auto
   -- the proposal's ghost work (2026-10-10): the update deposited
   imod node_propose_ghost γ id n data Q fresh ⊤ CoPset.subseteq_top Hne $$ Hnode Harg
@@ -75,13 +76,14 @@ theorem node.Propose.wp_proof
     isplitl []; · iempintro
     isplitl []; · ipureintro; trivial
     iapply ownSlice_nil
-  wp_apply wp_node_stepWait γ id n «$a1_ptr» data $$ [$Hnode Hm $Hent]
+  wp_apply wp_node_stepWait γ id n «$a1_ptr» data ctx cd $$ [$Hnode $Hctx Hm $Hent]
   · simp only [msgIn, show needsCap propMsgM = false from rfl]
     iexact Hm
-  iintro %err -
+  iintro %err #Herr
   wp_auto
   iapply HΦ
-  iexact Hres
+  iframe Hres
+  iexact Herr
 
 end proof
 
