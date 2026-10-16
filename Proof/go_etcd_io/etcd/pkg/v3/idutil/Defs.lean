@@ -117,6 +117,30 @@ instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GN
     Persistent (idGen (GF := GF) γi g Φ) := by
   unfold idGen; infer_instance
 
+/-- **Fresh generator names** (2026-10-16, D13a: the names chosen before the call): the credits'
+authority with all `2 ^ 48 - 1` credits, and the two empty ghost maps. `NewGenerator` takes them,
+so that its caller knows the names before the call (`idNamesFresh_alloc`). -/
+def idNamesFresh (γi : IdNames) : IProp GF :=
+  iprop(own γi.cred (● (2 ^ 48 - 1) : Auth Nat) ∗ idCred γi (2 ^ 48 - 1) ∗
+    ghostMapAuth γi.issued 1 (∅ : GMap w64 (Option (List w8 × GName))) ∗
+    ghostMapAuth γi.slot 1 (∅ : GMap w64 Unit))
+
+/-- Fresh generator names are allocated. -/
+theorem idNamesFresh_alloc : ⊢ |==> ∃ γi : IdNames, idNamesFresh (GF := GF) γi := by
+  istart
+  obtain ⟨N, hN⟩ : ∃ N : Nat, N = 2 ^ 48 - 1 := ⟨_, rfl⟩
+  imod own_alloc ((● N : Auth Nat) • ◯ N)
+    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γc, HC⟩
+  imod (ghost_map_alloc_empty (K := w64) (V := Option (List w8 × GName))) with ⟨%γI, HI⟩
+  imod (ghost_map_alloc_empty (K := w64) (V := Unit)) with ⟨%γS, HS⟩
+  icases (own_op γc _ _).1 $$ HC with ⟨HCa, HCf⟩
+  subst hN
+  imodintro
+  iexists ⟨γc, γI, γS⟩
+  iunfold idNamesFresh
+  iunfold idCred
+  iframe HCa HCf HI HS
+
 end ghost
 
 end EtcdGrove
