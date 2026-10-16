@@ -7318,3 +7318,14 @@ for field (`EntryModel.toM`). So the pattern is D9's again.
 - **Mode.** The node is in raft's static mode: the server's conf changes go through
   `EtcdServer.applyConfChange`, a trust-boundary spec (R6), so `Advance`'s dynamic-mode premise
   is vacuous.
+- **Carried out (2026-10-16, R7a/R7b; `notes/STATUS.md`).** Three deviations from the plan
+  above. (i) The read credit comes with the request *id*, not the request: `requestCurrentIndex`
+  retries `ReadIndex` on a timer, unboundedly in the model, so a per-request credit cannot pay
+  for the retries; each call has a fresh id, and the id budget (`2^48`) is below raft's
+  (`2^64 - 2`), so the server's mint of read contexts (`srvRdFreshInv`) hands out raft's fresh
+  token and credit with every `NextRequestID`: no new premise at the gRPC layer. (ii) The updates'
+  after-clauses are the new entry's facts only (`srvPropAu`, `srvNoopAu`: raft gives the appended
+  entry's index, not the whole log's), and `srvIdxOk`'s `2^64` bound on the delivered log is a run
+  premise (`rnLogFits`, beside `Append`'s `2^61`). (iii) Two error-value facts stay premises
+  (`rnCtxErrOk`, `rnPropErrOk`): raft's `nodeErr`/`propErr` do not name a context's `Err()` nor
+  `Propose`'s result error; R7c retires them on raft's side.
