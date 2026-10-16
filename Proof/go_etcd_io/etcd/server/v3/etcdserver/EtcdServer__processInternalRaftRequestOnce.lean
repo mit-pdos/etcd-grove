@@ -194,6 +194,8 @@ local macro "piro_tail" : tactic => `(tactic| (
     · iframe Hbs
       isplitr
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
+      isplitr
+      · ipureintro; exact Hbsne (by simp [apply.withHeader])
       iunfold srvPropArg
       simp only [↓reduceIte]
       iframe Hpf Hau

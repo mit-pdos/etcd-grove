@@ -37,6 +37,15 @@ index `ci₀ ≥ c`, and that log is exactly the apply thread's after the entry 
 loop's contracts are met by the server's objects: `read_server` (`isReadServer` for `*EtcdServer`)
 and `read_raft` (`isReadRaft` for its `raftNode`); `wait_time` (`pkg/wait`'s `*timeList` is a
 `WaitTime`).
+
+**The server's raft contracts, from raft's specs** (stage R7b of the raft v3.7 retarget,
+2026-10-16; D10): `node_contract_ifc` (`isRaftNodeIfc`: `Ready`, `Advance`, `Tick`, `ReadIndex`
+from raft's linked `node.wp_*`; `Stop` the premise `rnStopOk`), `node_contract_propose`
+(`raftPropose` from `node.wp_Propose`) and `node_contract_memstor` (`isRNMemStor` from raft's
+`memStorage_Append`), over the wrapper's names (`rnEnvOk`, raft's `isNode`, the commit invariant
+and the committed index's) and the two error facts raft's specs leave open (`NodeBridge.lean`:
+`rnCtxErrOk`, a done context's error, and `rnPropErrOk`, a proposal's own result, are
+`applyErrIs`).
 -/
 module
 
@@ -44,6 +53,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeListIfc
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
@@ -189,12 +199,49 @@ theorem read_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
 
 /-- **The server's raft wrapper meets the read loop's `raftInterface` contract** (`isReadRaft`, the
 request path's unit 4b; `ReadState` and `ReadIndex` linked): over the node contract
-(`isRaftNodeIfc`, raft's trust boundary: `ReadIndex` registers at a committed bound, the `Ready`'s
-read states answer the registrations), at the read names `E.γr` and registrations `E.RQ`. -/
+(`isRaftNodeIfc`, discharged from raft's node specs since stage R7b, `node_contract_ifc`:
+`ReadIndex` registers at a committed bound, the `Ready`'s read states answer the registrations),
+at the read names `E.γr` and registrations `E.RQ`. -/
 theorem read_raft (E : RNEnv GF) (γ : RNNames) (r : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ⊢
       isReadRaft (interface.mkOk (go.GoType.PointerType raftNode.ty) #r) E.γr E.RQ :=
   isReadRaft_of_raftNode raftNode.wp_ReadState raftNode.wp_ReadIndex E γ r
+
+/-- **The node meets the server's `raft.Node` contract** (`isRaftNodeIfc`; stage R7b, D10): `Ready`,
+`Advance`, `Tick` and `ReadIndex` from raft's linked `node.wp_Ready`, `wp_Advance`, `wp_Tick`,
+`wp_ReadIndex` (`isRaftNodeIfc_of_isNode`), over the wrapper's facts of `E` (`rnEnvOk`), raft's
+`isNode` by the wrapper's names (`rnIsNode`), the server's view of raft's commit invariant
+(`srvRaftLogInv`) and the committed index's invariant (`srvCommittedInv`, the log `ReadIndex`'s
+bound is read from); `Stop` is the premise `rnStopOk` (raft's model never stops), and the
+context's error being one the gRPC layer takes is `rnCtxErrOk` (Perennial's context model does
+not name `Err()`'s value). -/
+theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ srvCommittedInv s E.γr ∗
+      rnStopOk γ.nl ∗ rnCtxErrOk ⊢
+      isRaftNodeIfc E γ (rnNodeIface γ) :=
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  isRaftNodeIfc_of_isNode E γ s node.wp_Ready
+    node.wp_Advance node.wp_Tick
+    node.wp_ReadIndex
+
+/-- **The node meets the request path's `raftPropose`** (stage R7b, D10): from raft's linked
+`node.wp_Propose` (`raftPropose_of_isNode`), over `rnEnvOk`, `rnIsNode`, `srvRaftLogInv`, and the
+two error facts (`rnCtxErrOk`; `rnPropErrOk`, the proposal's own result, which raft's `propErr`
+leaves a bare non-`nil` error). -/
+theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ rnCtxErrOk ∗ rnPropErrOk ⊢
+      raftPropose E.γr.raft (rnNodeIface γ) :=
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  raftPropose_of_isNode E γ node.wp_Propose
+
+/-- **The `MemoryStorage` meets the wrapper's `isRNMemStor`** (stage R7b, D10): raft's
+`memStorage_Append` (over the linked `MemoryStorage.wp_Append`), for a registered storage. -/
+theorem node_contract_memstor (γ : RNNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnMemStorReg γ ⊢
+      isRNMemStor γ γ.ms :=
+  isRNMemStor_of_memstorage γ
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
 `Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
@@ -1013,6 +1060,9 @@ end goroutines
 #print axioms Perennial.EtcdGrove.applied_log_at
 #print axioms Perennial.EtcdGrove.read_server
 #print axioms Perennial.EtcdGrove.read_raft
+#print axioms Perennial.EtcdGrove.node_contract_ifc
+#print axioms Perennial.EtcdGrove.node_contract_propose
+#print axioms Perennial.EtcdGrove.node_contract_memstor
 #print axioms Perennial.EtcdGrove.wait_time
 #print axioms Perennial.EtcdGrove.applyEntries_trace
 #print axioms Perennial.EtcdGrove.applyEntries_kv

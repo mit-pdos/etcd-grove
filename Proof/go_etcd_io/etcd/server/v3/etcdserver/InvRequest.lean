@@ -1419,12 +1419,15 @@ its `Propose(ctx, data)`, from any goroutine, at any context, with `data`'s slic
 the verified `node.Propose`'s statement over the server's ghost names (see the file header), and
 its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStopped`,
 `ErrProposalDropped`, `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`;
-2026-10-12, unit 3a). -/
+2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`). -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
         (data : List w8) (Q : List EntryModel → IProp GF) (fresh : Bool),
-      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ srvPropArg γ data Q fresh }}
+      -- (2026-10-16, stage R7b, B3) non-empty data: raft's `node.Propose` wants it (D6: an empty
+      -- proposal would be a leader's own entry); the server's request marshals to a non-empty
+      -- string (`irrWireOf`, `processInternalRaftRequestOnce`)
+      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q fresh }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
       {{ (err : GoInterface), RET #err; srvPropRes γ data Q fresh ∗ applyErrIs err }}))
