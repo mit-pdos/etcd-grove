@@ -45,7 +45,10 @@ the model records of `PbModel.lean` as indices:
 * `csPts p dq c al`: a `*pb.ConfState` (the four lists at `dq`, `AutoLeave` a cell, `al`: its
   pointer is set); `ownCSM p dq c` is `al = false`. `smPts`, `ownSnapM`: a snapshot's metadata
   and the snapshot (its `Data` bytes at `dq`), nil nested pointers reading as the zero record
-  (`csOpt`, `smOpt`); `snapOpt p dq o`: a nil-or-owned snapshot.
+  (`csOpt`, `smOpt`); `snapOpt p dq o`: a nil-or-owned snapshot. A snapshot's nested conf state
+  is `csOptA` (D7, stage R4): nil, owned at the snapshot's fraction, or read-only for good with
+  its `AutoLeave` set (`MemoryStorage.InitialState` freezes the storage's, which `newRaft` keeps;
+  nothing writes a conf state in place once its `AutoLeave` is set).
 * `hsRO p hs`: a hard state, persistent (fresh per `hardState()`, never written after).
 * `ccsPts`/`ccsRO`: a `*pb.ConfChangeSingle`; `ownCCV1`, `ownCCV2`: a `*pb.ConfChange`,
   `*pb.ConfChangeV2` (their `Context` bytes read-only, shared by `ConfChange.AsV2`); `ownCCI`: a
@@ -244,11 +247,19 @@ abbrev ownCSM (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF := csPts p dq c
 def csOpt (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF :=
   iprop(⌜p = null ∧ c = ConfStateM.mk [] [] [] [] false⌝ ∨ ownCSM p dq c)
 
+/-- A snapshot's nested conf state (D7, stage R4): `nil` (read as the zero record), owned at the
+snapshot's fraction, or read-only for good with its `AutoLeave` set (frozen by
+`MemoryStorage.InitialState`; nothing writes a conf state in place once `AutoLeave` is set:
+`EnsureConfState` writes only a nil one). -/
+def csOptA (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF :=
+  iprop(⌜p = null ∧ c = ConfStateM.mk [] [] [] [] false⌝ ∨ csPts p dq c false ∨
+    csPts p DFrac.discard c true)
+
 /-- A `*pb.SnapshotMetadata` at `p` holding `md`, at `dq`. -/
 def smPts (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
   iprop(∃ (pc pi pt : Loc) (uf : List w8),
     "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-    "HC" ∷ p.[raftpb.SnapshotMetadata, go!"ConfState"] ↦{dq} pc ∗ "Hc" ∷ csOpt pc dq md.ConfState' ∗
+    "HC" ∷ p.[raftpb.SnapshotMetadata, go!"ConfState"] ↦{dq} pc ∗ "Hc" ∷ csOptA pc dq md.ConfState' ∗
     "HI" ∷ p.[raftpb.SnapshotMetadata, go!"Index"] ↦{dq} pi ∗ "#cI" ∷ cellRO pi md.Index' ∗
     "HT" ∷ p.[raftpb.SnapshotMetadata, go!"Term"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt md.Term' ∗
     "#Hpb" ∷ pbMsg raftpb.SnapshotMetadata p uf)
@@ -382,6 +393,11 @@ open Iris.ProofMode
 
 instance hsRO_persistent (p : Loc) (hs : HardStateM) : Persistent (hsRO (GF := GF) p hs) := by
   unfold hsRO; infer_instance
+
+set_option synthInstance.maxSize 1024 in
+instance csPts_persistent (p : Loc) (c : ConfStateM) (al : Bool) :
+    Persistent (csPts (GF := GF) p DFrac.discard c al) := by
+  unfold csPts; infer_instance
 
 instance ccsRO_persistent (p : Loc) (c : ConfChangeSingleM) :
     Persistent (ccsRO (GF := GF) p c) := by
@@ -528,6 +544,28 @@ theorem csPts_of_struct (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : C
   iframe cA Hpb
   ipureintro; intro h; simpa using h
 
+theorem csPts_nn (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
+    csPts (GF := GF) p dq c al ⊢ csPts p dq c al ∗ ⌜p ≠ null⌝ := by
+  iintro H
+  iNamed H
+  isplitl
+  · iunfold csPts
+    iexists sv, sl, so, sn, pa
+    isplitr
+    · ipureintro; exact Hnn
+    iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+    ipureintro; exact Hal
+  · ipureintro; exact Hnn
+
+/-- An owned-or-nil conf state is a snapshot's nested conf state (`csOptA`'s first two cases). -/
+theorem csOpt_csOptA (p : Loc) (dq : DFrac) (c : ConfStateM) :
+    csOpt (GF := GF) p dq c ⊢ csOptA p dq c := by
+  iunfold csOpt
+  iunfold csOptA
+  iintro (%H | H)
+  · ileft; ipureintro; exact H
+  · iright; ileft; iexact H
+
 /-- A freshly allocated `*pb.SnapshotMetadata` (hidden fields zero) whose conf state and cells
 hold `md`'s is an owned metadata holding `md`. -/
 theorem smPts_of_struct (p : Loc) (v : raftpb.SnapshotMetadata) (md : SnapshotMetadataM)
@@ -535,6 +573,7 @@ theorem smPts_of_struct (p : Loc) (v : raftpb.SnapshotMetadata) (md : SnapshotMe
     (p ↦ v ∗ csOpt v.ConfState' (DFrac.own 1) md.ConfState' ∗ cellRO v.Index' md.Index' ∗
       cellRO v.Term' md.Term' : IProp GF) ⊢ |={E}=> smPts p (DFrac.own 1) md := by
   iintro ⟨Hp, Hc, #cI, #cT⟩
+  ihave Hc := csOpt_csOptA _ _ _ $$ Hc
   ihave %Hnn := typedPointsto_not_null $$ Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
   simp only [TypedPointsto.typedPointstoDef]
@@ -719,12 +758,41 @@ theorem csOpt_split (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :
     · iright; iexact H1
     · iright; iexact H2
 
+/-- A snapshot's nested conf state is `nil` holding the zero record, or not `nil`. -/
+theorem csOptA_nn (p : Loc) (dq : DFrac) (c : ConfStateM) :
+    csOptA (GF := GF) p dq c ⊢
+      csOptA p dq c ∗ ⌜(p = null ∧ c = ConfStateM.mk [] [] [] [] false) ∨ p ≠ null⌝ := by
+  iunfold csOptA
+  iintro (%H | H | #H)
+  · isplitl []
+    · ileft; ipureintro; exact H
+    · ipureintro; exact .inl H
+  · icases csPts_nn _ _ _ _ $$ H with ⟨H, %Hnn⟩
+    isplitl [H]
+    · iright; ileft; iexact H
+    · ipureintro; exact .inr Hnn
+  · icases csPts_nn _ _ _ _ $$ H with ⟨-, %Hnn⟩
+    isplitl []
+    · iright; iright; iexact H
+    · ipureintro; exact .inr Hnn
+
+theorem csOptA_split (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :
+    csOptA (GF := GF) p (dq1 • dq2) c ⊢ csOptA p dq1 c ∗ csOptA p dq2 c := by
+  iunfold csOptA
+  iintro (%H | H | #H)
+  · isplitl [] <;> ileft <;> ipureintro <;> exact H
+  · icases csPts_split _ _ _ _ _ $$ H with ⟨H1, H2⟩
+    isplitl [H1]
+    · iright; ileft; iexact H1
+    · iright; ileft; iexact H2
+  · isplitl [] <;> iright <;> iright <;> iexact H
+
 theorem smPts_split (p : Loc) (dq1 dq2 : DFrac) (md : SnapshotMetadataM) :
     smPts (GF := GF) p (dq1 • dq2) md ⊢ smPts p dq1 md ∗ smPts p dq2 md := by
   iintro H
   iNamed H
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HC with ⟨HC1, HC2⟩
-  icases csOpt_split _ _ _ _ $$ Hc with ⟨Hc1, Hc2⟩
+  icases csOptA_split _ _ _ _ $$ Hc with ⟨Hc1, Hc2⟩
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HI with ⟨HI1, HI2⟩
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HT with ⟨HT1, HT2⟩
   isplitl [HC1 Hc1 HI1 HT1]

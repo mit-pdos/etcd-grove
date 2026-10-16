@@ -218,14 +218,13 @@ theorem hsOpt_null : ⊢ hsOpt (GF := GF) null (HardStateM.mk (W64 0) (W64 0) (W
 
 /-! ### Read-only snapshots -/
 
-set_option synthInstance.maxSize 1024 in
-instance csPts_persistent (p : Loc) (c : ConfStateM) (al : Bool) :
-    Persistent (csPts (GF := GF) p DFrac.discard c al) := by
-  unfold csPts; infer_instance
-
 instance csOpt_persistent (p : Loc) (c : ConfStateM) :
     Persistent (csOpt (GF := GF) p DFrac.discard c) := by
   unfold csOpt ownCSM; infer_instance
+
+instance csOptA_persistent (p : Loc) (c : ConfStateM) :
+    Persistent (csOptA (GF := GF) p DFrac.discard c) := by
+  unfold csOptA; infer_instance
 
 set_option synthInstance.maxSize 1024 in
 instance smPts_persistent (p : Loc) (md : SnapshotMetadataM) :
@@ -306,12 +305,21 @@ theorem csOpt_persist (p : Loc) (dq : DFrac) (c : ConfStateM) :
   · imod csPts_persist _ _ _ _ $$ H with #H
     imodintro; iright; iexact H
 
+theorem csOptA_persist (p : Loc) (dq : DFrac) (c : ConfStateM) :
+    csOptA (GF := GF) p dq c ⊢ |==> csOptA p DFrac.discard c := by
+  iunfold csOptA
+  iintro (%H | H | #H)
+  · imodintro; ileft; ipureintro; exact H
+  · imod csPts_persist _ _ _ _ $$ H with #H
+    imodintro; iright; ileft; iexact H
+  · imodintro; iright; iright; iexact H
+
 theorem smPts_persist (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
     smPts (GF := GF) p dq md ⊢ |==> smPts p DFrac.discard md := by
   iintro H
   iNamed H
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HC with #HC
-  imod csOpt_persist _ _ _ $$ Hc with #Hc
+  imod csOptA_persist _ _ _ $$ Hc with #Hc
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HI with #HI
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HT with #HT
   imodintro

@@ -23,15 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `m.GetConfState()` of a snapshot metadata pointer, `nil` or holding `md` (`smOpt`), is its conf
-state pointer, `nil` or holding `md.ConfState'` (`csOpt`; `nil` for a `nil` metadata): lent
-until the caller gives it back. -/
+state pointer, `nil` or holding `md.ConfState'` (`csOptA`: nil, owned at `dq`, or frozen with its
+`AutoLeave` set, D7; `nil` for a `nil` metadata): lent until the caller gives it back. -/
 abbrev raftpb.SnapshotMetadata.GetConfState.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (md : SnapshotMetadataM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ smOpt p dq md }}
     (App (Val (p @!! go.GoType.PointerType raftpb.SnapshotMetadata.ty @!! go!"GetConfState"))
       (Val #()))
   {{ (pc : Loc), RET #pc;
-      csOpt pc dq md.ConfState' ∗ (csOpt pc dq md.ConfState' -∗ smOpt p dq md) }}
+      csOptA pc dq md.ConfState' ∗ (csOptA pc dq md.ConfState' -∗ smOpt p dq md) }}
 
 end spec
 

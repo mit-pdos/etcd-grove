@@ -43,7 +43,8 @@ wholesale by `SetHardState`. `snapshot` holds a pointer to the storage's own sna
 (`ownSnapM ... 1`): `Snapshot()` writes the field (`ms.snapshot = EnsureSnapshot(ms.snapshot)`,
 213) and clones the object, `CreateSnapshot` writes the object's metadata in place (255-261),
 `ApplySnapshot` stores a clone, and the unlocked `InitialState` reads both (and may write the
-conf state's `AutoLeave`, `EnsureConfState`, 132). Every one of them is called by the storage's
+conf state's `AutoLeave`, `EnsureConfState`, 132, then freezes it: D7, the snapshot's conf state
+`csOptA`'s third case from then on). Every one of them is called by the storage's
 owner (raft through `isStorage`'s `Snapshot`, the application with `ownMemoryStorage` for the
 others, `InitialState` at construction), so the field and the object are **`ownMemoryStorage`'s,
 not the lock's** (until the retarget the lock held half of a snapshot value and `memStorMeta` the

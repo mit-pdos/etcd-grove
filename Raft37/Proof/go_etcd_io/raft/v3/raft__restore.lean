@@ -15,6 +15,7 @@ and `assertConfStatesEquivalent`; the halves are put back together at the end.
 module
 
 public import Raft37.Spec.go_etcd_io.raft.v3.raft__restore
+public import Raft37.Proof.go_etcd_io.raft.v3.LemmasConfState
 public import Raft37.Spec.go_etcd_io.raft.v3.raftLog__matchTerm
 public import Raft37.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Raft37.Spec.go_etcd_io.raft.v3.raftLog__commitTo
@@ -213,17 +214,8 @@ private theorem found_slice_acc (sv sl so : GoSlice) (dq : DFrac) (cl : CSLists)
 private theorem ownCfgCC_cast (cfgv : tracker.Config) (dq : DFrac) (c1 c2 : CfgM) (h : c1 = c2) :
     ownCfgCC (GF := GF) cfgv dq c1 ⊢ ownCfgCC cfgv dq c2 := h ▸ .rfl
 
-private theorem csPts_nn (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
-    csPts (GF := GF) p dq c al ⊢ ⌜p ≠ null⌝ ∗ csPts p dq c al := by
-  iintro H
-  ihave %Hnn : ⌜p ≠ null⌝ $$ [H]
-  · iunfold csPts at H
-    icases H with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, -⟩
-    ipureintro; exact Hnn
-  iframe H; ipureintro; exact Hnn
-
 set_option hygiene false in
-/-- The snapshot closed again (`ownSnapE`) from its parts and its conf state `Hcs` (`csOpt`). -/
+/-- The snapshot closed again (`ownSnapE`) from its parts and its conf state `Hcs` (`csOptA`). -/
 local macro "snap_close" : tactic => `(tactic| (
   ihave Hsnap : ownSnapE sp (DFrac.own 1) sv $$ [HD Hd HM HC HI HT Hcs]
   · iapply ownSnapE_close sp pm pc
@@ -303,18 +295,21 @@ theorem raft.restore.wp_proof
   -- is set (it has `id`), its `AutoLeave` made non-`nil`
   wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
   wp_apply wp_SnapshotMetadata_GetConfState_field pm pc _ Hpmn $$ [$HC] as HC
-  iunfold csOpt at Hcs
-  icases Hcs with (⟨%Hpc, %Hc0⟩ | Hcs)
-  · exfalso
-    rw [Hc0] at Hidv
-    simp [CSLists.Has, ConfStateM.lists] at Hidv
-  icases csPts_nn $$ Hcs with ⟨%Hpcn, Hcs⟩
+  -- the conf state is not `nil` (it has `id`); `EnsureConfState` leaves it frozen with its
+  -- `AutoLeave` set (D7), as the snapshot keeps it (`csOptA`'s third case)
+  icases csOptA_nn _ _ _ $$ Hcs with ⟨Hcs, %Hpcn⟩
+  replace Hpcn : pc ≠ null := by
+    rcases Hpcn with ⟨-, Hc0⟩ | Hpcn
+    · exfalso
+      rw [Hc0] at Hidv
+      simp [CSLists.Has, ConfStateM.lists] at Hidv
+    · exact Hpcn
   try wp_auto
-  wp_apply wp_EnsureConfState pc _ $$ [Hcs] as %pc' ⟨Hcs, %Hpc'⟩
-  · iunfold csOpt; iright; iexact Hcs
-  have Heq := Hpc' Hpcn
-  subst pc'
+  wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc _ Hpcn $$ [Hcs] as #Hcf
+  · iexact Hcs
   -- the `found` search over `[Voters; Learners; VotersOutgoing]`
+  ihave Hcs : csPts pc DFrac.discard sv.Metadata'.ConfState' true $$ []
+  · iexact Hcf
   iunfold csPts at Hcs
   icases Hcs with ⟨%csv, %csl, %cso, %csn, %cpa, %Hcnn, HcV, Hcv, HcL, Hcl', HcO, Hco, HcN, Hcn,
     HcA, #ccA, %Hcal, #Hcpb⟩
@@ -414,14 +409,7 @@ theorem raft.restore.wp_proof
   icases Hback3 $$ HL with ⟨Hcv, Hcl', Hco⟩
   wp_for_post
   wp_for_post
-  ihave Hcs : csPts pc (DFrac.own 1) sv.Metadata'.ConfState' true
-    $$ [HcV Hcv HcL Hcl' HcO Hco HcN Hcn HcA]
-  · iunfold csPts
-    iexists csv, csl, cso, csn, cpa
-    simp only [ConfStateM.lists]
-    iframe
-    iframe ccA Hcpb
-    ipureintro; exact ⟨Hcnn, fun _ => Hcal rfl⟩
+  iclear HcV Hcv HcL Hcl' HcO Hco HcN Hcn HcA
   -- `id := entryID{term: s.GetMetadata().GetTerm(), index: s.GetMetadata().GetIndex()}`
   wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
   wp_apply wp_SnapshotMetadata_GetTerm_field pm pt _ _ Hpmn $$ [$HT $cT] as HT
@@ -461,8 +449,8 @@ theorem raft.restore.wp_proof
     wp_apply wp_raftLog_commitTo _ _ sv.Metadata'.Index' Hle $$ [$Hlog] as Hlog
     ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     try wp_auto
-    ihave Hcs : csOpt pc (DFrac.own 1) sv.Metadata'.ConfState' $$ [Hcs]
-    · iunfold csOpt; iright; iapply csPts_weaken $$ Hcs
+    ihave Hcs : csOptA pc (DFrac.own 1) sv.Metadata'.ConfState' $$ []
+    · iunfold csOptA; iright; iright; iexact Hcf
     snap_close
     iapply HΦ $$ %false %_
     simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
@@ -486,13 +474,10 @@ theorem raft.restore.wp_proof
     icases snapRest_split sp pm pc (DFrac.own (Qp.half 1)) (DFrac.own (Qp.half 1)) sv $$ [Hrest]
       with ⟨HrA, HrB⟩
     · rw [DFrac.op_own, Qp.half_add_half]; iexact Hrest
-    icases csPts_split pc (DFrac.own (Qp.half 1)) (DFrac.own (Qp.half 1)) _ true $$ [Hcs]
-      with ⟨HcA, HcB⟩
-    · rw [DFrac.op_own, Qp.half_add_half]; iexact Hcs
-    ihave HsA : ownSnapM sp (DFrac.own (Qp.half 1)) sv $$ [HrA HcA]
+    ihave HsA : ownSnapM sp (DFrac.own (Qp.half 1)) sv $$ [HrA]
     · iapply ownSnapM_of_rest
       iframe HrA
-      iunfold csOpt; iright; iapply csPts_weaken $$ HcA
+      iunfold csOptA; iright; iright; iexact Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
         (by simp only [snapId]; omega) $$ [$Hlog $HsA] as ⟨HsA, Hlog⟩
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
@@ -516,7 +501,7 @@ theorem raft.restore.wp_proof
     have Hrm := restoreM_wf sv.Metadata'.ConfState'.lists.outgoing sv.Metadata'.ConfState'.lists.voters sv.Metadata'.ConfState'.lists.learners sv.Metadata'.ConfState'.lists.learnersNext
       sv.Metadata'.ConfState'.AutoLeave' Hwf
     have Hinv := restoreM_cfgInv Hrm
-    ihave HcB := csPts_weaken $$ HcB
+    ihave HcB := csPts_weaken $$ Hcf
     wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } pc sv.Metadata'.ConfState'
         _ v0 _ Hvne Hrm Hmi0 Htv0arr Htv0l Htv0ln Htv0al
         $$ [$HcB $Hv0 $Hprs0]
@@ -593,17 +578,13 @@ theorem raft.restore.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     wp_raft_logC
     -- the snapshot put back together
-    iunfold csOpt at HcsA
-    icases HcsA with (⟨%Hpc0, -⟩ | HcsA)
-    · exact absurd Hpc0 Hpcn
+    iclear HcsA HcB
     have Hh : DFrac.own (Qp.half 1) • DFrac.own (Qp.half 1) = DFrac.own 1 := by
       rw [DFrac.op_own, Qp.half_add_half]
-    ihave Hcs : csPts pc (DFrac.own 1) sv.Metadata'.ConfState' false $$ [HcsA HcB]
-    · rw [← Hh]; iapply csPts_combine; iframe
     ihave Hrest : snapRest sp pm pc (DFrac.own 1) sv $$ [HrA HrB]
     · rw [← Hh]; iapply snapRest_combine; iframe
-    ihave Hsnap := ownSnapE_close sp pm pc _ sv $$ [Hrest Hcs]
-    · iframe Hrest; iunfold csOpt; iright; iexact Hcs
+    ihave Hsnap := ownSnapE_close sp pm pc _ sv $$ [Hrest]
+    · iframe Hrest; iunfold csOptA; iright; iright; iexact Hcf
     iapply HΦ $$ %true %_
     simp only [restoreCfg, ↓reduceIte]
     iframe Hphys Hsnap

@@ -84,7 +84,7 @@ def snapRest (sp pm pc : Loc) (dq : DFrac) (sv : SnapshotM) : IProp GF :=
 
 theorem ownSnapE_open (sp : Loc) (dq : DFrac) (sv : SnapshotM) :
     ownSnapE (GF := GF) sp dq sv ⊢
-      ∃ pm pc, snapRest sp pm pc dq sv ∗ csOpt pc dq sv.Metadata'.ConfState' := by
+      ∃ pm pc, snapRest sp pm pc dq sv ∗ csOptA pc dq sv.Metadata'.ConfState' := by
   iintro H
   iNamed H
   iunfold smPts at Hm
@@ -98,7 +98,7 @@ theorem ownSnapE_open (sp : Loc) (dq : DFrac) (sv : SnapshotM) :
   ipureintro; exact ⟨Hnn, Hnnm⟩
 
 theorem ownSnapE_close (sp pm pc : Loc) (dq : DFrac) (sv : SnapshotM) :
-    snapRest (GF := GF) sp pm pc dq sv ∗ csOpt pc dq sv.Metadata'.ConfState' ⊢
+    snapRest (GF := GF) sp pm pc dq sv ∗ csOptA pc dq sv.Metadata'.ConfState' ⊢
       ownSnapE sp dq sv := by
   iintro ⟨H, Hc⟩
   iNamed H
@@ -173,7 +173,7 @@ theorem snapRest_combine (sp pm pc : Loc) (dq1 dq2 : DFrac) (sv : SnapshotM) :
 holds: the same metadata and conf state pointers (the fields agree). -/
 theorem ownSnapM_tie (sp pm pc : Loc) (dq dq2 : DFrac) (sv : SnapshotM) :
     ownSnapM (GF := GF) sp dq sv ∗ snapRest sp pm pc dq2 sv ⊢
-      snapRest sp pm pc dq sv ∗ csOpt pc dq sv.Metadata'.ConfState' ∗ snapRest sp pm pc dq2 sv := by
+      snapRest sp pm pc dq sv ∗ csOptA pc dq sv.Metadata'.ConfState' ∗ snapRest sp pm pc dq2 sv := by
   iintro ⟨Hs, Hr⟩
   iNamed Hs
   iunfold snapRest at Hr
@@ -202,7 +202,7 @@ theorem ownSnapM_tie (sp pm pc : Loc) (dq dq2 : DFrac) (sv : SnapshotM) :
     ipureintro; exact Hnn2
 
 theorem ownSnapM_of_rest (sp pm pc : Loc) (dq : DFrac) (sv : SnapshotM) :
-    snapRest (GF := GF) sp pm pc dq sv ∗ csOpt pc dq sv.Metadata'.ConfState' ⊢
+    snapRest (GF := GF) sp pm pc dq sv ∗ csOptA pc dq sv.Metadata'.ConfState' ⊢
       ownSnapM sp dq sv := by
   iintro H
   iapply ownSnapE_weaken

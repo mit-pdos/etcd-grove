@@ -31,7 +31,7 @@ theorem raftpb.SnapshotMetadata.GetConfState.wp_proof :
     wp_auto
     iapply HΦ
     isplitr
-    · iunfold csOpt
+    · iunfold csOptA
       ileft; ipureintro; exact ⟨rfl, rfl⟩
     · iintro _
       iunfold smOpt

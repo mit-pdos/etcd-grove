@@ -227,8 +227,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     wp_apply wp_CloneConfState.1 cs dq c $$ [Hcs] as %pc' ⟨Hcs, Hpc'⟩
     · iframe Hcs
     iclear Hc_m
-    ihave Hc_m : csOpt pc' (DFrac.own 1) c $$ [Hpc']
-    · iunfold csOpt; iright; iexact Hpc'
+    ihave Hc_m : csOptA pc' (DFrac.own 1) c $$ [Hpc']
+    · iunfold csOptA; iright; ileft; iexact Hpc'
     ihave Hsm : smPts pm (DFrac.own 1) (SnapshotMetadataM.mk c i e.Term') $$ [HC_m Hc_m HI_m HT_m]
     · iunfold smPts
       iexists _, _, _, uf

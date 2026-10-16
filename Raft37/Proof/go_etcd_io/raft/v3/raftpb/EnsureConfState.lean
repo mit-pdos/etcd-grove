@@ -22,12 +22,51 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem raftpb.EnsureConfState.wp_proof : raftpb.EnsureConfState.spec (GF := GF) (hG := hG) := by
-  intro cs c
-  wp_start as Hc
-  iapply wp_fupd
-  iunfold csOpt at Hc
-  icases Hc with (⟨%Hp, %Hc⟩ | Hc)
-  · subst Hp Hc
+  constructor
+  · intro cs dq c al
+    wp_start as ⟨Hc, %Hdq⟩
+    iapply wp_fupd
+    iNamed Hc
+    wp_auto
+    wp_if_destruct
+    · exact absurd rfl Hnn
+    wp_if_destruct
+    · -- a nil `AutoLeave`: `al` is false, so the conf state is owned; the fresh cell holds `false`
+      have Hal' : al = false := by
+        cases al
+        · rfl
+        · exact absurd rfl (Hal rfl)
+      have Hdq1 : dq = DFrac.own 1 := by
+        refine Classical.byContradiction fun h => ?_
+        have := Hdq h; simp [Hal'] at this
+      subst Hdq1
+      wp_auto
+      ihave (⟨-, %Hv⟩ | ⟨-, %Hpn⟩) := cellRO_cases $$ cA
+      · irename : («$r0_ptr» ↦ false : IProp GF) => Hq
+        ihave %Hqn := typedPointsto_not_null $$ Hq
+        imod cellRO_alloc _ _ $$ Hq with #cq
+        imodintro
+        iapply HΦ
+        iunfold csPts
+        iexists sv, sl, so, sn, «$r0_ptr»
+        isplitr
+        · ipureintro; exact Hnn
+        iframe
+        rw [show c.AutoLeave' = false from Hv]
+        iframe cq Hpb
+        ipureintro; intro _; exact Hqn
+      · exact absurd rfl Hpn
+    · imodintro
+      iapply HΦ
+      iunfold csPts
+      iexists sv, sl, so, sn, pa
+      isplitr
+      · ipureintro; exact Hnn
+      iframe
+      iframe cA Hpb
+      ipureintro; intro _; exact Hif
+  · wp_start
+    iapply wp_fupd
     wp_auto
     rename_i r
     irename : («$r0_ptr» ↦ false : IProp GF) => Hq
@@ -51,41 +90,6 @@ theorem raftpb.EnsureConfState.wp_proof : raftpb.EnsureConfState.spec (GF := GF)
     imodintro
     iapply HΦ
     iframe
-    ipureintro; intro h; exact absurd rfl h
-  · iNamed Hc
-    wp_auto
-    wp_if_destruct
-    · exact absurd rfl Hnn
-    wp_if_destruct
-    · -- a nil `AutoLeave`: it reads `false`; the fresh cell holds `false`
-      ihave (⟨-, %Hv⟩ | ⟨-, %Hpn⟩) := cellRO_cases $$ cA
-      · irename : («$r0_ptr» ↦ false : IProp GF) => Hq
-        ihave %Hqn := typedPointsto_not_null $$ Hq
-        imod cellRO_alloc _ _ $$ Hq with #cq
-        imodintro
-        iapply HΦ
-        isplitl
-        · iunfold csPts
-          iexists sv, sl, so, sn, «$r0_ptr»
-          isplitr
-          · ipureintro; exact Hnn
-          iframe
-          rw [show c.AutoLeave' = false from Hv]
-          iframe cq Hpb
-          ipureintro; intro _; exact Hqn
-        · ipureintro; intro _; rfl
-      · exact absurd rfl Hpn
-    · imodintro
-      iapply HΦ
-      isplitl
-      · iunfold csPts
-        iexists sv, sl, so, sn, pa
-        isplitr
-        · ipureintro; exact Hnn
-        iframe
-        iframe cA Hpb
-        ipureintro; intro _; exact Hif
-      · ipureintro; intro _; rfl
 
 end proof
 

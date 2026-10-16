@@ -22,24 +22,61 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A metadata at `m` whose fields hold a conf state set by `EnsureConfState` and two cells
-holding `md`'s is an owned metadata holding `md`. -/
+/-- A metadata at `m` whose fields hold a nested conf state and two cells holding `md`'s is an owned
+metadata holding `md`. -/
 private theorem smPts_intro (m pc pi pt : Loc) (md : SnapshotMetadataM) (uf : List w8)
     (Hnn : m ≠ null) :
-    (m.[raftpb.SnapshotMetadata, go!"ConfState"] ↦ pc ∗ csPts pc (DFrac.own 1) md.ConfState' true ∗
+    (m.[raftpb.SnapshotMetadata, go!"ConfState"] ↦ pc ∗ csOptA pc (DFrac.own 1) md.ConfState' ∗
       m.[raftpb.SnapshotMetadata, go!"Index"] ↦ pi ∗ cellRO pi md.Index' ∗
       m.[raftpb.SnapshotMetadata, go!"Term"] ↦ pt ∗ cellRO pt md.Term' ∗
       pbMsg raftpb.SnapshotMetadata m uf : IProp GF) ⊢ smPts m (DFrac.own 1) md := by
-  iintro ⟨HC, Hcs, HI, #cI, HT, #cT, #Hpb⟩
-  ihave Hc := csPts_weaken _ _ _ _ $$ Hcs
+  iintro ⟨HC, Hc, HI, #cI, HT, #cT, #Hpb⟩
   iunfold smPts
   iexists pc, pi, pt, uf
   isplitr
   · ipureintro; exact Hnn
-  iframe HC HI HT
-  isplitl
-  · iunfold csOpt; iright; iexact Hc
+  iframe HC HI HT Hc
   iframe cI cT Hpb
+
+/-- `EnsureConfState` on a snapshot's nested conf state (`csOptA`, D7) held at `1`: in each case a
+non-`nil` nested conf state holding the same record (owned if it was nil or owned, still frozen if
+it was frozen), `pc` itself unless `pc` was `nil`. -/
+private theorem wp_EnsureConfState_A
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG))
+    (pc : Loc) (c : ConfStateM) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ csOptA pc (DFrac.own 1) c }}
+      (App (Val #(functions raftpb.EnsureConfState [])) (Val #pc))
+    {{ (r : Loc), RET #r; csOptA r (DFrac.own 1) c ∗ ⌜r ≠ null⌝ ∗ ⌜pc ≠ null → r = pc⌝ }} := by
+  iintro %Φ ⟨#Hinit, Hc⟩ HΦ
+  iunfold csOptA at Hc
+  icases Hc with (⟨%Hp, %Hc⟩ | Hc | #Hc)
+  · subst Hp Hc
+    wp_apply wp_EnsureConfState.2 as %r Hcs
+    icases csPts_nn _ _ _ _ $$ Hcs with ⟨Hcs, %Hr⟩
+    iapply HΦ
+    isplitl
+    · iunfold csOptA; iright; ileft; iapply csPts_weaken $$ Hcs
+    isplitr
+    · ipureintro; exact Hr
+    · ipureintro; intro h; exact absurd rfl h
+  · wp_apply wp_EnsureConfState.1 pc (DFrac.own 1) c false $$ [Hc] as Hcs
+    · iframe; ipureintro; intro h; exact absurd rfl h
+    icases csPts_nn _ _ _ _ $$ Hcs with ⟨Hcs, %Hr⟩
+    iapply HΦ
+    isplitl
+    · iunfold csOptA; iright; ileft; iapply csPts_weaken $$ Hcs
+    isplitr
+    · ipureintro; exact Hr
+    · ipureintro; intro _; rfl
+  · wp_apply wp_EnsureConfState.1 pc DFrac.discard c true $$ [] as #Hcs
+    · iframe Hc; ipureintro; intro _; rfl
+    icases csPts_nn _ _ _ _ $$ Hcs with ⟨-, %Hr⟩
+    iapply HΦ
+    isplitl
+    · iunfold csOptA; iright; iright; iexact Hcs
+    isplitr
+    · ipureintro; exact Hr
+    · ipureintro; intro _; rfl
 
 theorem raftpb.EnsureSnapshotMetadata.wp_proof
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
@@ -51,8 +88,7 @@ theorem raftpb.EnsureSnapshotMetadata.wp_proof
   icases Hm with (⟨%Hp, %Hmd⟩ | Hm)
   · subst Hp Hmd
     wp_auto
-    wp_apply wp_EnsureConfState null (ConfStateM.mk [] [] [] [] false) $$ [] as %rc ⟨Hcs, -⟩
-    · iunfold csOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+    wp_apply wp_EnsureConfState.2 as %rc Hcs
     rename_i pm pi
     rw [show (zero_val w64) = W64 0 from rfl]
     irename : (pi ↦ W64 0 : IProp GF) => Hi
@@ -76,7 +112,7 @@ theorem raftpb.EnsureSnapshotMetadata.wp_proof
     wp_auto
     wp_if_destruct
     · exact absurd rfl Hnn
-    wp_apply wp_EnsureConfState pc md.ConfState' $$ [Hc] as %rc ⟨Hcs, %Hrc⟩
+    wp_apply wp_EnsureConfState_A wp_EnsureConfState pc md.ConfState' $$ [Hc] as %rc ⟨Hcs, %Hrn, %Hrc⟩
     · iexact Hc
     wp_if_destruct
     all_goals try (have e := Hrc Hif; subst e)

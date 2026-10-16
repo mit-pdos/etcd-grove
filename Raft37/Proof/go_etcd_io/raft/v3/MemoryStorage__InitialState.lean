@@ -6,6 +6,7 @@ public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetConfState
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
 public import Raft37.Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import Raft37.Proof.go_etcd_io.raft.v3.LemmasConfState
 
 @[expose] public section
 
@@ -46,23 +47,25 @@ theorem MemoryStorage.InitialState.wp_proof
   · iframe Hsnap
   wp_apply wp_GetConfState pm (DFrac.own 1) sv.Metadata' $$ [Hm] as %pc ⟨Hc, Hcback⟩
   · iframe Hm
-  iunfold csOpt at Hc
-  icases Hc with (%Hnull | Hc)
-  · -- no conf state: `EnsureConfState` makes a fresh one, the storage is as it was
-    ihave Hm := Hcback $$ []
-    · iunfold csOpt; ileft; ipureintro; exact Hnull
+  icases csOptA_nn _ _ _ $$ Hc with ⟨Hc, %Hnull⟩
+  rcases Hnull with Hnull | Hnn
+  · -- no conf state: `EnsureConfState` makes a fresh one, frozen; the storage is as it was
+    obtain ⟨Hpc, Hc0⟩ := Hnull
+    subst Hpc
+    ihave Hm := Hcback $$ Hc
     ihave Hsnap := Hmback $$ Hm
-    wp_apply wp_EnsureConfState pc sv.Metadata'.ConfState' $$ [] as %r ⟨Hr, -⟩
-    · iunfold csOpt; ileft; ipureintro; exact Hnull
+    iapply wp_fupd
+    wp_apply wp_EnsureConfState.2 as %r Hr
+    imod csPts_persist _ _ _ _ $$ Hr with #Hr
+    imodintro
     iapply HΦ
     iframe Hhs
     isplitl [HhardState Hcs_initialState]
     · unfold memStorMeta
       iexists _, hp
       iframe # ∗
-    rw [← Hcs]
+    rw [← Hcs, Hc0]
     iframe Hr
-    iintro -
     unfold ownMemoryStorage memSnapOwn
     iframe # ∗
     isplitl
@@ -70,12 +73,14 @@ theorem MemoryStorage.InitialState.wp_proof
       iframe
       ipureintro; exact Hsnap_id
     ipureintro; exact Hbounded
-  · -- the storage's conf state: `EnsureConfState` sets its `AutoLeave` in place
-    icases csPts_not_null $$ Hc with ⟨Hc, %Hnn⟩
-    wp_apply wp_EnsureConfState pc sv.Metadata'.ConfState' $$ [Hc] as %r ⟨Hr, %Hrpc⟩
-    · iunfold csOpt; iright; iexact Hc
-    have Hr : r = pc := Hrpc Hnn
-    subst Hr
+  · -- the storage's conf state: `EnsureConfState` sets its `AutoLeave` in place; then frozen,
+    -- the storage's snapshot holding it read-only (`csOptA`'s third case)
+    wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc sv.Metadata'.ConfState' Hnn
+      $$ [Hc] as #Hr
+    · iexact Hc
+    ihave Hm := Hcback $$ []
+    · iunfold csOptA; iright; iright; iexact Hr
+    ihave Hsnap := Hmback $$ Hm
     iapply HΦ
     iframe Hhs
     isplitl [HhardState Hcs_initialState]
@@ -84,11 +89,6 @@ theorem MemoryStorage.InitialState.wp_proof
       iframe # ∗
     rw [← Hcs]
     iframe Hr
-    iintro Hr
-    ihave Hc := csPts_weaken $$ Hr
-    ihave Hm := Hcback $$ [Hc]
-    · iunfold csOpt; iright; iexact Hc
-    ihave Hsnap := Hmback $$ Hm
     unfold ownMemoryStorage memSnapOwn
     iframe # ∗
     isplitl

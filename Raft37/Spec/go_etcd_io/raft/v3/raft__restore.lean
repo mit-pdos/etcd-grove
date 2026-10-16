@@ -39,8 +39,9 @@ Lean notes: Rocq's `snap_scope` and `restore_result` are `SnapScope` and
 
 raft v3.7 (2026-10-15, stage R4): `s` is a `*pb.Snapshot` (`sp`), owned with its metadata set
 (`ownSnapE sp 1 sv`, as `handleSnapshot`'s `EnsureSnapshot` leaves it; `EnsureConfState` may
-write a nil field, which reads the same) and given back, the record unchanged; `raftLog.restore`
-clones it (R3). The lists `cl` are the snapshot record's (`cl = sv.Metadata'.ConfState'.lists`;
+write a nil field, which reads the same) and given back, the record unchanged (D7: once past the
+early exits, its conf state frozen read-only with its `AutoLeave` set, `csOptA`'s third case,
+which `ownSnapE` admits); `raftLog.restore` clones it (R3). The lists `cl` are the snapshot record's (`cl = sv.Metadata'.ConfState'.lists`;
 until the retarget the caller's read-only slices, `ownCSL`). The `section results` (`SnapScope`,
 `CSLists.Has`, `snapCfg`, `RestoreResult`, `restoreCfg`) moved verbatim to
 `Proof/.../SpecResults.lean` in R1.

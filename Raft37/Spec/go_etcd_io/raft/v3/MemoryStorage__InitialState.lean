@@ -34,11 +34,14 @@ which **writes** the conf state's `AutoLeave` when it is `nil` -- without the lo
 stated on both halves of the storage: `memStorMeta` (the application's: half of `hardState`
 and the unlocked counter) and `ownMemoryStorage` (the owner's, which holds the snapshot,
 `memSnapOwn`), which at construction one caller holds, before raft starts. The conf state
-(holding the storage's `scs`, `sal`: `storCS σ`) is lent at full ownership with its
-`AutoLeave` set, with a wand back to `ownMemoryStorage` (`newRaft` reads it in
-`confchange.Restore` and `assertConfStatesEquivalent`, then never again); when the snapshot
-has no metadata or conf state it is a fresh one (the wand then gives back the storage as it
-was). Until the retarget it returned the two values and read only `memStorMeta`'s halves. -/
+(holding the storage's `scs`, `sal`: `storCS σ`) is returned read-only for good with its
+`AutoLeave` set (`csPts cs □ _ true`), beside the storage as it was (D7, stage R4: the storage's
+snapshot now holds it frozen, `csOptA`'s third case; nothing writes a conf state in place once
+its `AutoLeave` is set). `newRaft` reads it in `confchange.Restore` and
+`assertConfStatesEquivalent` while it reads the log, which holds the storage, so the conf state
+cannot be lent with a wand back to the storage (R3's statement until D7). When the snapshot has
+no metadata or conf state it is a fresh one, frozen likewise. Until the retarget it returned the
+two values and read only `memStorMeta`'s halves. -/
 abbrev MemoryStorage.InitialState.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (hs : HardStateM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -46,9 +49,8 @@ abbrev MemoryStorage.InitialState.spec : Prop :=
       "Hmeta" ∷ memStorMeta ms γs hs }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"InitialState")) (Val #()))
   {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
-      hsOpt hp hs ∗ memStorMeta ms γs hs ∗
-      csPts cs (DFrac.own 1) (storCS σ) true ∗
-      (csPts cs (DFrac.own 1) (storCS σ) true -∗ ownMemoryStorage ms γs σ) }}
+      hsOpt hp hs ∗ memStorMeta ms γs hs ∗ ownMemoryStorage ms γs σ ∗
+      csPts cs DFrac.discard (storCS σ) true }}
 
 end spec
 
