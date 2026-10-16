@@ -5,6 +5,7 @@ Lemmas of group G2 (fork B: `appendEntry`, `handleAppendEntries`, `handleHeartbe
 module
 
 public import Raft37.Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 
 @[expose] public section
 
@@ -43,6 +44,46 @@ theorem msgPtsC_From_lend (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
   · ipureintro; exact Hnn
   iframe
   iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- A metadata pointer known not `nil`: owned. -/
+theorem smOpt_not_null (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) (Hnn : p ≠ null) :
+    smOpt (GF := GF) p dq md ⊢ smPts p dq md := by
+  iunfold smOpt
+  iintro (%H | H)
+  · exact absurd H.1 Hnn
+  · iexact H
+
+theorem smPts_not_null (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
+    smPts (GF := GF) p dq md ⊢ ⌜p ≠ null⌝ ∗ smPts p dq md := by
+  iintro H
+  ihave %Hnn : ⌜p ≠ null⌝ $$ [H]
+  · iunfold smPts at H; iNamed H; ipureintro; exact Hnn
+  iframe H; ipureintro; exact Hnn
+
+/-- `s.GetMetadata()` on a snapshot whose metadata is set (`ownSnapE`, what `EnsureSnapshot`
+returns), the metadata lent as set (R1's spec is on `ownSnapM`, whose metadata may be `nil`, and
+its wand does not say the field is unchanged): `GetMetadata`'s body, `if x != nil { return
+x.Metadata }`, proved again. -/
+theorem wp_Snapshot_GetMetadata_E (p : Loc) (dq : DFrac) (s : SnapshotM) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownSnapE p dq s }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.Snapshot.ty @!! go!"GetMetadata"))
+        (Val #()))
+    {{ (pm : Loc), RET #pm;
+        smPts pm dq s.Metadata' ∗ (smPts pm dq s.Metadata' -∗ ownSnapE p dq s) }} := by
+  wp_start as Hs
+  iNamed Hs
+  wp_auto
+  wp_if_destruct
+  · exact absurd rfl Hnn
+  · iapply HΦ
+    iframe Hm
+    iintro Hm
+    iunfold ownSnapE
+    iexists ds, pm, uf
+    isplitr
+    · ipureintro; exact Hnn
+    iframe
+    iframe Hpb
 
 end lemmas
 
