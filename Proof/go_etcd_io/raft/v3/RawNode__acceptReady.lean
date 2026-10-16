@@ -649,7 +649,7 @@ theorem RawNode.acceptReady.wp_proof
     (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
     (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
     (by rw [Hlogst, Hlf.1]; exact Hrs_clb)
-    $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs'
+    $$ Hrn Hphys Hghost Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs'
 
 end proof
 

@@ -58,7 +58,8 @@ def LeaderSwitchC (c : CfgM) (id : w64) (s1 s' : NState) : Prop :=
 /-- `switchToConfig`'s result at the configuration `c` (2026-10-13, reconfiguration stage A2):
 a non-leader stops at `s1`; a leader that stays a voter of either half goes on
 (`LeaderSwitchC`); a leader that is removed or demoted (no voter of either half) steps down,
-`becomeFollower(r.Term, None)` (`stepDownOnRemoval`, which the spec's premise requires). -/
+`becomeFollower(r.Term, None)` (unconditionally since etcd-io/raft#239; until then only with
+`stepDownOnRemoval`, which the spec's premise required). -/
 def SwitchOkC (c : CfgM) (id : w64) (s1 s' : NState) : Prop :=
   if s1.role = .leader then
     (if id ∈ c.voters then LeaderSwitchC c id s1 s'
@@ -104,7 +105,7 @@ the call: `ApplyConfChange`'s new `Progress` objects are copies that share the o
 below.)
 
 **The leader case** (2026-10-13): `id ∈ cfg` (the node stays a voter: removing or demoting the
-leader, and `stepDownOnRemoval`, are not covered), and each new `Match` is `0` or the old one
+leader is the general statement's, below), and each new `Match` is `0` or the old one
 (`MatchKept`, what `Step.reMatch` takes); then `maybeCommit`, `bcastAppend` or the `Visit` of
 `maybeSendAppend`, and the `leadTransferee` check over `Voters.IDs()` (`LeaderSwitch`).
 
@@ -118,9 +119,11 @@ learners, `AutoLeave`), the struct is taken open at its tracker with the wand re
 `c` with `Hvoter` at `c.voters ∪ {[id]}` (`ownRaftPhysCV_reconfig`; the node itself counted,
 for the leader that is being removed), and the `ConfState` returned has all four lists and
 `AutoLeave`. A leader either stays a voter of either half (`MatchKept`, then as above, with a
-joint-quorum commit, `LeaderSwitchC`) or is removed or demoted and steps down: the premise
-`s.sdr = true` (`Config.StepDownOnRemoval`), since otherwise it would stay leader outside the
-configuration, which `ownRaftPhysC`'s `Hvoter` excludes. A candidate or pre-candidate must
+joint-quorum commit, `LeaderSwitchC`) or is removed or demoted and steps down. (Until
+etcd-io/raft#239 the step-down needed `Config.StepDownOnRemoval`, and the spec took the premise
+`s.sdr = true`, since otherwise the leader would stay leader outside the configuration, which
+`ownRaftPhysC`'s `Hvoter` excludes; the PR makes the step-down unconditional and the premise
+is gone: a removed leader is covered at every `Config`.) A candidate or pre-candidate must
 stay a voter, for the same reason (the Go code leaves it campaigning; if it then won,
 `becomeLeader` would dereference its missing `Progress`: see
 `issues/raft-advance-before-applyconfchange.md`, which is how an application gets there).
@@ -135,7 +138,7 @@ abbrev raft.switchToConfig.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
   (s.role = .leader →
-    (id ∈ c.voters ∧ MatchKept s.prvals pvs) ∨ (id ∉ c.voters ∧ s.sdr = true)) →
+    (id ∈ c.voters ∧ MatchKept s.prvals pvs) ∨ id ∉ c.voters) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c.voters) →
   -- (2026-10-16, stage R8a, D11) at a leader the new `Progress` values are within its log (the
   -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a

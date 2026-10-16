@@ -795,7 +795,6 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h ∗
   "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
     (if h then { s with outbox := [] } else s) ∗
-  "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "#Hout" ∷ ([∗list] x ∈ s.outbox, isMessage γ x) ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
@@ -911,7 +910,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _)
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
 right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
@@ -953,7 +952,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iunfold ownRawNodeReady
     iexists s, c, fp, rnv, sv, hprev
     simp only [named, ↓reduceIte]
-    iframe Hrn Hghost Hout Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft
+    iframe Hrn Hghost Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft
       Hrdhard Hrdrs Hce Hce_cap Hents
     isplitl
     · iunfold ownRaftPhysReady
@@ -989,7 +988,6 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
   "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s ∗
-  "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
   "%Hal" ∷ ⌜cf.autoLeave = false⌝ ∗
@@ -1029,18 +1027,17 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = []) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
-      sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗
       storedRecs γ s.logst.prev s.logst.stored -∗
       ownRawNodeIdle γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  iintro Hrn Hphys Hghost #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
   unfold ownRawNodeIdle
   iexists s, c, fp, rnv, sv, hprev, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
+  iframe Hrn Hphys Hghost Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb, Hidle⟩
@@ -1051,7 +1048,7 @@ theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : R
   iNamed H
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- What the client sees of an idle node: the lower bounds at their least, and the commit
 index at most the committed log handed out (`applying`). -/
@@ -1072,7 +1069,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       · exact absurd Hsnap H
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hidle
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- Accepting, after all, a `Ready` computed earlier and abandoned (see the section
 header): an idle node (no `Ready` outstanding: `rs.steps = []`, `rs.unpersisted = []`) is
@@ -1124,7 +1121,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iunfold ownRawNodeReady
   iexists s, cf, fp, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]
-  iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
+  iframe Hrn Hghost Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
     Hce Hce_cap Hents Hrdhard
   isplitl
   · iunfold ownRaftPhysReady

@@ -117,7 +117,7 @@ half of `c'`, takes one `StepC c'` step receiving nothing (at a leader `reMatch`
 by a joint quorum if `maybeCommit` moved the commit index, then `sendApps`; `refl` at a
 non-leader), with `applyCCOk_step`'s frame. A leader removed or demoted (no voter of `c'`) takes
 the `reMatch` step and then steps down at its own term (`becomeFollower(r.Term, None)`,
-`stepDownOnRemoval`), which no `StepC` rule describes: `StepC` has no step-down of a leader at
+unconditional since etcd-io/raft#239), which no `StepC` rule describes: `StepC` has no step-down of a leader at
 its own term (`abandon` is a non-leader's). -/
 theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c' id s s') :
     (StepC c' id (toPState s) [] (toPState s') ∧
@@ -247,8 +247,6 @@ abbrev raft.applyConfChange.spec : Prop :=
   ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
   -- not too many tracked ids (`ownTrackerC`'s bound)
   (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →
-  -- a removed or demoted leader steps down (`switchToConfig`)
-  (s.role = .leader → id ∉ c'.cfg.voters → s.sdr = true) →
   -- a candidate stays a voter (`switchToConfig`)
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -298,7 +296,6 @@ theorem raft.applyConfChange.spec_simple
     unfold CfgM.ids; rw [CfgM.voters_simple]; rfl
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
-      (fun hl hn => absurd (Hv (by rw [hl]; decide)) (by rw [Hv'] at hn; exact hn))
       (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide))
     $$ [$Hpkg $Hphys $Hccs]
   inext

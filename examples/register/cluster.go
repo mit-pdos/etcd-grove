@@ -156,8 +156,6 @@ func Main() {
 			MaxSizePerMsg:   1 << 20,
 			MaxInflightMsgs: 256,
 			Logger:          quietLogger{},
-			// a leader that a configuration change removes steps down
-			StepDownOnRemoval: true,
 		})
 		storages[id] = st
 	}

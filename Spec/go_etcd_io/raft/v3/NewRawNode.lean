@@ -144,7 +144,7 @@ abbrev NewRawNode.spec : Prop :=
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
       ∃ s : NState,
-        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' s ∗
+        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') s ∗
         ⌜err = interface.nil⌝ }}
 
 end spec

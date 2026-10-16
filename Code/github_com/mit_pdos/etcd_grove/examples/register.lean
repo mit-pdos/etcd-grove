@@ -575,8 +575,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v4" (Val #(W64 1048576))
   (Let "$v5" (Val #(W64 256))
   (Let "$v6" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
-  (Let "$v7" (Val #true)
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType Storage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"StepDownOnRemoval")) (ElementExpression go.bool (Var "$v7")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType Storage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v6")))]))))))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.RestartNode []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Storage.ty)))) (Var "st"))
@@ -1213,7 +1212,7 @@ noncomputable def Register.TransferLeadership.impl [FfiSyntax] [GoGlobalContext]
 /-- RemoveMember asks raft to remove replica id from the cluster's voters
     (Node.ProposeConfChange): once the change is committed, every replica's run applies it to
     its node (Node.ApplyConfChange), and the cluster's quorums are then those of the remaining
-    voters; a leader that removes itself steps down (Config.StepDownOnRemoval). Nothing is
+    voters; a leader that removes itself steps down (raft does so unconditionally). Nothing is
     promised of the outcome: raft drops a change proposed while another one is not yet
     applied, and RemoveMember proposes it once.
 

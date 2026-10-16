@@ -975,15 +975,6 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
 
 /-! ## The one predicate for a `RawNode` -/
 
-/-- The persistent `stepDownOnRemoval` field (2026-10-14, stage B7 part 2): nobody writes it
-after `newRaft`; in the dynamic mode it is on (`Config.StepDownOnRemoval`), so that a leader
-an `ApplyConfChange` removes steps down (`StepR.stepDown`). -/
-def sdrOk (r : Loc) (md : RNMode) : IProp GF :=
-  iprop(∃ b : Bool, r.[raft, go!"stepDownOnRemoval"] ↦□ b ∗ ⌜md.isDyn = true → b = true⌝)
-
-instance sdrOk_pers (r : Loc) (md : RNMode) : Persistent (sdrOk (GF := GF) r md) := by
-  unfold sdrOk; infer_instance
-
 /-- The pending queue's messages, owned, with their records (2026-10-16, stage R5): `ownRawNode`'s
 `Hpend`. -/
 abbrev pendList (γ : RaftNames) (id : w64) (steps : List Loc) (ps : List Pending) : IProp GF :=
@@ -1012,7 +1003,6 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
   "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s ∗
-  "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   -- scope (static mode): the node is a voter (`Step`'s premise for a snapshot; a shrinking
   -- `ApplyConfChange`'s); (2026-10-14) no auto-leave joint configuration
@@ -1071,18 +1061,17 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
-      sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗
       storedRecs γ s.logst.prev s.logst.stored -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  iintro Hrn Hphys Hghost #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
   unfold ownRawNode
   iexists s, c, fp, rnv, sv, hprev, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
+  iframe Hrn Hphys Hghost Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb⟩
@@ -1119,14 +1108,14 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hpvoff : s.prevote = false) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
-      ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
+      ownRaftGhost (GF := GF) γ id ps -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗
       storedRecs γ s.logst.prev s.logst.stored -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  iintro Hrn Hphys Hghost #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
   obtain ⟨rfl, Hwf⟩ := Hrel
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -1138,7 +1127,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     ipureintro; exact CfgStatic.simple γ _ Hst
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
+    $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
 
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/
 theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
@@ -1159,7 +1148,7 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     | dyn dec c0 h0 _ => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Option.isSome_iff_ne_none.1 Hm]
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of
@@ -1194,7 +1183,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl rfl Hstok)
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 end rawnode
 

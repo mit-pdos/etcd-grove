@@ -51,7 +51,7 @@ theorem NewRawNode.wp_proof
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as %hp ⟨#Hhp, Hphys⟩
   obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hgh, Hrst,
-    Hrpd, Hsdr', Hdom⟩ := Hpost
+    Hrpd, Hdom⟩ := Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have HV : hs.Vote' = W64 0 := Hhs.2.1
   have Hrel : NStateRel s initPState :=
@@ -71,11 +71,11 @@ theorem NewRawNode.wp_proof
   iapply HΦ $$ %«$r0_ptr» %interface.nil
   iexists s
   isplitl [«$r0» Hphys]
-  · iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
+  · iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters')
         s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hrst, Hrpd⟩
         ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
           Hsn, Hsg⟩
-        Hgh (by rw [Hpv, HpvF]) Hsdr' Hdom
+        Hgh (by rw [Hpv, HpvF]) Hdom
       $$ «$r0» Hphys ss Hhp [] []
     all_goals first
       | iapply ownSlice_nil

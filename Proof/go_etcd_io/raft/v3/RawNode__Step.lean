@@ -40,7 +40,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   isplitl
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s cf fp rnv sv hprev steps Hwf Hin
       Hal Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+      $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
   ipureintro; refine ⟨Int.le_refl _, ?_⟩; split <;> omega))
 
 set_option hygiene false in
@@ -191,7 +191,7 @@ theorem RawNode.Step.wp_proof
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
           Hstok' rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
           (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+          $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, Ht3⟩)

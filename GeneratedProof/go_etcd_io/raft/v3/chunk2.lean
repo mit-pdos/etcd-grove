@@ -247,7 +247,6 @@ instance Config_typed_pointsto :
     "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"Logger" l) v.Logger' dq ∗
     "DisableProposalForwarding" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableProposalForwarding" l) v.DisableProposalForwarding' dq ∗
     "DisableConfChangeValidation" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableConfChangeValidation" l) v.DisableConfChangeValidation' dq ∗
-    "StepDownOnRemoval" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"StepDownOnRemoval" l) v.StepDownOnRemoval' dq ∗
     "TraceLogger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"TraceLogger" l) v.TraceLogger' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -530,22 +529,6 @@ instance Config_access_store_DisableConfChangeValidation (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-instance Config_access_load_StepDownOnRemoval (l : Loc) (v : go_etcd_io.raft.v3.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"StepDownOnRemoval" l) v.StepDownOnRemoval' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"StepDownOnRemoval" l) v.StepDownOnRemoval' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance Config_access_store_StepDownOnRemoval (l : Loc) (v : go_etcd_io.raft.v3.Config) (StepDownOnRemoval' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"StepDownOnRemoval" l) v.StepDownOnRemoval' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"StepDownOnRemoval" l) StepDownOnRemoval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepDownOnRemoval' := StepDownOnRemoval' } : go_etcd_io.raft.v3.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
 instance Config_access_load_TraceLogger (l : Loc) (v : go_etcd_io.raft.v3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"TraceLogger" l) v.TraceLogger' dq)
@@ -602,7 +585,6 @@ instance raft_typed_pointsto :
     "electionTimeout" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"electionTimeout" l) v.electionTimeout' dq ∗
     "randomizedElectionTimeout" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"randomizedElectionTimeout" l) v.randomizedElectionTimeout' dq ∗
     "disableProposalForwarding" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwarding" l) v.disableProposalForwarding' dq ∗
-    "stepDownOnRemoval" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"stepDownOnRemoval" l) v.stepDownOnRemoval' dq ∗
     "tick" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"tick" l) v.tick' dq ∗
     "step" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"step" l) v.step' dq ∗
     "logger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"logger" l) v.logger' dq ∗
@@ -1030,22 +1012,6 @@ instance raft_access_store_disableProposalForwarding (l : Loc) (v : go_etcd_io.r
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwarding" l) v.disableProposalForwarding' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwarding" l) disableProposalForwarding' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with disableProposalForwarding' := disableProposalForwarding' } : go_etcd_io.raft.v3.raft) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance raft_access_load_stepDownOnRemoval (l : Loc) (v : go_etcd_io.raft.v3.raft) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"stepDownOnRemoval" l) v.stepDownOnRemoval' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"stepDownOnRemoval" l) v.stepDownOnRemoval' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance raft_access_store_stepDownOnRemoval (l : Loc) (v : go_etcd_io.raft.v3.raft) (stepDownOnRemoval' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"stepDownOnRemoval" l) v.stepDownOnRemoval' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"stepDownOnRemoval" l) stepDownOnRemoval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stepDownOnRemoval' := stepDownOnRemoval' } : go_etcd_io.raft.v3.raft) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

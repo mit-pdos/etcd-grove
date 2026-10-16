@@ -6,6 +6,7 @@ links:
   - etcd-io/raft#397 pr closed: related, not this bug (the user's: unique heartbeat ctxes for read-only requests)
   - etcd-io/raft#398 pr closed: related, not this bug (the user's: document not retrying ReadIndex with the same rctx)
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would remove the removed-leader half of the scenario, not the commit-index half)
+  - etcd-io/raft#239 pr open: related, not this bug: implements etcd-io/raft#83 (removed leader always steps down); removes execution 2 only: with it the removed leader of TestReadIndexSingletonRemovedLeaderStale is a follower (notes/pr-verify/raft-239.md, branch pr-verify/raft-239)
 ---
 
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change

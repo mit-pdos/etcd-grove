@@ -162,7 +162,7 @@ theorem RawNode.ReadIndex.wp_proof
     Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
     Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+    $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
 
 end proof
 

@@ -122,7 +122,7 @@ theorem RawNode.ProposeConfChange.wp_proof
       (by rw [Hfr.2.2.2.2.2.2.2.1]; exact Hpvoff)
       (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+      $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd

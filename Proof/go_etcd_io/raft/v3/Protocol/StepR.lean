@@ -42,8 +42,9 @@ four new rules:
   pending snapshot applied), `applyConf` (the configuration takes the next conf entry, in
   order, once per entry, decoded by `dec` from the entry and its prefix: the review's A1 gap),
   `stepDown` (a leader outside its configuration's voters becomes a follower at its term:
-  `switchToConfig` with `StepDownOnRemoval`; without it the leader stays, which the model
-  allows by not taking the rule).
+  `switchToConfig`, unconditionally since etcd-io/raft#239; before it only with
+  `StepDownOnRemoval`, and without it the leader stayed, which the model allows by not taking
+  the rule).
 
 `Adm l cs`: the configurations a node may take on after the full-log prefix `l` (by
 `applyConf`, or as a snapshot's by `snapRestore`). The dynamic model takes the fold of the
@@ -410,7 +411,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       ccStepB op r.cfg = some cs' →
       Adm (r.full.take (k + 1)) cs' →
       StepR r [] { r with cidx := k + 1, cfg := cs' }
-  /-- `switchToConfig` with `StepDownOnRemoval`: a leader outside the voters steps down at its
+  /-- `switchToConfig`'s step-down (etcd-io/raft#239: unconditional): a leader outside the voters steps down at its
   term. -/
   | stepDown (r : RState) :
       r.p.role = .leader →

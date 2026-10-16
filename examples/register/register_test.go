@@ -267,14 +267,13 @@ func TestRemoveMember(t *testing.T) {
 	for _, id := range voters {
 		st := NewStorage(voters)
 		peers[id] = raft.RestartNode(&raft.Config{
-			ID:                id,
-			ElectionTick:      10,
-			HeartbeatTick:     1,
-			Storage:           st,
-			MaxSizePerMsg:     1 << 20,
-			MaxInflightMsgs:   256,
-			Logger:            quietLogger{},
-			StepDownOnRemoval: true,
+			ID:              id,
+			ElectionTick:    10,
+			HeartbeatTick:   1,
+			Storage:         st,
+			MaxSizePerMsg:   1 << 20,
+			MaxInflightMsgs: 256,
+			Logger:          quietLogger{},
 		})
 		storages[id] = st
 	}

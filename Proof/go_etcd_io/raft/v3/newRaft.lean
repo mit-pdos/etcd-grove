@@ -139,8 +139,7 @@ theorem newRaft.wp_proof
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
-  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO, HpDCC,
-    HpSDR⟩ :=
+  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO, HpDCC⟩ :=
     Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
@@ -182,7 +181,7 @@ theorem newRaft.wp_proof
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
     W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
-    cv.PreVote', {}, {}, W64 0, W64 0, false, cv'.StepDownOnRemoval'⟩
+    cv.PreVote', {}, {}, W64 0, W64 0, false⟩
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
   · unfold ownRaftMisc
     simp only [named]
@@ -214,7 +213,7 @@ theorem newRaft.wp_proof
   -- empty tracker's own maps may be what `switchToConfig` installs, so they cannot also seal the
   -- struct first); `switchToConfig` installs the configuration and seals it
   icases ownRaftPhys_intro_trk (GMap.listToSet csm.Voters') «$r0_ptr» cv.ID' s0 _ [] [] lok
-    HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s0]; decide)⟩ (by rw [HpDPF, Hdpf]) (by rw [HpDCC, Hdccv]) (by rw [HpCQ, Hcq]) rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
+    HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s0]; decide)⟩ (by rw [HpDPF, Hdpf]) (by rw [HpDCC, Hdccv]) (by rw [HpCQ, Hcq]) rfl ⟨rfl, fun h => HvID h.symm⟩ rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
@@ -392,7 +391,7 @@ theorem newRaft.wp_proof
   -- vote: the state is the persisted `HardState`'s
   ipureintro
   refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-    rfl, rfl, rfl, HpSDR, Hprs'⟩
+    rfl, rfl, rfl, Hprs'⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]
   rfl

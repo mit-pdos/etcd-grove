@@ -557,7 +557,7 @@ theorem RawNode.Advance.wp_proof
         (by rw [Hs1.2.2.1]; exact Hsnap) trivial rfl (by rw [Hsg1.1]; exact Hstor)
         (by rw [Hsg1.2.1]; exact Hpvoff) (by rw [Hsg1.2.2]; exact Hrs_out)
         (by rw [Hsg1.2.2]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc1)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1
+        $$ Hrn Hphys Hghost Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1
       · iapply pendList_nil
     isplitr
     · ipureintro

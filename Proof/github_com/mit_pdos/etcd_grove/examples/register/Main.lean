@@ -256,7 +256,7 @@ abbrev nodeConfig (id : w64) (st : Loc) : Config :=
     PreVote' := false, ReadOnlyOption' := 0,
     Logger' := interface.mkOk qLoggerTy #qLoggerV,
     DisableProposalForwarding' := false, DisableConfChangeValidation' := false,
-    StepDownOnRemoval' := true, TraceLogger' := GoInterface.nil }
+    TraceLogger' := GoInterface.nil }
 
 theorem nodeConfig_valid (id : w64) (st : Loc) (h : id ∈ clusterIds) :
     ConfigValid (nodeConfig id st) := by
@@ -439,8 +439,7 @@ theorem Main.wp_proof
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl rfl rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
-      (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
-      (fun _ => rfl))
+      (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m)
       $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
     obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd

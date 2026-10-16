@@ -109,7 +109,7 @@ theorem RawNode.ReportUnreachable.wp_proof
       (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok) Htrm' (by rw [Hsg]; exact Hstor)
       (by rw [Hpre]; exact Hpvoff)
       (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+      $$ Hrn Hphys Hghost Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
     
   · exfalso; revert Hc'; msg_ne
 

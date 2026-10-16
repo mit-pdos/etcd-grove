@@ -245,7 +245,7 @@ func (r *Register) TransferLeadership(to uint64) {
 // RemoveMember asks raft to remove replica id from the cluster's voters
 // (Node.ProposeConfChange): once the change is committed, every replica's run applies it to
 // its node (Node.ApplyConfChange), and the cluster's quorums are then those of the remaining
-// voters; a leader that removes itself steps down (Config.StepDownOnRemoval). Nothing is
+// voters; a leader that removes itself steps down (raft does so unconditionally). Nothing is
 // promised of the outcome: raft drops a change proposed while another one is not yet
 // applied, and RemoveMember proposes it once.
 func (r *Register) RemoveMember(id uint64) {

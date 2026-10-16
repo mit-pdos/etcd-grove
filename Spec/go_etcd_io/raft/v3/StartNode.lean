@@ -33,8 +33,7 @@ the node is composed.
 
 **The peers**: a `[]Peer` slice at `dq` holding `pv`, their ids `ps` (distinct, non-zero, at most
 `2^62`, this node among them, the ghost configuration) and their `Context` bytes `ctxs`
-(read-only, `peersCtx`). The `Config` premises are `NewRawNode`'s (static mode only: no
-`StepDownOnRemoval` requirement). **The term budget** is at least at term `1`, the bootstrap
+(read-only, `peersCtx`). The `Config` premises are `NewRawNode`'s (static mode only). **The term budget** is at least at term `1`, the bootstrap
 term (`budget_alloc_boot`, `InvNode.lean`: a budget allocated for a new cluster; `run` starts
 with `termLB bud term`). -/
 module

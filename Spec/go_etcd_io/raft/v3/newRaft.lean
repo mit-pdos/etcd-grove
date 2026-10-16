@@ -193,8 +193,9 @@ abbrev newRaft.spec : Prop :=
         -- no read state (2026-10-13)
         s.rd.states = [] ∧ s.rd.pend = [] ∧
         -- (2026-10-14, reconfiguration stage B7 part 2, for a dynamic `NewRawNode`) the
-        -- `Config`'s `StepDownOnRemoval`, and the voters tracked, no learner
-        s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = GMap.listToSet csm.Voters'⌝ }}
+        -- voters tracked, no learner (the `Config`'s `StepDownOnRemoval` too, until
+        -- etcd-io/raft#239 removed it)
+        domSet s.progress = GMap.listToSet csm.Voters'⌝ }}
 
 end spec
 

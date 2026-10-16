@@ -46,9 +46,9 @@ theorem setupNode.wp_proof
   subst Herr
   wp_auto
   have Hfresh0 : GMap.listToSet csm.Voters' = ∅ := by rw [Q1]; rfl
-  ihave Hfresh' : rawNodeFresh rn cv.ID' si ∅ cv.StepDownOnRemoval' s $$ [Hfresh]
+  ihave Hfresh' : rawNodeFresh rn cv.ID' si ∅ s $$ [Hfresh]
   · rw [← Hfresh0]; iexact Hfresh
-  wp_apply wp_RawNode_Bootstrap γ rn cv.ID' si cv.StepDownOnRemoval' s peers dq pv ps ctxs
+  wp_apply wp_RawNode_Bootstrap γ rn cv.ID' si s peers dq pv ps ctxs
     bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
     $$ [$Hfresh' $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted] as %err2 ⟨%Herr2, Hrn, Hpeers⟩
   subst Herr2

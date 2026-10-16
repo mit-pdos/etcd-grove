@@ -37,9 +37,10 @@ Returned: a fresh `*ConfState` holding the voters (`cfg`'s, in some order) and t
 **Any change, detached (2026-10-13, reconfiguration stage A2).** The premise is now `CCApplies`:
 for every learner set the node may track, the change is carried out (`ccApplyM` answers: no
 `confchange` error, no undefined transition, `issues/raft-unknown-transition-panic.md`), leaves
-the node a voter of either half (a removed or demoted leader would step down only with
-`Config.StepDownOnRemoval`, which the node's client-facing state does not record; a removed
-candidate would stay one) and tracks at most `2^62` ids. A shrinking change (`CCShrink`, the
+the node a voter of either half (a removed or demoted leader stepped down only with
+`Config.StepDownOnRemoval`, which the node's client-facing state does not record; since
+etcd-io/raft#239 it always does, so for a leader this premise could now be relaxed, which is
+not done here; a removed candidate would stay one) and tracks at most `2^62` ids. A shrinking change (`CCShrink`, the
 scope above, which implies `CCApplies` at a voter) keeps `ownRawNode γ` as before. Any other
 change -- adding a learner, changing the voters, entering or leaving a joint configuration --
 returns `ownRawNodeC c'.cfg rn id s'` (`InvRawnodeC.lean`): the node's memory at the new

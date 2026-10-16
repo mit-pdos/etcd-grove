@@ -1,0 +1,39 @@
+# etcd-io/raft#239 (StepDownOnRemoval made unconditional): the changed functions, the
+# callers whose premises changed with them, and the register example that set the field
+# (notes/pr-verify/raft-239.md, branch pr-verify/raft-239).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-239.txt [--check [--update]]
+roots raft__switchToConfig
+roots newRaft
+roots Config__validate
+roots raft__applyConfChange
+roots RawNode__ApplyConfChange
+roots RawNode__Bootstrap
+roots NewRawNode
+roots RestartNode
+roots StartNode
+roots setupNode
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.lean$
+axiom DescribeConfChange.wp_proof
+axiom context.ErrDone.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
+sorry Perennial.crypto.rand.initialize'.wp_proof
+sorry Perennial.errors.wp_errorType_init
+sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'
+sorry Perennial.google_golang_org.protobuf.proto.wp_initialize'
+sorry Perennial.log.initialize'.wp_proof
+sorry Perennial.math.big.initialize'.wp_proof
+sorry Perennial.math.initialize'.wp_proof
+sorry Perennial.os.wp_initialize'
+sorry Perennial.strconv.wp_initialize'
+sorry Perennial.time.initialize'.wp_proof

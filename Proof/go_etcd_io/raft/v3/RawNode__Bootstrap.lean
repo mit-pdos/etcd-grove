@@ -35,7 +35,7 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  intro γ rn id si sdr s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
+  intro γ rn id si s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
@@ -96,13 +96,13 @@ theorem RawNode.Bootstrap.wp_proof
   generalize Hs1 : ({ becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } : NState) = s1
   have Hs1f : s1.term = W64 1 ∧ s1.vote = W64 0 ∧ s1.lead = W64 0 ∧ s1.role = .follower ∧
       s1.votes = ∅ ∧ s1.outbox = s.outbox ∧ s1.logst = s.logst ∧ s1.log = s.log ∧ s1.gh = s.gh ∧
-      s1.prevote = s.prevote ∧ s1.sdr = s.sdr ∧ s1.rd.states = s.rd.states ∧
+      s1.prevote = s.prevote ∧ s1.rd.states = s.rd.states ∧
       s1.rd.pend = s.rd.pend ∧ s1.stepfn = stepFuncOf .follower ∧ s1.ticking = true := by
     rw [← Hs1]
-    refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
     show (if W64 1 = s.term then s.vote else W64 0) = W64 0
     rw [Ht0]; exact ite_eq_right (by decide)
-  obtain ⟨Hs1t, Hs1v, Hs1l, Hs1r, Hs1vs, Hs1o, Hs1ls, Hs1lg, Hs1gh, Hs1pv, Hs1sdr, Hs1rs, Hs1rp,
+  obtain ⟨Hs1t, Hs1v, Hs1l, Hs1r, Hs1vs, Hs1o, Hs1ls, Hs1lg, Hs1gh, Hs1pv, Hs1rs, Hs1rp,
     Hs1sf, Hs1tk⟩ := Hs1f
   -- `ents := make([]*pb.Entry, len(peers))`
   wp_apply wp_slice_make2 (V := Loc) peers.len as %ents ⟨Hents, Hents_cap⟩
@@ -372,7 +372,7 @@ theorem RawNode.Bootstrap.wp_proof
       omega
     wp_apply wp_raft_applyConfChange (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅) rnv.raft' id
         sk v _ (DFrac.own 1) (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅)
-        (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
+        (bootCC_apply _ _ Hp0) Hsz
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
       $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
     obtain ⟨prs', pvs', Hsk'⟩ := applyCCOkC_nonleader _ _ _ _ Hok (by rw [Hskr]; decide)
@@ -396,9 +396,6 @@ theorem RawNode.Bootstrap.wp_proof
     rw [Hklen, ← Hpslen]; exact List.take_length
   ihave Hphys : ownRaftPhysC (CfgM.simple (GMap.listToSet ps) ∅) rnv.raft' id sk $$ [Hphys]
   · iExactEq Hphys; rw [Htakek]
-  icases ownRaftPhysC_sdr _ rnv.raft' id sk $$ Hphys with ⟨#Hsd0, Hphys⟩
-  ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
-  · iunfold sdrOk; iexists sk.sdr; iframe Hsd0; ipureintro; intro h; cases h
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' id sk $$ [Hphys]
   · rw [R7]; iexact Hphys
@@ -440,7 +437,7 @@ theorem RawNode.Bootstrap.wp_proof
         (by rw [HNls]; simp only [logAppend, Hsn]) trivial
         (by rw [HNt]) (by rw [HNls]; simp only [logAppend, Hsg]) HNpv
         (by rw [HNgh]) (by rw [HNgh]) (uint_Z_nonneg _)
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
+      $$ Hrn Hphys Hghost Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
     · iapply pendList_nil
     · rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil
   · iexact Hpeers

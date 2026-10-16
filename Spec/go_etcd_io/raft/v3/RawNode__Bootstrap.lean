@@ -47,7 +47,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev RawNode.Bootstrap.spec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (si : GoInterfaceOk) (sdr : Bool) (s : NState)
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (si : GoInterfaceOk) (s : NState)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
     (bootLog : List EntryM),
   -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster
@@ -61,7 +61,7 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   BootLogOk γ.reCCOk ps bootLog →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- the node `NewRawNode` built on an empty conf state, open
-      rawNodeFresh rn id si ∅ sdr s ∗
+      rawNodeFresh rn id si ∅ s ∗
       -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       -- this node's ghost state at the bootstrap state, and the committed boot log

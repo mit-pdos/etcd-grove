@@ -86,7 +86,6 @@ theorem raft.switchToConfig.wp_proof
   generalize Hs0 : ({ s with progress := prs, prvals := pvs } : NState) = s0
   have Hrole0 : s0.role = s.role := by rw [← Hs0]
   have Hprs0 : s0.progress = prs := by rw [← Hs0]
-  have Hsdr0 : s0.sdr = s.sdr := by rw [← Hs0]
   -- the log line: `r.id`, `r.trk.Config`
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback⟩
@@ -368,11 +367,7 @@ theorem raft.switchToConfig.wp_proof
       rw [ite_eq_left Hl1, ite_eq_left Hin]
       exact Hs'
     · ------------------------------------------------------------------
-      -- a leader removed or demoted: it steps down (`stepDownOnRemoval`, by the premise)
-      have Hsdr : s.sdr = true := by
-        rcases Hlead Hl with ⟨h, -⟩ | ⟨-, h⟩
-        · exact absurd h Hin
-        · exact h
+      -- a leader removed or demoted: it steps down (unconditionally since etcd-io/raft#239)
       have Hst : stateW64 s0.role = W64 2 := by rw [Hrole0, Hl]; rfl
       -- `r.isLearner = ok && pr.IsLearner`, then `(!ok || r.isLearner) && r.state == Leader`
       cases Hlk : s0.progress !! id with
@@ -402,11 +397,7 @@ theorem raft.switchToConfig.wp_proof
         try wp_auto
         have HLL : learnerOfC c id = true := decide_eq_true Hlr
         generalize Hs1 : ({ s0 with isLearner := true } : NState) = s1
-        have Hsdr1 : s1.sdr = true := by rw [← Hs1]; exact Hsdr0.trans Hsdr
         have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hrole0.trans Hl
-        wp_apply raft.wp_load_stepDownOnRemovalC $$ Hphys as Hphys
-        rw [Hsdr1]
-        try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
         wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
           as %pvs' Hphys
@@ -443,11 +434,7 @@ theorem raft.switchToConfig.wp_proof
           obtain ⟨x, hx⟩ := hk
           rw [Hlk] at hx; cases hx
         generalize Hs1 : ({ s0 with isLearner := false } : NState) = s1
-        have Hsdr1 : s1.sdr = true := by rw [← Hs1]; exact Hsdr0.trans Hsdr
         have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hrole0.trans Hl
-        wp_apply raft.wp_load_stepDownOnRemovalC $$ Hphys as Hphys
-        rw [Hsdr1]
-        try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
         wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
           as %pvs' Hphys

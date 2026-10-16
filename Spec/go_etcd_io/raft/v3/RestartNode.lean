@@ -75,8 +75,6 @@ abbrev RestartNode.spec : Prop :=
   csm.AutoLeave' = false →
   γ.reCfg = GMap.listToSet csm.Voters' →
   cv.ID' ∈ csm.Voters' →
-  -- (2026-10-15, stage N) the dynamic mode with `StepDownOnRemoval` (`NewRawNode`'s)
-  (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
