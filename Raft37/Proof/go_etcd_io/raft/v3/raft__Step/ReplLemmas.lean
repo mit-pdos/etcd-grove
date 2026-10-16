@@ -9,6 +9,8 @@ module
 
 public import Raft37.Proof.go_etcd_io.raft.v3.raft__Step.Base
 public import Raft37.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import Raft37.Proof.go_etcd_io.raft.v3.InvPbLog
+public import Raft37.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
@@ -101,6 +103,45 @@ theorem msgIn_prop {ml : Loc} {m : MessageM} {st : MsgSt} (h : m.Type' = MsgProp
     msgIn (GF := GF) ml (DFrac.own 1) st ⊢
       msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
   simp only [h, ↓reduceIte]; exact .rfl
+
+/-- `m.GetSnapshot()` of a message holding no snapshot: `nil`. -/
+theorem wp_GetSnapshot_none (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) (h : ms.snap = none) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgPtsC l dq dqe cap ms }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetSnapshot")) (Val #()))
+    {{ RET #(null : Loc); msgPtsC l dq dqe cap ms }} := by
+  iintro %Φ ⟨#Hi, Hm⟩ HΦ
+  iapply Q.GetSnapshot.1 l dq dqe cap ms $$ [$Hi $Hm]
+  inext
+  iintro %ps ⟨Hs, Hback⟩
+  ihave Hs' : snapOpt (GF := GF) ps dq none $$ [Hs]
+  · rw [← h]; iexact Hs
+  simp only [snapOpt]
+  icases Hs' with %Hps
+  subst Hps
+  iapply HΦ
+  iapply Hback
+  rw [h]; simp only [snapOpt]; ipureintro; trivial
+
+/-- `m.GetEntries()` of a message whose entries are read-only: a read-only entry slice holding
+`ms.ents`, the message kept. -/
+theorem wp_GetEntries_ro (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (l : Loc) (dq : DFrac) (cap : Bool) (ms : MsgSt) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
+        msgPtsC l dq DFrac.discard cap ms }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetEntries")) (Val #()))
+    {{ (es : GoSlice), RET #es; entsRO es ms.ents ∗ msgPtsC l dq DFrac.discard cap ms }} := by
+  iintro %Φ ⟨#Hi, Hm⟩ HΦ
+  iapply Q.GetEntries.1 l dq DFrac.discard cap ms $$ [$Hi $Hm]
+  inext
+  iintro %es %els ⟨#Hes, #Hents, Hcap, Hback⟩
+  iapply HΦ
+  isplitr
+  · iunfold entsRO
+    iunfold entsPts
+    iexists els
+    iframe Hes Hents
+  iapply Hback $$ %cap %els %ms.ents Hes Hents Hcap
 
 /-- A fresh cell, frozen: read-only. -/
 theorem cellRO_of_pointsto {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V)
