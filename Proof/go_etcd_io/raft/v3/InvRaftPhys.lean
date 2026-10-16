@@ -2326,6 +2326,66 @@ theorem ownRaftPhys_reconfig (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NSt
     Hok
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
+/-- `ownRaftPhys_intro` with the tracker left out (2026-10-16, stage R8b): the struct's `trk`
+field and the re-sealing wand `switchToConfig`'s spec takes (`Hback`, as `ownRaftPhys_reconfig`
+gives it), for a struct whose tracker is about to be replaced. `newRaft` on an empty conf state
+installs the empty tracker's own maps, which `confchange.Restore` hands back unchanged
+(`confchange.Restore.spec_empty`): they cannot also make an `ownTracker` for the struct first. -/
+theorem ownRaftPhys_intro_trk (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (rv : raft)
+    (msgs msgsAA : List QMsg) (lok : GoInterfaceOk) :
+    rv.id' = id →
+    rv.Term' = s.term →
+    rv.Vote' = s.vote →
+    rv.lead' = s.lead →
+    rv.state' = stateW64 s.role →
+    rv.step' = s.stepfn →
+    rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
+    rv.disableProposalForwarding' = false →
+    rv.disableConfChangeValidation' = false →
+    rv.checkQuorum' = false →
+    rv.isLearner' = s.isLearner →
+    rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
+    rv.pendingConfIndex' = s.pci →
+    rv.stepDownOnRemoval' = s.sdr →
+    id ≠ W64 0 →
+    0 < sint.Z rv.electionTimeout' →
+    rv.logger' = interface.ok lok →
+    rv.raftLog' = s.log →
+    (s.ticking = true → TickFnOk r rv.tick') →
+    (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
+    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote s.term m.st.msg) →
+    s.gh.outlb ≤ msgs.length + msgsAA.length →
+    (s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none) →
+    (s.role ≠ .follower → id ∈ cfg) →
+    ⊢ raftOwn (GF := GF) r rv -∗
+      isLogger lok -∗
+      ownRaftLog rv.raftLog' s.logst -∗
+      rv.msgs' ↦* msgs.map QMsg.loc -∗
+      ownSliceCap Loc rv.msgs' (DFrac.own 1) -∗
+      rv.msgsAfterAppend' ↦* msgsAA.map QMsg.loc -∗
+      ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) -∗
+      ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd -∗
+      outboxRel s.outbox msgs msgsAA -∗
+      r.[raft, go!"trk"] ↦ rv.trk' ∗
+        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
+           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
+           ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) := by
+  intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum
+    HnoLearner HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
+    Hgh_out Hgh_unst Hvoter
+  iintro Hr #Hlogger Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
+  iframe Hf
+  iintro %tv' %prs' %pvs' Hf Htrk %Hok
+  ihave Hr := Hback $$ %tv' Hf
+  iapply ownRaftPhys_intro cfg r id { s with progress := prs', prvals := pvs' }
+      { rv with trk' := tv' } msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    Hgh_unst Hvoter Hok
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+
 /-- The tracker replaced while the log is in use (2026-10-02): `restore` stores a fresh
 tracker into `r.trk`, loads it back, calls `r.raftLog.lastIndex()` and only then hands
 the new tracker's (empty) voter map to `confchange.Restore` -- so between the store and
