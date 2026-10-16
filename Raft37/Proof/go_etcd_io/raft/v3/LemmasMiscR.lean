@@ -6,10 +6,13 @@ stage R4 phase 3, group G1).
   states it unfolded) is `hsRO es ⟨0, 0, 0⟩`.
 * `wp_hsOpt_GetTerm`/`_GetVote`/`_GetCommit`: the getters of a `nil`-or-read-only hard state
   (`hsOpt`), from R1's getter specs (one per case of `hsOpt`).
+* `msgOwn_zero`: a fresh `&pb.Message{}` is an owned message holding the zero record
+  (`responseToReadIndexReq`'s local case).
 -/
 module
 
 public import Raft37.Proof.go_etcd_io.raft.v3.InvPbLog
+public import Raft37.Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
 public import Raft37.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
@@ -94,6 +97,28 @@ theorem wp_hsOpt_GetCommit (wp_GetCommit : raftpb.HardState.GetCommit.spec (GF :
   · subst Hp Hh
     iapply wp_GetCommit.2 $$ Hi HΦ
   · iapply wp_GetCommit.1 p hs $$ [$Hi $H] HΦ
+
+/-- A fresh `&pb.Message{}`: an owned message holding the zero record, every list empty. -/
+theorem msgOwn_zero (l : Loc) (E : CoPset) :
+    (l ↦ (zero_val raftpb.Message) : IProp GF) ⊢
+      |={E}=> msgOwn l (DFrac.own 1) ⟨zero_val MessageM, [], none, [], []⟩ := by
+  iintro Hl
+  ihave Hnil : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnil with #Hnil
+  ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnilb with #Hnilb
+  ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  iapply msgOwn_of_struct l (zero_val raftpb.Message) [] _ E rfl
+  iframe Hl
+  simp only [snapOpt]
+  iframe Hnil Hnilb Hnilr
+  repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
+  isplitr
+  · iapply BigSepL2.bigSepL2_nil.2; itrivial
+  ipureintro; rfl
 
 end lemmas
 
