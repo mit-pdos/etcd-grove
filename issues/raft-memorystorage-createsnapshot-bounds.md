@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: `MemoryStorage.CreateSnapshot` panics outside `[firstIndex-1, lastIndex]`, undocumented
 
 **Status**: open (not reported upstream).

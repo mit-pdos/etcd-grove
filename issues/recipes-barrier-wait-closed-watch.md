@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # clientv3/experimental/recipes: Barrier.Wait returns nil (released) when its watch closes while the barrier is held
 
 ## Summary

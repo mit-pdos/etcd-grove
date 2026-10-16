@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # A value above bbolt's `MaxValueSize` makes the backend's put exit the process
 
 - **Status**: open (not filed). An unstated precondition of `BatchTx.UnsafePut` /

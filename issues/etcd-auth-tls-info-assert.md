@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # auth: `AuthInfoFromTLS` panics for a peer whose credentials are not TLS (undocumented)
 
 - **Status**: open, documentation (an unstated precondition; unreachable in etcd's server, whose

@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: `MemoryStorage.InitialState` accesses its fields without the mutex
 
 **Status**: open (not reported upstream). **Also in raft v3.7.0** (2026-10-15, the retarget's

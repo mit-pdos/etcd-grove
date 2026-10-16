@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: a `ConfChangeV2` with an undefined `Transition` is committed, then panics every node that applies it
 
 **Status**: open (not reported upstream; an undocumented precondition: applications that build

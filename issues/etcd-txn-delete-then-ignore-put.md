@@ -1,3 +1,13 @@
+---
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#22395 pr open: same root cause and fix (checkIntervals reads a from-key delete as empty); does not mention the panic, says not a security fix
+  - etcd-io/etcd#22445 issue closed: same root cause, closed as a duplicate of #22395
+  - etcd-io/etcd#22446 pr closed: same fix, closed as a duplicate of #22395
+candidate: issues/upstream/etcd-txn-delete-then-ignore-put/
+---
+
 # etcdserver: a txn that deletes from a key on and then puts it with IgnoreValue panics every member, permanently
 
 ## Summary

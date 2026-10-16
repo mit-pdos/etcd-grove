@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # etcdserver: checkIntervals accepts a put in a nested txn and a delete of the key in a later sibling txn
 
 - **Status**: open (not filed). Not a crash found; the check is inconsistent with itself.

@@ -1,3 +1,12 @@
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#21326 pr merged: related (the same limit/sort logic, KEY/ASCEND); not this bug
+  - etcd-io/etcd#6672 pr merged: related (2016: NONE with a non-key target sorts ascending); where the bug starts
+candidate: issues/upstream/etcd-range-sort-none-limit/
+---
+
 # server/etcdserver/txn: a range sorted by version, revision or value with no order and a limit returns the wrong keys
 
 ## Summary

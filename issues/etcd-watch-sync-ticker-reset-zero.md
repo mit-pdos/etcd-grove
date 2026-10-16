@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server/storage/mvcc: `syncWatchersLoop` resets its ticker with a zero duration, a panic
 
 - **Status**: open (not filed; no fix branch yet).

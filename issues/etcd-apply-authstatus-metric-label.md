@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # The apply metrics label an `AuthStatus` request `unknown`
 
 - **Status**: open (minor; not filed).

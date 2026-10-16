@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: entries persisted without their `HardState.Commit` can break membership safety
 
 - **Status**: open (documentation precondition; plausibility only, not demonstrated on etcd).

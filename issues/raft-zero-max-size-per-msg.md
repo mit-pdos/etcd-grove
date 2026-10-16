@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: zero `MaxSizePerMsg` and `MaxCommittedSizePerReady` panic on the first commit
 
 **Status**: open (not reported upstream; not checked whether raft after `40f8be7` fixed it).

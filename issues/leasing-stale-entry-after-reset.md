@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # clientv3/leasing: a key acquired just before a session ends stays cached under the next session
 
 ## Summary

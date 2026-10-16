@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: an empty `ConfChangeV2` with a non-`Auto` transition is accepted while joint, then panics every node that applies it
 
 - **Status**: open (not reported upstream).

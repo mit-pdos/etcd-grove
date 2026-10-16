@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # Go: a type assertion on an interface value read as another interface type panics
 
 - **Status**: open (recorded for tracking; not filed). It is unclear which aspect of Go, if

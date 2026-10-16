@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # etcdserver: keys-only ranges return lease 0 unless sorted by value (regression in v3.7)
 
 ## Summary

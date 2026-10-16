@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # Election.Campaign returns nil after its key was deleted while it waited
 
 ## Summary

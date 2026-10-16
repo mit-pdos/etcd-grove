@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # clientv3/leasing: transactions answered from the cache evaluate comparisons on missing keys and leases differently from etcd
 
 ## Summary

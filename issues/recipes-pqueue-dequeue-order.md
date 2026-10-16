@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # recipes: `PriorityQueue.Dequeue`'s "FIFO order" comment, and its order at the claim
 
 **Status**: open (a documentation request; not filed; no fix branch).

@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: calling `Advance` before `ApplyConfChange`, which the documentation allows, breaks safety
 
 - **Status**: open (documentation precondition; not reported upstream yet). Upstream drafts:

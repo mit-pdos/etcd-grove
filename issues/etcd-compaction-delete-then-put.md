@@ -1,3 +1,12 @@
+---
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#22376 issue open: same bug (compaction at a delete-and-recreate revision loses the live value)
+  - etcd-io/etcd#22377 pr open: fix for #22376 (keyIndex.doCompact; a regression from #18274)
+  - etcd-io/etcd#22395 pr open: related; closes the gRPC path to the bug (from-key delete then put in one txn)
+---
+
 # server/storage/mvcc: compacting at a revision that deletes a key and puts it again deletes the live value
 
 - **Status**: open (not filed; no fix branch yet). Reachable through etcd's gRPC API (2026-10-14,

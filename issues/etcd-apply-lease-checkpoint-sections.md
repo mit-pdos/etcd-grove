@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server: a lease checkpoint entry is not persisted atomically with its consistent index
 
 ## Summary

@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change
 
 - **Status**: fixed in a fork commit, verified at `raft.Step` (2026-10-14, stage F): `0560cb7` (etcd-io/raft

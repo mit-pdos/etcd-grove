@@ -5,9 +5,34 @@ documentation: a bug (a reachable panic or wrong result), a precondition the cod
 but its API does not state, or documentation the code contradicts. Not for bugs in this
 repository's own specs and proofs (those go in `notes/`).
 
-Name a file `<project>-<short-slug>.md` and give it:
+Name a file `<project>-<short-slug>.md`. It starts with a front-matter block that tracks where the
+issue stands upstream (the only place that does; `etc/issues-status.py` lists it, and `--refresh`
+updates the linked issues' and PRs' states from GitHub):
 
-- **Status**: open / reported (link) / fixed upstream (commit) / not a bug (why).
+```
+---
+upstream: none
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#22395 pr open: same root cause and fix; does not mention the panic
+candidate: issues/upstream/<slug>/
+---
+```
+
+- `upstream`: `unchecked` (no search of upstream yet), `none` (searched: nothing upstream, not
+  reported), `known` (an upstream issue or PR by someone else covers it, in `links`), `reported` (we
+  filed it, in `links`), `fixed` (fixed upstream: the PR or commit in `links`), `not-filing` (decided
+  not to report; say why in `links` or the body).
+- `checked`: when upstream was last searched (or the links refreshed).
+- `links`: one line per related upstream issue, PR or commit: `<repo>#<n> <issue|pr> <state>: <how it
+  relates>` (state: `open`, `closed`, `merged`), or `<repo>@<sha>: ...` for a commit. Related but
+  different issues go here too, saying so.
+- `candidate` (optional): the upstream drafts (`.claude/skills/upstream-report`).
+
+Then give it:
+
+- **Status**: what the finding is (a bug, an unstated precondition, documentation; not a bug,
+  why), not where it is upstream (the front matter).
 - **Where**: the Go code (file:line at the pinned revision in `etc/goose.py`) and the
   documentation involved.
 - **What happens**: the behavior, with a reproduction (a Go test, inline or by path) when

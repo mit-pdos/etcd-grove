@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # etcdserver: request ids of two members collide when their member ids agree in the low 16 bits
 
 - **Status**: open (not filed; a robustness issue of low probability).

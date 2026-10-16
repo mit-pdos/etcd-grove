@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server: the unary interceptor's learner check panics if the local member is removed meanwhile
 
 - **Status**: open (a narrow race: a reachable panic of a member that is being removed).

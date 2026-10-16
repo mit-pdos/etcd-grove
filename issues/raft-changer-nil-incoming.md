@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: a `confchange.Changer` over a tracker with a `nil` incoming voter map panics
 
 **Status**: open (not reported upstream; minor: raft's own trackers never have it).

@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: `tracker.Config.Clone` drops `AutoLeave`, so `Status().Config.AutoLeave` is always false
 
 **Status**: open (not reported upstream; not checked whether raft after `40f8be7` fixed it).

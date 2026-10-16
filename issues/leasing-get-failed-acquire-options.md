@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # clientv3/leasing: a Get of a key leased by another client ignores the request's options
 
 ## Summary

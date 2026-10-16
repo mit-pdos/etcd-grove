@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server/etcdserver/apply: the alarm gauge counts an alarm activated twice twice
 
 - **Status**: open (a wrong metric value; not filed).

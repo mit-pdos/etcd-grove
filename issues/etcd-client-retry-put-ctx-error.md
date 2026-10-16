@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # clientv3: the retry interceptor retries a Put (any non-repeatable RPC) after a `Canceled` or `DeadlineExceeded` status while the caller's context is live
 
 - **Status**: open (not filed; a robustness issue: a write may be applied twice, on a path that

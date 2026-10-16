@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # auth: `AuthInfoFromCtx` panics on a token key with no value in the incoming metadata
 
 - **Status**: open, robustness (a reachable panic only through an in-process caller: grpc's

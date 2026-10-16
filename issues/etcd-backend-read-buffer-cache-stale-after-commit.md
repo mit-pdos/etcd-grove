@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # `ConcurrentReadTx` reuses a read-buffer copy from before a commit: deleted keys come back, old values return
 
 - **Status**: open (not filed).

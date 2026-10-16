@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # clientv3/leasing: EvictRange evicts only the range's first key, leaving deleted keys in the cache
 
 ## Summary

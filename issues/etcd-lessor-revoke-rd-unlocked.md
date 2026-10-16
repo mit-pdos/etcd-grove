@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # lease: `SetRangeDeleter`/`Recover` must not run concurrently with `Revoke` (undocumented)
 
 - **Status**: open, documentation (an unstated precondition, not a bug: unreachable in etcd's

@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # clientv3/leasing: a range delete can proceed while another client holds the lease on a key in the range
 
 ## Summary

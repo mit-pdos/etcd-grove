@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # concurrency: the STM's "revision of the first read" doc comment does not hold for retried attempts
 
 ## Summary

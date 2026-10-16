@@ -91,7 +91,7 @@ the same pattern; Perennial's are modules too.
 When you find a bug in the Go code being verified (a reachable panic, a wrong result) or
 in its documentation (a precondition the code needs that its API does not state, behavior
 its documentation contradicts), record it in `issues/`, one file per issue, in the format
-of `issues/README.md`, with a reproduction when you can make one (a Go test). Do this as
+of `issues/README.md` (starting with its front matter, `upstream: unchecked`), with a reproduction when you can make one (a Go test). Do this as
 soon as it is found, including when a spec sidesteps it with a premise: the premise is
 where the proof records it, `issues/` is where people find it. Bugs in this repository's
 own specs and proofs go in `notes/` instead. A subagent that finds one says so in its

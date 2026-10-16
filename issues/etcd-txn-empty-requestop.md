@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # server/etcdserver/txn: `Txn` panics on a `RequestOp` with an empty oneof
 
 - **Status**: open (a precondition the package's API does not state; not reachable through

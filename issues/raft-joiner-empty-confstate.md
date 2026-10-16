@@ -1,3 +1,9 @@
+---
+upstream: unchecked
+checked:
+links:
+---
+
 # raft: with the initial `ConfState` in an index-0 snapshot, a node added later replays conf changes onto an empty configuration and can win alone
 
 - **Status**: open (undocumented precondition; not reported upstream).
