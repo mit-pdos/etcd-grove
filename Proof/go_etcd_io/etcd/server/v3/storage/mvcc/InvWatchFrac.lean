@@ -407,10 +407,11 @@ agree on the state through `γ.wst`. -/
 theorem watchStoreInv_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : WsNames) : Fractional (watchStoreInv (GF := GF) s γ) := by
   unfold watchStoreInv
-  refine wFractional_exists _ (fun σ => watchStoreBody_fractional hsplit s γ σ) ?_
+  refine wFractional_exists _ (fun σ => wFractional_sep (watchStoreBody_fractional hsplit s γ σ)
+    (wFractional_persistent _)) ?_
   intro σ1 σ2 q1 q2
   unfold watchStoreBody
-  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+  iintro ⟨⟨⟨H1, -⟩, -⟩, ⟨⟨H2, -⟩, -⟩⟩
   ihave %H := ghostVar_valid_2 γ.wst _ _ _ _ $$ H1 H2
   ipureintro; exact H.2
 

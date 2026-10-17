@@ -32,6 +32,12 @@ theorem wsInit_ok [FfiSyntax] : WsOk wsInit := by
     simp [wsInit, GMap.lookup_empty] at h
   constructor <;> intros <;> simp_all [wsInit, GMap.lookup_empty, WsState.victimOf]
 
+theorem wsInit_settled [FfiSyntax] : wsInit.settled := by
+  constructor
+  · intro w γw ed h; simp [wsInit, GMap.lookup_empty] at h
+  · exact ⟨fun w st h => by simp [wsInit, WsState.victimOf] at h,
+      fun w st h => by simp [wsInit, GMap.lookup_empty] at h⟩
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

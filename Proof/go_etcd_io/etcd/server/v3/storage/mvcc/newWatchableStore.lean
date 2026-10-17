@@ -101,6 +101,9 @@ theorem mvcc.newWatchableStore.wp_proof
   ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
+    isplitl [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
+    rotate_left
+    · ipureintro; exact mvcc.wsInit_settled
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
     iframe Hwst Hsy Hun victims Hmeta Hwt

@@ -534,6 +534,110 @@ theorem appendState_victimOf (σ : WsState) (NV : GMap Loc NvEnt) (vs : GoSlice)
   simp only
   rw [List.findSome?_append]; simp
 
+/-! ### The lock settled (unit W-K) -/
+
+theorem takeState_settled {σ : WsState} (hs : σ.settled) (vs : GoSlice) :
+    (takeState σ vs).settled := by
+  have hE : ∀ w, (takeState σ vs).E !! w = (σ.E !! w).filter (fun _ => !(σ.victimOf w).isSome) :=
+    fun w => rfl
+  have hWo : ∀ w, (takeState σ vs).Wo !! w =
+      (σ.Wo !! w).or ((σ.ST !! w).filter (fun _ => (σ.victimOf w).isSome)) := fun w => rfl
+  refine ⟨fun w γw ed h1 hm he => ?_, fun w st h1 _ => ?_, fun w st h2 => ?_⟩
+  · rw [hE] at he
+    have he' : σ.E !! w = some ed := by
+      cases h' : σ.E !! w with
+      | none => rw [h'] at he; simp at he
+      | some e => rw [h'] at he; simp at he; first | exact congrArg some he.1 | exact congrArg some he.2
+    exact hs.1 w γw ed h1 hm he'
+  · rw [takeState_victimOf] at h1; cases h1
+  · rw [hWo] at h2
+    cases ho : σ.Wo !! w with
+    | some st' => rw [ho] at h2; simp at h2; subst h2; exact hs.2.2 w _ ho
+    | none =>
+      rw [ho] at h2
+      cases hst : σ.ST !! w with
+      | none => rw [hst] at h2; simp at h2
+      | some st' =>
+        rw [hst] at h2
+        cases hv : (σ.victimOf w).isSome
+        · rw [hv] at h2; simp at h2
+        · rw [hv] at h2; simp at h2; subst h2; exact hs.2.1 w _ hv hst
+
+theorem readdState_settled {σ : WsState} (h : WsOk σ) (hs : σ.settled) {w : Loc}
+    {st0 : WatcherSt} (r : WatchRange) (hw : σ.Wo !! w = some st0) (b : Bool)
+    (e : List EvM × Nat) (hd : b = true → e.2 ≤ σ.Lmu.length) :
+    (readdState σ w r { st0 with victim := false } b e).settled := by
+  obtain ⟨-, -, hWs, -, hv, -⟩ := h.out hw
+  refine ⟨fun k γk ed h1 hm he => ?_, fun k st h1 hst => ?_, fun k st h2 => ?_⟩
+  · by_cases hk : k = w
+    · subst hk
+      have he' : <[k := e]> σ.E !! k = some ed := he
+      rw [GMap.lookup_insert] at he'; cases he'
+      cases b
+      · have h1' : (σ.Ws !! k).isSome := h1
+        rw [hWs] at h1'; cases h1'
+      · exact Or.inl (hd rfl)
+    · have hk' : w ≠ k := Ne.symm hk
+      have h1' : (σ.Ws !! k).isSome := by
+        cases b <;> simp_all [readdState, GMap.lookup_insert_ne _ _ hk']
+      have he' : <[w := e]> σ.E !! k = some ed := he
+      rw [GMap.lookup_insert_ne _ _ hk'] at he'
+      exact hs.1 k γk ed h1' hm he'
+  · rw [readdState_victimOf] at h1
+    by_cases hk : k = w
+    · subst hk; rw [hv] at h1; cases h1
+    · have hst' : <[w := { st0 with victim := false }]> σ.ST !! k = some st := hst
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at hst'
+      exact hs.2.1 k st h1 hst'
+  · have h2' : GMap.delete w σ.Wo !! k = some st := h2
+    by_cases hk : k = w
+    · subst hk; rw [GMap.lookup_delete] at h2'; cases h2'
+    · rw [GMap.lookup_delete_ne _ (Ne.symm hk)] at h2'
+      exact hs.2.2 k st h2'
+
+theorem appendState_settled {σ : WsState} (h : WsOk σ) (hs : σ.settled) (NV : GMap Loc NvEnt)
+    (vs : GoSlice) (nvm : GoMap) (hNV : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st) :
+    (appendState σ NV vs nvm).settled := by
+  have hvo := appendState_victimOf σ NV vs nvm
+  have hST : ∀ w, (appendState σ NV vs nvm).ST !! w = (σ.ST !! w).or ((NV !! w).map NvEnt.st) :=
+    fun w => rfl
+  have hE : ∀ w, (appendState σ NV vs nvm).E !! w =
+      (σ.E !! w).or ((NV !! w).map (fun x => (x.evsw, sint.nat x.st.minRev))) := fun w => rfl
+  have hWo : ∀ w, (appendState σ NV vs nvm).Wo !! w = (σ.Wo !! w).filter (fun _ => (NV !! w).isNone) :=
+    fun w => rfl
+  refine ⟨fun k γk ed h1 hm he => ?_, fun k st h1 hst => ?_, fun k st h2 => ?_⟩
+  · have h1' : (σ.Ws !! k).isSome := h1
+    rw [hE] at he
+    obtain ⟨e, he0⟩ := Option.isSome_iff_exists.1 ((h.live_e k).2 (Or.inl h1'))
+    rw [he0] at he; simp at he; subst he
+    exact hs.1 k γk e h1' hm he0
+  · rw [hvo] at h1
+    rw [hST] at hst
+    cases hv : σ.victimOf k with
+    | some _ =>
+      obtain ⟨st1, hst1⟩ := Option.isSome_iff_exists.1
+        (h.live_st k (Or.inr (Or.inr (by rw [hv]; rfl))))
+      rw [hst1] at hst; simp at hst; subst hst
+      exact hs.2.1 k _ (by rw [hv]; rfl) hst1
+    | none =>
+      rw [hv] at h1
+      cases hn : NV !! k with
+      | none => rw [hn] at h1; cases h1
+      | some x =>
+        have hwo := hNV k x hn
+        obtain ⟨hst0, -⟩ := h.out hwo
+        rw [hst0, hn] at hst; simp at hst; subst hst
+        exact hs.2.2 k _ hwo
+  · rw [hWo] at h2
+    cases ho : σ.Wo !! k with
+    | none => rw [ho] at h2; simp at h2
+    | some st' =>
+      rw [ho] at h2; simp at h2
+      obtain ⟨h3, h4⟩ := h2
+      have hst : st' = st := by first | exact h3 | exact h4 | exact h3.symm | exact h4.symm
+      subst hst
+      exact hs.2.2 k _ ho
+
 theorem appendState_ok {σ : WsState} (h : WsOk σ) (NV : GMap Loc NvEnt) (vs : GoSlice)
     (nvm : GoMap) (hNV : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st) :
     WsOk (appendState σ NV vs nvm) := by

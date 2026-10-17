@@ -109,7 +109,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP⟩
+  icases HP with ⟨%σ, HP, %Hset⟩
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   wp_apply time.wp_Now as %tm -
@@ -120,7 +120,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
       [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmur
-  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
+  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
   (try wp_auto)
   ihave HR : mvcc.watchReader s st γ $$ [Hsr0 Hmur]
   · iunfold mvcc.watchReader; iframe

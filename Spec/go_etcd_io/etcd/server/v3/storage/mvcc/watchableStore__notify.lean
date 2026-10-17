@@ -32,14 +32,16 @@ abbrev mvcc.watchableStore.notify.spec : Prop :=
     (pend : List mvcc.Change) (evs : GoSlice) (dq : DFrac) (es : List Loc) (evm : List mvcc.EvM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.watchStoreBody s γ 1 σ ∗
-      ⌜σ.Lmu = ilog ∧ σ.syncedBelow ilog.length ∧ ilog.length + 2 < 2 ^ 63 ∧ ilog ≠ []⌝ ∗
+      ⌜σ.Lmu = ilog ∧ σ.syncedBelow ilog.length ∧ σ.vicBelow ilog.length ∧
+        ilog.length + 2 < 2 ^ 63 ∧ ilog ≠ []⌝ ∗
       mvcc.evLog γ.st (ilog ++ [pend]) ∗
       evs ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
       ⌜es.length = evm.length ∧ evm = mvcc.evsOfRevM ilog.length (mvcc.stateAfter ilog) pend⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"notify"))
       (Val #(W64 ilog.length))) (Val #evs))
   {{ RET #(); evs ↦*{dq} es ∗ ∃ σ' : mvcc.WsState, mvcc.watchStoreBody s γ 1 σ' ∗
-      ⌜σ'.Lmu = ilog ∧ σ'.syncedAbove (ilog.length + 1)⌝ }}
+      ⌜σ'.Lmu = ilog ∧ σ'.syncedAbove (ilog.length + 1) ∧
+        σ'.syncedBelow (ilog.length + 1) ∧ σ'.vicBelow (ilog.length + 1)⌝ }}
 
 end spec
 

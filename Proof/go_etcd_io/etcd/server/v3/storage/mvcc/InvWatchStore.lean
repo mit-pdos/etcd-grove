@@ -363,6 +363,18 @@ def WsState.syncedBelow (σ : WsState) (N : Nat) : Prop :=
 def WsState.syncedAbove (σ : WsState) (N : Nat) : Prop :=
   ∀ w γw ed, (σ.Ws !! w).isSome → σ.M !! w = some γw → σ.E !! w = some ed → max γw.lo N ≤ ed.2
 
+/-- Every victim, in a batch under the lock or out with the mover, has its `minRev` at most
+`N`. -/
+def WsState.vicBelow (σ : WsState) (N : Nat) : Prop :=
+  (∀ w st, (σ.victimOf w).isSome → σ.ST !! w = some st → sint.Z st.minRev ≤ (N : Int)) ∧
+  ∀ w st, σ.Wo !! w = some st → sint.Z st.minRev ≤ (N : Int)
+
+/-- **The lock's state when `s.mu` is free** (unit W-K): every synced watcher is delivered at
+most up to the notified log (or its first revision), every victim's `minRev` is at most the
+notified log's length. (Not a `WsOk` field: inside `End`'s critical section `notify` delivers
+the next revision before the commit extends the notified log.) -/
+def WsState.settled (σ : WsState) : Prop := σ.syncedBelow σ.Lmu.length ∧ σ.vicBelow σ.Lmu.length
+
 /-- A map whose keys are another's has at most as many entries. -/
 theorem gmap_size_le_of_dom {V V' : Type} (m1 : GMap Loc V) (m2 : GMap Loc V')
     (h : ∀ k, (m1 !! k).isSome → (m2 !! k).isSome) : GMap.size m1 ≤ GMap.size m2 := by
@@ -1245,7 +1257,7 @@ def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :
 
 /-- **The lock invariant** of `s.mu` (see the module docstring). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
-  iprop(∃ σ : WsState, watchStoreBody s γ q σ)
+  iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ ⌜σ.settled⌝)
 
 /-! ## The store -/
 
