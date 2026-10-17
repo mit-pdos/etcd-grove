@@ -1,0 +1,25 @@
+# PR etcd-io/raft#88 (Config.DisableProposalForwardingCallback), notes/pr-verify/raft-88.md:
+# the changed functions (stepFollower, newRaft) and the callers their spec changes reached
+# (raft.Step, NewRawNode, setupNode, StartNode, RestartNode, Config.validate, the server's
+# bootstrappedRaft.newRaftNode and the register example's main).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-88.txt --check
+roots \bwp_stepFollower(_cb)?$
+roots \bwp_newRaft$
+roots \braft\.wp_Step$
+roots \bwp_NewRawNode$
+roots \bwp_setupNode$
+roots \bwp_StartNode$
+roots \bwp_RestartNode$
+roots \bConfig\.wp_validate$
+roots bootstrappedRaft\.wp_newRaftNode$
+axiom DescribeConfChange.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof

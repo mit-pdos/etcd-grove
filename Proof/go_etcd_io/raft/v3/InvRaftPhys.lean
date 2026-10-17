@@ -295,7 +295,8 @@ theorem hsAbs_hardstateVal (h : HardSt) : hsAbs (hardstateVal h) = h := rfl
 `r.disableProposalForwardingCallback` and never written after. `stepFollower` calls it on a
 `MsgProp` it would otherwise forward, and drops the proposal (`ErrProposalDropped`) when it
 returns `true`. The callback's contract, `pfcbSpec f p`: called on a message pointer, at any
-ownership of the message, it returns `p ms` -- a function of the message's contents -- and gives
+ownership of the message, it returns `p ms` -- a function of the message's state `ms` (its contents, and the `Responses`
+pointers it holds) -- and gives
 the message back unchanged (it does not write the message, panic, or need anything of raft's).
 `pfcbImpl f none` is a nil callback; `pfcbIs r p` (persistent) is the struct's field, read-only,
 holding a callback implementing `p`: `raftOwn` keeps it (`ownRaftPhysCV_pfcb` reads it out). -/
@@ -415,6 +416,11 @@ theorem raftOwn_pfcb (l : Loc) (v : raft) :
   icases H_pfcb with ⟨%p, #Hp⟩
   iexists p; unfold pfcbIs; iexists v.disableProposalForwardingCallback'
   iframe H_disableProposalForwardingCallback Hp
+
+theorem raftOwn_pfcbField (l : Loc) (v : raft) :
+    ⊢ raftOwn (GF := GF) l v -∗
+      l.[raft, go!"disableProposalForwardingCallback"] ↦□ v.disableProposalForwardingCallback' := by
+  iintro H; unfold raftOwn; iNamed H; iexact H_disableProposalForwardingCallback
 
 theorem raftOwn_logger (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"logger"] ↦□ v.logger' := by

@@ -175,6 +175,8 @@ abbrev newRaft.spec : Prop :=
     (App (Val #(functions newRaft [])) (Val #c))
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
       ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
+      -- (PR raft#88) the struct holds the `Config`'s callback (`stepFollower.spec_cb` at `pcb`)
+      pfcbIs r pcb ∗
       -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
       c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
       ⌜NStateWf s ∧

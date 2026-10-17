@@ -285,6 +285,27 @@ namespace EtcdGrove
 #print axioms wp_needStorageApplyMsg
 #print axioms wp_needStorageApplyRespMsg
 #print axioms wp_stepFollower
+
+section pr_raft_88
+open Iris Iris.BI go_etcd_io.raft.v3
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (PR raft#88, `notes/pr-verify/raft-88.md`) `stepFollower` with the proposal-forwarding
+callback named: a proposal with a leader known is dropped exactly when the callback says so. -/
+theorem wp_stepFollower_cb [StorageModel GF] :
+    stepFollower.spec_cb (GF := GF) (hG := hG) :=
+  stepFollower.wp_proof_cb raft.wp_handleAppendEntries raft.wp_handleHeartbeat
+    raft.wp_handleSnapshot raft.wp_send raft.wp_hup raftpb.Message.wp_GetType
+    raftpb.Message.wp_GetFrom raftpb.Message.wp_GetEntries raftpb.Message.wp_GetIndex
+    raftpb.Entry.wp_GetData
+
+end pr_raft_88
+
+#print axioms wp_stepFollower_cb
 #print axioms wp_isHardStateEqual
 #print axioms wp_IsEmptyHardState
 #print axioms wp_MustSync

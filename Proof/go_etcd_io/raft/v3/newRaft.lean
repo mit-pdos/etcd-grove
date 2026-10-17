@@ -213,6 +213,10 @@ theorem newRaft.wp_proof
   · rw [HpCB]; iexact Hpcb
   imod raftOwn_of_pts «$r0_ptr» _ pcb $$ «$r0» [] with «$r0»
   · simp only; iexact Hpcb'
+  -- (PR raft#88) the struct's callback is the `Config`'s, implementing `pcb`, for good
+  ihave #Hcbf := raftOwn_pfcbField _ _ $$ «$r0»
+  ihave #HpcbIs : pfcbIs (GF := GF) «$r0_ptr» pcb $$ []
+  · iunfold pfcbIs; iexists _; iframe Hcbf; simp only; iexact Hpcb'
   -- the struct, left open at its tracker (`ownRaftPhys_intro_trk`, 2026-10-16, stage R8b: the
   -- empty tracker's own maps may be what `switchToConfig` installs, so they cannot also seal the
   -- struct first); `switchToConfig` installs the configuration and seals it
@@ -388,7 +392,7 @@ theorem newRaft.wp_proof
   ihave Hphys := Hlogback $$ Hlog3
   wp_raft_log
   iapply HΦ $$ %«$r0_ptr» %s3 %cv'
-  iframe Hphys Hc
+  iframe Hphys Hc HpcbIs
   isplitr
   · ipureintro; exact HpAW
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
