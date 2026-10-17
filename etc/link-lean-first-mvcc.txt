@@ -233,6 +233,11 @@ schedule_job__Name:
 schedule_NewJob: schedule_job__Do
 newKVHasher:
 kvHasher__WriteKeyValue:
+# pr-verify/etcd-22515: WriteKeyValue's filter with #22515's exactKeep, split out in the fork (its
+# crc32 writes stay at the trust boundary above), and hashByRev's choice of the kept set
+# (hashByRevKeep, split out in the fork), proved: HashFilter.lean for what they mean together
+kvHashIncludes: BytesToRev BytesToBucketKey Revision__GreaterThan
+hashByRevKeep: treeIndex__Keep
 kvHasher__Hash:
 hashStorage__Store:
 keyIndex__doCompact: generation__walk

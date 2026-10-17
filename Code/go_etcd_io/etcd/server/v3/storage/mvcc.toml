@@ -40,6 +40,9 @@ translate = ["!*",
   "ErrCompacted", "ErrFutureRev", "NewStore", "store.Compact", "store.compactLockfree",
   "store.compact", "store.updateCompactRev", "store.checkPrevCompactionCompleted",
   "store.compactBarrier",
+  # hash.go, kvstore.go: the hasher's filter and hashByRev's kept set (pr-verify/etcd-22515:
+  # split out of kvHasher.WriteKeyValue and store.hashByRev in the fork)
+  "kvHashIncludes", "hashByRevKeep",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go

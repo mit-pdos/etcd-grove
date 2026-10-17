@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
 public import Proof.github_com.dustin.go_humanize.Bytes
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.hashByRevKeep
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less
@@ -42,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHashIncludes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents
@@ -316,13 +318,29 @@ theorem go_humanize.wp_Bytes :
     go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
   go_humanize.Bytes.wp_proof
 
-theorem mvcc.hashStorage.wp_Store :
-    mvcc.hashStorage.Store.spec (GF := GF) (hG := hG) :=
-  mvcc.hashStorage.Store.wp_proof
-
 theorem mvcc.keyIndex.wp_isEmpty :
     mvcc.keyIndex.isEmpty.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.isEmpty.wp_proof mvcc.generation.wp_isEmpty
+
+theorem mvcc.keyIndex.wp_doCompact :
+    mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG) :=
+  mvcc.keyIndex.doCompact.wp_proof mvcc.generation.wp_walk
+
+theorem mvcc.keyIndex.wp_keep :
+    mvcc.keyIndex.keep.spec (GF := GF) (hG := hG) :=
+  mvcc.keyIndex.keep.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.keyIndex.wp_doCompact mvcc.generation.wp_isEmpty
+
+theorem mvcc.treeIndex.wp_Keep [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Keep.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Keep.wp_proof btree.BTree.wp_Ascend mvcc.keyIndex.wp_keep
+
+theorem mvcc.wp_hashByRevKeep [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.hashByRevKeep.spec (GF := GF) (hG := hG) :=
+  mvcc.hashByRevKeep.wp_proof mvcc.treeIndex.wp_Keep
+
+theorem mvcc.hashStorage.wp_Store :
+    mvcc.hashStorage.Store.spec (GF := GF) (hG := hG) :=
+  mvcc.hashStorage.Store.wp_proof
 
 theorem zap.wp_String :
     zap.String.spec (GF := GF) (hG := hG) :=
@@ -331,10 +349,6 @@ theorem zap.wp_String :
 theorem zap.Logger.wp_Panic :
     zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
   zap.Logger.Panic.wp_proof
-
-theorem mvcc.keyIndex.wp_doCompact :
-    mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.doCompact.wp_proof mvcc.generation.wp_walk
 
 theorem mvcc.keyIndex.wp_compact :
     mvcc.keyIndex.compact.spec (GF := GF) (hG := hG) :=
@@ -348,10 +362,6 @@ theorem mvcc.keyIndex.wp_get :
     mvcc.keyIndex.get.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.get.wp_proof mvcc.keyIndex.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_findGeneration mvcc.generation.wp_isEmpty mvcc.generation.wp_walk
 
-theorem mvcc.keyIndex.wp_keep :
-    mvcc.keyIndex.keep.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.keep.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.keyIndex.wp_doCompact mvcc.generation.wp_isEmpty
-
 theorem zap.wp_Int64 :
     zap.Int64.spec (GF := GF) (hG := hG) :=
   zap.Int64.wp_proof
@@ -363,6 +373,10 @@ theorem mvcc.keyIndex.wp_put :
 theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_put
+
+theorem mvcc.wp_kvHashIncludes :
+    mvcc.kvHashIncludes.spec (GF := GF) (hG := hG) :=
+  mvcc.kvHashIncludes.wp_proof mvcc.wp_BytesToRev mvcc.wp_BytesToBucketKey mvcc.Revision.wp_GreaterThan
 
 theorem mvcc.kvHasher.wp_Hash :
     mvcc.kvHasher.Hash.spec (GF := GF) (hG := hG) :=
@@ -535,10 +549,6 @@ theorem zap.wp_Uint32 :
 theorem zap.Logger.wp_Warn :
     zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
   zap.Logger.Warn.wp_proof
-
-theorem mvcc.treeIndex.wp_Keep [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.treeIndex.Keep.spec (GF := GF) (hG := hG) :=
-  mvcc.treeIndex.Keep.wp_proof btree.BTree.wp_Ascend mvcc.keyIndex.wp_keep
 
 end links
 
