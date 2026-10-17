@@ -1,0 +1,4 @@
+# pr-verify etcd#22338 (2026-10-17): the simple-token gauge and warning of the simple token
+# provider (Spec/go_etcd_io/etcd/server/v3/auth/: simpleTokenTTLKeeper__*, tokenSimple__*).
+roots simpleTokenTTLKeeper__
+roots tokenSimple__

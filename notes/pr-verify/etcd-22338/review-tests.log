@@ -1,0 +1,9 @@
+=== RUN   TestReviewWithRootCountsTokens
+    simple_token_review_test.go:21: gauge before 0, after 50 WithRoot calls 50
+--- PASS: TestReviewWithRootCountsTokens (0.01s)
+=== RUN   TestReviewRecoverDisabledKeepsTokens
+    simple_token_review_test.go:47: after Recover(auth disabled): IsAuthEnabled=false, tokens 1, gauge 1
+    simple_token_review_test.go:53: after AuthEnable: token issued before the disable still valid: true
+--- PASS: TestReviewRecoverDisabledKeepsTokens (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/auth	0.027s

@@ -6,7 +6,10 @@ locks `tm.mu` (= `&t.simpleTokensMu`: `keeperRO`), sweeps its own deadline map (
 keeps the table below the allowed table), sets the gauge (the PR's line: `authInit`'s gauge,
 whose `Set` returns) and unlocks; on `stopc` it closes `donec` (its two channels:
 `keeperChans`) and returns. What is missing: the ticker's channel in the `select`, and the map
-range that deletes while it iterates (`wp_map_for_range_mut_keys`).
+range that deletes while it iterates (`wp_map_for_range_mut_keys`), a premise that the mutable
+global `simpleTokenTTLResolution` is positive (`time.NewTicker` panics otherwise; no premise
+states it yet), and a channel protocol for `stopc` shared with `stop` (`keeperChans` gives both
+`ownChan`s to `run`, so `stop`'s spec has nothing to send or receive with).
 -/
 module
 

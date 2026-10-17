@@ -1,0 +1,8 @@
+    recover_disabled_tokens_test.go:47: after Recover (auth disabled): 1 simple token(s) still in memory
+    logger.go:146: 2026-10-17T03:42:10.119-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-17T03:42:10.119-0400	INFO	enabled authentication
+    recover_disabled_tokens_test.go:53: token "oldprefix.1" issued before auth was disabled is valid again after re-enabling
+--- FAIL: TestRecoverAuthDisabledKeepsSimpleTokens (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/auth	0.013s
+FAIL
