@@ -1,0 +1,99 @@
+diff --git a/server/etcdserver/txn/txn_test.go b/server/etcdserver/txn/txn_test.go
+index 7740e9e41..6e8c30ae3 100644
+--- a/server/etcdserver/txn/txn_test.go
++++ b/server/etcdserver/txn/txn_test.go
+@@ -460,3 +460,38 @@ func computeFileHash(filePath string) (string, error) {
+ 	}
+ 	return string(h.Sum(nil)), nil
+ }
++
++// TestRangeKeysOnlyLease asserts that a keys-only range returns the lease of
++// each key, whatever the sort target, at the current revision and at a past
++// one.
++func TestRangeKeysOnlyLease(t *testing.T) {
++	s, _ := setup(t, testSetup{lease: 7})
++	s.Put([]byte("a"), []byte("v"), lease.LeaseID(7))
++	s.Put([]byte("b"), []byte("v"), lease.LeaseID(7))
++	leasedRev := s.Rev()
++	s.Put([]byte("b"), []byte("v"), lease.NoLease)
++
++	tcs := []struct {
++		name      string
++		key       string
++		rev       int64
++		wantLease int64
++	}{
++		{name: "leased key", key: "a", wantLease: 7},
++		{name: "lease removed", key: "b", wantLease: 0},
++		{name: "lease removed, past revision", key: "b", rev: leasedRev, wantLease: 7},
++	}
++	for _, tc := range tcs {
++		for _, target := range []pb.RangeRequest_SortTarget{pb.RangeRequest_KEY, pb.RangeRequest_VERSION, pb.RangeRequest_VALUE} {
++			t.Run(tc.name+"/"+target.String(), func(t *testing.T) {
++				resp, _, err := Range(t.Context(), zaptest.NewLogger(t), s, &pb.RangeRequest{
++					Key: []byte(tc.key), Revision: tc.rev, KeysOnly: true, SortTarget: target,
++				}, true)
++				require.NoError(t, err)
++				require.Len(t, resp.Kvs, 1)
++				assert.Empty(t, resp.Kvs[0].Value)
++				assert.Equal(t, tc.wantLease, resp.Kvs[0].Lease)
++			})
++		}
++	}
++}
+diff --git a/tests/integration/clientv3/kv_test.go b/tests/integration/clientv3/kv_test.go
+index aba17d04f..183b314dc 100644
+--- a/tests/integration/clientv3/kv_test.go
++++ b/tests/integration/clientv3/kv_test.go
+@@ -27,6 +27,7 @@ import (
+ 	"testing"
+ 	"time"
+ 
++	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+ 	"google.golang.org/grpc/codes"
+ 	"google.golang.org/grpc/status"
+@@ -472,6 +473,43 @@ func TestKVGetKeysOnlyWithCountOnly(t *testing.T) {
+ 	}
+ }
+ 
++// TestKVGetKeysOnlyLease asserts that a keys-only Get returns the lease of
++// the key, whatever the sort target.
++func TestKVGetKeysOnlyLease(t *testing.T) {
++	integration.BeforeTest(t)
++
++	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 1})
++	defer clus.Terminate(t)
++
++	cli := clus.RandClient()
++	ctx := t.Context()
++
++	lresp, err := cli.Grant(ctx, 60)
++	require.NoError(t, err)
++	presp, err := cli.Put(ctx, "foo", "bar", clientv3.WithLease(lresp.ID))
++	require.NoError(t, err)
++	leasedRev := presp.Header.Revision
++
++	targets := []clientv3.SortTarget{clientv3.SortByKey, clientv3.SortByVersion, clientv3.SortByValue}
++	for _, target := range targets {
++		resp, err := cli.Get(ctx, "foo", clientv3.WithKeysOnly(), clientv3.WithSort(target, clientv3.SortAscend))
++		require.NoError(t, err)
++		require.Len(t, resp.Kvs, 1)
++		assert.Emptyf(t, resp.Kvs[0].Value, "sort target %v", target)
++		assert.Equalf(t, int64(lresp.ID), resp.Kvs[0].Lease, "sort target %v", target)
++	}
++
++	// The key no longer has the lease, but it had it at leasedRev.
++	_, err = cli.Put(ctx, "foo", "bar")
++	require.NoError(t, err)
++	for _, target := range targets {
++		resp, err := cli.Get(ctx, "foo", clientv3.WithKeysOnly(), clientv3.WithRev(leasedRev), clientv3.WithSort(target, clientv3.SortAscend))
++		require.NoError(t, err)
++		require.Len(t, resp.Kvs, 1)
++		assert.Equalf(t, int64(lresp.ID), resp.Kvs[0].Lease, "sort target %v, revision %d", target, leasedRev)
++	}
++}
++
+ // TestKVGetRetry ensures get will retry on disconnect.
+ func TestKVGetRetry(t *testing.T) {
+ 	integration.BeforeTest(t)

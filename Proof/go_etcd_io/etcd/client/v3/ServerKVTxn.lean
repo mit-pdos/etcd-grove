@@ -377,11 +377,7 @@ theorem txnOpRespAt_of (skip : Bool) (p : Loc) (op : TxnOp) (res : TxnOpResult) 
       | range rev kvs more count =>
         simp only [opWire, opRespRel, hs, Bool.false_eq_true, ↓reduceIte] at hrel
         obtain ⟨hc, kvs', hok, hk⟩ := hrel
-        rw [wire_fastKeysOnly o hx] at hk
-        have hk' : kvs = kvs' := by
-          rw [hk]; conv => rhs; rw [← List.map_id kvs']
-          congr 1
-        subst hk'
+        subst hk
         have hok' := wire_rangeKvsOk o hx _ _ hok
         iintro #H
         iunfold opRespMsg at H
