@@ -532,20 +532,23 @@ noncomputable def Election.Resign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!""))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderSession"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "resp"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -564,7 +567,7 @@ noncomputable def Election.Resign.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Leader returns the leader value for the current election.
 
-    go: election.go:148:20 -/
+    go: election.go:153:20 -/
 noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -613,7 +616,7 @@ noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
     The channel closes when the context is canceled or the underlying watcher
     is otherwise disrupted.
 
-    go: election.go:167:20 -/
+    go: election.go:172:20 -/
 noncomputable def Election.Observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -635,7 +638,7 @@ noncomputable def Election.Observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Pair (Var "retc") (Var "$r0"))))))))))))
 
-/-- go: election.go:173:20 -/
+/-- go: election.go:178:20 -/
 noncomputable def Election.observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -902,7 +905,7 @@ noncomputable def Election.observe.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Key returns the leader key if elected, empty string otherwise.
 
-    go: election.go:254:20 -/
+    go: election.go:259:20 -/
 noncomputable def Election.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -913,7 +916,7 @@ noncomputable def Election.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Rev returns the leader key's creation revision, if elected.
 
-    go: election.go:257:20 -/
+    go: election.go:262:20 -/
 noncomputable def Election.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -924,7 +927,7 @@ noncomputable def Election.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Header is the response header from the last successful election proposal.
 
-    go: election.go:260:20 -/
+    go: election.go:265:20 -/
 noncomputable def Election.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon

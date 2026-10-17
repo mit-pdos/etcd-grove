@@ -11428,7 +11428,9 @@ promise". Files: `client/v3/concurrency/InvElection.lean` (vocabulary, `proclaim
     at some `r ≥ lo`, `notLeaderAt`; `leaderKey` cleared); other errors unchanged.
   - `Resign(ctx)`: no leader session ⇒ `nil`, unchanged; otherwise the guarded delete, leader key
     and session cleared, and on `nil` the key is not there with create revision `rev` at the
-    header's revision `R ≥ lo`.
+    header's revision `R ≥ lo`. (On branch `pr-verify/etcd-22211`, over etcd-io/etcd#22211: on an
+    error the state is unchanged instead of cleared, so `Resign` can be retried;
+    `issues/etcd-election-resign-forgets-on-error.md`, `notes/pr-verify/etcd-22211.md`.)
   - `Leader(ctx)`: `nil` ⇒ the response lists one key-value, the leader at its revision
     (`leaderKvAt`); `ErrElectionNoLeader` ⇒ the prefix is empty at some `R ≥ lo`.
   - `Observe(ctx)`: an SPSC channel (`isObserveChan`) of `*GetResponse`s each listing one

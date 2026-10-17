@@ -29,7 +29,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 * otherwise the guarded delete (`CreateRevision(key) = rev`), and the leader key and session are
   cleared: `nil` with the transaction's header and (if the key was under the prefix) the key not
   there with create revision `rev` at the header's revision `R ≥ lo` (`notLeaderAt`: deleted, or
-  the guard failed); or an error, the header unchanged. -/
+  the guard failed); or an error, **the state unchanged** (key, revision, session and header: the
+  transaction may not have reached etcd, so the leader key may still be there, and a later `Resign`
+  from the same state retries the guarded delete; etcd-io/etcd#22211, before which an error cleared
+  the key and the session too). -/
 abbrev Election.Resign.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
@@ -42,7 +45,7 @@ abbrev Election.Resign.spec : Prop :=
         electionState e s ⟨[], st.rev, null, hdr⟩ ∗
         (⌜¬ pfx <+: st.key⌝ ∨ ∃ R : w64, hdrRevAt hdr R ∗ etcdReached R ∗
           notLeaderAt pfx st.key st.rev R ∗ ⌜sint.Z lo ≤ sint.Z R⌝)) ∨
-      (⌜st.sess ≠ null ∧ err ≠ GoInterface.nil⌝ ∗ electionState e s ⟨[], st.rev, null, st.hdr⟩) }}
+      (⌜st.sess ≠ null ∧ err ≠ GoInterface.nil⌝ ∗ electionState e s st) }}
 
 end spec
 

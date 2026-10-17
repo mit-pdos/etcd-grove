@@ -1,0 +1,4 @@
+=== RUN   TestElectionResignRetryPR22211
+--- PASS: TestElectionResignRetryPR22211 (0.07s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.176s
