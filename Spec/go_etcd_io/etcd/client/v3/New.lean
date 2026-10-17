@@ -29,7 +29,7 @@ of the caller's (`clientCfgOk`), given the package's variables (`clientNewVars`)
 facts of the server at `ep` (`watchAddrFacts`): the client (`isNewClient`: connected to `ep` with
 the retry interceptor installed, `clientKVAt`; its `KV` a `kvObjAt`, what `client_*_end_to_end`
 take; its `Watcher` a watcher over the connection), or an error (the dial's) and `nil`. -/
-abbrev New.spec : Prop :=
+abbrev clientv3.New.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.client.v3.Config) (ep : GoString) (V : WEnv GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ clientNewVars ∗

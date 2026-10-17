@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
-    New.spec (GF := GF) (hG := hG) := by
+theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
+    clientv3.New.spec (GF := GF) (hG := hG) := by
   intro cfg ep V
   wp_start as ⟨#Hvars, #Hcfg, #Hw, %HV⟩
   ihave #Hcfg' := Hcfg

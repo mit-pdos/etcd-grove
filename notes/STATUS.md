@@ -104,6 +104,95 @@ interceptors is not composed (the watch run's slots); the dial side (agent B) mu
 `grpcConn conn addr ics dopts` for the same `addr` string `Listen` was given (one address, one
 listener: `netAddrFree`).
 
+## Item 5: client construction (branch `construct`)
+
+Work item 6 of "Open work: the client→server path" (the coordinator's item 5), 2026-10-17.
+**Proved:** `clientv3.New` (`Spec/go_etcd_io/etcd/client/v3/New.lean`) and everything it runs on
+the way: `newClient`, `SetEndpoints`, `credentialsForEndpoint`, `authority`, `dialSetupOpts`,
+`dial`, `dialWithBalancer` (from a trusted body, below), `autoSync`; linked in the client Link
+(`client.v3.wp_New`), no `sorry`.
+
+**The result** (`isNewClient cl ep V`, `InvClientNewResult.lean`): `clientKVAt cl ep` (the
+connection `isEtcdConn conn ep`: `grpcConn conn ep [ic] []` with `etcdInterceptorOk ic`, the retry
+interceptor `dialSetupOpts` installs), the `KV` field a `kvObjAt api ep` (what
+`client_*_end_to_end` take), the `Watcher` field an `isClientWatcher` over the same connection,
+`retryClientOk cl`; or an error (the dial's) and `nil`.
+
+**The connection predicate the client assumes of the server at `addr`.** `grpcConn conn addr`
+for `addr = ep`, the configured endpoint *string*: the client's results need `isGrpcRpc addr
+"/etcdserverpb.KV/…" spec` at that same string, which item 4's `client.etcd_kv_started` gives for
+the string the server passed to `net.Listen`. So the endpoint must be that string, verbatim
+(`host:port`, no scheme). For the watcher, `New` takes `watchAddrFacts V` (`watchConnFacts` but
+the connection: `isGrpcStream addr "/etcdserverpb.Watch/Watch" …`, the watch server's facts),
+with `V.addr = ep`; item 4 gives `grpcStreamServerAt addr` but not yet `isGrpcStream` (to compose).
+
+**Configuration premises** (`clientCfgOk cfg ep`, named): one endpoint, plain (`plainEndpoint`:
+no `://`, not `unix:`/`unixs:`); `TLS` nil; `Username`, `Password`, `Token` empty (so `getToken`
+returns `nil` at once); `Context` nil; `Logger` non-nil (no default zap logger built); call-size
+limits not positive (the default call options); `DialKeepAliveTime` not positive (no
+`WithKeepaliveParams`); `DialOptions` empty (excludes the user unary interceptor of
+`issues/etcd-client-dialoptions-unary-interceptor.md`, and every other option grpc would apply);
+`RejectOldCluster` false (no `checkVersion`); `AutoSyncInterval` zero (the `autoSync` goroutine
+returns at once). Any `DialTimeout` (with one, `getToken` runs under `WithTimeout`),
+`MaxUnaryRetries`, `BackoffWaitBetween`, `BackoffJitterFraction`, `PermitWithoutStream`. Package
+premise `clientNewVars`: `defaultCallOpts` (a full slice of scalar call options),
+`defaultUnaryMaxRetries`, `defaultBackoffWaitBetween`, `defaultBackoffJitterFraction` read-only:
+item 8's `clientv3Init` does not include them yet (they are opaque initializers there).
+Goroutines: `New` starts only `autoSync` (returns at once); the lease's keep-alive loop starts
+with the first `KeepAlive`, not in `New`; grpc's own are inside `NewClient`'s axiom.
+
+**New trust-boundary axioms** (each with its justification in its file):
+* grpc (`Proof/google_golang_org/grpc/`): `NewClient` (`InvDial.lean`'s vocabulary: dial-option
+  descriptors `grpcDialOptIs`, `grpcResolverAt`, `etcdStreamInterceptor`, `dialOk`; it gives
+  `grpcConn conn addr (unaryIcsOf ds) []` only for a dial whose stream interceptors are etcd's,
+  the assumption `ClientConn.NewStream`'s axiom makes, and whose one resolver resolves the
+  target's scheme to `addr`); `WithUnaryInterceptor`, `WithStreamInterceptor`,
+  `WithTransportCredentials`, `WithResolvers`; `credentials/insecure.NewCredentials`.
+* client (`Proof/go_etcd_io/etcd/client/v3/`): `internal/resolver`'s `New`, `SetEndpoints`,
+  `Close`, and `etcdResolver_grpc` (`InvClientNew.lean`: a dialed etcd resolver of one plain
+  endpoint resolves to it); `internal/endpoint.RequiresCredentials`;
+  `Client.streamClientInterceptor`; `Client.roundRobinQuorumBackoff` (floats); `NewCluster`,
+  `NewLease`, `NewAuth`, `NewMaintenance` (return some value: unused by the results);
+  `Client.dialWithBalancer.unfold` and `.builderType` (`DialWithBalancerBody.lean`, below).
+* standard library: `strings.SplitN` (`Spec/strings/SplitN.lean`),
+  `context.WithCancel(context.TODO())` (`Spec/context/WithCancelTodo.lean`), `fmt.Sprintf` with
+  a `*clientv3.Client` argument (`Spec/fmt/SprintfClientPtr.lean`: `*Client` has no
+  `String`/`Error`/`Format`/`GoString`).
+* Strengthened (axioms already there): `Client.getToken` now also says `nil` when `Username` is
+  read-only `""`; `Client.Endpoints` returns a new slice, `c.endpoints`' contents when those are
+  read-only.
+
+**Translation changes** (`Code/**/*.toml`): `clientv3` translates the functions above and
+imports `crypto/tls` (a new lean root, names only: `Config.TLS`), grpc's `keepalive`,
+`credentials/insecure`, `resolver` (types), the client's `internal/endpoint`, `logutil`,
+`strings`, `io` (so that `Maintenance`, a `Client` field, is an interface, not an axiomatized
+type whose typed points-to is a `sorry`); grpc `credentials` imports `net` (so that
+`TransportCredentials` is an interface, same reason). `internal/resolver.Schema` translated.
+Package-init instances for the new packages in `cache/v3/Base.lean` (`logutil`'s moved there
+from `BaseApply.lean`); item 8's `credentials` and `clientv3` `wp_initialize'` updated for the
+new imports (`net`, `io`).
+
+**Perennial limitations met** (worked around here; to be fixed upstream on their own):
+* Goose's `pkgRef` names a type of a package no file of the translated package imports after an
+  imported package of the same name: `grpc.WithResolvers(c.resolver)` converts to grpc's
+  `resolver.Builder`, printed as `internal.resolver.Builder.ty` (does not elaborate).
+  `dialWithBalancer` is names only; `DialWithBalancerBody.lean` holds the translator's output with
+  that type corrected and an axiom that it is the method's body (`MethodUnfold`), plus grpc
+  `resolver`'s `Builder.TypeAssumptions`. Fix: Goose should name the type by its own path when
+  that package is translated.
+* `wp_auto`'s `goose.wp.fvAnnot` makes no progress on `authority`'s body: off in that file.
+* Perennial has no semantics for slicing a `string` (`Slice go.string`): `authority`'s
+  `unix:`/`unixs:` branches are unreachable under `plainEndpoint`, which its spec takes.
+* `fmt.wp_Sprintf` admits basic-typed arguments only (a pointer for `%p` is excluded): the
+  `SprintfClientPtr` axiom, as `SprintfNamed`.
+
+**gen-link**: two packages whose last components agree (`cache/v3`, `client/v3`, both with `New`)
+name their functions `<last two components>_<fn>` (`cache_v3_New`, `client_v3_New`); the cache's
+link list renamed its `v3_New`, its Link reordered (same theorems). Every mode reproduces.
+
+**Not done**: a composed `New` + `kv.Put` result (the adequacy example's, item 9); the watch facts
+from item 4's start (`isGrpcStream` at `addr`); `clientNewVars` into `clientv3Init` (item 8).
+
 ## Item 8: package initialization (branch `construct`)
 
 Work item 8 of "Open work: the client→server path": prove `wp_initialize'` for the packages on

@@ -569,9 +569,9 @@ theorem v3.wp_newClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     EtcdGrove.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.newClient.wp_proof context.wp_TODO context.wp_WithCancelTodo resolver.wp_New v3.Client.wp_SetEndpoints resolver.EtcdManualResolver.wp_Close v3.Client.wp_dialWithBalancer v3.wp_NewCluster v3.wp_NewKV v3.wp_NewLease v3.wp_NewWatcher v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_autoSync
 
-theorem v3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
-    EtcdGrove.New.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.New.wp_proof v3.wp_newClient
+theorem v3.clientv3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.clientv3.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.clientv3.New.wp_proof v3.wp_newClient
 
 theorem context.wp_WithCancelValCtx :
     EtcdGrove.context.WithCancelValCtx.spec (GF := GF) (hG := hG) :=
