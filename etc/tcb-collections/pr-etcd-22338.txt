@@ -2,3 +2,10 @@
 # provider (Spec/go_etcd_io/etcd/server/v3/auth/: simpleTokenTTLKeeper__*, tokenSimple__*).
 roots simpleTokenTTLKeeper__
 roots tokenSimple__
+axiom zap.Duration.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
+sorry auth.simpleTokenTTLKeeper.run.wp_proof
+sorry auth.simpleTokenTTLKeeper.stop.wp_proof

@@ -240,3 +240,5 @@ sorry Perennial.math.initialize'.wp_proof
 sorry Perennial.os.wp_initialize'
 sorry Perennial.strconv.wp_initialize'
 sorry Perennial.time.initialize'.wp_proof
+sorry auth.simpleTokenTTLKeeper.run.wp_proof
+sorry auth.simpleTokenTTLKeeper.stop.wp_proof

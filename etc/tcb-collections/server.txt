@@ -173,3 +173,5 @@ axiom zap.Stack.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
+sorry auth.simpleTokenTTLKeeper.run.wp_proof
+sorry auth.simpleTokenTTLKeeper.stop.wp_proof

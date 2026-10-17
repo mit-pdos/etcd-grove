@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd#22338 verified (branch `pr-verify/etcd-22338`, 2026-10-17)
+
+This branch translates the etcd fork with etcd#22338 applied (`pr-etcd-22338-goose-lean`; `etc/goose.py --check`
+fails here by design). `auth.toml` now translates the simple token provider's keeper and table methods with bodies
+(and imports `time` and prometheus, so `auth/Base.lean` imports the backend's `Base` for prometheus's instance).
+`authInit` gains `simpleTokenTTLDefault` (read-only) and the PR's gauge `simpleTokenGauge` (some `Gauge` whose `Set`
+returns); the request side's two proofs that destructure `authInit` take the two new conjuncts. The keeper's
+`addSimpleToken`/`deleteSimpleToken` are proved to set the gauge to the deadline map's size, over a gauge state `G` the
+caller chooses (`gaugeModel`, `auth/InvSimpleToken.lean`); `enable`, `disable`, `assignSimpleTokenToUser`,
+`invalidateUser` are proved against pr-verify/etcd-22560's lock invariant without its `expiredTokens`. The keeper's
+`run` and `stop` are `sorry`s (22560's postulates; their specs need a channel protocol and a premise on
+`simpleTokenTTLResolution`). A pre-existing bug found: `issues/etcd-auth-recover-disabled-keeps-tokens.md`.
+Report: `notes/pr-verify/etcd-22338.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
