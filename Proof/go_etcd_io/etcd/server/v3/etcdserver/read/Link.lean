@@ -27,7 +27,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
-public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogAllStepsIfLong
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Log
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogWithStepThreshold
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
@@ -115,9 +115,9 @@ theorem traceutil.Trace.wp_LogWithStepThreshold :
     EtcdGrove.traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.LogWithStepThreshold.wp_proof
 
-theorem traceutil.Trace.wp_LogAllStepsIfLong :
-    EtcdGrove.traceutil.Trace.LogAllStepsIfLong.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.LogAllStepsIfLong.wp_proof traceutil.Trace.wp_LogWithStepThreshold
+theorem traceutil.Trace.wp_Log :
+    EtcdGrove.traceutil.Trace.Log.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.Log.wp_proof traceutil.Trace.wp_LogWithStepThreshold
 
 end links
 
@@ -180,7 +180,7 @@ theorem notifier.wp_notify :
 
 theorem Read.wp_LinearizableReadLoop :
     EtcdGrove.read.Read.LinearizableReadLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.read.Read.LinearizableReadLoop.wp_proof traceutil.wp_EnsureTrace wp_newNotifier Read.wp_requestCurrentIndex wp_isStopped notifier.wp_notify traceutil.Trace.wp_Step traceutil.Trace.wp_AddField strconv.wp_FormatUint traceutil.Trace.wp_LogAllStepsIfLong
+  EtcdGrove.read.Read.LinearizableReadLoop.wp_proof traceutil.wp_EnsureTrace wp_newNotifier Read.wp_requestCurrentIndex wp_isStopped notifier.wp_notify traceutil.Trace.wp_Step traceutil.Trace.wp_AddField strconv.wp_FormatUint traceutil.Trace.wp_Log
 
 end links_hasLC
 

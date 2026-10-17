@@ -222,7 +222,8 @@ abbrev ctxDeadlineLeaf : IProp GF :=
 time.Millisecond`), and the error variables it returns or compares with hold `errors.New` errors
 (`EtcdGrove.errVarLeaf`): `etcdserver/errors`' `ErrStopped`, `ErrLeaderChanged`, `ErrTimeout`, raft's
 `ErrStopped` (`errors.Is`'s target in `sendReadIndex` and `isStopped`), and `context.Canceled`; and
-`context.DeadlineExceeded`'s (`ctxDeadlineLeaf`). An assumption about those packages'
+`context.DeadlineExceeded`'s (`ctxDeadlineLeaf`); and (etcd PR #22242, 2026-10-17, on its branch
+`pr-verify/etcd-22242` only) the read loop's `droppedReadLoopTraces` a fixed counter too. An assumption about those packages'
 initialization, stated here for the errors of other packages, as `srvErrVars`. -/
 abbrev readInit : IProp GF :=
   iprop((∃ c : GoInterfaceOk, globalAddr slowReadIndex ↦□ GoInterface.ok c ∗
@@ -235,7 +236,9 @@ abbrev readInit : IProp GF :=
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout ∗
     EtcdGrove.errVarLeaf go_etcd_io.raft.v3.ErrStopped ∗
     EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗
-    ctxDeadlineLeaf)
+    ctxDeadlineLeaf ∗
+    (∃ c : GoInterfaceOk, globalAddr droppedReadLoopTraces ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read :=
   define_is_pkg_init readInit

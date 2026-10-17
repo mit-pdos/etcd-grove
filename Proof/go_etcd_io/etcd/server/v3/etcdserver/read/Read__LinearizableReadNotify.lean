@@ -112,7 +112,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
   iunfold srvChanOk at HD
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.read.readInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, #HStop, -, -, -, #HCan, #HDE⟩
+  icases Hinit with ⟨-, -, -, #HStop, -, -, -, #HCan, #HDE, -⟩
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

@@ -101,6 +101,7 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [etcd-watch-progress-before-created](etcd-watch-progress-before-created.md) | bug (a progress notification sent before a later watch's `Created` reaches the new watch, before its events; reproduced by an integration test) | none | client watch (unit W-K), 2026-10-16 |
 | [etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md) | bug (a client panic, "send on closed channel", when a progress broadcast meets a server-canceled substream; reproduced by an overlay test with a fake watch client; fixed in the verified fork: `goose-lean` 107edf7e4, unit W-K) | `watch-progress-closed-substream` (57d502f38) | client watch (unit W-C), 2026-10-15 |
 | [etcd-watch-progress-before-created](etcd-watch-progress-before-created.md) | bug (a progress notification sent before a later watch's `Created` reaches the new watch, before its events; reproduced by an integration test) | none | client watch (unit W-K), 2026-10-16 |
+| [etcd-read-loop-log-sink-hang](etcd-read-loop-log-sink-hang.md) | bug (availability: the read loop logs on its own goroutine, so a stalled log sink hangs every linearizable read; upstream's #22214, reproduced by unit tests; PR #22242 fixes the trace's case only) | none | PR #22242's verification, 2026-10-17 |
 
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
 into the caller's nested `OpTxn` slice (a race only for callers who reuse the slice; assessed,

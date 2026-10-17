@@ -45,6 +45,18 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22242, the read loop's trace logged off its goroutine (2026-10-17, branch `pr-verify/etcd-22242`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22242-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `Read.LinearizableReadLoop` is re-proved against its
+unchanged spec: the trace hand-off is a Perennial SPSC channel of owned traces (`traceSent`), with
+a local lemma for the nonblocking send (`read/SpscNonblocking.lean`, `spsc_nonblocking_send_au`;
+**a Perennial limitation**: its SPSC idiom has only the blocking send, so the lemma belongs in
+`Spsc.lean`, to propose there on its own). `traceutil.Trace.Log` is translated and proved;
+`readInit` gains the new counter `droppedReadLoopTraces`. No new axiom or `sorry`. The bug in the
+pinned code (upstream's #22214, which the PR fixes for the trace only):
+`issues/etcd-read-loop-log-sink-hang.md`. Report: `notes/pr-verify/etcd-22242.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

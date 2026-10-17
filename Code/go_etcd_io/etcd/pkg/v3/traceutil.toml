@@ -8,7 +8,7 @@ translate = ["!*", "TODO", "Trace", "step", "Field", "TraceKey", "StartTimeKey",
   "Trace.IsEmpty", "Trace.GetStartTime", "Trace.SetStartTime", "Trace.InsertStep",
   "Trace.StartSubTrace", "Trace.StopSubTrace", "Trace.Step", "Trace.StepWithFunction",
   "Trace.AddField", "Trace.updateFieldIfExist", "Trace.disableStep", "Trace.enableStep",
-  "Trace.LogIfLong", "Trace.LogAllStepsIfLong"]
+  "Trace.LogIfLong", "Trace.LogAllStepsIfLong", "Trace.Log"]
 imports = ["!*", "context", "time", "go.uber.org/zap"]
 
 # translate the definitions of all type declarations goose supports

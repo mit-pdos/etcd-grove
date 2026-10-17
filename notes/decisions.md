@@ -7675,3 +7675,26 @@ and `PreVote` settings stay premises.
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
   parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
   `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.
+
+## A trace handed to another goroutine: an SPSC channel of owned traces (etcd PR #22242, branch `pr-verify/etcd-22242`)
+
+The PR's read loop sends each slow iteration's `*traceutil.Trace` on a one-slot channel to a
+logger goroutine, with `select { case traceC <- trace: default: dropped.Inc() }`, and `defer
+close(traceC)`. The proof uses Perennial's single-producer single-consumer idiom (`isSpsc`), whose
+per-value resource `P` carries the trace's ownership (`traceSent _ t := ∃ e, ownTrace t e`) and
+whose final resource `R` is `True`: the loop is the producer (its token in the loop invariant, given
+up by the deferred `close`, which needs it: a second `close`, or a send after it, contradicts the
+token), the goroutine the consumer (`for range` until the drained close).
+
+- **Why SPSC and not a bag** (`isChanBag`): the bag idiom has no `close`, and the goroutine's `for
+  range` ends only on a close.
+- **The nonblocking send.** Perennial's `select` with a `default` asks, per send clause, for
+  `nonblockingSendAu` (an atomic update committing only if a receiver waits or the buffer has
+  room) in a conjunction with the default's WP, so the producer token and the trace are shared
+  between the two branches and the default keeps them (the dropped trace is leaked, which the
+  logic allows). The SPSC idiom has only the blocking `spsc_send_au`, so `spsc_nonblocking_send_au`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/read/SpscNonblocking.lean`) is proved here the
+  same way, from the idiom's exported lemmas; it is general and belongs in Perennial's `Spsc.lean`.
+- **The spec does not change**: the loop's spec is about the read invariant; the trace was already
+  consumed by `LogAllStepsIfLong` before, and is now consumed by the logger's `Log`. That the loop no
+  longer blocks on its logger is liveness, outside these specs.

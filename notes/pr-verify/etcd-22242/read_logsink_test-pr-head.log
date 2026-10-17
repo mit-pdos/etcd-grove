@@ -1,0 +1,8 @@
+=== RUN   TestReadLoopStalledSink_SlowIteration
+--- PASS: TestReadLoopStalledSink_SlowIteration (0.26s)
+=== RUN   TestReadLoopStalledSink_ReadIndexRetry
+    read_logsink_test.go:71: read 0: linearizable read hung on a stalled log sink
+--- FAIL: TestReadLoopStalledSink_ReadIndexRetry (3.05s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/read	3.322s
+FAIL

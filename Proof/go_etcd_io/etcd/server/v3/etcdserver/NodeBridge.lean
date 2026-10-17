@@ -92,7 +92,7 @@ theorem applyErrIs_of_ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInte
   · iPkgInit
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.read.readInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hprd
-  icases Hinit with ⟨-, -, -, -, -, -, -, #HCan, #HDE⟩
+  icases Hinit with ⟨-, -, -, -, -, -, -, #HCan, #HDE, -⟩
   iunfold ctxErr at Hcerr
   icases Hcerr with ⟨-, -, -, #Hval⟩
   iunfold ctxErrVal at Hval

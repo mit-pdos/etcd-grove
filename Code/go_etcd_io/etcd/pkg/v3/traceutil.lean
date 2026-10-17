@@ -376,6 +376,21 @@ noncomputable def Trace.IsEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"isEmpty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))))))))
 
+/-- Log dumps all steps in the Trace
+
+    go: trace.go:172:17 -/
+noncomputable def Trace.Log.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Trace.ty)))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 0))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Trace.ty) go!"LogWithStepThreshold"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Var "$a0")))))))))
+
 /-- LogIfLong dumps logs if the duration is longer than threshold
 
     go: trace.go:177:17 -/
@@ -647,6 +662,7 @@ class Trace.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   ptr_GetStartTime_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"GetStartTime" Trace.GetStartTime.impl
   ptr_InsertStep_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"InsertStep" Trace.InsertStep.impl
   ptr_IsEmpty_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"IsEmpty" Trace.IsEmpty.impl
+  ptr_Log_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"Log" Trace.Log.impl
   ptr_LogAllStepsIfLong_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"LogAllStepsIfLong" Trace.LogAllStepsIfLong.impl
   ptr_LogIfLong_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"LogIfLong" Trace.LogIfLong.impl
   ptr_SetStartTime_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"SetStartTime" Trace.SetStartTime.impl
@@ -678,6 +694,7 @@ attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.ptr_GetStartTime_unfold
   Trace.TypeAssumptions.ptr_InsertStep_unfold
   Trace.TypeAssumptions.ptr_IsEmpty_unfold
+  Trace.TypeAssumptions.ptr_Log_unfold
   Trace.TypeAssumptions.ptr_LogAllStepsIfLong_unfold
   Trace.TypeAssumptions.ptr_LogIfLong_unfold
   Trace.TypeAssumptions.ptr_SetStartTime_unfold

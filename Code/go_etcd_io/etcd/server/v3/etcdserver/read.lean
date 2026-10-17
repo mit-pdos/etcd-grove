@@ -52,11 +52,17 @@ def notifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] notifier.ty
 
+@[reducible] noncomputable def slowReadLoopThreshold [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 100000000)
+
 noncomputable def slowReadIndex [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.slowReadIndex"
 
 noncomputable def readIndexFailed [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.readIndexFailed"
+
+noncomputable def droppedReadLoopTraces [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/read.droppedReadLoopTraces"
 
 noncomputable def readIndexRetryTime [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.readIndexRetryTime"
@@ -73,7 +79,7 @@ noncomputable def isStopped [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newNotifier [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.newNotifier"
 
-/-- go: read.go:36:6 -/
+/-- go: read.go:39:6 -/
 noncomputable def NewRead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "raft"
@@ -87,7 +93,7 @@ noncomputable def NewRead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v3" (App (App (Val (GoInstruction (FuncResolve newNotifier []))) (Val #())) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral Read.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"server")) (ElementExpression server.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"raft")) (ElementExpression raftInterface.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"waitC")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v2"))), (KeyedElement (some (KeyField go!"notifier")) (ElementExpression (go.GoType.PointerType notifier.ty) (Var "$v3")))])))))))))))))
 
-/-- go: read.go:74:16 -/
+/-- go: read.go:77:16 -/
 noncomputable def Read.LinearizableReadNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ctx"
@@ -124,20 +130,43 @@ noncomputable def Read.LinearizableReadNotify.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Read.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Read.ty)))) (Var "r")))) (Val #())))))))))
 
-/-- go: read.go:96:16 -/
+/-- go: read.go:99:16 -/
 noncomputable def Read.LinearizableReadLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Read.ty)))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))]))) (Val #())) (Val #(W64 1)))
+  (Let "traceC" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))))) (Var "traceC"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val #())))
+  (App (App (Val (chan.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))) (Var "$range"))
+  (Lam "$key"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty) go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "t"))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "t") (Var "$key"))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve server.ty go!"LeaderChanged"))) (App (Val (GoInstruction (GoLoad server.ty))) (App (Val (GoInstruction (StructFieldRef Read.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Read.ty)))) (Var "r"))))) (Val #()))
   (Let "leaderChangedNotifier" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve server.ty go!"Logger"))) (App (Val (GoInstruction (GoLoad server.ty))) (App (Val (GoInstruction (StructFieldRef Read.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Read.ty)))) (Var "r"))))) (Val #()))
@@ -182,9 +211,15 @@ noncomputable def Read.LinearizableReadLoop.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Since []))) (Val #())) (Var "$a0"))) (Val slowReadLoopThreshold))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))))) (Var "traceC"))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty go!"Inc"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr droppedReadLoopTraces))) (Val #())))) (Val #())))) [(CommClause (SendCase (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #())))]))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val _root_.Perennial.time.Millisecond)))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty) go!"LogAllStepsIfLong"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))) (Var "$a0"))))))
+  (Val #())))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"applied index is now lower than readState.Index"))
   (Let "$a1" (Val #slice.nil)
@@ -256,6 +291,8 @@ noncomputable def Read.LinearizableReadLoop.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r1")))))))
   (App (Val doExecute)
   (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "start") (Var "$r0")))))))))
   (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "leaderChangedNotifier"))
   (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Read.ty go!"waitC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Read.ty)))) (Var "r"))))
   (Let "$ch2" (App (App (Val (GoInstruction (MethodResolve server.ty go!"Stopping"))) (App (Val (GoInstruction (GoLoad server.ty))) (App (Val (GoInstruction (StructFieldRef Read.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Read.ty)))) (Var "r"))))) (Val #()))
@@ -270,9 +307,21 @@ noncomputable def Read.LinearizableReadLoop.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "leaderChangedNotifier") (Var "$r0")))))))))
   (Lam BAnon
-  (Val #()))))))))
+  (Val #())))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #()))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))))) (Var "traceC"))
+  (Let "$f" (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))]))) (Val #()))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Var "$a0"))
+  (App (Var "$oldf") (Val #())))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))))) (Pair (Var "traceC") (Var "$r0")))))))))))))
 
-/-- go: read.go:148:16 -/
+/-- go: read.go:168:16 -/
 noncomputable def Read.requestCurrentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "leaderChangedNotifier"
@@ -507,7 +556,7 @@ noncomputable def Read.requestCurrentIndex.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (Var "requestIDs") (Var "$r0")))))))))))))
 
-/-- go: read.go:232:16 -/
+/-- go: read.go:252:16 -/
 noncomputable def Read.sendReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "requestIndex"
@@ -577,7 +626,7 @@ noncomputable def Read.sendReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "ctxToSend") (Var "$r0"))))))))))))
 
-/-- go: read.go:250:6 -/
+/-- go: read.go:270:6 -/
 noncomputable def uint64ToBigEndianBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "number"
   (App (Val exceptionDo)
@@ -595,7 +644,7 @@ noncomputable def uint64ToBigEndianBytes.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "byteResult") (Var "$r0"))))))))))
 
-/-- go: read.go:256:6 -/
+/-- go: read.go:276:6 -/
 noncomputable def isStopped.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
@@ -654,6 +703,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
   (Let "$v1" (Val #(go!"server"))
   (Let "$v2" (Val #(go!"slow_read_indexes_total"))
@@ -668,6 +718,13 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"read_loop_traces_dropped_total"))
+  (Let "$v3" (Val #(go!"The total number of linearizable read loop traces dropped because the log sink could not keep up."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 500)) (Val _root_.Perennial.time.Millisecond)))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -677,16 +734,23 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr droppedReadLoopTraces))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr readIndexFailed))) (Val #()))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr slowReadIndex))) (Val #()))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))) (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr readIndexRetryTime))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr droppedReadLoopTraces))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr readIndexFailed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -717,6 +781,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc slowReadIndex _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc readIndexFailed _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc droppedReadLoopTraces _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc readIndexRetryTime _root_.Perennial.time.Duration.ty)) (Val #()))))))))
 

@@ -1,0 +1,7 @@
+=== RUN   TestReviewSlowSink
+    read_review_test.go:85: dropped: 2
+    read_review_test.go:89: trace 0: duration=0.121409774 (written 36.214605ms after loop returned)
+    read_review_test.go:89: trace 1: duration=0.400171666 (written 437.084975ms after loop returned)
+--- PASS: TestReviewSlowSink (1.99s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/read	3.019s
