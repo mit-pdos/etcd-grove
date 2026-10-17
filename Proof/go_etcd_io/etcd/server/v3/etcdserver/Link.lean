@@ -236,9 +236,12 @@ public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewTimeList
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewWithResponse
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.deadlineHeap__pop
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.deadlineHeap__push
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__IsRegistered
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__Trigger
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Pending
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Trigger
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
@@ -964,13 +967,25 @@ theorem wait.wp_NewTimeList :
     wait.NewTimeList.spec (GF := GF) (hG := hG) :=
   wait.NewTimeList.wp_proof
 
+theorem wait.deadlineHeap.wp_push :
+    wait.deadlineHeap.push.spec (GF := GF) (hG := hG) :=
+  wait.deadlineHeap.push.wp_proof
+
 theorem wait.timeList.wp_Wait :
     wait.timeList.Wait.spec (GF := GF) (hG := hG) :=
-  wait.timeList.Wait.wp_proof
+  wait.timeList.Wait.wp_proof wait.deadlineHeap.wp_push
+
+theorem wait.deadlineHeap.wp_pop :
+    wait.deadlineHeap.pop.spec (GF := GF) (hG := hG) :=
+  wait.deadlineHeap.pop.wp_proof
 
 theorem wait.timeList.wp_Trigger :
     wait.timeList.Trigger.spec (GF := GF) (hG := hG) :=
-  wait.timeList.Trigger.wp_proof
+  wait.timeList.Trigger.wp_proof wait.deadlineHeap.wp_pop
+
+theorem wait.timeList.wp_Pending :
+    wait.timeList.Pending.spec (GF := GF) (hG := hG) :=
+  wait.timeList.Pending.wp_proof
 
 theorem notify.wp_NewNotifier :
     notify.NewNotifier.spec (GF := GF) (hG := hG) :=
@@ -1114,7 +1129,7 @@ theorem raftNode.wp_ReadIndex :
 
 theorem EtcdServer.wp_start :
     EtcdServer.start.spec (GF := GF) (hG := hG) :=
-  EtcdServer.start.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64 wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With EtcdServer.wp_run EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex raftNode.wp_ReadState raftNode.wp_ReadIndex
+  EtcdServer.start.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64 wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger wait.timeList.wp_Pending read.wp_NewRead notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With EtcdServer.wp_run EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex raftNode.wp_ReadState raftNode.wp_ReadIndex
 
 theorem EtcdServer.wp_adjustTicks :
     EtcdServer.adjustTicks.spec (GF := GF) (hG := hG) :=

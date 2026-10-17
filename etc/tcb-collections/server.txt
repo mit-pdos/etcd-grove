@@ -157,6 +157,7 @@ axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
+axiom wait.deadlineHeap.append_len_bound
 axiom zap.ByteString.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

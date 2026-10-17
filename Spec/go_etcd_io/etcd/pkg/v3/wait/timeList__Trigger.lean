@@ -21,7 +21,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `tl.Trigger(d)`, with `□ P d`: it records `d` as the last trigger's deadline (even below the
-last: see `TimeList.lean`) and closes the channels of every deadline at most `d` with `P` of it. -/
+last: see `TimeList.lean`) and closes the channels of every deadline at most `d` with `P` of it
+(what the code does; the postcondition, `True`, does not state it: `TimeList.lean`, "The heap"). -/
 abbrev wait.timeList.Trigger.spec : Prop :=
   ∀ (tl : Loc) (P : w64 → IProp GF) (d : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ isTimeList tl P ∗ □ P d }}

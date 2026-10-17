@@ -263,13 +263,13 @@ theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
     node.wp_Tick node.wp_ReadIndex
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
-`Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
+`Wait`, `Trigger`, `Pending` linked; with etcd PR #22495's heap, pr-verify/etcd-22495): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
 premise, with `P 0` and `closec` closed). -/
 theorem wait_time (tl : Loc) (P : w64 → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ isTimeList tl P ⊢
       isWaitTime (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.timeList.ty)
         #tl) P :=
-  isWaitTime_of_timeList wait.timeList.wp_Wait wait.timeList.wp_Trigger tl P
+  isWaitTime_of_timeList wait.timeList.wp_Wait wait.timeList.wp_Trigger wait.timeList.wp_Pending tl P
 
 end triples
 

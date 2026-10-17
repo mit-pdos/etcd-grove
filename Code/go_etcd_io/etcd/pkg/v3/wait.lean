@@ -53,6 +53,11 @@ def timeList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] timeList.ty
 
+def deadlineHeap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/wait.deadlineHeap" [])
+
+attribute [irreducible] deadlineHeap.ty
+
 @[reducible] noncomputable def defaultListElementLength [FfiSyntax] [GoGlobalContext] : val :=
   #(64 : Int)
 
@@ -276,7 +281,7 @@ noncomputable def waitWithResponse.IsRegistered.impl [FfiSyntax] [GoGlobalContex
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"waitWithResponse.IsRegistered() shouldn't be called")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))))
 
-/-- go: wait_time.go:38:6 -/
+/-- go: wait_time.go:41:6 -/
 noncomputable def NewTimeList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -284,7 +289,7 @@ noncomputable def NewTimeList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoAlloc timeList.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]))) (Val #())) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral timeList.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"m")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))) (Var "$v0")))])))))))
 
-/-- go: wait_time.go:42:21 -/
+/-- go: wait_time.go:45:21 -/
 noncomputable def timeList.Wait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tl"
   (Lam "deadline"
@@ -305,8 +310,12 @@ noncomputable def timeList.Wait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "ch"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "deadline"))) (Var "$r0"))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "deadline"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType deadlineHeap.ty) go!"push"))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"h"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl")))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "deadline"))) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "ch") (Var "$r0"))))))
   (App (Val doExecute)
@@ -327,7 +336,7 @@ noncomputable def timeList.Wait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl")))) (Val #()))))))))))
 
-/-- go: wait_time.go:56:21 -/
+/-- go: wait_time.go:60:21 -/
 noncomputable def timeList.Trigger.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tl"
   (Lam "deadline"
@@ -342,29 +351,24 @@ noncomputable def timeList.Trigger.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "deadline"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))
-  (Let "ch" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"h"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [deadlineHeap.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"h"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl")))) (Val #(W64 0))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "deadline")))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType deadlineHeap.ty) go!"pop"))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"h"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl")))) (Val #()))
   (Let "t" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val (map.forRange go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "t")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "deadline")))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "ch"))
-  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "t"))
-  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
+  (Let "$a0" (App (App (Val (map.lookup1 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "t")))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0")))))))))
+  (Lam BAnon
   (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$key")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "ch") (Var "$value")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef timeList.ty go!"lastTriggerDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -375,6 +379,176 @@ noncomputable def timeList.Trigger.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl")))) (Val #())))))))))))
+
+/-- go: wait_time.go:71:21 -/
+noncomputable def timeList.Pending.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tl"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "tl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType timeList.ty)))) (Var "tl"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl")))) (Val #())))))))))
+
+/-- go: wait_time.go:80:24 -/
+noncomputable def deadlineHeap.push.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "d"
+  (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType deadlineHeap.ty)))) (Var "h"))
+  (Let "d" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "d"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType deadlineHeap.ty)))) (Var "h")))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "d"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [deadlineHeap.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc deadlineHeap.ty))) (App (Val (GoInstruction (GoZeroVal deadlineHeap.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [deadlineHeap.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType deadlineHeap.ty)))) (Var "h")) (Var "$r0")))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))) (Val #(W64 2))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$l0" (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "p"))))
+  (Let "$l1" (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "p")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "p"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$l1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$l0") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "p"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "p") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore deadlineHeap.ty))) (Pair (Var "s") (Var "$r0")))))))))))))
+
+/-- go: wait_time.go:95:24 -/
+noncomputable def deadlineHeap.pop.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType deadlineHeap.ty)))) (Var "h"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType deadlineHeap.ty)))) (Var "h")))
+  (Let "s" (App (Val (GoInstruction (GoAlloc deadlineHeap.ty))) (App (Val (GoInstruction (GoZeroVal deadlineHeap.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (Val #(W64 0)))))
+  (Let "top" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [deadlineHeap.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s"))
+  (App (Val (GoInstruction (Slice deadlineHeap.ty))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "top")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType deadlineHeap.ty)))) (Var "h")) (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W64 1))))
+  (Let "l" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "l"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$l0" (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "$l1" (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "c")))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$l1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$l0") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))))))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "l")) (Val #(W64 1))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "l"))))))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "r"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "c") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "r") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "c") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "l")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "l") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore deadlineHeap.ty))) (Pair (Var "s") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef deadlineHeap.ty))) (Pair (App (Val (GoInstruction (GoLoad deadlineHeap.ty))) (Var "s")) (Val #(W64 0)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "top") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore deadlineHeap.ty))) (Pair (Var "s") (Var "$r0")))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.wait where
   pkgImportedPkgs := [pkg_id.log, pkg_id.sync]
@@ -532,26 +706,42 @@ attribute [instance] waitWithResponse.TypeAssumptions.type_repr
 abbrev WaitTime [FfiSyntax] : Type := GoInterface
 
 @[reducible] def WaitTime.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Trigger" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"Wait" (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Pending" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Trigger" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"Wait" (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))])
 
 class WaitTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WaitTime.ty WaitTime.underlying
 
 attribute [instance] WaitTime.TypeAssumptions.underlying
 
+abbrev deadlineHeap [FfiSyntax] : Type := GoSlice
+
+@[reducible] def deadlineHeap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType go.uint64)
+
+class deadlineHeap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq deadlineHeap.ty deadlineHeap.underlying
+  ptr_pop_unfold : MethodUnfold (go.GoType.PointerType deadlineHeap.ty) go!"pop" deadlineHeap.pop.impl
+  ptr_push_unfold : MethodUnfold (go.GoType.PointerType deadlineHeap.ty) go!"push" deadlineHeap.push.impl
+
+attribute [instance] deadlineHeap.TypeAssumptions.underlying
+  deadlineHeap.TypeAssumptions.ptr_pop_unfold
+  deadlineHeap.TypeAssumptions.ptr_push_unfold
+
 structure timeList [FfiSyntax] where
   mk ::
   l' : _root_.Perennial.sync.Mutex
   lastTriggerDeadline' : w64
   m' : GoMap
+  h' : deadlineHeap
 
 instance timeList.zero_val [FfiSyntax] : ZeroVal timeList :=
-  ⟨timeList.mk zeroValDef zeroValDef zeroValDef⟩
+  ⟨timeList.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def timeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"l" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"lastTriggerDeadline" go.uint64),
-(go.field_decl.FieldDecl go!"m" (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))]
+(go.field_decl.FieldDecl go!"m" (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))),
+(go.field_decl.FieldDecl go!"h" deadlineHeap.ty)]
 
 @[irreducible] def timeList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   timeList.fieldsUnsealed
@@ -572,6 +762,9 @@ class timeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_lastTriggerDeadline : ∀ (x : timeList) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"lastTriggerDeadline") (PairV #x #y) (Val #(({ x with lastTriggerDeadline' := y } : timeList)))
   get_m : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"m") #x (Val #(x.m'))
   set_m : ∀ (x : timeList) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : timeList)))
+  get_h : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"h") #x (Val #(x.h'))
+  set_h : ∀ (x : timeList) (y : deadlineHeap), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"h") (PairV #x #y) (Val #(({ x with h' := y } : timeList)))
+  ptr_Pending_unfold : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Pending" timeList.Pending.impl
   ptr_Trigger_unfold : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Trigger" timeList.Trigger.impl
   ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Wait" timeList.Wait.impl
 
@@ -583,6 +776,9 @@ attribute [instance] timeList.TypeAssumptions.type_repr
   timeList.TypeAssumptions.set_lastTriggerDeadline
   timeList.TypeAssumptions.get_m
   timeList.TypeAssumptions.set_m
+  timeList.TypeAssumptions.get_h
+  timeList.TypeAssumptions.set_h
+  timeList.TypeAssumptions.ptr_Pending_unfold
   timeList.TypeAssumptions.ptr_Trigger_unfold
   timeList.TypeAssumptions.ptr_Wait_unfold
 
@@ -593,6 +789,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   waitWithResponse_instance : waitWithResponse.TypeAssumptions
   WaitTime_instance : WaitTime.TypeAssumptions
   timeList_instance : timeList.TypeAssumptions
+  deadlineHeap_instance : deadlineHeap.TypeAssumptions
   New_unfold : FuncUnfold New [] New.impl
   NewWithResponse_unfold : FuncUnfold NewWithResponse [] NewWithResponse.impl
   NewTimeList_unfold : FuncUnfold NewTimeList [] NewTimeList.impl
@@ -605,6 +802,7 @@ attribute [instance] Assumptions.Wait_instance
   Assumptions.waitWithResponse_instance
   Assumptions.WaitTime_instance
   Assumptions.timeList_instance
+  Assumptions.deadlineHeap_instance
   Assumptions.New_unfold
   Assumptions.NewWithResponse_unfold
   Assumptions.NewTimeList_unfold

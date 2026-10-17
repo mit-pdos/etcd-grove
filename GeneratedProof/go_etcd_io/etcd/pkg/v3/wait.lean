@@ -170,6 +170,7 @@ instance timeList_typed_pointsto :
     "l" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) v.l' dq ∗
     "lastTriggerDeadline" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"lastTriggerDeadline" l) v.lastTriggerDeadline' dq ∗
     "m" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"m" l) v.m' dq ∗
+    "h" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"h" l) v.h' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -224,6 +225,22 @@ instance timeList_access_store_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.time
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"m" l) v.m' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"m" l) m' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := m' } : go_etcd_io.etcd.pkg.v3.wait.timeList) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance timeList_access_load_h (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"h" l) v.h' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"h" l) v.h' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance timeList_access_store_h (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (h' : go_etcd_io.etcd.pkg.v3.wait.deadlineHeap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"h" l) v.h' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"h" l) h' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h' := h' } : go_etcd_io.etcd.pkg.v3.wait.timeList) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

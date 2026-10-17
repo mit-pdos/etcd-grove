@@ -45,6 +45,29 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22495, `applyWait`'s waiters in a min-heap (2026-10-17, branch `pr-verify/etcd-22495`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22495-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `pkg/wait`'s `timeList` keeps its deadlines in a
+hand-rolled min-heap `h` beside the map; `Trigger` pops the heap while its root is at most the
+deadline, and the new `Pending()` (on the `WaitTime` interface) feeds the server's new gauge
+`applyWaitPending` in `applyAll`. Proved: the heap's `push` and `pop` (`Heap.lean`, the pure
+heap model; `deadlineHeap__{push,pop}.lean`), `Wait`/`Trigger`/`NewTimeList` at their unchanged
+specs, `Pending`, and the server's `applyAll`/`start`/`ApplyWait` over them. The lock invariant
+`timeListR` gains the heap and a new conjunct, every deadline in the map above the last trigger's
+(`tlHeapOk`): `Trigger(d)` released every waiter at most `d`, which the contract's `True`
+postcondition did not say. `isWaitTime` gains `Pending`'s contract; the server's package facts gain
+the `applyWaitPending` gauge.
+
+**Perennial limitation, worked around here** (`Proof/go_etcd_io/etcd/pkg/v3/wait/HeapAppend.lean`,
+axiom `wait.deadlineHeap.append_len_bound`): Perennial's model of `append` only assumes that the new
+length fits an `int`; Go's runtime refuses (`growslice` panics) beyond `maxAlloc` bytes (`2^48` on
+64-bit platforms), so a `[]uint64` never reaches `2^62` elements, which `pop`'s `2*i + 1` needs (as
+Perennial's own `slices.siftDownOrdered` takes `len ≤ 2^62` as a premise). The general fix, to
+propose to Perennial on its own: model the allocation bound in `append` (and `make`) as an
+assumption (`Assume`), like the `int` overflow it assumes now. Report:
+`notes/pr-verify/etcd-22495.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

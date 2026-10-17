@@ -32,15 +32,26 @@ theorem wait.NewTimeList.wp_proof : wait.NewTimeList.spec (GF := GF) (hG := hG) 
   wp_alloc tl as Htl
   iStructNamed Htl
   ipersist m
-  imod sync.init_Mutex (timeListR tl mref P) ⊤ (tlLockAddr tl) $$ l [lastTriggerDeadline Hm] with #Hmu
+  imod sync.init_Mutex (timeListR tl mref P) ⊤ (tlLockAddr tl) $$ l [lastTriggerDeadline Hm h] with #Hmu
   · inext
     iunfold timeListR
-    iexists (0 : w64), ∅
+    iexists (0 : w64), ∅, slice.nil, []
     iframe lastTriggerDeadline Hm
     isplitr
     · rw [show (0 : w64) = W64 0 from rfl]; iexact HP0
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
+    isplitr
+    · iapply BigSepM.bigSepM_empty.2
+      itrivial
+    iframe h
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · iapply ownSliceCap_nil
+    ipureintro
+    unfold tlHeapOk
+    refine ⟨waitHeap.heapOk_nil, waitHeap.heapMatch_empty, ?_, ?_⟩
+    · intro k hk; cases hk
+    · simp
   (try wp_auto)
   iapply HΦ
   iunfold isTimeList

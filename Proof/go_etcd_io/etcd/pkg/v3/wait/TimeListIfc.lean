@@ -1,12 +1,13 @@
 /-
 `pkg/wait`'s `WaitTime` contract for a `*timeList` (`wait_time.go`): `isWaitTime` of the interface
-value from `isTimeList`, by the specs of `Wait` and `Trigger`. Lean-first (no Rocq counterpart);
+value from `isTimeList`, by the specs of `Wait`, `Trigger` and `Pending`. Lean-first (no Rocq counterpart);
 the request path's unit 4b.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
 public import Spec.go_etcd_io.etcd.pkg.v3.wait.timeList__Trigger
+public import Spec.go_etcd_io.etcd.pkg.v3.wait.timeList__Pending
 
 @[expose] public section
 
@@ -27,7 +28,8 @@ variable [sem : go.Semantics]
 
 /-- **A `*timeList` is a `WaitTime`** (as an interface value), from the specs of its methods. -/
 theorem isWaitTime_of_timeList (hW : wait.timeList.Wait.spec (GF := GF) (hG := hG))
-    (hT : wait.timeList.Trigger.spec (GF := GF) (hG := hG)) (tl : Loc) (P : w64 → IProp GF) :
+    (hT : wait.timeList.Trigger.spec (GF := GF) (hG := hG))
+    (hP : wait.timeList.Pending.spec (GF := GF) (hG := hG)) (tl : Loc) (P : w64 → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ isTimeList tl P ⊢
       isWaitTime (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.timeList.ty) #tl) P := by
   iintro ⟨#Hpkg, #Htl⟩
@@ -40,10 +42,15 @@ theorem isWaitTime_of_timeList (hW : wait.timeList.Wait.spec (GF := GF) (hG := h
     wp_apply hW tl P d $$ []
     · iframe #
     iexact HΦ
+  isplitr
   · iintro !> %d %Φ !> #HP HΦ
     wp_apply hT tl P d $$ []
     · iframe #
     iapply HΦ; itrivial
+  · iintro !> %Φ !> - HΦ
+    wp_apply hP tl P $$ []
+    · iframe #
+    iexact HΦ
 
 end proof
 

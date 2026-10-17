@@ -5,7 +5,8 @@ translate = ["!*", "defaultListElementLength", "Wait", "list", "listElement", "N
   "list.Register", "list.Trigger", "list.IsRegistered",
   "waitWithResponse", "NewWithResponse", "waitWithResponse.Register",
   "waitWithResponse.Trigger", "waitWithResponse.IsRegistered",
-  "WaitTime", "closec", "init", "timeList", "NewTimeList", "timeList.Wait", "timeList.Trigger"]
+  "WaitTime", "closec", "init", "timeList", "NewTimeList", "timeList.Wait", "timeList.Trigger",
+  "timeList.Pending", "deadlineHeap", "deadlineHeap.push", "deadlineHeap.pop"]
 imports = ["!*", "log", "sync"]
 
 # translate the definitions of all type declarations goose supports

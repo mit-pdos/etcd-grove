@@ -33,7 +33,7 @@ applied through `ai'` is `x'.log`; 2026-10-14, unit C2a: each entry committed,
 `batchCommittedIdx`, and its log deposited ahead of its result), the backend's verification (`VerifyBackendConsistency`, the
 trust boundary), the `proposalsApplied` gauge, **`applyWait.Trigger(ai')`** (with `appliedAtLeast γr
 ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV has applied through
-`ai'`), `<-ap.notifyc`, the snapshot trigger (`snapshotIfNeededAndCompactRaftLog`, over the
+`ai'`), the `applyWaitPending` gauge of `applyWait.Pending()` (etcd PR #22495), `<-ap.notifyc`, the snapshot trigger (`snapshotIfNeededAndCompactRaftLog`, over the
 `snapshot`/`compactRaftLog` contracts), and a pending merged-snapshot request on `msgSnapC`
 (names-only contracts). The apply thread's resources come back at `ai'`, with `loopOk`. **The
 write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one write token of the

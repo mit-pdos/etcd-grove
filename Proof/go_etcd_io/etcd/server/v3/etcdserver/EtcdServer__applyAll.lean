@@ -59,7 +59,7 @@ theorem EtcdServer.applyAll.wp_proof
   icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γc, %Pm, #Hmscb⟩, #Hsc⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, ⟨%g, #Hg, #Hgs⟩, ⟨%bsl, #Hbsl⟩⟩
+  icases Hinit with ⟨-, -, ⟨%g, #Hg, #Hgs⟩, ⟨%gp, #Hgp, #Hgps⟩, ⟨%bsl, #Hbsl⟩⟩
   ihave #Pbe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   wp_auto
@@ -90,10 +90,16 @@ theorem EtcdServer.applyAll.wp_proof
   -- `s.applyWait.Trigger(ep.appliedi)`: the waiters through `ai'`
   icases srvAppliedOwn_lb γr ai' $$ Hao with ⟨Hao, #Hlb⟩
   iunfold isWaitTime at Hwt
-  icases Hwt with ⟨%wi, %Hwi, -, #HTrig⟩
+  icases Hwt with ⟨%wi, %Hwi, -, #HTrig, #HPend⟩
   subst Hwi
   wp_apply HTrig $$ []
   · iintro !>; iexact Hlb
+  (try wp_auto)
+  -- `applyWaitPending.Set(float64(s.applyWait.Pending()))` (etcd PR #22495)
+  wp_apply HPend as %np -
+  (try wp_auto)
+  iunfold gaugeSetSpec at Hgps
+  wp_apply Hgps
   (try wp_auto)
   -- `<-apply.notifyc`
   iunfold isUnitBag at Hncb

@@ -5,6 +5,7 @@ request path's unit 4b.
 module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
+public import Spec.go_etcd_io.etcd.pkg.v3.wait.deadlineHeap__push
 
 @[expose] public section
 
@@ -15,7 +16,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3 waitHeap
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -34,7 +35,8 @@ theorem bcast_pending_unknown' (ch : Loc) (γ : ChanNames) (Q : IProp GF) :
   · iapply ownBroadcastChan_close _ _ _ _ γch; iframe Hint Hd
   · iapply ownBroadcastChan_close _ _ _ .Unknown γch; iframe Hint
 
-theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := hG) := by
+theorem wait.timeList.Wait.wp_proof (hPush : wait.deadlineHeap.push.spec (GF := GF) (hG := hG)) :
+    wait.timeList.Wait.spec (GF := GF) (hG := hG) := by
   intro tl P d
   wp_start as #Htl
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -45,7 +47,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold timeListR at HR
-  icases HR with ⟨%last, %M, Hlast, HM, #Hlastp, Hchs⟩
+  icases HR with ⟨%last, %M, %hs, %xs, Hlast, HM, #Hlastp, Hchs, Hh, Hs, Hcap, %Hok⟩
   (try wp_auto)
   wp_if_destruct
   · -- already triggered: `closec`
@@ -53,8 +55,8 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     iunfold waitClosecInit at Hcl'
     icases Hcl' with ⟨%cc, %γc, #Hcc, #Hccb⟩
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs]
-    · inext; iunfold timeListR; iexists last, M; iframe; iframe #
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs Hh Hs Hcap]
+    · inext; iunfold timeListR; iexists last, M, hs, xs; iframe; iframe #; ipureintro; exact Hok
     (try wp_auto)
     iapply HΦ
     iexists iprop(True)
@@ -73,11 +75,25 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     (try wp_auto)
     wp_apply wp_mapInsert $$ [$HM] as HM
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs Hbc]
-    · inext; iunfold timeListR; iexists last, _; iframe; iframe #
-      iapply (BigSepM.bigSepM_insert (Φ := fun d ch =>
-        iprop(∃ γ : ChanNames, ownBroadcastChan ch γ (P d) Broadcast.Pending)) hk).2
-      iframe
+    -- `tl.h.push(deadline)` (etcd PR #22495)
+    obtain ⟨Hheap, Hmatch, Habove, Hlen⟩ := Hok
+    wp_apply hPush (tlHeapAddr tl) hs xs d $$ [$Hh $Hs $Hcap] as ⟨%hs', %xs', Hh, Hs, Hcap, %Hpush⟩
+    · iframe #; ipureintro; exact Hheap
+    obtain ⟨Hheap', Hperm', Hlen'⟩ := Hpush
+    (try wp_auto)
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs Hbc Hh Hs Hcap]
+    · inext; iunfold timeListR; iexists last, _, hs', xs'; iframe; iframe #
+      isplitl
+      · iapply (BigSepM.bigSepM_insert (Φ := fun d ch =>
+          iprop(∃ γ : ChanNames, ownBroadcastChan ch γ (P d) Broadcast.Pending)) hk).2
+        iframe
+      ipureintro
+      refine ⟨Hheap', heapMatch_insert Hmatch hk Hperm', ?_, Hlen'⟩
+      intro k hk'
+      rw [Hperm'.mem_iff, List.mem_append, List.mem_singleton] at hk'
+      rcases hk' with hk' | rfl
+      · exact Habove k hk'
+      · omega
     (try wp_auto)
     iapply HΦ
     iexists P d
@@ -95,9 +111,11 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     rw [decide_eq_false (show ¬ ch = chan.nil from Hnn)]
     wp_auto
     icases bcast_pending_unknown' _ _ _ $$ Hb with ⟨Hb, #Hbu⟩
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs Hb]
-    · inext; iunfold timeListR; iexists last, M; iframe; iframe #
-      iapply Hchs; iexists γ; iexact Hb
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs Hb Hh Hs Hcap]
+    · inext; iunfold timeListR; iexists last, M, hs, xs; iframe; iframe #
+      isplitl
+      · iapply Hchs; iexists γ; iexact Hb
+      ipureintro; exact Hok
     (try wp_auto)
     iapply HΦ
     iexists P d

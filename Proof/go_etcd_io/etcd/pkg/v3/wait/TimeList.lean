@@ -9,7 +9,9 @@ counterpart); the request path's unit 4b (2026-10-13).
   `P d` follows (`□ (Q -∗ P d)`): `Wait` returns the package-wide `closec` (closed in `init`, with
   nothing: `Q = True`) when `d` is already triggered, then `P d` holds already; or a channel of the
   deadline `d`, closed with `P d` by a later `Trigger`;
-* `Trigger(d)` takes `□ P d` and closes the channels of every deadline at most `d`.
+* `Trigger(d)` takes `□ P d` and closes the channels of every deadline at most `d`;
+* `Pending()` returns a non-negative count (etcd PR #22495: the map's size, read under the lock;
+  a snapshot of a value other threads change, so the contract says no more).
 
 **The package's `closec`** (`waitClosecInit`): the global `closec` holds a channel closed by the
 package's `init`, never sent on (a broadcast channel with no content). Kept out of the package's
@@ -23,6 +25,20 @@ initialization (`init` closes `closec`, Go never writes it afterwards).
 deadline `d` in the map, a pending broadcast channel with content `P d`; `P` is monotone downward
 (`□ (∀ d d', ⌜d' ≤ d⌝ -∗ P d -∗ P d')`), so `□ P last` gives `P d` for every `d ≤ last`.
 
+**The heap** (etcd PR #22495, pr-verify/etcd-22495, 2026-10-17): `tl.h`, a slice of a min-heap
+(`waitHeap.heapOk`, `Heap.lean`) holding exactly the map's deadlines, once each (`heapMatch`), of
+fewer than `2^62` elements (`HeapAppend.lean`), with its capacity. **Every deadline in the map is
+above the last trigger's** (`∀ k ∈ heap, last < k`): `Trigger(d)` closed and removed every deadline
+at most `d`, and `Wait` adds only deadlines above `last`. This conjunct is new with the PR's proof:
+no deadline at most the last trigger's is left in the map (the map scan removed them before the PR,
+the heap's order finds them after it). **It does not by itself say that their channels were
+closed**: the logic is affine, so a `Trigger` that deleted a deadline without closing its channel
+would keep this invariant and the contract's `True` postcondition (as a `Trigger` that only stored
+`last` would have before the PR). The proofs do close each channel they remove
+(`wp_broadcast_chan_close`), but no statement requires it; stating it needs a ghost record of the
+channels `Wait` handed out (each pending in the map or closed), an open point of
+`notes/pr-verify/etcd-22495.md`.
+
 **A trigger's deadline may go down** (`Trigger` sets `lastTriggerDeadline = d` even if `d` is
 smaller than the last): then a `Wait(d')` with `d < d' ≤` the old deadline returns a fresh channel
 (released by a later `Trigger` at `d'` or more), although `d'` was triggered. No premise is needed
@@ -34,6 +50,7 @@ later than or equal to the one it is waiting for") does not promise more; the se
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.Heap
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 
@@ -46,7 +63,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3 waitHeap
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -57,6 +74,8 @@ abbrev tlLockAddr (tl : Loc) : Loc := structFieldRef wait.timeList go!"l" tl
 abbrev tlLastAddr (tl : Loc) : Loc := structFieldRef wait.timeList go!"lastTriggerDeadline" tl
 /-- The address of `tl.m`. -/
 abbrev tlMapAddr (tl : Loc) : Loc := structFieldRef wait.timeList go!"m" tl
+/-- The address of `tl.h` (etcd PR #22495). -/
+abbrev tlHeapAddr (tl : Loc) : Loc := structFieldRef wait.timeList go!"h" tl
 
 end addrs
 
@@ -89,12 +108,19 @@ def waitMono (P : w64 → IProp GF) : IProp GF :=
 instance waitMono_persistent (P : w64 → IProp GF) : Persistent (waitMono P) := by
   unfold waitMono; infer_instance
 
+/-- The pure part of the lock invariant: the heap `xs` of the map `M`'s deadlines, all above the
+last trigger's `last` (see the file header). -/
+def tlHeapOk (xs : List w64) (M : GMap w64 Loc) (last : w64) : Prop :=
+  heapOk xs ∧ heapMatch xs M ∧ (∀ k ∈ xs, uint.Z last < uint.Z k) ∧ xs.length < 2 ^ 62
+
 /-- **The lock invariant of `tl.l`**, with the map `mref` (see the file header): the last
-trigger's deadline, with `□ P` of it, and the map's channels, each pending with content `P d`. -/
+trigger's deadline, with `□ P` of it, the map's channels, each pending with content `P d`, and the
+heap of the map's deadlines (etcd PR #22495). -/
 def timeListR (tl mref : Loc) (P : w64 → IProp GF) : IProp GF :=
-  iprop(∃ (last : w64) (M : GMap w64 Loc),
+  iprop(∃ (last : w64) (M : GMap w64 Loc) (hs : GoSlice) (xs : List w64),
     tlLastAddr tl ↦ last ∗ ownMap mref (DFrac.own 1) M ∗ □ P last ∗
-    [∗map] d ↦ ch ∈ M, ∃ γ : ChanNames, ownBroadcastChan ch γ (P d) .Pending)
+    ([∗map] d ↦ ch ∈ M, ∃ γ : ChanNames, ownBroadcastChan ch γ (P d) .Pending) ∗
+    tlHeapAddr tl ↦ hs ∗ hs ↦* xs ∗ ownSliceCap w64 hs (DFrac.own 1) ∗ ⌜tlHeapOk xs M last⌝)
 
 /-- **The `*timeList` `tl`** (persistent; `NewTimeList`'s result): its map field (read-only), its
 mutex with the lock invariant, `P` monotone downward, `closec` closed. -/
@@ -112,7 +138,9 @@ def isWaitTime (wt : GoInterface) (P : w64 → IProp GF) : IProp GF :=
     □ (∀ d : w64, {{ True }} (App (Val #(methods wi.ty go!"Wait" wi.v)) (Val #d))
       {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, waitBcast ch Q ∗ □ (Q -∗ P d) }}) ∗
     □ (∀ d : w64, {{ □ P d }} (App (Val #(methods wi.ty go!"Trigger" wi.v)) (Val #d))
-      {{ RET #(); True }}))
+      {{ RET #(); True }}) ∗
+    □ ({{ True }} (App (Val #(methods wi.ty go!"Pending" wi.v)) (Val #()))
+      {{ (n : w64), RET #n; ⌜0 ≤ sint.Z n⌝ }}))
 
 instance isWaitTime_persistent (wt : GoInterface) (P : w64 → IProp GF) :
     Persistent (isWaitTime wt P) := by

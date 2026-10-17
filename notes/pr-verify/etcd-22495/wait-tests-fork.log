@@ -1,0 +1,10 @@
+=== RUN   TestTriggerDupSuppression
+--- PASS: TestTriggerDupSuppression (0.00s)
+=== RUN   TestWaitTime
+--- PASS: TestWaitTime (0.00s)
+=== RUN   TestWaitTimePending
+--- PASS: TestWaitTimePending (0.00s)
+=== RUN   TestWaitTimeTriggerReleasesOnlyEarlierDeadlines
+--- PASS: TestWaitTimeTriggerReleasesOnlyEarlierDeadlines (0.00s)
+PASS
+ok  	go.etcd.io/etcd/pkg/v3/wait	0.011s

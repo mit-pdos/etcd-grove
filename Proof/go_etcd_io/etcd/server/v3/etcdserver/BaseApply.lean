@@ -327,11 +327,13 @@ instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
   unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance
 
 /-- The apply loop's part of the server's package facts (2026-10-13, the request path's unit 4b,
-`applyAll`): the metric `proposalsApplied` holds a fixed gauge (`Set`), and `schema.AllBuckets`
+`applyAll`): the metrics `proposalsApplied` and `applyWaitPending` (etcd PR #22495,
+pr-verify/etcd-22495) each hold a fixed gauge (`Set`), and `schema.AllBuckets`
 (the buckets `VerifyBackendConsistency` checks; stated here rather than in `schema`'s facts, as
 `srvErrVars` states other packages' errors) some slice. -/
 abbrev srvApplyLoopInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr proposalsApplied ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr applyWaitPending ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl))
 
 /-- **The server package's facts**: the raft wrapper's (`srvRaftInit`), the request path's

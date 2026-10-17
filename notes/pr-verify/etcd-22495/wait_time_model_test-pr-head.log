@@ -1,0 +1,4 @@
+=== RUN   TestWaitTimeModel
+--- PASS: TestWaitTimeModel (0.24s)
+PASS
+ok  	go.etcd.io/etcd/pkg/v3/wait	0.259s

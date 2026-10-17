@@ -74,6 +74,7 @@ theorem EtcdServer.start.wp_proof
     (hTL : wait.NewTimeList.spec (GF := GF) (hG := hG))
     (hTLW : wait.timeList.Wait.spec (GF := GF) (hG := hG))
     (hTLT : wait.timeList.Trigger.spec (GF := GF) (hG := hG))
+    (hTLP : wait.timeList.Pending.spec (GF := GF) (hG := hG))
     (hNR : read.NewRead.spec (GF := GF) (hG := hG))
     (hNN : notify.NewNotifier.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
@@ -350,7 +351,7 @@ theorem EtcdServer.start.wp_proof
     iframe G1 G2
   ihave #Hpwait : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait $$ []
   · iPkgInit
-  ihave #Hwt := isWaitTime_of_timeList hTLW hTLT tl (appliedAtLeast γr) $$ [$Hpwait $Htl]
+  ihave #Hwt := isWaitTime_of_timeList hTLW hTLT hTLP tl (appliedAtLeast γr) $$ [$Hpwait $Htl]
   ihave #Hsa : isServerApplyAll s γr $$ []
   · iunfold isServerApplyAll
     iunfold srvApplyAllBuilt at Hsab

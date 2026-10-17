@@ -30,7 +30,7 @@ theorem EtcdServer.ApplyWait.wp_proof : EtcdServer.ApplyWait.spec (GF := GF) (hG
   intro s wt P d
   wp_start as ⟨#Hf, #Hwt⟩
   iunfold isWaitTime at Hwt
-  icases Hwt with ⟨%wi, %Hwi, #HW, -⟩
+  icases Hwt with ⟨%wi, %Hwi, #HW, -, -⟩
   subst Hwi
   wp_auto
   wp_apply HW $$ %d as %ch HQ

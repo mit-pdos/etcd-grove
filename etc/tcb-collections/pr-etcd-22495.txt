@@ -1,0 +1,54 @@
+# etcd-io/etcd#22495 (pkg/wait: applyWait's waiters in a min-heap; pr-verify/etcd-22495): the
+# results of pkg/wait's WaitTime (Wait, Trigger, Pending, NewTimeList, the heap's push and pop),
+# the server's `wait_time` (Results.lean), and the server functions that use it (applyAll,
+# start, ApplyWait).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22495.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/pkg/v3/wait/(NewTimeList|timeList__|deadlineHeap__)
+roots ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__(applyAll|start|ApplyWait)\.lean$
+roots ^wait_time$
+axiom EtcdServer.Cleanup.wp_proof
+axiom EtcdServer.applyConfChange.wp_proof
+axiom EtcdServer.compactRaftLog.wp_proof
+axiom EtcdServer.createMergedSnapshotMessage.wp_proof
+axiom EtcdServer.raftRequestAlarm.wp_proof
+axiom EtcdServer.revokeExpiredLeases.wp_proof
+axiom EtcdServer.sendMergedSnap.wp_proof
+axiom EtcdServer.snapshot.wp_proof
+axiom EtcdServer.stopWithDelay.wp_proof
+axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom context.ErrDone.wp_proof
+axiom go_humanize.Bytes.wp_proof
+axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom prometheus.GaugeVec.With.wp_proof
+axiom proto.Clone.wp_proof
+axiom schedule.NewFIFOScheduler.wp_proof
+axiom schedule.Scheduler.Schedule.wp_proof
+axiom schedule.Scheduler.Stop.wp_proof
+axiom semver.Version.String.wp_proof
+axiom storage.BackendQuota.Cost.wp_proof
+axiom txn.ApplySecObserve.wp_proof
+axiom txn.WarnOfExpensiveRequest.wp_proof
+axiom txn.WarnOfFailedRequest.wp_proof
+axiom types.ID.String.wp_proof
+axiom v2stats.ServerStats.BecomeLeader.wp_proof
+axiom version.Cluster.wp_proof
+axiom wait.deadlineHeap.append_len_bound
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Fatal.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Stringer.wp_proof
+axiom zap.Uint64.wp_proof
