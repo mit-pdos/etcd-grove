@@ -45,6 +45,19 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR etcd-io/etcd#16385, `concurrency.WithCreationTimeout` (2026-10-17, branch `pr-verify/etcd-16385`)
+
+`client/v3/concurrency` re-translated at the fork branch `pr-etcd-16385-goose-lean` (the PR onto
+the pin; not the pin: `etc/goose.py --check` fails on this branch by design). `SessionOpts` has the
+creation timeout (`InvSession.lean`); `WithCreationTimeout` specified and proved; `NewSession`
+re-proved (through `context.WithTimeout` and a deferred cancel, joined with `wp_join`) with a
+stronger spec, `sessionCtxOf` (the session's context has the options' context's values and
+deadline), and `NewSession.spec_implies_old`. No new axiom of this repository or `sorry` (Perennial's
+`time.Now`/`Timer.Stop` trust-boundary axioms now reach `NewSession`, through `WithTimeout`); full
+`lake build` and `etc/tcb-report.py --check` pass; collection `etc/tcb-collections/pr-etcd-16385.txt`.
+Open spec gap: the lease client's `KeepAlive` triple takes any context, so the spec does not
+exclude passing the creation context to `KeepAlive`. Report: `notes/pr-verify/etcd-16385.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

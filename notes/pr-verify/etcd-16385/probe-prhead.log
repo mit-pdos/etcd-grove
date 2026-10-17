@@ -1,0 +1,10 @@
+=== RUN   TestNewSessionNoCreationTimeoutBlocks
+--- PASS: TestNewSessionNoCreationTimeoutBlocks (2.00s)
+=== RUN   TestNewSessionCreationTimeout
+--- PASS: TestNewSessionCreationTimeout (0.50s)
+=== RUN   TestNewSessionCreationTimeoutNonPositiveKeepsEarlier
+--- PASS: TestNewSessionCreationTimeoutNonPositiveKeepsEarlier (0.50s)
+=== RUN   TestNewSessionCreationTimeoutWithLease
+--- PASS: TestNewSessionCreationTimeoutWithLease (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3/concurrency	3.018s

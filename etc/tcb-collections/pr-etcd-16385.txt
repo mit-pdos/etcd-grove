@@ -1,0 +1,9 @@
+# etcd-io/etcd#16385 (session creation timeout): NewSession, WithCreationTimeout, and
+# NewSession's caller leasingKV.monitorSession.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-16385.txt [--check [--update]]
+roots concurrency\.wp_NewSession$
+roots concurrency\.wp_WithCreationTimeout$
+roots leasingKV\.wp_monitorSession$
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Warn.wp_proof

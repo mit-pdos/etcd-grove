@@ -1,0 +1,6 @@
+=== RUN   TestCreationTimeout
+--- PASS: TestCreationTimeout (3.06s)
+=== RUN   TestTimeoutDoesntAffectSubsequentConnections
+--- PASS: TestTimeoutDoesntAffectSubsequentConnections (5.49s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration	8.621s

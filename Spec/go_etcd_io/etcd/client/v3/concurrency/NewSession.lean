@@ -32,7 +32,12 @@ one; the client's is, `newClient` makes it with `WithCancel`): `nil` with an err
 context has the values and the deadline of the options' context (`sessionCtxOf`): a creation
 timeout (`WithCreationTimeout`, etcd-io/etcd#16385) bounds only the lease's `Grant`, not the
 session's context, which outlives it. (That the timeout makes `NewSession` return is liveness,
-which a Hoare triple does not state; nor does it say the error is `DeadlineExceeded`.) -/
+which a Hoare triple does not state; nor does it say the error is `DeadlineExceeded`, nor that
+`Grant` gets the creation context. Nor does it exclude passing the creation context to
+`KeepAlive`, which the deferred cancel would then end at return: the lease client's `KeepAlive`
+triple, `isEtcdLease`, takes any context and promises nothing of the stream; and a creation
+context made with `WithCancel` alone, with the session's derived from it, keeps the values and
+the deadline. `sessionCtxOf` excludes the session's context inheriting the timeout's deadline.) -/
 abbrev NewSession.spec : Prop :=
   ∀ (client : Loc) (cctx : GoInterface) (sl : GoSlice) (gs : List (SessionOpts → SessionOpts))
     (pctx : GoInterfaceOk) (pcs : context.ContextDesc (IProp GF)),

@@ -1,0 +1,8 @@
+# Files for the etcd-io/etcd#16385 report (`notes/pr-verify/etcd-16385.md`)
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `session_creation_timeout_test.go` | Four probes, all passing. Without the option, `NewSession` blocks while no endpoint is reachable (`TestNewSessionNoCreationTimeoutBlocks`, the issue etcd-io/etcd#14631). `WithCreationTimeout(500ms)` makes it return `context.DeadlineExceeded` (`TestNewSessionCreationTimeout`). `WithCreationTimeout(0)` after `WithCreationTimeout(500ms)` keeps the 500ms, although the doc says "no timeout will be used" (`TestNewSessionCreationTimeoutNonPositiveKeepsEarlier`). With `WithLease`, the timeout bounds nothing and `NewSession` returns at once (`TestNewSessionCreationTimeoutWithLease`). | the PR head `524448aa2` (upstream checkout), and `mit-pdos/etcd-grove` branch `pr-etcd-16385-goose-lean` | `cp session_creation_timeout_test.go <checkout>/client/v3/concurrency/ && cd <checkout>/client/v3 && GOTOOLCHAIN=go1.27.1 go test ./concurrency/ -run TestNewSession -v` |
+| `probe-prhead.log` | The probes' output at the PR head. | PR head `524448aa2` | as above |
+| `probe-fork.log` | The probes' output on the fork branch (the verified code). | `pr-etcd-16385-goose-lean` `bd46a46e5` | as above |
+| `pr-tests-prhead.log` | The PR's own integration tests `TestCreationTimeout` and `TestTimeoutDoesntAffectSubsequentConnections` pass at the PR head. They also pass on the fork branch. | PR head `524448aa2` | `cd <checkout>/tests && GOTOOLCHAIN=go1.27.1 go test ./integration/ -run 'TestCreationTimeout\|TestTimeoutDoesntAffectSubsequentConnections' -v` |
