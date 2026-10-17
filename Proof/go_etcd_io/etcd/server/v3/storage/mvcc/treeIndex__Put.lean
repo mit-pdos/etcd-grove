@@ -44,9 +44,14 @@ theorem mvcc.treeIndex.Put.wp_proof
   have wp_Get : btree.BTree.Get.modelSpec (GF := GF) (hG := hG) := btree.BTree.Get.modelSpec_of wp_Get
   have wp_ROI : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) :=
     btree.BTree.ReplaceOrInsert.modelSpec_of wp_ROI
-  intro ti γ ilog pend key k rev v l
+  intro ti γ ilog pend key k rev v l valueSize
   wp_start as ⟨#Hti, Hw, #Hkey, %Hpre⟩
-  obtain ⟨Hrev, Hilog, Hpend, Hwf'⟩ := Hpre
+  obtain ⟨Hrev, Hilog, Hpend, Hwf', Hvs⟩ := Hpre
+  ihave %Hklen := ownSlice_len _ _ _ $$ Hkey
+  -- `newSize` is the key's live part after the put
+  have hnew : W64 (k.length : Int) + valueSize = mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k := by
+    rw [mvcc.liveW_snoc_put, mvcc.W64_natCast_add, Hvs]
+  have hkl : key.len = W64 (k.length : Int) := by obtain ⟨h1, h2⟩ := Hklen; rw [h1]; word
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxWriter at Hw
@@ -86,6 +91,9 @@ theorem mvcc.treeIndex.Put.wp_proof
   ihave %Hcnt := monoNatLbOwn_valid γ.nev 1 _ _ $$ HnevL Hwlb
   have hevs := writer_events ilog ilog' pend pend' Hpre.2 Hcnt.2
   rw [hevs] at HLL
+  have hcongr := mvcc.ownLiveI_congr (GF := GF) (hG := hG) (ilog' ++ [pend']) (ilog ++ [pend]) 1
+    (mvcc.itemsOfEntries L) (fun it _ => mvcc.liveW_congr_evs hevs.symm it.2)
+  ihave HliveL := hcongr $$ HliveL
   iunfold mvcc.ownTree at HtreeL
   icases HtreeL with ⟨%Hsorted, Ht, Hkis⟩
   wp_apply (wp_Get mvcc.kiPtrT t mvcc.kiItemIs mvcc.kiItemLess _ _ «$r0_ptr» («$r0_ptr», k))
@@ -162,7 +170,17 @@ theorem mvcc.treeIndex.Put.wp_proof
       (btInsert mvcc.entryLess («$r0_ptr», k, mvcc.kiPut mvcc.KeyIndex.fresh ⟨W64 ilog.length, W64 pend.length⟩) L)
       cmax (mvcc.ptrs_btInsert_new L _ (fun w hw hwk => by
         have := List.find?_eq_none.1 hf w hw; simp only [decide_eq_true_eq] at this; exact this hwk)) $$ HcmpL
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hkis Hki HcmpL]
+    -- the other keys' live parts are unchanged (the key had no index)
+    have hcongr2 := mvcc.ownLiveI_congr (GF := GF) (hG := hG) (ilog ++ [pend])
+      (ilog ++ [pend ++ [.put k v l]]) 1 (mvcc.itemsOfEntries L) (fun it hit => by
+        apply mvcc.liveW_snoc_other ilog pend (.put k v l) it.2
+        obtain ⟨w, hw, hwi⟩ := List.mem_map.1 hit
+        have := List.find?_eq_none.1 hf w hw
+        simp only [decide_eq_true_eq] at this
+        rw [← hwi]
+        exact fun h => this h.symm)
+    ihave HliveL := hcongr2 $$ HliveL
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hkis Hki HcmpL HliveL KliveSize]
     · inext
       iunfold mvcc.idxLockInv
       iexists ilog, pend ++ [.put k v l],
@@ -186,6 +204,14 @@ theorem mvcc.treeIndex.Put.wp_proof
         iexists gs'
         rw [← hrevm, ← hrevs]
         iexact Hki
+      isplitl [HliveL KliveSize]
+      · simp only [mvcc.ownLive]
+        rw [mvcc.itemsOfEntries_btInsert]
+        iapply mvcc.ownLiveI_insert
+        iframe HliveL
+        simp only
+        rw [hkl, hnew]
+        iexact KliveSize
       isplitl []
       · iexact HcrevL
       isplitl []
@@ -196,6 +222,12 @@ theorem mvcc.treeIndex.Put.wp_proof
       simp only [mvcc.idxPut, Hidx] at hidxnew
       exact hidxnew
     (try wp_auto)
+    have hold : mvcc.liveW (ilog ++ [pend]) k = W64 0 :=
+      mvcc.liveW_absent (ilog ++ [pend]) (mvcc.IdxWf.logB ⟨Hwf, Hlen, Hplen, Hcs⟩) Hwf (by simp)
+        HLL.1 (by simp; omega) k Hidx
+    rw [show key.len + valueSize =
+        mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k - mvcc.liveW (ilog ++ [pend]) k by
+      rw [hold, hkl, hnew]; simp]
     iapply HΦ
     iunfold mvcc.idxWriter
     rw [← mvcc.histShape_ev, hcount]
@@ -229,6 +261,22 @@ theorem mvcc.treeIndex.Put.wp_proof
       rw [hrevm, hrevs, hz, mvcc.kiCompact_modified, mvcc.kiOfKey_eq_kiFold]
       exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
         (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
+    -- the key's live size, borrowed from the tree's
+    have hii : (mvcc.itemsOfEntries L)[i]? = some (z.1, z.2.1) := by
+      unfold mvcc.itemsOfEntries; rw [List.getElem?_map, hi]; rfl
+    have hoth : ∀ k' : GoString, k' ≠ (z.1, z.2.1).2 →
+        mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k' = mvcc.liveW (ilog ++ [pend]) k' := by
+      intro k' hk'
+      apply mvcc.liveW_snoc_other ilog pend (.put k v l) k'
+      intro h
+      apply hk'
+      rw [hk]
+      exact h.symm
+    have hupd := mvcc.ownLiveI_update (GF := GF) (hG := hG) (ilog ++ [pend])
+      (ilog ++ [pend ++ [.put k v l]]) 1 (mvcc.itemsOfEntries L) Hsorted i (z.1, z.2.1) hii
+    have hupd := hupd hoth
+    icases hupd $$ HliveL with ⟨Hlz, HliveBack⟩
+    (try wp_auto)
     wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr
     · ipureintro; exact Hlgnn
     simp only [Hlt, ↓reduceIte]
@@ -244,7 +292,9 @@ theorem mvcc.treeIndex.Put.wp_proof
     ihave HcmpL := mvcc.idxCmpOwn_mono γ _ L
       (L.set i (z.1, z.2.1, mvcc.kiPut z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) cmax
       (fun p hp => by rwa [mvcc.ptrs_set L i z (z.1, z.2.1, mvcc.kiPut z.2.2 ⟨W64 ilog.length, W64 pend.length⟩) hi rfl]) $$ HcmpL
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL]
+    ihave HliveL := HliveBack $$ [Hlz]
+    · rw [hk, ← hnew, ← hkl]; iexact Hlz
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL HliveL]
     · inext
       iunfold mvcc.idxLockInv
       iexists ilog, pend ++ [.put k v l],
@@ -267,6 +317,8 @@ theorem mvcc.treeIndex.Put.wp_proof
         iexists gs'
         rw [← hrevm, ← hrevs]
         iexact Hki
+      isplitl [HliveL]
+      · simp only [mvcc.ownLive]; rw [hset]; iexact HliveL
       isplitl []
       · iexact HcrevL
       isplitl []
@@ -277,6 +329,9 @@ theorem mvcc.treeIndex.Put.wp_proof
       simp only [mvcc.idxPut, Hidx] at hidxnew
       exact hidxnew
     (try wp_auto)
+    rw [show key.len + valueSize - mvcc.liveW (ilog ++ [pend]) z.2.1 =
+        mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k - mvcc.liveW (ilog ++ [pend]) k by
+      rw [hk, hkl, hnew]]
     iapply HΦ
     iunfold mvcc.idxWriter
     rw [← mvcc.histShape_ev, hcount]

@@ -156,15 +156,18 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
         storeTxnCommon' := {
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-        changes' := chs' } : storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
+        changes' := chs',
+        liveSizeDelta' := mvcc.pendDelta ilog pend +
+          (mvcc.liveW (ilog ++ [pend ++ [.del k]]) k - mvcc.liveW (ilog ++ [pend]) k) } :
+        storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
       mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z : IProp GF)
       $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
   · iintro Htw Hlrd
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
-    rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
-    simp only [mvcc.revOf, mvcc.Change.isDel]
+    rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm', mvcc.pendDelta_snoc]
+    simp only [mvcc.revOf, mvcc.Change.isDel, mvcc.Change.key]
     iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     isplitl []

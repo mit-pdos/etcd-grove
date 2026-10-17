@@ -45,6 +45,22 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd-io/etcd#22475 verified (2026-10-17, branch `pr-verify/etcd-22475`, not merged)
+
+The PR (the live KV payload metric `etcd_mvcc_live_kv_payload_bytes`) is verified over the fork's
+`pr-etcd-22475-goose-lean`. What changed:
+- `keyIndex.liveSize` is in the index lock invariant (`ownLive`, `idxLockInv` at
+  `liveW (ilog ++ [pend])`; the pure model is `LivePayload.lean`);
+- `treeIndex.Put`/`Tombstone` return the key's size delta (new specs);
+- `storeTxnWriteIs` records `liveSizeDelta = pendDelta ilog pend`;
+- `End` adds it to the gauge;
+- `treeIndex.Insert`'s spec carries the `liveSize` field;
+- `mvccInit` gains the gauge.
+
+No axiom or `sorry` was added. The gauge's value and restore are covered by Go tests only. Report:
+`notes/pr-verify/etcd-22475.md`. When a pin includes the PR, this branch is the starting point.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

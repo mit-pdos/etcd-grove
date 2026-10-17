@@ -30,7 +30,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
   have wp_ROI : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) :=
     btree.BTree.ReplaceOrInsert.modelSpec_of wp_ROI
   intro ti γ ilog pend ki k gs m q
-  wp_start as ⟨#Hti, Hw, Hcu, %Hn, #Hkey, Hki, %Hm⟩
+  wp_start as ⟨#Hti, Hw, Hcu, %Hn, #Hkey, Hki, Hlki, %Hm⟩
   obtain ⟨Hm, Hne⟩ := Hm
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
@@ -78,6 +78,19 @@ theorem mvcc.treeIndex.Insert.wp_proof
     have := (mvcc.indexOf_rep (mvcc.evsOf (ilog ++ [pend]))).2 k
     rw [Hidx, Option.getD_some] at this
     rw [this, Hm]
+  -- the replaced key index's live size leaves the tree, `ki`'s takes its place
+  have hii : (mvcc.itemsOfEntries L)[i]? = some (z.1, z.2.1) := by
+    unfold mvcc.itemsOfEntries; rw [List.getElem?_map, hi]; rfl
+  iunfold mvcc.ownLive at HliveL
+  iunfold mvcc.ownLiveI at HliveL
+  icases BigSepL.bigSepL_insert_acc (Φ := fun _ it => iprop(it.1.[keyIndex, go!"liveSize"] ↦{DFrac.own 1}
+      mvcc.liveW (ilog' ++ [pend']) it.2)) hii $$ HliveL with ⟨Hlz, HliveBack⟩
+  have hkw : mvcc.liveW (ilog' ++ [pend']) z.2.1 = mvcc.liveW (ilog ++ [pend]) k := by
+    rw [hk]; exact mvcc.liveW_congr_evs hevs k
+  ihave HliveL := HliveBack $$ %(ki, k) [Hlki]
+  · rw [show mvcc.liveW (ilog' ++ [pend']) (ki, k).2 = mvcc.liveW (ilog ++ [pend]) k from
+      mvcc.liveW_congr_evs hevs k]
+    iexact Hlki
   have Hfind := mvcc.btFind_items L Hsorted ki k
   rw [hf, Option.map_some] at Hfind
   (try wp_auto)
@@ -115,7 +128,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
   (try wp_auto)
   ihave HcmpL := mvcc.idxCmpOwn_neg γ _ L (btInsert mvcc.entryLess (ki, k, m) L) cmax
     (by have := HLL.2; omega) $$ HcmpL
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL HliveL]
   · inext
     iunfold mvcc.idxLockInv
     iexists ilog', pend', btInsert mvcc.entryLess (ki, k, m) L, cmax
@@ -136,6 +149,13 @@ theorem mvcc.treeIndex.Insert.wp_proof
       · ipureintro; exact Hn
       iexists gs
       iexact Hki
+    isplitl [HliveL]
+    · simp only [mvcc.ownLive]
+      rw [hset]
+      unfold mvcc.itemsOfEntries
+      rw [List.map_set]
+      iunfold mvcc.ownLiveI
+      iexact HliveL
     isplitl []
     · iexact HcrevL
     isplitl []
@@ -159,7 +179,9 @@ theorem mvcc.treeIndex.Insert.wp_proof
   isplitl []
   · rw [← hk]; iexact Hkold
   rw [← hz]
-  iexact Hzki
+  iframe Hzki
+  rw [← hkw]
+  iexact Hlz
 
 end proof
 

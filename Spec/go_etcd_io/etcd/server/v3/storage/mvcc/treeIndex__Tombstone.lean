@@ -24,7 +24,9 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `ti.Tombstone(key, rev)` by the writer, for the next change of the pending revision (a
 delete of `key`, which the well-formed log says is present): `nil`, the key's index gets the
-tombstone, and the writer's log has the change. -/
+tombstone, and the writer's log has the change. It returns what the delete adds to the live
+payload (etcd-io/etcd#22475, `LivePayload.lean`): the key's part after the delete (`0`) less its
+part before (`len(key) + len(value)` of the deleted key-value), mod `2^64`. -/
 abbrev mvcc.treeIndex.Tombstone.spec : Prop :=
   ∀ (ti : Loc) (γ : mvcc.IdxNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (key : GoSlice)
     (k : GoString) (rev : Revision),
@@ -34,7 +36,9 @@ abbrev mvcc.treeIndex.Tombstone.spec : Prop :=
         pend.length + 1 < 2 ^ 63 ∧ mvcc.LogWf' (ilog ++ [pend ++ [.del k]])⌝ }}
     (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Tombstone")) (Val #key))
       (Val #rev))
-  {{ RET #(GoInterface.nil); mvcc.idxWriter γ ilog (pend ++ [.del k]) }}
+  {{ RET (PairV #(mvcc.liveW (ilog ++ [pend ++ [.del k]]) k - mvcc.liveW (ilog ++ [pend]) k)
+        #GoInterface.nil);
+      mvcc.idxWriter γ ilog (pend ++ [.del k]) }}
 
 end spec
 

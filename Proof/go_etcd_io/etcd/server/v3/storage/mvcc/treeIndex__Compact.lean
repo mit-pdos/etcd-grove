@@ -149,7 +149,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
   (try wp_auto)
   ihave #HlogLb : monoListLbOwn γ.log log $$ []
   · iunfold mvcc.idxCert at Hcert; icases Hcert with ⟨-, -, -, #H⟩; iexact H
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hnev0 Ht0 Hkis0 Hg0]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hnev0 Ht0 Hkis0 Hg0 Hlive0]
   · inext
     iunfold mvcc.idxLockInv
     iexists ilog0, pend0, L0, sint.Z rev
@@ -159,6 +159,8 @@ theorem mvcc.treeIndex.Compact.wp_proof
     · iexact Hhist0
     isplitl [Ht0 Hkis0]
     · iunfold mvcc.ownTree; iframe Ht0 Hkis0; ipureintro; exact Hsorted0
+    isplitl [Hlive0]
+    · iexact Hlive0
     isplitl []
     · iexact Hlb
     isplitl []
@@ -308,7 +310,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
         rw [HW, Hemp] at this
         simp only [Bool.false_eq_true, ↓reduceIte] at this
         rw [mvcc.idxOfEntries_set]; exact this
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL HtL Hback HgL]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL HtL Hback HgL HliveL]
       · inext
         iunfold mvcc.idxLockInv
         iexists ilog, pend, L.set j (z.1, z.2.1, mvcc.kiCompact rev z.2.2), sint.Z rev
@@ -318,6 +320,8 @@ theorem mvcc.treeIndex.Compact.wp_proof
         · iexact HhistL
         isplitl [HtL Hback]
         · iunfold mvcc.ownTree; rw [hset]; iframe HtL Hback; ipureintro; exact HsortedL
+        isplitl [HliveL]
+        · simp only [mvcc.ownLive]; rw [hset]; iexact HliveL
         isplitl []
         · iexact Hlb
         isplitl []
@@ -377,7 +381,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
       icases mvcc.bigSepL_ownEntry_eraseIdx 1 (L.set j (z.1, z.2.1, mvcc.kiCompact rev z.2.2)) j _
         (List.getElem?_set_self hjl) $$ Hback with ⟨-, Hback⟩
       rw [List.eraseIdx_set_eq]
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL HtL Hback HgL]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL HtL Hback HgL HliveL]
       · inext
         iunfold mvcc.idxLockInv
         iexists ilog, pend, L.eraseIdx j, sint.Z rev
@@ -390,6 +394,13 @@ theorem mvcc.treeIndex.Compact.wp_proof
           rw [← hdel]
           iframe HtL Hback
           ipureintro; exact btDelete_sorted HsortedL
+        isplitl [HliveL]
+        · simp only [mvcc.ownLive]
+          rw [show mvcc.itemsOfEntries (L.eraseIdx j) = (mvcc.itemsOfEntries L).eraseIdx j by
+            unfold mvcc.itemsOfEntries; rw [List.eraseIdx_eq_take_drop_succ, List.eraseIdx_eq_take_drop_succ]
+            simp [List.map_take, List.map_drop]]
+          iapply mvcc.ownLiveI_eraseIdx
+          iexact HliveL
         isplitl []
         · iexact Hlb
         isplitl []

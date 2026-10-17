@@ -27,7 +27,9 @@ writer's log gives `k` (not empty: the index has the key): `ReplaceOrInsert` rep
 index in the tree, which is returned, owned; the writer's log is unchanged. (The insertion of a
 new key, which `restore` does on its private index, is not a step of the live index: its
 history fixes the tree's keys.) The writer holds a part of the compaction revision's authority at
-`-1` (no compaction: the tree's key indexes are those of the log, `crevUB`, given back). -/
+`-1` (no compaction: the tree's key indexes are those of the log, `crevUB`, given back). The
+key index's `liveSize` (etcd-io/etcd#22475) is the key's live part after the writer's log
+(`liveW`), as the replaced one's is. -/
 abbrev mvcc.treeIndex.Insert.spec : Prop :=
   ∀ (ti : Loc) (γ : mvcc.IdxNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (ki : Loc)
     (k : GoString) (gs : GoSlice) (m : mvcc.KeyIndex) (q : Qp),
@@ -35,11 +37,13 @@ abbrev mvcc.treeIndex.Insert.spec : Prop :=
       mvcc.isTreeIndex ti γ ∗ mvcc.idxWriter γ ilog pend ∗ mvcc.crevUB γ q (-1) ∗ ⌜ki ≠ null⌝ ∗
       mvcc.kiKey ki k ∗
       mvcc.ownKi ki gs m (DFrac.own 1) ∗
+      ki.[keyIndex, go!"liveSize"] ↦ mvcc.liveW (ilog ++ [pend]) k ∗
       ⌜m = mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k ∧ m ≠ mvcc.kiEmpty⌝ }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Insert")) (Val #ki))
   {{ RET #(); mvcc.idxWriter γ ilog pend ∗ mvcc.crevUB γ q (-1) ∗
       ∃ (old : Loc) (gs' : GoSlice), ⌜old ≠ null⌝ ∗ mvcc.kiKey old k ∗
-        mvcc.ownKi old gs' m (DFrac.own 1) }}
+        mvcc.ownKi old gs' m (DFrac.own 1) ∗
+        old.[keyIndex, go!"liveSize"] ↦ mvcc.liveW (ilog ++ [pend]) k }}
 
 end spec
 

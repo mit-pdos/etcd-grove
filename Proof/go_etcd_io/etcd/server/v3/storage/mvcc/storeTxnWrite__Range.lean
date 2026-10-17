@@ -118,8 +118,8 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
       simp only [TypedPointsto.typedPointstoDef]
       iframe
     rw [hwr]
-    ihave Htw : (tw ↦ ({ storeTxnCommon' := { s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace }, tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1), changes' := chs } : storeTxnWrite) : IProp GF)
-      $$ [Hc Wtx WbeginRev Wchanges]
+    ihave Htw : (tw ↦ ({ storeTxnCommon' := { s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace }, tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1), changes' := chs, liveSizeDelta' := mvcc.pendDelta ilog pend } : storeTxnWrite) : IProp GF)
+      $$ [Hc Wtx WbeginRev Wchanges WliveSizeDelta]
     · iapply typedPointsto_combine _ _ _ Hnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
