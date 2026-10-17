@@ -5010,19 +5010,33 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     `store.Read` takes an optional lent fraction of the committed log's authority (`logLent`)
     and says its log is that one; `watchableStore.rev` passes it; `progressIfSync` lends its lock
     body's (`Clog = σ.Lmu`).
+  - **K2e-2 (done)**: the notified log `γ.wlog` is a mono list (`notifiedLb`, `wlogQ_lb`,
+    `wlogQ_lb_valid`); `End`'s commit extends it.
+  - **K2e-3 (done)**: `s.mu`'s invariant is *settled* (`WsState.settled`, in `watchStoreInv`, not
+    `WsOk`): every synced watcher delivered at most up to the notified log (or its first revision),
+    every victim's `minRev`, in a batch or out with the mover (`Wo`), at most the notified log's
+    length. Not a `WsOk` field: inside `End`'s critical section `notify` delivers the next revision
+    before the commit; `notify`'s spec says both hold at `N + 1` after it. The `Wo` bound is what
+    lets `moveVictims` move a victim back to synced within it (the mover's batch needs no ghost);
+    the monotone `γ.wlog` (K2e-2) is not used by it, kept for (c) below.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
-    its consumers stay. Remaining server facts, in order: (a) a synced watcher is delivered at most
-    up to the notified log (a `WsOk` field `synced_le`); it needs a victim's `minRev` bounded by
-    the notified log, which the lock state does not record while the victim is out with the mover
-    (`moverRes`): a monotone ghost of the notified log (a new `WsNames` mono list, its authority
-    in the lock body and the sole writer's `End`), its lower bound carried by victim batches; with
-    it a progress response at `p` follows only events at or below `p` (`covFact`: `d = p + 1`);
-    (b) per watcher, progress revisions on the channel never decrease (the notified log's lower
-    bound recorded in `respCov`). Then the client: `regFacts` keeps `createdAfter`; `mvccOk` says
-    an announced watcher's responses before a response were all sent down (`SendInv.noPend`);
-    the completeness part of `recvElem` and `cursorOk`; `serveSubstream` carries it; then
-    `isEtcdWatcher_of_watcher`, `RequestProgress`, K3.
+    its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
+    with `c ≤ p`), from the server, per covered watcher: (a) every event of its range up to `p`
+    delivered before (`covFact` has it: `d ≥ p + 1`); (b) every event delivered before at or below
+    `p`. (b) is not in `covFact`: `cov_one` combines the sender's delivered events (a lower bound
+    `Hlb`, `d ≤ p + 1` by K2e-3) with the channel's (its half of `γw.evs`), which only contain
+    them. The two are equal while the sender holds its fraction of the lock's half (nobody can
+    extend `γw.evs` without both halves), so the plan is to lend those fractions to `send` with
+    the coverage entries (`covEntry`, one per covered watcher, deduplicated: in `progressIfSync`
+    the synced watchers on the channel, from the lock's map, not the stream's id map, which can
+    repeat a watcher) and get them back; then `covFact` keeps the sender's `d`. (c) the earlier
+    progress revisions at or below `p` (per watcher, a progress response's revision is the notified
+    log's, which only grows: record its lower bound, `notifiedLb`, in `respCov`), and the start
+    revision at or below `p` (the cache's watch starts at a revision etcd had reached). Then the
+    client: `regFacts` keeps `createdAfter`; `mvccOk` says an announced watcher's responses before a
+    response were all sent down (`SendInv.noPend`); the completeness part of `recvElem` and
+    `cursorOk`; `serveSubstream` carries it; then `isEtcdWatcher_of_watcher`, `RequestProgress`, K3.
   - **K2e design analysis (2026-10-17)**. What the cache's
     `watchRespOk` needs beyond the client's `rangeWatchRespOk`, and what is missing:
     1. *Cursor semantics*: the client's cursor (`γ.cur`, `rangeWatchRespOk`'s `c'`) is the last
