@@ -984,9 +984,17 @@ theorem prometheus.GaugeVec.wp_With :
     prometheus.GaugeVec.With.spec (GF := GF) (hG := hG) :=
   prometheus.GaugeVec.With.wp_proof
 
+theorem EtcdServer.wp_setAppliedIndex :
+    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setAppliedIndex.wp_proof
+
+theorem EtcdServer.wp_setTerm :
+    EtcdServer.setTerm.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setTerm.wp_proof
+
 theorem EtcdServer.wp_applySnapshot :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applySnapshot.wp_proof wp_IsEmptySnap
+  EtcdServer.applySnapshot.wp_proof wp_IsEmptySnap EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm
 
 theorem notify.Notifier.wp_Notify :
     notify.Notifier.Notify.spec (GF := GF) (hG := hG) :=
@@ -999,14 +1007,6 @@ theorem EtcdServer.wp_isLeader :
 theorem EtcdServer.wp_applyEntryNormal :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach EtcdServer.wp_MemberID
-
-theorem EtcdServer.wp_setAppliedIndex :
-    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.setAppliedIndex.wp_proof
-
-theorem EtcdServer.wp_setTerm :
-    EtcdServer.setTerm.spec (GF := GF) (hG := hG) :=
-  EtcdServer.setTerm.wp_proof
 
 theorem EtcdServer.wp_applyConfChange :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=

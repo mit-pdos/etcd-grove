@@ -45,6 +45,22 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#22529: the applied index may jump (2026-10-17, branch `pr-verify/etcd-22529`)
+
+Verifying the PR (`applySnapshot` publishes the snapshot's index and term,
+`notes/pr-verify/etcd-22529.md`) generalized the applied index's ghost protocol
+(`InvRequest.lean`) from steps of one to jumps: `srvAppliedPre γr v v' L` takes `v < v'` (was
+`v' = v + 1`), `appliedKeysOk` keeps the pending key the unique key above `v` (was `v + 1`), the
+deposit `applied_predeposit_gt` (with `applied_predeposit` its `v + 1` case), and
+`srvAppliedPre_of_succ` (the old precondition implies the new: `setAppliedIndex`'s spec only
+weakened). `EtcdServer.applySnapshot.publish_ok` (not linked) is the PR's store under the premises
+the unverified snapshot path must establish. The snapshot path itself stays outside the model
+(`applySnapshot.spec`: `ap.snapshot = nil`); so does a restart (`isServerBuilt` pairs the atomic with
+`ep.appliedi`, which `NewServer` meets only at 0; `issues/etcd-snapshot-applied-index-stale.md`).
+Open modelling point for a future snapshot path: `publish_ok` assumes mvcc's certificate of the
+snapshot's log under the same ghost names `E.γ.idx` after `kv.Restore`, which rebuilds the index;
+a spec of `Restore` would have to keep that mono-list growing. Trust base unchanged.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

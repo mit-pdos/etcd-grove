@@ -1765,19 +1765,21 @@ variable [sem : go.Semantics]
 /-- The server's atomics' invariants' namespace (moved here from `InvApplier.lean`, 2026-10-13). -/
 abbrev srvN : Namespace := nroot.@"server"
 
-/-- The applied logs' keys at the applied index `v`: at most `v`, or `v + 1` once its log is
-deposited ahead (`p`, unit C2a). -/
+/-- The applied logs' keys at the applied index `v`: at most `v`, or, once a log is deposited
+ahead (`p`, unit C2a), the one key above `v` (until 2026-10-16, `v + 1`: generalized for a leader
+snapshot's jump, etcd-io/etcd#22529, `applied_predeposit_gt`). -/
 def appliedKeysOk (M : GMap w64 mvcc.Log) (v : w64) (p : Bool) : Prop :=
-  ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v ∨ (p = true ∧ uint.Z k = uint.Z v + 1)
+  ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v ∨ (p = true ∧ uint.Z v < uint.Z k ∧
+    ∀ k2 L2, M.lookup k2 = some L2 → uint.Z v < uint.Z k2 → k2 = k)
 
 /-- The applied logs are in their indices' order as prefixes (unit C2a). -/
 def appliedMonoMap (M : GMap w64 mvcc.Log) : Prop :=
   ∀ k k' L1 L2, M.lookup k = some L1 → M.lookup k' = some L2 → uint.Z k ≤ uint.Z k' → L1 <+: L2
 
-/-- A deposit at the next index of a log extending the current one keeps the order. -/
+/-- A deposit at a later index of a log extending the current one keeps the order. -/
 theorem appliedMonoMap_insert (M : GMap w64 mvcc.Log) (v v' : w64) (L0 L : mvcc.Log)
     (hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v) (hmono : appliedMonoMap M)
-    (hv : M.lookup v = some L0) (hp : L0 <+: L) (hv' : uint.Z v' = uint.Z v + 1) :
+    (hv : M.lookup v = some L0) (hp : L0 <+: L) (hv' : uint.Z v < uint.Z v') :
     appliedMonoMap (M.insert v' L) := by
   intro k k' L1 L2 h1 h2 hle
   rw [GMap.lookup_insert_Some] at h1 h2
@@ -1815,11 +1817,24 @@ instance srvAppliedInv_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames
 def srvAppliedOwn (γr : ReadNames) (v : w64) : IProp GF :=
   iprop(monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗ ghostVar γr.pend (1 : Qp).half false)
 
-/-- **The apply thread at the applied index `v`, the log `L` of the next index `v'` deposited
-ahead** (2026-10-14, unit C2a; `applied_predeposit`): what `setAppliedIndex(v')` takes. -/
+/-- **The apply thread at the applied index `v`, the log `L` of a later index `v'` deposited
+ahead** (2026-10-14, unit C2a; `applied_predeposit`): what `setAppliedIndex(v')` takes. The next
+index (`v' = v + 1`, an entry's) until 2026-10-16; any later one since (`v < v'`, a leader
+snapshot's, etcd-io/etcd#22529: `applied_predeposit_gt`). -/
 def srvAppliedPre (γr : ReadNames) (v v' : w64) (L : mvcc.Log) : IProp GF :=
   iprop(monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗ ghostVar γr.pend (1 : Qp).half true ∗
-    appliedLogAt γr v' L ∗ ⌜uint.Z v' = uint.Z v + 1⌝)
+    appliedLogAt γr v' L ∗ ⌜uint.Z v < uint.Z v'⌝)
+
+/-- **The generalization is compatible** (etcd-io/etcd#22529, 2026-10-17): `srvAppliedPre` as it
+was until then (`v' = v + 1`) implies it as it is (`v < v'`), so `setAppliedIndex`'s spec, whose
+precondition it is, only weakened. -/
+theorem srvAppliedPre_of_succ (γr : ReadNames) (v v' : w64) (L : mvcc.Log) :
+    iprop(monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗ ghostVar γr.pend (1 : Qp).half true ∗
+      appliedLogAt γr v' L ∗ ⌜uint.Z v' = uint.Z v + 1⌝) ⊢ srvAppliedPre (GF := GF) γr v v' L := by
+  iintro ⟨Ha, Hp, HL, %hv⟩
+  iunfold srvAppliedPre
+  iframe Ha Hp HL
+  ipureintro; omega
 
 /-- The deposited log, kept. -/
 theorem srvAppliedPre_log (γr : ReadNames) (v v' : w64) (L : mvcc.Log) :
@@ -1847,8 +1862,8 @@ theorem srvAppliedOwn_lb (γr : ReadNames) (v : w64) :
 the applied index `v`, whose log is `L₀` (`appliedLogAt γr v L₀`), deposits a log `L` extending it
 as the log applied through `v' = v + 1`, before `setAppliedIndex(v')` publishes the index: so the
 proposer of the entry learns `appliedLogAt γr v' L` with its result. -/
-theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64)
-    (L₀ L : mvcc.Log) (hv : uint.Z v' = uint.Z v + 1) (hp : L₀ <+: L) :
+theorem applied_predeposit_gt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64)
+    (L₀ L : mvcc.Log) (hv : uint.Z v < uint.Z v') (hp : L₀ <+: L) :
     ⊢ srvAppliedInv (GF := GF) s E γr -∗ srvAppliedOwn γr v -∗ appliedLogAt γr v L₀ -∗
       kvLogAt γr v' L ={⊤}=∗ srvAppliedPre γr v v' L := by
   iintro #Hinv Hown #HL₀ #HkA
@@ -1892,7 +1907,12 @@ theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v'
     intro k L' h
     rw [GMap.lookup_insert_Some] at h
     rcases h with ⟨rfl, -⟩ | ⟨-, h⟩
-    · exact Or.inr ⟨rfl, hv⟩
+    · refine Or.inr ⟨rfl, hv, ?_⟩
+      intro k2 L2 h2 hk2
+      rw [GMap.lookup_insert_Some] at h2
+      rcases h2 with ⟨rfl, -⟩ | ⟨-, h2⟩
+      · rfl
+      · have := hk k2 L2 h2; omega
     · exact Or.inl (hk k L' h)
   imodintro
   iunfold srvAppliedPre
@@ -1900,6 +1920,13 @@ theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v'
   isplitr
   · iunfold appliedLogAt; iexact HLv'
   ipureintro; exact hv
+
+/-- `applied_predeposit_gt` at the next index (an entry's). -/
+theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64)
+    (L₀ L : mvcc.Log) (hv : uint.Z v' = uint.Z v + 1) (hp : L₀ <+: L) :
+    ⊢ srvAppliedInv (GF := GF) s E γr -∗ srvAppliedOwn γr v -∗ appliedLogAt γr v L₀ -∗
+      kvLogAt γr v' L ={⊤}=∗ srvAppliedPre γr v v' L :=
+  applied_predeposit_gt s E γr v v' L₀ L (by omega) hp
 
 /-- **The applied logs grow with the index** (`appliedMono`, from the invariant). -/
 theorem appliedMono_of_inv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :

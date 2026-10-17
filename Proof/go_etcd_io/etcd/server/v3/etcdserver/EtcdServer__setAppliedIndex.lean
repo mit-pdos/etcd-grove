@@ -54,6 +54,9 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   subst hv0
   ihave %Hpg := ghostVar_agree γr.pend _ _ _ _ $$ Hpo Hp
   subst Hpg
+  ihave %HMv' : iprop(⌜M.lookup v' = some L⌝) $$ [HM]
+  · iunfold appliedLogAt at HLv'
+    iapply ghost_map_lookup $$ HM HLv'
   imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat v') (by word) $$ Hown Hauth
     with ⟨Hown, Hauth, #Hlb⟩
   imod ghostVar_update_halves false γr.pend true true $$ Hpo Hp with ⟨Hpo, Hp⟩
@@ -65,7 +68,9 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
     refine ⟨?_, HMk.2⟩
     intro k L' hk
     left
-    rcases HMk.1 k L' hk with h | ⟨-, h⟩ <;> omega
+    rcases HMk.1 k L' hk with h | ⟨-, h1, hu⟩
+    · omega
+    · have := hu v' L HMv' hv; subst this; omega
   imodintro
   wp_auto
   iapply HΦ

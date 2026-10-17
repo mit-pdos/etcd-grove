@@ -293,7 +293,7 @@ EtcdServer__snapshot:
 EtcdServer__compactRaftLog:
 EtcdServer__createMergedSnapshotMessage:
 EtcdServer__sendMergedSnap:
-EtcdServer__applySnapshot: IsEmptySnap
+EtcdServer__applySnapshot: IsEmptySnap EtcdServer__setAppliedIndex EtcdServer__setTerm
 EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:

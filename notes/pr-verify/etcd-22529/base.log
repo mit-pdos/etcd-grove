@@ -1,0 +1,16 @@
+--- FAIL: TestApplySnapshotAdvancesAppliedIndexAndTerm (0.01s)
+    server_test.go:844: 
+        	Error Trace:	/root/etcd-pr/etcd-22529/server/etcdserver/server_test.go:844
+        	Error:      	Not equal: 
+        	            	expected: 0x1389
+        	            	actual  : 0x0
+        	Test:       	TestApplySnapshotAdvancesAppliedIndexAndTerm
+    server_test.go:845: 
+        	Error Trace:	/root/etcd-pr/etcd-22529/server/etcdserver/server_test.go:845
+        	Error:      	Not equal: 
+        	            	expected: 0x7
+        	            	actual  : 0x0
+        	Test:       	TestApplySnapshotAdvancesAppliedIndexAndTerm
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.036s
+FAIL
