@@ -8342,3 +8342,38 @@ general client spec only after item 2, needs a Perennial feature that does not e
 remove the duplicate writes the persistent update reflects. If a general client is wanted, the
 first step is item 2 (a write's `□ Q σ` tied to its reply), which also makes option 1 give
 revision facts.
+
+## Families of functions with the same body: one lemma over the body
+
+**2026-10-17 · accepted (for the KV handlers only)**
+
+protoc-gen-go-grpc's unary handlers (`_KV_{Range,Put,DeleteRange,Txn}_Handler`) have the same
+body up to the method's name and its request and response types, and their proofs were the same
+95-line proof, copied. The duplication review (notes/STATUS.md, "Proof families as lemmas")
+replaced them.
+
+**Decision:** `etcdserverpb/UnaryHandlerLemmas.lean` defines the common body as a function of what
+differs (`unaryHandlerImpl srvTy reqTy repTy meth fullMethod`: one handler's translation with those
+abstracted, copied by hand) and proves `wp_unaryHandler` once, stated as the handler specs are,
+with the body taken as the `FuncUnfold` instance at those parameters. Each handler keeps its Spec
+and Proof files and its `wp_proof`, now one application of the lemma at its method: the build
+checks that the translated body is the lemma's body at those arguments (by unfolding both); a
+regenerated handler of another shape fails to build, and no axiom or `sorry` is involved.
+
+- *Tried and dropped* (the user's choice): the same for the client stubs `kVClient.<M>`
+  (`wp_kvClient_unary`), clientv3's comparison builders (`Version`, ..., `LeaseValue`: `wp_cmpKey`)
+  and `IsOptsWith{FromKey,Prefix}` (`wp_isOptsWith`). They built, but the copied bodies and the
+  lemmas' statements were as long as the proofs they replaced (no saving in lines), and a copied
+  Goose term is harder to read than the proofs; the handlers are kept because four 95-line proofs
+  become one.
+- *Not done*, because the shared part is not a short statement: the getters (`PutRequest.GetKey`,
+  ...: 6-line proofs), `Op.Is{Get,Put,Delete,Txn}` and `*Response.OpResponse` (as short),
+  `txn.Else`/`txn.Then` (two fields, a model projection and an extra test differ throughout;
+  already a macro), `RWMutex.Lock`/`RLock` (they differ in an expression, the wait prefix
+  `rwm.pfx` vs `rwm.pfx + "write"`), `Queue`/`PriorityQueue.Dequeue` (different callees and prefix
+  throughout), raft's `MsgApp_lt`/`MsgHeartbeat_lt` and the `Resp_eq` pair (the step's type tests
+  need the concrete message type; the files mirror the Rocq port's one-file-per-case structure).
+- *Rejected:* one spec for the family (a spec statement per Go function stays, CLAUDE.md); a
+  tactic macro (the user's choice: a named lemma with a docstring reads as the reasoning, a macro
+  must be expanded by eye); deriving the generic body from the translation by a meta-program
+  (more machinery than the copied term, which the build checks anyway).
