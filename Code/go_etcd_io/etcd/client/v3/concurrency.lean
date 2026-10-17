@@ -162,6 +162,9 @@ noncomputable def waitDeletes [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewMutex [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewMutex"
 
+noncomputable def ResumeMutex [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3/concurrency.ResumeMutex"
+
 noncomputable def NewLocker [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewLocker"
 
@@ -1121,11 +1124,32 @@ noncomputable def NewMutex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v4" (Val UntypedNil)
   (App (Val (GoInstruction (CompositeLiteral Mutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.int64 (Var "$v3"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v4")))]))))))))))))))
 
+/-- ResumeMutex initializes a mutex with a known owner.
+
+    go: mutex.go:50:6 -/
+noncomputable def ResumeMutex.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "pfx"
+  (Lam "myKey"
+  (Lam "myRev"
+  (App (Val exceptionDo)
+  (Let "myRev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "myRev"))
+  (Let "myKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "myKey"))
+  (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc Mutex.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx")) (Val #(go!"/"))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "myKey"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.int64))) (Var "myRev"))
+  (Let "$v4" (Val UntypedNil)
+  (App (Val (GoInstruction (CompositeLiteral Mutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Session.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.int64 (Var "$v3"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v4")))]))))))))))))))))))
+
 /-- TryLock locks the mutex if not already locked by another session.
     If lock is held by another session, return immediately after attempting necessary cleanup
     The ctx argument is used for the sending/receiving Txn RPC.
 
-    go: mutex.go:52:17 -/
+    go: mutex.go:57:17 -/
 noncomputable def Mutex.TryLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
@@ -1208,7 +1232,7 @@ noncomputable def Mutex.TryLock.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Lock locks the mutex with a cancelable context. If the context is canceled
     while trying to acquire the lock, the mutex tries to clean its stale lock entry.
 
-    go: mutex.go:75:17 -/
+    go: mutex.go:80:17 -/
 noncomputable def Mutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
@@ -1314,7 +1338,7 @@ noncomputable def Mutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: mutex.go:111:17 -/
+/-- go: mutex.go:116:17 -/
 noncomputable def Mutex.tryAcquire.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
@@ -1414,7 +1438,7 @@ noncomputable def Mutex.tryAcquire.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))
 
-/-- go: mutex.go:134:17 -/
+/-- go: mutex.go:139:17 -/
 noncomputable def Mutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "ctx"
@@ -1476,7 +1500,7 @@ noncomputable def Mutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: mutex.go:152:17 -/
+/-- go: mutex.go:157:17 -/
 noncomputable def Mutex.IsOwner.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -1489,7 +1513,7 @@ noncomputable def Mutex.IsOwner.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a2" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
 
-/-- go: mutex.go:156:17 -/
+/-- go: mutex.go:161:17 -/
 noncomputable def Mutex.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -1500,7 +1524,7 @@ noncomputable def Mutex.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Header is the response header received from etcd on acquiring the lock.
 
-    go: mutex.go:159:17 -/
+    go: mutex.go:164:17 -/
 noncomputable def Mutex.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -1509,7 +1533,7 @@ noncomputable def Mutex.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))))))
 
-/-- go: mutex.go:163:24 -/
+/-- go: mutex.go:168:24 -/
 noncomputable def lockerMutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lm"
   (Lam BAnon
@@ -1536,7 +1560,7 @@ noncomputable def lockerMutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))))
 
-/-- go: mutex.go:170:24 -/
+/-- go: mutex.go:175:24 -/
 noncomputable def lockerMutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lm"
   (Lam BAnon
@@ -1565,7 +1589,7 @@ noncomputable def lockerMutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- NewLocker creates a sync.Locker backed by an etcd mutex.
 
-    go: mutex.go:178:6 -/
+    go: mutex.go:183:6 -/
 noncomputable def NewLocker.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "pfx"
@@ -3828,6 +3852,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   waitDelete_unfold : FuncUnfold waitDelete [] waitDelete.impl
   waitDeletes_unfold : FuncUnfold waitDeletes [] waitDeletes.impl
   NewMutex_unfold : FuncUnfold NewMutex [] NewMutex.impl
+  ResumeMutex_unfold : FuncUnfold ResumeMutex [] ResumeMutex.impl
   NewLocker_unfold : FuncUnfold NewLocker [] NewLocker.impl
   NewSession_unfold : FuncUnfold NewSession [] NewSession.impl
   WithTTL_unfold : FuncUnfold WithTTL [] WithTTL.impl
@@ -3878,6 +3903,7 @@ attribute [instance] Assumptions.Election_instance
   Assumptions.waitDelete_unfold
   Assumptions.waitDeletes_unfold
   Assumptions.NewMutex_unfold
+  Assumptions.ResumeMutex_unfold
   Assumptions.NewLocker_unfold
   Assumptions.NewSession_unfold
   Assumptions.WithTTL_unfold

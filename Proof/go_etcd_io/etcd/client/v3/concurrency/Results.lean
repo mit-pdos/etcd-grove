@@ -79,6 +79,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 /-- `NewMutex(s, pfx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/NewMutex.lean`). -/
 theorem mutex_NewMutex : NewMutex.spec (GF := GF) (hG := hG) := wp_NewMutex
 
+/-- `ResumeMutex(s, pfx, key, rev)` (etcd-io/etcd#22384;
+`Spec/go_etcd_io/etcd/client/v3/concurrency/ResumeMutex.lean`). -/
+theorem mutex_ResumeMutex : ResumeMutex.spec (GF := GF) (hG := hG) := wp_ResumeMutex
+
 /-- `m.TryLock(ctx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Mutex__TryLock.lean`). -/
 theorem mutex_TryLock : Mutex.TryLock.spec (GF := GF) (hG := hG) := Mutex.wp_TryLock
 
@@ -218,6 +222,7 @@ end concurrency
 end EtcdGrove
 end Perennial
 
+#print axioms Perennial.EtcdGrove.concurrency.mutex_ResumeMutex
 #print axioms Perennial.EtcdGrove.concurrency.mutex_TryLock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Lock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Unlock

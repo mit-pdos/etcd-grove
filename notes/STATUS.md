@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR etcd-io/etcd#22384, `concurrency.ResumeMutex` (2026-10-17, branch `pr-verify/etcd-22384`)
+
+The PR's `ResumeMutex(s, pfx, myKey, myRev)` translated (fork branch `pr-etcd-22384-goose-lean`, not
+the pin: `etc/goose.py --check` fails on this branch by design) and proved
+(`Spec`/`Proof/go_etcd_io/etcd/client/v3/concurrency/ResumeMutex.lean`, linked, `mutex_ResumeMutex`
+in `Results.lean`): `isMutex` on `pfx ++ "/"` and `mutexState` with the given key and revision, `hdr
+= nil`. No new axiom or `sorry`; full `lake build` and `etc/tcb-report.py --check` pass; collection
+`etc/tcb-collections/pr-etcd-22384.txt`. Report: `notes/pr-verify/etcd-22384.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

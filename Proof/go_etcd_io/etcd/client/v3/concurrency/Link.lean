@@ -52,6 +52,7 @@ public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.ResumeElection
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.ResumeMutex
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Client
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Close
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Session__Ctx
@@ -533,6 +534,10 @@ theorem wp_NewSession :
 theorem wp_ResumeElection :
     EtcdGrove.concurrency.ResumeElection.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.ResumeElection.wp_proof
+
+theorem wp_ResumeMutex :
+    EtcdGrove.concurrency.ResumeMutex.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.ResumeMutex.wp_proof
 
 theorem Session.wp_Orphan :
     EtcdGrove.concurrency.Session.Orphan.spec (GF := GF) (hG := hG) :=

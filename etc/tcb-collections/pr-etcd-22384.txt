@@ -1,0 +1,9 @@
+# etcd-io/etcd#22384: concurrency.ResumeMutex (and the Mutex methods a resumed mutex is used through).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22384.txt [--check [--update]]
+roots ResumeMutex
+roots mutex_(Unlock|IsOwner|Lock|TryLock|ResumeMutex)$
+axiom fmt.SprintfNamed.wp_proof
+axiom proto.Clone.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof

@@ -70,6 +70,8 @@ ResponseOp__GetResponseRange:
 # Mutex (client/v3/concurrency/mutex.go, key.go), see InvMutex.lean. lockerMutex's Lock and Unlock
 # panic on any error (their specs' panic outcome).
 NewMutex:
+# etcd-io/etcd#22384.
+ResumeMutex:
 Mutex__Key:
 Mutex__Header:
 Mutex__IsOwner: CreateRevision v3_Compare

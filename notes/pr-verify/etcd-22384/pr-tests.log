@@ -1,0 +1,7 @@
+--- PASS: TestResumeElection (0.10s)
+--- PASS: TestMutexLockSessionExpired (0.01s)
+--- PASS: TestMutexUnlock (0.00s)
+--- PASS: TestResumeMutex (0.01s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.174s
+exit 0

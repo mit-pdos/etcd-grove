@@ -1,0 +1,8 @@
+    resume_mutex_review_probe_test.go:36: create rev 2, m2.Header().Revision 3 (Else branch)
+--- PASS: TestProbeResumeViaLock (0.08s)
+    resume_mutex_review_probe_test.go:63: create rev 6, Header().Revision 7 (wait path)
+--- PASS: TestProbeHeaderRevAfterWait (0.06s)
+--- PASS: TestProbeResumedStaleUnlockDeletesRecreated (0.00s)
+--- PASS: TestProbeResumedForeignKeyUnlock (0.00s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.188s

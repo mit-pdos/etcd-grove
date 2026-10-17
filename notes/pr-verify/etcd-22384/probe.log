@@ -1,0 +1,7 @@
+    resume_mutex_probe_test.go:64: m2.Header().Revision = 7, create revision of m2.Key() = 3
+--- PASS: TestProbeMutexHeaderRevisionIsNotMyRev (0.37s)
+--- PASS: TestProbeLockAlreadyResumes (0.21s)
+    resume_mutex_probe_test.go:136: Unlock with a slashed prefix: invalid key "/probe-slash/1cffa148875a401e", it should have prefix "/probe-slash//"
+--- PASS: TestProbeResumeMutexSlashedPrefix (0.01s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.725s
