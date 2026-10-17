@@ -5,8 +5,8 @@ public import Perennial.Code.sync
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
 public import Code.go_etcd_io.etcd.server.v3.storage.schema
-public import Code.k8s_io.utils.third_party.forked.golang.btree
 public import Code.go_etcd_io.etcd.server.v3.lease
+public import Code.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.Code.bytes
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
@@ -612,7 +612,7 @@ noncomputable def NewHashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (Val (GoInstruction (CompositeLiteral hashStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"store")) (ElementExpression (go.GoType.PointerType store.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))))))))
 
-/-- go: index.go:47:6 -/
+/-- go: index.go:46:6 -/
 noncomputable def newTreeIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
@@ -631,7 +631,7 @@ noncomputable def newTreeIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (Val (GoInstruction (CompositeLiteral treeIndex.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tree")) (ElementExpression (go.GoType.PointerType (_root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.BTree.ty (go.GoType.PointerType keyIndex.ty))) (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))))))
 
-/-- go: index.go:56:22 -/
+/-- go: index.go:55:22 -/
 noncomputable def treeIndex.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -700,7 +700,7 @@ noncomputable def treeIndex.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "keyi") (Var "$r0"))))))))))))))))))
 
-/-- go: index.go:70:22 -/
+/-- go: index.go:69:22 -/
 noncomputable def treeIndex.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -755,7 +755,7 @@ noncomputable def treeIndex.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #()))))))))))))))))
 
-/-- go: index.go:77:22 -/
+/-- go: index.go:76:22 -/
 noncomputable def treeIndex.unsafeGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -797,7 +797,7 @@ noncomputable def treeIndex.unsafeGet.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "keyi") (Var "$r0")))))))))))))))))))
 
-/-- go: index.go:85:22 -/
+/-- go: index.go:84:22 -/
 noncomputable def treeIndex.KeyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "keyi"
@@ -819,7 +819,7 @@ noncomputable def treeIndex.KeyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #()))))))))))
 
-/-- go: index.go:91:22 -/
+/-- go: index.go:90:22 -/
 noncomputable def treeIndex.keyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "keyi"
@@ -849,7 +849,7 @@ noncomputable def treeIndex.keyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "ki") (Var "$r0"))))))))))))))))))
 
-/-- go: index.go:98:22 -/
+/-- go: index.go:97:22 -/
 noncomputable def treeIndex.unsafeVisit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -903,7 +903,7 @@ noncomputable def treeIndex.unsafeVisit.impl [FfiSyntax] [GoGlobalContext] : val
     at the given rev. The returned slice is sorted in the order of key. There is no limit if limit <= 0.
     The second return parameter isn't capped by the limit and reflects the total number of revisions.
 
-    go: index.go:115:22 -/
+    go: index.go:114:22 -/
 noncomputable def treeIndex.Revisions.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -1048,7 +1048,7 @@ noncomputable def treeIndex.Revisions.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- CountRevisions returns the number of revisions
     from key(included) to end(excluded) at the given rev.
 
-    go: index.go:144:22 -/
+    go: index.go:143:22 -/
 noncomputable def treeIndex.CountRevisions.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -1164,7 +1164,7 @@ noncomputable def treeIndex.CountRevisions.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #()))))))))))))))
 
-/-- go: index.go:165:22 -/
+/-- go: index.go:164:22 -/
 noncomputable def treeIndex.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -1348,7 +1348,7 @@ noncomputable def treeIndex.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #()))))))))))))))))))))))))
 
-/-- go: index.go:196:22 -/
+/-- go: index.go:195:22 -/
 noncomputable def treeIndex.Tombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
@@ -1400,7 +1400,7 @@ noncomputable def treeIndex.Tombstone.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "keyi") (Var "$r0")))))))))))))))
 
-/-- go: index.go:209:22 -/
+/-- go: index.go:208:22 -/
 noncomputable def treeIndex.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "rev"
@@ -1480,7 +1480,7 @@ noncomputable def treeIndex.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Keep finds all revisions to be kept for a Compaction at the given rev.
 
-    go: index.go:234:22 -/
+    go: index.go:233:22 -/
 noncomputable def treeIndex.Keep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "rev"
@@ -1519,7 +1519,7 @@ noncomputable def treeIndex.Keep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType Revision.ty (go.GoType.StructType []))))) (Pair (Var "available") (Var "$r0")))))))))))))
 
-/-- go: index.go:266:22 -/
+/-- go: index.go:265:22 -/
 noncomputable def treeIndex.Insert.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "ki"
@@ -1546,7 +1546,7 @@ noncomputable def treeIndex.Insert.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- put puts a revision to the keyIndex.
 
-    go: key_index.go:82:21 -/
+    go: key_index.go:81:21 -/
 noncomputable def keyIndex.put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
@@ -1638,7 +1638,7 @@ noncomputable def keyIndex.put.impl [FfiSyntax] [GoGlobalContext] : val :=
     It also creates a new empty generation in the keyIndex.
     It returns ErrRevisionNotFound when tombstone on an empty generation.
 
-    go: key_index.go:145:21 -/
+    go: key_index.go:144:21 -/
 noncomputable def keyIndex.tombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
@@ -1690,7 +1690,7 @@ noncomputable def keyIndex.tombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- get gets the modified, created revision and version of the key that satisfies the given atRev.
     Rev must be smaller than or equal to the given atRev.
 
-    go: key_index.go:163:21 -/
+    go: key_index.go:162:21 -/
 noncomputable def keyIndex.get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
@@ -1751,7 +1751,7 @@ noncomputable def keyIndex.get.impl [FfiSyntax] [GoGlobalContext] : val :=
     revision than the given atRev except the largest one.
     If a generation becomes empty during compaction, it will be removed.
 
-    go: key_index.go:229:21 -/
+    go: key_index.go:228:21 -/
 noncomputable def keyIndex.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
@@ -1814,7 +1814,7 @@ noncomputable def keyIndex.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- keep finds the revision to be kept if compact is called at given atRev.
 
-    go: key_index.go:252:21 -/
+    go: key_index.go:251:21 -/
 noncomputable def keyIndex.keep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "atRev"
@@ -1865,7 +1865,7 @@ noncomputable def keyIndex.keep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: key_index.go:272:21 -/
+/-- go: key_index.go:271:21 -/
 noncomputable def keyIndex.doCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "atRev"
@@ -1935,7 +1935,7 @@ noncomputable def keyIndex.doCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [Revision.ty] false [go.bool]))))) (Pair (Var "f") (Var "$r0"))))))))))))))))
 
-/-- go: key_index.go:298:21 -/
+/-- go: key_index.go:297:21 -/
 noncomputable def keyIndex.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam BAnon
@@ -1949,7 +1949,7 @@ noncomputable def keyIndex.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
     given rev belongs to. If the given rev is at the gap of two generations,
     which means that the key does not exist at the given rev, it returns nil.
 
-    go: key_index.go:305:21 -/
+    go: key_index.go:304:21 -/
 noncomputable def keyIndex.findGeneration.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "rev"
@@ -2012,7 +2012,7 @@ noncomputable def keyIndex.findGeneration.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "lastg") (Var "$r0"))))))))))))
 
-/-- go: key_index.go:328:21 -/
+/-- go: key_index.go:327:21 -/
 noncomputable def keyIndex.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "bki"
@@ -2024,7 +2024,7 @@ noncomputable def keyIndex.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef keyIndex.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keyIndex.ty)))) (Var "bki"))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))))))))))
 
-/-- go: key_index.go:371:22 -/
+/-- go: key_index.go:370:22 -/
 noncomputable def generation.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
@@ -2040,7 +2040,7 @@ noncomputable def generation.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
     walk returns the position at where it stopped. If it stopped after
     finishing walking, -1 will be returned.
 
-    go: key_index.go:378:22 -/
+    go: key_index.go:377:22 -/
 noncomputable def generation.walk.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam "f"
@@ -7234,7 +7234,7 @@ noncomputable def watcherGroup.watcherSetByKey.impl [FfiSyntax] [GoGlobalContext
   (App (Val (GoInstruction (GoStore watcherSet.ty))) (Pair (Var "wkeys") (Var "$r0"))))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.k8s_io.utils.third_party.forked.golang.btree, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.errors, pkg_id.fmt, pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.math, pkg_id.time, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.encoding.binary, pkg_id.github_com.dustin.go_humanize, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.pkg.v3.adt]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.k8s_io.utils.third_party.forked.golang.btree, pkg_id.bytes, pkg_id.errors, pkg_id.fmt, pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.math, pkg_id.time, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.encoding.binary, pkg_id.github_com.dustin.go_humanize, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.pkg.v3.adt]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -7425,9 +7425,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.lease.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.bytes.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -9479,8 +9479,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
   import_schema_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Assumptions
-  import_btree_Assumption : _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.Assumptions
   import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
+  import_btree_Assumption : _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.Assumptions
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
@@ -9578,8 +9578,8 @@ attribute [instance] Assumptions.kvHasher_instance
   Assumptions.import_zap_Assumption
   Assumptions.import_backend_Assumption
   Assumptions.import_schema_Assumption
-  Assumptions.import_btree_Assumption
   Assumptions.import_lease_Assumption
+  Assumptions.import_btree_Assumption
   Assumptions.import_bytes_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
