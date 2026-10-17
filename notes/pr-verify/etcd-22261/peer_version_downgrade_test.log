@@ -1,0 +1,16 @@
+=== RUN   TestPeerVersionCacheStaleAfterDowngrade
+2026/10/17 04:38:53 http: panic serving 127.0.0.1:49242: semver: Invalid version "v3.8.0"
+    peer_version_downgrade_test.go:93: dial #0 to the downgraded peer: EOF
+2026/10/17 04:38:53 http: panic serving 127.0.0.1:49228: semver: Invalid version "v3.8.0"
+2026/10/17 04:38:53 http: panic serving 127.0.0.1:49246: semver: Invalid version "v3.8.0"
+    peer_version_downgrade_test.go:93: dial #1 to the downgraded peer: EOF
+2026/10/17 04:38:53 http: panic serving 127.0.0.1:49258: semver: Invalid version "v3.8.0"
+    peer_version_downgrade_test.go:93: dial #2 to the downgraded peer: EOF
+2026/10/17 04:38:53 http: panic serving 127.0.0.1:49262: semver: Invalid version "v3.8.0"
+    peer_version_downgrade_test.go:102: pipeline post to the downgraded peer: EOF
+    peer_version_downgrade_test.go:106: still cached: 3.8.0; requests the downgraded peer rejected: 5; header sent: "v3.8.0"
+    peer_version_downgrade_test.go:117: BUG: after the downgrade the member can no longer reach the peer (stale cached version 3.8.0, header "v3.8.0"), while a member without the cache can
+--- FAIL: TestPeerVersionCacheStaleAfterDowngrade (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.035s
+FAIL

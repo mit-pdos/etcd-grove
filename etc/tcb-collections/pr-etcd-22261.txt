@@ -1,0 +1,10 @@
+# etcd#22261 (api/version: VersionForPeer, the X-Server-Version string rafthttp sends a peer),
+# branch pr-verify/etcd-22261: the one function verified (the rafthttp and client/v3 functions it
+# changes are translated names-only).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22261.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots VersionForPeer
+axiom semver.Version.LessThan.wp_proof

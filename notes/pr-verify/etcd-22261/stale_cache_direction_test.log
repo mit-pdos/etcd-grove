@@ -1,0 +1,14 @@
+=== RUN   TestStaleCacheWhichDirectionBreaks
+    stale_cache_direction_test.go:41: response to v3.7 peer's dial: X-Server-Version="3.8.0" (v3.7 parses it)
+    stale_cache_direction_test.go:46: cache after serving: 3.8.0; header our dials/posts/snapshots to peer 2 send: "v3.8.0"
+    stale_cache_direction_test.go:48: CONFIRMED: inbound streams work, outbound requests (incl. snapshotSender) still send "v3.8.0"
+--- PASS: TestStaleCacheWhichDirectionBreaks (0.00s)
+=== RUN   TestPrereleasePeer
+    stale_cache_direction_test.go:58: peer 3.8.0-alpha.0  -> "3.8.0-rc.0"
+    stale_cache_direction_test.go:58: peer v3.8.0-rc.0    -> "3.8.0-rc.0"
+    stale_cache_direction_test.go:58: peer 3.8.0          -> "v3.8.0-rc.0"
+    stale_cache_direction_test.go:58: peer 3.7.9          -> "3.8.0-rc.0"
+    stale_cache_direction_test.go:58: peer 3.9.0-alpha.0  -> "v3.8.0-rc.0"
+--- PASS: TestPrereleasePeer (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.022s

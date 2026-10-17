@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.github_com.Masterminds.semver.v3
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.api.v3.version
 

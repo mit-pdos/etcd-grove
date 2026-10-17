@@ -32,6 +32,7 @@ public import Perennial.Proof.time
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.sort
+public import Perennial.Proof.strings.Base
 public import Code.go_etcd_io.etcd.api.v3.version
 public import GeneratedProof.go_etcd_io.etcd.api.v3.version
 public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
@@ -71,12 +72,17 @@ namespace go_etcd_io.etcd.api.v3.version
 
 /-- `api/v3/version` (names-only): the package variables `Version` (the request path's unit 4c:
 the server's `start` logs it; moved here from the server's `BaseApply.lean`, 2026-10-13) and
-`V3_6` (the lessor's `shouldPersistCheckpoints` compares the cluster's version with it) hold
-fixed read-only values. -/
+`V3_6` (the lessor's `shouldPersistCheckpoints` compares the cluster's version with it) and `V3_8`
+(`VersionForPeer` compares the peer's version with it: etcd#22261's verification; it is
+`*semver.New(3, 8, 0, "", "")`, so its major, minor and patch are 3, 8, 0) hold fixed read-only
+values. -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version :=
   define_is_pkg_init iprop((∃ v : GoString, globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ v) ∗
     (∃ v : github_com.Masterminds.semver.v3.Version,
-      globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v))
+      globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
+    (∃ v : github_com.Masterminds.semver.v3.Version,
+      globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v ∗
+        ⌜v.major' = 3 ∧ v.minor' = 8 ∧ v.patch' = 0⌝))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version :=
   build_get_is_pkg_init_wf
 
