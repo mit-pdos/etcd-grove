@@ -91,6 +91,19 @@ D13 with its addendum D13a-d (`notes/decisions.md`, "The server's construction")
   (the names-only callees above) and 3 new `sorry`s (`NewServer`, `restoreAlarms`,
   `NewUberApplier`; `BuildAlloc`/`BuildGap`'s are reached once N1's proof uses them).
 
+## Server construction, unit N2: the allocations and the residual (2026-10-17, branch `raft-retarget`)
+
+N2's eight lemmas are proved, statements unchanged (none was false): `BuildAlloc.lean`
+(`srvReadNamesFresh_alloc`, `kvInv_alloc_boot`: the KV invariant at the bootstrap log, its
+entries all v1 conf changes at indices `1..n` (`BootLogOk`) so the log is plain and consecutive;
+`kvCertInv_alloc` at the empty map and `Lb = []`; `srvIndices_alloc`: the applied logs' map
+`{0 ↦ log0}`; `srvMintInv_alloc` through `srvRdFreshInv_alloc`; `consInv_alloc` at
+`⟨0, m0.1, m0.1, false⟩`) and `BuildGap.lean` (`rnEnvOk_of_cluster`: the `E.C` clause opens
+the KV invariant and takes `srvIdxOkW` of the committed prefix with `srvRLog_lb`, as
+`kv_log_plain`; `isServerBuilt_of_gap`). No new axioms or `sorry`s; `tcb-report.py --check`
+reports only N0's expected diff (N1's 12 axioms and 3 `sorry`s), since these lemmas are not
+reached until N1's proof uses them.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

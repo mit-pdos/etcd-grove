@@ -47,7 +47,44 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (hbud : γw.node.bud = bud) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E c₀ x₀ ⊢
       rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud) γw := by
-  sorry
+  iintro ⟨#Hkv, #Hr, #Hwl⟩
+  unfold rnEnvOk srvEr
+  simp only
+  isplitr
+  · ipureintro; rw [hbud]
+  isplitr
+  · ipureintro; exact ⟨hraft.symm, hpre.symm, hai⟩
+  isplitr
+  · ipureintro; exact ⟨hmode, hstor⟩
+  isplitr
+  · iintro !> %m %st -; ipureintro; trivial
+  isplitr
+  · iintro !> %L #HL %Hfit
+    iunfold clusterWorkloadOk at Hwl
+    icases Hwl $$ HL with ⟨%Hent, #Hbw⟩
+    iunfold kvInv at Hkv
+    iinv Hkv with >Hi Hclose
+    icases Hi with ⟨%L', HL', Hσ, %Hok⟩
+    imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+      L' L $$ Hr HL' HL with ⟨HL', -, %Hp⟩
+    imod Hclose $$ [HL' Hσ] with -
+    · inext; iexists L'; iframe HL' Hσ; ipureintro; exact Hok
+    imodintro
+    imodintro
+    unfold srvC
+    iframe Hbw HL
+    ipureintro
+    refine ⟨?_, Hent⟩
+    rw [← hai0]
+    exact srvIdxOk_of_W _ _ (srvIdxOkW_prefix _ _ _ Hok.2.1 Hp) Hfit
+  isplitr
+  · iintro !> %L #HC
+    unfold srvC
+    icases HC with ⟨%Hc, -, #HL⟩
+    iframe HL
+    ipureintro
+    rw [hai0]; exact Hc.1
+  · ipureintro; trivial
 
 /-- **`start`'s construction premise from `NewServer`'s built part and the residual**
 (`srvBuilt`, `srvBuildGap`, `InvBuild.lean`): the rows the built part has without their KV parts
@@ -58,7 +95,39 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ ∗ srvBuildGap s E ρ ai₀ at₀ x₀ N ⊢
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
-  sorry
+  unfold srvBuilt srvBuildGap isServerBuilt
+  iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
+      #Hrn, %HEr, %Hρrd, Hloop, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr⟩,
+    ⟨⟨%ua, #Hua, #Hfor, Hakv⟩, ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, #Hsmall, HWB, Hsnap,
+      #HNR, #Hcv, %Hbound⟩⟩
+  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
+  iframe Hloop Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
+  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap
+  isplitr
+  · unfold srvFieldsBuiltNA
+    iexists { v with ua := ua }
+    unfold srvFieldsBuilt
+    iframe Hua Hfor Hfb
+  isplitr
+  · unfold srvReadBuiltNK
+    iexists { vr with kv := kv, rv := rv }
+    unfold srvReadBuilt
+    iframe Hkv HisKV Hrv HisRV Hsmall Hrdb
+  isplitr
+  · ipureintro; exact HEr
+  isplitr
+  · ipureintro; exact Hρrd
+  isplitr
+  · ipureintro; exact Hbound
+  unfold applyBuiltNA applyBuilt
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hra, Hao, Hal, Hkr, Hfs⟩
+  iexists st₀, a, t, f
+  iframe Hth Hbe Hca Hlg Hbm Hra Hao Hal Hkr Hfs
+  isplitr
+  · ipureintro; exact Hok
+  iexists ua
+  iframe Hua Hakv
 
 end gap
 
