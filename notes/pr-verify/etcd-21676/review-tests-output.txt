@@ -1,0 +1,7 @@
+=== RUN   TestReviewEnsureCapacityHugeNonPow2
+    ringbuffer_pr21676_review_huge_test.go:11: ensureCapacity(1<<62+1) on capacity 3 panicked: runtime error: makeslice: len out of range
+--- PASS: TestReviewEnsureCapacityHugeNonPow2 (0.00s)
+=== RUN   TestReviewRingBufferModel
+--- PASS: TestReviewRingBufferModel (0.08s)
+PASS
+ok  	go.etcd.io/etcd/cache/v3	0.095s

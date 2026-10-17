@@ -127,10 +127,14 @@ public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__AscendGreaterOrEqual
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__AscendLessThan
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__DescendGreaterThan
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__DescendLessOrEqual
+public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__Len
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__PeekLatest
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__PeekOldest
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__RebaseHistory
+public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__RemoveLess
+public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__ReplaceLatest
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__at
+public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__ensureCapacity
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__findFirstIndexGreaterOrEqual
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__findLastIndexLessOrEqual
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__full
@@ -498,9 +502,25 @@ theorem ringBuffer.wp_DescendGreaterThan :
     ringBuffer.DescendGreaterThan.spec (GF := GF) (hG := hG) :=
   ringBuffer.DescendGreaterThan.wp_proof ringBuffer.wp_findLastIndexLessOrEqual ringBuffer.wp_at
 
+theorem ringBuffer.wp_Len :
+    ringBuffer.Len.spec (GF := GF) (hG := hG) :=
+  ringBuffer.Len.wp_proof
+
 theorem ringBuffer.wp_PeekLatest :
     ringBuffer.PeekLatest.spec (GF := GF) (hG := hG) :=
   ringBuffer.PeekLatest.wp_proof
+
+theorem ringBuffer.wp_RemoveLess :
+    ringBuffer.RemoveLess.spec (GF := GF) (hG := hG) :=
+  ringBuffer.RemoveLess.wp_proof ringBuffer.wp_moduloIndex ringBuffer.wp_findFirstIndexGreaterOrEqual ringBuffer.wp_RebaseHistory
+
+theorem ringBuffer.wp_ReplaceLatest :
+    ringBuffer.ReplaceLatest.spec (GF := GF) (hG := hG) :=
+  ringBuffer.ReplaceLatest.wp_proof ringBuffer.wp_moduloIndex
+
+theorem ringBuffer.wp_ensureCapacity :
+    ringBuffer.ensureCapacity.spec (GF := GF) (hG := hG) :=
+  ringBuffer.ensureCapacity.wp_proof ringBuffer.wp_at
 
 end links
 

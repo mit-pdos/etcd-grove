@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#21676, the cache ring buffer's k8s-aligned helpers (2026-10-17, branch `pr-verify/etcd-21676`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-21676-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. The four methods the PR adds to `ringBuffer[T]`
+(`Len`, `ReplaceLatest`, `RemoveLess`, `ensureCapacity`; no callers) are specified over the
+unchanged `ownRingBuffer` and proved, linked in the cache's `Link.lean`; no new axiom or `sorry`
+(collection `etc/tcb-collections/pr-etcd-21676.txt`). `ReplaceLatest` needs the new revision above
+the second-newest (`RevAbove items.dropLast v`), which the PR does not state or check;
+`ensureCapacity` loops forever for `minCapacity > 2^62` (spec premise `≤ 2^60`). Report:
+`notes/pr-verify/etcd-21676.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

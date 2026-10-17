@@ -1,0 +1,8 @@
+--- FAIL: TestReplaceLatestBreaksOrdering (0.00s)
+    ringbuffer_pr21676_probe_test.go:38: AscendGreaterOrEqual(4) visited revision 3
+    ringbuffer_pr21676_probe_test.go:44: after RemoveLess(4), revision 3 is still stored
+--- FAIL: TestEnsureCapacityOverflowHangs (2.00s)
+    ringbuffer_pr21676_probe_test.go:61: ensureCapacity(1<<62 + 1) has not returned after 2s (newCap overflowed to 0)
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	2.029s
+FAIL

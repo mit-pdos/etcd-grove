@@ -15,6 +15,10 @@ ringBuffer__DescendLessOrEqual: ringBuffer__findLastIndexLessOrEqual ringBuffer_
 ringBuffer__PeekLatest:
 ringBuffer__PeekOldest:
 ringBuffer__RebaseHistory:
+ringBuffer__Len:
+ringBuffer__ReplaceLatest: ringBuffer__moduloIndex
+ringBuffer__RemoveLess: ringBuffer__moduloIndex ringBuffer__findFirstIndexGreaterOrEqual ringBuffer__RebaseHistory
+ringBuffer__ensureCapacity: ringBuffer__at
 # The btree (k8s.io/utils/third_party/forked/golang/btree): proved and linked in its own
 # package (`Proof/k8s_io/.../btree/Link.lean`, by `etc/gen-btree-link.py`); `@` marks a
 # function whose result comes from there.

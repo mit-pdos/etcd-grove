@@ -3735,6 +3735,184 @@ noncomputable def ringBuffer.findLastIndexLessOrEqual.impl [FfiSyntax] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "left") (Var "$r0"))))))))))))))
 
+/-- Len returns the number of entries currently stored in the buffer.
+
+    go: ringbuffer.go:167:25 -/
+noncomputable def ringBuffer.Len.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "r"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))))))))
+
+/-- ReplaceLatest overwrites the most recently appended entry with the given item.
+    Panics if the buffer is empty.
+
+    go: ringbuffer.go:173:25 -/
+noncomputable def ringBuffer.ReplaceLatest.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "r"
+  (Lam "item"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (App (App (Val (GoInstruction (GoLoad (RevisionOf.ty T)))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"revisionOf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Var "$a0")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (App (Val (GoInstruction (CompositeLiteral (entry.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"revision")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"item")) (ElementExpression T (Var "$v1")))]))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Let "$a0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 1))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"moduloIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0"))))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"ringBuffer.ReplaceLatest called on empty buffer")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- RemoveLess drops all entries whose revision is strictly less than rv.
+
+    go: ringbuffer.go:181:25 -/
+noncomputable def ringBuffer.RemoveLess.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "r"
+  (Lam "rv"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "rv" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rv"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rv"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"findFirstIndexGreaterOrEqual"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
+  (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"moduloIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad go.int))) (Var "idx"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$range_i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$range_i")) (Var "$range"))))) (Lam BAnon
+  (Let "$key" (App (Val (GoInstruction (GoLoad go.int))) (Var "$range_i"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (entry.ty T)))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"moduloIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0"))))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))
+  (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$range_i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$range_i")) (Val #(W64 1))))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"RebaseHistory"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- ensureCapacity grows the underlying slice (doubling) until it can hold at
+    least minCapacity entries. After expansion the logical entries are laid out
+    contiguously starting at index 0.
+
+    go: ringbuffer.go:203:25 -/
+noncomputable def ringBuffer.ensureCapacity.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "r"
+  (Lam "minCapacity"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))
+  (Let "minCapacity" (App (Val (GoInstruction (GoAlloc go.int))) (Var "minCapacity"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0")))
+  (Let "newCap" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "newCap")))
+  (Let "newBuffer" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (entry.ty T))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (Var "newBuffer"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"head"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"tail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r")))))))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (ringBuffer.ty T)) go!"at"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (entry.ty T)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (entry.ty T))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (Var "newBuffer")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (entry.ty T))))) (Pair (Var "newBuffer") (Var "$r0")))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "newCap")) (App (Val (GoInstruction (GoLoad go.int))) (Var "minCapacity")))))) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "newCap") (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "newCap")) (Val #(W64 2)))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "newCap")) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 1))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "newCap") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "newCap") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty T))))) (App (Val (GoInstruction (StructFieldRef (ringBuffer.ty T) go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (ringBuffer.ty T))))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty T))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "minCapacity")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
 /-- go: snapshot.go:29:6 -/
 noncomputable def newClonedSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rev"
@@ -4925,10 +5103,14 @@ class ringBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_AscendLessThan_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"AscendLessThan" (ringBuffer.AscendLessThan.impl T)
   ptr_DescendGreaterThan_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"DescendGreaterThan" (ringBuffer.DescendGreaterThan.impl T)
   ptr_DescendLessOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"DescendLessOrEqual" (ringBuffer.DescendLessOrEqual.impl T)
+  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"Len" (ringBuffer.Len.impl T)
   ptr_PeekLatest_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"PeekLatest" (ringBuffer.PeekLatest.impl T)
   ptr_PeekOldest_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"PeekOldest" (ringBuffer.PeekOldest.impl T)
   ptr_RebaseHistory_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"RebaseHistory" (ringBuffer.RebaseHistory.impl T)
+  ptr_RemoveLess_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"RemoveLess" (ringBuffer.RemoveLess.impl T)
+  ptr_ReplaceLatest_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"ReplaceLatest" (ringBuffer.ReplaceLatest.impl T)
   ptr_at_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"at" (ringBuffer.«at».impl T)
+  ptr_ensureCapacity_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"ensureCapacity" (ringBuffer.ensureCapacity.impl T)
   ptr_findFirstIndexGreaterOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"findFirstIndexGreaterOrEqual" (ringBuffer.findFirstIndexGreaterOrEqual.impl T)
   ptr_findLastIndexLessOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"findLastIndexLessOrEqual" (ringBuffer.findLastIndexLessOrEqual.impl T)
   ptr_full_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (ringBuffer.ty T)) go!"full" (ringBuffer.full.impl T)
@@ -4951,10 +5133,14 @@ attribute [instance] ringBuffer.TypeAssumptions.type_repr
   ringBuffer.TypeAssumptions.ptr_AscendLessThan_unfold
   ringBuffer.TypeAssumptions.ptr_DescendGreaterThan_unfold
   ringBuffer.TypeAssumptions.ptr_DescendLessOrEqual_unfold
+  ringBuffer.TypeAssumptions.ptr_Len_unfold
   ringBuffer.TypeAssumptions.ptr_PeekLatest_unfold
   ringBuffer.TypeAssumptions.ptr_PeekOldest_unfold
   ringBuffer.TypeAssumptions.ptr_RebaseHistory_unfold
+  ringBuffer.TypeAssumptions.ptr_RemoveLess_unfold
+  ringBuffer.TypeAssumptions.ptr_ReplaceLatest_unfold
   ringBuffer.TypeAssumptions.ptr_at_unfold
+  ringBuffer.TypeAssumptions.ptr_ensureCapacity_unfold
   ringBuffer.TypeAssumptions.ptr_findFirstIndexGreaterOrEqual_unfold
   ringBuffer.TypeAssumptions.ptr_findLastIndexLessOrEqual_unfold
   ringBuffer.TypeAssumptions.ptr_full_unfold
