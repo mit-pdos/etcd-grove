@@ -8132,3 +8132,34 @@ expands it by eye.
   as its own change (CLAUDE.md, "Changes to Perennial"); then `frameH` goes.
 - *Rejected:* a global macro per block (they are one proof's), and an auxiliary lemma for every
   continuation (the statements, long Iris contexts, would be longer than the blocks).
+
+## The verified configuration turns `CheckQuorum` and `PreVote` off: a patched `bootstrap` (D15, temporary)
+
+**2026-10-17 · adopted (branch `raft-retarget`; the user's choice (b), a stopgap until (a) lands)**
+
+The raft start result (`NewRawNode.spec`, `bootstrappedRaft.newRaftNode.spec`) requires
+`CheckQuorum = false` and `PreVote = false`; etcd's `raftConfig` (`bootstrap.go:572`) sets
+`CheckQuorum: true` and `PreVote: cfg.PreVote` (which `embed` sets on by default). `bootOk`, the
+contract of the names-only `bootstrap` that `NewServer.spec` takes as a premise (D13b), claimed
+both off whatever the configuration: false of etcd, so the adequacy example could never discharge
+it. The user chose (a) to extend the raft proof to both on (branch `raft-checkquorum`, another
+agent) and (b) meanwhile to verify a patched `bootstrap` that turns both off.
+
+- **D15: a configuration field, not a direct edit.** The fork's branch `goose-lean-raft-cq-off`
+  (`goose-lean` plus one commit, `e1e0193c2`, the etcd pin of `etc/goose.py`) adds
+  `ServerConfig.DisableCheckQuorum bool` and sets `CheckQuorum: !cfg.DisableCheckQuorum` in
+  `raftConfig`; both lines are marked TEMPORARY. Its zero value keeps etcd's behaviour (CheckQuorum
+  on), and `PreVote` already follows `cfg.PreVote`, so the patch is one field and one expression
+  and changes no default. A direct edit (`CheckQuorum: false, PreVote: false`) would have left the
+  Lean side untouched but changed etcd's behaviour for every configuration; the field costs only
+  two premises.
+- **The statements.** `bootOk` takes the configuration and states what `raftConfig` does with it:
+  `cv.CheckQuorum' = !cfg.DisableCheckQuorum'` and `cv.PreVote' = cfg.PreVote'` (true of the
+  patched code for every `cfg`). `NewServer.spec` gains the premises
+  `cfg.DisableCheckQuorum' = true` and `cfg.PreVote' = false`, which the adequacy example's
+  configuration must meet (`PreVote` is false in a `ServerConfig` literal unless set).
+  `bootstrap` stays names-only (its contract a premise); `raftConfig` is not translated with its
+  body (the translation changes only in `config`'s struct).
+- **Reverted once (a) lands:** the pin back to `goose-lean` (the fork branch dropped), the two
+  premises of `NewServer.spec` and `bootOk`'s configuration parameter go, `bootOk` states
+  `CheckQuorum' = true` and `PreVote' = cfg.PreVote'` as etcd's code does.
