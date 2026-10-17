@@ -74,6 +74,8 @@ const (
 
 	tokenTypeSimple = "simple"
 	tokenTypeJWT    = "jwt"
+
+	bearerPrefix = "Bearer "
 )
 
 type AuthInfo struct {
@@ -1072,7 +1074,13 @@ func (as *authStore) AuthInfoFromCtx(ctx context.Context) (*AuthInfo, error) {
 		return nil, nil
 	}
 
-	token := strings.TrimPrefix(ts[0], "Bearer ")
+	token := ts[0]
+
+	// support authorization headers with bearer prefix.
+	if strings.HasPrefix(token, bearerPrefix) {
+		token = token[len(bearerPrefix):]
+	}
+
 	authInfo, uok := as.authInfoFromToken(ctx, token)
 	if !uok {
 		tokenFingerprint := redactToken(token)
