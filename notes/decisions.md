@@ -6,6 +6,24 @@ had to make.
 
 ---
 
+## Adequacy statements: one shape for every example, no semantic premises (2026-10-17)
+
+An example's closed theorem is `MainSafe prog σ` from a fresh state, parametric only in the Go
+semantics and the packages' `Assumptions` (`examples/Adequacy.lean`). A fact about Go that a
+proof needs and the model does not give (a method set, the body of a standard-library function)
+is not added as a premise of the statement: the statement would then be about a semantics the
+premise narrows in a way specific to the example, and every new example would add its own. It
+is fixed where it belongs, in Perennial's semantics or translation (as a general change, not
+shaped by the proof: a separate agent without the proof's context designed the method sets),
+and the example's statement stays the same. When the fix is on a Perennial branch the pin
+cannot reach yet (here: `lean` is a bump away), the pin is a backport of it to the current pin,
+replaced at the next bump (`notes/STATUS.md`, "Adequacy without semantic premises").
+
+`mainSafe_of_wp` takes the WP under every `HeapGS` at the state's local context, with a
+`get_is_pkg_init` of the proof's choosing: the example substitutes `lctx` by the `HeapGS`'s
+projection (`subst`), so its `go.Semantics` and its package assumptions are at the `HeapGS`'s
+context, without destructuring the instance.
+
 ## The Rocq module discipline, in Lean
 
 **2026-10-06 · accepted**
@@ -5958,7 +5976,8 @@ with `raftRequest`'s request-path premises: `Alarm` is `raftRequest` of an alarm
 `DeleteRange` are the embedded service's (Goose emits the promoted wrappers only for methods in
 the translate list). The service value registered is the `*quotaKVServer`; that it implements
 `KVServer` (the generated handlers' `srv.(KVServer)`) is a method-set fact, assumed as a class
-(`QuotaKVServerIsKVServer`; `methodSet` is uninterpreted).
+(`QuotaKVServerIsKVServer`; `methodSet` is uninterpreted; since 2026-10-17 the theorem
+`quotaKVServer_is_KVServer`, from the method sets Perennial's goose emits).
 
 **What the trust base gains:** `grpcServerAt`; the names-only `EtcdServer.Alarm`,
 `IsMemberExist`, `IsLearner` (with `membership.localKept`, an assumption that the local member is
