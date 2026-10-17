@@ -197,6 +197,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The server's lifetime bound** (D14g, 2026-10-17; persistent): every log raft commits after
+the server's start has at most `N` entries. A residual bound of the kind of `storeSmall` and the
+id budget: the apply thread spends one of the backend's write-back tokens per applied entry
+(`txn.storeWTs`), and the backend has fewer than `2 ^ 40` (`backend.bgOk`), so the server's
+results over the real backend hold for a cluster that applies fewer entries than the budget (a
+premise of `run`, `start`, `Start` and `NewServer`, in place of `2 ^ 64 ≤ N`). -/
+def srvLifeBound (γ : ServerRaftNames) (N : Nat) : IProp GF :=
+  iprop(□ ∀ L : List EntryModel, srvRLogLb γ L -∗ ⌜L.length ≤ N⌝)
+
+instance srvLifeBound_persistent (γ : ServerRaftNames) (N : Nat) :
+    Persistent (srvLifeBound (GF := GF) γ N) := by
+  unfold srvLifeBound; infer_instance
+
 /-- **The raft contract's apply side, for the server** (`E.C`; see the file header): the log
 after `ai₀`, consecutive, each entry's id claimed, meeting the KV's premises from `x₀` at the
 consistent index `c₀`. -/

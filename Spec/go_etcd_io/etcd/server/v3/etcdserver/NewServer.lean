@@ -55,7 +55,7 @@ variable [MemStorReg GF]
 /-- **`NewServer(cfg)`** (see the file header). -/
 abbrev NewServer.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames) (bud : BudgetNames)
-    (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF),
+    (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
   -- conf-change policy; the KV's start values, its certificate map the store's
   ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
@@ -69,7 +69,7 @@ abbrev NewServer.spec : Prop :=
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      "#Hboot" ∷ bootstrapContract cfg γ id bootLog ∗
+      "#Hboot" ∷ bootstrapContract cfg γ id bootLog N ∗
       -- the cluster's ghost state (as `NodeStartSpec`'s) and `allocClientBoot`'s outputs
       "Hghost" ∷ ownRaftGhost γ id (bootPState bootLog) ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
       "#Hcinv" ∷ raftCommitInv γ ∗
@@ -85,6 +85,8 @@ abbrev NewServer.spec : Prop :=
       "Hrd" ∷ srvReadNamesFresh ρ.rd (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) ∗
       -- the workload clause (D13c)
       "#Hwork" ∷ clusterWorkloadOk ρ E₀ (W64 0) bootKV ∗
+      -- the lifetime bound (D14g): at most `N` entries ever applied, `bootstrap`'s budget
+      "#Hlife" ∷ srvLifeBound ρ.raft N ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗ "#Hrs" ∷ rnRaftStatusOk ∗

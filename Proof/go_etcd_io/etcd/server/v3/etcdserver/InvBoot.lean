@@ -68,9 +68,23 @@ def memberRO (m : Loc) : IProp GF :=
 instance memberRO_persistent (m : Loc) : Persistent (memberRO (GF := GF) m) := by
   unfold memberRO; infer_instance
 
+/-- **A bucket of the backend fresh** (opaque, D14g, 2026-10-17): the bbolt file of the backend
+`γB` was created empty by `bootstrap` (a new cluster's data directory), so its bucket `name` holds
+no data, and only the store that owns it (the lessor `"lease"`, the auth store `"auth"`) writes it:
+the owner's token, which its constructor consumes. The model cannot state a bucket's contents to
+its clients (the readers' view leaves out every bucket but `Key`: `mvcc.bridgeParams`), so this
+is a name for what `bootstrap`'s contract promises and the constructors' axioms
+(`lease.NewLessor`, `auth.NewAuthStore`) rely on: their recovery decodes the bucket (a panic on
+undecodable data) and the auth store reads its enabled flag (unset). -/
+opaque bkFresh (γB : backend.BNames) (name : GoString) : IProp GF
+
 /-- **The bootstrapped record `b`** (see the file header) for this node `id` of the cluster with
-raft's names `γ` and the bootstrap log `bootLog`. -/
-def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (b : Loc) : IProp GF :=
+raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 6` (D14g,
+2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
+entries, `NewServer.spec`'s lifetime bound, and six for the construction: `mvcc.New` two,
+`NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one; until then `2 ^ 64 + 3`, which no
+backend has). -/
+def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
@@ -129,7 +143,8 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (b : Loc) : IProp
     "Hhook" ∷ backend.plHook d.γB f0 ∗ "Hopen" ∷ (∃ qo : Qp, backend.bOpen d.γB qo) ∗
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗
     "Hview" ∷ mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
-    "Hwb" ∷ ownToks d.γB.wb (2 ^ 64 + 3) ∗
+    "Hwb" ∷ ownToks d.γB.wb (N + 6) ∗
+    "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
     "Hrts" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
       mvcc.bkRTx d.γB d.P d.be) ∗
     -- the error paths' close
@@ -138,16 +153,16 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (b : Loc) : IProp
       {{ RET #(); True }}))
 
 /-- **`bootstrap`'s contract** (D13b: a premise of `NewServer.spec`, see the file header): on the
-configuration `cfg`, an error, or the record with `bootOk`. -/
+configuration `cfg`, an error, or the record with `bootOk` (at the write-back budget `N + 6`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames)
-    (id : w64) (bootLog : List EntryM) : IProp GF :=
+    (id : w64) (bootLog : List EntryM) (N : Nat) : IProp GF :=
   iprop(□ ({{ True }} (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk γ id bootLog b }}))
+        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk γ id bootLog N b }}))
 
 instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (γ : RaftNames) (id : w64) (bootLog : List EntryM) :
-    Persistent (bootstrapContract (GF := GF) cfg γ id bootLog) := by
+    (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) :
+    Persistent (bootstrapContract (GF := GF) cfg γ id bootLog N) := by
   unfold bootstrapContract; infer_instance
 
 end defs

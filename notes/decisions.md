@@ -7891,3 +7891,26 @@ constructor contracts false. D14 settles the three.
   of it: `schema.alarmBackend`/`authBackend` are axiomatized types (`schema.toml`), so no contract
   can say that `NewAlarmBackend(lg, be)` wraps the real backend; translate them with their fields
   (and `NewAlarmBackend`/`NewAuthBackend` with bodies), or state the link with abstract predicates.
+
+- **D14g (adopted 2026-10-17, the user's choice (a)): the server's lifetime bound.** Unit N4 found
+  the server's write budget unsatisfiable over the real backend (`notes/STATUS.md`, "unit N4,
+  continued"): `bootOk` gave `2 ^ 64 + 3` write-back tokens and `start` took `2 ^ 64 ≤ N`, while the
+  backend's batch lock bounds the tokens out below `2 ^ 40` (`backend.bgOk`). Now:
+  * `bootOk γ id bootLog N b` (and `bootstrapContract … N`) gives the tokens the backend has, `N + 6`
+    (within the cap: a premise of `NewServer.spec`, satisfiable for `N + 6` below the backend's
+    budget): `N` for the applied entries, six for the construction (`mvcc.New` two, `NewLessor`
+    one, `NewAuthStore` two, `NewAlarmStore` one, each a write-back of its recovery's `Unlock`);
+    and the fresh-bucket tokens of the lessor's and the auth store's data (`bkFresh`, opaque: the
+    model's readers' view cannot state a hook bucket's contents).
+  * **`srvLifeBound ρ.raft N`** (`InvRun.lean`, persistent): every log raft commits after the
+    start has at most `N` entries. A residual bound of the kind of `storeSmall` and the id
+    budget, a workload premise of `NewServer.spec` (beside `clusterWorkloadOk`) and a premise of
+    `run`, `start`, `Start` and `start_gives_views`, replacing `2 ^ 64 ≤ N`; `run` takes each
+    batch's tokens by it (the committed log `A ++ ce` has at most `N` entries).
+  * The write contracts take one token per write method (D14f). The backend's `Commit`/
+    `ForceCommit` specs take a token each, but in Go they commit first and their `Unlock` finds no
+    pending write, so it does not write back: the auth store's `Unlock` (`Unlock` then `Commit`) and
+    `AuthEnable`'s `ForceCommit` write back once. The axioms say so.
+  *Rejected:* raising the backend's `2 ^ 40` cap (it bounds the buffers' counters too,
+  `cnt.e ≤ hookMax * (2 ^ 40 + 2)`; a `2 ^ 64` budget would still not cover `start`'s old premise
+  with the construction's six).
