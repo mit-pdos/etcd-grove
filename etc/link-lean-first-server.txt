@@ -28,6 +28,23 @@ schema_MustUnsafeSaveConfStateToBackend:
 storage_NewBackendHooks:
 storage_BackendHooks__OnPreCommitUnsafe: schema_MustUnsafeSaveConfStateToBackend batchTxBuffered__UnsafePut schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
 batchTxBuffered__UnsafePut: @
+# etcd PR #22518 (branch pr-verify/etcd-22518 only): `OpenSnapshotBackend` (server/storage/
+# backend.go) with the new `syncSnapDir`, see storage/InvSnapshotBackend.lean (an abstract model of
+# directory-entry durability); the trust boundary: os.Rename, (*os.File).Close, fileutil's
+# OpenDir and Fsync, snap's DBFilePath, config's SnapDir and BackendPath (names-only), and
+# storage.OpenBackend (names-only).
+os_Rename:
+os_File__Close:
+fileutil_OpenDir:
+fileutil_Fsync:
+snap_Snapshotter__DBFilePath:
+config_ServerConfig__SnapDir:
+config_ServerConfig__BackendPath:
+storage_OpenBackend:
+fmt_Errorf: @
+zap_Logger__Info:
+storage_syncSnapDir: fileutil_OpenDir fileutil_Fsync os_File__Close
+storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf config_ServerConfig__BackendPath os_Rename config_ServerConfig__SnapDir storage_syncSnapDir zap_String zap_Logger__Info storage_OpenBackend
 # The lessor's KV-facing methods (server/lease/lessor.go; the backend's unit 8, 2026-10-13), see
 # lease/InvLessor.lean: mvcc's and the txn package's lessor contracts are derived from them
 # (lease/LessorContract.lean).

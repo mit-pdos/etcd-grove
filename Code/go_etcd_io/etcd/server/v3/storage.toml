@@ -1,15 +1,19 @@
 # Types and names only: function and method bodies are axiomatized, except the server's backend
 # hooks (hooks.go: `BackendHooks`, `NewBackendHooks`, `OnPreCommitUnsafe`, `SetConfState`), with
-# bodies.
+# bodies; and `OpenSnapshotBackend` with the new `syncSnapDir` of etcd PR #22518 (branch
+# pr-verify/etcd-22518 only), with `fmt`, `os`, `fileutil`, `config` and `snap` for them.
 # `backend` for the struct `BackendQuota` (a field of the apply package's capped applier);
 # `raftpb` and `semver` for the interface `Storage` (the raft wrapper's WAL), whose methods'
 # signatures name them (otherwise an axiomatized type); `sync`, `zap`, `cindex`, `schema` and
 # `proto` for the hooks.
-translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "BackendHooks.SetConfState"]
+translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "BackendHooks.SetConfState",
+  "OpenSnapshotBackend", "syncSnapDir"]
 imports = ["!*", "sync", "go.uber.org/zap", "google.golang.org/protobuf/proto",
   "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/storage/backend",
   "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/raft/v3/raftpb",
-  "github.com/Masterminds/semver/v3"]
+  "github.com/Masterminds/semver/v3", "fmt", "os",
+  "go.etcd.io/etcd/client/pkg/v3/fileutil", "go.etcd.io/etcd/server/v3/config",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/snap"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
