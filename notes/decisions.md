@@ -7727,3 +7727,34 @@ and `PreVote` settings stay premises.
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
   parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
   `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.
+
+## The client's construction: grpc's dial as descriptors, a trusted body (item 5, 2026-10-17)
+
+**Dial options as descriptors.** A `grpc.DialOption` is an opaque closure; the axioms of its
+constructors say what it does (`grpcDialOptIs o d`, `InvDial.lean`), and `NewClient`'s axiom
+composes the connection from the descriptors as grpc does (the last `WithUnaryInterceptor`'s
+interceptor, no chain, no default call options). An option no axiom describes has no descriptor,
+so a dial holding one is simply not covered: no catch-all "harmless option" is assumed. The
+caller's `Config.DialOptions` are excluded by a premise (empty) rather than modelled
+(`issues/etcd-client-dialoptions-unary-interceptor.md`).
+
+**Why `NewClient` asks for etcd's stream interceptor.** `grpcConn` (item 4's `InvGrpc.lean`,
+not ours to change) records the unary chain only, and `ClientConn.NewStream`'s axiom assumes the
+connection's stream interceptor is etcd's. `NewClient` therefore produces `grpcConn` only for a
+dial whose stream interceptors satisfy `etcdStreamInterceptor`, a property only
+`streamClientInterceptor`'s axiom introduces: a plain grpc client could not reach `NewStream`'s
+axiom with an interceptor it does not describe.
+
+**Why a trusted body for `dialWithBalancer`.** The pinned translator misnames grpc's
+`resolver.Builder` there (`pkgRef`'s same-name fallback) and its output does not elaborate. The
+alternatives were an axiom stating `dialWithBalancer`'s result directly (which would hide the
+dial: `dial`, `dialSetupOpts`, the interceptors, all unused), or a fork change (not pushable
+here). The translator's own output with the one type corrected keeps the proof over the real
+body; the axiom is that this text is the method's body, `MethodUnfold`'s shape, with grpc
+`resolver`'s `Builder.TypeAssumptions` (which `clientv3`'s assumptions lack, as `clientv3` does not
+import the package). Both go when Goose is fixed.
+
+**The resolver's state handed to grpc.** `etcdResolverOwn r eps` is exclusive: `SetEndpoints`
+needs it, and `NewClient` consumes its grpc form (`grpcResolverAt`), so `grpcConn`'s address is
+stable for good; after `New` nobody can call `SetEndpoints` (not in `New`'s postcondition), and
+`autoSync` (which would) is turned off by a premise.
