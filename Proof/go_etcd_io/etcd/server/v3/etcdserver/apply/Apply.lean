@@ -41,8 +41,8 @@ set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` and the postcondition. -/
 local macro "call_tail" : tactic => `(tactic| (
   wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 F Pre Q Post)
-      $$ [Hown Hkv Hwt Hcs] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres⟩
-  · iframe # Hown Hkv Hwt Hcs
+      $$ [Hown Hkv Hwt Hcs HFS HSp] as %ar ⟨HFS, %x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres⟩
+  · iframe # Hown Hkv Hwt Hcs HFS HSp
     ipureintro
     refine ⟨⟨Hrq, Hdk⟩, fun h => ?_⟩
     rw [← hsk] at h
@@ -52,7 +52,7 @@ local macro "call_tail" : tactic => `(tactic| (
     | some _ => rfl
   ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
   iapply HΦ
-  iframe HRD
+  iframe HRD HFS
   isplitl [HPP]
   · iapply cPost_if; iexact HPP
   iframe Hok Htr
@@ -77,7 +77,7 @@ theorem apply.Apply.wp_proof
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F
-  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem, #HF⟩
+  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem, #HF, HFS, HSp⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -185,7 +185,7 @@ theorem apply.Apply.wp_proof
       call_tail
     · wp_auto
       iapply HΦ
-      iframe HRD
+      iframe HRD HFS
       isplitl [Hcs]
       · iapply cPost_if; iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hcs
       isplitr

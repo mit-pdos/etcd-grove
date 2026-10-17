@@ -33,7 +33,7 @@ theorem apply.applierV3backend.Authenticate.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Authenticate.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%am, #Hr⟩, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨%am, #Hr⟩, Hpre, Hwt, #HSplit⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -54,7 +54,22 @@ theorem apply.applierV3backend.Authenticate.wp_proof
   wp_auto
   wp_apply context.wp_Background
   rw [Hcii]
-  wp_apply HCI as %ci -
+  -- the consistent index's resources, lent out of the critical section's precondition (D14i)
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨HPre, #Hhk, Hfin⟩
+  iunfold apply.ciSplit at HSplit
+  icases HSplit $$ HPre with ⟨%C, %HC, HC, HCb⟩
+  ihave #HCIC := HCI $$ %C
+  ihave #HCIC := HCIC $$ []
+  · ipureintro; exact HC
+  wp_bind (App (Val #(methods cii.ty go!"ConsistentIndex" cii.v)) (Val #()))
+  iapply HCIC $$ HC
+  inext
+  iintro %ci HC
+  (try wp_auto)
+  ihave HPre := HCb $$ HC
+  ihave Hcs : mvcc.csContract E.P E.f Pre Q Post $$ [HPre Hfin]
+  · iunfold mvcc.csContract; iframe HPre Hhk Hfin
   wp_apply (hWV context.backgroundCtxVal
       ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty, _⟩ _) as %c1 ⟨%Hc1, -⟩
   · ipureintro; exact Or.inl rfl

@@ -404,6 +404,22 @@ def lessorOk (l : GoInterface) : IProp GF :=
 instance lessorOk_persistent (l : GoInterface) : Persistent (lessorOk (GF := GF) l) := by
   unfold lessorOk; infer_instance
 
+/-- **The apply thread's right to `s.forceDiskSnapshot`** (D14i, 2026-10-17): what the applier's
+`ForceSnapshot` takes (`apply.isSnapshotServer`, the environment's `E.FS`). -/
+def srvFS (s : Loc) : IProp GF :=
+  iprop(∃ f : Bool, structFieldRef EtcdServer go!"forceDiskSnapshot" s ↦ f)
+
+/-- **The resources the consistent index reads under** (D14i): the apply protocol's state, not
+pending, with the backend's owner share (`applyBackend`), as `wp_ci_get` takes them; the
+environment's `E.ciC`. -/
+def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) : Prop :=
+  ∃ (st : ApplyState) (b : GoInterface),
+    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false
+
+/-- The apply environment's threaded resources are the server's (D14i). -/
+def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : Prop :=
+  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci
+
 /-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
 is the apply package's uber-applier in the environment `E` (`apply.applierFor`), whose batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`. -/
@@ -412,7 +428,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       srvUberApplyAddr s ↦□ v.ua ∗ apply.applierFor v.ua E ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗
+      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗

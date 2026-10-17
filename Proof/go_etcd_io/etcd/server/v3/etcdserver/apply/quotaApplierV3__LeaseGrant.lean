@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro E c inner p r log Pre Q Post
-  wp_start as ⟨#Hq, #Hin, HR, Hpre, Hwt⟩
+  wp_start as ⟨#Hq, #Hin, HR, Hpre, Hwt, #Hsp⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
@@ -58,6 +58,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     iframe HR
     iunfold apply.mPre
     iframe
+    iframe #
   iunfold apply.mPost at Hpost
   icases Hpost with ⟨Hkv, Hres, HPP⟩
   ihave Hres := apply.chainRes_quota_in c p (.ok bi) $$ Hf Hres

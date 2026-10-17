@@ -80,7 +80,7 @@ local macro "tail_skip" : tactic => `(tactic| (
   iintro Hst
   (try wp_auto)
   iapply HΦ
-  iframe Hbe Hlr Hgr HKV
+  iframe Hbe Hlr Hgr HFS HKV
   (try simp only [↓reduceIte])
   iframe Happ
   iexists st.eff
@@ -104,7 +104,7 @@ local macro "tail_done" : tactic => `(tactic| (
   rw [decide_eq_false (by unfold ciEff; rw [ite_eq_right hi0]; exact Int.lt_irrefl _)]
   (try wp_auto)
   iapply HΦ
-  iframe Hbe Hlr Hgr HKV
+  iframe Hbe Hlr Hgr HFS HKV
   (try simp only [↓reduceIte])
   iframe Happ
   iexists m.index
@@ -221,7 +221,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A
-  wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, Hka, #HAm,
+  wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, HFS, Hao, #HLv, #Hcm, Hka, #HAm,
     %HkA, %Hvi, %Hpo, Hv3⟩
   obtain ⟨Hp, Hok, Htyp⟩ := Hpo
   wp_apply wp_with_defer as %defer defer
@@ -244,7 +244,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   ihave ⟨Hka, #Hkc⟩ := kvAppliedL_cert _ _ _ _ $$ Hka
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAt at Hfv
-  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
+  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
@@ -297,7 +297,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       cases ldr
       · (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HKV
+        iframe Hbe Hst Hlr Hgr HFS HKV
       · (try wp_auto)
         wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
         · iframe Het Htm
@@ -308,7 +308,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         wp_apply HP
         (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HKV
+        iframe Hbe Hst Hlr Hgr HFS HKV
     · -- data: the applier, with nothing to write (`ApplyV2storeOnly`)
       have hdata : m.data ≠ [] := by
         intro h; apply Hif
@@ -327,11 +327,15 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E fv.ua x $$ HKV
       ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq false (Hpe Htyp hdata rq hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
+      ihave HFSE : E.FS $$ [HFS]
+      · rw [HEo.1]; iexact HFS
+      ihave HSpF : iprop(if false = true then apply.ciSplit E iprop(True) else iprop(True)) $$ []
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       iapply wp_fupd
       wp_apply hA fv.lg e m fv.ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot x.log
-        $$ [HKV Hwt HRD] as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, #Hdel⟩
-      · iframe Happl Hwok' HRD He HKV Hwt Hcp
+        $$ [HKV Hwt HRD HFSE HSpF] as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, #Hdel⟩
+      · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -341,6 +345,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         · itrivial
         iframe Hcx
         ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk⟩
+      ihave HFS : srvFS s $$ [HFS]
+      · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
@@ -355,7 +361,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         (applyStep_prefix rq false x x' out Hstep) $$ Hainv Hao HLv HkL with Hpre
       imodintro
       iapply HΦ
-      iframe Hbe Hst Hlr Hgr
+      iframe Hbe Hst Hlr Hgr HFS
       iexists x', out
       iframe Hpre Hka
       isplitl
@@ -460,6 +466,26 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       icases Hff with >#Hff
       iunfold srvFloorFact at Hff
       icases Hff with ⟨%F, #HfF, #HcF⟩
+      -- D14i: the snapshot right and the consistent index's resources, lent out of `Pre`
+      ihave HFSE : E.FS $$ [HFS]
+      · rw [HEo.1]; iexact HFS
+      ihave #HSp : apply.ciSplit E iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗
+          applyBackend γ ci b ∗ ⌜st.pending = false ∧ m.index = st.p + 1 ∧
+            uint.Z st.p < uint.Z m.index ∧ uint.Z (ciEff γ st.k) < uint.Z m.index⌝) $$ []
+      · iunfold apply.ciSplit
+        iintro !> ⟨Hst', Happ', Hbe', %Hf'⟩
+        iexists iprop(applyThread γ st ∗ applyBackend γ ci b)
+        iframe Hst' Hbe'
+        isplitr
+        · ipureintro; rw [HEo.2]; exact ⟨st, b, rfl, Hp⟩
+        iintro ⟨Hst', Hbe'⟩
+        iframe Hst' Happ' Hbe'
+        ipureintro; exact Hf'
+      ihave HSpT : iprop(if true = true then apply.ciSplit E iprop(applyThread γ st ∗
+          ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗ ⌜st.pending = false ∧
+            m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
+            uint.Z (ciEff γ st.k) < uint.Z m.index⌝) else iprop(True)) $$ []
+      · simp only [↓reduceIte]; iexact HSp
       wp_apply hA fv.lg e m fv.ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -469,9 +495,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
           applyBackend γ ci b) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
-        $$ [Hst Happ Hbe HKV Hwt HRD] as %ar %id
-          ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel⟩
-      · iframe Happl Hwok' HRD He HKV Hwt Hcp
+        $$ [Hst Happ Hbe HKV Hwt HRD HFSE HSpT] as %ar %id
+          ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel⟩
+      · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpT
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
         simp only [↓reduceIte]
@@ -496,6 +522,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             iexact Hst
         · iframe Hst Happ Hbe HcF
           ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk⟩
+      ihave HFS : srvFS s $$ [HFS]
+      · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗

@@ -39,7 +39,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.ClusterVersionSet.spec (GF := GF) (hG := hG) := by
   intro E p r v3 log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%ver, #Hr, %Hvalid⟩, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨%ver, #Hr, %Hvalid⟩, Hpre, Hwt, HFSt⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -99,7 +99,12 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   wp_apply hInfo
   · ipureintro; exact Hlg
   rw [Hsi]
-  wp_apply HFS
+  wp_pures
+  wp_bind (App (Val #(methods si.ty go!"ForceSnapshot" si.v)) (Val #()))
+  iapply HFS $$ HFSt
+  inext
+  iintro HFSt
+  (try wp_auto)
   iapply HΦ
   iunfold apply.mPostV
   iframe

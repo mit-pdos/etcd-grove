@@ -31,7 +31,8 @@ abbrev apply.quotaApplierV3.LeaseGrant.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.quotaIs p inner ∗ apply.applierSpec E c inner ∗
       (∃ g : LeaseGrantModel, apply.leaseGrantIs r g) ∗
-      apply.mPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      apply.mPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"LeaseGrant")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
 

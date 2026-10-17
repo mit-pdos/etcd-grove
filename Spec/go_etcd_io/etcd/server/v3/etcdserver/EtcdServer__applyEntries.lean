@@ -54,11 +54,11 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
-      batchCommittedIdx γr ms ∗ txn.storeWTs E.γ (unapplied ai ms).length ∗
+      batchCommittedIdx γr ms ∗ txn.storeWTs E.γ (unapplied ai ms).length ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
       (Val #ep)) (Val #ap))
-  {{ RET #();
+  {{ RET #(); srvFS s ∗
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfStateAddr ep ↦ cs' ∗
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗ srvLgReader s ∗ srvGoRes s ∗

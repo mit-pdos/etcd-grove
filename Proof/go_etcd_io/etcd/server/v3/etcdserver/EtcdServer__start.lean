@@ -103,7 +103,7 @@ theorem EtcdServer.start.wp_proof
   icases Hfb' with ⟨%fv, #Hfv⟩
   ihave #Hfv' := Hfv
   iunfold srvFieldsBuilt at Hfv'
-  icases Hfv' with ⟨#Hlgf, %Hlgn, -, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, -, #Hmidf, -, -, -, -, -⟩
+  icases Hfv' with ⟨#Hlgf, %Hlgn, -, -, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, -, #Hmidf, -, -, -, -, -⟩
   -- the cluster's id (the request path's view of the same `s.cluster`)
   ihave #Hreqb' := Hreqb
   icases Hreqb' with ⟨%vq0, #Hvq0⟩
@@ -325,8 +325,8 @@ theorem EtcdServer.start.wp_proof
     · iexists { fv with w := w }
       ihave #Hfv2 := Hfv
       iunfold srvFieldsBuilt at Hfv2
-      icases Hfv2 with ⟨#F1, %F2, #F3, #F4, %F5, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13, #F14,
-        #F15, #F16, #F17, #F18, #F19, #F20⟩
+      icases Hfv2 with ⟨#F1, %F2, #F3, #F4, %F5, %F5o, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13,
+        #F14, #F15, #F16, #F17, #F18, #F19, #F20⟩
       iunfold srvFieldsAt
       iframe #
       isplitr
@@ -337,7 +337,11 @@ theorem EtcdServer.start.wp_proof
         have hwr : reqWaitR (GF := GF) { ρ with wait := γw } E = reqWaitR ρ E := rfl
         rw [hwr]
         iexact Hwait
-      ipureintro; exact F5
+      first
+        | (ipureintro; exact ⟨F5, F5o⟩)
+        | (isplitr
+           · ipureintro; exact F5
+           ipureintro; exact F5o)
     isplitr
     · iunfold srvAtomics
       iframe #

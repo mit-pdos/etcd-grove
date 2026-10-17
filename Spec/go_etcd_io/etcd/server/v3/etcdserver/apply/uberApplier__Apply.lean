@@ -38,9 +38,10 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
       apply.certPreV v3 E x.chain rq x.log ∗
       mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗ ⌜apply.rqOk x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
-      ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F }}
+      ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
+  {{ (ar : Loc), RET #ar; E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧
         apply.applyFloorOk rq v3 F x.log out⌝ ∗

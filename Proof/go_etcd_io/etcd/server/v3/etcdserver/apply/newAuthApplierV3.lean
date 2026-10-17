@@ -133,13 +133,13 @@ theorem apply.newAuthApplierV3.wp_proof
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl | rfl
     case inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm, Hwt⟩
+      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       simp [apply.reqFacts]
       iapply (hUG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe HR Hm Hwt
       iframe #
     case inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm, Hwt⟩
+      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       simp [apply.reqFacts]
       iapply (hRG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe HR Hm Hwt
@@ -148,7 +148,7 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt⟩
+      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       iunfold apply.mPre at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
@@ -157,6 +157,7 @@ theorem apply.newAuthApplierV3.wp_proof
       · iframe HR
         iunfold apply.mPre
         iframe
+        iframe #
       inext
       iintro %resp %err ⟨Hpost, #HeI⟩
       iapply HΦ'
@@ -223,18 +224,19 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt⟩
+      icases Hpre with ⟨HR, Hm, Hwt, HFS⟩
       iunfold apply.mPreV at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt HFS]
       · ipureintro; simp [apply.clusterMethods]
       · iframe HR
         iunfold apply.mPreV
         iframe
       inext
-      iintro Hpost
+      iintro ⟨Hpost, HFS⟩
       iapply HΦ'
+      iframe HFS
       iunfold apply.mPostV at Hpost
       iunfold apply.mPostV
       icases Hpost with ⟨Hkv, Hres, HPP⟩

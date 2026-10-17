@@ -43,9 +43,10 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.chainRes c a ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwn E log ∗ apply.certPreV v3 E c rq log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F }}
+      ⌜apply.rqOk log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; apply.chainRes c a ∗
+  {{ (ar : Loc), RET #ar; apply.chainRes c a ∗ E.FS ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post ∗

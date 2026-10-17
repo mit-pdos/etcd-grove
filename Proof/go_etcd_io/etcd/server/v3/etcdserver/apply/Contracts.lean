@@ -430,25 +430,29 @@ instance isRaftStatus_persistent (rs : GoInterface) : Persistent (isRaftStatus (
   unfold isRaftStatus; infer_instance
 
 /-- **The `SnapshotServer` `ss`** (the server): `ForceSnapshot` returns (it signals the apply
-loop; no backend write here). -/
-def isSnapshotServer (ss : GoInterface) : IProp GF :=
+loop; no backend write here), under the apply thread's right `FS` (D14i, 2026-10-17: the server's
+`ForceSnapshot` writes `s.forceDiskSnapshot`, a field of the apply thread's). -/
+def isSnapshotServer (ss : GoInterface) (FS : IProp GF) : IProp GF :=
   iprop(∃ si : GoInterfaceOk, ⌜ss = GoInterface.ok si⌝ ∗
-    □ ({{ True }} (App (Val #(methods si.ty go!"ForceSnapshot" si.v)) (Val #()))
-      {{ RET #(); True }}))
+    □ ({{ FS }} (App (Val #(methods si.ty go!"ForceSnapshot" si.v)) (Val #()))
+      {{ RET #(); FS }}))
 
-instance isSnapshotServer_persistent (ss : GoInterface) :
-    Persistent (isSnapshotServer (GF := GF) ss) := by
+instance isSnapshotServer_persistent (ss : GoInterface) (FS : IProp GF) :
+    Persistent (isSnapshotServer (GF := GF) ss FS) := by
   unfold isSnapshotServer; infer_instance
 
 /-- **The `cindex.ConsistentIndexer` `ci`**: `ConsistentIndex` returns (the authenticate
-request's token index). -/
-def isConsistentIndexer (ci : GoInterface) : IProp GF :=
+request's token index), under any resource `C` of the kind `K` (D14i, 2026-10-17: the server's
+consistent index reads its backend field with the owner's share and may load the index, so its
+caller lends the apply thread's resources, given back). -/
+def isConsistentIndexer (ci : GoInterface) (K : IProp GF → Prop) : IProp GF :=
   iprop(∃ cii : GoInterfaceOk, ⌜ci = GoInterface.ok cii⌝ ∗
-    □ ({{ True }} (App (Val #(methods cii.ty go!"ConsistentIndex" cii.v)) (Val #()))
-      {{ (x : w64), RET #x; True }}))
+    □ (∀ C : IProp GF, ⌜K C⌝ -∗
+      {{ C }} (App (Val #(methods cii.ty go!"ConsistentIndex" cii.v)) (Val #()))
+      {{ (x : w64), RET #x; C }}))
 
-instance isConsistentIndexer_persistent (ci : GoInterface) :
-    Persistent (isConsistentIndexer (GF := GF) ci) := by
+instance isConsistentIndexer_persistent (ci : GoInterface) (K : IProp GF → Prop) :
+    Persistent (isConsistentIndexer (GF := GF) ci K) := by
   unfold isConsistentIndexer; infer_instance
 
 /-! ## The KV -/

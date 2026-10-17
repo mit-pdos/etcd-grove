@@ -141,7 +141,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log F Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
@@ -220,7 +220,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .clusterVersionSet := by simp [dispatchKind, hs]
     have hsv : semverValid x := by
       have := Hok.1; simp only [rqOk, hk] at this; exact this x hs
-    wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as Hpost
+    wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt HFS] as ⟨Hpost, HFS⟩
     · ipureintro; simp [apply.clusterMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPreV
@@ -229,6 +229,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     persist_ar
     ok_path
     iapply HΦ
+    iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     fin_same
@@ -240,7 +241,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCM.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCM
     have hk : dispatchKind rq = .clusterMemberAttrSet := by simp [dispatchKind, zClusterVersionSet, hs]
-    wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as Hpost
+    wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt HFS] as ⟨Hpost, HFS⟩
     · ipureintro; simp [apply.clusterMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPreV
@@ -249,6 +250,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     persist_ar
     ok_path
     iapply HΦ
+    iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     fin_same
@@ -260,7 +262,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nDI.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HDI
     have hk : dispatchKind rq = .downgradeInfoSet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, hs]
-    wp_apply HCluster $$ %go!"DowngradeInfoSet" %lDI %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as Hpost
+    wp_apply HCluster $$ %go!"DowngradeInfoSet" %lDI %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt HFS] as ⟨Hpost, HFS⟩
     · ipureintro; simp [apply.clusterMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPreV
@@ -269,6 +271,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     persist_ar
     ok_path
     iapply HΦ
+    iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     fin_same
@@ -285,6 +288,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     persist_ar
     ok_path
     iapply HΦ
+    iframe HFS
     ihave HPP : iprop(cPost v3 Pre Post) $$ [Hc]
     · iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hc
     fin_same
@@ -297,6 +301,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (try wp_auto)
     ok_path
     iapply HΦ
+    iframe HFS
     iframe Hres
     iexists (GoInterface.ok ai), c, (Outcome.applied log false)
     simp only [apply.Outcome.logAfter]
@@ -312,6 +317,8 @@ theorem apply.uberApplier.dispatch.wp_proof
   (try wp_auto)
   ihave Hc : iprop(mvcc.csContract E.P E.f Pre Q Post) $$ [Hc]
   · simp only [apply.cPre, ↓reduceIte]; iexact Hc
+  ihave #HSp : apply.ciSplit E Pre $$ [HSp]
+  · simp only [↓reduceIte]; iexact HSp
   ihave #Hcp := apply.certPreV_true E c rq log $$ Hcp
   -- the second `switch`: each case computes `ar` and `op` and establishes the postcondition
   -- at `ar`; the `return` and the deferred metrics, after the join, are verified once (not
@@ -463,6 +470,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · iframe HR Hu Hs Ha
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -503,7 +511,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
-      iframe; iexists x; iframe HR
+      iframe; iframe HSp; iexists x; iframe HR
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -576,7 +584,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
-      iframe; iexists x; iframe HR; ipureintro; exact hok x hs
+      iframe; iframe HSp; iexists x; iframe HR; ipureintro; exact hok x hs
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -598,6 +606,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -619,6 +628,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -640,6 +650,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -658,7 +669,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
-      iframe; iexists x; iframe HR
+      iframe; iframe HSp; iexists x; iframe HR
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -680,6 +691,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -698,7 +710,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
-      iframe; iexists x; iframe HR; ipureintro; exact hok x hs
+      iframe; iframe HSp; iexists x; iframe HR; ipureintro; exact hok x hs
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -720,6 +732,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -738,7 +751,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
-      iframe; iexists x; iframe HR
+      iframe; iframe HSp; iexists x; iframe HR
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -760,6 +773,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -781,6 +795,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -802,6 +817,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -823,6 +839,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
       iframe
+      iframe #
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
@@ -840,6 +857,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   dtail
   all_goals
     iapply HΦ
+    iframe HFS
     iexact Hpost
 
 end proof

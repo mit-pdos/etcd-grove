@@ -54,12 +54,12 @@ abbrev EtcdServer.apply.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
-      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ ms.length ∗
+      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ ms.length ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
-      RET (PairV (PairV #appliedt #appliedi) #shouldStop);
+      RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
         epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗

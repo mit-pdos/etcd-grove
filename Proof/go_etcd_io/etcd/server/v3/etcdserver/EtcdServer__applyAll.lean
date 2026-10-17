@@ -67,12 +67,20 @@ theorem EtcdServer.applyAll.wp_proof
   wp_apply hASnap s ep ap $$ []
   · iframe #
   (try wp_auto)
-  -- `s.applyEntries(ep, apply)`
+  -- `s.applyEntries(ep, apply)`, lending it `forceDiskSnapshot` (D14i)
+  iunfold srvSnapState at Hss
+  icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0⟩
+  ihave Hfs : srvFS s $$ [Hsf0]
+  · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A Hms Hai1 Hok hEok
-    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao HW Hka]
-    as ⟨%st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, Hao, ⟨%x', HKV, %Hx',
+    $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao HW Hfs Hka]
+    as ⟨Hfs, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, Hao, ⟨%x', HKV, %Hx',
       #Hlog', Hka⟩, %Hpost⟩
   · iframe #; iframe
+  iunfold srvFS at Hfs
+  icases Hfs with ⟨%sf1, Hsf1⟩
+  ihave Hss : srvSnapState s ep $$ [Hsd0 Hsm0 Hsf1]
+  · iunfold srvSnapState; iexists _, _, _; iframe
   obtain ⟨hok', hai', hci'⟩ := Hpost
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`

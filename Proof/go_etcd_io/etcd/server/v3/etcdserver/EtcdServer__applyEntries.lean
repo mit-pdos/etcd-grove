@@ -76,7 +76,7 @@ theorem EtcdServer.applyEntries.wp_proof
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A Hms Hai1 Hok hEok
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, HW, Hka, #Hkb⟩
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, HW, Hfs, Hka, #Hkb⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -90,6 +90,7 @@ theorem EtcdServer.applyEntries.wp_proof
       rw [← Hlen2, Hlen.1]; rw [Hif]; rfl
     subst hms
     iapply HΦ
+    iframe Hfs
     iexists st, ai, at0, a, t, cs
     iframe
     isplitl [Hka]
@@ -190,11 +191,11 @@ theorem EtcdServer.applyEntries.wp_proof
       iapply Hbc
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
-      (ai + 1) ep cs rac st a t x γr A hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hka]
-      as %appt %appi %stop ⟨%st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao,
+      (ai + 1) ep cs rac st a t x γr A hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hfs Hka]
+      as %appt %appi %stop ⟨Hfs, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao,
         ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
-      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hbc' Hlog Hka Hkb'
+      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hfs Hbc' Hlog Hka Hkb'
     obtain ⟨hli, -, hok2, hci2⟩ := Hpost
     -- the postcondition, whether or not the server stops
     have hlast : ms.getLast? = (ms.drop k).getLast? := by
@@ -211,6 +212,7 @@ theorem EtcdServer.applyEntries.wp_proof
     cases stop
     · wp_auto
       iapply HΦ
+      iframe Hfs
       iexists st', appi, appt, a', at', csl
       iframe
       isplitl [Hka]
@@ -230,6 +232,7 @@ theorem EtcdServer.applyEntries.wp_proof
         itrivial
       (try wp_auto)
       iapply HΦ
+      iframe Hfs
       iexists st', appi, appt, a', at', csl
       iframe
       isplitl [Hka]
@@ -248,6 +251,7 @@ theorem EtcdServer.applyEntries.wp_proof
       have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif
       omega
     iapply HΦ
+    iframe Hfs
     iexists st, ai, at0, a, t, cs
     iframe
     isplitl [Hka]

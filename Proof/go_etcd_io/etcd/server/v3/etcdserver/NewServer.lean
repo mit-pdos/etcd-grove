@@ -710,7 +710,7 @@ theorem NewServer.wp_proof
     exact wand_entails h
   obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn5, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13⟩ := Hrnames
   have hγs : envAgree (GF := GF)
-      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false⟩ E₀ :=
+      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ E₀ :=
     ⟨Hγw.2.2.2.1, Hγw.2.2.2.2, rfl⟩
   -- the transport, started
   ihave #Hts := Htstart $$ Htlive
@@ -727,7 +727,7 @@ theorem NewServer.wp_proof
     iexact H
   -- the indices
   imod (srvIndices_alloc s
-      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false⟩ ρ.rd ⊤
+      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ ρ.rd ⊤
       (by rw [HρRaft]))
     $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb
     with ⟨#Hai, Haown, #Hal0, #Hcmi, Hcmown, #Hti⟩
@@ -813,7 +813,7 @@ theorem NewServer.wp_proof
   isplitr
   · ipureintro; rfl
   iexists γA, cil, metaTM d.γB d.P,
-    (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false⟩ : apply.AEnv GF),
+    (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
   iframe Hetcd
@@ -829,7 +829,7 @@ theorem NewServer.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl⟩
   isplitr
   · -- `#Hreqb`
     iexists ⟨gen, GoInterface.nil, cfg.MaxRequestBytes', cfg.ServerFeatureGate',
@@ -841,7 +841,7 @@ theorem NewServer.wp_proof
     iframe #
     isplitr
     · have hff : srvFloorFact (GF := GF)
-          ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false⟩ =
+          ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ =
           srvFloorFact E₀ := by
         funext a b c; unfold srvFloorFact; simp only [Hγw.2.2.2.1]
       rw [hff]; iexact Hgen

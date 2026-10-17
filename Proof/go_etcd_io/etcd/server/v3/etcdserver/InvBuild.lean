@@ -110,7 +110,7 @@ instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (c₀ 
 def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗
+      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗

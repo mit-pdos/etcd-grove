@@ -56,7 +56,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
     (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
       srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
       kvApplied γr.raft γr.kv A x ∗ srvRLogLb γr.raft (A ++ [m]) ∗
       ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
@@ -68,7 +68,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
        else iprop(True)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
       (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
         ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
         srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x') ∗

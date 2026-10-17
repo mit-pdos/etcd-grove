@@ -285,6 +285,13 @@ structure AEnv (GF : BundledGFunctors) where
   /-- whether the auth store is enabled (2026-10-14, unit T1): the auth layer's mode
   (`Chain.auth E.authOn`), the auth store's contract's (`isAuthStore … E.authOn`) -/
   authOn : Bool
+  /-- the apply thread's right to `ForceSnapshot` (D14i, 2026-10-17: the server's
+  `s.forceDiskSnapshot`, which `ForceSnapshot` writes), threaded to the cluster methods -/
+  FS : IProp GF
+  /-- the apply thread's resources `ConsistentIndex` reads under (D14i: the server's apply
+  protocol's state with the consistent index's owner share), lent out of the critical section's
+  precondition (`ciSplit`) -/
+  ciC : IProp GF → Prop
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
@@ -671,6 +678,15 @@ theorem traceRes_null : ⊢ traceRes (GF := GF) null := by
   unfold traceRes; iintro; ileft; ipureintro; rfl
 
 
+/-- **The consistent index's resources, lent out of `Pre`** (D14i, 2026-10-17): the critical
+section's precondition `Pre` holds a resource `C` that `ConsistentIndex` reads under
+(`E.ciC C`), which a method may take out and put back before it locks. -/
+def ciSplit (E : AEnv GF) (Pre : IProp GF) : IProp GF :=
+  iprop(□ (Pre -∗ ∃ C : IProp GF, ⌜E.ciC C⌝ ∗ C ∗ (C -∗ Pre)))
+
+instance ciSplit_persistent (E : AEnv GF) (Pre : IProp GF) : Persistent (ciSplit E Pre) := by
+  unfold ciSplit; infer_instance
+
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
 `E` (each persistent: `dispatch` calls one per request). -/
 def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
@@ -704,7 +720,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvPost E c (.ok ai) rq log (revokeOutcomeIs resp err) Pre Post }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ respMethods⌝ -∗
-      {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ ciSplit E Pre }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
@@ -721,9 +737,9 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvOwn E log ∗ chainRes c (.ok ai) ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ reqFacts m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      {{ reqFacts m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
-      {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post }}) ∗
+      {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post ∗ E.FS }}) ∗
     -- `Apply`: the `applyFunc` under the chain's resources, or the auth layers' admin rejection
     □ (∀ (r : Loc) (rq : IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)
         (B : Loc → IProp GF),
@@ -755,8 +771,8 @@ def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
   iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
     isApplyLessor opts.Lessor' E.s E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authOn ∗
     isAlarmStore opts.AlarmStore' E.γ E.P E.f ∗ isCluster opts.Cluster' E.γ E.P E.f ∗
-    isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' ∗
-    isConsistentIndexer opts.ConsistentIndex')
+    isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' E.FS ∗
+    isConsistentIndexer opts.ConsistentIndex' E.ciC)
 
 instance backendOptsOk_persistent (E : AEnv GF) (opts : ApplierOptions) :
     Persistent (backendOptsOk E opts) := by

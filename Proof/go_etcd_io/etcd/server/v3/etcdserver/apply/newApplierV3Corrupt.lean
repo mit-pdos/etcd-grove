@@ -121,8 +121,9 @@ theorem apply.newApplierV3Corrupt.wp_proof
     simp only [apply.respMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
     rcases hm with rfl | hm
     · simp only [apply.reqFacts, ↓reduceIte]
-      iapply (hLG E c (.ok bi) p r log Pre Q Post) $$ [Hpre] HΦ'
-      iframe Hpre
+      icases Hpre with ⟨HR, Hm, Hwt, -⟩
+      iapply (hLG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
+      iframe HR Hm Hwt
       iunfold apply.corruptIs
       iframe #
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
@@ -131,7 +132,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt⟩
+      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       iunfold apply.mPre at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) $$ applierV3 Hres
@@ -140,6 +141,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
       · iframe HR
         iunfold apply.mPre
         iframe
+        iframe #
       inext
       iintro %resp %err ⟨Hpost, #HeI⟩
       iapply HΦ'
@@ -206,18 +208,19 @@ theorem apply.newApplierV3Corrupt.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt⟩
+      icases Hpre with ⟨HR, Hm, Hwt, HFS⟩
       iunfold apply.mPreV at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt HFS]
       · ipureintro; simp [apply.clusterMethods]
       · iframe HR
         iunfold apply.mPreV
         iframe
       inext
-      iintro Hpost
+      iintro ⟨Hpost, HFS⟩
       iapply HΦ'
+      iframe HFS
       iunfold apply.mPostV at Hpost
       iunfold apply.mPostV
       icases Hpost with ⟨Hkv, Hres, HPP⟩

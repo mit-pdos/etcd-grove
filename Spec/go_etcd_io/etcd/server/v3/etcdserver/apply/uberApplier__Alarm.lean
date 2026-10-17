@@ -35,7 +35,8 @@ abbrev apply.uberApplier.Alarm.spec : Prop :=
     (am : apply.AlarmModel) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
-      apply.alarmRequestIs r am ∗ apply.mPre E c a log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      apply.alarmRequestIs r am ∗ apply.mPre E c a log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Alarm")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E c a log Pre Post ∗ applyErrIs err ∗ ∃ (a' : GoInterface) (c' : apply.Chain),

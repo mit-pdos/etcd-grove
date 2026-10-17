@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.RoleGet.wp_proof :
     apply.authApplierV3.RoleGet.spec (GF := GF) (hG := hG) := by
   intro E c inner p r log Pre Q Post
-  wp_start as ⟨#Hauth, #Hinner, ⟨%n, #Hr⟩, Hm, Hwt⟩
+  wp_start as ⟨#Hauth, #Hinner, ⟨%n, #Hr⟩, Hm, Hwt, #Hsp⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
   iunfold apply.mPre at Hm
@@ -61,6 +61,7 @@ theorem apply.authApplierV3.RoleGet.wp_proof :
     · simp [apply.reqFacts]
       iunfold apply.mPre
       iframe
+      iframe Hsp
       iexists _; iexact Hr
     iapply HΦ
     isplitl; rotate_left
@@ -94,6 +95,7 @@ theorem apply.authApplierV3.RoleGet.wp_proof :
     · simp [apply.reqFacts]
       iunfold apply.mPre
       iframe
+      iframe Hsp
       iexists _; iexact Hr
     iapply HΦ
     isplitl; rotate_left
