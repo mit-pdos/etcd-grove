@@ -24,6 +24,8 @@ a scratch checkout with the other `server/etcdserver/*_test.go` files deleted. G
 | `fork/bootstrap_restart_test.go` | the first two tests over the fork's protobuf-go v2 `raftpb`/`walpb` (no v2 `.snap` file: at this revision bootstrap reads the WAL's snapshot record) | fork PR, fork base |
 | `fork/bootstrap_restart_helper_forkpr_test.go`, `fork/bootstrap_restart_helper_forkbase_test.go` | the helpers at the fork PR and fork base | fork PR, fork base |
 | `fork/fork-pr.log`, `fork/fork-base.log` | both fail on the verified code (same panics), both pass on the fork base. (The third test does not apply to the fork's `bootstrap`, which overrides the conf state from the v3 store before `MemoryStorage`; the helper bypasses that.) | |
+| `fork/force_new_cluster_confstate_test.go` (the reviewer's) | `--force-new-cluster` on a member of `{1,2,3}` whose backend has no conf state (the WAL's snapshot record at 3 has `{1,2,3}`): the forced restart must remove 2 and 3. Needs `fork/bootstrap_restart_test.go` (for its helpers) and a `bootstrapWALForTest` helper: `fork/force_new_cluster_helper_forkpr_test.go` / `..._forkbase_test.go` | fork PR, fork base |
+| `fork/force-new-cluster-fork-pr.log`, `fork/force-new-cluster-fork-base.log` | fork PR: `added [1] removed []` (fails); fork base: `removed [2 3]` (passes) | |
 
 Commands (upstream; `<rev>` is `pr` or `base`, `<dir>` a checkout of that revision):
 
@@ -41,4 +43,8 @@ cp fork/bootstrap_restart_test.go <dir>/server/etcdserver/
 cp fork/bootstrap_restart_helper_<rev>_test.go <dir>/server/etcdserver/bootstrap_restart_helper_test.go
 cd <dir>/server/etcdserver && GOTOOLCHAIN=go1.27.1 go test -count=1 \
   -run 'TestRestartAfterSnapshotPersistedBeforeApplied|TestRestartWithConsistentIndexPastWALCommit' -v .
+# the force-new-cluster test, in addition to the two files above:
+cp fork/force_new_cluster_confstate_test.go <dir>/server/etcdserver/
+cp fork/force_new_cluster_helper_<rev>_test.go <dir>/server/etcdserver/force_new_cluster_helper_test.go
+cd <dir>/server/etcdserver && GOTOOLCHAIN=go1.27.1 go test -count=1 -run TestReviewForceNewCluster -v .
 ```

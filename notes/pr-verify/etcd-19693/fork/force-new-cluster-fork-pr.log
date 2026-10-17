@@ -1,0 +1,8 @@
+    review_force_new_cluster_test.go:51: forced conf changes: added [1] removed []
+    review_force_new_cluster_test.go:52: 
+        	Error:      	elements differ
+        	Messages:   	force-new-cluster does not remove the other members
+--- FAIL: TestReviewForceNewClusterBackendWithoutConfState (0.03s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.043s
+FAIL
