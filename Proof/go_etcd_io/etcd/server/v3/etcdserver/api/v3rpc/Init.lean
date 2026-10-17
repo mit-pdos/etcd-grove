@@ -7,8 +7,9 @@ Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter 
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
-pointer error (the premise `EtcdGrove.ContextCanceledPtr`: Perennial's `context` fact lacks it).
-Its theorem takes the read package's initializer's spec (`wp_read`), not proved.
+pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
+fact lacks it). Its precondition has the read package's registration rights
+(`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.
 -/
 module
 
@@ -106,36 +107,15 @@ axiom clientRequests_init :
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 end opaqueInits
 
-section ctxFacts
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `context.Canceled` is `errors.New("context canceled")`** (a premise,
-stated locally; item 8, 2026-10-17): a pointer error. Go's `context.go` makes it so, and
-Perennial's `context.initialize'` stores `errors.New(...)` there (`context.wp_New_errorString`),
-but Perennial's `context` fact (`isInit`) keeps only that it is a typed error, and a package
-fact cannot be strengthened after the fact: the general fix is a Perennial change (the fact
-records the exact values; `notes/decisions.md`, "Item 8: context's facts"). A premise rather than an
-axiom: `isPkgInit context` is not sealed (any proof holding the variables' cells could make
-it), so as an axiom the entailment could be used to prove `False`. -/
-class EtcdGrove.ContextCanceledPtr : Prop where
-  canceled : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
-    ∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
-      ⌜_root_.Perennial.errors.IsPointerError e⌝
-
-end ctxFacts
-
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [EtcdGrove.ContextCanceledPtr (GF := GF) (hG := hG)]
 variable [EtcdGrove.ErrorStringLeaf]
 variable [EtcdGrove.RpctypesEtcdErrorMethods]
+variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [_root_.Perennial.context.ErrorStringIsError]
   [_root_.Perennial.context.DeadlineExceededIsError]
 variable [_root_.Perennial.log.NewModel]
@@ -143,16 +123,14 @@ variable [_root_.Perennial.log.NewModel]
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
 set_option maxHeartbeats 8000000 in
-theorem wp_initialize'
-    (wp_read : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.initialize'.spec (GF := GF) (hG := hG))
-    (get_is_pkg_init : GoString → IProp GF)
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.read.readRegPerm (GF := GF) }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  wp_start as ⟨Hown, HR⟩
+  iapply wp_package_init (heq := Hinit.1) $$ [Hown HR] HΦ
   iframe Hown
   iintro Hown
   wp_auto
@@ -200,7 +178,8 @@ theorem wp_initialize'
   wp_apply _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply _root_.Perennial.crypto.tls.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.wp_initialize' wp_read) _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.wp_initialize' _ Hinit.2.2.2.2.1 $$ [Hown HR] as ⟨Hown, #Hd4⟩
+  · iframe Hown HR
   wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.auth.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply _root_.Perennial.context.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
@@ -222,7 +201,14 @@ theorem wp_initialize'
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩
-  ihave #HCP := EtcdGrove.ContextCanceledPtr.canceled $$ Hd1
+  ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs $$ Hd1
+  ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
+      ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []
+  · iunfold EtcdGrove.errVarLeaf at HCL
+    icases HCL with ⟨%e, #He, %Hl, -⟩
+    iexists e
+    iframe He
+    ipureintro; exact Hl.1
   -- `getServerMetrics`' lock and what it guards (`metricsServerCached`, `nil`)
   imod sync.init_Mutex EtcdGrove.v3rpc.metricsP ⊤ EtcdGrove.v3rpc.metricsMu $$ HmetricsServerLock [HmetricsServerCached] with #HMV
   · inext

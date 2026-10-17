@@ -8093,7 +8093,8 @@ interface.mkOk (ptr errorString) #x` with its message and `DeadlineExceeded ↦�
 interface.mkOk deadlineExceededError.ty #()`. It unblocks `v3rpc`'s premise and, with a registry
 model, `read`.
 
-**`read` stays assumed.** Its translated `init()` calls `prometheus.MustRegister`, which panics
+**`read` stays assumed** (superseded by D16, 2026-10-17: proved, the registration rights a
+precondition). Its translated `init()` calls `prometheus.MustRegister`, which panics
 on a duplicate name. A true spec needs the default registry's registered names, a resource the
 whole program's initializers share; `wp_initialize'`'s shape (`ownInitializing` only) has no
 place for it, so adding one means changing every importer's theorem. `etcdserver`'s and `v3rpc`'s
@@ -8163,3 +8164,54 @@ agent) and (b) meanwhile to verify a patched `bootstrap` that turns both off.
 - **Reverted once (a) lands:** the pin back to `goose-lean` (the fork branch dropped), the two
   premises of `NewServer.spec` and `bootOk`'s configuration parameter go, `bootOk` states
   `CheckQuorum' = true` and `PreVote' = cfg.PreVote'` as etcd's code does.
+
+## prometheus's default registry: registration rights as an initializer's precondition (D16)
+
+**2026-10-17 · adopted (branch `raft-retarget`, item 8: the read package's initializer)**
+
+The read package's translated `init()` calls `prometheus.MustRegister` on its two counters, and
+`MustRegister` panics when `Registry.Register` fails: in particular when a descriptor of the same
+name (with other labels or help), the same descriptor ID or the same collector ID is already
+registered. Whether it panics depends on what every package of the program registered before:
+a resource, which item 8 left out (`read` assumed, `etcdserver`'s and `v3rpc`'s theorems taking
+its spec as a hypothesis).
+
+- **D16a: the right to register a name.** `EtcdGrove.prometheus.nameFree n`
+  (`Proof/github_com/prometheus/client_golang/prometheus/Registry.lean`, an abstract resource:
+  an axiomatized predicate, as bbolt's `ownDB`) is the exclusive right to register a collector
+  whose one descriptor is `n`'s, label-free, with the default registry: nothing registered there,
+  now or later by anyone but the holder, has a descriptor named `n`, or `n`'s descriptor ID, or
+  that collector ID. `MustRegister.spec` (one collector `c`, `collectorName c n`) consumes it;
+  `NewCounter.spec` gives `collectorName c (fqName ns sub name)` (and mvcc's `counterSpec`); the
+  `CounterOpts` literal (`Opts` is an axiomatized type) is the axiom `wp_counterOptsLit`, over the
+  axiomatized `counterOpts`. Each axiom is about uninterpreted constants, satisfiable whatever
+  the semantics, and true of client_golang v1.24.1 (their docstrings say why).
+- **D16b: the rights reach the initializer as a precondition.** `read.wp_initialize'` is
+  `{{ ownInitializing g ∗ EtcdGrove.read.readRegPerm }} initialize' #() {{ ... isPkgInit read }}`,
+  and so are the theorems of the packages whose import closure contains `read` (`etcdserver`,
+  `v3rpc`): each passes the rights to the one import that leads there (`etc/gen-init.py`'s
+  `PRE_RES`, which asserts there is one). Program start (the adequacy theorem, item 9) owns the
+  rights to every name no default collector has and gives each out once, so the cross-package
+  freshness of the names is discharged there: two packages registering one name would need one
+  right twice. What item 9 needs of the Go code is stated and checked now (`read.names_ok`'s
+  docstring): only `read/metrics.go` names the two metrics (grep of the pinned etcd), and a Go
+  program importing `embed` and `v3rpc` (all of etcd's server initializers) starts and has each
+  registered once.
+- **Why not a package fact.** A package's fact is persistent (`isPkgInit`), so it cannot hand
+  out an exclusive right; an invariant holding the rights could be opened by any proof, so its
+  rights could be taken before the read package runs. What makes Go register the names once is
+  that a package's body runs once, which Perennial's `ownInitializing` knows (the package map,
+  `ownGoState`) but does not expose to the body as a resource (half of a ghost variable, no
+  fragments), and the other packages' `wp_initialize'` return an arbitrary map, so a ghost
+  mirror of it cannot be kept. A general fix, for Perennial on its own: `wp_package_init` could
+  give the body a once-per-package token (from the map's missing entry), out of which a package
+  could take resources allocated for it at program start; the precondition here would then go.
+- **The cost.** The three theorems are not in Perennial's `initialize'.spec` shape. A caller that
+  ran `etcdserver.initialize'` twice would need the rights twice (the second call does nothing,
+  but the triple cannot say so); on the path each is called once.
+- *Rejected:* `{{ True }} MustRegister c {{ True }}` (false: a second registration panics);
+  keeping `read` assumed (its spec is the same claim, unproved).
+- **`context`'s errors** (`readInit` states `Canceled` a leaf `errors.New` error and
+  `DeadlineExceeded` a leaf `deadlineExceededError{}`): a premise, `EtcdGrove.ContextReadErrs`
+  (`read/Init.lean`), as `ContextCanceledPtr` was ("Item 8: context's facts"), which it replaces:
+  `v3rpc`'s `Canceled` fact now follows from it.
