@@ -1,0 +1,26 @@
+# etcd PR #22518 (branch pr-verify/etcd-22518 only): storage.OpenSnapshotBackend and the new
+# storage.syncSnapDir (server/storage/backend.go), linked in the server's Link.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22518.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots storage\.wp_OpenSnapshotBackend$
+# (syncSnapDir is not a root: OpenSnapshotBackend uses it)
+axiom config.ServerConfig.BackendPath.wp_proof
+axiom config.ServerConfig.SnapDir.wp_proof
+axiom fileutil.Fsync.wp_proof
+axiom fileutil.OpenDir.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom os.File.Close.wp_proof
+axiom os.Rename.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom storage.OpenBackend.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.String.wp_proof
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_into_val_typed
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_typed_pointsto

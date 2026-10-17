@@ -13434,3 +13434,18 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## Branch `pr-verify/etcd-22518` (etcd PR #22518, not for `lean`)
+
+`storage.OpenSnapshotBackend` (translated with the PR's `syncSnapDir`) is proved against a spec
+of directory-entry durability (`Proof/go_etcd_io/etcd/server/v3/storage/InvSnapshotBackend.lean`):
+opaque resources produced only by trust-boundary specs of `os.Rename` and `fileutil.Fsync`, since
+Perennial's Lean port has no crash or file-system model. Report:
+`notes/pr-verify/etcd-22518.md`.
+
+Limitation found: a function taking `config.ServerConfig` **by value** reaches the generated
+`sorry -- axiomatized type` instances of its names-only field types (`transport.TLSInfo`,
+`types.URLs`, `v3discovery.DiscoveryConfig`). Goose spills the parameter to the heap and loads it
+whole, and both steps need the struct's typed points-to. Removing them needs those types
+translated. Field-level specs (`ServerConfig.SnapDir`/`BackendPath` over `DataDir`) avoid the
+problem only in the statements.

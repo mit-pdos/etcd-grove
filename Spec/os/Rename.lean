@@ -22,12 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `os.Rename(src, dst)`: on success the rename has happened but its directory entry is not
-known to be durable (`fs.renamePending dst`); on failure, an error. -/
+known to be durable (`fs.renamePending src dst`); on failure, an error. -/
 abbrev os.Rename.spec : Prop :=
   ∀ (src dst : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.os }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
-  {{ (err : GoInterface), RET #err; fsResult err (fs.renamePending dst) iprop(True) }}
+  {{ (err : GoInterface), RET #err; fsResult err (fs.renamePending src dst) iprop(True) }}
 
 end spec
 

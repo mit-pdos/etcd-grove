@@ -23,15 +23,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
-/-- `syncSnapDir(dir)`, with a rename onto `dst` in `dir` pending: on success (`nil`) the
-rename's directory entry is durable; on failure it is still pending, and the error's `Error()`
-returns a string. -/
+/-- `syncSnapDir(dir)`, with a rename of `src` onto `dst` in `dir` pending: on success
+(`nil`) the rename's directory entry is durable; on failure the error's `Error()` returns a
+string (and nothing is known of the rename: it is still pending if the directory could not be
+opened, unknown if the sync failed). -/
 abbrev storage.syncSnapDir.spec : Prop :=
-  ∀ (dir dst : GoString),
+  ∀ (dir src dst : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-      fs.renamePending dst ∗ ⌜fs.dirOf dst = dir⌝ }}
+      fs.renamePending src dst ∗ ⌜fs.dirOf dst = dir⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.syncSnapDir)) (Val #dir))
-  {{ (err : GoInterface), RET #err; fsResult err (fs.entryDurable dst) (fs.renamePending dst) }}
+  {{ (err : GoInterface), RET #err; fsResult err (fs.entryDurable src dst) iprop(True) }}
 
 end spec
 
