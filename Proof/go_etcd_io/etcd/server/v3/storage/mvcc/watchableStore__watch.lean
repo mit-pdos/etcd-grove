@@ -105,6 +105,18 @@ theorem WsState.settled_addW {σ : WsState} (h : WsOk σ) (hs : σ.settled) (b :
     · simp only [WsState.addW, GMap.lookup_insert_ne _ _ hw] at hst
       exact hs.2.1 k st h1 hst
 
+/-- The new watcher keeps the bound of the watchers registered with their start read (K2e-6). -/
+theorem WsState.srBelow_addW {σ : WsState} {N : Nat} (hs : σ.srBelow N) (b : Bool) (w : Loc)
+    (r : WatchRange) (st0 : WatcherSt) (γw : WatcherNames) (h : γw.sr = true → γw.lo ≤ N) :
+    (σ.addW b w r st0 γw).srBelow N := by
+  intro k γk hm hsr
+  by_cases hk : w = k
+  · subst hk
+    simp only [WsState.addW, GMap.lookup_insert, Option.some.injEq] at hm
+    subst hm; exact h hsr
+  · simp only [WsState.addW, GMap.lookup_insert_ne _ _ hk] at hm
+    exact hs k γk hm hsr
+
 /-- The new watcher's state keeps the invariant's pure facts. -/
 theorem WsOk.addW {σ : WsState} (h : WsOk σ) (b : Bool) (w : Loc) (r : WatchRange)
     (st0 : WatcherSt) (γw : WatcherNames) (hM : σ.M !! w = none)
@@ -333,6 +345,18 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
   ipureintro
   exact hok.addW b w r st0 γw hM hst hd
 
+/-- A start read is within the committed log (K2e-6). -/
+theorem mvcc.startRead_le (γ : mvcc.WsNames) (q : Qp) (C : mvcc.Log) (sr : Bool) (startRev : w64) :
+    mvcc.idxLogAuth (GF := GF) γ.st.idx q C ∗ mvcc.startRead γ sr startRev ⊢
+      ⌜sr = true → sint.Z startRev ≤ (C.length : Int)⌝ := by
+  iintro ⟨Ha, Hs⟩
+  iunfold mvcc.startRead at Hs
+  icases Hs with (%hsf | ⟨%Ls, #HcL, %hLs⟩)
+  · ipureintro; intro h; rw [hsf] at h; cases h
+  · ihave %HpL := mvcc.idxLogAuth_cert_prefix _ _ _ _ $$ [$Ha $HcL]
+    ipureintro; intro _
+    have := HpL.length_le; omega
+
 /-- The committed log's authority is above the notified log's certificate (kept). -/
 theorem mvcc.watch_logAuth_prefix (γi : mvcc.IdxNames) (q : Qp) (C L : mvcc.Log) :
     mvcc.idxLogAuth (GF := GF) γi q C ∗ mvcc.idxCert γi L ⊢ mvcc.idxLogAuth γi q C ∗ ⌜L <+: C⌝ := by
@@ -438,7 +462,7 @@ its channel (the close right's watchers grow, none without names), its fixed fie
 theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames) (w ch : Loc)
     (ks : GoSlice) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) (C : mvcc.Log) (L : List Loc)
     (γc : mvcc.WatchChanNames) (Back : Loc → IProp GF) (hwnn : w ≠ null)
-    (hid : r.id ≠ W64 (-1)) (hlo : mvcc.startLo r lo) :
+    (hid : r.id ≠ W64 (-1)) (hlo : mvcc.startLo r lo) (sr : Bool) :
     £ 1 ∗ ghostMapAuth γ.wmeta 1 M ∗
       □ ([∗map] w' ↦ _γw ∈ M, ∃ (r' : mvcc.WatchRange) (fcs' : GoSlice),
         mvcc.watcherFixed w' r' fcs') ∗
@@ -449,7 +473,8 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
       □ (typedPointsto (structFieldRef watcher go!"key" w) ks DFrac.discard -∗
         mvcc.watcherFixed w r fcs) ∗
       (∀ w' : Loc, ⌜w' ≠ null⌝ -∗ |==> (mvcc.chanIdAssigned γc r.id w' ∗ Back w')) ⊢
-    |={⊤}=> ∃ γw : mvcc.WatcherNames, ⌜M !! w = none ∧ γw.lo = lo ∧ γw.wc = γc⌝ ∗ Back w ∗
+    |={⊤}=> ∃ γw : mvcc.WatcherNames, ⌜M !! w = none ∧ γw.lo = lo ∧ γw.wc = γc ∧ γw.sr = sr⌝ ∗
+      Back w ∗
       ⌜(w :: L).Nodup ∧ ∀ x ∈ L, (M !! x).isSome⌝ ∗
       ghostMapAuth γ.wmeta 1 (M.insert w γw) ∗ mvcc.watcherMeta γ w γw ∗
       mvcc.watcherFixed w r fcs ∗ mvcc.watcherChan γ w γw ch ∗
@@ -476,7 +501,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   ihave Hl : dghostVar γl (DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half) true $$ [Hl]
   · rw [← mvcc.own_half_half (1 : Qp)]; iexact Hl
   icases dghostVar_split γl true _ _ $$ Hl with ⟨Hl1, Hl2⟩
-  let γw : mvcc.WatcherNames := ⟨γe, γl, γc, lo⟩
+  let γw : mvcc.WatcherNames := ⟨γe, γl, γc, lo, sr⟩
   -- the channel
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑mvcc.watchN) $$ Hlc Hi with Hi
@@ -602,7 +627,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   iexists γw
   iframe Hmeta Hfixed Hregl0 He1 Hl1 HBack
   isplitr
-  · ipureintro; exact ⟨hM, rfl, rfl⟩
+  · ipureintro; exact ⟨hM, rfl, rfl, rfl⟩
   isplitr
   · ipureintro; exact ⟨List.nodup_cons.2 ⟨HwL, Hnd.1⟩, Hnamed⟩
   isplitr
@@ -616,9 +641,9 @@ theorem mvcc.watchableStore.watch.wp_proof
     (hCancel : mvcc.watchableStore.cancelWatcher.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.watch.spec (GF := GF) (hG := hG) := by
   have hAdd := mvcc.watcherGroup.add.spec_group hAdd
-  intro s st γ key endk fcs k e fs startRev id ch γc L Back
+  intro s st γ key endk fcs k e fs startRev id ch γc L Back sr
   simp only [mvcc.storeWatchParams]
-  wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, Htok, %Hsr0, Hcb⟩
+  wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, Htok, %Hsr0, #Hsrp, Hcb⟩
   obtain ⟨Hsr, Hidm⟩ := Hsr0
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
@@ -642,7 +667,8 @@ theorem mvcc.watchableStore.watch.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %Hset⟩
+  icases HP with ⟨%σ, HP, %HsetR⟩
+  obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
@@ -656,6 +682,11 @@ theorem mvcc.watchableStore.watch.wp_proof
   iStructNamed «$r0»
   -- the committed log `C` read: the notified log is a prefix of it
   icases mvcc.watch_logAuth_prefix _ _ _ _ $$ [$HlogQ $Hcert] with ⟨HlogQ, %HpC⟩
+  -- under `s.mu` the committed log is the notified one; a start read is within it (K2e-6)
+  icases persistent_entails_right (mvcc.wlogQ_auth_agree (GF := GF) γ _ _ σ.Lmu C) $$
+    [$Hwlog $HlogQ] with ⟨%HCL, Hwlog, HlogQ⟩
+  icases persistent_entails_right (mvcc.startRead_le γ _ C sr startRev) $$ [$HlogQ $Hsrp]
+    with ⟨%HsrC, HlogQ, -⟩
   ihave %HCwf : ⌜C.length < 2 ^ 63⌝ $$ [HcertQ]
   · iunfold mvcc.idxCert at HcertQ
     icases HcertQ with ⟨-, -, %H, -⟩
@@ -705,9 +736,14 @@ theorem mvcc.watchableStore.watch.wp_proof
         simp only [hsy]; rfl
   have hslo : mvcc.startLo r lo := by
     intro h0; rw [hloC]; simp only [h0, ↓reduceIte]
-  imod mvcc.watch_register γ σ.M w ch key r fcs lo C L γc Back Hwnn Hidm hslo
+  have hlosr : sr = true → lo ≤ σ.Lmu.length := by
+    intro h; rw [← HCL, hloC]
+    by_cases h0 : r.startRev = W64 0
+    · simp only [h0, ↓reduceIte]; exact Nat.le_refl _
+    · simp only [h0, ↓reduceIte]; have := HsrC h; simp only [r] at h0 ⊢; omega
+  imod mvcc.watch_register γ σ.M w ch key r fcs lo C L γc Back Hwnn Hidm hslo sr
       $$ [$Hlc2 $Hmeta $Hmfix $HCR $HcertQ $key $Hfix $Hcb]
-    with ⟨%γw, ⟨%hM, %hlo, %hwc⟩, HBack, %Hreg, Hmeta, #Hmw, #Hfixed, #Hwc, HCR, He, Hl,
+    with ⟨%γw, ⟨%hM, %hlo, %hwc, %hsrw⟩, HBack, %Hreg, Hmeta, #Hmw, #Hfixed, #Hwc, HCR, He, Hl,
       %nreg, #Hrega0⟩
   -- the registration's token spent
   imod mvcc.watchBudget_spend γ σ.M w γw hM $$ [$Hwt $Htok] with Hwt
@@ -777,7 +813,9 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
-        ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
+        ipureintro
+        exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
+          mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
       (try wp_auto)
       ipersist wa
       ipersist s
@@ -834,7 +872,9 @@ theorem mvcc.watchableStore.watch.wp_proof
         · iexists nreg; rw [hwc]; iexact Hrega0
         ipureintro; exact ⟨hlo, hloC⟩
       iframe HBack
-      ipureintro; exact hbnd
+      isplitr
+      · ipureintro; exact hbnd
+      iexists γw; iframe Hmw; ipureintro; exact hsrw
     · rw [decide_eq_false h2]
       wp_auto
       have hm : (lo : Int) = sint.Z (W64 ((C.length : Int) - 1) + W64 1) := by
@@ -881,7 +921,9 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
-        ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
+        ipureintro
+        exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
+          mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
       (try wp_auto)
       ipersist wa
       ipersist s
@@ -938,7 +980,9 @@ theorem mvcc.watchableStore.watch.wp_proof
         · iexists nreg; rw [hwc]; iexact Hrega0
         ipureintro; exact ⟨hlo, hloC⟩
       iframe HBack
-      ipureintro; exact hbnd
+      isplitr
+      · ipureintro; exact hbnd
+      iexists γw; iframe Hmw; ipureintro; exact hsrw
   · rw [decide_eq_false hs]
     wp_auto
     by_cases h0 : startRev = W64 0
@@ -995,7 +1039,9 @@ theorem mvcc.watchableStore.watch.wp_proof
           iunfold mvcc.watchStoreInv
           iexists _
           iframe Hbody
-          ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
+          ipureintro
+          exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
+            mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
         (try wp_auto)
         ipersist wa
         ipersist s
@@ -1052,7 +1098,9 @@ theorem mvcc.watchableStore.watch.wp_proof
           · iexists nreg; rw [hwc]; iexact Hrega0
           ipureintro; exact ⟨hlo, hloC⟩
         iframe HBack
-        ipureintro; exact hbnd
+        isplitr
+        · ipureintro; exact hbnd
+        iexists γw; iframe Hmw; ipureintro; exact hsrw
     · rw [decide_eq_false h0]
       wp_auto
       have hsy : synced = false := by simp only [synced, decide_eq_false hs, decide_eq_false h0, Bool.or_false]
@@ -1100,7 +1148,9 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
-        ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
+        ipureintro
+        exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
+          mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
       (try wp_auto)
       ipersist wa
       ipersist s
@@ -1157,7 +1207,9 @@ theorem mvcc.watchableStore.watch.wp_proof
         · iexists nreg; rw [hwc]; iexact Hrega0
         ipureintro; exact ⟨hlo, hloC⟩
       iframe HBack
-      ipureintro; exact hbnd
+      isplitr
+      · ipureintro; exact hbnd
+      iexists γw; iframe Hmw; ipureintro; exact hsrw
 
 end proof
 

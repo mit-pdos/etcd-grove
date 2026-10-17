@@ -249,7 +249,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
   ihave #HP' := HP
   iunfold wsIs at HP'
   icases HP' with ⟨#Hro, #Hfoutc, #Hfrecvc, #Hfdonec, #Houtc, #Hrecvc, #Hdonec, #Hctx, #Hretcb,
-    %HPws⟩
+    %HPws, -⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgs, -, #Hsf, %Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,

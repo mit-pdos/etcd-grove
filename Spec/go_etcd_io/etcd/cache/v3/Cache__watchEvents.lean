@@ -50,7 +50,8 @@ abbrev Cache.watchEvents.spec : Prop :=
       isCacheFields c cf γr γd cap ∗
       isHandoff γa aec P Ws Wc ∗ handoffConsumer γa false ∗
       sync.isOnce ro iprop(True) iprop(True) ∗
-      cacheWriter cf γd cap c0 ∗ ⌜0 < sint.Z rev⌝ ∗ CursorOk cf.pfx c0 (rev - W64 1) }}
+      cacheWriter cf γd cap c0 ∗ ⌜0 < sint.Z rev⌝ ∗ etcdRead (rev - W64 1) ∗
+      CursorOk cf.pfx c0 (rev - W64 1) }}
     (App (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watchEvents")) (Val #rev))
       (Val #aec)) (Val #ro))
   {{ (err : GoInterface), RET #err; ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 ∗

@@ -6,9 +6,17 @@ the server's `InvRequest.lean` (unit 0 of the request path) in unit 2 (2026-10-1
 
 **Unique ids** (`idGen`, `idFresh`, `idClaim`): `Generator.Next` returns `prefix |
 lowbit(suffix, 48)` for an atomically incremented `suffix`: `2 ^ 48` consecutive calls return
-distinct ids. `idGen γi g` hands out `2 ^ 48 - 1` credits (`idCred`), `Next` consumes one and
-returns an id nobody holds (`idFresh γi id`: the right to claim the id for a request's data,
+distinct ids. `Next` returns an id nobody holds (`idFresh γi id`: the right to claim the id for a request's data,
 `idClaim γi id d` (persistent, agreeing), and the id's slot in the wait registry, `idSlot`).
+**The lifetime bound** (D17, 2026-10-17; `notes/decisions.md`): the generator counts the ids
+it has issued (`γi.cred`, a monotone counter in its invariant), and `idCred γi n` is the persistent
+premise that the counter never reaches `2 ^ 48` (`idLifeBound`): a process issues fewer than
+`2 ^ 48` ids (the suffix wraps after that). Until D17 `idCred γi n` was `n` exclusive credits of
+the `2 ^ 48 - 1` `NewGenerator` handed out; the server's request path and read loop need an
+unbounded supply (`□ |==> idCred ρ.ids 1`), which finite credits contradict, so the bound became a
+lifetime premise of the kind of the server's `srvLifeBound` (D14g), which the adequacy example
+discharges from its finite workload. `n` is kept so the statements keep their form.
+
 The ids of other members' requests (other generators, other prefixes) are claimed in the same
 map: that the members' prefixes (`uint16(memberID)`) differ is a premise of the raft contract's
 apply side (`issues/etcd-request-id-member-prefix.md`).
@@ -24,6 +32,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.MonoNat
 
 @[expose] public section
 
@@ -36,7 +45,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- The id generator's ghost names: the credits (`Auth Nat`), and two ghost maps keyed by id:
+/-- The id generator's ghost names: the issued ids' counter (a monotone counter; since D17,
+until then the credits' `Auth Nat`), and two ghost maps keyed by id:
 the data an id was claimed for (`none` until claimed), and the id's wait slot. -/
 structure IdNames where
   cred : GName
@@ -66,8 +76,30 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `n` id credits (one per `Next`). -/
-def idCred (γi : IdNames) (n : Nat) : IProp GF := own γi.cred (◯ n : Auth Nat)
+/-- **The generator's lifetime bound** (D17; persistent): the number of ids issued (the
+counter `γi.cred`) stays below `2 ^ 48`. -/
+def idLifeBound (γi : IdNames) : IProp GF :=
+  iprop(□ ∀ k : Nat, monoNatLbOwn γi.cred k -∗ ⌜k < 2 ^ 48⌝)
+
+instance idLifeBound_persistent (γi : IdNames) : Persistent (idLifeBound (GF := GF) γi) := by
+  unfold idLifeBound; infer_instance
+
+/-- **The right to ids** (what `Next` takes; since D17 the lifetime bound `idLifeBound`,
+persistent, whatever `n`: see the file header). -/
+def idCred (γi : IdNames) (_n : Nat) : IProp GF := idLifeBound γi
+
+instance idCred_persistent (γi : IdNames) (n : Nat) : Persistent (idCred (GF := GF) γi n) := by
+  unfold idCred; infer_instance
+
+/-- The supply of ids the server's request path and read loop use (`□ |==> idCred γi 1`), from
+the lifetime bound. -/
+theorem idCred_supply (γi : IdNames) :
+    idLifeBound (GF := GF) γi ⊢ □ (|==> idCred γi 1) := by
+  iintro #H
+  imodintro
+  imodintro
+  iunfold idCred
+  iexact H
 
 /-- The right to claim the id `id` for a request's data. -/
 def idUnclaimed (γi : IdNames) (id : w64) : IProp GF :=
@@ -105,12 +137,11 @@ def idFresh (γi : IdNames) (id : w64) : IProp GF :=
 /-- **The generator `g`** (persistent): its `prefix` field fixed (its 48 low bits 0: the
 member id shifted by 48, so ids of distinct suffixes differ), its `suffix` (a plain `uint64` field
 the code updates with `atomic.AddUint64`) in an
-invariant with the credits' authority (`2 ^ 48 - 1` less the `k` ids issued) and the issued
-ids' ghost maps (the ids issued, `idIssued`, and only those, are in both maps), and the
+invariant with the issued ids' counter `k` (D17: until then the credits' authority, `2 ^ 48 - 1`
+less `k`) and the issued ids' ghost maps (the ids issued, `idIssued`, and only those, are in both maps), and the
 claimers' facts `Φ` of the claimed ones (unit V2). `NewGenerator`
-establishes it with `idCred γi (2 ^ 48 - 1)`; `Next` consumes a credit and returns an
-`idFresh` id. The bound is the premise that a process issues fewer than `2 ^ 48` request ids
-(the 48-bit suffix wraps after `2 ^ 48`). -/
+establishes it; `Next`, under the lifetime bound (`idCred`), counts one more id and returns an
+`idFresh` id. -/
 def idGen (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) : IProp GF :=
   iprop(∃ (pfx s0 : w64), ⌜g ≠ null⌝ ∗
     structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ pfx ∗
@@ -118,7 +149,7 @@ def idGen (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF
     inv idN iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8 × GName))) (S : GMap w64 Unit),
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" g ↦
         (s0 + W64 (k : Int)) ∗
-      own γi.cred (● (2 ^ 48 - 1 - k) : Auth Nat) ∗ ⌜k ≤ 2 ^ 48 - 1⌝ ∗
+      monoNatAuthOwn γi.cred 1 k ∗ ⌜k ≤ 2 ^ 48 - 1⌝ ∗
       ghostMapAuth γi.issued 1 I ∗ ghostMapAuth γi.slot 1 S ∗
       ⌜∀ id, ((I !! id).isSome ↔ idIssued pfx s0 k id) ∧ ((S !! id).isSome ↔ idIssued pfx s0 k id)⌝ ∗
       idClaimsFacts Φ I))
@@ -127,29 +158,25 @@ instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GN
     Persistent (idGen (GF := GF) γi g Φ) := by
   unfold idGen; infer_instance
 
-/-- **Fresh generator names** (2026-10-16, D13a: the names chosen before the call): the credits'
-authority with all `2 ^ 48 - 1` credits, and the two empty ghost maps. `NewGenerator` takes them,
+/-- **Fresh generator names** (2026-10-16, D13a: the names chosen before the call): the issued
+ids' counter at `0` (D17; until then the credits' authority with all `2 ^ 48 - 1` credits), and
+the two empty ghost maps. `NewGenerator` takes them,
 so that its caller knows the names before the call (`idNamesFresh_alloc`). -/
 def idNamesFresh (γi : IdNames) : IProp GF :=
-  iprop(own γi.cred (● (2 ^ 48 - 1) : Auth Nat) ∗ idCred γi (2 ^ 48 - 1) ∗
+  iprop(monoNatAuthOwn γi.cred 1 0 ∗
     ghostMapAuth γi.issued 1 (∅ : GMap w64 (Option (List w8 × GName))) ∗
     ghostMapAuth γi.slot 1 (∅ : GMap w64 Unit))
 
 /-- Fresh generator names are allocated. -/
 theorem idNamesFresh_alloc : ⊢ |==> ∃ γi : IdNames, idNamesFresh (GF := GF) γi := by
   istart
-  obtain ⟨N, hN⟩ : ∃ N : Nat, N = 2 ^ 48 - 1 := ⟨_, rfl⟩
-  imod own_alloc ((● N : Auth Nat) • ◯ N)
-    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γc, HC⟩
+  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γc, HCa, -⟩
   imod (ghost_map_alloc_empty (K := w64) (V := Option (List w8 × GName))) with ⟨%γI, HI⟩
   imod (ghost_map_alloc_empty (K := w64) (V := Unit)) with ⟨%γS, HS⟩
-  icases (own_op γc _ _).1 $$ HC with ⟨HCa, HCf⟩
-  subst hN
   imodintro
   iexists ⟨γc, γI, γS⟩
   iunfold idNamesFresh
-  iunfold idCred
-  iframe HCa HCf HI HS
+  iframe HCa HI HS
 
 end ghost
 

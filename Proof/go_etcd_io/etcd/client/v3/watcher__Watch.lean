@@ -37,8 +37,8 @@ theorem watcher.Watch.wp_proof
     (wp_key : streamKeyFromCtx.spec (GF := GF) (hG := hG))
     (wp_newStream : watcher.newWatcherGRPCStream.spec (GF := GF) (hG := hG)) :
     watcher.Watch.spec (GF := GF) (hG := hG) := by
-  intro V w ctx cs key sl gs rev
-  wp_start as ⟨#Hw, #Hctx, #Hopts, %Hreq⟩
+  intro V w ctx cs key sl gs rev sr
+  wp_start as ⟨#Hw, #Hctx, #Hopts, %Hreq, #Hsrd⟩
   obtain ⟨Hrw, Hnp, Hrev, Hunder⟩ := Hreq
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
@@ -81,7 +81,7 @@ theorem watcher.Watch.wp_proof
   ipersist filters
   ipersist prevKV
   ipersist retc
-  let P0 : WsPrm GF := ⟨opWatchModel key gs, rev, ctx, cs, (opWatchModel key gs).key, (opWatchModel key gs).base.rangeEnd, op.createdNotify', op.progressNotify', op.watchBufLogEnabled', zero_val GoSlice, retc, γret, null, ⟨⟨γret, 0, 0⟩, 0⟩, null, null, ⟨γret, 0, 0⟩, 0, null, γret, 0⟩
+  let P0 : WsPrm GF := ⟨opWatchModel key gs, rev, ctx, cs, (opWatchModel key gs).key, (opWatchModel key gs).base.rangeEnd, op.createdNotify', op.progressNotify', op.watchBufLogEnabled', zero_val GoSlice, retc, γret, null, ⟨⟨γret, 0, 0⟩, 0⟩, null, null, ⟨γret, 0, 0⟩, 0, null, γret, 0, sr⟩
   have HrevEq : op.rev' = rev := Hfrev.trans Hrv
   rw [HrevEq] at *
   rw [Hffr, Hfr] at *

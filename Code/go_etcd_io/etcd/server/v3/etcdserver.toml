@@ -21,6 +21,8 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   "EtcdServer.getTerm", "EtcdServer.Term", "EtcdServer.Leader", "EtcdServer.FeatureEnabled",
   # (D14i, 2026-10-17: the applier's `SnapshotServer` contract)
   "EtcdServer.ForceSnapshot",
+  # (srvBuildGap, 2026-10-17: `start`'s `clusterVersionOk` from the cluster's `Version` contract)
+  "EtcdServer.ClusterVersion",
   "EtcdServer.LinearizableReadNotify",
   "firstCompareKey", "firstOpKey", "firstOpType", "firstOpLease",
   "maxGapBetweenApplyAndCommitIndex", "maxNormalGap", "maxPriorityGap", "traceThreshold",

@@ -3501,6 +3501,21 @@ noncomputable def EtcdServer.applyEntryNormal.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (Val #())))))))))))))
 
+/-- go: server.go:2185:22 -/
+noncomputable def EtcdServer.ClusterVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"Version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 /-- go: server.go:2352:22 -/
 noncomputable def EtcdServer.parseProposeCtxErr.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -6614,6 +6629,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_AuthStore_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthStore" EtcdServer.AuthStore.impl
   ptr_Backend_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Backend" EtcdServer.Backend.impl
   ptr_Cluster_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Cluster" EtcdServer.Cluster.impl
+  ptr_ClusterVersion_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ClusterVersion" EtcdServer.ClusterVersion.impl
   ptr_CommittedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"CommittedIndex" EtcdServer.CommittedIndex.impl
   ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"DeleteRange" EtcdServer.DeleteRange.impl
   ptr_Done_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Done" EtcdServer.Done.impl
@@ -6768,6 +6784,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_AuthStore_unfold
   EtcdServer.TypeAssumptions.ptr_Backend_unfold
   EtcdServer.TypeAssumptions.ptr_Cluster_unfold
+  EtcdServer.TypeAssumptions.ptr_ClusterVersion_unfold
   EtcdServer.TypeAssumptions.ptr_CommittedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_DeleteRange_unfold
   EtcdServer.TypeAssumptions.ptr_Done_unfold

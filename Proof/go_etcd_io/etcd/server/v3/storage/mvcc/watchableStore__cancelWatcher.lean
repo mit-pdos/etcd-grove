@@ -130,6 +130,11 @@ theorem vb_delete (σ : WsState) (hok : WsOk σ) (k : Nat) (B : GMap Loc EventBa
     obtain ⟨B2o, h2o, hw2o, -⟩ := hget j B2 w h2 hw2
     exact hok.v_one i j B1o B2o w h1o h2o hw1o hw2o
 
+/-- A cancel keeps the names (K2e-6). -/
+theorem cancelState_srBelow (σ : WsState) (wa : Loc) (st : WatcherSt) (Ws Wu : GMap Loc WatchRange)
+    (VB : List (GMap Loc EventBatch)) (N : Nat) (h : σ.srBelow N) :
+    (cancelState σ wa st Ws Wu VB).srBelow N := h
+
 /-- A cancel keeps the lock settled (it only removes a watcher). -/
 theorem cancelState_settled (σ : WsState) (hs : σ.settled) (wa : Loc) (st : WatcherSt)
     (Ws Wu : GMap Loc WatchRange) (VB : List (GMap Loc EventBatch))
@@ -490,7 +495,8 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
   wp_for
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HP⟩
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %Hset⟩
+  icases HP with ⟨%σ, HP, %HsetR⟩
+  obtain ⟨Hset, Hsrb⟩ := HsetR
   iNamed HP
   wp_apply hDel $$ [$Hunsynced $Hfix] as Hunsynced
   cases hwu : σ.Wu !! wa with
@@ -529,12 +535,14 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
       isplitl
       rotate_left
       · ipureintro
-        exact mvcc.cancelState_settled σ Hset wa st0 σ.Ws (GMap.delete wa σ.Wu) σ.VB
-          (fun w => by by_cases h : w = wa <;> simp [h, hWs0])
-          (fun w => by
-            by_cases h : w = wa
-            · subst h; simp only [ite_true]; exact hv0
-            · simp only [h, ite_false]; rfl)
+        refine And.intro ?_ ?_
+        · exact mvcc.cancelState_settled σ Hset wa st0 σ.Ws (GMap.delete wa σ.Wu) σ.VB
+            (fun w => by by_cases h : w = wa <;> simp [h, hWs0])
+            (fun w => by
+              by_cases h : w = wa
+              · subst h; simp only [ite_true]; exact hv0
+              · simp only [h, ite_false]; rfl)
+        · exact Hsrb
       iapply mvcc.body_cancel s γ σ _ Hok wa st0 hst hlive σ.Ws (GMap.delete wa σ.Wu) σ.VB
         (fun w => by by_cases h : w = wa <;> simp [h, hWs0])
         (fun w => mvcc.lookup_delete' _ _ _)
@@ -589,12 +597,14 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
         isplitl
         rotate_left
         · ipureintro
-          exact mvcc.cancelState_settled σ Hset wa st0 (GMap.delete wa σ.Ws) σ.Wu σ.VB
-            (fun w => mvcc.lookup_delete' _ _ _)
-            (fun w => by
-              by_cases h : w = wa
-              · subst h; simp only [ite_true]; exact hv0
-              · simp only [h, ite_false]; rfl)
+          refine And.intro ?_ ?_
+          · exact mvcc.cancelState_settled σ Hset wa st0 (GMap.delete wa σ.Ws) σ.Wu σ.VB
+              (fun w => mvcc.lookup_delete' _ _ _)
+              (fun w => by
+                by_cases h : w = wa
+                · subst h; simp only [ite_true]; exact hv0
+                · simp only [h, ite_false]; rfl)
+          · exact Hsrb
         iapply mvcc.body_cancel s γ σ _ Hok wa st0 hst hlive (GMap.delete wa σ.Ws) σ.Wu σ.VB
           (fun w => mvcc.lookup_delete' _ _ _)
           (fun w => by by_cases h : w = wa <;> simp [h, hwu])
@@ -658,7 +668,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
           iexists σ
           isplitl
           rotate_left
-          · ipureintro; exact Hset
+          · ipureintro; exact ⟨Hset, Hsrb⟩
           iunfold mvcc.watchStoreBody
           simp only [named]
           iframe
@@ -796,9 +806,11 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
             isplitl
             rotate_left
             · ipureintro
-              exact mvcc.cancelState_settled σ Hset wa st1 σ.Ws σ.Wu
-                (σ.VB.set (sint.nat n) (GMap.delete wa B))
-                (fun w => by by_cases h : w = wa <;> simp [h, hws]) hV
+              refine And.intro ?_ ?_
+              · exact mvcc.cancelState_settled σ Hset wa st1 σ.Ws σ.Wu
+                  (σ.VB.set (sint.nat n) (GMap.delete wa B))
+                  (fun w => by by_cases h : w = wa <;> simp [h, hws]) hV
+              · exact Hsrb
             iapply mvcc.body_cancel s γ σ _ Hok wa st1 hst hlive σ.Ws σ.Wu
               (σ.VB.set (sint.nat n) (GMap.delete wa B))
               (fun w => by by_cases h : w = wa <;> simp [h, hws])
@@ -820,7 +832,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
           iexists σ
           isplitl
           rotate_left
-          · ipureintro; exact Hset
+          · ipureintro; exact ⟨Hset, Hsrb⟩
           iunfold mvcc.watchStoreBody
           simp only [named]
           iframe

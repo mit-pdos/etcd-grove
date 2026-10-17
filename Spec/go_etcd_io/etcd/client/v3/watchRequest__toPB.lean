@@ -31,7 +31,7 @@ a `*pb.WatchRequest` the client sends (`watchReqSend`, read-only) holding the cr
 its key, range end, start revision (the `rev` field, read at any fraction) and progress flag,
 with the automatic watch id (`createOf`). -/
 abbrev watchRequest.toPB.spec : Prop :=
-  ∀ (wr : Loc) (key ed : GoString) (rv : w64) (pn : Bool) (flt : GoSlice) (dq : DFrac),
+  ∀ (wr : Loc) (key ed : GoString) (rv : w64) (pn : Bool) (flt : GoSlice) (dq : DFrac) (sr : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       wrF wr go!"key" ↦□ key ∗ wrF wr go!"end" ↦□ ed ∗ wrF wr go!"rev" ↦{dq} rv ∗
       wrF wr go!"progressNotify" ↦□ pn ∗ wrF wr go!"filters" ↦□ flt ∗ flt ↦*□ ([] : List w32) ∗
@@ -39,7 +39,7 @@ abbrev watchRequest.toPB.spec : Prop :=
     (App (Val (wr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty @!! go!"toPB"))
       (Val #()))
   {{ (p : Loc), RET #p; wrF wr go!"rev" ↦{dq} rv ∗
-      v3rpc.watchReqSend p (.create (createOf key ed rv pn)) }}
+      v3rpc.watchReqSend p (.create (createOf key ed rv pn sr)) }}
 
 end spec
 

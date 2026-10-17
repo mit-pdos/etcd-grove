@@ -126,6 +126,17 @@ instance srvReachedAt_persistent (E : apply.AEnv GF) (r : w64) :
 instance srvReachedAt_timeless (E : apply.AEnv GF) (r : w64) : Timeless (srvReachedAt E r) := by
   unfold srvReachedAt; infer_instance
 
+/-- **The store had committed `r`, on the server** (K2e-6): a log mvcc's index certified
+(`idxCert`: a prefix of the committed log from then on) has revision `r`. -/
+def srvReadAt (E : apply.AEnv GF) (r : w64) : IProp GF :=
+  iprop(∃ log : Log, idxCert E.γ.idx log ∗ ⌜sint.Z r < log.length⌝)
+
+instance srvReadAt_persistent (E : apply.AEnv GF) (r : w64) : Persistent (srvReadAt E r) := by
+  unfold srvReadAt; infer_instance
+
+instance srvReadAt_timeless (E : apply.AEnv GF) (r : w64) : Timeless (srvReadAt E r) := by
+  unfold srvReadAt; infer_instance
+
 /-- **A step of etcd's history, on the server**: a sealed small log has revision `r1` (above
 `r0 ≥ 0`), no
 event under `pfx` at a revision strictly between `r0` and `r1`, and `evs` are the events under
@@ -334,6 +345,9 @@ def etcdModelOfServer (E : apply.AEnv GF) : EtcdModel GF where
   etcdState_modrev_persist := srvEtcdState_modrev_persist E
   etcdReachedAt := srvReachedAt E
   etcdReachedAt_timeless := srvReachedAt_timeless E
+  etcdReadAt := srvReadAt E
+  etcdReadAt_persistent := srvReadAt_persistent E
+  etcdReadAt_timeless := srvReadAt_timeless E
   etcdRevToken := revTok E
   etcdRevToken_excl := revTok_excl E
   EtcdStep := srvStep E
@@ -347,6 +361,8 @@ theorem etcdModelOfServer_etcdState (E : apply.AEnv GF) :
     (etcdModelOfServer E).etcdState = srvEtcdState E := rfl
 theorem etcdModelOfServer_etcdReachedAt (E : apply.AEnv GF) :
     (etcdModelOfServer E).etcdReachedAt = srvReachedAt E := rfl
+theorem etcdModelOfServer_etcdReadAt (E : apply.AEnv GF) :
+    (etcdModelOfServer E).etcdReadAt = srvReadAt E := rfl
 theorem etcdModelOfServer_etcdRevToken (E : apply.AEnv GF) :
     (etcdModelOfServer E).etcdRevToken = revTok E := rfl
 theorem etcdModelOfServer_EtcdStep (E : apply.AEnv GF) :

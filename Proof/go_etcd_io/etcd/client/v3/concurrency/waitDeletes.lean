@@ -88,7 +88,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
     ipureintro
     exact ⟨lastCreateOp_not_panics maxCreateRev, lastCreateOp_t pfx maxCreateRev⟩
   iunfold kvGetResult at Hgres
-  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, %HRle, Hgr⟩)
+  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, -, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
       cases gerr with
       | nil => exact absurd rfl Hgne

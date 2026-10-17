@@ -117,7 +117,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %Hset⟩
+  icases HP with ⟨%σ, HP, %HsetR⟩
+  obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
@@ -129,7 +130,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         Hmeta Hwt Hmem]
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HP]
-    · inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
+    · inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.watchReader
@@ -936,7 +937,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ipureintro; exact hokf
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf]
   · inext; iunfold mvcc.watchStoreInv; iexists σf; iframe HPf; ipureintro
-    exact mvcc.WsState.settled_congr Hl.set rfl rfl rfl rfl rfl rfl hvo
+    exact ⟨mvcc.WsState.settled_congr Hl.set rfl rfl rfl rfl rfl rfl hvo, Hsrb⟩
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.watchReader

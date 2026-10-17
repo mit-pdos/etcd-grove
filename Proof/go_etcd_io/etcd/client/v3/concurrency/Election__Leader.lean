@@ -88,7 +88,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx⟩
   iunfold kvGetResult at Hgres
-  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, %HRle, Hgr⟩)
+  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, -, %HRle, Hgr⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, gerr = GoInterface.ok g := by
       cases gerr with
       | nil => exact absurd rfl Hgne

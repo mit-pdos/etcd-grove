@@ -99,6 +99,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
 
 @[expose] public section
 
@@ -230,9 +231,10 @@ theorem NewServer.wp_proof
     (h80 : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (h82 : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
-    (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG)) :
+    (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hpv0 Hbnd Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer
@@ -292,6 +294,8 @@ theorem NewServer.wp_proof
   have hNS := raftNode_of_StartNode (GF := GF) (MemStorReg.memStorRegName GF) h8 h9 h10 h11 h12 h78
   obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
     Hrpv, Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrcfg, Hrboot, Hrbok⟩ := Hraft
+  -- `PreVote` off: the configuration's
+  rw [Hpv0] at Hrpv
   wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrpv Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
@@ -318,7 +322,7 @@ theorem NewServer.wp_proof
   ihave #Hnpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
   · iPkgInit
   wp_apply time.wp_Now as %now -
-  wp_apply (h14 ρ.ids _ now (srvFloorFact E₀)) $$ [Hids] as %gen ⟨#Hgen, Hidcred⟩
+  wp_apply (h14 ρ.ids _ now (srvFloorFact E₀)) $$ [Hids] as %gen #Hgen
   · iframe #; iframe Hids
   (try wp_auto)
   wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
@@ -978,6 +982,26 @@ theorem NewServer.wp_proof
   -- `HWB`: the stores' write budget
   isplitl [Hwts]
   · iexact Hwts
+  -- the lifetime premises (D17): `storeSmall` at the store's names (`E₀`'s index names), the id
+  -- supply from the generator's bound, the thread bound; `ClusterVersion()` from the cluster's
+  -- `Version` contract
+  isplitr
+  · iunfold storeSmall
+    rw [Hγw.2.2.2.1]
+    iunfold storeSmall at Hsmall
+    iexact Hsmall
+  isplitr
+  · iapply idCred_supply $$ Hidl
+  isplitr
+  · icases Hcvm with ⟨%γcv, #Hcvm⟩
+    iunfold clusterVersionOk
+    iexists γcv
+    iintro !> %known %Φ' !> Hk HΦ'
+    iapply (h84 s bc.cl' γcv known) $$ [Hk] [HΦ']
+    · iframe #; iframe Hk
+    inext; iintro %v Hv; iapply HΦ' $$ Hv
+  isplitr
+  · ipureintro; exact Hbnd
   -- `Hua`: the uber-applier (D14i): its options' contracts, its chain, the apply thread's KV
   have hm0 : γA.m0.1 = W64 0 := by rw [Hci.2]
   have hLoaded : ∀ st : ApplyState, stLoaded γA st = st := by

@@ -75,7 +75,7 @@ theorem Cache.serverRevision.wp_proof
     rintro ⟨h, -⟩
     cases h
   iunfold kvGetResult at Hres
-  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, -, -, -⟩)
+  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, -, -, -, -⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Herr

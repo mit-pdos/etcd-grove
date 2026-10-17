@@ -110,6 +110,12 @@ class EtcdModel (GF : BundledGFunctors) where
   etcdReachedAt : w64 → IProp GF
   /-- It carries no resources: it can sit in invariants opened without later credits. -/
   etcdReachedAt_timeless : ∀ (r : w64), Timeless (etcdReachedAt r)
+  /-- **etcd's key-value store had committed revision `r`** (K2e-6): a read showed it (a get's
+  header revision). Stronger than `etcdReachedAt`, which a watch event gives before the store
+  commits its revision: a watch from `r + 1` is registered at or after `r`'s commit. -/
+  etcdReadAt : w64 → IProp GF
+  etcdReadAt_persistent : ∀ (r : w64), Persistent (etcdReadAt r)
+  etcdReadAt_timeless : ∀ (r : w64), Timeless (etcdReadAt r)
   /-- **The revision `r` was made by the holder's commit**: an exclusive token, which the
   client's contract gives the caller of a commit that wrote (`txnCommitResultTok`, `putResult`). -/
   etcdRevToken : w64 → IProp GF
@@ -141,11 +147,13 @@ class EtcdModel (GF : BundledGFunctors) where
         ∃ v ∈ applyEvsState s (cs.take i), v.key = c.kv.key⌝
 
 export EtcdModel (etcdState etcdState_agree etcdState_revs etcdState_create_persist
-  etcdState_modrev_det etcdState_modrev_persist etcdReachedAt etcdReachedAt_timeless etcdRevToken
+  etcdState_modrev_det etcdState_modrev_persist etcdReachedAt etcdReachedAt_timeless etcdReadAt
+  etcdReadAt_persistent etcdReadAt_timeless etcdRevToken
   etcdRevToken_excl EtcdStep EtcdStep_persistent EtcdStep_timeless etcdStep_transfer
   etcdStep_compose etcdStep_delete_present)
 
-attribute [instance] EtcdModel.etcdReachedAt_timeless EtcdModel.EtcdStep_persistent
+attribute [instance] EtcdModel.etcdReachedAt_timeless EtcdModel.etcdReadAt_persistent
+  EtcdModel.etcdReadAt_timeless EtcdModel.EtcdStep_persistent
   EtcdModel.EtcdStep_timeless
 
 end EtcdGrove

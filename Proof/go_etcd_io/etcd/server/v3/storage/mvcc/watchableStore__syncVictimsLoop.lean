@@ -59,7 +59,8 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %Hset⟩
+  icases HP with ⟨%σ, HP, %HsetR⟩
+  obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   wp_auto
@@ -67,7 +68,7 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
       [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmur
-  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
+  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
   wp_auto_lc 2
   wp_join iprop(∃ tc : Loc, tickc_ptr ↦ tc ∗ (⌜tc = chan.nil⌝ ∨
       ∃ γt : ChanNames, isChanBag γt tc (V := time.Time) (fun _ => iprop(True)))) with [tickc]

@@ -256,8 +256,8 @@ side's tokens at `[]`, `srvRaftLogInv` at `pre = []`, and the installer of `isRa
 address `NewServer` copies the struct to, from the new cluster's ghost allocation
 (`ownRaftGhost_alloc_boot`: a stub, `sorryAx` below, until stage R8b-A lands), the budget, a fresh
 registered `MemoryStorage`, the server's own invariants and the trust-boundary premises
-(`NodeStart.lean`'s header classifies them). **Not etcd's own configuration**: `CheckQuorum`
-and `PreVote` must be off. -/
+(`NodeStart.lean`'s header classifies them). **Not etcd's default configuration**: `PreVote`
+must be off (`NewServer.spec` requires `cfg.PreVote` unset); `CheckQuorum` is covered. -/
 theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
   letI : MemStorReg GF := ⟨reg⟩
   raftNode_of_StartNode reg bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance

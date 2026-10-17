@@ -306,7 +306,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx⟩
   iunfold kvGetResult at Hgres
-  icases Hgres with (%Hgne | ⟨%Hgnil, %R0, %gm, #HgRev, -, #HR0, %HR0le, Hgr⟩)
+  icases Hgres with (%Hgne | ⟨%Hgnil, %R0, %gm, #HgRev, -, #HR0, -, %HR0le, Hgr⟩)
   · obtain ⟨e', rfl⟩ : ∃ e', gerr = GoInterface.ok e' := by
       cases gerr with
       | nil => exact absurd rfl Hgne

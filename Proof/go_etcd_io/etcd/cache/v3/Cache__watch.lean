@@ -51,7 +51,9 @@ theorem Cache.watch.wp_proof
     (wp_Unregister : demux.Unregister.spec (GF := GF) (hG := hG)) :
     Cache.watch.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap rev R c0
-  wp_start as ⟨#Hc, Hw, Hrun, #HslbR, %Hpre⟩
+  wp_start as ⟨#Hc, Hw, Hrun, #HslbR, #HrdR, %Hpre⟩
+  ihave #Hrd1 : etcdRead (rev - W64 1) $$ []
+  · iapply etcdRead_mono R (rev - W64 1) (by obtain ⟨h1, h2⟩ := Hpre; word) $$ HrdR
   obtain ⟨hrev, hrevR⟩ := Hpre
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -149,7 +151,7 @@ theorem Cache.watch.wp_proof
   -- `err := c.watchEvents(rev, applyErr, &readyOnce)`
   try wp_auto
   wp_apply wp_watchEvents c cf γr γd cap rev ch γa watchP iprop(True) iprop(True)
-    readyOnce_ptr cc $$ [$Hpkg $Hc $Hae $Hcons $Honce Hcore Hh Hbd] as %err ⟨%c1, Hw, #Hc1, Hho⟩
+    readyOnce_ptr cc $$ [$Hpkg $Hc $Hae $Hcons $Honce $Hrd1 Hcore Hh Hbd] as %err ⟨%c1, Hw, #Hc1, Hho⟩
   · unfold cacheWriter demuxWriter
     iframe Hcore Hh Hbd
     iframe Hwoc Hi

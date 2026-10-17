@@ -88,7 +88,8 @@ the notified one (`synced_d`), registered on its channel. -/
 theorem mvcc.cov_entry_synced (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C : mvcc.Log)
     (w : Loc) (γw' : mvcc.WatcherNames) (hok : mvcc.WsOk σ) (hsy : (σ.Ws !! w).isSome)
     (hC : C.length ≤ σ.Lmu.length) (hrev : sint.Z rev + 1 ≤ (C.length : Int))
-    (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1) :
+    (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1)
+    (hsrb : σ.srBelow σ.Lmu.length) :
     □ ([∗map] w ↦ st ∈ σ.ST, mvcc.memberFacts (GF := GF) γ σ w st) ∗ mvcc.watcherMeta γ w γw' ⊢
       ∃ c : mvcc.CovArg, ⌜c.w = w ∧ σ.M !! w = some c.γw ∧ σ.E !! w = some (c.evsw, c.d)⌝ ∗
         mvcc.covEntry γ γw'.wc rev c := by
@@ -117,7 +118,8 @@ theorem mvcc.cov_entry_synced (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64
   ipureintro
   have h1 : σ.Lmu.length ≤ d := (Nat.max_le.1 hd).2
   have : (C.length : Int) ≤ (d : Int) := by exact_mod_cast Nat.le_trans hC h1
-  refine ⟨rfl, by simp only; omega, ?_⟩
+  refine ⟨rfl, by simp only; omega, ?_, fun h => by
+    have := hsrb w γw HMw h; simp only; omega⟩
   simp only at hb ⊢
   rcases hb with hb | hb
   · left; omega
@@ -128,7 +130,8 @@ of all of them. -/
 theorem mvcc.cov_entries (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C : mvcc.Log)
     (γc : mvcc.WatchChanNames) (hok : mvcc.WsOk σ) (hC : C.length ≤ σ.Lmu.length)
     (hrev : sint.Z rev + 1 ≤ (C.length : Int))
-    (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1) :
+    (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1)
+    (hsrb : σ.srBelow σ.Lmu.length) :
     ∀ W : List Loc, (∀ w ∈ W, (σ.Ws !! w).isSome) →
     □ ([∗map] w ↦ st ∈ σ.ST, mvcc.memberFacts (GF := GF) γ σ w st) ∗
       □ (∀ w : Loc, ⌜w ∈ W⌝ -∗ ∃ γw' : mvcc.WatcherNames, mvcc.watcherMeta γ w γw' ∗ ⌜γw'.wc = γc⌝) ⊢
@@ -143,10 +146,10 @@ theorem mvcc.cov_entries (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C 
   | w :: W, hW => by
     iintro ⟨#HF, #HM⟩
     icases HM $$ %w %List.mem_cons_self with ⟨%γw', #Hm, %Hwc⟩
-    icases mvcc.cov_entry_synced γ σ rev C w γw' hok (hW w List.mem_cons_self) hC hrev hsb hrevE
+    icases mvcc.cov_entry_synced γ σ rev C w γw' hok (hW w List.mem_cons_self) hC hrev hsb hrevE hsrb
       $$ [$HF $Hm] with ⟨%c, %hc, #Hc⟩
     irevert Hc; rw [Hwc]; iintro #Hc
-    icases mvcc.cov_entries γ σ rev C γc hok hC hrev hsb hrevE W
+    icases mvcc.cov_entries γ σ rev C γc hok hC hrev hsb hrevE hsrb W
       (fun x hx => hW x (List.mem_cons_of_mem _ hx)) $$ [] with ⟨%cs, #Hcs, %hcs⟩
     · isplit
       · iexact HF
@@ -287,7 +290,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   -- `s.rev()`, lent the lock body's fraction of the committed log: the notified log (unit W-K)
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %Hset⟩
+  icases HP with ⟨%σ, HP, %HsetR⟩
+  obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   iunfold mvcc.wlogQ at Hwlog
@@ -361,7 +365,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       iintro Hm
       wp_auto
       wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-      · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
+      · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
       wp_auto
       iapply HΦ
       iframe Hm HCS
@@ -385,7 +389,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         iintro Hm
         wp_auto
         wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-        · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
+        · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
         wp_auto
         iapply HΦ
         iframe Hm HCS
@@ -435,7 +439,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     rw [← hClm]
     obtain ⟨hne, rfl, h2, h3⟩ := HCr
     word
-  icases mvcc.cov_entries γ σ r Clog γc Hok HCp.length_le hrevC Hset.1 hrevE
+  icases mvcc.cov_entries γ σ r Clog γc Hok HCp.length_le hrevC Hset.1 hrevE Hsrb
       (mvcc.dedupL (keys.filterMap (M !! ·)))
       (fun w hw => by
         obtain ⟨id, -, hid⟩ := List.mem_filterMap.1 (mvcc.mem_dedupL.1 hw)
@@ -594,7 +598,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     iintro Hm
     wp_auto
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-    · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
+    · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
     wp_auto
     iapply HΦ
     iframe Hm HCS
@@ -604,7 +608,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   iNamed HP'
   wp_auto
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
+  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
   wp_auto
   iapply HΦ
   iframe Hm HCS

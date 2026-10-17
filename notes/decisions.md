@@ -8093,7 +8093,8 @@ interface.mkOk (ptr errorString) #x` with its message and `DeadlineExceeded ↦�
 interface.mkOk deadlineExceededError.ty #()`. It unblocks `v3rpc`'s premise and, with a registry
 model, `read`.
 
-**`read` stays assumed.** Its translated `init()` calls `prometheus.MustRegister`, which panics
+**`read` stays assumed** (superseded by D16, 2026-10-17: proved, the registration rights a
+precondition). Its translated `init()` calls `prometheus.MustRegister`, which panics
 on a duplicate name. A true spec needs the default registry's registered names, a resource the
 whole program's initializers share; `wp_initialize'`'s shape (`ownInitializing` only) has no
 place for it, so adding one means changing every importer's theorem. `etcdserver`'s and `v3rpc`'s
@@ -8132,6 +8133,258 @@ expands it by eye.
   as its own change (CLAUDE.md, "Changes to Perennial"); then `frameH` goes.
 - *Rejected:* a global macro per block (they are one proof's), and an auxiliary lemma for every
   continuation (the statements, long Iris contexts, would be longer than the blocks).
+
+## The verified configuration turns `CheckQuorum` and `PreVote` off: a patched `bootstrap` (D15, temporary)
+
+**2026-10-17 · adopted, then **reverted** the same day (branch `raft-retarget`; the user's choice (b), a stopgap until (a) lands)**
+
+**Reverted (2026-10-17, the user's decision once (a)'s `CheckQuorum` half was merged):** the patch
+only ever changed `CheckQuorum`, which the raft proof now covers (merge of `raft-checkquorum`,
+"`CheckQuorum` on"); `PreVote` comes from `cfg.PreVote` with no patch. So the etcd pin is back at
+`goose-lean` (`09669450f`; the translation identical to before D15), `ServerConfig.DisableCheckQuorum`
+is gone, `bootOk` states no `CheckQuorum` clause (the raft start result no longer reads it), and
+`NewServer.spec` keeps only `cfg.PreVote' = false`, a configuration etcd's code allows (embed's
+default is on). The fork branch `goose-lean-raft-cq-off` is no longer referenced.
+
+The raft start result (`NewRawNode.spec`, `bootstrappedRaft.newRaftNode.spec`) requires
+`CheckQuorum = false` and `PreVote = false`; etcd's `raftConfig` (`bootstrap.go:572`) sets
+`CheckQuorum: true` and `PreVote: cfg.PreVote` (which `embed` sets on by default). `bootOk`, the
+contract of the names-only `bootstrap` that `NewServer.spec` takes as a premise (D13b), claimed
+both off whatever the configuration: false of etcd, so the adequacy example could never discharge
+it. The user chose (a) to extend the raft proof to both on (branch `raft-checkquorum`, another
+agent) and (b) meanwhile to verify a patched `bootstrap` that turns both off.
+
+- **D15: a configuration field, not a direct edit.** The fork's branch `goose-lean-raft-cq-off`
+  (`goose-lean` plus one commit, `e1e0193c2`, the etcd pin of `etc/goose.py`) adds
+  `ServerConfig.DisableCheckQuorum bool` and sets `CheckQuorum: !cfg.DisableCheckQuorum` in
+  `raftConfig`; both lines are marked TEMPORARY. Its zero value keeps etcd's behaviour (CheckQuorum
+  on), and `PreVote` already follows `cfg.PreVote`, so the patch is one field and one expression
+  and changes no default. A direct edit (`CheckQuorum: false, PreVote: false`) would have left the
+  Lean side untouched but changed etcd's behaviour for every configuration; the field costs only
+  two premises.
+- **The statements.** `bootOk` takes the configuration and states what `raftConfig` does with it:
+  `cv.CheckQuorum' = !cfg.DisableCheckQuorum'` and `cv.PreVote' = cfg.PreVote'` (true of the
+  patched code for every `cfg`). `NewServer.spec` gains the premises
+  `cfg.DisableCheckQuorum' = true` and `cfg.PreVote' = false`, which the adequacy example's
+  configuration must meet (`PreVote` is false in a `ServerConfig` literal unless set).
+  `bootstrap` stays names-only (its contract a premise); `raftConfig` is not translated with its
+  body (the translation changes only in `config`'s struct).
+- **Reverted once (a) lands:** the pin back to `goose-lean` (the fork branch dropped), the two
+  premises of `NewServer.spec` and `bootOk`'s configuration parameter go, `bootOk` states
+  `CheckQuorum' = true` and `PreVote' = cfg.PreVote'` as etcd's code does.
+
+## prometheus's default registry: registration rights as an initializer's precondition (D16)
+
+**2026-10-17 · adopted (branch `raft-retarget`, item 8: the read package's initializer)**
+
+The read package's translated `init()` calls `prometheus.MustRegister` on its two counters, and
+`MustRegister` panics when `Registry.Register` fails: in particular when a descriptor of the same
+name (with other labels or help), the same descriptor ID or the same collector ID is already
+registered. Whether it panics depends on what every package of the program registered before:
+a resource, which item 8 left out (`read` assumed, `etcdserver`'s and `v3rpc`'s theorems taking
+its spec as a hypothesis).
+
+- **D16a: the right to register a name.** `EtcdGrove.prometheus.nameFree n`
+  (`Proof/github_com/prometheus/client_golang/prometheus/Registry.lean`, an abstract resource:
+  an axiomatized predicate, as bbolt's `ownDB`) is the exclusive right to register a collector
+  whose one descriptor is `n`'s, label-free, with the default registry: nothing registered there,
+  now or later by anyone but the holder, has a descriptor named `n`, or `n`'s descriptor ID, or
+  that collector ID. `MustRegister.spec` (one collector `c`, `collectorName c n`) consumes it;
+  `NewCounter.spec` gives `collectorName c (fqName ns sub name)` (and mvcc's `counterSpec`); the
+  `CounterOpts` literal (`Opts` is an axiomatized type) is the axiom `wp_counterOptsLit`, over the
+  axiomatized `counterOpts`. Each axiom is about uninterpreted constants, satisfiable whatever
+  the semantics, and true of client_golang v1.24.1 (their docstrings say why).
+- **D16b: the rights reach the initializer as a precondition.** `read.wp_initialize'` is
+  `{{ ownInitializing g ∗ EtcdGrove.read.readRegPerm }} initialize' #() {{ ... isPkgInit read }}`,
+  and so are the theorems of the packages whose import closure contains `read` (`etcdserver`,
+  `v3rpc`): each passes the rights to the one import that leads there (`etc/gen-init.py`'s
+  `PRE_RES`, which asserts there is one). Program start (the adequacy theorem, item 9) owns the
+  rights to every name no default collector has and gives each out once, so the cross-package
+  freshness of the names is discharged there: two packages registering one name would need one
+  right twice. What item 9 needs of the Go code is stated and checked now (`read.names_ok`'s
+  docstring): only `read/metrics.go` names the two metrics (grep of the pinned etcd), and a Go
+  program importing `embed` and `v3rpc` (all of etcd's server initializers) starts and has each
+  registered once.
+- **Why not a package fact.** A package's fact is persistent (`isPkgInit`), so it cannot hand
+  out an exclusive right; an invariant holding the rights could be opened by any proof, so its
+  rights could be taken before the read package runs. What makes Go register the names once is
+  that a package's body runs once, which Perennial's `ownInitializing` knows (the package map,
+  `ownGoState`) but does not expose to the body as a resource (half of a ghost variable, no
+  fragments), and the other packages' `wp_initialize'` return an arbitrary map, so a ghost
+  mirror of it cannot be kept. A general fix, for Perennial on its own: `wp_package_init` could
+  give the body a once-per-package token (from the map's missing entry), out of which a package
+  could take resources allocated for it at program start; the precondition here would then go.
+- **The cost.** The three theorems are not in Perennial's `initialize'.spec` shape. A caller that
+  ran `etcdserver.initialize'` twice would need the rights twice (the second call does nothing,
+  but the triple cannot say so); on the path each is called once.
+- *Rejected:* `{{ True }} MustRegister c {{ True }}` (false: a second registration panics);
+  keeping `read` assumed (its spec is the same claim, unproved).
+- **`context`'s errors** (`readInit` states `Canceled` a leaf `errors.New` error and
+  `DeadlineExceeded` a leaf `deadlineExceededError{}`): a premise, `EtcdGrove.ContextReadErrs`
+  (`read/Init.lean`), as `ContextCanceledPtr` was ("Item 8: context's facts"), which it replaces:
+  `v3rpc`'s `Canceled` fact now follows from it.
+
+## `srvBuildGap`'s rows: the lifetime bounds as workload premises, the cluster's version from its contract (D17)
+
+**2026-10-17 · adopted for four rows; the fifth (`rnSnapOnce`) stopped for a decision (branch
+`raft-retarget`; open-work item "srvBuildGap's rows")**
+
+After D14i `srvBuildGap` (the rows of `start`'s construction premise no `NewServer` proof gave)
+had five rows. Three are bounds that are not facts of the code (a process issues fewer than
+`2 ^ 48` request ids, the store's sealed logs stay below `2 ^ 62` changes, the logic's thread
+bound), one is a fact of the code behind a names-only package (`ClusterVersion()` monotone), one
+is a resource the model cannot give (`rnSnapOnce`).
+
+- **D17a: the id budget is a lifetime bound, not credits.** `idCred γi n` was `n` exclusive
+  credits of the `2 ^ 48 - 1` `NewGenerator` handed out (an `Auth Nat` authority in `idGen`'s
+  invariant), and `srvBuildGap` asked `□ |==> idCred ρ.ids 1`: an unbounded supply, which together
+  with the authority proves `False` (mint `2 ^ 48` credits) -- the residual was unsatisfiable, and
+  every result composed with it vacuous. The request path cannot thread a finite supply: the read
+  loop issues an id per `ReadIndex` round, retries on timeouts, and runs forever. Now `idGen`'s
+  invariant counts the ids issued (`γi.cred` a monotone counter, `monoNatAuthOwn`), and
+  `idCred γi n := idLifeBound γi`, the persistent premise `□ ∀ k, monoNatLbOwn γi.cred k -∗
+  ⌜k < 2 ^ 48⌝` (`n` unused, kept so the ~60 statements over `idCred` keep their form). `Next`
+  counts one more id and gets `k + 1 < 2 ^ 48` from it, which is all the uniqueness argument used.
+  `idNamesFresh` is the counter at `0` and the empty maps; `NewGenerator.spec` no longer returns
+  credits. `NewServer.spec` takes `idLifeBound ρ.ids` (a premise of the kind of `srvLifeBound`,
+  D14g, at names the caller chooses before the call, D13a) and gives `□ |==> idCred ρ.ids 1`
+  (`idCred_supply`). *Rejected:* credits minted from an invariant (a fancy update, `|={E}=>`,
+  where ~20 statements have `|==>`, and the same bound on the mints); threading credits per
+  request (the read loop's ids are not per request).
+- **D17b: `storeSmall` and the thread bound are workload premises of `NewServer.spec`.**
+  `storeSmall E₀.γ` (it reads only the index names, which `E₀` fixes before the call) and
+  `threadBound GF ≤ 2 ^ 31` (the adequacy theorem's `T`, its caller's choice). *Considered for
+  `storeSmall`:* a change counter in mvcc's invariant bounded by the write budget `N` (D14g). A
+  write token is spent per transaction, not per change, and a `DeleteRange` changes every live key
+  in its range, so the bound needs the store's live keys counted against the puts (changes at most
+  twice the puts, the puts at most `N` times the request's operations): an mvcc invariant change
+  for a bound the adequacy example states as easily as `srvLifeBound`. Left as the premise.
+- **D17c: `ClusterVersion()` from the cluster's contract.** `EtcdServer.ClusterVersion` is
+  translated with its body (`nil` without a cluster, else `s.cluster.Version()`) and proved
+  (`EtcdServer__ClusterVersion.lean`) over `clusterVersionMono cl γcv` (`InvStart.lean`): `cl`
+  non-`nil` and its `Version()` `nil` until a ghost witness is owned, non-`nil` from then on.
+  `bootOk` (`bootstrap`'s contract, a premise, D13b) gives it for `b.cluster.cl`, beside its other
+  cluster contracts; `NewServer` builds `clusterVersionOk s`. True of the Go code: `RaftCluster.
+  Version` reads `c.version` under the cluster's lock; it is set by `SetVersion` (non-`nil`) and by
+  `Recover` from a snapshot's backend, which holds the version once the entry setting it is
+  covered.
+- **D17d: `rnSnapOnce` stays the residual (stopped; needs a decision).** `run` calls
+  `s.r.raftStorage.Snapshot()` while raft's node goroutine owns the storage; Go serializes them
+  with `ms.Mutex`, but the model puts the storage's snapshot field and object in
+  `ownMemoryStorage` (raft's, exclusive), so no application-side triple for `Snapshot()` exists
+  and no proof can establish `rnSnapOnce` as stated (strengthening `MemoryStorage.Snapshot.spec` and
+  `proto.CloneSnapshot`'s axiom to state the clone's pointers non-`nil` is easy but does not help).
+  The fix is a change to raft's `MemoryStorage` model: the snapshot under the lock with a ghost
+  variable of its id/conf state split between the lock, the owner and an application token that
+  `ApplySnapshot`/`CreateSnapshot` also take (`NewMemoryStorage` gives it). It meets `InitialState`,
+  which reads `ms.snapshot` *without* the lock (`issues/raft-memorystorage-initialstate-unlocked.md`):
+  with the snapshot under the lock its unlocked read has no ownership, unless the snapshot starts
+  outside the lock and some locked call after `InitialState` deposits it, which the abstract
+  `isStorage` contract cannot promise the application. The options (each changes raft's public
+  `MemoryStorage` specs): (1) `InitialState`'s spec takes the application token, and the token
+  lends the snapshot while no other goroutine runs (`StartNode` calls it before the node
+  goroutine); (2) a trust-boundary premise that `InitialState` runs before any concurrent
+  `Snapshot()`; (3) leave `rnSnapOnce` as the construction's premise. Not decided here.
+
+## A client's facts from persistent updates: monotone ghost state, a prophecy only for a general client (D18)
+
+**2026-10-17 · proposed (the monotone route implemented for the adequacy example's Put-then-Get;
+the prophecy route not started, needs the user's decision)** (open-work item 9's "client-local
+prophecy", `notes/STATUS.md`)
+
+The client's end-to-end specs (`client_put_end_to_end`, `client_get_end_to_end`, ...,
+`client/v3/Results.lean`) take `□ AU <{∃∃ σ, etcdKV γk σ}> <{etcdKV γk (kvOpStep op σ), COMM □ Q
+σ}>` and return `∃ σ, □ Q σ`. The update is persistent because it does fire more than once: a put
+resent after a per-attempt error is proposed twice and applied twice
+(`issues/etcd-client-retry-put-ctx-error.md`), and a duplicate can commit after the put returned.
+The adequacy example (one member, `clientv3.New`, `Put(k, v)`, then `Get(k)`; the pure conclusion:
+no panic and the Get returns `v`) needs the client to hold `etcdKV` in its own invariant and get
+"Get's value = Put's" out of these updates.
+
+**What Perennial's Lean port has for prophecies** (pin `a54e1999f`): physical prophecy variables
+only. GooseLang has the `NewProph`/`ResolveProph` primitives (`GooseLang/Lang.lean`), the state
+interpretation carries iris-lean's prophecy map (`Iris.BI.Lib.ProphMap`, `prophMapInterp`), and
+`GooseLang/Lifting.lean` proves `wp_new_proph` and `wp_resolve_proph` over the untyped `proph p
+pvs` (a list of `val`); Go code reaches them through the trusted models of
+`github.com/goose-lang/primitive`'s `NewProph`/`ResolveProph` and gokv's `trusted_proph`
+(`TrustedCode/`), with no Go-level spec. There are no typed prophecies (Rocq's `typed_proph`), no
+ghost (erased) prophecies resolvable by a view shift (Rocq Perennial's `GhostProph`-style
+construction), and no prophecy-aware atomic-update lemmas.
+
+**The options.**
+
+1. **Monotone ghost state (implemented, `client/v3/PutThenGet.lean`).** The client's invariant
+   holds its half of `etcdKV` with the state sorted by key and a monotone counter (`MonoNat`)
+   that records "the put has fired"; once it has, the state's value of `k` is `v`. The client
+   makes only two updates from it: the put's (`kvOpAu (.put (putKeyOp k v))`, result the
+   counter's lower bound `1`: every firing writes `k ↦ v`, `kvOpStep_putKey`) and, holding that
+   bound, a read update whose result is `(findKey k σ.kvs).map value = some v`. A put that
+   returned `nil` gives the bound (its `□ Q`); the get's reply is its state's value
+   (`client_get_value`), so a `nil` get returns `v` (`client_get_own`). Repeated firings, before
+   or after the put returned, keep the invariant: the client is the only writer and every write
+   is the same. Cost: one new file, no statement changed, no axiom, no Perennial change. Limit:
+   a single writer of `k` (any other operation needs its own clause in the invariant: one that
+   does not touch `k` keeps it as is), and the conclusion is about values, not revisions or which
+   firing the reply is of.
+2. **A physical prophecy in the example's Go code.** The example's `main` is ours, so it could
+   call `primitive.NewProph`; but the resolution would have to happen at the linearization point,
+   which is the server's apply thread (a raft commit), not the client's code. Resolving it in
+   etcd's code means changing etcd; resolving it in the client after the reply is too late (the
+   firings have happened). Not usable without changing the verified code.
+3. **A ghost prophecy turning the persistent update into an ordinary one.** The client
+   prophesies which firing the reply will be of (needs item 2: the reply tied to its firing's
+   `σ`, `resultIs` naming the raft prefix), hands the server a persistent update that, at the
+   prophesied firing, fires an ordinary `AU` the client holds, and at the others an "extra
+   duplicate" update the client must accept. Two costs beyond item 2: (a) Perennial's Lean port
+   has no ghost prophecies; adding them (an erased prophecy resource resolved by a view shift,
+   with a soundness argument against the GooseLang adequacy theorem) is a general framework
+   change, to be designed and reviewed in Perennial on its own (`CLAUDE.md`, "Changes to
+   Perennial"), not done here; (b) the duplicates are real: a duplicated put bumps the revision
+   twice, so even with a prophecy the client's ordinary `AU` holds only for histories that admit
+   the extra writes; for linearizability checking (porcupine's model) that means a model where a
+   put may be repeated, i.e. what the persistent update already says.
+
+**Recommendation.** Option 1 for the adequacy example (done: `client_put_own`, `client_get_own`;
+the example composes them under `putGetInv_alloc` after `kvInv_alloc`). Defer option 3: it buys a
+general client spec only after item 2, needs a Perennial feature that does not exist, and cannot
+remove the duplicate writes the persistent update reflects. If a general client is wanted, the
+first step is item 2 (a write's `□ Q σ` tied to its reply), which also makes option 1 give
+revision facts.
+
+## Families of functions with the same body: one lemma over the body
+
+**2026-10-17 · accepted (for the KV handlers only)**
+
+protoc-gen-go-grpc's unary handlers (`_KV_{Range,Put,DeleteRange,Txn}_Handler`) have the same
+body up to the method's name and its request and response types, and their proofs were the same
+95-line proof, copied. The duplication review (notes/STATUS.md, "Proof families as lemmas")
+replaced them.
+
+**Decision:** `etcdserverpb/UnaryHandlerLemmas.lean` defines the common body as a function of what
+differs (`unaryHandlerImpl srvTy reqTy repTy meth fullMethod`: one handler's translation with those
+abstracted, copied by hand) and proves `wp_unaryHandler` once, stated as the handler specs are,
+with the body taken as the `FuncUnfold` instance at those parameters. Each handler keeps its Spec
+and Proof files and its `wp_proof`, now one application of the lemma at its method: the build
+checks that the translated body is the lemma's body at those arguments (by unfolding both); a
+regenerated handler of another shape fails to build, and no axiom or `sorry` is involved.
+
+- *Tried and dropped* (the user's choice): the same for the client stubs `kVClient.<M>`
+  (`wp_kvClient_unary`), clientv3's comparison builders (`Version`, ..., `LeaseValue`: `wp_cmpKey`)
+  and `IsOptsWith{FromKey,Prefix}` (`wp_isOptsWith`). They built, but the copied bodies and the
+  lemmas' statements were as long as the proofs they replaced (no saving in lines), and a copied
+  Goose term is harder to read than the proofs; the handlers are kept because four 95-line proofs
+  become one.
+- *Not done*, because the shared part is not a short statement: the getters (`PutRequest.GetKey`,
+  ...: 6-line proofs), `Op.Is{Get,Put,Delete,Txn}` and `*Response.OpResponse` (as short),
+  `txn.Else`/`txn.Then` (two fields, a model projection and an extra test differ throughout;
+  already a macro), `RWMutex.Lock`/`RLock` (they differ in an expression, the wait prefix
+  `rwm.pfx` vs `rwm.pfx + "write"`), `Queue`/`PriorityQueue.Dequeue` (different callees and prefix
+  throughout), raft's `MsgApp_lt`/`MsgHeartbeat_lt` and the `Resp_eq` pair (the step's type tests
+  need the concrete message type; the files mirror the Rocq port's one-file-per-case structure).
+- *Rejected:* one spec for the family (a spec statement per Go function stays, CLAUDE.md); a
+  tactic macro (the user's choice: a named lemma with a docstring reads as the reasoning, a macro
+  must be expanded by eye); deriving the generic body from the translation by a meta-program
+  (more machinery than the copied term, which the build checks anyway).
 
 ## `CheckQuorum` on: one model rule for a leader's step-down at its term
 

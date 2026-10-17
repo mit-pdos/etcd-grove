@@ -5,17 +5,18 @@ contracts** (the server-construction unit's stage N0, 2026-10-16; D13b, D13d,
 used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines them.
 
 * **`bootstrap`'s contract** (`bootstrapContract`, D13b) is a premise of `NewServer.spec`, a triple
-  in its precondition, not an axiom: `raftConfig` sets `CheckQuorum: true` on both of
-  `bootstrap`'s paths (`bootstrap.go:572`) and `NodeStartSpec` needs it off (with `PreVote`), so
-  an axiom giving `bootOk` would be false; as a premise it records that the raft start result does
-  not cover etcd's actual configuration. On success the bootstrapped record carries `bootOk`:
+  in its precondition, not an axiom. Its raft configuration is `raftConfig`'s (`bootstrap.go:572`)
+  (`CheckQuorum: true`, covered by the raft start result since 2026-10-17; `PreVote` is
+  `cfg.PreVote`, which `NewServer.spec` requires off: the raft start result (`NodeStartSpec`) does
+  not cover pre-vote yet). On success the bootstrapped record carries `bootOk`:
   - the records `NewServer` reads (`b`, `b.storage`, `b.storage.backend`, `b.storage.wal`,
     `b.cluster`, `b.raft`);
   - `b.raft` with `NodeStartSpec`'s premises on it (the raft config valid, `CheckQuorum`/
-    `PreVote` off, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
+    `PreVote` as `cfg` sets them, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
     `InitialState` closure, `Marshal` at the peers' conf changes) and the cluster's
     `IsIDRemoved` contract;
-  - the cluster (`isRaftCluster`, its id, this node's id, the remote members, read-only);
+  - the cluster (`isRaftCluster`, its id, this node's id, the remote members, read-only; its
+    `Version()` monotone, `clusterVersionMono`, D17);
   - the consistent index at `0` (`isCI`, `ciOwner` of the backend, the applying index at `0`)
     and the apply protocol's names and invariant (`consInv`, the apply thread's half at the start:
     the backend's batch lock's resource names them, so they exist before the backend; the
@@ -111,13 +112,15 @@ keep the auth store's contents, so the bound is named, a premise of `auth.NewAut
 and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
 
-/-- **The bootstrapped record `b`** (see the file header) for this node `id` of the cluster with
+/-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` (its
+`PreVote`) for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
 2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
-def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Loc) : IProp GF :=
+def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames) (id : w64)
+    (bootLog : List EntryM) (N : Nat) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
@@ -134,7 +137,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
       cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
       cv.DisableConfChangeValidation' = false ∧
       (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-      cv.AsyncStorageWrites' = false ∧ cv.PreVote' = false ∧ cv.Applied' = W64 0 ∧
+      cv.AsyncStorageWrites' = false ∧ cv.PreVote' = cfg.PreVote' ∧ cv.Applied' = W64 0 ∧
       cv.ID' = id ∧
       ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
       cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧
@@ -163,6 +166,9 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f)
     "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #bc.cl') ∗
+    -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
+    -- `clusterVersionOk`
+    "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
     "#Hisc" ∷ □ (∀ (γ' : mvcc.StoreNames) (f : GoFunc), ⌜γ'.kb = some d⌝ -∗
       backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
       apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f) ∗
@@ -201,7 +207,7 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ 
     (id : w64) (bootLog : List EntryM) (N : Nat) : IProp GF :=
   iprop(□ ({{ True }} (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk γ id bootLog N b }}))
+        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id bootLog N b }}))
 
 instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) :

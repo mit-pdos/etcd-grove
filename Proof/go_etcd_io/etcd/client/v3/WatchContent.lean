@@ -418,7 +418,7 @@ event's revision is reached because the log is certified (`etcdReached_of_certOk
 since unit W-M3). -/
 theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (L2 : mvcc.Log) (rg : mvcc.WatchRange) (X : w64)
     (a d : Nat) (ev : mvcc.EvM) (kv : Loc)
-    (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn) X rg)
+    (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn P.sr) X rg)
     (hmem : ev ∈ mvcc.watchEvents L2 rg a d) (hd : d ≤ L2.length) (hlo : sint.Z P.rev ≤ (a : Int))
     (hst : V.R.γ.st = V.R.E.γ) (hnd : txn.NoDupKeysPerRev L2) :
     mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗ mvcc.kvPtrFixed kv ev.kv ⊢
@@ -444,12 +444,12 @@ theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (L2 : mvcc.Log) (rg : mvcc.WatchRange
   have hjz : sint.Z (W64 (j : Int)) = j := by word
   -- the key is in the request's range, under the prefix
   obtain ⟨hrw, -, -, hku, hkey, hed, -, -⟩ := hok
-  have hkne : (createOf P.key P.ed P.rev P.pn).key ≠ [] := by
+  have hkne : (createOf P.key P.ed P.rev P.pn P.sr).key ≠ [] := by
     show P.key ≠ []; rw [hkey]; exact keyRangeUnder_key_ne hku hpfx
-  have hin0 := covers_inRange (createOf P.key P.ed P.rev P.pn) X rg ev.kv.key hcr hkne (by simpa using hcov)
+  have hin0 := covers_inRange (createOf P.key P.ed P.rev P.pn P.sr) X rg ev.kv.key hcr hkne (by simpa using hcov)
   have hin : inRange P.o.key P.o.base.rangeEnd ev.kv.key = true := by
-    have : (createOf P.key P.ed P.rev P.pn).key = P.o.key := hkey
-    have h2 : (createOf P.key P.ed P.rev P.pn).rangeEnd = P.o.base.rangeEnd := hed
+    have : (createOf P.key P.ed P.rev P.pn P.sr).key = P.o.key := hkey
+    have h2 : (createOf P.key P.ed P.rev P.pn P.sr).rangeEnd = P.o.base.rangeEnd := hed
     rw [this, h2] at hin0; exact hin0
   have hpk : V.pfx <+: ev.kv.key := hku _ hin
   -- the store's facts at the event's revision
@@ -600,7 +600,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
     (hsrc : m.src = some ρ) (hρw : ρ.evs ≠ [] → ρ.w = w)
     (hfilt : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ [])))
     (hps : ps.length = ρ.evs.length) (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ [])
-    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn) X rg)
+    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn P.sr) X rg)
     (hhi : (evsOf Dm w = [] ∧ hi = P.rev - W64 1) ∨
       ∃ e, (evsOf Dm w).getLast? = some e ∧ hi = e.kv.modRev) :
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
