@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion__Les
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate__Less
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod__Less
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue__Less
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -44,12 +45,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 non-negative revisions and versions. -/
 def txn.sorterR (sl : GoSlice) (l : List (Loc × EtcdKv)) : IProp GF :=
   iprop(sl ↦* l.map Prod.fst ∗ txn.kvsAt l ∗ ⌜∀ x ∈ l, txn.kvOk x.2⌝)
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- A `kvSortBy*` sorter's `sorterSpec` from its `Len`, `Less` and `Swap` specs (`hLen`, `hLess`,

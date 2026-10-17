@@ -22,6 +22,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfCha
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -54,12 +55,6 @@ theorem stLoaded_facts (γ : ApplyNames) (st : ApplyState) :
     rw [ite_eq_left h]
     split <;> rfl
   · exact ⟨rfl, rfl, rfl, rfl⟩
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- A conf change, after `applyConfChange` (`xj` unchanged: no KV effect): the KV model's step,

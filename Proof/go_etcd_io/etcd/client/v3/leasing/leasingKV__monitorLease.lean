@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__leaseID
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKVLemmas
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutexLemmas
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -28,12 +29,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The loop body from `lkv.cl.Watcher.Watch(cctx, lkv.pfx+key, v3.WithRev(rev+1))` on, after `if rev == 0`'s `Get` (with `rev` its header's revision) and when `rev != 0`. -/

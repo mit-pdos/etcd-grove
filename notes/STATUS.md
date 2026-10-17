@@ -1051,12 +1051,14 @@ The third step of the duplication review: a tactic block pasted into several bra
 that use it (the pattern of `txn__Else.lean`), or, in two files, by merging identical `cases` arms.
 22 files, about 5,300 lines removed and 2,070 added, in two commits (raft and the server; the
 client, pkg and examples); the largest are `watchGRPCStream__closeSubstream` (1168 to 472 lines),
-`txn/put` (685 to 275) and `leaseKey__get` (564 to 289). No statement, import or module changed.
+`txn/put` (685 to 275) and `leaseKey__get` (564 to 289). No statement changed; the one new module
+and import is `FrameH` (below).
 
 - **Iris's frame `$H` inside a quotation** is read as a Lean antiquotation, so a macro body cannot
-  write `iframe $H`; each file that needs it has the two-line `private meta def frameH` that builds
-  the node (``$(frameH `H)``). That copy could go to a shared module; the general fix is a frame
-  syntax in Iris-Lean that works inside a quotation (a proposal there, not a change here).
+  write `iframe $H`; the macros write ``$(frameH `H)`` (`Proof/go_etcd_io/raft/v3/FrameH.lean`,
+  which builds the node; decisions.md, "Repeated proof blocks as file-local macros"); the general
+  fix is a frame syntax in Iris-Lean that works inside a quotation (a proposal there, not a
+  change here).
 - **Where copies differ in one tactic line**, the macro has `first | a | b` (`sortRangeResults`,
   `serverWatchStream.recvLoop`, `checkIntervals`'s merged arm); where they differ in a value, the
   macro takes it as an argument (`Election.Campaign`'s takes four).

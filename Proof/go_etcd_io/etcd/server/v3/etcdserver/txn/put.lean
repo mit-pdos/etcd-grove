@@ -7,6 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -26,12 +27,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The previous key-value found (`PrevKv`, or an ignore flag, with a key that exists): its

@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasMiscR
 public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -28,12 +29,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The local case, after either test that decides it (`From == None`, `From == r.id`), with

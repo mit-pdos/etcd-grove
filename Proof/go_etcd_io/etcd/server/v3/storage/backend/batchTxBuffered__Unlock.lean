@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -31,12 +32,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Perennial.time.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- `batchTx.Unlock` with the batch left free at state `S` (`hb` its ghost bound, `hf` its

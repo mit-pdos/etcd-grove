@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Op__MaxModRev
 public import Spec.go_etcd_io.etcd.client.v3.Op__MinCreateRev
 public import Spec.go_etcd_io.etcd.client.v3.Op__MaxCreateRev
 public import Spec.go_etcd_io.etcd.client.v3.Op__IsKeysOnly
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -32,12 +33,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- An empty `ret.Kvs` once `empty` is found true by `IsCountOnly` or by the `MinModRev`, `MaxModRev` or `MinCreateRev` test: `copyGetResponseMetadataOnly`, then the postcondition. -/

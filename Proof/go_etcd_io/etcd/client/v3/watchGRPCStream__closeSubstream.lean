@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__closeSubstream
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__sendCloseSubstream
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -46,12 +47,6 @@ theorem nilOut_none (l : List Loc) (ws : Loc) (hall : ∀ j, j < l.length → l[
   have := hall j hj
   rw [List.getElem?_eq_getElem hj] at this
   simpa using this
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The code after the `select` on `ws.initReq.retc <- ws.outc` (closing `ws.outc` or forking `sendCloseSubstream`, then the `substreams`/`resuming` removal), for the `select`'s three ways out: `retc` nil (`default`), and with `retc` live the send done and `default`. -/

@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__doCompact
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -24,12 +25,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The generation `gi` found, its `HcgI` given (the scan stopped at it, or it is the last): its

@@ -10,6 +10,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.register.decode
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Lemmas
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -28,12 +29,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
 variable [RegStor GF]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- `apply` from `if replica == r.id` on (the waiter's removal and the handoff of `r.value`), after `if kind == opPut` with and without the store. -/

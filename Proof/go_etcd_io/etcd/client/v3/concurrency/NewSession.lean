@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.NewSession
 public import Spec.go_etcd_io.etcd.client.v3.Client__GetLogger
 public import Spec.go_etcd_io.etcd.client.v3.Client__Ctx
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -24,12 +25,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- `NewSession` from `context.WithCancel(ops.ctx)` on, with lease `id = sid` and `ops.leaseID = lid`

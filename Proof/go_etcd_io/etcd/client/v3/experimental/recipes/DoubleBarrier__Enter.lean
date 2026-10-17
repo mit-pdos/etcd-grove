@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV__Dele
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV__Revision
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.WaitEvents
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.Session__Client
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -29,12 +30,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The wait for `b.key/ready` (`WaitEvents`) and `Enter`'s return, when `ek` is an earlier waiter (`ek.rev < lastWaiter.CreateRevision`) and when there are fewer than `b.count` waiters. -/

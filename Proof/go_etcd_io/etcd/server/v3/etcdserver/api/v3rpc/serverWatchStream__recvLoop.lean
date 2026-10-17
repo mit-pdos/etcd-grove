@@ -20,6 +20,7 @@ public import Spec.errors.Is
 public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Error
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchLemmas
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -108,12 +109,6 @@ theorem v3rpc.wp_Is_applyErr (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err :
   iintro !> %b -
   iapply HΦ
   itrivial
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- A refused create's response (`Created` and `Canceled`, watch id `-1`, `CancelReason = msg`) sent on

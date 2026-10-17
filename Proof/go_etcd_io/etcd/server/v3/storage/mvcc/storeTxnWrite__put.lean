@@ -12,6 +12,7 @@ public import Spec.google_golang_org.protobuf.proto.Marshal
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -31,12 +32,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- `trace.Step` and the return, with the transaction packed (`Hpack`): the end of every lease

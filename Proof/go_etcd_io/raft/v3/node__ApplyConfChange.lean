@@ -5,6 +5,7 @@ public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
 public import Proof.go_etcd_io.raft.v3.LemmasNodeR
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -21,12 +22,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The rest of `ApplyConfChange` once `AsV2` gave the `ConfChangeV2` `v2` (`#Hch`), in both

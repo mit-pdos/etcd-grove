@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewStringAffinePoint
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -555,12 +556,6 @@ def v3rpc.ciPost (us : List v3rpc.ReqOp) (Φ : val → IProp GF) : IProp GF :=
             adt.ownIvt tl L 1 ∗ ⌜(L.map Prod.fst).Perm ds⌝)
       | none => txn.errVarIs v3rpc.CheckErr.duplicateKey.var err) -∗
     Φ (PairV (PairV #m #t) #err))
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- The `putsElse` loop's `dels.Intersects(adt.NewStringAffinePoint(k))` and `puts[k] = struct{}{}`, after `puts[k]` absent and after `k` in `putsThen` (`hc0` either way). -/

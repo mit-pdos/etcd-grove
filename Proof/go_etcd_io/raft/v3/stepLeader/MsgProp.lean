@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Spec.go_etcd_io.raft.v3.raftpb.EntryType__Enum
 public import Spec.go_etcd_io.raft.v3.DescribeConfChange
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -58,12 +59,6 @@ private theorem list_set_self {A : Type} (l : List A) (i : Int) (x : A)
   obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 H
   rw [← hget]; exact List.set_getElem_self hlt
 
-
-open Lean in
-/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
-parse as an antiquotation. -/
-private meta def frameH (n : Name) : TSyntax `frameIdent :=
-  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
 
 set_option hygiene false in
 /-- A decoded conf change's checks, `ConfChange` and `ConfChangeV2` alike: `alreadyPending`
