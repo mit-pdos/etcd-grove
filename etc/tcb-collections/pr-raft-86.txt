@@ -18,7 +18,6 @@ roots StartNode
 roots RestartNode
 axiom DescribeConfChange.wp_proof
 axiom fmt.Errorf.wp_proof
-axiom nextTermOf_bv._native.bv_decide.ax_1_5
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.CloneSnapshot.wp_proof
