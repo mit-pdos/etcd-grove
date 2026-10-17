@@ -52,7 +52,7 @@ def mvcc.memberFacts (γ : mvcc.WsNames) (σ : mvcc.WsState) (w : Loc) (st : mvc
     IProp GF :=
   iprop(∃ (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice),
     ⌜σ.M !! w = some γw⌝ ∗ mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗
-    (⌜¬ σ.live w⌝ ∨ (⌜σ.live w⌝ ∗ ∃ ch : Loc, mvcc.watcherChan γ w γw ch ∗
+    (⌜¬ σ.live w⌝ ∨ (⌜σ.live w⌝ ∗ mvcc.watcherChan γ w γw st.ch ∗ mvcc.filtersOk fcs ∗
       ∃ (evsw : List mvcc.EvM) (d : Nat), ⌜σ.E !! w = some (evsw, d)⌝ ∗
         monoListLbOwn γw.evs evsw ∗ mvcc.popFacts γ σ w r γw.lo st evsw d)))
 
@@ -72,13 +72,12 @@ theorem mvcc.memberFacts_of (γ : mvcc.WsNames) (q : Qp) (σ : mvcc.WsState) (w 
   · ipureintro; exact HMw
   by_cases hl : σ.live w
   · rw [if_pos hl]
-    icases Hmu with ⟨#Hc, -, -, %evsw, %d, %HE, Hevs, -, #Hpop⟩
+    icases Hmu with ⟨#Hc, #Hfo, -, %evsw, %d, %HE, Hevs, -, #Hpop⟩
     ihave #Hlb := monoListLbOwn_get _ _ _ $$ Hevs
     iright
     isplitr
     · ipureintro; exact hl
-    iexists st.ch
-    iframe Hc
+    iframe Hc Hfo
     iexists evsw, d
     iframe Hlb Hpop
     ipureintro; exact HE
@@ -88,16 +87,18 @@ theorem mvcc.memberFacts_of (γ : mvcc.WsNames) (q : Qp) (σ : mvcc.WsState) (w 
 the notified one (`synced_d`), registered on its channel. -/
 theorem mvcc.cov_entry_synced (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C : mvcc.Log)
     (w : Loc) (γw' : mvcc.WatcherNames) (hok : mvcc.WsOk σ) (hsy : (σ.Ws !! w).isSome)
-    (hC : C.length ≤ σ.Lmu.length) (hrev : sint.Z rev + 1 ≤ (C.length : Int)) :
+    (hC : C.length ≤ σ.Lmu.length) (hrev : sint.Z rev + 1 ≤ (C.length : Int))
+    (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1) :
     □ ([∗map] w ↦ st ∈ σ.ST, mvcc.memberFacts (GF := GF) γ σ w st) ∗ mvcc.watcherMeta γ w γw' ⊢
-      ∃ c : mvcc.CovArg, ⌜c.w = w⌝ ∗ mvcc.covEntry γ γw'.wc rev c := by
+      ∃ c : mvcc.CovArg, ⌜c.w = w ∧ σ.M !! w = some c.γw ∧ σ.E !! w = some (c.evsw, c.d)⌝ ∗
+        mvcc.covEntry γ γw'.wc rev c := by
   iintro ⟨#HF, #Hm'⟩
   have hlive : σ.live w := Or.inl hsy
   obtain ⟨st0, hst0⟩ := Option.isSome_iff_exists.1 (hok.live_st w hlive)
   ihave #Hw := BigSepM.bigSepM_lookup hst0 $$ HF
   iunfold mvcc.memberFacts at Hw
   icases Hw with ⟨%γw, %r, %fcs, %HMw, #Hm, #Hf, Hw⟩
-  icases Hw with (%hn | ⟨-, %ch, #Hc, %evsw, %d, %HE, #Hlb, #Hpop⟩)
+  icases Hw with (%hn | ⟨-, #Hc, -, %evsw, %d, %HE, #Hlb, #Hpop⟩)
   · exact absurd hlive hn
   ihave %Hag := mvcc.watcherMeta_agree γ w γw γw' $$ Hm Hm'
   subst Hag
@@ -107,40 +108,46 @@ theorem mvcc.cov_entry_synced (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64
   iunfold mvcc.watcherChan at Hc
   icases Hc with ⟨-, -, #Hreg⟩
   have hd := hok.synced_d w γw (evsw, d) hsy HMw HE
+  have hb := hsb w γw (evsw, d) hsy HMw HE
   iexists ⟨w, γw, r, fcs, evsw, d⟩
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, HMw, HE⟩
   iunfold mvcc.covEntry
   iframe Hm Hf Hlb Hwf Hreg
   ipureintro
-  refine ⟨rfl, ?_⟩
   have h1 : σ.Lmu.length ≤ d := (Nat.max_le.1 hd).2
   have : (C.length : Int) ≤ (d : Int) := by exact_mod_cast Nat.le_trans hC h1
-  simp only; omega
+  refine ⟨rfl, by simp only; omega, ?_⟩
+  simp only at hb ⊢
+  rcases hb with hb | hb
+  · left; omega
+  · right; exact hb
 
 /-- **The synced watchers `W` are covered** (K1b): `cov_entry_synced` for each, on the channel `γc`
 of all of them. -/
 theorem mvcc.cov_entries (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C : mvcc.Log)
     (γc : mvcc.WatchChanNames) (hok : mvcc.WsOk σ) (hC : C.length ≤ σ.Lmu.length)
-    (hrev : sint.Z rev + 1 ≤ (C.length : Int)) :
+    (hrev : sint.Z rev + 1 ≤ (C.length : Int))
+    (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1) :
     ∀ W : List Loc, (∀ w ∈ W, (σ.Ws !! w).isSome) →
     □ ([∗map] w ↦ st ∈ σ.ST, mvcc.memberFacts (GF := GF) γ σ w st) ∗
       □ (∀ w : Loc, ⌜w ∈ W⌝ -∗ ∃ γw' : mvcc.WatcherNames, mvcc.watcherMeta γ w γw' ∗ ⌜γw'.wc = γc⌝) ⊢
-      ∃ cs : List mvcc.CovArg, mvcc.covPre γ γc rev cs ∗ ⌜cs.map mvcc.CovArg.w = W⌝
+      ∃ cs : List mvcc.CovArg, mvcc.covPre γ γc rev cs ∗ ⌜cs.map mvcc.CovArg.w = W ∧
+        ∀ c ∈ cs, σ.M !! c.w = some c.γw ∧ σ.E !! c.w = some (c.evsw, c.d)⌝
   | [], _ => by
     iintro -
     iexists []
     isplitl
     · iapply mvcc.covPre_nil
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, fun c hc => by cases hc⟩
   | w :: W, hW => by
     iintro ⟨#HF, #HM⟩
     icases HM $$ %w %List.mem_cons_self with ⟨%γw', #Hm, %Hwc⟩
-    icases mvcc.cov_entry_synced γ σ rev C w γw' hok (hW w List.mem_cons_self) hC hrev
+    icases mvcc.cov_entry_synced γ σ rev C w γw' hok (hW w List.mem_cons_self) hC hrev hsb hrevE
       $$ [$HF $Hm] with ⟨%c, %hc, #Hc⟩
     irevert Hc; rw [Hwc]; iintro #Hc
-    icases mvcc.cov_entries γ σ rev C γc hok hC hrev W (fun x hx => hW x (List.mem_cons_of_mem _ hx))
-      $$ [] with ⟨%cs, #Hcs, %hcs⟩
+    icases mvcc.cov_entries γ σ rev C γc hok hC hrev hsb hrevE W
+      (fun x hx => hW x (List.mem_cons_of_mem _ hx)) $$ [] with ⟨%cs, #Hcs, %hcs⟩
     · isplit
       · iexact HF
       iintro !> %x %hx
@@ -153,7 +160,111 @@ theorem mvcc.cov_entries (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C 
       iunfold mvcc.covPre at Hcs
       iframe Hc Hcs
     ipureintro
-    simp [hc, hcs]
+    obtain ⟨hc1, hc2, hc3⟩ := hc
+    refine ⟨by simp [hc1, hcs.1], fun c' hc' => ?_⟩
+    rcases List.mem_cons.1 hc' with rfl | h
+    · rw [hc1]; exact ⟨hc2, hc3⟩
+    · exact hcs.2 c' h
+
+/-- A list without repetitions, of the same members (the stream's map can name a watcher
+twice; its shares are lent once). -/
+def mvcc.dedupL : List Loc → List Loc
+  | [] => []
+  | x :: xs => if x ∈ xs then mvcc.dedupL xs else x :: mvcc.dedupL xs
+
+theorem mvcc.mem_dedupL {w : Loc} : ∀ {l : List Loc}, w ∈ mvcc.dedupL l ↔ w ∈ l
+  | [] => by simp [mvcc.dedupL]
+  | x :: xs => by
+    unfold mvcc.dedupL
+    split
+    · rw [mvcc.mem_dedupL]
+      constructor
+      · exact List.mem_cons_of_mem _
+      · intro h; rcases List.mem_cons.1 h with rfl | h
+        · assumption
+        · exact h
+    · rw [List.mem_cons, List.mem_cons, mvcc.mem_dedupL]
+
+theorem mvcc.nodup_dedupL : ∀ l : List Loc, (mvcc.dedupL l).Nodup
+  | [] => by simp [mvcc.dedupL]
+  | x :: xs => by
+    unfold mvcc.dedupL
+    split
+    · exact mvcc.nodup_dedupL xs
+    · rename_i h
+      exact List.nodup_cons.2 ⟨fun hm => h (mvcc.mem_dedupL.1 hm), mvcc.nodup_dedupL xs⟩
+
+/-- What a sender of a progress response borrows from a covered watcher's lock share (K2e-4):
+its delivered events' and live fractions. -/
+def mvcc.covLent (q : Qp) (c : mvcc.CovArg) : IProp GF :=
+  iprop(monoListAuthOwn c.γw.evs q c.evsw ∗ dghostVar c.γw.live (DFrac.own q) true)
+
+theorem mvcc.memberRes_lend (γ : mvcc.WsNames) (q : Qp) (σ : mvcc.WsState) (st : mvcc.WatcherSt)
+    (c : mvcc.CovArg) (hl : σ.live c.w) (hm : σ.M !! c.w = some c.γw)
+    (he : σ.E !! c.w = some (c.evsw, c.d)) :
+    mvcc.memberRes (GF := GF) γ q σ c.w st ⊢
+      mvcc.covLent q.half c ∗ (mvcc.covLent q.half c -∗ mvcc.memberRes γ q σ c.w st) := by
+  iintro H
+  iunfold mvcc.memberRes at H
+  icases H with ⟨%γw, %r, %fcs, %HMw, #Hm, #Hf, H⟩
+  rw [hm] at HMw; cases HMw
+  rw [if_pos hl]
+  icases H with ⟨#Hc, #Hfo, %Hsr, %evsw, %d, %HE, Ha, Hlv, #Hpop⟩
+  rw [he] at HE; cases HE
+  iunfold mvcc.covLent
+  iframe Ha Hlv
+  iintro ⟨Ha, Hlv⟩
+  iunfold mvcc.memberRes
+  iexists c.γw, r, fcs
+  iframe Hm Hf
+  isplitr
+  · ipureintro; exact hm
+  rw [if_pos hl]
+  iframe Hc Hfo
+  isplitr
+  · ipureintro; exact Hsr
+  iexists c.evsw, c.d
+  iframe Ha Hlv Hpop
+  ipureintro; exact he
+
+/-- **The covered watchers' shares, lent** (K2e-4): `memberRes_lend` for each (distinct). -/
+theorem mvcc.members_lend (γ : mvcc.WsNames) (q : Qp) (σ : mvcc.WsState) :
+    ∀ (cs : List mvcc.CovArg) (ST : GMap Loc mvcc.WatcherSt), (cs.map mvcc.CovArg.w).Nodup →
+    (∀ c ∈ cs, σ.live c.w ∧ σ.M !! c.w = some c.γw ∧ σ.E !! c.w = some (c.evsw, c.d) ∧
+      (ST !! c.w).isSome) →
+    ([∗map] w ↦ st ∈ ST, mvcc.memberRes (GF := GF) γ q σ w st) ⊢
+      ([∗list] c ∈ cs, mvcc.covLent q.half c) ∗
+        (([∗list] c ∈ cs, mvcc.covLent q.half c) -∗ [∗map] w ↦ st ∈ ST, mvcc.memberRes γ q σ w st)
+  | [], ST, _, _ => by
+    iintro H
+    isplitr
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    iintro -; iexact H
+  | c :: cs, ST, hnd, hf => by
+    obtain ⟨hl, hm, he, hst⟩ := hf c List.mem_cons_self
+    obtain ⟨st, hst'⟩ := Option.isSome_iff_exists.1 hst
+    have hnd' := List.nodup_cons.1 hnd
+    have hf' : ∀ c' ∈ cs, σ.live c'.w ∧ σ.M !! c'.w = some c'.γw ∧
+        σ.E !! c'.w = some (c'.evsw, c'.d) ∧ ((Std.delete ST c.w) !! c'.w).isSome := by
+      intro c' hc'
+      obtain ⟨h1, h2, h3, h4⟩ := hf c' (List.mem_cons_of_mem _ hc')
+      refine ⟨h1, h2, h3, ?_⟩
+      have hne : c.w ≠ c'.w := by
+        intro h; apply hnd'.1; rw [h]; exact List.mem_map.2 ⟨c', hc', rfl⟩
+      show (GMap.delete c.w ST !! c'.w).isSome
+      rw [GMap.lookup_delete_ne _ hne]; exact h4
+    iintro H
+    icases (BigSepM.bigSepM_delete hst').1 $$ H with ⟨Hc, H⟩
+    icases mvcc.memberRes_lend γ q σ st c hl hm he $$ Hc with ⟨Lc, Hcb⟩
+    icases mvcc.members_lend γ q σ cs (Std.delete ST c.w) hnd'.2 hf' $$ H with ⟨Ls, Hb⟩
+    isplitl [Lc Ls]
+    · iapply BigSepL.bigSepL_cons.2; iframe Lc Ls
+    iintro HL
+    icases BigSepL.bigSepL_cons.1 $$ HL with ⟨Lc, Ls⟩
+    iapply (BigSepM.bigSepM_delete hst').2
+    isplitl [Hcb Lc]
+    · iapply Hcb $$ Lc
+    iapply Hb $$ Ls
 
 theorem mvcc.watchableStore.progressIfSync.wp_proof
     (hrev : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG))
@@ -320,18 +431,33 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     obtain ⟨hne, rfl, -, -⟩ := HCr
     have : 0 < Clog.length := List.length_pos_iff.2 hne
     word
-  icases mvcc.cov_entries γ σ r Clog γc Hok HCp.length_le hrevC (keys.filterMap (M !! ·))
+  have hrevE : (σ.Lmu.length : Int) ≤ sint.Z r + 1 := by
+    rw [← hClm]
+    obtain ⟨hne, rfl, h2, h3⟩ := HCr
+    word
+  icases mvcc.cov_entries γ σ r Clog γc Hok HCp.length_le hrevC Hset.1 hrevE
+      (mvcc.dedupL (keys.filterMap (M !! ·)))
       (fun w hw => by
-        obtain ⟨id, -, hid⟩ := List.mem_filterMap.1 hw
-        exact hall id w hid) $$ [] with ⟨%cs, #Hcs, %Hcsw⟩
+        obtain ⟨id, -, hid⟩ := List.mem_filterMap.1 (mvcc.mem_dedupL.1 hw)
+        exact hall id w hid) $$ [] with ⟨%cs, #Hcs, %Hcsw0⟩
   · isplit
     · iexact HF
     iintro !> %w %hw
-    obtain ⟨id, -, hid⟩ := List.mem_filterMap.1 hw
+    obtain ⟨id, -, hid⟩ := List.mem_filterMap.1 (mvcc.mem_dedupL.1 hw)
     icases HM $$ %id %w %hid with ⟨-, %γw2, %rr2, %fcs2, #Hm2, %Hwc2, -⟩
     iexists γw2
     iframe Hm2
     ipureintro; exact Hwc2
+  obtain ⟨Hcsw, Hcsf⟩ := Hcsw0
+  have hcsl : ∀ c ∈ cs, σ.live c.w ∧ σ.M !! c.w = some c.γw ∧ σ.E !! c.w = some (c.evsw, c.d) ∧
+      (σ.ST !! c.w).isSome := by
+    intro c hc
+    have hw : c.w ∈ mvcc.dedupL (keys.filterMap (M !! ·)) := by
+      rw [← Hcsw]; exact List.mem_map.2 ⟨c, hc, rfl⟩
+    obtain ⟨id, -, hid⟩ := List.mem_filterMap.1 (mvcc.mem_dedupL.1 hw)
+    have hl : σ.live c.w := Or.inl (hall id c.w hid)
+    exact ⟨hl, (Hcsf c hc).1, (Hcsf c hc).2, Hok.live_st _ hl⟩
+  have hcsnd : (cs.map mvcc.CovArg.w).Nodup := by rw [Hcsw]; exact mvcc.nodup_dedupL _
   ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
       [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
@@ -361,12 +487,31 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     iNamed HP
     have hlive : σ.live u := Or.inl hsy
     obtain ⟨st0, hst0⟩ := Option.isSome_iff_exists.1 (Hok.live_st u hlive)
-    icases (BigSepM.bigSepM_lookup_acc hst0).1 $$ Hmem with ⟨Hmu, Hmem⟩
     icases (BigSepM.bigSepM_lookup_acc hst0).1 $$ Hst with ⟨Hwu, Hst⟩
-    iunfold mvcc.memberRes at Hmu
-    icases Hmu with ⟨%γw, %rr, %fcs, %HMw, #HmetaW, #HfixW, Hmu⟩
-    rw [if_pos hlive]
-    icases Hmu with ⟨#Hchan, #Hfok, %Hsr, %evsw, %d, %HE, Hevs, Hlv, #Hpop⟩
+    ihave #Hfu := BigSepM.bigSepM_lookup hst0 $$ HF
+    iunfold mvcc.memberFacts at Hfu
+    icases Hfu with ⟨%γw, %rr, %fcs, %HMw, #HmetaW, #HfixW, Hfu⟩
+    icases Hfu with (%hn | ⟨-, #Hchan, #Hfok, %evsw, %d, %HE, -, -⟩)
+    · exact absurd hlive hn
+    -- the covered watchers' shares, lent to the send (K2e-4); `u`'s live fraction among them
+    icases mvcc.members_lend γ sync.rfrac σ cs σ.ST hcsnd hcsl $$ Hmem with ⟨Hlent, Hmemb⟩
+    iunfold mvcc.covLent at Hlent
+    icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ c => monoListAuthOwn (GF := GF) c.γw.evs sync.rfrac.half c.evsw)
+      (Ψ := fun _ c => dghostVar (GF := GF) c.γw.live (DFrac.own sync.rfrac.half) true) (l := cs)).1 $$ Hlent
+      with ⟨Hca, Hlvs⟩
+    obtain ⟨cu, hcu, hcuw⟩ : ∃ cu ∈ cs, cu.w = u := by
+      have hu : u ∈ mvcc.dedupL (keys.filterMap (M !! ·)) :=
+        mvcc.mem_dedupL.2 (List.mem_filterMap.2 ⟨key, (Hkset key).2 (by rw [Hu]; rfl), Hu⟩)
+      rw [← Hcsw] at hu
+      obtain ⟨cu, hcu, h⟩ := List.mem_map.1 hu
+      exact ⟨cu, hcu, h⟩
+    have hγu : cu.γw = γw := by
+      have h := (Hcsf cu hcu).1
+      rw [hcuw, HMw] at h; cases h; rfl
+    icases BigSepL.bigSepL_mem_acc hcu $$ Hlvs with ⟨Hlv, Hlvb⟩
+    irevert Hlv; rw [hγu]; iintro Hlv
+    ihave Hca : mvcc.covAuth sync.rfrac.half cs $$ [Hca]
+    · iunfold mvcc.covAuth; iexact Hca
     iunfold mvcc.watcherOwn at Hwu
     icases Hwu with ⟨Hmin, Hvic, Hcomp, Hres, Hch⟩
     ihave #Hnil := ownSlice_nil (V := Loc) (GF := GF) DFrac.discard
@@ -399,10 +544,11 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       icases Hcm $$ %w0 %hw0 with (⟨%id0, %hid0⟩ | #Hr)
       · ileft; ipureintro
         rw [Hcsw]
-        exact List.mem_filterMap.2 ⟨id0, (Hkset id0).2 (by rw [hid0]; rfl), hid0⟩
+        exact mvcc.mem_dedupL.2 (List.mem_filterMap.2 ⟨id0, (Hkset id0).2 (by rw [hid0]; rfl), hid0⟩)
       · iright; iexact Hr
-    wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs CS)
-      $$ [$Hch $Hlv $HCS] as %b ⟨Hch, Hlv, -, -, HCS⟩
+    wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs
+        sync.rfrac.half CS)
+      $$ [$Hch $Hlv $HCS $Hca] as %b ⟨Hch, Hlv, -, -, Hca, HCS⟩
     · iframe #
       simp only [↓reduceIte, List.zip_nil_left]
       isplitr
@@ -412,21 +558,17 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       isplitr
       · ipureintro; intro _
         rw [Hcsw]
-        exact List.mem_filterMap.2 ⟨key, (Hkset key).2 (by rw [Hu]; rfl), Hu⟩
+        exact mvcc.mem_dedupL.2 (List.mem_filterMap.2 ⟨key, (Hkset key).2 (by rw [Hu]; rfl), Hu⟩)
       ipureintro
       simp
-    ihave Hmu : mvcc.memberRes γ sync.rfrac σ u st0 $$ [Hevs Hlv]
-    · iunfold mvcc.memberRes
-      iexists γw, rr, fcs
-      iframe %HMw
-      iframe #
-      rw [if_pos hlive]
-      iframe #
-      try (isplitr; · ipureintro; exact Hsr)
-      try iexists evsw, d
-      iframe
-      try (ipureintro; exact HE)
-    ihave Hmem := Hmem $$ Hmu
+    irevert Hlv; rw [← hγu]; iintro Hlv
+    ihave Hlvs := Hlvb $$ Hlv
+    iunfold mvcc.covAuth at Hca
+    ihave Hlent := (BigSepL.bigSepL_sep_eqv (Φ := fun _ c => monoListAuthOwn (GF := GF) c.γw.evs sync.rfrac.half c.evsw)
+      (Ψ := fun _ c => dghostVar (GF := GF) c.γw.live (DFrac.own sync.rfrac.half) true) (l := cs)).2 $$ [Hca Hlvs]
+    · iframe Hca Hlvs
+    ihave Hmem := Hmemb $$ [Hlent]
+    · iunfold mvcc.covLent; iexact Hlent
     ihave Hst := Hst $$ [Hmin Hvic Hcomp Hres Hch]
     · iunfold mvcc.watcherOwn; iframe
     ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$

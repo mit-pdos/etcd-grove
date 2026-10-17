@@ -293,15 +293,18 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
             iframe Hm Hf Hlb0 Hwf Hreg
             ipureintro
             rw [hrev]
-            show _ ≤ (((sint.Z stw.minRev).toNat : Nat) : Int)
-            omega
+            refine ⟨?_, Or.inl ?_⟩
+            · show _ ≤ (((sint.Z stw.minRev).toNat : Nat) : Int); omega
+            · show (((sint.Z stw.minRev).toNat : Nat) : Int) ≤ _; omega
           iapply BigSepL.bigSepL_nil.2; iempintro
         · simp only [cs, he, ↓reduceIte]
           iapply mvcc.covPre_nil
       icases mvcc.mv_ev_pre γ γw r evsw b.evs (sint.nat stw.minRev) $$ [$Hev $Hwf] with ⟨HevS, HevK⟩
+      icases (mvcc.mv_covAuth key γw r fcs evsw b.evs (sint.nat stw.minRev)).1 $$ HevK with HevK
       wp_apply (hSend γ key γw r fcs stw.ch (1 : Qp).half (1 : Qp).half evsw (sint.nat stw.minRev) _ ps
-          b.evs (DFrac.own 1) cs iprop(True)) $$ [Hchf Hl HevS Hsl] as %ok ⟨Hchf, Hl, Hsl, HevS, -⟩
-      · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB
+          b.evs (DFrac.own 1) cs (1 : Qp).half iprop(True)) $$ [Hchf Hl HevS Hsl HevK]
+          as %ok ⟨Hchf, Hl, Hsl, HevS, HevK, -⟩
+      · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB HevK
         isplitr
         · iexact Hcp
         isplitr
@@ -314,6 +317,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         refine ⟨Hlen, rfl, fun _ => rfl, ?_, ?_⟩
         · intro ev hev; have := (hevs ev hev).2; simp only; rw [hrev]; omega
         · intro _ ev hev; have := (hevs ev hev).1; omega
+      icases (mvcc.mv_covAuth key γw r fcs evsw b.evs (sint.nat stw.minRev)).2 $$ HevK with HevK
       ihave Hev := mvcc.mv_ev_post γw evsw b.evs ok $$ [$HevS $HevK]
       have hi1 : (i + 1).toNat = i.toNat + 1 := by omega
       have hnvk : NV' !! key = none := by rw [(HPSo key hnot).2, hPBnv key (by rw [hp]; rfl)]

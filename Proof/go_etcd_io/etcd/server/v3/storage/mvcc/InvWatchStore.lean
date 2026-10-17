@@ -583,7 +583,7 @@ def covFact (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) 
     □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
     ⌜(pre.filter (fun y => decide (y.w = w'))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
       (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
-      sint.Z rev + 1 ≤ (d : Int)⌝)
+      sint.Z rev + 1 ≤ (d : Int) ∧ ((d : Int) ≤ sint.Z rev + 1 ∨ d ≤ γw.lo)⌝)
 
 instance covFact_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc)
     (rev : w64) : Persistent (covFact (GF := GF) γ γc pre w' rev) := by
@@ -904,7 +904,8 @@ structure CovArg where
 def covEntry (γ : WsNames) (γc : WatchChanNames) (rev : w64) (c : CovArg) : IProp GF :=
   iprop(watcherMeta γ c.w c.γw ∗ ⌜c.γw.wc = γc⌝ ∗ watcherFixed c.w c.r c.fcs ∗
     monoListLbOwn c.γw.evs c.evsw ∗ evsWf γ c.r c.γw.lo c.evsw c.d ∗
-    ⌜sint.Z rev + 1 ≤ (c.d : Int)⌝ ∗ ghostMapElem γc.reg c.w DFrac.discard ())
+    ⌜sint.Z rev + 1 ≤ (c.d : Int) ∧ ((c.d : Int) ≤ sint.Z rev + 1 ∨ c.d ≤ c.γw.lo)⌝ ∗
+    ghostMapElem γc.reg c.w DFrac.discard ())
 
 instance covEntry_persistent (γ : WsNames) (γc : WatchChanNames) (rev : w64) (c : CovArg) :
     Persistent (covEntry (GF := GF) γ γc rev c) := by
@@ -912,6 +913,15 @@ instance covEntry_persistent (γ : WsNames) (γc : WatchChanNames) (rev : w64) (
 
 def covPre (γ : WsNames) (γc : WatchChanNames) (rev : w64) (cs : List CovArg) : IProp GF :=
   [∗list] c ∈ cs, covEntry γ γc rev c
+
+/-- **The covered watchers' delivered events, lent** (K2e-4): a fraction `q` of each one's
+delivered events' authority, at the sender's `c.evsw`. While the sender holds it, the channel's
+record of the watcher's events is the sender's (`cov_one`). -/
+def covAuth (q : Qp) (cs : List CovArg) : IProp GF :=
+  [∗list] c ∈ cs, monoListAuthOwn c.γw.evs q c.evsw
+
+theorem covAuth_nil (q : Qp) : ⊢ covAuth (GF := GF) q [] := by
+  unfold covAuth; iapply BigSepL.bigSepL_nil.2; iempintro
 
 theorem covPre_nil (γ : WsNames) (γc : WatchChanNames) (rev : w64) :
     ⊢ covPre (GF := GF) γ γc rev [] := by
@@ -925,12 +935,13 @@ open Iris.ProofMode in
 /-- **One covered watcher** (K1b): from the sender's `covEntry` and the channel's entry for the
 watcher, its coverage of the responses `sent` so far. -/
 theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : List RespM)
-    (L : List Loc) (rev : w64) (c : CovArg) :
-    covEntry (GF := GF) γ γc rev c ∗ ghostMapAuth γc.reg 1 (regMap L) ∗
+    (L : List Loc) (rev : w64) (q : Qp) (c : CovArg) :
+    covEntry (GF := GF) γ γc rev c ∗ monoListAuthOwn c.γw.evs q c.evsw ∗
+      ghostMapAuth γc.reg 1 (regMap L) ∗
       ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ⊢
-    ghostMapAuth γc.reg 1 (regMap L) ∗
+    monoListAuthOwn c.γw.evs q c.evsw ∗ ghostMapAuth γc.reg 1 (regMap L) ∗
       ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ∗ covFact γ γc sent c.w rev := by
-  iintro ⟨Hce, Hreg, Hws⟩
+  iintro ⟨Hce, Hq, Hreg, Hws⟩
   iunfold covEntry at Hce
   icases Hce with ⟨#Hm, %Hwc, #Hf, #Hlb, #Hwf, %Hrev, #Hreg1⟩
   ihave %Hl := ghost_map_lookup $$ Hreg Hreg1
@@ -949,21 +960,14 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
     · iexact Hf'
   obtain ⟨hr, hfcs⟩ := Hfx
   subst hr; subst hfcs
-  ihave %Hpre := mono_list_auth_lb_valid _ _ _ _ $$ Ha' Hlb
+  -- the sender's fraction: the channel's events are the sender's (K2e-4)
+  ihave %Hag := monoListAuthOwn_agree _ _ _ _ _ $$ Ha' Hq
   ihave #Hcov : covFact γ γc sent c.w rev $$ []
-  · iunfold evsWf at Hwf Hwf'
+  · iunfold evsWf at Hwf
     icases Hwf with ⟨%L0, #HL0, %Hev0⟩
-    icases Hwf' with ⟨%L1, #HL1, %Hev1⟩
-    ihave %Hc := evLog_cmp _ _ _ $$ HL0 HL1
-    obtain ⟨L2, d2, hE, hb, hdd, hL⟩ := watchEvents_cover Hc c.r Hev0.2 Hev1.2
-      (by rw [← Hev0.1, ← Hev1.1]; exact Hpre.2)
-    ihave #HL2 : evLog γ.st L2 $$ []
-    · rcases hL with rfl | rfl
-      · iexact HL0
-      · iexact HL1
     iunfold covFact
-    iexists c.γw, c.r, c.fcs, D, L2, d2
-    iframe Hm Hf HL2
+    iexists c.γw, c.r, c.fcs, D, L0, c.d
+    iframe Hm Hf HL0
     isplitr
     · ipureintro; exact Hwc
     isplitr
@@ -972,10 +976,8 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
       icases BigSepL.bigSepL_mem_acc hdl $$ HDs with ⟨H, -⟩
       iexact H
     ipureintro
-    refine ⟨HD.2, HD.1.trans (Hev1.1.trans hE), hb, ?_⟩
-    have : (c.d : Int) ≤ (d2 : Int) := by exact_mod_cast hdd
-    omega
-  iframe Hreg Hcov
+    exact ⟨HD.2, HD.1.trans (Hag.2.trans Hev0.1), Hev0.2, Hrev⟩
+  iframe Hq Hreg Hcov
   iapply Hback
   iunfold chanWatcher
   iexists c.γw, c.r, c.fcs, evsw', D, d'
@@ -986,25 +988,30 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
 open Iris.ProofMode in
 /-- **Every covered watcher** (K1b): `cov_one` for each. -/
 theorem cov_list (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : List RespM)
-    (L : List Loc) (rev : w64) :
-    ∀ cs : List CovArg, covPre (GF := GF) γ γc rev cs ∗ ghostMapAuth γc.reg 1 (regMap L) ∗
+    (L : List Loc) (rev : w64) (q : Qp) :
+    ∀ cs : List CovArg, covPre (GF := GF) γ γc rev cs ∗ covAuth q cs ∗
+      ghostMapAuth γc.reg 1 (regMap L) ∗
       ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ⊢
-    ghostMapAuth γc.reg 1 (regMap L) ∗
+    covAuth q cs ∗ ghostMapAuth γc.reg 1 (regMap L) ∗
       ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ∗
       □ ([∗list] c ∈ cs, covFact γ γc sent c.w rev)
   | [] => by
     unfold covPre
-    iintro ⟨-, Hreg, Hws⟩
-    iframe Hreg Hws
+    iintro ⟨-, Hq, Hreg, Hws⟩
+    iframe Hq Hreg Hws
     iintro !>; iapply BigSepL.bigSepL_nil.2; iempintro
   | c :: cs => by
-    unfold covPre
-    iintro ⟨#Hp, Hreg, Hws⟩
+    unfold covPre covAuth
+    iintro ⟨#Hp, Hq, Hreg, Hws⟩
     icases BigSepL.bigSepL_cons.1 $$ Hp with ⟨Hc, Hp'⟩
-    icases cov_one γ γc closed sent L rev c $$ [$Hc $Hreg $Hws] with ⟨Hreg, Hws, #Hcf⟩
-    icases cov_list γ γc closed sent L rev cs $$ [Hreg Hws] with ⟨Hreg, Hws, #Hcfs⟩
-    · unfold covPre; iframe Hp' Hreg Hws
+    icases BigSepL.bigSepL_cons.1 $$ Hq with ⟨Hq1, Hq⟩
+    icases cov_one γ γc closed sent L rev q c $$ [$Hc $Hq1 $Hreg $Hws] with ⟨Hq1, Hreg, Hws, #Hcf⟩
+    icases cov_list γ γc closed sent L rev q cs $$ [Hq Hreg Hws] with ⟨Hq, Hreg, Hws, #Hcfs⟩
+    · unfold covPre covAuth; iframe Hp' Hq Hreg Hws
+    iunfold covAuth at Hq
     iframe Hreg Hws
+    isplitl [Hq1 Hq]
+    · iapply BigSepL.bigSepL_cons.2; iframe Hq1 Hq
     iintro !>
     iapply BigSepL.bigSepL_cons.2
     iframe Hcf Hcfs

@@ -1296,6 +1296,22 @@ theorem mv_ev_pre (γ : WsNames) (γw : WatcherNames) (r : WatchRange) (evsw evs
   · simp only [h, ↓reduceIte]; iintro ⟨H, -⟩; iframe H
   · simp only [h, ↓reduceIte]; iintro ⟨H1, H2⟩; iframe H1 H2
 
+/-- The kept half of the delivered events, as what an empty batch lends `send` with its own
+coverage (K2e-4). -/
+theorem mv_covAuth (key : Loc) (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
+    (evsw evs : List EvM) (d : Nat) :
+    (if evs = [] then monoListAuthOwn (GF := GF) γw.evs (1 : Qp).half evsw else iprop(True)) ⊣⊢
+      covAuth (1 : Qp).half (if evs = [] then [⟨key, γw, r, fcs, evsw, d⟩] else []) := by
+  by_cases h : evs = []
+  · simp only [h, ↓reduceIte, covAuth]
+    constructor
+    · iintro H; iapply BigSepL.bigSepL_cons.2; iframe H; iapply BigSepL.bigSepL_nil.2; iempintro
+    · iintro H; icases BigSepL.bigSepL_cons.1 $$ H with ⟨H, -⟩; iexact H
+  · simp only [h, ↓reduceIte, covAuth]
+    constructor
+    · iintro -; iapply BigSepL.bigSepL_nil.2; iempintro
+    · iintro -; itrivial
+
 /-- The delivered events after `send` (unchanged for no events). -/
 theorem mv_ev_post (γw : WatcherNames) (evsw evs : List EvM) (ok : Bool) :
     (if evs = [] then iprop(True) else

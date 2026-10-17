@@ -333,8 +333,8 @@ end mvcc
 
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
-  intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs CS
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, %Hown, Hidp, #Hidc,
+  intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs qa CS
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, %Hown, Hidp, #Hidc,
     %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
   ihave #Hfix' := Hfix
@@ -619,7 +619,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
     imodintro
     iapply HΦ
     simp only [↓reduceIte, hA.1]
-    iframe Hch Hlive Hsl Hevs Hidp
+    iframe Hch Hlive Hsl Hevs Hca Hidp
   · -- the send
     have hsend : Deliv.sent (evm, mvcc.filtered fs evm) = true := by
       by_cases he : evm = []
@@ -662,8 +662,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
             iNamed Hi
             ihave %Hwl := mvcc.reg_mem _ _ _ $$ Hreg Hregw
             -- what the response covers (K1b): the channel's entries before the send
-            icases mvcc.cov_list γ γw.wc (mvcc.chanIsClosed s) sent L wr.Revision' cs
-              $$ [$Hcov $Hreg $Hws] with ⟨Hreg, Hws, #Hcf⟩
+            icases mvcc.cov_list γ γw.wc (mvcc.chanIsClosed s) sent L wr.Revision' qa cs
+              $$ [$Hcov $Hca $Hreg $Hws] with ⟨Hca, Hreg, Hws, #Hcf⟩
             -- the response's id: `w`'s own (not `-1`: the registration), or with the progress fact
             -- and (K1b) the channel's registered watchers, each covered or cancelled for its reason
             ihave %Hrid : ⌜r.id ≠ W64 (-1)⌝ $$ []
@@ -778,7 +778,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               wp_auto
               iapply HΦ
               simp only [↓reduceIte]
-              iframe Hch Hlive Hsl Hevs Hidp
+              iframe Hch Hlive Hsl Hevs Hca Hidp
           · itrivial
         · iapply BigAndL.bigAndL_nil.2
           itrivial
@@ -788,7 +788,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
         ihave Hevs := mvcc.evs_drop evm _ _ $$ Hevs
         iapply HΦ
         simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe Hch Hlive Hsl Hevs Hidp
+        iframe Hch Hlive Hsl Hevs Hca Hidp
 
 end proof
 
