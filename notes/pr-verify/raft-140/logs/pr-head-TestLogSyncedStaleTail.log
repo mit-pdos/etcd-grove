@@ -1,0 +1,7 @@
+--- FAIL: TestLogSyncedStaleTail (0.00s)
+    logsynced_repro_test.go:42: committed entry 4 has term 2; the leader's entry 4 has term 3
+    logsynced_repro_test.go:42: committed entry 5 has term 2; the leader's entry 5 has term 3
+    logsynced_repro_test.go:42: committed entry 6 has term 2; the leader's entry 6 has term 3
+FAIL
+FAIL	go.etcd.io/raft/v3	0.055s
+FAIL

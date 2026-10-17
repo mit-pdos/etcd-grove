@@ -1,0 +1,5 @@
+--- FAIL: TestStaleTermAppRespRegressesNext (0.00s)
+    staleack_repro_test.go:40: leader took the reply to a term-2 MsgApp as an acceptance: Progress[3] = StateReplicate match=0 next=5 inflight=1
+FAIL
+FAIL	go.etcd.io/raft/v3	0.013s
+FAIL

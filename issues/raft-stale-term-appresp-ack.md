@@ -25,7 +25,7 @@ it is still probing the follower (`StateProbe`, `Match = 0`), it moves to `State
 although the follower may hold all of it.
 
 Reproduction: `TestStaleTermAppRespRegressesNext`, in
-`notes/pr-verify/raft-140-tests/fork-v3.7/staleack_repro_test.go`. Copy it into the pinned raft checkout
+`notes/pr-verify/raft-140/fork-v3.7/staleack_repro_test.go`. Copy it into the pinned raft checkout
 and run `go test -run TestStaleTermAppRespRegressesNext .`. It fails with
 `Progress[3] = StateReplicate match=0 next=5 inflight=1`: the leader sent entries 1..4.
 

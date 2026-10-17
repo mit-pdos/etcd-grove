@@ -1,0 +1,13 @@
+--- a/raft.go
++++ b/raft.go
+@@ -1733,7 +1733,9 @@
+ 		return
+ 	}
+ 	if mlastIndex, ok := r.raftLog.maybeAppend(m.Index, m.LogTerm, m.Commit, m.Entries...); ok {
+-		r.logSynced = true // from now on, the log is a prefix of the leader's log
++		if mlastIndex == r.raftLog.lastIndex() {
++			r.logSynced = true // the whole log is now known to be a prefix of the leader's
++		}
+ 		r.send(pb.Message{To: m.From, Type: pb.MsgAppResp, Index: mlastIndex})
+ 		return
+ 	}

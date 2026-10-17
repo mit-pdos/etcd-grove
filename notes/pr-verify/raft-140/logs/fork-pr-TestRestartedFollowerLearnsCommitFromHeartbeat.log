@@ -1,0 +1,5 @@
+--- FAIL: TestRestartedFollowerLearnsCommitFromHeartbeat (0.00s)
+    restart_repro_test.go:54: follower committed = 3 after 5 heartbeat rounds, want 4
+FAIL
+FAIL	go.etcd.io/raft/v3	0.006s
+FAIL

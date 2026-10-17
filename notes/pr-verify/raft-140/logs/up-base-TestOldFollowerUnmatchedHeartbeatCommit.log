@@ -1,0 +1,7 @@
+--- FAIL: TestOldFollowerUnmatchedHeartbeatCommit (0.00s)
+    mixedversion_repro_test.go:34: committed entry 4 has term 2; the leader's entry 4 has term 3
+    mixedversion_repro_test.go:34: committed entry 5 has term 2; the leader's entry 5 has term 3
+    mixedversion_repro_test.go:34: committed entry 6 has term 2; the leader's entry 6 has term 3
+FAIL
+FAIL	go.etcd.io/raft/v3	0.011s
+FAIL

@@ -1,0 +1,5 @@
+--- FAIL: TestLogSyncedBogusAckStaleTail (0.00s)
+    logsynced_bogusack_repro_test.go:103: follower committed entry 4 of term 3; the leader's (committed) entry 4 has term 4
+FAIL
+FAIL	go.etcd.io/raft/v3	0.030s
+FAIL

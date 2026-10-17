@@ -157,9 +157,9 @@ end).
 
 ## Findings
 
-All tests are in `notes/pr-verify/raft-140-tests/`. They are copied into a checkout of the named
-revision and run with `go test -run <Name> .`. Each one fails on the code it names, showing the
-problem.
+All tests, their logs, and the reviewer's fix variant (as a diff) are in `notes/pr-verify/raft-140/`.
+Its `README.md` gives the revision each test runs against, the command, and the result. Each
+test fails on the code it names, showing the problem.
 
 1. **The PR's safety bug: a stale tail is committed** (high). The follower-side claim "after
    the first accepted `MsgApp`, the log is a prefix of the leader's" is false. `maybeAppend`
@@ -180,7 +180,7 @@ problem.
    - **Fixes:**
      - commit at most `min(m.Commit, syncedIndex)`, with `syncedIndex` the highest `mlastIndex`
        accepted in the term; or
-     - set `logSynced` only when `mlastIndex == lastIndex()`. The reviewer checked this one:
+     - set `logSynced` only when `mlastIndex == lastIndex()` (`notes/pr-verify/raft-140/fix-logsynced-at-lastindex.diff`). The reviewer checked this one:
        existing tests pass, the fuzzer finds nothing in 3000 seeds, and both repros stop at
        "logSynced = false".
 2. **Mixed versions: silent divergence, not only a crash** (high for the rollout). Suppose the

@@ -1,0 +1,9 @@
+=== RUN   TestLogSyncedBogusAckStaleTail
+    logsynced_bogusack_repro_test.go:78: logSynced = false
+--- FAIL: TestLogSyncedBogusAckStaleTail (0.00s)
+=== RUN   TestLogSyncedStaleTail
+    logsynced_repro_test.go:32: logSynced = false
+--- FAIL: TestLogSyncedStaleTail (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.010s
+FAIL
