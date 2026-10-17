@@ -17,6 +17,21 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency
 
+section defs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- The deferred calls `df` (the `defer` slot's closure) may run, and return. -/
+def deferOk (df : GoFunc) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #() -∗ WP (App (Val #df) (Val #())) {{ Φ }})
+
+instance deferOk_persistent (df : GoFunc) : Persistent (deferOk (GF := GF) df) := by
+  unfold deferOk; infer_instance
+
+end defs
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -30,6 +45,8 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
     NewSession.spec (GF := GF) (hG := hG) := by
   intro client cctx sl gs pctx pcs
   wp_start as ⟨#Hcl, #Hopts, %Hpc, #Hpctx, #Hpcc⟩
+  wp_apply wp_with_defer
+  iintro %defer Hdefer
   ihave #Hcl' := Hcl
   iunfold isEtcdSessionClient at Hcl'
   icases Hcl' with ⟨#Hcf, #Hlease, #Hlg⟩
@@ -77,7 +94,7 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
   have Hge : sint.nat n = gs.length := by rw [← Hlen]; word
   rw [Hge, List.take_length]
   generalize hO : sessOptsFold gs (SessionOpts.init cctx) = O at Hpc ⊢
-  obtain ⟨ottl, olid, octx⟩ := O
+  obtain ⟨ottl, olid, octx, oct⟩ := O
   simp only at Hpc
   subst Hpc
   generalize hoptsp : «$r0_ptr» = optsp
@@ -94,13 +111,41 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
   ihave #Hl2 := Hl
   iunfold isEtcdLease at Hl2
   icases Hl2 with ⟨#HGrant, #HKA, -⟩
+  wp_join iprop(∃ (sctx : GoInterfaceOk) (scs : context.ContextDesc (IProp GF)) (df : GoFunc),
+      ops_ptr ↦ optsp ∗ sessionCreationCtx_ptr ↦ GoInterface.ok sctx ∗ defer ↦ df ∗
+      context.isContext sctx scs ∗ deferOk df) with [Hdefer sessionCreationCtx ops]
+      as ⟨%sctx, %scs, %df, ops, sessionCreationCtx, Hdefer, #Hsctx, #Hdf⟩
+  · (try wp_auto)
+    wp_apply context.wp_WithTimeout pctx pcs oct $$ [] as %tctx %γt %tcancel %dl ⟨#Htc, #Htctx⟩
+    · iframe #
+    (try wp_auto)
+    wp_join_done
+    iexists tctx, _, _
+    iframe ops sessionCreationCtx Hdefer Htctx
+    unfold deferOk
+    imodintro
+    iintro %Ψ HΨ
+    (try wp_auto)
+    wp_apply Htc
+    (try wp_auto)
+    iexact HΨ
+  · iexists pctx, pcs, _
+    iframe ops sessionCreationCtx Hdefer Hpctx
+    unfold deferOk
+    imodintro
+    iintro %Ψ HΨ
+    (try wp_auto)
+    iexact HΨ
+  iunfold deferOk at Hdf
   wp_if_destruct
   · (try wp_auto)
-    wp_apply HGrant $$ [$Hpctx] as %resp %err Hres
+    wp_apply HGrant $$ [$Hsctx] as %resp %err Hres
     icases Hres with (%Herr | ⟨%Herr, %gid, %hdr, %r, #HID, %Hid, #Hhdr, %Hhdrnn, #Hrev, #Hreached⟩)
     · cases err with
       | nil => exact absurd rfl Herr
       | ok e =>
+        (try wp_auto)
+        wp_apply Hdf
         (try wp_auto)
         iapply HΦ
         ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
@@ -118,6 +163,8 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
           (try wp_auto)
           wp_apply Hcancel'
           · imodintro; itrivial
+          (try wp_auto)
+          wp_apply Hdf
           (try wp_auto)
           iapply HΦ; ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
       · subst Herr
@@ -184,6 +231,8 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
             wp_for_post
             iframe
         (try wp_auto)
+        wp_apply Hdf
+        (try wp_auto)
         iapply HΦ
         iright
         isplitr
@@ -191,12 +240,17 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
         iexists ⟨γd⟩, gid
         isplitl
         · unfold isSession
-          iexists optsp, { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx }, pctx, pcs, ctx', _,
+          iexists optsp, { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx, creationTimeout := oct }, pctx, pcs, ctx', _,
             cancel, dch
           unfold SessionOpts.val cancelSpec sessionDoneChan
           iframe #
-          ipureintro; exact ⟨rfl, (⟨Hid, fun h => absurd rfl h⟩ : sessionLeaseOk { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx } gid).1⟩
-        · ipureintro; exact (⟨Hid, fun h => absurd rfl h⟩ : sessionLeaseOk { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx } gid)
+          ipureintro; exact ⟨rfl, (⟨Hid, fun h => absurd rfl h⟩ : sessionLeaseOk { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx, creationTimeout := oct } gid).1⟩
+        · isplitr
+          · ipureintro; exact (⟨Hid, fun h => absurd rfl h⟩ : sessionLeaseOk { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx, creationTimeout := oct } gid)
+          · unfold sessionCtxOf
+            iexists ctx', _
+            iframe #
+            ipureintro; exact ⟨rfl, rfl⟩
   · (try wp_auto)
     wp_apply context.wp_WithCancel iprop(True) pctx pcs $$ [$Hpctx $Hpcc]
         as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
@@ -210,6 +264,8 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
         (try wp_auto)
         wp_apply Hcancel'
         · imodintro; itrivial
+        (try wp_auto)
+        wp_apply Hdf
         (try wp_auto)
         iapply HΦ; ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
     · subst Herr
@@ -276,6 +332,8 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
           wp_for_post
           iframe
       (try wp_auto)
+      wp_apply Hdf
+      (try wp_auto)
       iapply HΦ
       iright
       isplitr
@@ -283,13 +341,50 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
       iexists ⟨γd⟩, olid
       isplitl
       · unfold isSession
-        iexists optsp, { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx }, pctx, pcs, ctx', _,
+        iexists optsp, { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx, creationTimeout := oct }, pctx, pcs, ctx', _,
           cancel, dch
         unfold SessionOpts.val cancelSpec sessionDoneChan
         iframe #
-        ipureintro; exact ⟨rfl, (⟨‹¬olid = W64 0›, fun _ => rfl⟩ : sessionLeaseOk { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx } olid).1⟩
-      · ipureintro; exact (⟨‹¬olid = W64 0›, fun _ => rfl⟩ : sessionLeaseOk { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx } olid)
+        ipureintro; exact ⟨rfl, (⟨‹¬olid = W64 0›, fun _ => rfl⟩ : sessionLeaseOk { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx, creationTimeout := oct } olid).1⟩
+      · isplitr
+        · ipureintro; exact (⟨‹¬olid = W64 0›, fun _ => rfl⟩ : sessionLeaseOk { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx, creationTimeout := oct } olid)
+        · unfold sessionCtxOf
+          iexists ctx', _
+          iframe #
+          ipureintro; exact ⟨rfl, rfl⟩
 
+
+/-- **`NewSession`'s spec before etcd-io/etcd#16385** (`lean`, `Spec/.../NewSession.lean` there),
+restated over the options with the creation timeout: the same, without `sessionCtxOf`. -/
+abbrev NewSession.spec_old : Prop :=
+  ∀ (client : Loc) (cctx : GoInterface) (sl : GoSlice) (gs : List (SessionOpts → SessionOpts))
+    (pctx : GoInterfaceOk) (pcs : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdSessionClient client cctx ∗ sessOptsAt sl gs ∗
+      ⌜(sessOptsFold gs (SessionOpts.init cctx)).ctx = GoInterface.ok pctx⌝ ∗
+      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSession)) (Val #client)) (Val #sl))
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
+      ⌜s = null ∧ err ≠ GoInterface.nil⌝ ∨
+      (⌜err = GoInterface.nil ∧ s ≠ null⌝ ∗ ∃ (γ : SessionNames) (id : w64),
+        isSession s γ client id ∗ ⌜sessionLeaseOk (sessOptsFold gs (SessionOpts.init cctx)) id⌝) }}
+
+/-- The new spec is compatible: it implies the old one (it adds `sessionCtxOf`). -/
+theorem NewSession.spec_implies_old (h : NewSession.spec (GF := GF) (hG := hG)) :
+    NewSession.spec_old (GF := GF) (hG := hG) := by
+  intro client cctx sl gs pctx pcs
+  iintro %Φ Hpre HΦ
+  iapply h client cctx sl gs pctx pcs $$ Hpre
+  inext
+  iintro %s %err Hpost
+  iapply HΦ
+  icases Hpost with (H | ⟨%Hok, %γ, %id, #Hs, %Hid, -⟩)
+  · ileft; iexact H
+  · iright
+    isplitr
+    · ipureintro; exact Hok
+    iexists γ, id
+    iframe Hs
+    ipureintro; exact Hid
 
 end proof
 

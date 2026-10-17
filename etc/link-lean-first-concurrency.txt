@@ -47,6 +47,7 @@ zap_Int64:
 Logger__Warn:
 # Session (client/v3/concurrency/session.go), see InvSession.lean.
 concurrency_WithTTL: zap_Int64 Logger__Warn
+concurrency_WithCreationTimeout: zap_Int64 Logger__Warn
 concurrency_WithLease:
 WithContext:
 NewSession: Client__GetLogger Client__Ctx

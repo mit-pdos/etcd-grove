@@ -4,10 +4,11 @@
 
 **Options.** A `SessionOption` is a closure on `(*sessionOptions, *zap.Logger)`;
 `sessionOptSpec f g` says that `f` changes options modelled by `o` (`SessionOpts`: the TTL, the
-lease ID, the context) into `g o`, given a non-nil logger; `sessOptsAt sl gs` that the
+lease ID, the context, the creation timeout) into `g o`, given a non-nil logger; `sessOptsAt sl gs` that the
 read-only slice `sl` holds closures with the transformers `gs`. `NewSession` starts from
 `{ttl: 60, ctx: client.Ctx()}` (`SessionOpts.init`) and applies them in order
-(`sessOptsFold`). `WithTTL(ttl)` keeps the TTL (and logs a warning) unless `ttl > 0`.
+(`sessOptsFold`). `WithTTL(ttl)` keeps the TTL (and logs a warning) unless `ttl > 0`;
+`WithCreationTimeout(d)` (etcd-io/etcd#16385) likewise keeps the creation timeout unless `d > 0`.
 
 **The client** (`isEtcdSessionClient client cctx`): its `ctx` field holds `cctx` for good, its
 `Lease` field a lease client (`isEtcdLeaseClient`, `InvEtcdTxn.lean`), its logger is non-nil
@@ -18,7 +19,9 @@ options (whose context is a context), the lease `id` (not `NoLease`), the sessio
 child of the options' context, `WithCancel`), its cancel function (callable any number of
 times), and its done channel `donec` (a broadcast channel, `Perennial`'s `Broadcast` idiom,
 closed by the keep-alive goroutine once the keep-alive stream ends, which then cancels the
-session's context). `sessionDone s γ` (persistent) says that `donec` is closed: what `Orphan`
+session's context). `sessionCtxOf s cd` (persistent) says that the session's context has the
+values and the deadline of the context descriptor `cd` (`NewSession` gives it for the options'
+context's descriptor: the session's context is not the creation timeout's). `sessionDone s γ` (persistent) says that `donec` is closed: what `Orphan`
 and `Close` return. Nothing about the lease's liveness: the keep-alive stream is
 `isChanAny` (any response or the close), so a session may end at any time.
 -/
@@ -46,15 +49,17 @@ open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency
 section model
 variable [ext : FfiSyntax]
 
-/-- `sessionOptions`: the lease's TTL (seconds), an existing lease (`0`: none), the context. -/
+/-- `sessionOptions`: the lease's TTL (seconds), an existing lease (`0`: none), the context, the
+timeout for creating the session (a `time.Duration`; `0`: none). -/
 structure SessionOpts where
   ttl : w64
   leaseID : w64
   ctx : GoInterface
+  creationTimeout : w64
 
 /-- What `NewSession` starts from: `&sessionOptions{ttl: defaultSessionTTL, ctx: client.Ctx()}`. -/
 def SessionOpts.init (cctx : GoInterface) : SessionOpts :=
-  { ttl := W64 60, leaseID := W64 0, ctx := cctx }
+  { ttl := W64 60, leaseID := W64 0, ctx := cctx, creationTimeout := W64 0 }
 
 /-- The options' transformers applied in order (`NewSession`'s loop). -/
 def sessOptsFold (gs : List (SessionOpts → SessionOpts)) (o : SessionOpts) : SessionOpts :=
@@ -64,6 +69,11 @@ def sessOptsFold (gs : List (SessionOpts → SessionOpts)) (o : SessionOpts) : S
 def withTTLM (ttl : w64) (o : SessionOpts) : SessionOpts :=
   if 0 < sint.Z ttl then { o with ttl := ttl } else o
 
+/-- `WithCreationTimeout(d)`: the creation timeout, if positive (otherwise it is kept, and a
+warning logged). -/
+def withCreationTimeoutM (d : w64) (o : SessionOpts) : SessionOpts :=
+  if 0 < sint.Z d then { o with creationTimeout := d } else o
+
 /-- `WithLease(id)` -/
 def withLeaseSM (id : w64) (o : SessionOpts) : SessionOpts := { o with leaseID := id }
 
@@ -72,7 +82,7 @@ def withContextM (c : GoInterface) (o : SessionOpts) : SessionOpts := { o with c
 
 /-- The `sessionOptions` value modelled by `o`. -/
 def SessionOpts.val (o : SessionOpts) : sessionOptions :=
-  { ttl' := o.ttl, leaseID' := o.leaseID, ctx' := o.ctx }
+  { ttl' := o.ttl, leaseID' := o.leaseID, ctx' := o.ctx, creationTimeout' := o.creationTimeout }
 
 /-- The session's lease `id`, for the options `o`: not `NoLease`, and the options' lease if they
 name one (otherwise a granted one). -/
@@ -242,6 +252,18 @@ set_option synthInstance.maxHeartbeats 200000 in
 instance isSession_persistent (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) :
     Persistent (isSession (GF := GF) s γ client id) := by
   unfold isSession; infer_instance
+
+/-- **The session's context has the values and the deadline of `cd`** (persistent): with `cd`
+the options' context's descriptor (`NewSession`), the session's context is derived from the
+options' context alone, not from the creation timeout's (whose deadline is new). -/
+def sessionCtxOf (s : Loc) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(∃ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+    structFieldRef Session go!"ctx" s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cs ∗
+    ⌜cs.Values = cd.Values ∧ cs.Deadline = cd.Deadline⌝)
+
+instance sessionCtxOf_persistent (s : Loc) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (sessionCtxOf (GF := GF) s cd) := by
+  unfold sessionCtxOf; infer_instance
 
 /-- **The session has ended** (persistent): its done channel is closed (the keep-alive stream
 ended, or the session was orphaned; its context is then canceled). -/

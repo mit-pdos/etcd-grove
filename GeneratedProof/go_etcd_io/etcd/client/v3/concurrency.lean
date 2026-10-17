@@ -440,6 +440,7 @@ instance sessionOptions_typed_pointsto :
     "ttl" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' dq ∗
     "leaseID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' dq ∗
     "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' dq ∗
+    "creationTimeout" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"creationTimeout" l) v.creationTimeout' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -494,6 +495,22 @@ instance sessionOptions_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) ctx' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := ctx' } : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sessionOptions_access_load_creationTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"creationTimeout" l) v.creationTimeout' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"creationTimeout" l) v.creationTimeout' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sessionOptions_access_store_creationTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (creationTimeout' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"creationTimeout" l) v.creationTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"creationTimeout" l) creationTimeout' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with creationTimeout' := creationTimeout' } : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

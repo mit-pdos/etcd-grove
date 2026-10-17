@@ -171,6 +171,9 @@ noncomputable def NewSession [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def WithTTL [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithTTL"
 
+noncomputable def WithCreationTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3/concurrency.WithCreationTimeout"
+
 noncomputable def WithLease [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.WithLease"
 
@@ -1584,7 +1587,8 @@ noncomputable def NewLocker.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam "opts"
-  (App (Val exceptionDo)
+  (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType SessionOption.ty)))) (Var "opts"))
   (Let "client" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))) (Val #()))
@@ -1594,6 +1598,10 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral sessionOptions.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ttl")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ctx")) (ElementExpression _root_.Perennial.context.Context.ty (Var "$v1")))])))))
   (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sessionOptions.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType sessionOptions.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "ops"))))
+  (Let "sessionCreationCtx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"leaseID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "ops"))))
@@ -1689,7 +1697,7 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "id")) (Val _root_.Perennial.go_etcd_io.etcd.client.v3.NoLease))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "ops"))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "sessionCreationCtx"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ttl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "ops")))))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Lease.ty go!"Grant"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Lease.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Lease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))))) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -1717,6 +1725,31 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Pair (Var "id") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"creationTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "ops")))) (Val #(W64 0)))))
+  (Let "creationCancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "ops"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"creationTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "ops"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "creationCancel"))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #())))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "creationCancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "sessionCreationCtx") (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "sessionCreationCtx") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType SessionOption.ty)))) (Var "opts"))
   (Let "opt" (App (Val (GoInstruction (GoAlloc SessionOption.ty))) (App (Val (GoInstruction (GoZeroVal SessionOption.ty))) (Val #())))
   (App (App (Val (slice.forRange SessionOption.ty)) (Var "$range"))
@@ -1735,11 +1768,11 @@ noncomputable def NewSession.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType sessionOptions.ty)))) (Pair (Var "ops") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))))))
 
 /-- Client is the etcd client that is attached to the session.
 
-    go: session.go:82:19 -/
+    go: session.go:89:19 -/
 noncomputable def Session.Client.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1750,7 +1783,7 @@ noncomputable def Session.Client.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Lease is the lease ID for keys bound to the session.
 
-    go: session.go:87:19 -/
+    go: session.go:94:19 -/
 noncomputable def Session.Lease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1762,7 +1795,7 @@ noncomputable def Session.Lease.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Ctx is the context attached to the session, it is canceled when the lease is orphaned, expires, or
     is otherwise no longer being refreshed.
 
-    go: session.go:91:19 -/
+    go: session.go:98:19 -/
 noncomputable def Session.Ctx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1774,7 +1807,7 @@ noncomputable def Session.Ctx.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Done returns a channel that closes when the lease is orphaned, expires, or
     is otherwise no longer being refreshed.
 
-    go: session.go:97:19 -/
+    go: session.go:104:19 -/
 noncomputable def Session.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1787,7 +1820,7 @@ noncomputable def Session.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
     in case the state of the client connection is indeterminate (revoke
     would fail) or when transferring lease ownership.
 
-    go: session.go:102:19 -/
+    go: session.go:109:19 -/
 noncomputable def Session.Orphan.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1804,7 +1837,7 @@ noncomputable def Session.Orphan.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Close orphans the session and revokes the session lease.
 
-    go: session.go:108:19 -/
+    go: session.go:115:19 -/
 noncomputable def Session.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1851,7 +1884,7 @@ noncomputable def Session.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- WithTTL configures the session's TTL in seconds.
     If TTL is <= 0, the default 60 seconds TTL will be used.
 
-    go: session.go:128:6 -/
+    go: session.go:136:6 -/
 noncomputable def WithTTL.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ttl"
   (App (Val exceptionDo)
@@ -1877,11 +1910,41 @@ noncomputable def WithTTL.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))))))))))))
 
+/-- WithCreationTimeout configures the timeout for creating a new session.
+    If timeout is <= 0, no timeout will be used, and the creating new session
+    will be blocked forever until the etcd server is reachable.
+
+    go: session.go:149:6 -/
+noncomputable def WithCreationTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "timeout"
+  (App (Val exceptionDo)
+  (Let "timeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeout"))
+  (App (Val doReturn)
+  (Lam "so"
+  (Lam "lg"
+  (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "so" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "timeout")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "timeout"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"creationTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"WithCreationTimeout(): timeout should be > 0, preserving current timeout"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"current-session-timeout"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef sessionOptions.ty go!"creationTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sessionOptions.ty)))) (Var "so"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))))))))))))
+
 /-- WithLease specifies the existing leaseID to be used for the session.
     This is useful in process restart scenario, for example, to reclaim
     leadership from an election prior to restart.
 
-    go: session.go:141:6 -/
+    go: session.go:162:6 -/
 noncomputable def WithLease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "leaseID"
   (App (Val exceptionDo)
@@ -1904,7 +1967,7 @@ noncomputable def WithLease.impl [FfiSyntax] [GoGlobalContext] : val :=
     context is canceled before Close() completes, the session's lease will be
     abandoned and left to expire instead of being revoked.
 
-    go: session.go:152:6 -/
+    go: session.go:173:6 -/
 noncomputable def WithContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (App (Val exceptionDo)
@@ -3397,14 +3460,16 @@ structure sessionOptions [FfiSyntax] where
   ttl' : w64
   leaseID' : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID
   ctx' : _root_.Perennial.context.Context
+  creationTimeout' : _root_.Perennial.time.Duration
 
 instance sessionOptions.zero_val [FfiSyntax] : ZeroVal sessionOptions :=
-  ⟨sessionOptions.mk zeroValDef zeroValDef zeroValDef⟩
+  ⟨sessionOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def sessionOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ttl" go.int),
 (go.field_decl.FieldDecl go!"leaseID" _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty),
-(go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty)]
+(go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
+(go.field_decl.FieldDecl go!"creationTimeout" _root_.Perennial.time.Duration.ty)]
 
 @[irreducible] def sessionOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   sessionOptions.fieldsUnsealed
@@ -3425,6 +3490,8 @@ class sessionOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_leaseID : ∀ (x : sessionOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet sessionOptions.underlying go!"leaseID") (PairV #x #y) (Val #(({ x with leaseID' := y } : sessionOptions)))
   get_ctx : ∀ (x : sessionOptions), go.IsGoStepPureDetTagged under (StructFieldGet sessionOptions.underlying go!"ctx") #x (Val #(x.ctx'))
   set_ctx : ∀ (x : sessionOptions) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet sessionOptions.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : sessionOptions)))
+  get_creationTimeout : ∀ (x : sessionOptions), go.IsGoStepPureDetTagged under (StructFieldGet sessionOptions.underlying go!"creationTimeout") #x (Val #(x.creationTimeout'))
+  set_creationTimeout : ∀ (x : sessionOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet sessionOptions.underlying go!"creationTimeout") (PairV #x #y) (Val #(({ x with creationTimeout' := y } : sessionOptions)))
 
 attribute [instance] sessionOptions.TypeAssumptions.type_repr
   sessionOptions.TypeAssumptions.underlying
@@ -3434,6 +3501,8 @@ attribute [instance] sessionOptions.TypeAssumptions.type_repr
   sessionOptions.TypeAssumptions.set_leaseID
   sessionOptions.TypeAssumptions.get_ctx
   sessionOptions.TypeAssumptions.set_ctx
+  sessionOptions.TypeAssumptions.get_creationTimeout
+  sessionOptions.TypeAssumptions.set_creationTimeout
 
 abbrev SessionOption [FfiSyntax] : Type := GoFunc
 
@@ -3831,6 +3900,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewLocker_unfold : FuncUnfold NewLocker [] NewLocker.impl
   NewSession_unfold : FuncUnfold NewSession [] NewSession.impl
   WithTTL_unfold : FuncUnfold WithTTL [] WithTTL.impl
+  WithCreationTimeout_unfold : FuncUnfold WithCreationTimeout [] WithCreationTimeout.impl
   WithLease_unfold : FuncUnfold WithLease [] WithLease.impl
   WithContext_unfold : FuncUnfold WithContext [] WithContext.impl
   WithIsolation_unfold : FuncUnfold WithIsolation [] WithIsolation.impl
@@ -3881,6 +3951,7 @@ attribute [instance] Assumptions.Election_instance
   Assumptions.NewLocker_unfold
   Assumptions.NewSession_unfold
   Assumptions.WithTTL_unfold
+  Assumptions.WithCreationTimeout_unfold
   Assumptions.WithLease_unfold
   Assumptions.WithContext_unfold
   Assumptions.WithIsolation_unfold

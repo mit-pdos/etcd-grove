@@ -74,6 +74,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSerializable
 public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithCreationTimeout
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithTTL
 public import Proof.fmt.SprintfNamed
@@ -557,6 +558,10 @@ theorem wp_WithContext :
 theorem wp_WithPrefetch :
     EtcdGrove.concurrency.WithPrefetch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.WithPrefetch.wp_proof
+
+theorem wp_WithCreationTimeout :
+    EtcdGrove.concurrency.WithCreationTimeout.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.WithCreationTimeout.wp_proof zap.wp_Int64 zap.Logger.wp_Warn
 
 theorem wp_WithLease :
     EtcdGrove.concurrency.WithLease.spec (GF := GF) (hG := hG) :=

@@ -28,7 +28,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 `Lease`, its logger) and options with transformers `gs`, whose resulting context (the client's,
 unless `WithContext`) is a cancelable context (`isCancelCtxCtx`: Perennial's `WithCancel` takes
 one; the client's is, `newClient` makes it with `WithCancel`): `nil` with an error, or a session (`isSession`) with a lease
-`id` that is the options' lease, if they name one, or a granted one (`sessionLeaseOk`). -/
+`id` that is the options' lease, if they name one, or a granted one (`sessionLeaseOk`), whose
+context has the values and the deadline of the options' context (`sessionCtxOf`): a creation
+timeout (`WithCreationTimeout`, etcd-io/etcd#16385) bounds only the lease's `Grant`, not the
+session's context, which outlives it. (That the timeout makes `NewSession` return is liveness,
+which a Hoare triple does not state; nor does it say the error is `DeadlineExceeded`.) -/
 abbrev NewSession.spec : Prop :=
   ∀ (client : Loc) (cctx : GoInterface) (sl : GoSlice) (gs : List (SessionOpts → SessionOpts))
     (pctx : GoInterfaceOk) (pcs : context.ContextDesc (IProp GF)),
@@ -39,7 +43,8 @@ abbrev NewSession.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       ⌜s = null ∧ err ≠ GoInterface.nil⌝ ∨
       (⌜err = GoInterface.nil ∧ s ≠ null⌝ ∗ ∃ (γ : SessionNames) (id : w64),
-        isSession s γ client id ∗ ⌜sessionLeaseOk (sessOptsFold gs (SessionOpts.init cctx)) id⌝) }}
+        isSession s γ client id ∗ ⌜sessionLeaseOk (sessOptsFold gs (SessionOpts.init cctx)) id⌝ ∗
+        sessionCtxOf s pcs) }}
 
 end spec
 
