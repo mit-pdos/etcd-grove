@@ -1,0 +1,16 @@
+--- FAIL: TestInt64ComparableCompare (0.00s)
+    --- FAIL: TestInt64ComparableCompare/max_greater_than_min_(overflows) (0.00s)
+            	Error:      	Not equal: 
+    --- FAIL: TestInt64ComparableCompare/min_less_than_max_(overflows) (0.00s)
+            	Error:      	Not equal: 
+    --- FAIL: TestInt64ComparableCompare/max_greater_than_negative_one_(overflows) (0.00s)
+            	Error:      	Not equal: 
+    --- FAIL: TestInt64ComparableCompare/min_less_than_positive_one_(overflows) (0.00s)
+            	Error:      	Not equal: 
+    --- FAIL: TestInt64ComparableCompare/positive_one_greater_than_min_(overflows) (0.00s)
+            	Error:      	Not equal: 
+--- FAIL: TestIntervalCompareInt64Overflow (0.00s)
+        	Error:      	Not equal: 
+FAIL
+FAIL	go.etcd.io/etcd/pkg/v3/adt	0.004s
+FAIL

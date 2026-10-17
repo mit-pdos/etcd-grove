@@ -9,6 +9,7 @@ module
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.TreeInsert
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.TreeDelete
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Int64Ivl
 
 @[expose] public section
 
@@ -74,3 +75,14 @@ of the loop keeps it, and blackening `x` at the exit gives a red-black tree. -/
 #print axioms Perennial.EtcdGrove.adt.RbCtx.del_case3_R
 #print axioms Perennial.EtcdGrove.adt.RbCtx.del_case4_R
 #print axioms Perennial.EtcdGrove.adt.maxEnd_plug
+
+/-! The int64 comparator (etcd#22252; spec, proof and `Int64Ivl.lean` from etcd#22358's branch):
+`Compare` is the signed order. `NewInt64Point` is unchanged by etcd#22252 and still wraps at
+`MaxInt64` (`int64PointOld_wrong`). -/
+#print axioms Perennial.EtcdGrove.adt.Int64Comparable.wp_Compare
+#print axioms Perennial.EtcdGrove.adt.int64Cmp_spec
+#print axioms Perennial.EtcdGrove.adt.int64IvlCmp_point
+#print axioms Perennial.EtcdGrove.adt.int64CmpOld_wrong
+#print axioms Perennial.EtcdGrove.adt.int64PointOld_wrong
+#print axioms Perennial.EtcdGrove.adt.int64IvlCmp_oldMaxPoint
+#print axioms Perennial.EtcdGrove.adt.int64IvlCmp_oldMaxPoint_stored

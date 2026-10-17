@@ -40,3 +40,6 @@ intervalTree__Union: intervalTree__Visit intervalTree__Insert
 # The bytes-affine intervals (the auth store's permission cache; unit P2, 2026-10-14).
 NewBytesAffineInterval:
 NewBytesAffinePoint: NewBytesAffineInterval
+# The int64 intervals, as etcd#22252 changes them (branch pr-verify/etcd-22252; spec and proof
+# from pr-verify/etcd-22358, Int64Ivl.lean): Compare in the signed order (no wrapping subtraction).
+Int64Comparable__Compare:

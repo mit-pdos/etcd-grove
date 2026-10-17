@@ -1675,29 +1675,24 @@ noncomputable def Int64Comparable.Compare.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "$r0" (App (Val (GoInstruction (TypeAssert Int64Comparable.ty))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "c")))
   (Let "vc" (App (Val (GoInstruction (GoAlloc Int64Comparable.ty))) (App (Val (GoInstruction (GoZeroVal Int64Comparable.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub Int64Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "v")) (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "vc"))))
-  (Let "cmp" (App (Val (GoInstruction (GoAlloc Int64Comparable.ty))) (App (Val (GoInstruction (GoZeroVal Int64Comparable.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #(W64 0)))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt Int64Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "cmp")) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt Int64Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "v")) (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "vc")))))
   (App (Val doReturn)
   (Val #(W64 1)))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt Int64Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "cmp")) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt Int64Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "v")) (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "vc")))))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int64Comparable.ty))) (Pair (Var "cmp") (Var "$r0")))))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Int64Comparable.ty))) (Pair (Var "vc") (Var "$r0"))))))))))))
 
-/-- go: interval_tree.go:925:32 -/
+/-- go: interval_tree.go:926:32 -/
 noncomputable def BytesAffineComparable.Compare.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "c"
@@ -1735,7 +1730,7 @@ noncomputable def BytesAffineComparable.Compare.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore BytesAffineComparable.ty))) (Pair (Var "bc") (Var "$r0"))))))))))))
 
-/-- go: interval_tree.go:941:6 -/
+/-- go: interval_tree.go:942:6 -/
 noncomputable def NewBytesAffineInterval.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "begin"
   (Lam "end"
@@ -1747,7 +1742,7 @@ noncomputable def NewBytesAffineInterval.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
   (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression BytesAffineComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression BytesAffineComparable.ty (Var "$v1")))]))))))))))
 
-/-- go: interval_tree.go:945:6 -/
+/-- go: interval_tree.go:946:6 -/
 noncomputable def NewBytesAffinePoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (App (Val exceptionDo)

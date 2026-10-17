@@ -1,0 +1,6 @@
+=== RUN   TestProbeInt64ExtremesTree
+--- PASS: TestProbeInt64ExtremesTree (0.00s)
+=== RUN   TestProbeInt64ExtremesRandom
+--- PASS: TestProbeInt64ExtremesRandom (0.01s)
+PASS
+ok  	go.etcd.io/etcd/pkg/v3/adt	0.009s

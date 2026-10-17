@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Int64Comparable__Compare
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Interval__Compare
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffineInterval
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
@@ -52,6 +53,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
+
+theorem adt.Int64Comparable.wp_Compare :
+    adt.Int64Comparable.Compare.spec (GF := GF) (hG := hG) :=
+  adt.Int64Comparable.Compare.wp_proof
 
 theorem adt.StringAffineComparable.wp_Compare :
     adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG) :=

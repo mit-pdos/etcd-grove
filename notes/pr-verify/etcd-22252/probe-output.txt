@@ -1,0 +1,69 @@
+=== RUN   TestProbeInt64ExtremesTree
+--- PASS: TestProbeInt64ExtremesTree (0.00s)
+=== RUN   TestProbeInt64ExtremesRandom
+--- PASS: TestProbeInt64ExtremesRandom (0.01s)
+=== RUN   TestProbeMaxPointTree
+=== RUN   TestProbeMaxPointTree/pr22252
+    int64_maxpoint_probe_test.go:260: pr22252: 3000 random trees, 0 failures; point(MaxInt64) = {9223372036854775807 -9223372036854775808}
+=== RUN   TestProbeMaxPointTree/pr22358
+    int64_maxpoint_probe_test.go:260: pr22358: 3000 random trees, 0 failures; point(MaxInt64) = {9223372036854775807 9223372036854775807}
+--- PASS: TestProbeMaxPointTree (1.32s)
+    --- PASS: TestProbeMaxPointTree/pr22252 (0.70s)
+    --- PASS: TestProbeMaxPointTree/pr22358 (0.62s)
+=== RUN   TestProbeMaxPointDiff
+    int64_maxpoint_probe_test.go:278: 22252: Find(NewInt64Point(Max)) after Insert = [9223372036854775807, -9223372036854775808)
+    int64_maxpoint_probe_test.go:279: 22252: Find([Max,Max)) = <nil> (22358's NewInt64Point(Max) value)
+    int64_maxpoint_probe_test.go:280: 22252: Stab(Max point) = 0, Intersects = false, Contains = false
+    int64_maxpoint_probe_test.go:284: 22252 with [Min,Max) stored: Stab(Max point) = 0, Contains(Max point) = false, Intersects = false
+    int64_maxpoint_probe_test.go:287: 22358 equivalent: Contains([Max,Max)) = false, Stab = 0
+--- PASS: TestProbeMaxPointDiff (0.00s)
+=== RUN   TestIntervalTreeInsert
+--- PASS: TestIntervalTreeInsert (0.00s)
+=== RUN   TestIntervalTreeSelfBalanced
+--- PASS: TestIntervalTreeSelfBalanced (0.00s)
+=== RUN   TestIntervalTreeDelete
+--- PASS: TestIntervalTreeDelete (0.00s)
+=== RUN   TestIntervalTreeFind
+--- PASS: TestIntervalTreeFind (0.00s)
+=== RUN   TestIntervalTreeIntersects
+--- PASS: TestIntervalTreeIntersects (0.00s)
+=== RUN   TestIntervalTreeStringAffine
+--- PASS: TestIntervalTreeStringAffine (0.00s)
+=== RUN   TestIntervalTreeStab
+--- PASS: TestIntervalTreeStab (0.00s)
+=== RUN   TestIntervalTreeRandom
+--- PASS: TestIntervalTreeRandom (0.02s)
+=== RUN   TestIntervalTreeSortedVisit
+--- PASS: TestIntervalTreeSortedVisit (0.00s)
+=== RUN   TestIntervalTreeVisitExit
+--- PASS: TestIntervalTreeVisitExit (0.00s)
+=== RUN   TestIntervalTreeContains
+--- PASS: TestIntervalTreeContains (0.00s)
+=== RUN   TestInt64ComparableCompare
+=== RUN   TestInt64ComparableCompare/equal
+=== RUN   TestInt64ComparableCompare/equal_zero
+=== RUN   TestInt64ComparableCompare/less
+=== RUN   TestInt64ComparableCompare/greater
+=== RUN   TestInt64ComparableCompare/max_greater_than_min_(overflows)
+=== RUN   TestInt64ComparableCompare/min_less_than_max_(overflows)
+=== RUN   TestInt64ComparableCompare/max_greater_than_negative_one_(overflows)
+=== RUN   TestInt64ComparableCompare/negative_one_less_than_max_(overflows)
+=== RUN   TestInt64ComparableCompare/min_less_than_positive_one_(overflows)
+=== RUN   TestInt64ComparableCompare/positive_one_greater_than_min_(overflows)
+--- PASS: TestInt64ComparableCompare (0.00s)
+    --- PASS: TestInt64ComparableCompare/equal (0.00s)
+    --- PASS: TestInt64ComparableCompare/equal_zero (0.00s)
+    --- PASS: TestInt64ComparableCompare/less (0.00s)
+    --- PASS: TestInt64ComparableCompare/greater (0.00s)
+    --- PASS: TestInt64ComparableCompare/max_greater_than_min_(overflows) (0.00s)
+    --- PASS: TestInt64ComparableCompare/min_less_than_max_(overflows) (0.00s)
+    --- PASS: TestInt64ComparableCompare/max_greater_than_negative_one_(overflows) (0.00s)
+    --- PASS: TestInt64ComparableCompare/negative_one_less_than_max_(overflows) (0.00s)
+    --- PASS: TestInt64ComparableCompare/min_less_than_positive_one_(overflows) (0.00s)
+    --- PASS: TestInt64ComparableCompare/positive_one_greater_than_min_(overflows) (0.00s)
+=== RUN   TestIntervalCompareInt64Overflow
+--- PASS: TestIntervalCompareInt64Overflow (0.00s)
+=== RUN   Example
+--- PASS: Example (0.00s)
+PASS
+ok  	go.etcd.io/etcd/pkg/v3/adt	1.358s
