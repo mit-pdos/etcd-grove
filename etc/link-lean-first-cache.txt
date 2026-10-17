@@ -193,4 +193,4 @@ NewDemux: newDemux demux__resyncLoop
 Cache__WaitForNextResync: demux__WaitForNextResync
 Cache__Close:
 newCache: newStore newReady newConditionalProgressRequestor NewDemux Cache__getWatchLoop conditionalProgressRequestor__run
-v3_New: defaultConfig newCache realClock__NewTimer
+cache_v3_New: defaultConfig newCache realClock__NewTimer

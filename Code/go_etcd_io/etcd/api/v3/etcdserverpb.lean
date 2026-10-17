@@ -917,10 +917,6 @@ axiom MoveLeaderRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom MoveLeaderResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom DowngradeRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom DowngradeResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom DowngradeVersionTestRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom StatusRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -1068,11 +1064,14 @@ axiom file_raft_internal_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def AlarmRequest_DEACTIVATE [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom DowngradeRequest_VALIDATE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DowngradeRequest_VALIDATE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom DowngradeRequest_ENABLE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DowngradeRequest_ENABLE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
-axiom DowngradeRequest_CANCEL [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DowngradeRequest_CANCEL [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
 axiom file_rpc_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 
@@ -6265,31 +6264,115 @@ attribute [instance] AlarmResponse.TypeAssumptions.type_repr
   AlarmResponse.TypeAssumptions.get_sizeCache
   AlarmResponse.TypeAssumptions.set_sizeCache
 
-axiom DowngradeRequest : Type
-axiom DowngradeRequest.zero_val : ZeroVal DowngradeRequest
-attribute [instance] DowngradeRequest.zero_val
+structure DowngradeRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Action' : DowngradeRequest_DowngradeAction
+  Version' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance DowngradeRequest.zero_val [FfiSyntax] : ZeroVal DowngradeRequest :=
+  ⟨DowngradeRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def DowngradeRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Action" DowngradeRequest_DowngradeAction.ty),
+(go.field_decl.FieldDecl go!"Version" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def DowngradeRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  DowngradeRequest.fieldsUnsealed
+
+instance equals_unfold_DowngradeRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold DowngradeRequest.fields DowngradeRequest.fieldsUnsealed :=
+  ⟨by unfold DowngradeRequest.fields; rfl⟩
+
+@[reducible] def DowngradeRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType DowngradeRequest.fields)
 
 class DowngradeRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DowngradeRequest.underlying DowngradeRequest
   underlying : go.UnderlyingDirectedEq DowngradeRequest.ty DowngradeRequest.underlying
-  isUnderlying : go.IsUnderlying DowngradeRequest.underlying DowngradeRequest.underlying
+  get_state : ∀ (x : DowngradeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : DowngradeRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DowngradeRequest)))
+  get_Action : ∀ (x : DowngradeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeRequest.underlying go!"Action") #x (Val #(x.Action'))
+  set_Action : ∀ (x : DowngradeRequest) (y : DowngradeRequest_DowngradeAction), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeRequest.underlying go!"Action") (PairV #x #y) (Val #(({ x with Action' := y } : DowngradeRequest)))
+  get_Version : ∀ (x : DowngradeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeRequest.underlying go!"Version") #x (Val #(x.Version'))
+  set_Version : ∀ (x : DowngradeRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeRequest.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : DowngradeRequest)))
+  get_unknownFields : ∀ (x : DowngradeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : DowngradeRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DowngradeRequest)))
+  get_sizeCache : ∀ (x : DowngradeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : DowngradeRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DowngradeRequest)))
 
 attribute [instance] DowngradeRequest.TypeAssumptions.type_repr
   DowngradeRequest.TypeAssumptions.underlying
-  DowngradeRequest.TypeAssumptions.isUnderlying
+  DowngradeRequest.TypeAssumptions.get_state
+  DowngradeRequest.TypeAssumptions.set_state
+  DowngradeRequest.TypeAssumptions.get_Action
+  DowngradeRequest.TypeAssumptions.set_Action
+  DowngradeRequest.TypeAssumptions.get_Version
+  DowngradeRequest.TypeAssumptions.set_Version
+  DowngradeRequest.TypeAssumptions.get_unknownFields
+  DowngradeRequest.TypeAssumptions.set_unknownFields
+  DowngradeRequest.TypeAssumptions.get_sizeCache
+  DowngradeRequest.TypeAssumptions.set_sizeCache
 
-axiom DowngradeResponse : Type
-axiom DowngradeResponse.zero_val : ZeroVal DowngradeResponse
-attribute [instance] DowngradeResponse.zero_val
+structure DowngradeResponse [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Version' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance DowngradeResponse.zero_val [FfiSyntax] : ZeroVal DowngradeResponse :=
+  ⟨DowngradeResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def DowngradeResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Version" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def DowngradeResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  DowngradeResponse.fieldsUnsealed
+
+instance equals_unfold_DowngradeResponse [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold DowngradeResponse.fields DowngradeResponse.fieldsUnsealed :=
+  ⟨by unfold DowngradeResponse.fields; rfl⟩
+
+@[reducible] def DowngradeResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType DowngradeResponse.fields)
 
 class DowngradeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DowngradeResponse.underlying DowngradeResponse
   underlying : go.UnderlyingDirectedEq DowngradeResponse.ty DowngradeResponse.underlying
-  isUnderlying : go.IsUnderlying DowngradeResponse.underlying DowngradeResponse.underlying
+  get_state : ∀ (x : DowngradeResponse), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : DowngradeResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : DowngradeResponse)))
+  get_Header : ∀ (x : DowngradeResponse), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : DowngradeResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : DowngradeResponse)))
+  get_Version : ∀ (x : DowngradeResponse), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeResponse.underlying go!"Version") #x (Val #(x.Version'))
+  set_Version : ∀ (x : DowngradeResponse) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeResponse.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : DowngradeResponse)))
+  get_unknownFields : ∀ (x : DowngradeResponse), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : DowngradeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DowngradeResponse)))
+  get_sizeCache : ∀ (x : DowngradeResponse), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : DowngradeResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DowngradeResponse)))
 
 attribute [instance] DowngradeResponse.TypeAssumptions.type_repr
   DowngradeResponse.TypeAssumptions.underlying
-  DowngradeResponse.TypeAssumptions.isUnderlying
+  DowngradeResponse.TypeAssumptions.get_state
+  DowngradeResponse.TypeAssumptions.set_state
+  DowngradeResponse.TypeAssumptions.get_Header
+  DowngradeResponse.TypeAssumptions.set_Header
+  DowngradeResponse.TypeAssumptions.get_Version
+  DowngradeResponse.TypeAssumptions.set_Version
+  DowngradeResponse.TypeAssumptions.get_unknownFields
+  DowngradeResponse.TypeAssumptions.set_unknownFields
+  DowngradeResponse.TypeAssumptions.get_sizeCache
+  DowngradeResponse.TypeAssumptions.set_sizeCache
 
 axiom DowngradeVersionTestRequest : Type
 axiom DowngradeVersionTestRequest.zero_val : ZeroVal DowngradeVersionTestRequest

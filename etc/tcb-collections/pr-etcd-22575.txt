@@ -1,0 +1,19 @@
+# etcd-io/etcd#22575 (the downgrade API's nil cluster version): the results of the downgrade
+# handlers, the manager and the version parse (notes/pr-verify/etcd-22575.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22575.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots EtcdServer__[Dd]owngrade
+roots convertToClusterVersion
+roots /etcdserver/version/
+axiom semver.New.wp_proof
+axiom semver.NewVersion.wp_proof
+axiom semver.Version.Equal.wp_proof
+axiom semver.Version.Major.wp_proof
+axiom semver.Version.Minor.wp_proof
+axiom semver.Version.String.wp_proof
+axiom version.Cluster.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Warn.wp_proof

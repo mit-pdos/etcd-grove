@@ -1,0 +1,16 @@
+=== RUN   TestDowngradeClusterVersionUnavailable
+=== RUN   TestDowngradeClusterVersionUnavailable/VALIDATE
+=== RUN   TestDowngradeClusterVersionUnavailable/ENABLE
+    v3_server_downgrade_test.go:89: Downgrade(ENABLE) panicked: runtime error: invalid memory address or nil pointer dereference
+=== RUN   TestDowngradeClusterVersionUnavailable/CANCEL
+    v3_server_downgrade_test.go:89: Downgrade(CANCEL) panicked: runtime error: invalid memory address or nil pointer dereference
+--- FAIL: TestDowngradeClusterVersionUnavailable (0.00s)
+    --- PASS: TestDowngradeClusterVersionUnavailable/VALIDATE (0.00s)
+    --- FAIL: TestDowngradeClusterVersionUnavailable/ENABLE (0.00s)
+    --- FAIL: TestDowngradeClusterVersionUnavailable/CANCEL (0.00s)
+=== RUN   TestDowngradeCancelWithoutDowngradeReportsError
+    v3_server_downgrade_test.go:109: Downgrade(CANCEL) with no downgrade in progress = version:"3.7" , <nil>; want ErrNoInflightDowngrade
+--- FAIL: TestDowngradeCancelWithoutDowngradeReportsError (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.020s
+FAIL

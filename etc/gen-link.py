@@ -282,14 +282,25 @@ for mroot in (mode[4] if cache else [""]):
                     # later root's spec is the one this mode links
                     prefix[qual] = prefix[stem] = mroot + "."
                     continue
-                assert qual not in where, f"two specs for {qual}"
-                where[qual] = ".".join(pkg + [stem])
-                prefix[qual] = mroot + "." if mroot else ""
+                # every spec is also named by its last two package components
+                # (`semver_v3_New`): a `<last component>_<fn>` two packages share (`v3_New` of
+                # semver/v3 and cache/v3) is ambiguous, and such a function is named that way only
+                qual2 = "_".join(pkg[-2:] + [stem])
+                if qual2 != qual:
+                    assert qual2 not in where, f"two specs for {qual2}"
+                    where[qual2] = ".".join(pkg + [stem])
+                    prefix[qual2] = mroot + "." if mroot else ""
+                if qual in where or qual in ambiguous:
+                    ambiguous.add(qual)
+                    assert qual2 != qual, f"two specs for {qual}"
+                else:
+                    where[qual] = ".".join(pkg + [stem])
+                    prefix[qual] = mroot + "." if mroot else ""
                 if stem in where:
                     ambiguous.add(stem)
-                where[stem], prefix[stem] = where[qual], prefix[qual]
+                where[stem], prefix[stem] = ".".join(pkg + [stem]), mroot + "." if mroot else ""
 for name in ambiguous:
-    del where[name]
+    where.pop(name, None)
 
 
 def spec_file(fn):

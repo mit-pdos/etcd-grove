@@ -389,3 +389,22 @@ auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromInco
 StartNode: @
 newRaftNode:
 bootstrappedRaft__newRaftNode: StartNode newRaftNode
+# The downgrade API (v3_server.go's `Downgrade` and its actions, cluster_util.go's
+# `convertToClusterVersion`, the version package's manager; etcd-io/etcd#22575, 2026-10-16), see
+# InvDowngrade.lean and version/Defs.lean: semver's constructors and accessors are the trust
+# boundary (names-only), the server's `ClusterVersion` and `Version` and the manager's `Server`
+# contracts in the specs.
+semver_v3_New:
+NewVersion:
+Version__Major:
+Version__Minor:
+Version__Equal:
+version_allowedDowngradeVersion: Version__Major Version__Minor semver_v3_New
+version_Manager__DowngradeValidate: version_allowedDowngradeVersion Version__Equal
+version_Manager__DowngradeEnable: version_Manager__DowngradeValidate
+version_Manager__DowngradeCancel:
+convertToClusterVersion: NewVersion semver_v3_New Version__Major Version__Minor
+EtcdServer__downgradeValidate: convertToClusterVersion version_Manager__DowngradeValidate Version__String version_Cluster
+EtcdServer__downgradeEnable: EtcdServer__Logger convertToClusterVersion version_Manager__DowngradeEnable zap_Error zap_Logger__Warn Version__String version_Cluster
+EtcdServer__downgradeCancel: version_Manager__DowngradeCancel zap_Error zap_Logger__Warn Version__String version_Cluster
+EtcdServer__Downgrade: EtcdServer__downgradeValidate EtcdServer__downgradeEnable EtcdServer__downgradeCancel

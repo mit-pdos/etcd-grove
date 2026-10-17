@@ -1,0 +1,6 @@
+    downgrade_underflow_test.go:32: allowedDowngradeVersion(3.0.0) = 3.18446744073709551615.0: a higher minor version
+    downgrade_underflow_test.go:38: DowngradeValidate(3.18446744073709551615.0) at cluster version 3.0.0 = nil; want an error
+--- FAIL: TestDowngradeValidateAtMinorZero (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/version	0.006s
+FAIL

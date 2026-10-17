@@ -81,7 +81,11 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # first `StreamDesc`)
   "NewWatchClient", "watchClient.Watch", "Watch_Watch_FullMethodName", "WatchClient",
   "watchClient", "Watch_WatchClient", "Watch_WatchServer", "RegisterWatchServer",
-  "Watch_ServiceDesc"]
+  "Watch_ServiceDesc",
+  # the downgrade API (`v3_server.go`'s `Downgrade`; etcd-io/etcd#22575, 2026-10-16): its request,
+  # response and the request's actions
+  "DowngradeRequest", "DowngradeResponse", "DowngradeRequest_DowngradeAction",
+  "DowngradeRequest_VALIDATE", "DowngradeRequest_ENABLE", "DowngradeRequest_CANCEL"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

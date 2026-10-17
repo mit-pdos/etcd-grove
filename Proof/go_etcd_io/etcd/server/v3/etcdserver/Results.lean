@@ -1071,6 +1071,26 @@ theorem scheduler_fifo : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) 
 
 end goroutines
 
+/-! ## The downgrade API (etcd-io/etcd#22575, 2026-10-16) -/
+
+section downgrade
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **`Downgrade` does not panic** (etcd-io/etcd#22574, fixed by #22575): whatever the action, and
+whether or not the cluster version is known, `s.Downgrade(ctx, r)` returns
+`ErrClusterVersionUnavailable` before the version is known and never once the caller knew it was
+(`known`), or, for `VALIDATE`, the format's error; `ErrUnknownMethod` for an unknown action; or the
+action's error or a response once the version is known (`dgOutcome`). Under the contracts of the names-only parts (`clusterVersionAt`,
+`srvVersionOk`, `version.serverOk`). -/
+theorem downgrade_no_panic : EtcdServer.Downgrade.spec (GF := GF) (hG := hG) :=
+  EtcdServer.wp_Downgrade
+
+end downgrade
+
 #print axioms Perennial.EtcdGrove.cindex_hook_backend
 #print axioms Perennial.EtcdGrove.cindex_hookFnSpec
 #print axioms Perennial.EtcdGrove.backend_server_hooks
@@ -1104,6 +1124,7 @@ end goroutines
 #print axioms Perennial.EtcdGrove.txn_applied_model
 #print axioms Perennial.EtcdGrove.wait_new
 #print axioms Perennial.EtcdGrove.idutil_next
+#print axioms Perennial.EtcdGrove.downgrade_no_panic
 
 end EtcdGrove
 end Perennial
