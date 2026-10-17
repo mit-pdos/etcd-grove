@@ -1323,7 +1323,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Hm1 with ⟨%Hpn, %h, %sl, %ps, Hhdr, Hho, Hwid, Hcr, Hca, Hcomp, Hcrs, Hfr, Hev, #Hps,
         %Hpslen, #Hevs⟩
       wp_auto
-      icases Hcase with (⟨%Hsrc, Hctrl⟩ | #Hmvcc)
+      icases Hcase with (⟨%Hsrc, Hctrl, -⟩ | #Hmvcc)
       · iunfold v3rpc.ctrlOk at Hctrl
         icases Hctrl with ⟨%i, %req, %γo, %γa, #Haux, #Hup, %Hcans, Hcw, Hat⟩
         cases req with

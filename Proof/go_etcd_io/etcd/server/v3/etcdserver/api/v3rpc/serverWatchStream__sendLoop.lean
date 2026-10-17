@@ -228,6 +228,26 @@ theorem v3rpc.rcvOk_snoc (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (rcv : Li
     rw [show rcv.length + 1 = (rcv ++ [r]).length by simp, List.take_length]
     iframe Ho Hw Hx
 
+/-- **Every received response of id `-1` was sent** (unit W-K): the send loop never buffers one
+(`SendInv.noPend` at `-1`), so it is among the sent ones (`hD`). -/
+theorem v3rpc.neg1_sent {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+    {ids : w64 → Bool} {D : List v3rpc.WatchRespM} (hI : v3rpc.SendInv rcv S pend ids none)
+    (hD : D.filterMap v3rpc.WatchRespM.src = S.filterMap (fun n => rcv[n]?)) :
+    ∀ x ∈ rcv, x.id = W64 (-1) → ∃ m' ∈ D, m'.src = some x := by
+  intro x hx hid
+  obtain ⟨n, hn, hnx⟩ := List.getElem_of_mem hx
+  have hin : n ∈ v3rpc.idxOf rcv (W64 (-1)) := by
+    unfold v3rpc.idxOf; rw [List.mem_filter]
+    refine ⟨List.mem_range.2 hn, ?_⟩
+    unfold v3rpc.idOf; simp [List.getElem?_eq_getElem hn, hnx, hid]
+  have hp : pend (W64 (-1)) = [] := hI.noPend _ (Or.inr rfl) (by simp)
+  rw [hI.split, hp, List.append_nil, List.mem_filter] at hin
+  have hmem : x ∈ S.filterMap (fun n => rcv[n]?) :=
+    List.mem_filterMap.2 ⟨n, hin.1, by simp [List.getElem?_eq_getElem hn, hnx]⟩
+  rw [← hD] at hmem
+  obtain ⟨m', hm', hsrc⟩ := List.mem_filterMap.1 hmem
+  exact ⟨m', hm', hsrc⟩
+
 /-- **What a received response says of the stream** (unit W-M2): with the stream's auxiliary
 name and its progress fact `progQ` saved at the mvcc stream's `prog` (the channel's), a response
 received on the mvcc channel with its registration fact (`chanRegFact`: its watcher's id, one the
@@ -393,6 +413,17 @@ theorem v3rpc.pendSls_snoc (r : v3rpc.WRun GF) (rcv : List mvcc.RespM) (x : mvcc
     ([∗map] Y ↦ sl ∈ PM, v3rpc.pendSl (GF := GF) r rcv (pend Y) sl) ⊢
       [∗map] Y ↦ sl ∈ PM, v3rpc.pendSl r (rcv ++ [x]) (pend Y) sl :=
   BigSepM.bigSepM_mono fun {_ _} _ => v3rpc.pendSl_snoc r rcv x _ _
+
+open Iris.ProofMode in
+/-- **Every received response of id `-1` was sent** (unit W-K), from the send state. -/
+theorem v3rpc.sendSt_neg1 (r : v3rpc.WRun GF) (idsL pendL : Loc) (rcv : List mvcc.RespM)
+    (D : List v3rpc.WatchRespM) :
+    v3rpc.sendSt r idsL pendL rcv D ⊢ ⌜∀ x ∈ rcv, x.id = W64 (-1) → ∃ m' ∈ D, m'.src = some x⌝ := by
+  iintro HS
+  iunfold v3rpc.sendSt at HS
+  icases HS with ⟨%S, %pend, %IM, %PM, %HSI, -, -, -, -, -⟩
+  obtain ⟨hI, hD, -, -⟩ := HSI
+  ipureintro; exact v3rpc.neg1_sent hI hD
 
 end defs
 
@@ -1199,6 +1230,93 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
         exact hY))
 
 set_option hygiene false in
+/-- The drain's invariant after a response it sent or buffered (`watch_resp`'s exit; not drained,
+`hdr0`). -/
+local macro "drain_exit" : tactic => `(tactic| (
+  iexists rcv ++ [x], Dn, dr
+  isplitr
+  · ipureintro; intro hd; rw [hdr0] at hd; cases hd
+  isplitr
+  · rw [hdr0]; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial))
+
+set_option hygiene false in
+/-- **The drain before a created response** (unit W-K): the watch responses queued on the
+channel are sent (`watch_resp`) until a non-blocking receive finds it empty
+(`watch_tryrecv_au_alt`), which shows that every response sent on the channel by then was
+received, so the received list `rcv` extends the snapshot `l0` (`Hl0`); after the loop, `Hdl`. -/
+local macro "drain_created" : tactic => `(tactic| (
+  ihave HId : iprop(∃ (rcv : List mvcc.RespM) (D : List v3rpc.WatchRespM) (dr : Bool),
+      "%Hdl" ∷ ⌜dr = true → l0 <+: rcv⌝ ∗
+      "#Hrs" ∷ (if dr then mvcc.chanSentLb r.γc rcv else iprop(True)) ∗
+      "Hst" ∷ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗
+      "Hwc" ∷ mvcc.watchConsumer r.γc rcv ∗ "HS" ∷ v3rpc.sendSt r idsL pendL rcv D ∗
+      "drained" ∷ drained_ptr ↦ dr) $$ [Hst Hwc HS drained]
+  · iexists rcv, D, false
+    isplitr
+    · ipureintro; intro h; cases h
+    isplitr
+    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    iframe
+  wp_for HId
+  wp_if_destruct
+  · have hdr0 : dr = false := by
+      cases dr
+      · rfl
+      · exact absurd (GoGlobalContext.intoVal_inj_bool Hif) (by decide)
+    wp_apply +noauto hChan r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo
+      as %ch' ⟨-, #Hch'⟩
+    · iframe #
+    icombine Hwch Hch' gives %Hcheq
+    subst Hcheq
+    wp_auto
+    wp_bind (App (Val (GoInstruction SelectStmt)) _)
+    iapply (chan.wp_select_nonblocking_alt [iprop(⌜l0 <+: rcv⌝ ∗ mvcc.chanSentLb r.γc rcv)] _ _ _ _)
+      $$ [] [-] []
+    all_goals first | iNamedAccu | skip
+    · iapply BigSepL2.bigSepL2_singleton.2
+      iintro __CTX
+      iNamed __CTX
+      simp only [chan.nonblockingAltClausePre]
+      iexists go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse, inferInstance, inferInstance,
+        inferInstance, inferInstance, r.ch, r.γc.ch
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iexact Hch
+      iapply mvcc.watch_tryrecv_au_alt r.srv.γ r.ch r.γc rcv l0 _ _ Hγoc.2.2.2 $$ Hchinv Hwc Hl0
+      isplit
+      · iintro %wv %okw Hres
+        cases okw
+        · simp only [mvcc.watchRecvResult, Bool.false_eq_true, ↓reduceIte]
+          irename Hres => Hwc
+          wp_auto
+          send_return
+        simp only [mvcc.watchRecvResult, ↓reduceIte]
+        watch_resp drain_exit
+      · iintro Hwc %Hpre #Hsnap
+        iframe
+        iframe #
+        ipureintro; exact Hpre
+    · iintro __CTX Hnr
+      iNamed __CTX
+      icases (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Hnr with ⟨%Hpre, #Hsnap⟩
+      wp_auto
+      wp_for_post
+      iframe
+      iexists rcv, D, true
+      isplitr
+      · ipureintro; intro _; exact Hpre
+      isplitr
+      · simp only [↓reduceIte]; iexact Hsnap
+      iframe
+  wp_if_destruct
+  rotate_left
+  · exfalso; cases dr <;> simp_all
+  have hdr1 : dr = true := by cases dr <;> simp_all
+  have Hl0rcv : l0 <+: rcv := Hdl hdr1
+  irevert Hrs; rw [hdr1]; simp only [↓reduceIte]; iintro #Hrs))
+
+set_option hygiene false in
 /-- **The rest of the control case** (from `start := time.Now()`), after the drain of a `Created`
 response or without it (unit W-K). -/
 local macro "ctrl_rest" : tactic => `(tactic| (
@@ -1215,10 +1333,12 @@ local macro "ctrl_rest" : tactic => `(tactic| (
     ileft
     isplitr
     · ipureintro; exact Hm.2.2
-    iunfold v3rpc.ctrlOk
-    iexists ireq, req, γo, γa
-    iframe Hauxc Hupat Hcw Hat
-    ipureintro; exact Hans
+    isplitl [Hcw Hat]
+    · iunfold v3rpc.ctrlOk
+      iexists ireq, req, γo, γa
+      iframe Hauxc Hupat Hcw Hat
+      ipureintro; exact Hans
+    iexact Hord
   wp_bind (App (Val #(methods si.ty go!"Send" si.v)) (Val #cl))
   iapply HSend $$ [Hst HDn]
   · iframe Hst HDn Hmsg
@@ -1475,51 +1595,63 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     cases hcr0 : m.created
     · try simp only [hcr0, Bool.false_eq_true, ↓reduceIte]
       (try wp_auto)
+      ihave #Hord : v3rpc.createdAfter r.γs D.length m $$ []
+      · unfold v3rpc.createdAfter
+        rw [hcr0]
+        simp only [Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+        itrivial
       ctrl_rest
     · try simp only [hcr0, ↓reduceIte]
       (try wp_auto)
-      ihave HId : iprop(∃ (rcv : List mvcc.RespM) (D : List v3rpc.WatchRespM) (dr : Bool),
-          "Hst" ∷ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗
-          "Hwc" ∷ mvcc.watchConsumer r.γc rcv ∗ "HS" ∷ v3rpc.sendSt r idsL pendL rcv D ∗
-          "drained" ∷ drained_ptr ↦ dr) $$ [Hst Hwc HS drained]
-      · iexists rcv, D, false; iframe
-      wp_for HId
-      wp_if_destruct
-      · wp_apply +noauto hChan r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo
-          as %ch' ⟨-, #Hch'⟩
-        · iframe #
-        icombine Hwch Hch' gives %Hcheq
-        subst Hcheq
-        wp_auto
-        wp_apply_core chan.wp_select_nonblocking
+      -- the snapshot to drain past (unit W-K): the created response's, or the empty one
+      ihave %Hag : iprop(⌜v3rpc.auxOf γo γa = v3rpc.auxOf r.γo r.γa⌝) $$ []
+      · iapply streamAuxIs_agree
         isplit
-        · iapply BigAndL.bigAndL_cons.2
-          isplit
-          · simp only [chan.nonblockingClausePre]
-            iexists go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse, inferInstance, inferInstance,
-              inferInstance, inferInstance, r.ch, r.γc.ch
-            isplitr
-            · ipureintro; rfl
-            isplitr
-            · iexact Hch
-            iapply blocking_rcv_implies_nonblocking
-            iapply mvcc.watch_recv_au r.srv.γ r.ch r.γc rcv _ $$ Hchinv Hwc
-            iintro %wv %okw Hres
-            cases okw
-            · simp only [mvcc.watchRecvResult, Bool.false_eq_true, ↓reduceIte]
-              irename Hres => Hwc
-              wp_auto
-              send_return
-            simp only [mvcc.watchRecvResult, ↓reduceIte]
-            watch_resp (iexists rcv ++ [x], Dn, dr)
-          · iapply BigAndL.bigAndL_nil.2; itrivial
-        · wp_auto
-          wp_for_post
-          iframe
-          iexists rcv, D, true
-          iframe
-      wp_if_destruct
-      all_goals first | ctrl_rest | (exfalso; cases dr <;> simp_all)
+        · iexact Hauxc
+        · iexact Haux
+      obtain ⟨hγo, -⟩ := v3rpc.auxOf_inj Hag
+      cases hca0 : m.canceled
+      · have hreq : ∃ c, req = .create c := by
+          rcases req with c | id | _ | _
+          · exact ⟨c, rfl⟩
+          all_goals (unfold v3rpc.ctrlAnswers at Hans; simp_all)
+        obtain ⟨c, hreq⟩ := hreq
+        irevert Hcw; rw [hreq]; iintro Hcw
+        icases v3rpc.ctrlWatcher_snap r.srv.γ γo c m hca0 $$ Hcw with ⟨Hcw, %w0, %l0, #Hia0, #Hl0s⟩
+        irevert Hcw; rw [← hreq]; iintro Hcw
+        ihave #Hl0 : mvcc.chanSentLb r.γc l0 $$ []
+        · iapply (mvcc.chanSentLb_stream γo r.γc l0 (by rw [hγo]; exact Hγoc.2.2.1)).2 $$ Hl0s
+        drain_created
+        -- `createdAfter`: the received list as the later snapshot
+        ihave ⟨Hst, #HlbD⟩ := v3rpc.srvSendTok_lb _ _ $$ Hst
+        icases persistent_entails_right (v3rpc.sendSt_neg1 r idsL pendL rcv D) $$ HS with ⟨%Hneg, HS⟩
+        ihave #Hord : v3rpc.createdAfter r.γs D.length m $$ []
+        · unfold v3rpc.createdAfter
+          rw [hcr0, hca0]
+          simp only [Bool.not_false, Bool.and_self, ↓reduceIte]
+          iexists γo, γa, w0, l0, rcv, D
+          iframe Hauxc Hia0 Hl0s
+          isplitr
+          · iapply (mvcc.chanSentLb_stream γo r.γc rcv (by rw [hγo]; exact Hγoc.2.2.1)).1 $$ Hrs
+          isplitr
+          · iunfold v3rpc.downLbW
+            ihave #Hlb' := HlbD
+            iunfold v3rpc.downLb at Hlb'
+            iexact Hlb'
+          ipureintro; exact ⟨Hl0rcv, rfl, Hneg⟩
+        ctrl_rest
+      · -- a refused create: nothing to say (`createdAfter` is `True`), the drain all the same
+        imod (monoListLbOwn_nil (GF := GF) (A := mvcc.RespM) r.γc.sentl) with #Hl0n
+        obtain ⟨l0, hl0⟩ : ∃ l0 : List mvcc.RespM, l0 = [] := ⟨_, rfl⟩
+        ihave #Hl0 : mvcc.chanSentLb r.γc l0 $$ []
+        · rw [hl0]; unfold mvcc.chanSentLb; iexact Hl0n
+        drain_created
+        ihave #Hord : v3rpc.createdAfter r.γs D.length m $$ []
+        · unfold v3rpc.createdAfter
+          rw [hca0]
+          simp only [Bool.not_true, Bool.and_false, Bool.false_eq_true, ↓reduceIte]
+          itrivial
+        ctrl_rest
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-progressTicker.C`

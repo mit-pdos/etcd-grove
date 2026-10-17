@@ -547,7 +547,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               iframe HIWF
               iframe Hia Hit Hfl
               iexists l0
-              iapply (mvcc.chanSentLb_stream r.γo r.γc l0 Hγoc.2.2).1 $$ Hl0
+              iapply (mvcc.chanSentLb_stream r.γo r.γc l0 Hγoc.2.2.1).1 $$ Hl0
             iintro !> Hprod
             wp_auto
             recv_next

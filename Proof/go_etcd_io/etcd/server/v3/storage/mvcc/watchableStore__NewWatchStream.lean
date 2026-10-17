@@ -193,7 +193,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   iframe Htok Hrecv2 Hch Hinv ch Hsp
   isplitr
   rotate_left
-  · ipureintro; exact ⟨rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, by rw [Hcap]; decide⟩
   iunfold mvcc.isWatchStream
   iexists ch, γc
   simp only [named]

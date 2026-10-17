@@ -4919,6 +4919,27 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
   channel's atomic update, so the empty buffer is observable). Perennial limitation noted:
   `wp_Len` relates a channel's length to nothing (`ChanAuSend.lean`), so a bounded drain is not
   provable; the fix drains until empty instead.
+- **O1–O3 (the ordering the `sendLoop` fix gives; done).** A registered `Created` response sent at
+  down position `j` follows every response of id `-1` queued on the stream's channel before it:
+  - **O1 (mvcc)**: the channel's sent list is a monotone ghost (`WatchChanNames.sentl`, its
+    authority in `watchChanInv`, extended by `watcher.send`); `chanSentLb` (a snapshot),
+    `chan_sent_snapshot`, `watch_sent_received`, and `watch_tryrecv_au_alt` (Perennial's
+    `nonblockingRecvAuAlt` for the channel: its not-ready branch, the buffer empty, gives
+    `received = sent`, so `l0 <+: received` for any earlier snapshot `l0` and `chanSentLb γc
+    received`; for a buffered channel, `0 < γc.ch.chanCap`, now in `NewWatchStream`'s post and
+    `swsIs`).
+  - **O2 (`recvLoop`)**: `WsStreamNames.sentl` (= the channel's, so the stream's names name the
+    channel's order: `streamSentLb`, `chanSentLb_stream`); `ctrlWatcher`'s created case carries a
+    snapshot taken after `watchStream.Watch` registered the watcher.
+  - **O3 (`sendLoop`)**: the drain before a `Created` (macro `drain_created`) uses
+    `wp_select_nonblocking_alt` (the whole context as `P`, by `iNamedAccu`) and
+    `watch_tryrecv_au_alt`; its invariant keeps `dr = true → l0 <+: rcv` and the snapshot of
+    `rcv`. `watchDn`'s control branch gains `createdAfter γs j m`: the created response's watcher
+    (`idAssigned`), its `ctrlWatcher` snapshot `l0`, a later snapshot `l` (`l0 <+: l`) and the
+    down list before `j`, in which every response of id `-1` in `l` is (`v3rpc.neg1_sent`,
+    `sendSt_neg1`: the send loop never buffers one). Its force comes with K1b, which adds that
+    the watcher was registered before `l0`. Statements that changed form: `watchDn`,
+    `ctrlWatcher`, `NewWatchStream.spec`, `isWatchStream`, `swsIs`, `auxOf`.
 - **K1 (mvcc: progress means synced).** `progressIfSync` sends at the store's revision `rev` under
   `s.mu.RLock` only when every watcher of the map is synced with `startRev ≤ rev`: so the
   stream's channel already holds every event `≤ rev` of each of them. Give a progress response

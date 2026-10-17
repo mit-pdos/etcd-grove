@@ -533,15 +533,15 @@ theorem watchRecvOk_startRev (γ : WsNames) (w : Loc) (rs : List RespM) (r : Wat
 `nonblockingRecvAuAlt` (`wp_select_nonblocking_alt`): the next response, or the end of a closed
 channel, as `watch_recv_au`; or nothing ready, which happens only when every response sent has
 been received, so that the consumer's `received` extends any earlier snapshot `l0` of the sent
-list. For a buffered channel (capacity positive). -/
+list and is a snapshot itself. For a buffered channel (capacity positive). -/
 theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received : List RespM)
     (l0 : List RespM) (Φ : WatchResponse → Bool → IProp GF) (Ψ : IProp GF)
     (hcap : 0 < sint.Z γc.ch.chanCap) :
     ⊢ inv watchN (watchChanInv γ ch γc) -∗ watchConsumer γc received -∗ chanSentLb γc l0 -∗
-      (∀ (v : WatchResponse) (ok : Bool), watchRecvResult γ γc received v ok -∗ Φ v ok) -∗
-      (watchConsumer γc received -∗ ⌜l0 <+: received⌝ -∗ Ψ) -∗
+      ((∀ (v : WatchResponse) (ok : Bool), watchRecvResult γ γc received v ok -∗ Φ v ok) ∧
+        (watchConsumer γc received -∗ ⌜l0 <+: received⌝ -∗ chanSentLb γc received -∗ Ψ)) -∗
       nonblockingRecvAuAlt γc.ch WatchResponse Φ Ψ := by
-  iintro #Hinv Hcons #Hl0 HΦ HΨ
+  iintro #Hinv Hcons #Hl0 HK
   unfold nonblockingRecvAuAlt
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -563,6 +563,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
   case SndCommit => simp [ChanCapValid] at Hcv; omega
   case RcvCommit => simp [ChanCapValid] at Hcv; omega
   case Buffered.nil =>
+    icases HK with ⟨-, HΨ⟩
     iintro Hch
     simp only [chanInflight, Option.some.injEq] at Hinfl
     subst Hinfl
@@ -573,6 +574,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     have hrs : sent = received := (prefix_drop_nil' Hpre hd).symm
     iunfold chanSentLb at Hl0
     ihave %Hlb := mono_list_auth_lb_valid _ _ _ _ $$ Hsentl Hl0
+    ihave #Hsnap := monoListLbOwn_get γc.sentl 1 sent $$ Hsentl
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
@@ -585,9 +587,11 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
       exact ⟨Hpre, rfl, Hnd⟩
     imodintro
     iapply HΨ $$ Hcons
-    ipureintro
-    rw [← hrs]; exact Hlb.2
+    · ipureintro
+      rw [← hrs]; exact Hlb.2
+    unfold chanSentLb; rw [← hrs]; iexact Hsnap
   case Buffered.cons =>
+    icases HK with ⟨HΦ, -⟩
     iintro Hch
     irevert Hcl Hws; simp only [chanIsClosed, Bool.false_eq_true, ↓reduceIte]; iintro Hcl Hws
     simp only [chanInflight, Option.some.injEq] at Hinfl
@@ -613,6 +617,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     iframe Hcons
     iframe #
   case Closed.cons =>
+    icases HK with ⟨HΦ, -⟩
     iintro Hch
     irevert Hcl Hws; simp only [chanIsClosed, ↓reduceIte]; iintro Hcl Hws
     simp only [chanInflight, Option.some.injEq] at Hinfl
@@ -638,6 +643,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     iframe Hcons
     iframe #
   case Closed.nil =>
+    icases HK with ⟨HΦ, -⟩
     iintro Hch
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
