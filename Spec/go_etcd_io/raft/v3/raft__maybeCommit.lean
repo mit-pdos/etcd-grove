@@ -71,8 +71,8 @@ it is `MaxUint64`). On `false` nothing changes.
 
 At any configuration since 2026-10-13 (reconfiguration stage A2): `CommitOkC`, a joint quorum
 of the two voter halves, with no premise on the voters (an empty half has committed
-everything, `MajQ`). The old statement (`id ∈ cfg`, `CommitOk cfg`) is
-`raft.maybeCommit.specS`. -/
+everything, `MajQ`). The old statement (`id ∈ cfg`, `CommitOk cfg`) was
+`raft.maybeCommit.specS`; it had no caller and is gone (2026-10-17). -/
 abbrev raft.maybeCommit.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
@@ -83,38 +83,6 @@ abbrev raft.maybeCommit.spec : Prop :=
       ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOkC c (toPState s) N⌝ }}
-
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.maybeCommit.spec` by `raft.maybeCommit.spec_simple`. -/
-abbrev raft.maybeCommit.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  s.role = .leader →
-  id ∈ cfg →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
-  {{ (b : Bool) (N : w64), RET #b;
-      ownRaftPhys cfg r id
-        (if b then { s with logst := { s.logst with committed := N } } else s) ∗
-      ⌜b = true → CommitOk cfg (toPState s) N⌝ }}
-
-open Iris.ProofMode in
-theorem raft.maybeCommit.spec_simple
-    (H : raft.maybeCommit.spec (GF := GF) (hG := hG)) :
-    raft.maybeCommit.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hlead Hid
-  have Hne : cfg ≠ ∅ := by
-    intro h; rw [h] at Hid; exact GMap.not_elem_of_empty _ Hid
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hlead $$ [$Hpkg $Hphys]
-  inext
-  iintro %b %N ⟨Hphys, %Hok⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro
-  exact fun hb => (Hok hb).simple Hne
 
 end spec
 

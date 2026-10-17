@@ -420,19 +420,64 @@ def notifyState (σ : WsState) (N : Nat) (STi : GMap Loc WatcherSt) (Wsi : GMap 
     vbs := if GMap.size Bv = 0 then σ.vbs else σ.vbs ++ [vm],
     VB := if GMap.size Bv = 0 then σ.VB else σ.VB ++ [Bv] }
 
-theorem findSome_isSome_of_mem {B : GMap Loc EventBatch} {l : List (GMap Loc EventBatch)} {w : Loc}
-    (hB : B ∈ l) (hw : (B !! w).isSome) : (l.findSome? (· !! w)).isSome := by
-  induction l with
-  | nil => cases hB
-  | cons x xs ih =>
-    rw [List.findSome?_cons]
-    rcases List.mem_cons.1 hB with rfl | h
-    · cases h' : B !! w with
-      | none => rw [h'] at hw; cases hw
-      | some _ => simp
-    · cases h' : x !! w with
-      | none => exact ih h
-      | some _ => simp
+/-- After `notify` (unit W-K): every synced watcher is delivered at most up to `N + 1` (or its
+first revision), every victim's `minRev` at most `N + 1` (the new ones' is `N + 1`). -/
+theorem notify_settled (σ : WsState) (N : Nat) (hok : WsOk σ) (hvb : σ.vicBelow N)
+    (hN1 : N + 1 < 2 ^ 63)
+    (Bt : GMap Loc EventBatch) (hBtWs : ∀ k, (Bt !! k).isSome → (σ.Ws !! k).isSome)
+    (PB : GMap Loc (Loc × EventBatch)) (keys : List Loc)
+    (hkeys : ∀ k, k ∈ keys ↔ (Bt !! k).isSome) (STi : GMap Loc WatcherSt)
+    (Wsi : GMap Loc WatchRange) (Bv : GMap Loc EventBatch) (Out : GMap Loc (List EvM))
+    (PBr : GMap Loc (Loc × EventBatch))
+    (hrel : NotifyRel σ N Bt PB keys keys.length STi Wsi Bv Out PBr) (vs' : GoSlice) (vm : GoMap)
+    (hvo : ∀ k, (notifyState σ N STi Wsi Bv Out vs' vm).victimOf k = (σ.victimOf k).or (Bv !! k)) :
+    (notifyState σ N STi Wsi Bv Out vs' vm).syncedBelow (N + 1) ∧
+      (notifyState σ N STi Wsi Bv Out vs' vm).vicBelow (N + 1) := by
+  have htk : keys.take keys.length = keys := List.take_length
+  constructor
+  · intro k γk ed h1 hm he
+    have h1' : (Wsi !! k).isSome := h1
+    rw [hrel.ws k] at h1'
+    have hws : (σ.Ws !! k).isSome := by
+      cases hb : (Bv !! k).isSome
+      · rw [hb] at h1'; simpa using h1'
+      · rw [hb] at h1'; simp at h1'
+    have hm' : σ.M !! k = some γk := hm
+    have he' : gmapMapK (fun k e => match Out !! k with
+      | some ev => (ev, N + 1)
+      | none => if (σ.Ws !! k).isSome then (e.1, max (((σ.M !! k).map WatcherNames.lo).getD 0) (N + 1))
+        else e) σ.E !! k = some ed := he
+    rw [gmapMapK_lookup] at he'
+    cases hek : σ.E !! k with
+    | none => rw [hek] at he'; cases he'
+    | some e =>
+      rw [hek] at he'
+      simp only [Option.map_some, Option.some.injEq] at he'
+      subst he'
+      cases ho : Out !! k with
+      | some ev => simp [ho]
+      | none => simp [ho, hws, hm']; omega
+  refine ⟨fun k st h1 hst => ?_, fun k st h => by have := hvb.2 k st h; omega⟩
+  · rw [hvo] at h1
+    have hst' : STi !! k = some st := hst
+    cases hb : Bv !! k with
+    | some B =>
+      obtain ⟨hk, -⟩ := hrel.bv k B hb
+      obtain ⟨st0, -, hS⟩ := hrel.st_done k hk
+      rw [hS] at hst'; cases hst'
+      simp only
+      word
+    | none =>
+      rw [hb] at h1
+      have h1' : (σ.victimOf k).isSome := by
+        cases hv : σ.victimOf k <;> simp_all
+      have hnk : k ∉ keys.take keys.length := by
+        rw [htk]; intro hk
+        have hws := hBtWs k ((hkeys k).1 hk)
+        rw [hok.ws_v k hws] at h1'; cases h1'
+      rw [hrel.st_rest k hnk] at hst'
+      have := hvb.1 k st h1' hst'
+      omega
 
 theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : WsOk σ)
     (Bt : GMap Loc EventBatch) (hBtWs : ∀ k, (Bt !! k).isSome → (σ.Ws !! k).isSome)
@@ -622,20 +667,6 @@ theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : 
       omega
   · intro w γw ed hw hM hed
     exact hd w γw ed hw hM hed
-
-theorem popFacts_synced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
-    (st : WatcherSt) (evsw : List EvM) (d : Nat) (h : (σ.Ws !! k).isSome) :
-    popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d) := by
-  unfold popFacts; rw [if_pos h]
-
-theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
-    (st : WatcherSt) (evsw : List EvM) (d : Nat) (B : EventBatch) (h1 : (σ.Ws !! k).isSome = false)
-    (h2 : (σ.Wu !! k).isSome = false) (h3 : σ.victimOf k = some B) :
-    popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B⌝ ∗
-        evsWf γ r lo (evsw ++ B.evs) d) := by
-  unfold popFacts; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
 
 /-- The lock's resources of a watcher after `notify`. -/
 theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List Change) (N : Nat)
@@ -880,7 +911,7 @@ theorem mvcc.watchableStore.notify.wp_proof
   have hDel := mvcc.watcherGroup.delete.spec_group hDel
   intro s st γ σ ilog pend evs dq es evm
   wp_start as ⟨#Hws, Hbody, %Hpre, #Hlb, Hevs, #HevIs, %Hevm⟩
-  obtain ⟨hLmu, hbelow, hlen, hne⟩ := Hpre
+  obtain ⟨hLmu, hbelow, hvic, hlen, hne⟩ := Hpre
   obtain ⟨hes, hevm⟩ := Hevm
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -922,8 +953,12 @@ theorem mvcc.watchableStore.notify.wp_proof
     simp only [em, eo]
     iframe Hst Hmem Hout
     ipureintro
-    refine ⟨⟨Hvlen, mvcc.WsOk_vs Hok vs'⟩, hLmu, fun w γw ed hw => ?_⟩
-    rw [hWse] at hw; cases hw
+    refine ⟨⟨Hvlen, mvcc.WsOk_vs Hok vs'⟩, hLmu, fun w γw ed hw => ?_, fun w γw ed hw => ?_,
+      fun w st h1 hst => ?_, fun w st h => ?_⟩
+    · rw [hWse] at hw; cases hw
+    · rw [hWse] at hw; cases hw
+    · have := hvic.1 w st h1 hst; omega
+    · have := hvic.2 w st h; omega
   iunfold mvcc.ownWatcherBatch at Hwb
   icases Hwb with ⟨%PB, Hwbm, %HBt, Hbs⟩
   generalize hN : ilog.length = N at *
@@ -1030,13 +1065,17 @@ theorem mvcc.watchableStore.notify.wp_proof
     have hmod : ∀ ev ∈ mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1), ev.kv.modRev = W64 N := by
       rw [← hN]; exact mvcc.watchEvents_next_modRev ilog pend hne r'
     wp_apply (hSend γ key γw r' fcs stw.ch 1 (Qp.half 1) evsw (N + 1) _ ps
-        (mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1)) (DFrac.own 1) [] iprop(True))
-      $$ [Hchf Hl Ha Hsl] as %b ⟨Hchf, Hl, Hsl, Ha, -⟩
+        (mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1)) (DFrac.own 1) [] 1 iprop(True))
+      $$ [Hchf Hl Ha Hsl] as %b ⟨Hchf, Hl, Hsl, Ha, -, -⟩
     · rw [if_neg hwEne]
       simp only at Hlen
       iframe Hmeta Hfx Hfo Hch Hchf Hl Ha Hwf' Hsl HevB
       isplitr
       · iapply mvcc.covPre_nil
+      isplitr
+      · iapply mvcc.covAuth_nil
+      isplitr
+      · ipureintro; intro h; exact absurd h hwEne
       isplitr
       · itrivial
       isplitr
@@ -1169,7 +1208,7 @@ theorem mvcc.watchableStore.notify.wp_proof
   have hsz2 : (GMap.fmap Prod.fst PBv).size = (GMap.fmap Prod.snd PBv).size := by
     rw [GMap.map_size_fmap, GMap.map_size_fmap]
   rw [hsz2]
-  obtain ⟨hok', habove, -, -⟩ := mvcc.notify_final σ N (by rw [hLmu, hN]) Hok _
+  obtain ⟨hok', habove, -, hvo'⟩ := mvcc.notify_final σ N (by rw [hLmu, hN]) Hok _
     (fun k h => by
       cases hb : mvcc.batchOf σ.Ws σ.ST (mvcc.evsOfRevM N (stateAfter ilog) pend) !! k with
       | none => rw [hb] at h; cases h
@@ -1228,7 +1267,12 @@ theorem mvcc.watchableStore.notify.wp_proof
         ipureintro; rfl
       ipureintro; exact hok'
   ipureintro
-  exact ⟨hLmu, habove⟩
+  refine ⟨hLmu, habove, mvcc.notify_settled σ N Hok hvic (by omega) _
+    (fun k h => by
+      cases hb : mvcc.batchOf σ.Ws σ.ST (mvcc.evsOfRevM N (stateAfter ilog) pend) !! k with
+      | none => rw [hb] at h; cases h
+      | some B => obtain ⟨r, _, hW, -⟩ := mvcc.batchOf_some hb; rw [hW]; rfl)
+    PB keys hkeys STi Wsi (GMap.fmap Prod.snd PBv) Out PBr Hrel vs' vm hvo'⟩
 
 end proof
 end EtcdGrove

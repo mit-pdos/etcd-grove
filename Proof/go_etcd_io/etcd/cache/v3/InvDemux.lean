@@ -1164,6 +1164,14 @@ theorem RegsOk.unregister {c : DemuxCore} {k : Nat} {regs : GMap Loc RegInfo}
 def StartOk (c : DemuxCore) (ri : RegInfo) (v : View) : Prop :=
   ri.s = W64 0 ∨ (c.minRev ≠ W64 0 ∧ c.base < sint.Z ri.s) ∨ (v.phase = .lagging ∧ v.n = ri.s)
 
+/-- An active watcher's start condition does not depend on its view. -/
+theorem StartOk.of_active {c : DemuxCore} {ri : RegInfo} {v : View} (h : StartOk c ri v)
+    (hph : v.phase = .active) (v' : View) : StartOk c ri v' := by
+  rcases h with h1 | h2 | ⟨h4, -⟩
+  · exact Or.inl h1
+  · exact Or.inr (Or.inl h2)
+  · rw [hph] at h4; cases h4
+
 theorem RegsStart.get {c : DemuxCore} {regs : GMap Loc RegInfo} {views : GMap Loc View}
     (h : RegsStart c regs views) {w : Loc} {ri : RegInfo} {v : View} (hr : regs !! w = some ri)
     (hv : views !! w = some v) (hm : v.phase.mapped = true) : StartOk c ri v :=

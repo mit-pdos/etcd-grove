@@ -160,45 +160,6 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.handleAppendEntries.spec` by `raft.handleAppendEntries.spec_simple`. -/
-abbrev raft.handleAppendEntries.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc),
-  PlogWf (entryID.mk m.LogTerm' m.Index') ents →
-  uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
-  (let ls := s.logst
-   let es := ls.sents ++ ls.uents
-   uint.Z ls.committed ≤ uint.Z m.Index' →
-   PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
-   plogFindConflict ls.prev es ents = W64 0 ∨
-   uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) →
-  m.From' ≠ id →
-  m.Type' = MsgApp →
-  s.role ≠ .leader →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #ml))
-  {{ (s' : NState), RET #();
-      ownRaftPhys cfg r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
-
-open Iris.ProofMode in
-theorem raft.handleAppendEntries.spec_simple
-    (H : raft.handleAppendEntries.spec (GF := GF) (hG := hG)) :
-    raft.handleAppendEntries.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl
-  iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl $$ [$Hpkg $Hphys $Hm]
-  inext
-  iintro %s' ⟨Hphys, %Hres⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro; exact Hres
-
 end spec
 
 end EtcdGrove

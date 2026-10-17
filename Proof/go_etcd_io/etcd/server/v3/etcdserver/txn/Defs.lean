@@ -126,7 +126,7 @@ for a plain store. -/
 def wlogOwn (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
   if γ.watchQ then
     iprop(∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ⌝ ∗ mvcc.isWatchableStore ws s γw ∗
-      ghostVar γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L)
+      monoListAuthOwn γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L)
   else iprop(True)
 
 instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :

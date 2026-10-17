@@ -123,7 +123,7 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
 the synced watchers are delivered at most up to it (before the seal). -/
 theorem mvcc.body_pin (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (ilog : mvcc.Log)
     (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc) :
-    mvcc.watchStoreBody (GF := GF) s γ 1 σ ∗ ghostVar γ.wlog (1 : Qp).half ilog ∗
+    mvcc.watchStoreBody (GF := GF) s γ 1 σ ∗ monoListAuthOwn γ.wlog (1 : Qp).half ilog ∗
       mvcc.storeTxnWriteCore stw st γ.st trace ilog pend chs ps false ⊢
       ⌜σ.Lmu = ilog ∧ σ.syncedBelow ilog.length⌝ := by
   iintro ⟨Hb, Hwl, Hc⟩
@@ -131,7 +131,8 @@ theorem mvcc.body_pin (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (
   iNamed Hb
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨Hwlog, -⟩
-  ihave %Hl := ghostVar_agree γ.wlog _ _ _ _ $$ Hwlog Hwl
+  ihave %Hl0 := monoListAuthOwn_agree γ.wlog _ _ _ _ $$ Hwlog Hwl
+  have Hl := Hl0.2
   iunfold mvcc.storeTxnWriteCore at Hc
   iNamed Hc
   simp only [mvcc.idxWriterB_false]
@@ -147,18 +148,19 @@ quarter of the committed log's authority at the notified log, lent to the commit
 at `L` (`logQPost`). -/
 theorem mvcc.body_commit (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) :
     mvcc.watchStoreBody (GF := GF) s γ 1 σ ⊢ mvcc.logQ γ.st σ.Lmu ∗
-      (∀ L : mvcc.Log, ⌜σ.syncedAbove L.length⌝ -∗ ghostVar γ.wlog (1 : Qp).half σ.Lmu -∗
+      (∀ L : mvcc.Log, ⌜σ.syncedAbove L.length ∧ σ.Lmu <+: L⌝ -∗
+        monoListAuthOwn γ.wlog (1 : Qp).half σ.Lmu -∗
         mvcc.idxCert γ.st.idx L -∗ mvcc.logQ γ.st L ==∗
-        mvcc.watchStoreBody s γ 1 { σ with Lmu := L } ∗ ghostVar γ.wlog (1 : Qp).half L) := by
+        mvcc.watchStoreBody s γ 1 { σ with Lmu := L } ∗ monoListAuthOwn γ.wlog (1 : Qp).half L) := by
   iintro Hb
   iunfold mvcc.watchStoreBody at Hb
   iNamed Hb
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨Hwlog, Hq⟩
   iframe Hq
-  iintro %L %hab Hwl #Hc Hq
+  iintro %L ⟨%hab, %hpre⟩ Hwl #Hc Hq
   imod ghostVar_update { σ with Lmu := L } γ.wst σ $$ Hσ with Hσ
-  imod ghostVar_update_halves L γ.wlog _ _ $$ Hwlog Hwl with ⟨Hwlog, Hwl⟩
+  imod mvcc.wlog_update_halves γ σ.Lmu L hpre $$ Hwlog Hwl with ⟨Hwlog, Hwl⟩
   imodintro
   iframe Hwl
   iunfold mvcc.watchStoreBody
@@ -482,7 +484,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP⟩
+  icases HP with ⟨%σ, HP, %Hset⟩
   icases persistent_entails_right (mvcc.body_pin s stw st γ σ ilog pend chs ps) $$
     [$HP $Hwlog $Hcore] with ⟨%Hpin, HP, Hwlog, Hcore⟩
   obtain ⟨hLmu, hbel⟩ := Hpin
@@ -502,8 +504,8 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   wp_apply (hNotify s st γ σ ilog pend esl (DFrac.own 1) done evd) $$
     [$Hws0 $HP $Hlb $Hesl $Hdone] as ⟨Hesl, %σ', HP, %Hσ'⟩
   · ipureintro
-    exact ⟨⟨hLmu, hbel, by omega, Hwfc.2.2.2.2⟩, hdl, hevd⟩
-  obtain ⟨hLmu', hab⟩ := Hσ'
+    exact ⟨⟨hLmu, hbel, by rw [← hLmu]; exact Hset.2, by omega, Hwfc.2.2.2.2⟩, hdl, hevd⟩
+  obtain ⟨hLmu', hab, hbel', hvic'⟩ := Hσ'
   (try wp_auto)
   ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog pend puts deletes putSize) $$ [Hcw]
   · simp only [mvcc.isTxnEnd]; iexists chs, ps, true; iexact Hcw
@@ -518,10 +520,17 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   simp only [mvcc.txnEndPost, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
   icases Hpost with ⟨#Hc, -, Hq⟩
   rw [← hLmu'] at *
-  imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(by simpa using hab) Hwlog Hc Hq with ⟨HP, Hwlog⟩
+  imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
+    with ⟨HP, Hwlog⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP]
-  · inext; iunfold mvcc.watchStoreInv; iexists _; iexact HP
+  · have hs'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).settled := by
+      refine ⟨?_, ?_⟩
+      · show σ'.syncedBelow (σ'.Lmu ++ [pend]).length
+        rw [List.length_append, List.length_singleton]; exact hbel'
+      · show σ'.vicBelow (σ'.Lmu ++ [pend]).length
+        rw [List.length_append, List.length_singleton]; exact hvic'
+    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP; ipureintro; exact hs''
   (try wp_auto)
   iapply HΦ
   iframe Hrd Hc Htrc

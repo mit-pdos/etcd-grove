@@ -88,6 +88,18 @@ ring was full. -/
 def ringAppend {V : Type} (cap : Nat) (items : List V) (v : V) : List V :=
   if items.length < cap then items ++ [v] else items.tail ++ [v]
 
+/-- An item after `Append` is the new one or was there before. -/
+theorem ringAppend_mem {V : Type} {cap : Nat} {items : List V} {v x : V}
+    (h : x ∈ ringAppend cap items v) : x = v ∨ x ∈ items := by
+  unfold ringAppend at h
+  split at h
+  · rcases List.mem_append.1 h with h | h
+    · exact Or.inr h
+    · exact Or.inl (List.mem_singleton.1 h)
+  · rcases List.mem_append.1 h with h | h
+    · exact Or.inr (List.mem_of_mem_tail h)
+    · exact Or.inl (List.mem_singleton.1 h)
+
 /-- `Append`'s precondition on the new item: its revision is above the newest one's. -/
 def RevAbove {V : Type} (revOf : V → w64) (items : List V) (v : V) : Prop :=
   ∀ last, items.getLast? = some last → sint.Z (revOf last) < sint.Z (revOf v)

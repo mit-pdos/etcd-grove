@@ -44,7 +44,7 @@ theorem read.NewRead.wp_proof
   ipersist raft
   ipersist waitC
   imod ghostVar_update (nc, γn) γr.notifier x $$ Hgx with Hg
-  icases (read_ghostVar_halves γr.notifier (nc, γn)).1 $$ Hg with ⟨Hg1, Hg2⟩
+  icases (mvcc.ghostVar_halves γr.notifier (nc, γn)).1 $$ Hg with ⟨Hg1, Hg2⟩
   imod monoNatLbOwn_0 γr.committed with #H0
   ihave #Hc0 : committedAtLeast (GF := GF) γr (W64 0) $$ []
   · iunfold committedAtLeast; rw [show uint.nat (W64 0) = 0 by word]; iexact H0
@@ -58,7 +58,7 @@ theorem read.NewRead.wp_proof
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   imod sync.init_RWMutex (readMuP r γr) (readMuAddr r) $$ [notifier Hg1] mux with Hslots
   · inext; iunfold readMuP; iexists nc, γn; iframe notifier Hg1
-  icases read_guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
+  icases guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
   ihave #Hrd : readInv (GF := GF) γr $$ []
   · iunfold readInv; iexact Hinv
   ihave #Hpre : isReadPre (GF := GF) r γr $$ []

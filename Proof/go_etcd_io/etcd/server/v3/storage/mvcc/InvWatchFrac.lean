@@ -379,7 +379,7 @@ theorem watchBudget_fractional (γ : WsNames) (M : GMap Loc WatcherNames) :
 theorem wlogQ_fractional (γ : WsNames) (L : Log) :
     Fractional (fun q => wlogQ (GF := GF) γ q L) := by
   unfold wlogQ
-  exact wFractional_sep (wFractional_half (ghostVar_fractional _ _))
+  exact wFractional_sep (wFractional_half (monoListAuthOwn_fractional _ _))
     (wFractional_half (wFractional_half (monoListAuthOwn_fractional _ _)))
 
 theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
@@ -407,10 +407,11 @@ agree on the state through `γ.wst`. -/
 theorem watchStoreInv_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : WsNames) : Fractional (watchStoreInv (GF := GF) s γ) := by
   unfold watchStoreInv
-  refine wFractional_exists _ (fun σ => watchStoreBody_fractional hsplit s γ σ) ?_
+  refine wFractional_exists _ (fun σ => wFractional_sep (watchStoreBody_fractional hsplit s γ σ)
+    (wFractional_persistent _)) ?_
   intro σ1 σ2 q1 q2
   unfold watchStoreBody
-  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+  iintro ⟨⟨⟨H1, -⟩, -⟩, ⟨⟨H2, -⟩, -⟩⟩
   ihave %H := ghostVar_valid_2 γ.wst _ _ _ _ $$ H1 H2
   ipureintro; exact H.2
 

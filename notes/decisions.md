@@ -6984,6 +6984,20 @@ substream is never one.
 *Rejected:* the claim attached by `recvLoop` (its live set) after `progressAll` returns: `sendLoop`
 may forward the response first. *Rejected:* a client-side fix (`issues/etcd-watch-progress-before-created.md`).
 
+## The client's watch made complete with a second cursor (unit W-K, K2e, 2026-10-17 · adopted)
+
+**The choice (the user's).** The client's channel contract (`rangeWatchElem`, `rangeWatchRespOk`)
+keeps its cursor at the last event's revision and promises soundness only; the cache's
+(`watchRespOk`) moves its cursor to a progress response's revision and needs completeness. The
+client's element gains a completeness part with a second cursor; `rangeWatchRespOk` and its
+consumers (recipes, Election, leasing, `waitDelete`) stay, changed only by one more pattern slot.
+`isEtcdWatcher` is read off the second cursor. *Rejected:* one cursor with the new meaning (the
+consumers' proofs redone for progress responses).
+
+**What it rests on.** A watch never resumes onto another gRPC stream (the transport premise
+`noRetryableStreamErr`), so completeness is per server stream. Under `s.mu` a progress revision
+is the notified log's last (`rev()` is lent the lock's fraction of the committed log, K2e-1).
+
 ## The recipes are verified against the closed-watch fix (unit W-Q, 2026-10-16 · adopted)
 
 **The rule and the precedent.** The verified etcd is upstream main plus the commits that make it

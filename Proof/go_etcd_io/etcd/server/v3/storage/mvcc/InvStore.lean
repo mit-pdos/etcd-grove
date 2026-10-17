@@ -1714,6 +1714,33 @@ theorem batchTxSpecG_cmp (bt : GoInterfaceOk) (s : Loc) (γ : StoreNames) (Dep :
   simp only [h]
   exact .rfl
 
+/-- **A caller's lent fraction of the committed log's authority** (unit W-K): `some (q, L)`, the
+fraction `q` at `L` (a reader holding it knows the committed log is `L`: `store.Read` finds it so);
+`none`, nothing. -/
+def logLent (γ : IdxNames) : Option (Qp × Log) → IProp GF
+  | some (q, L) => idxLogAuth γ q L
+  | none => iprop(True)
+
+/-- A lent fraction agrees with another's. -/
+theorem logLent_agree (γ : IdxNames) (q0 : Qp) (log : Log) (oa : Option (Qp × Log)) :
+    idxLogAuth (GF := GF) γ q0 log ∗ logLent γ oa ⊢
+      idxLogAuth γ q0 log ∗ logLent γ oa ∗ ⌜∀ q L, oa = some (q, L) → log = L⌝ := by
+  cases oa with
+  | none =>
+    iintro ⟨H, -⟩
+    iframe H
+    unfold logLent
+    isplitr
+    · itrivial
+    ipureintro; intro q L h; cases h
+  | some p =>
+    obtain ⟨q, L⟩ := p
+    iintro ⟨H, Hl⟩
+    unfold logLent at *
+    ihave %Hag := monoListAuthOwn_agree γ.log q0 q log L $$ H Hl
+    iframe H Hl
+    ipureintro; intro q' L' h; cases h; exact Hag.2
+
 /-- **The committed log `log` is certified OK by the caller** (persistent; 2026-10-14, unit T1):
 `NewStore`'s logs (at most two revisions), or an element of the caller's map `γ.cok`. -/
 def certOk (γ : StoreNames) (log : Log) : IProp GF :=
@@ -2034,7 +2061,8 @@ positive `CompactionBatchLimit`: the job's loop needs it to end,
 `issues/etcd-compaction-negative-batch-limit.md`), the scheduler, the stop channel's field (its
 channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The fields `restore`
 and `Close` change are fixed here (out of scope). `compactMainRev` is under the two locks
-(`muInv`, `revMuInv`). -/
+(`muInv`, `revMuInv`); and the certificate of the initial log `[[], []]` (`NewStore`'s:
+revision 1, `currentRev = 1`), so every committed log extends it. -/
 def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (b le : GoInterface) (ti lg : Loc) (Ph : IProp GF) (Dep : IProp GF)
       (scfg : StoreConfig) (ssched : GoInterface) (sstop shs : Loc),
@@ -2059,7 +2087,8 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#HisSched" ∷ schedule.isScheduler ssched γ.sch ∗
     "#Hstopc" ∷ s.[store, go!"stopc"] ↦□ sstop ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
-      (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface))
+      (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
+    "#Hc0" ∷ idxCert γ.idx [[], []])
 
 /-- **The store's backend contract** (what `NewStore` takes, for every store of the instance):
 `isKeyBackendG` at the store's view, tokens and put condition of its instance, its deletable keys
@@ -3070,6 +3099,21 @@ def storeCloser (s : Loc) : IProp GF :=
   iprop(∃ c : GoChan, s.[store, go!"stopc"] ↦□ c ∗ stopCloser c)
 
 end hookLc
+
+section halves
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A ghost variable as two halves. -/
+theorem ghostVar_halves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
+    ghostVar (GF := GF) γ 1 a ⊣⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
+  have h := (ghostVar_fractional (GF := GF) γ a).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  exact h
+
+end halves
 
 end mvcc
 end EtcdGrove

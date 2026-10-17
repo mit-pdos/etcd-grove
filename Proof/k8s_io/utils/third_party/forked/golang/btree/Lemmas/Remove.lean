@@ -164,9 +164,6 @@ theorem split_item (is : List E) (cs : List (Tree E)) (j : Nat) (hj : j < is.len
 section sorted
 variable {V K : Type} {lt : K → K → Prop}
 
-theorem sorted_sublist {l1 l2 : List (V × K)} (h : l1.Sublist l2) (hs : Sorted lt l2) :
-    Sorted lt l1 := hs.sublist h
-
 theorem sorted_append {A B : List (V × K)} :
     Sorted lt (A ++ B) ↔ Sorted lt A ∧ Sorted lt B ∧ ∀ a ∈ A, ∀ b ∈ B, lt a.2 b.2 := by
   unfold Sorted; exact List.pairwise_append
@@ -379,15 +376,6 @@ end keys
 /-! ## Shapes -/
 
 variable {E : Type}
-
-theorem shape_succ (d h : Nat) (is : List E) (cs : List (Tree E)) :
-    Shape d (h + 1) (.node is cs) ↔ cs.length = is.length + 1 ∧
-      ∀ c ∈ cs, (d - 1 ≤ c.items.length ∧ c.items.length ≤ 2 * d - 1) ∧ Shape d h c := by
-  rw [Shape]
-
-theorem shape_zero (d : Nat) (is : List E) (cs : List (Tree E)) :
-    Shape d 0 (.node is cs) ↔ cs = [] := by
-  rw [Shape]
 
 theorem shape_child {d h : Nat} {is : List E} {cs : List (Tree E)} {j : Nat} {c : Tree E}
     (hs : Shape d (h + 1) (.node is cs)) (hc : cs[j]? = some c) :
@@ -1136,27 +1124,6 @@ theorem ownNode_merge_acc (p : Loc) (bis : List (V × K)) (bcs : List (Tree (V �
     iexists (.node bis bcs)
     rw [frozen_node]; unfold nodeFields
     iexact Hfr
-
-theorem isCow_less_rm (cw : Loc) :
-    isCow o cw f less ⊢ structFieldRef (copyOnWriteContext V) go!"less" cw ↦□ less := by
-  unfold isCow
-  iintro ⟨Hc, _, _⟩
-  iStructNamed Hc
-  iexact less
-
-theorem isCow_isLess_rm (cw : Loc) : isCow o cw f less ⊢ isLess o less := by
-  unfold isCow
-  iintro ⟨_, _, H⟩
-  iexact H
-
-theorem allItems_mono_rm {l1 l2 : List (V × K)} (h : ∀ e ∈ l1, e ∈ l2) :
-    allItems o l2 ⊢ allItems o l1 := by
-  unfold allItems
-  iintro #H
-  imodintro
-  iintro %e %he
-  iapply H
-  ipureintro; exact h e he
 
 end iris
 

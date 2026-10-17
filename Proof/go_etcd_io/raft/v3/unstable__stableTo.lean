@@ -46,19 +46,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `max` on `uint64` (Rocq: the framework's `wp_max2_uint64`; the same private lemma as
-in `Proof/Progress__BecomeProbe.lean`). -/
-private theorem wp_max2_uint64 (x y : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.max [go.uint64, go.uint64])) (Val #x)) (Val #y))
-    {{ RET #(w64Max x y); True }} := by
-  wp_start
-  wp_if_destruct
-  · rw [show w64Max x y = x by unfold w64Max; simp_all]
-    iapply HΦ; itrivial
-  · rw [show w64Max x y = y by unfold w64Max; rw [ite_eq_right_iff.2 (fun h => absurd h (by omega))]]
-    iapply HΦ; itrivial
-
 theorem unstable.stableTo.wp_proof
     (wp_unstable_maybeTerm : unstable.maybeTerm.spec (GF := GF) (hG := hG))
     (wp_unstable_shrinkEntriesArray : unstable.shrinkEntriesArray.spec (GF := GF) (hG := hG)) :

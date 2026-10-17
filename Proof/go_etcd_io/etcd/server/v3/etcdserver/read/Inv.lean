@@ -370,39 +370,6 @@ theorem isReadLoopPre_pre (r : Loc) (γr : ReadNames)
   iexists srv, wc, γw
   iframe #
 
-/-- An unclosed broadcast channel's owner view gives a waiter's view too. -/
-theorem bcast_pending_unknown (ch : Loc) (γ : ChanNames) (Q : IProp GF) :
-    ownBroadcastChan ch γ Q .Pending ⊢ ownBroadcastChan ch γ Q .Pending ∗ ownBroadcastChan ch γ Q .Unknown := by
-  iintro H
-  icases ownBroadcastChan_open _ _ _ _ $$ H with ⟨%γch, #Hint, Hd⟩
-  isplitl [Hd]
-  · iapply ownBroadcastChan_close _ _ _ _ γch; iframe Hint Hd
-  · iapply ownBroadcastChan_close _ _ _ .Unknown γch; iframe Hint
-
-/-- A guard of a lock from its reader slots (there is at least one; as mvcc's `guard_of_slots`). -/
-theorem read_guard_of_slots [sync.Assumptions] (rw : Loc) (P : Qp → IProp GF) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), sync.ownRWMutex rw P) ⊢
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), sync.ownRWMutex rw P) ∗
-        sync.isRWMutexGuard rw P := by
-  have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
-    Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
-  obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
-    ⟨_, (Nat.succ_pred_eq_of_pos hpos).symm⟩
-  rw [hm, List.replicate_succ]
-  iintro H
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨Htok, Htoks⟩
-  icases sync.ownRWMutex_guard _ _ $$ Htok with ⟨Htok, #Hguard⟩
-  iframe Hguard
-  iapply BigSepL.bigSepL_cons.2
-  iframe Htok Htoks
-
-/-- A ghost variable as two halves. -/
-theorem read_ghostVar_halves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
-    ghostVar (GF := GF) γ 1 a ⊣⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
-  have h := (ghostVar_fractional (GF := GF) γ a).fractional (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  exact h
-
 /-- Halving distributes over a sum of fractions. -/
 theorem read_qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
   apply Subtype.ext

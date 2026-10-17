@@ -177,6 +177,20 @@ def sData (P : BParams) (S : Data) : GMap (GoString × GoString) GoString := vDa
 def idsOk (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
   ∀ i es, B.lookup i = some es → ∃ n, P.BT.lookup n = some i
 
+/-- The write-back's read buffer keeps the buffers' buckets the table's. -/
+theorem idsOk_writebackR {P : BParams} {W : WBuf} {R : RBuf} (hW : idsOk P W.bks)
+    (hR : idsOk P R.bks) : idsOk P (writebackR W R).bks := by
+  intro i es h
+  simp only [writebackR, wbMerge] at h
+  change ((gmapImap _ W.bks).lookup i).or (R.bks.lookup i) = some es at h
+  cases hw : W.bks.lookup i with
+  | some es' => exact hW i es' hw
+  | none =>
+    have : (gmapImap (fun id es => canon (bkOf R.bks id ++ es)) W.bks).lookup i = none := by
+      show (W.bks.lookup i).map _ = none; rw [hw]; rfl
+    rw [this, Option.none_or] at h
+    exact hR i es h
+
 /-- A bucket's contents in bbolt's data (empty if absent). -/
 def bktOf (D : Data) (n : GoString) : BktData := (D.lookup n).getD ∅
 

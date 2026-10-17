@@ -48,7 +48,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 /-- The writer's part of a watchable store's notified log, unfolded. -/
 theorem wlogOwn_watch (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) (h : γ.watchQ = true) :
     wlogOwn (GF := GF) s γ L ⊣⊢ ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ⌝ ∗
-      mvcc.isWatchableStore ws s γw ∗ ghostVar γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L := by
+      mvcc.isWatchableStore ws s γw ∗ monoListAuthOwn γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L := by
   unfold wlogOwn; rw [h]; simp only [↓reduceIte]; exact .rfl
 
 /-! ## The KV -/
@@ -110,7 +110,7 @@ def twEnd (s : Loc) (γ : mvcc.StoreNames) (tyX : go.GoType) (vX : val) (mw : Lo
       ⌜tyX = go.GoType.PointerType watchableStoreTxnWrite.ty ∧ vX = #twl ∧ γw.st = γ⌝ ∗
       twl ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
                 s' := ws } : watchableStoreTxnWrite) ∗
-      mvcc.isWatchableStore ws s γw ∗ ghostVar γw.wlog (1 : Qp).half ilog ∗
+      mvcc.isWatchableStore ws s γw ∗ monoListAuthOwn γw.wlog (1 : Qp).half ilog ∗
       mvcc.idxCert γ.idx ilog)
 
 /-- The write transaction is over `mw` (`twWrap`, persistent). -/

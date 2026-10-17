@@ -85,34 +85,6 @@ abbrev raft.handleHeartbeat.spec : Prop :=
   {{ RET #(); ownRaftPhysCV c c.voters r id (heartbeatResult id s m cl) ∗
       msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.handleHeartbeat.spec` by `raft.handleHeartbeat.spec_simple`. -/
-abbrev raft.handleHeartbeat.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq dqe : DFrac) (cap : Bool)
-    (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
-  uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
-  m.From' ≠ id →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #ml))
-  {{ RET #(); ownRaftPhys cfg r id (heartbeatResult id s m cl) ∗
-      msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}
-
-open Iris.ProofMode in
-theorem raft.handleHeartbeat.spec_simple
-    (H : raft.handleHeartbeat.spec (GF := GF) (hG := hG)) :
-    raft.handleHeartbeat.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s ml dq dqe cap m ents sn cl rs Hc Hfrom
-  iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s ml dq dqe cap m ents sn cl rs Hc Hfrom $$ [$Hpkg $Hphys $Hm]
-  inext
-  iintro ⟨Hphys, Hm⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys Hm
-
 end spec
 
 end EtcdGrove

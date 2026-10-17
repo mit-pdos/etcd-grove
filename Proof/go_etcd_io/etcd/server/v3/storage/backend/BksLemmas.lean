@@ -100,15 +100,6 @@ theorem bbAt_not_null (bb : Loc) (dq : DFrac) (p : BBPhys) (es : List Ent) :
   icases H with ⟨H, -⟩
   iapply typedPointsto_not_null _ _ _ $$ H
 
-/-- No entries in the first slots. -/
-theorem entsIn_nil (kvs : List kv) : ⊢ entsIn (GF := GF) kvs [] := by
-  unfold entsIn
-  isplitr
-  · ipureintro; exact Nat.zero_le _
-  · rw [List.zip_nil_right]
-    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
-    iempintro
-
 /-- An empty buffer (its `used` zero), from its fields. -/
 theorem bbAt_nil_intro (bb : Loc) (dq : DFrac) (p : BBPhys) :
     (bb ↦{dq} ({ buf' := p.buf, used' := W64 0 } : bucketBuffer) : IProp GF) -∗

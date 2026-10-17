@@ -77,36 +77,13 @@ theorem reqOpsAt_nil : ⊢ reqOpsAt (GF := GF) [] [] := by
   iintro %i %p %m %h1 %h2
   simp at h1
 
-theorem pointwise_snoc' {A B : Type} (P : A → B → IProp GF) [∀ a b, Persistent (P a b)]
-    (xs : List A) (ys : List B) (a : A) (b : B) (hlen : xs.length = ys.length) :
-    (□ ∀ (i : Nat) (x : A) (y : B), ⌜xs[i]? = some x⌝ -∗ ⌜ys[i]? = some y⌝ -∗ P x y) ∗ P a b ⊢
-      □ ∀ (i : Nat) (x : A) (y : B), ⌜(xs ++ [a])[i]? = some x⌝ -∗ ⌜(ys ++ [b])[i]? = some y⌝ -∗
-        P x y := by
-  iintro ⟨#H, #Hp⟩
-  imodintro
-  iintro %i %x %y %hx %hy
-  rcases Nat.lt_or_ge i xs.length with h | h
-  · rw [List.getElem?_append_left h] at hx
-    rw [List.getElem?_append_left (by omega)] at hy
-    iapply H $$ %i %x %y %hx %hy
-  · rw [List.getElem?_append_right h] at hx
-    rw [List.getElem?_append_right (by omega)] at hy
-    rcases Nat.lt_or_ge (i - xs.length) 1 with h' | h'
-    · rw [show i - xs.length = 0 by omega] at hx
-      rw [show i - ys.length = 0 by omega] at hy
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hx hy
-      subst hx; subst hy
-      iexact Hp
-    · rw [List.getElem?_eq_none (by simp; omega)] at hx
-      cases hx
-
 theorem comparesAt_snoc (ps : List Loc) (ms : List CmpModel) (p : Loc) (m : CmpModel) :
     comparesAt (GF := GF) ps ms ∗ ⌜p ≠ null⌝ ∗ compareAt p m ⊢ comparesAt (ps ++ [p]) (ms ++ [m]) := by
   unfold comparesAt
   iintro ⟨⟨%hl, #H⟩, %hp, #Hc⟩
   isplitl []
   · ipureintro; simp [hl]
-  iapply pointwise_snoc' (fun (p : Loc) (m : CmpModel) => iprop(⌜p ≠ null⌝ ∗ compareAt (GF := GF) p m))
+  iapply pointwise_snoc (fun (p : Loc) (m : CmpModel) => iprop(⌜p ≠ null⌝ ∗ compareAt (GF := GF) p m))
     ps ms p m hl
   iframe #
   ipureintro; exact hp
@@ -117,7 +94,7 @@ theorem reqOpsAt_snoc (ps : List Loc) (ops : List TxnOp) (p : Loc) (op : TxnOp) 
   iintro ⟨⟨%hl, #H⟩, #Hc⟩
   isplitl []
   · ipureintro; simp [hl]
-  iapply pointwise_snoc' (fun (p : Loc) (op : TxnOp) => reqOpAt (GF := GF) p op) ps ops p op hl
+  iapply pointwise_snoc (fun (p : Loc) (op : TxnOp) => reqOpAt (GF := GF) p op) ps ops p op hl
   iframe #
 
 end defs

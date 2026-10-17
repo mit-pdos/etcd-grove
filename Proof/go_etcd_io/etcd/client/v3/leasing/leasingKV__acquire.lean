@@ -28,16 +28,6 @@ namespace leasing
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
-private theorem len_eq_sint (n : Nat) (x : w64) (h : n = sint.nat x ∧ 0 ≤ sint.Z x) :
-    (n : Int) = sint.Z x := by
-  obtain ⟨h1, h2⟩ := h
-  subst h1
-  simp only [sint.nat, sint.Z] at *
-  omega
-
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -251,7 +241,7 @@ theorem leasingKV.acquire.wp_proof
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ (TxnBuild.mk (acquireTxn key (pfx ++ key) id o) true true true) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ (TxnBuild.mk (acquireTxn key (pfx ++ key) id o) true true true) (by rfl) $$ HB
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact TxnModel.under_nil _
   iunfold txnCommitResultO at Hres

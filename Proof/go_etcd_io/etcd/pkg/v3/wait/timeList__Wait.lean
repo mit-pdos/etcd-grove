@@ -24,16 +24,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
-/-- An unclosed broadcast channel's owner view gives a waiter's view too. -/
-theorem bcast_pending_unknown' (ch : Loc) (γ : ChanNames) (Q : IProp GF) :
-    ownBroadcastChan ch γ Q .Pending ⊢
-      ownBroadcastChan ch γ Q .Pending ∗ ownBroadcastChan ch γ Q .Unknown := by
-  iintro H
-  icases ownBroadcastChan_open _ _ _ _ $$ H with ⟨%γch, #Hint, Hd⟩
-  isplitl [Hd]
-  · iapply ownBroadcastChan_close _ _ _ _ γch; iframe Hint Hd
-  · iapply ownBroadcastChan_close _ _ _ .Unknown γch; iframe Hint
-
 theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := hG) := by
   intro tl P d
   wp_start as #Htl
@@ -69,7 +59,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     simp only [Option.getD_none]
     wp_apply chan.wp_make1 (V := Unit) as %ch %γch ⟨#Hch, %_, Hoc⟩
     imod alloc_broadcast_chan (E := ⊤) (P d) γch ch $$ Hch Hoc with Hbc
-    icases bcast_pending_unknown' _ _ _ $$ Hbc with ⟨Hbc, #Hbu⟩
+    icases bcast_pending_unknown _ _ _ $$ Hbc with ⟨Hbc, #Hbu⟩
     (try wp_auto)
     wp_apply wp_mapInsert $$ [$HM] as HM
     (try wp_auto)
@@ -94,7 +84,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     ihave %Hnn := isChan_not_null _ _ _ $$ Hisch
     rw [decide_eq_false (show ¬ ch = chan.nil from Hnn)]
     wp_auto
-    icases bcast_pending_unknown' _ _ _ $$ Hb with ⟨Hb, #Hbu⟩
+    icases bcast_pending_unknown _ _ _ $$ Hb with ⟨Hb, #Hbu⟩
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs Hb]
     · inext; iunfold timeListR; iexists last, M; iframe; iframe #
       iapply Hchs; iexists γ; iexact Hb

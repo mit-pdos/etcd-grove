@@ -82,6 +82,29 @@ theorem WsState.addW_live (σ : WsState) (b : Bool) (w : Loc) (r : WatchRange) (
   unfold WsState.live WsState.addW
   cases b <;> simp [GMap.lookup_insert]
 
+/-- The new watcher (delivered up to its first revision) keeps the lock settled. -/
+theorem WsState.settled_addW {σ : WsState} (h : WsOk σ) (hs : σ.settled) (b : Bool) (w : Loc)
+    (r : WatchRange) (st0 : WatcherSt) (γw : WatcherNames) (hM : σ.M !! w = none) :
+    (σ.addW b w r st0 γw).settled := by
+  obtain ⟨hST, hWo, hl, hWs, hWu, hv, hE⟩ := h.fresh hM
+  constructor
+  · intro k γk ed h1 hm he
+    by_cases hw : w = k
+    · subst hw
+      simp only [WsState.addW, GMap.lookup_insert, Option.some.injEq] at hm he
+      subst hm; subst he; exact Or.inr (Nat.le_refl _)
+    · simp only [WsState.addW, GMap.lookup_insert_ne _ _ hw] at hm he
+      have h1' : (σ.Ws !! k).isSome := by
+        cases b <;> simp_all [WsState.addW, GMap.lookup_insert_ne _ _ hw]
+      exact hs.1 k γk ed h1' hm he
+  refine ⟨fun k st h1 hst => ?_, fun k st h => hs.2.2 k st h⟩
+  · have hvo : (σ.addW b w r st0 γw).victimOf = σ.victimOf := rfl
+    rw [hvo] at h1
+    by_cases hw : w = k
+    · subst hw; rw [hv] at h1; cases h1
+    · simp only [WsState.addW, GMap.lookup_insert_ne _ _ hw] at hst
+      exact hs.2.1 k st h1 hst
+
 /-- The new watcher's state keeps the invariant's pure facts. -/
 theorem WsOk.addW {σ : WsState} (h : WsOk σ) (b : Bool) (w : Loc) (r : WatchRange)
     (st0 : WatcherSt) (γw : WatcherNames) (hM : σ.M !! w = none)
@@ -463,7 +486,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   ihave %HL := ghostVar_agree _ _ _ _ _ $$ Hregl0 Hregl
   subst HL
   ihave %Hopen : ⌜chanIsClosed s0 = false⌝ $$ [Hcl Hregl0 Hregl]
-  · cases hcl : mvcc.chanIsClosed s0
+  · cases hcl : EtcdGrove.chanIsClosed s0
     · ipureintro; rfl
     simp only [hcl, ↓reduceIte]
     icombine Hregl0 Hregl as H2
@@ -619,7 +642,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP⟩
+  icases HP with ⟨%σ, HP, %Hset⟩
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
@@ -753,7 +776,8 @@ theorem mvcc.watchableStore.watch.wp_proof
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
-        iexact Hbody
+        iframe Hbody
+        ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
       (try wp_auto)
       ipersist wa
       ipersist s
@@ -856,7 +880,8 @@ theorem mvcc.watchableStore.watch.wp_proof
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
-        iexact Hbody
+        iframe Hbody
+        ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
       (try wp_auto)
       ipersist wa
       ipersist s
@@ -969,7 +994,8 @@ theorem mvcc.watchableStore.watch.wp_proof
         · inext
           iunfold mvcc.watchStoreInv
           iexists _
-          iexact Hbody
+          iframe Hbody
+          ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
         (try wp_auto)
         ipersist wa
         ipersist s
@@ -1073,7 +1099,8 @@ theorem mvcc.watchableStore.watch.wp_proof
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
-        iexact Hbody
+        iframe Hbody
+        ipureintro; exact mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM
       (try wp_auto)
       ipersist wa
       ipersist s

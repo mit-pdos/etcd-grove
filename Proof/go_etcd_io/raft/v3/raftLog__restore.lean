@@ -25,10 +25,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-private theorem isLoggerVal_open (x : GoInterface) :
-    isLoggerVal (GF := GF) x ⊢ ∃ lg, ⌜x = interface.ok lg⌝ ∗ isLogger lg := by
-  unfold isLoggerVal; exact .rfl
-
 /-- Straight-line: the `Infof` through `l.logger`, the `committed` store, and
 `unstable.restore` on the `unstable` field (lent with a wand taking any new value,
 `raftLog_lend_unstable`, at the struct after the store). The log is re-sealed at

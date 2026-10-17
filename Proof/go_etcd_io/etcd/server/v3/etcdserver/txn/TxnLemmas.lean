@@ -207,25 +207,6 @@ theorem requestOpIs_delete (p : Loc) (o : OpFull) :
     iexists w, r
     iframe Hu Hw Hr
 
-/-- A nested transaction request op. -/
-theorem requestOpIs_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOp) :
-    requestOpIs (GF := GF) p (.txn cs ts es) ⊢ ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
-      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
-          GoInterface) ∗
-      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
-      txnRequestIs r { cmps := cs, thenOps := ts, elseOps := es } := by
-  unfold requestOpIs
-  iintro #⟨%Hp, %w, %r, #Hu, #Hw, %Hr, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs,
-    #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
-  isplitl []; · ipureintro; exact Hp
-  iexists w, r
-  iframe Hu Hw
-  unfold txnRequestIs txnFieldsIs
-  isplitl []; · ipureintro; exact Hr
-  iexists csl, ssl, fsl, cps, sps, fps
-  iframe Hc Hcs Hcm Hs Hss Hsm Hf Hfs Hfm
-
 /-- The `i`-th request op of a list. -/
 theorem requestOpsIs_lookup :
     ∀ (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc) (op : TxnOp),
@@ -243,17 +224,6 @@ theorem requestOpsIs_lookup :
     unfold requestOpsIs
     iintro ⟨-, H⟩
     iapply requestOpsIs_lookup ps ops i p op hp hop $$ H
-
-theorem requestOpsIs_length :
-    ∀ (ps : List Loc) (ops : List TxnOp), requestOpsIs (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
-  | [], [] => by iintro -; ipureintro; rfl
-  | _ :: ps, _ :: ops => by
-    unfold requestOpsIs
-    iintro ⟨-, H⟩
-    ihave %h := requestOpsIs_length ps ops $$ H
-    ipureintro; simp [h]
-  | [], _ :: _ => by unfold requestOpsIs; iintro H; iexfalso; iexact H
-  | _ :: _, [] => by unfold requestOpsIs; iintro H; iexfalso; iexact H
 
 /-- The skeletons from the `i`-th on: the `i`-th's, then the rest's. -/
 theorem opsSkel_drop (s0 : List EtcdKv) (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc)

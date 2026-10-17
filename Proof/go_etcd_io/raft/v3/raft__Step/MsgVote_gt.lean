@@ -13,8 +13,8 @@ Lean notes:
 * Rocq's `Local Ltac recv_elem` (`∀ m' ∈ recv, m' = a` for the concrete `recv` lists
   `[]`, `[a]`, `[a] ++ [a]`, by rewriting the membership away rather than `set_solver`,
   which took 150s and more there) is not ported.
-* The type tests `m.Type' = W32 k` (all false: `m` is a `MsgVote`) are the local macro
-  `ty_ne k`.
+* The type tests `m.Type' = W32 k` (all false: `m` is a `MsgVote`) are the macro
+  `ty_ne k` (`ElectionLemmas.lean`).
 * After `becomeFollower`, the state `{ becomeFollower s m.Term' (W64 0) with prvals :=
   pvs }` is named `s1` (`ownRaftPhysC_eq`), with its `vote`/`lead`/`term` and its
   `toPState` (`Hps1`) as separate facts: the loads then return `s1.vote` etc., which a
@@ -49,11 +49,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
-
-set_option hygiene false in
-/-- `m.Type' = W32 k` is false: `m` is a `MsgVote` (`Hty`). -/
-local macro "ty_ne " k:num : tactic =>
-  `(tactic| (wp_gets; rw [decide_eq_false (show m.Type' ≠ W32 $k by rw [Hty]; w32_ne)]))
 
 set_option maxHeartbeats 2000000 in
 /-- `MsgVote` with `m.Term > r.Term`: step down to follower first, then grant or decline

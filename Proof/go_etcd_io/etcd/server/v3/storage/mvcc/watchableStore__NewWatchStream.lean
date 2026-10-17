@@ -71,10 +71,11 @@ theorem mvcc.isWatchable_store
     simp only [mvcc.storeWatchParams]
     iunfold mvcc.watchReader at HR
     icases HR with ⟨Hsr, Hmur⟩
-    iapply (hRev s st γ) $$ [Hsr] [Hmur HΦ]
+    iapply (hRev s st γ none) $$ [Hsr] [Hmur HΦ]
     · iframe Hpkg Hws Hsr
+      unfold mvcc.logLent; itrivial
     inext
-    iintro %r ⟨Hsr, -⟩
+    iintro %r ⟨Hsr, -, -⟩
     iapply HΦ
     iunfold mvcc.watchReader
     iframe Hsr Hmur
@@ -103,9 +104,9 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   ihave #Hwable := mvcc.isWatchable_store hWatch hProg hProgAll hRev s st γ $$ [$Hpkg $Hws]
   -- the channel's ghost state and invariant
   imod ghostVar_alloc (GF := GF) ([] : List mvcc.RespM) with ⟨%γrecv, Hrecv⟩
-  icases (mvcc.ghostVar_halves_nw γrecv _).1 $$ Hrecv with ⟨Hrecv1, Hrecv2⟩
+  icases (mvcc.ghostVar_halves γrecv _).1 $$ Hrecv with ⟨Hrecv1, Hrecv2⟩
   imod ghostVar_alloc (GF := GF) ([] : List Loc) with ⟨%γregl, Hregl⟩
-  icases (mvcc.ghostVar_halves_nw γregl _).1 $$ Hregl with ⟨Hregl1, Hregl2⟩
+  icases (mvcc.ghostVar_halves γregl _).1 $$ Hregl with ⟨Hregl1, Hregl2⟩
   imod ghost_map_alloc_empty (K := Loc) (V := Unit) (GF := GF) with ⟨%γreg, Hreg⟩
   -- the stream's id map (the channel's) and the progress fact `Q`
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
@@ -118,7 +119,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   · inext
     iunfold mvcc.watchChanInv
     iexists ChanState.Buffered [], [], [], [], []
-    simp only [named, mvcc.chanIsClosed, Bool.false_eq_true, ↓reduceIte]
+    simp only [named, EtcdGrove.chanIsClosed, Bool.false_eq_true, ↓reduceIte]
     iframe Hown Hrecv1 Hregl1
     isplitr
     · ipureintro; exact List.prefix_refl _

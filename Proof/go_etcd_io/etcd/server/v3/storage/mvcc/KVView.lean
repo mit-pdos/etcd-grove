@@ -144,21 +144,23 @@ theorem kvOver_rev_wp (ty : go.GoType) (v : val) (s : Loc) (Φ : val → IProp G
 /-- **`store.Read`'s spec at a KV over the store** (`kvOver_read_wp`). -/
 theorem kvOver_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
     (ty : go.GoType) (v : val) (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat)
-    (log₀ : mvcc.Log) (te : Bool) (c : Int) (Z : IProp GF) :
+    (log₀ : mvcc.Log) (te : Bool) (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         kvOver (interface.mkOk ty v) s ∗
         mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-        mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te }}
+        mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗
+        mvcc.logLent γ.idx oa }}
       (App (App (Val #(methods ty go!"Read" v)) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
         ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
           ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
-          ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ }} := by
-  iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hrd, #HZ, Hm, #Hc0, #Hlb, %Ht, Htrc⟩ HΦ
+          ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
+          ⌜∀ q L, oa = some (q, L) → log = L⌝ }} := by
+  iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hrd, #HZ, Hm, #Hc0, #Hlb, %Ht, Htrc, Hla⟩ HΦ
   iapply kvOver_read_wp ty v s mode trace
   iframe Hk
-  iapply (hRead s γ mode trace m log₀ te c Z) $$ [Hrd Hm Htrc] HΦ
-  iframe Hrd Hm Htrc; iframe #; ipureintro; exact Ht
+  iapply (hRead s γ mode trace m log₀ te c Z oa) $$ [Hrd Hm Htrc Hla] HΦ
+  iframe Hrd Hm Htrc Hla; iframe #; ipureintro; exact Ht
 
 /-! ## The write transaction -/
 

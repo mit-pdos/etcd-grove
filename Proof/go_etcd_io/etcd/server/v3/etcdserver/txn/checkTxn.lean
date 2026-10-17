@@ -26,90 +26,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- A `*pb.RequestOp`'s four kinds, as `checkTxn`'s type switch sees them. -/
-theorem txn.requestOpIs_cases_ct (p : Loc) (op : TxnOp) :
-    txn.requestOpIs (GF := GF) p op ⊢ ⌜p ≠ null⌝ ∗
-      ((∃ (w r : Loc) (o : OpFull), ⌜op = .get o⌝ ∗
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w :
-              GoInterface) ∗
-          structFieldRef etcdserverpb.RequestOp_RequestRange go!"RequestRange" w ↦□ r ∗
-          txn.rangeRequestIs r o) ∨
-       (∃ (w r : Loc) (o : OpFull), ⌜op = txn.putTxnOp o⌝ ∗
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
-              GoInterface) ∗
-          structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
-          txn.putRequestIs r o) ∨
-       (∃ (w : Loc) (o : OpFull), ⌜op = .delete o⌝ ∗
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
-              GoInterface)) ∨
-       (∃ (w r : Loc) (cs : List CmpModel) (ts es : List TxnOp), ⌜op = .txn cs ts es⌝ ∗
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
-              GoInterface) ∗
-          structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
-          txn.txnRequestIs r { cmps := cs, thenOps := ts, elseOps := es })) := by
-  cases op
-  case txn cs ts es =>
-    unfold txn.requestOpIs
-    iintro #⟨%Hpn, %w, %r, #HR, #Hw, %Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #H1, #H2, #H3, #H4,
-      #H5, #H6, #H7, #H8, #H9⟩
-    isplitl []
-    · ipureintro; exact Hpn
-    iright; iright; iright
-    iexists w, r, cs, ts, es
-    isplitl []
-    · ipureintro; rfl
-    iframe HR Hw
-    unfold txn.txnRequestIs txn.txnFieldsIs
-    isplitl []
-    · ipureintro; exact Hrn
-    iexists csl, ssl, fsl, cps, sps, fps
-    iframe #
-  all_goals
-    unfold txn.requestOpIs
-    iintro #⟨%Hpn, %u, %w, %r, %o, #HR, (⟨%Hu, #Hw, #Hr⟩ | ⟨%Hu, #Hw, #Hr⟩ | ⟨%Hu, #Hw, #Hr⟩)⟩
-    all_goals
-      obtain ⟨rfl, hop⟩ := Hu
-      isplitl []
-      · ipureintro; exact Hpn
-    · ileft; iexists w, r, o; iframe #; ipureintro; exact hop
-    · iright; ileft; iexists w, r, o; iframe #; ipureintro; exact hop
-    · iright; iright; ileft; iexists w, o; iframe #; ipureintro; exact hop
-
-/-- The `i`-th request of the list. -/
-theorem txn.requestOpsIs_elem_ct :
-    ∀ (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc), ps[i]? = some p →
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ∃ op, ⌜ops[i]? = some op⌝ ∗ txn.requestOpIs p op
-  | [], _, _, _, h => by simp at h
-  | _ :: _, [], _, _, _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | q :: ps, op :: ops, 0, p, h => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-    subst h
-    unfold txn.requestOpsIs
-    iintro ⟨H, -⟩
-    iexists op
-    iframe H
-    ipureintro; rfl
-  | q :: ps, op :: ops, i + 1, p, h => by
-    simp only [List.getElem?_cons_succ] at h ⊢
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    iapply txn.requestOpsIs_elem_ct ps ops i p h $$ H
-
-theorem txn.requestOpsIs_length_ct :
-    ∀ (ps : List Loc) (ops : List TxnOp), txn.requestOpsIs (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
-  | [], [] => by iintro -; ipureintro; rfl
-  | p :: ps, op :: ops => by
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    ihave %h := txn.requestOpsIs_length_ct ps ops $$ H
-    ipureintro; simp [h]
-  | [], _ :: _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | _ :: _, [] => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-
 /-- Dropping a nested transaction's path leaves its last verdict, then the rest. -/
 theorem txn.drop_path_ct (x : Bool) (l R : List Bool) (h : l ≠ []) :
     ∃ y, (x :: (l ++ R)).drop l.length = y :: R := by
@@ -240,7 +156,7 @@ theorem txn.checkTxn_strong
     fun h => txn.txnPlain_branch t _ h
   generalize hops : t.branch (txn.txnOk s0 t) = ops
   rw [hops] at Hro Hpl0
-  ihave %Hrl := txn.requestOpsIs_length_ct _ _ $$ Hrps
+  ihave %Hrl := txn.requestOpsIs_length _ _ $$ Hrps
   ihave %Hrsll := ownSlice_len _ _ _ $$ Hrsl
   ihave HI : (∃ (i : Nat) (pv : GoSlice) (x : Bool) (q : Loc),
       "i" ∷ i_ptr ↦ W64 (i : Int) ∗ "req" ∷ req_ptr ↦ q ∗
@@ -270,7 +186,7 @@ theorem txn.checkTxn_strong
       have h4 : (i : Int) < sint.Z rsl.len := hiZ ▸ Hif
       unfold sint.nat at h2; unfold sint.Z at h4; omega
     obtain ⟨p, hp⟩ : ∃ p, rps[i]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    ihave ⟨%op, %hop, #Hop⟩ := txn.requestOpsIs_elem_ct rps ops i p hp $$ Hrps
+    ihave ⟨%op, %hop, #Hop⟩ := txn.requestOpsIs_elem rps ops i p hp $$ Hrps
     have Hb : 0 ≤ sint.Z (W64 (i : Int)) ∧ sint.Z (W64 (i : Int)) < sint.Z rsl.len :=
       ⟨by rw [hiZ]; omega, Hif⟩
     wp_auto
@@ -278,8 +194,8 @@ theorem txn.checkTxn_strong
     wp_apply wp_load_slice_index rsl (sint.Z (W64 (i : Int))) rps DFrac.discard p (by omega)
       $$ [] as -
     · iframe Hrsl; ipureintro; rw [hiZ]; exact hp
-    icases txn.requestOpIs_cases_ct p op $$ Hop with ⟨%Hpn, (⟨%w, %r, %o, %Hopk, #HR, #Hw, #Hr⟩ |
-      ⟨%w, %r, %o, %Hopk, #HR, #Hw, #Hr⟩ | ⟨%w, %o, %Hopk, #HR⟩ |
+    icases txn.requestOpIs_cases p op $$ Hop with ⟨%Hpn, (⟨%w, %r, %o, %Hopk, #HR, #Hw, #Hr⟩ |
+      ⟨%w, %r, %o, %Hopk, #HR, #Hw, #Hr⟩ | ⟨%w, %_, %o, %Hopk, #HR, -, -⟩ |
       ⟨%w, %r, %cs, %ts, %es, %Hopk, #HR, #Hw, #Hr⟩)⟩
     · -- a range
       subst Hopk

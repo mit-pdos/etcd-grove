@@ -32,9 +32,6 @@ theorem sorted_append_iff (l1 l2 : List (V × K)) :
     Sorted lt (l1 ++ l2) ↔ Sorted lt l1 ∧ Sorted lt l2 ∧ ∀ a ∈ l1, ∀ b ∈ l2, lt a.2 b.2 :=
   List.pairwise_append
 
-theorem Sorted.sublist {l1 l2 : List (V × K)} (h : l1.Sublist l2) (hs : Sorted lt l2) :
-    Sorted lt l1 := List.Pairwise.sublist h hs
-
 /-- In a sorted `A ++ x :: B`, `A` is below `x` and `B` above. -/
 theorem sorted_mid {A B : List (V × K)} {x : V × K} (hs : Sorted lt (A ++ x :: B)) :
     (∀ e ∈ A, lt e.2 x.2) ∧ (∀ e ∈ B, lt x.2 e.2) := by
@@ -676,36 +673,6 @@ theorem ownNode_read (dq : DFrac) (n : Loc) (is : List (V × K)) (cs : List (Tre
     iexists isl, csl, cow, ps
     iframe Hnf Hcow' Hisl Hcsl Hfl
     ipureintro; exact Hne
-
-/-- The `less` field of a context (for `n.cow.less`). -/
-theorem isCow_less (cw : Loc) :
-    isCow o cw f less ⊢
-      structFieldRef (copyOnWriteContext V) go!"less" cw ↦□ less := by
-  unfold isCow
-  iintro ⟨Hc, _, _⟩
-  iStructNamed Hc
-  iexact less
-
-theorem isCow_isLess (cw : Loc) : isCow o cw f less ⊢ isLess o less := by
-  unfold isCow
-  iintro ⟨_, _, H⟩
-  iexact H
-
-theorem allItems_mono {l1 l2 : List (V × K)} (h : ∀ e ∈ l1, e ∈ l2) :
-    allItems o l2 ⊢ allItems o l1 := by
-  unfold allItems
-  iintro #H
-  imodintro
-  iintro %e %he
-  iapply H
-  ipureintro; exact h e he
-
-theorem allItems_elem {l : List (V × K)} {e : V × K} (h : e ∈ l) :
-    allItems o l ⊢ o.item e.1 e.2 := by
-  unfold allItems
-  iintro #H
-  iapply H
-  ipureintro; exact h
 
 /-- Read access to a node, owned or frozen, without its context. -/
 theorem ownNode_peek (dq : DFrac) (n : Loc) (is : List (V × K)) (cs : List (Tree (V × K))) :

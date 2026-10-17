@@ -76,45 +76,6 @@ abbrev raft.responseToReadIndexReq.spec : Prop :=
         ownRaftPhysCV c c.voters r id s ∗
           msgOwn resp (DFrac.own 1) ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.responseToReadIndexReq.spec` by `raft.responseToReadIndexReq.spec_simple`. -/
-abbrev raft.responseToReadIndexReq.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (req : Loc) (m : MessageM) (idx : w64)
-    (e : EntryM) (es : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "#Hreq" ∷ msgOwn req DFrac.discard ⟨m, e :: es, sn, ctx, rs⟩ }}
-    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"responseToReadIndexReq"))
-      (Val #req)) (Val #idx))
-  {{ (resp : Loc), RET #resp;
-      if m.From' = W64 0 ∨ m.From' = id then
-        ownRaftPhys cfg r id (addReadState s idx e.Data') ∗
-          msgOwn resp (DFrac.own 1) ⟨zero_val MessageM, [], none, [], []⟩
-      else
-        ownRaftPhys cfg r id s ∗
-          msgOwn resp (DFrac.own 1) ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ }}
-
-open Iris.ProofMode in
-theorem raft.responseToReadIndexReq.spec_simple
-    (H : raft.responseToReadIndexReq.spec (GF := GF) (hG := hG)) :
-    raft.responseToReadIndexReq.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s req m idx e es sn ctx rs
-  iintro %Φ ⟨#Hpkg, Hphys, #Hreq⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s req m idx e es sn ctx rs $$ [$Hpkg $Hphys $Hreq]
-  inext
-  iintro %resp Hpost
-  iapply HΦ
-  by_cases Hc : m.From' = W64 0 ∨ m.From' = id
-  · simp only [Hc, ↓reduceIte]
-    icases Hpost with ⟨Hphys, Hr⟩
-    ihave Hphys := ownRaftPhysC_toS $$ Hphys
-    iframe Hphys Hr
-  · simp only [Hc, ↓reduceIte]
-    icases Hpost with ⟨Hphys, Hr⟩
-    ihave Hphys := ownRaftPhysC_toS $$ Hphys
-    iframe Hphys Hr
-
 end spec
 
 end EtcdGrove

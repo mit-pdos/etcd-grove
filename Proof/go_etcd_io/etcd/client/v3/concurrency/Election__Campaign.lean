@@ -36,60 +36,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-private theorem B_conv' {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
-section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [EM : EtcdModel GF]
-variable [sem : go.Semantics]
-
-/-- The state before a transaction has positive create revisions. -/
-theorem campaign_txnStates_pos (pfx : GoString) (r : w64) (s s' : List EtcdKv) (wrote : Bool) :
-    txnStates (GF := GF) pfx r s s' wrote ⊢ ⌜∀ v ∈ s, 0 < sint.Z v.createRev⌝ := by
-  unfold txnStates
-  split
-  · iintro ⟨#H1, -⟩
-    ihave %H := etcdState_revs _ _ _ $$ H1
-    ipureintro; intro v hv; exact (H v hv).1
-  · iintro #H1
-    ihave %H := etcdState_revs _ _ _ $$ H1
-    ipureintro; intro v hv; exact (H v hv).1
-
-theorem campaign_txnStates_true (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
-    txnStates (GF := GF) pfx r s s' true ⊢ □ etcdState r pfx s' := by
-  unfold txnStates
-  simp only [↓reduceIte]
-  iintro ⟨-, #H⟩
-  iexact H
-
-theorem campaign_txnStates_false (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
-    txnStates (GF := GF) pfx r s s' false ⊢ □ etcdState r pfx s := by
-  unfold txnStates
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro #H
-  iexact H
-
-end lemmas
-
-theorem campaign_len_eq_sint (n : Nat) (x : w64) (h : n = sint.nat x ∧ 0 ≤ sint.Z x) :
-    (n : Int) = sint.Z x := by
-  obtain ⟨h1, h2⟩ := h
-  subst h1
-  simp only [sint.nat, sint.Z] at *
-  omega
-
-theorem campaign_putOp_txnOpOf (key val : GoString) (id : w64) :
-    txnOpOf (opPutModel key val [withLeaseM id]) = some (.put key val id) := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero, txnOpOf]
-
-theorem campaign_putOp_not_panics (key val : GoString) (id : w64) :
-    ¬ (opPutModel key val [withLeaseM id]).putPanics := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero,
-    OpFull.putPanics]
-
 theorem campaignTxn_under (pfx key val : GoString) (lease : w64) (hk : pfx <+: key) :
     (campaignTxn key val lease).Under pfx := by
   obtain ⟨hkk, hke, -⟩ := keyOp_fields key
@@ -273,7 +219,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     · simp only [List.getElem?_cons_zero, Option.some.injEq] at Hf Hg; subst Hf Hg; iexact Hf0
     · simp at Hf
   wp_apply hPut key pv _ [withLeaseM id] $$ [$Hcv $Hopts] as %opPut #HopPut
-  · ipureintro; exact campaign_putOp_not_panics key pv id
+  · ipureintro; exact putLeaseOp_not_panics key pv id
   (try wp_auto)
   wp_apply wp_slice_literal (l := [opPut])
   isplitr
@@ -295,7 +241,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       · simp at Hv
     · ipureintro
       refine ⟨?_, rfl, rfl⟩
-      simp only [List.map_cons, List.map_nil, campaign_putOp_txnOpOf]
+      simp only [List.map_cons, List.map_nil, putLeaseOp_txnOpOf]
   inext
   iintro HB
   (try wp_auto)
@@ -328,7 +274,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv' B _ ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact campaignTxn_under pfx key pv id Hpk
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
@@ -351,7 +297,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   have hm : ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } :
       TxnBuild).model = campaignTxn key pv id := rfl
   rw [hm]
-  ihave %hpos := campaign_txnStates_pos pfx r s0 _ _ $$ Hts
+  ihave %hpos := txnStates_createRev_pos pfx r s0 _ _ $$ Hts
   obtain ⟨Hlo_r0, Hr0, Hrmax, Hwf0⟩ := Hrr
   have Hlo_r := Hlo_r0 rfl
   iunfold txnRespAt at Hresp
@@ -368,13 +314,13 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     have hok' : [createGuard key (W64 0)].all (cmpHolds s0) = false := hok
     rw [hok']
     (try wp_auto)
-    ihave #Hs := campaign_txnStates_false pfx r s0 s0 $$ Hts
+    ihave #Hs := txnStates_read pfx r s0 s0 $$ Hts
     ihave %Hrevs := etcdState_revs r pfx s0 $$ Hs
     obtain ⟨p0, hp0⟩ : ∃ p, ps[0]? = some p :=
       ⟨ps[0]'(by simp at Hlens; omega), List.getElem?_eq_getElem _⟩
     have h0 : sint.Z (W64 0) = 0 := by decide
     rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z rsl.len by
-      rw [h0]; have := campaign_len_eq_sint _ _ Hlen; simp at Hlens; omega))]
+      rw [h0]; have := len_eq_sint _ _ Hlen; simp at Hlens; omega))]
     wp_apply wp_load_slice_index rsl (sint.Z (W64 0)) ps _ p0 (by decide) $$ [Hps] as -
     · iframe Hps; ipureintro; exact hp0
     ihave #Hop0 := Hops $$ %0 %p0 %(TxnOp.get (keyOp key)) %(TxnOpResult.range (rangeSel s0 (keyOp key)) (rangeIn s0 (keyOp key)).length) %hp0 %rfl %rfl
@@ -397,7 +343,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     ihave %Hklen := ownSlice_len _ _ _ $$ Hkps
     (try wp_auto)
     rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z ksl.len by
-      rw [h0]; have := campaign_len_eq_sint _ _ Hklen; simp at this; omega))]
+      rw [h0]; have := len_eq_sint _ _ Hklen; simp at this; omega))]
     wp_apply wp_load_slice_index ksl (sint.Z (W64 0)) [kp] _ kp (by decide) $$ [Hkps] as -
     · iframe Hkps; ipureintro; rfl
     iunfold kvValAt at Hkp
@@ -624,7 +570,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     simp only [h3] at Hlens ⊢
     have hok' : [createGuard key (W64 0)].all (cmpHolds s0) = true := hok
     rw [hok']
-    ihave #Hs := campaign_txnStates_true pfx r s0 _ $$ Hts
+    ihave #Hs := txnStates_after pfx r s0 _ $$ Hts
     ihave #HKV' : keyValAt (GF := GF) pfx key r pv r $$ []
     · unfold keyValAt; iexists _; iframe Hs; ipureintro; exact hkv
     have HREV : 0 < sint.Z (r) ∧ sint.Z (r) ≤ sint.Z r ∧ sint.Z r ≤ sint.Z (r) := ⟨Hr0, Int.le_refl _, Int.le_refl _⟩

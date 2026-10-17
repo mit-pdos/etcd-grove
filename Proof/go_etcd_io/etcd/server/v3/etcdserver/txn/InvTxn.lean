@@ -531,6 +531,28 @@ theorem txnWriteIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames)
   · iapply Hb $$ Ht
   ipureintro; exact Hk
 
+open Iris.ProofMode in
+/-- The read-only path slice from `k` on. -/
+theorem slice_from (pl : GoSlice) (L : List Bool) (k : w64)
+    (hk : 0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z pl.len) :
+    pl ↦*□ L ⊢ (slice.slice pl Bool k pl.len ↦*□ L.drop (sint.nat k) : IProp GF) := by
+  iintro #H
+  ihave %Hl := ownSlice_len _ _ _ $$ H
+  icases (ownSlice_slice k pl.len pl DFrac.discard L ⟨hk.1, hk.2, Int.le_refl _⟩).1 $$ H with ⟨-, Hm, -⟩
+  have h : subslice (sint.nat k) (sint.nat pl.len) L = L.drop (sint.nat k) := by
+    unfold subslice; rw [← Hl.1, List.take_length]
+  rw [h]
+  iexact Hm
+
+/-- Dropping a nested path's length from its verdict and itself leaves one verdict, then the
+rest. -/
+theorem drop_last (R : List Bool) :
+    ∀ (a : Bool) (P : List Bool), ∃ y, (a :: (P ++ R)).drop P.length = y :: R
+  | a, [] => ⟨a, rfl⟩
+  | a, b :: P => by
+    obtain ⟨y, hy⟩ := txn.drop_last R b P
+    exact ⟨y, by simpa using hy⟩
+
 end lemmas
 
 end txn

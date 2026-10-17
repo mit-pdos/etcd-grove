@@ -33,8 +33,8 @@ theorem mvcc.watchableStore.rev.wp_proof
     (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.rev.spec (GF := GF) (hG := hG) := by
-  intro s st γ
-  wp_start as ⟨#Hws, Hrd⟩
+  intro s st γ oa
+  wp_start as ⟨#Hws, Hrd, HoA⟩
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -52,10 +52,12 @@ theorem mvcc.watchableStore.rev.wp_proof
   rw [method_unfold (t := go.GoType.PointerType watchableStore.ty) (m := go!"Read")]
   wp_auto
   imod ownToks_0 (GF := GF) γ.st.revs with Hnone
-  imod mvcc.idxCert_nil (GF := GF) γ.st.idx with #Hc0
+  ihave #Hs' := Hs
+  iunfold mvcc.isStore at Hs'
+  iNamedSuffix Hs' "S"
   imod mvcc.crevLb_neg γ.st.idx with #Hlbn
-  wp_apply (hRead st γ.st _ t 0 [] true (-1) iprop(True)) $$ [$Hs $Hrd $Hnone $Hc0 $Hlbn $Htrc]
-    as %mw ⟨%log, %rev, %crev, Htx, -, -, -⟩
+  wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa) $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA]
+    as %mw ⟨%log, %rev, %crev, Htx, -, -, -, %Hpre0, HoA, %HoaL⟩
   · isplitr
     · iintro !>; itrivial
     ipureintro; exact Ht
@@ -86,11 +88,12 @@ theorem mvcc.watchableStore.rev.wp_proof
   wp_apply (hEnd t mw st γ.st (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -, -⟩
   (try wp_auto)
   iapply HΦ
-  iframe Hrd
+  iframe Hrd HoA
   iexists log
   iframe HcertT
   ipureintro
-  exact ⟨HneT, HrevT⟩
+  have hl := Hpre0.1.length_le
+  exact ⟨HneT, HrevT, hl, by have := Hpre0.2.1; omega, HoaL⟩
 
 end proof
 

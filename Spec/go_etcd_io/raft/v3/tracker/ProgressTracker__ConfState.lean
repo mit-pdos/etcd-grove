@@ -39,8 +39,8 @@ retarget the result was the `ConfState` value, with `cs.AutoLeave' = c.autoLeave
 At any configuration since 2026-10-13 (reconfiguration stage A1; `ownTrackerC`): the four sets
 of `c` and its `AutoLeave`. The statement at a simple configuration (`ownTracker cfg`: the
 voters `cfg`, the learners the tracked ids outside `cfg`, and -- for the empty outgoing
-voters and staged learners -- only the lengths, all any caller needs) is
-`tracker.ProgressTracker.ConfState.spec_simple`, which `switchToConfig` uses. -/
+voters and staged learners -- only the lengths, all any caller needs) was
+`tracker.ProgressTracker.ConfState.spec_simple`; it had no caller and is gone (2026-10-17). -/
 abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
   ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
@@ -52,35 +52,6 @@ abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
       csPts csl (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
       ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
         lns ≡ₚ elements c.learnersNext⌝ }}
-
-open Iris.ProofMode in
-/-- The statement until 2026-10-13, at a simple configuration (`ownTracker`). -/
-theorem tracker.ProgressTracker.ConfState.spec_simple
-    (H : tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv t }}
-    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ConfState"))
-      (Val #()))
-  {{ (csl : Loc) (xs ls : List w64), RET #csl;
-      trk ↦ tv ∗ ownTracker cfg tv t ∗
-      csPts csl (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
-      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet t.prs \ cfg)⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
-  ihave Hown := ownTracker_toC _ _ _ $$ Hown
-  iapply H _ trk tv t $$ [$Hpkg $Htrk $Hown]
-  inext
-  iintro %csl %xs %os %ls %lns ⟨Htrk, Hown, Hcs, %Hp⟩
-  icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
-  obtain ⟨H0, H1, H2, H3⟩ := Hp
-  obtain rfl := perm_elements_empty os H1
-  obtain rfl := perm_elements_empty lns H3
-  iapply HΦ
-  iframe Htrk Hown
-  isplitl [Hcs]
-  · simp only [CfgM.simple]; iexact Hcs
-  ipureintro
-  exact ⟨H0, H2⟩
 
 end spec
 

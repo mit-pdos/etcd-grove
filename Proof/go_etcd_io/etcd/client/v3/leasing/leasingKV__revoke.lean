@@ -24,9 +24,6 @@ namespace leasing
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -166,7 +163,7 @@ theorem leasingKV.revoke.wp_proof
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := ⟨[compareM (cmpKeyM .create (pfx ++ key)) .lt (.num (rv + W64 1))], [top], [TxnOp.putKeep (pfx ++ key) go!"REVOKE"]⟩, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := ⟨[compareM (cmpKeyM .create (pfx ++ key)) .lt (.num (rv + W64 1))], [top], [TxnOp.putKeep (pfx ++ key) go!"REVOKE"]⟩, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact TxnModel.under_nil _
   iunfold txnCommitResultO at Hres

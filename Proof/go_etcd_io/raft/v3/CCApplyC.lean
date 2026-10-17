@@ -320,12 +320,6 @@ theorem CCGood.applyM {s s' : CCState} (h : CCGood s) (ccs : List ConfChangeSing
     · cases H
     · cases H; exact h.applyAll ccs h1
 
-theorem checkedM_some {s s' : CCState} (H : checkedM s = some s') : s' = s ∧ CfgInv s := by
-  unfold checkedM at H
-  split at H
-  · cases H; exact ⟨rfl, ‹_›⟩
-  · cases H
-
 theorem CCGood.simple {s s' : CCState} (h : CCGood s) (ccs : List ConfChangeSingleM)
     (H : simpleM ccs s = some s') : CCGood s' := by
   unfold simpleM at H

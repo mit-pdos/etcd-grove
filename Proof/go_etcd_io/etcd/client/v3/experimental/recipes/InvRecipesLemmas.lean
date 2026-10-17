@@ -24,16 +24,6 @@ open concurrency
 
 /-! ## Puts -/
 
-/-- `OpPut(key, val, WithLease(id))` in a transaction. -/
-theorem putLeaseOp_txnOpOf (key val : GoString) (id : w64) :
-    txnOpOf (opPutModel key val [withLeaseM id]) = some (.put key val id) := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero, txnOpOf]
-
-theorem putLeaseOp_not_panics (key val : GoString) (id : w64) :
-    ¬ (opPutModel key val [withLeaseM id]).putPanics := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero,
-    OpFull.putPanics]
-
 /-- `OpPut(key, val)` (no options): a put with no lease. -/
 theorem putOp_txnOpOf' (key val : GoString) :
     txnOpOf (opPutModel key val []) = some (.put key val (W64 0)) := by

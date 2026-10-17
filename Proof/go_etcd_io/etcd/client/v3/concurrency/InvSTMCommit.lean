@@ -240,10 +240,6 @@ theorem keyOps_txnOpOf (ks : List GoString) :
 
 /-! ## Separation logic -/
 
-theorem pure_forall_intro {PROP : Type _} [BI PROP] {P : PROP} {α : Sort _} {φ : α → Prop}
-    (h : ∀ x, P ⊢ ⌜φ x⌝) : P ⊢ ⌜∀ x, φ x⌝ :=
-  (forall_intro h).trans pure_forall.2
-
 section iprop
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -261,14 +257,6 @@ theorem txnStates_before (pfx : GoString) (r : w64) (s s' : List EtcdKv) (w : Bo
     iexists _; iexact H1
   · iintro #H1
     iexists _; iexact H1
-
-/-- A transaction that did not write: the state it ran on is etcd's at its revision. -/
-theorem txnStates_noWrite (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
-    txnStates (GF := GF) pfx r s s' false ⊢ □ etcdState r pfx s := by
-  unfold txnStates
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro #H
-  iexact H
 
 theorem readsAt_readFacts (pfx : GoString) (rsMap : GMap GoString Loc)
     (reads : GMap GoString ReadM) : readsAt (GF := GF) pfx rsMap reads ⊢ readFacts pfx reads := by

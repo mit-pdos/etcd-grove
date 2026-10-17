@@ -534,6 +534,110 @@ theorem appendState_victimOf (σ : WsState) (NV : GMap Loc NvEnt) (vs : GoSlice)
   simp only
   rw [List.findSome?_append]; simp
 
+/-! ### The lock settled (unit W-K) -/
+
+theorem takeState_settled {σ : WsState} (hs : σ.settled) (vs : GoSlice) :
+    (takeState σ vs).settled := by
+  have hE : ∀ w, (takeState σ vs).E !! w = (σ.E !! w).filter (fun _ => !(σ.victimOf w).isSome) :=
+    fun w => rfl
+  have hWo : ∀ w, (takeState σ vs).Wo !! w =
+      (σ.Wo !! w).or ((σ.ST !! w).filter (fun _ => (σ.victimOf w).isSome)) := fun w => rfl
+  refine ⟨fun w γw ed h1 hm he => ?_, fun w st h1 _ => ?_, fun w st h2 => ?_⟩
+  · rw [hE] at he
+    have he' : σ.E !! w = some ed := by
+      cases h' : σ.E !! w with
+      | none => rw [h'] at he; simp at he
+      | some e => rw [h'] at he; simp at he; first | exact congrArg some he.1 | exact congrArg some he.2
+    exact hs.1 w γw ed h1 hm he'
+  · rw [takeState_victimOf] at h1; cases h1
+  · rw [hWo] at h2
+    cases ho : σ.Wo !! w with
+    | some st' => rw [ho] at h2; simp at h2; subst h2; exact hs.2.2 w _ ho
+    | none =>
+      rw [ho] at h2
+      cases hst : σ.ST !! w with
+      | none => rw [hst] at h2; simp at h2
+      | some st' =>
+        rw [hst] at h2
+        cases hv : (σ.victimOf w).isSome
+        · rw [hv] at h2; simp at h2
+        · rw [hv] at h2; simp at h2; subst h2; exact hs.2.1 w _ hv hst
+
+theorem readdState_settled {σ : WsState} (h : WsOk σ) (hs : σ.settled) {w : Loc}
+    {st0 : WatcherSt} (r : WatchRange) (hw : σ.Wo !! w = some st0) (b : Bool)
+    (e : List EvM × Nat) (hd : b = true → e.2 ≤ σ.Lmu.length) :
+    (readdState σ w r { st0 with victim := false } b e).settled := by
+  obtain ⟨-, -, hWs, -, hv, -⟩ := h.out hw
+  refine ⟨fun k γk ed h1 hm he => ?_, fun k st h1 hst => ?_, fun k st h2 => ?_⟩
+  · by_cases hk : k = w
+    · subst hk
+      have he' : <[k := e]> σ.E !! k = some ed := he
+      rw [GMap.lookup_insert] at he'; cases he'
+      cases b
+      · have h1' : (σ.Ws !! k).isSome := h1
+        rw [hWs] at h1'; cases h1'
+      · exact Or.inl (hd rfl)
+    · have hk' : w ≠ k := Ne.symm hk
+      have h1' : (σ.Ws !! k).isSome := by
+        cases b <;> simp_all [readdState, GMap.lookup_insert_ne _ _ hk']
+      have he' : <[w := e]> σ.E !! k = some ed := he
+      rw [GMap.lookup_insert_ne _ _ hk'] at he'
+      exact hs.1 k γk ed h1' hm he'
+  · rw [readdState_victimOf] at h1
+    by_cases hk : k = w
+    · subst hk; rw [hv] at h1; cases h1
+    · have hst' : <[w := { st0 with victim := false }]> σ.ST !! k = some st := hst
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at hst'
+      exact hs.2.1 k st h1 hst'
+  · have h2' : GMap.delete w σ.Wo !! k = some st := h2
+    by_cases hk : k = w
+    · subst hk; rw [GMap.lookup_delete] at h2'; cases h2'
+    · rw [GMap.lookup_delete_ne _ (Ne.symm hk)] at h2'
+      exact hs.2.2 k st h2'
+
+theorem appendState_settled {σ : WsState} (h : WsOk σ) (hs : σ.settled) (NV : GMap Loc NvEnt)
+    (vs : GoSlice) (nvm : GoMap) (hNV : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st) :
+    (appendState σ NV vs nvm).settled := by
+  have hvo := appendState_victimOf σ NV vs nvm
+  have hST : ∀ w, (appendState σ NV vs nvm).ST !! w = (σ.ST !! w).or ((NV !! w).map NvEnt.st) :=
+    fun w => rfl
+  have hE : ∀ w, (appendState σ NV vs nvm).E !! w =
+      (σ.E !! w).or ((NV !! w).map (fun x => (x.evsw, sint.nat x.st.minRev))) := fun w => rfl
+  have hWo : ∀ w, (appendState σ NV vs nvm).Wo !! w = (σ.Wo !! w).filter (fun _ => (NV !! w).isNone) :=
+    fun w => rfl
+  refine ⟨fun k γk ed h1 hm he => ?_, fun k st h1 hst => ?_, fun k st h2 => ?_⟩
+  · have h1' : (σ.Ws !! k).isSome := h1
+    rw [hE] at he
+    obtain ⟨e, he0⟩ := Option.isSome_iff_exists.1 ((h.live_e k).2 (Or.inl h1'))
+    rw [he0] at he; simp at he; subst he
+    exact hs.1 k γk e h1' hm he0
+  · rw [hvo] at h1
+    rw [hST] at hst
+    cases hv : σ.victimOf k with
+    | some _ =>
+      obtain ⟨st1, hst1⟩ := Option.isSome_iff_exists.1
+        (h.live_st k (Or.inr (Or.inr (by rw [hv]; rfl))))
+      rw [hst1] at hst; simp at hst; subst hst
+      exact hs.2.1 k _ (by rw [hv]; rfl) hst1
+    | none =>
+      rw [hv] at h1
+      cases hn : NV !! k with
+      | none => rw [hn] at h1; cases h1
+      | some x =>
+        have hwo := hNV k x hn
+        obtain ⟨hst0, -⟩ := h.out hwo
+        rw [hst0, hn] at hst; simp at hst; subst hst
+        exact hs.2.2 k _ hwo
+  · rw [hWo] at h2
+    cases ho : σ.Wo !! k with
+    | none => rw [ho] at h2; simp at h2
+    | some st' =>
+      rw [ho] at h2; simp at h2
+      obtain ⟨h3, h4⟩ := h2
+      have hst : st' = st := by first | exact h3 | exact h4 | exact h3.symm | exact h4.symm
+      subst hst
+      exact hs.2.2 k _ ho
+
 theorem appendState_ok {σ : WsState} (h : WsOk σ) (NV : GMap Loc NvEnt) (vs : GoSlice)
     (nvm : GoMap) (hNV : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st) :
     WsOk (appendState σ NV vs nvm) := by
@@ -757,16 +861,6 @@ theorem moverRes_G (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) :
   · iintro ⟨%γw, %r, %fcs, %evsw, H⟩; iexists evsw, γw, r, fcs; iexact H
   · iintro ⟨%evsw, %γw, %r, %fcs, H⟩; iexists γw, r, fcs, evsw; iexact H
 
-theorem mv_memberRes_congr (γ : WsNames) (q : Qp) (σ σ' : WsState) (w : Loc) (st : WatcherSt)
-    (hM : σ'.M = σ.M) (hWs : (σ'.Ws !! w).isSome = (σ.Ws !! w).isSome)
-    (hWu : (σ'.Wu !! w).isSome = (σ.Wu !! w).isSome) (hV : σ'.victimOf w = σ.victimOf w)
-    (hE : σ'.E !! w = σ.E !! w) :
-    memberRes (GF := GF) γ q σ w st ⊢ memberRes γ q σ' w st := by
-  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV]
-  unfold memberRes popFacts
-  simp only [hM, hl, hWs, hWu, hV, hE]
-  exact .rfl
-
 /-- A victim's resources under the lock, out to the mover (its `outRes` stays). -/
 theorem mv_member_to_mover (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vs' : GoSlice) (w : Loc)
     (st : WatcherSt) (B : EventBatch) (hB : σ.victimOf w = some B) :
@@ -855,7 +949,7 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
         have : (GMap.filter (fun k v => !p k v) σ.ST) !! k = some v := hk
         rw [GMap.lookup_filter] at this
         cases h : σ.victimOf k <;> cases h' : σ.ST !! k <;> simp_all [p]
-      apply mv_memberRes_congr γ 1 σ (takeState σ vnil) k v rfl rfl rfl
+      apply memberRes_congr γ 1 σ (takeState σ vnil) k v rfl rfl rfl
       · rw [takeState_victimOf]; cases h : σ.victimOf k <;> simp_all
       · show (σ.E !! k).filter (fun _ => !(σ.victimOf k).isSome) = σ.E !! k
         rw [hk']; cases σ.E !! k <;> rfl
@@ -991,7 +1085,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
         intro e; subst e
         have : σ.ST !! k = some v := hk
         rw [hST] at this; cases this
-      apply mv_memberRes_congr γ 1 σ σ' k v eM
+      apply memberRes_congr γ 1 σ σ' k v eM
       · rw [eWs]; cases b <;> simp [GMap.lookup_insert_ne _ _ (Ne.symm hk'), Ne.symm hk']
       · rw [eWu]; cases b <;> simp [GMap.lookup_insert_ne _ _ (Ne.symm hk'), Ne.symm hk']
       · exact evo k
@@ -1164,7 +1258,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
         have := (hout k x h).1
         have hk' : σ.ST !! k = some v := hk
         rw [this] at hk'; cases hk'
-    apply mv_memberRes_congr γ 1 σ σ' k v eM
+    apply memberRes_congr γ 1 σ σ' k v eM
     · rw [eWs]
     · rw [eWu]
     · rw [hvo, hn]; cases σ.victimOf k <;> rfl
@@ -1191,6 +1285,22 @@ theorem mv_ev_pre (γ : WsNames) (γw : WatcherNames) (r : WatchRange) (evsw evs
   by_cases h : evs = []
   · simp only [h, ↓reduceIte]; iintro ⟨H, -⟩; iframe H
   · simp only [h, ↓reduceIte]; iintro ⟨H1, H2⟩; iframe H1 H2
+
+/-- The kept half of the delivered events, as what an empty batch lends `send` with its own
+coverage (K2e-4). -/
+theorem mv_covAuth (key : Loc) (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
+    (evsw evs : List EvM) (d : Nat) :
+    (if evs = [] then monoListAuthOwn (GF := GF) γw.evs (1 : Qp).half evsw else iprop(True)) ⊣⊢
+      covAuth (1 : Qp).half (if evs = [] then [⟨key, γw, r, fcs, evsw, d⟩] else []) := by
+  by_cases h : evs = []
+  · simp only [h, ↓reduceIte, covAuth]
+    constructor
+    · iintro H; iapply BigSepL.bigSepL_cons.2; iframe H; iapply BigSepL.bigSepL_nil.2; iempintro
+    · iintro H; icases BigSepL.bigSepL_cons.1 $$ H with ⟨H, -⟩; iexact H
+  · simp only [h, ↓reduceIte, covAuth]
+    constructor
+    · iintro -; iapply BigSepL.bigSepL_nil.2; iempintro
+    · iintro -; itrivial
 
 /-- The delivered events after `send` (unchanged for no events). -/
 theorem mv_ev_post (γw : WatcherNames) (evsw evs : List EvM) (ok : Bool) :

@@ -262,6 +262,11 @@ def ownTrackerC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :
   "%Hsize" ∷ ⌜(GMap.size t.prs : Int) ≤ 2 ^ 62⌝ ∗
   "%HmaxInfl" ∷ ⌜0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62⌝)
 
+/-- `ownTrackerC` at two indices that are equal (by computation: a state reached by
+record updates). -/
+theorem ownTrackerC_cast (c : CfgM) (tv : tracker.ProgressTracker) (t t' : Trk)
+    (h : t = t') : ownTrackerC (GF := GF) c tv t ⊢ ownTrackerC c tv t' := h ▸ .rfl
+
 /-- Sealing `ownTrackerC` as one `iapply`; the pure premises in the conjuncts' order. -/
 theorem ownTrackerC_intro (c : CfgM) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
     (prs : GMap w64 Loc) (peers : GMap w64 Progress)

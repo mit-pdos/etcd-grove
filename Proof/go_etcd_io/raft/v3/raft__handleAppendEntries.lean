@@ -42,17 +42,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-private theorem wp_min_u64 (a b : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.min [go.uint64, go.uint64])) (Val #a)) (Val #b))
-    {{ RET #(w64Min a b); True }} := by
-  wp_start
-  wp_if_destruct
-  · rw [show w64Min a b = a from ite_eq_left Hif]
-    iapply HΦ; itrivial
-  · rw [show w64Min a b = b from ite_eq_right Hif]
-    iapply HΦ; itrivial
-
 /-- `r.send(&pb.Message{To: dst, Type: pb.MsgAppResp.Enum(), Index: ..., ...})`, the reply
 built: `SendOk`'s `MsgAppResp` clause (d) with no entries. -/
 private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
@@ -72,7 +61,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
 set_option hygiene false in
 /-- The reply's prefix: `To: m.From` (the request's cell, shared), `Type: MsgAppResp.Enum()`. -/
 local macro "reply_head" : tactic => `(tactic| (
-  icases msgPtsC_From_lend _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
+  icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
   wp_auto
   ihave Hm := HmB $$ HFr
   rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
@@ -216,7 +205,7 @@ theorem raft.handleAppendEntries.wp_proof
       icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
       ihave Hphys := Hlogback $$ Hlog
-      wp_apply wp_min_u64
+      wp_apply wp_min2_uint64
       wp_apply wp_GetLogTerm.1 $$ [$Hm] as Hm
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
       icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩

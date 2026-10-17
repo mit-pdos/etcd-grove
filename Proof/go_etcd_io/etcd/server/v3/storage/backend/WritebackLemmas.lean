@@ -48,19 +48,6 @@ theorem idsOk_writebackW {P : BParams} {W : WBuf} {R : RBuf} (h : idsOk P W.bks)
   | none => rw [hb] at hi; simp at hi
   | some es0 => exact h i es0 hb
 
-theorem idsOk_wbR {P : BParams} {W : WBuf} {R : RBuf} (hW : idsOk P W.bks)
-    (hR : idsOk P R.bks) : idsOk P (writebackR W R).bks := by
-  intro i es h
-  simp only [writebackR, wbMerge] at h
-  change ((gmapImap _ W.bks).lookup i).or (R.bks.lookup i) = some es at h
-  cases hw : W.bks.lookup i with
-  | some es' => exact hW i es' hw
-  | none =>
-    have : (gmapImap (fun id es => canon (bkOf R.bks id ++ es)) W.bks).lookup i = none := by
-      show (W.bks.lookup i).map _ = none; rw [hw]; rfl
-    rw [this, Option.none_or] at h
-    exact hR i es h
-
 /-- What the readers see after the write-back: the write buffer over the read buffer. -/
 theorem vOf_writeback (P : BParams) (C : Data) (W : WBuf) (R : RBuf) :
     vOf P (C, writebackR W R) = ovB P.BT W.bks (vOf P (C, R)) := by
@@ -106,7 +93,7 @@ theorem safeSt_writeback {P : BParams} {st : BSess} (hs : safeSt P st) : safeSt 
 theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : st.pend ≠ W64 0) :
     sessWf P (wbSt P st) := by
   obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
-  refine ⟨WBuf.WfR.of_Wf _ (writebackW_wf _ _), writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_wbR hWi hRi,
+  refine ⟨WBuf.WfR.of_Wf _ (writebackW_wf _ _), writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_writebackR hWi hRi,
     hp0, hp1, hn0, hnp, ?_, ?_, safeSt_writeback hsf⟩
   · intro hp
     exact absurd hp hpn

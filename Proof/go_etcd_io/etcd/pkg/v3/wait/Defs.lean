@@ -147,6 +147,16 @@ instance isWait_persistent (w : GoInterface) (γi : IdNames) (γw : GName)
     Persistent (isWait (GF := GF) w γi γw R RD) := by
   unfold isWait; infer_instance
 
+/-- An unclosed broadcast channel's owner view gives a waiter's view too. -/
+theorem bcast_pending_unknown (ch : Loc) (γ : ChanNames) (Q : IProp GF) :
+    ownBroadcastChan ch γ Q .Pending ⊢
+      ownBroadcastChan ch γ Q .Pending ∗ ownBroadcastChan ch γ Q .Unknown := by
+  iintro H
+  icases ownBroadcastChan_open _ _ _ _ $$ H with ⟨%γch, #Hint, Hd⟩
+  isplitl [Hd]
+  · iapply ownBroadcastChan_close _ _ _ _ γch; iframe Hint Hd
+  · iapply ownBroadcastChan_close _ _ _ .Unknown γch; iframe Hint
+
 end wait
 
 end EtcdGrove

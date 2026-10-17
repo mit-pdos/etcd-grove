@@ -5,7 +5,7 @@ Lemmas of the `node` API (`node.go`; raft v3.7 retarget, stage R5 phase 3, group
   its `Entries`, `Context`, `Responses` nil and no snapshot, is a received message (`msgIn`, at
   `□`), with no entries (`ReportUnreachable`, `ReportSnapshot`, `TransferLeadership`,
   `ForgetLeader`, `Campaign`).
-* `msgPtsC_nonnull`: a message's pointer is not `nil`.
+* `msgPtsC_nn`: a message's pointer is not `nil`.
 * `stepP_split`: `node.Step`'s argument opened: its message (`msgIn`, at `□` from the network,
   at `1` forwarded), of a nonnegative type (for `IsLocalMsg`), and the rest to close it again.
 * `ownCCV2_persist`: a conf change frozen read-only (`node.ApplyConfChange` sends `AsV2`'s fresh
@@ -76,17 +76,6 @@ theorem msgIn_of_scalar_struct (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj 
     itrivial
   imodintro
   iapply msgIn_of_msgPtsC_cap $$ Hmsg
-
-/-- A message's pointer is not `nil`. -/
-theorem msgPtsC_nonnull (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
-    msgPtsC (GF := GF) l dq dqe cap ms ⊢ ⌜l ≠ null⌝ ∗ msgPtsC l dq dqe cap ms := by
-  iintro H
-  ihave %Hnn : ⌜l ≠ null⌝ $$ [H]
-  · iunfold msgPtsC at H
-    iNamed H
-    ipureintro; exact Hnn
-  iframe H
-  ipureintro; exact Hnn
 
 /-- `node.Step`'s argument opened (see the file header). -/
 theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :

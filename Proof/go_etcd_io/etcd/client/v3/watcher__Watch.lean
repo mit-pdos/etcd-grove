@@ -89,6 +89,7 @@ theorem watcher.Watch.wp_proof
   ihave #HreqP : reqP V (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty)
       #«$r0_ptr») $$ []
   · unfold reqP
+    ileft
     iexists «$r0_ptr», P0
     isplitr
     · ipureintro; exact ⟨rfl, Hwrnn⟩

@@ -2247,7 +2247,7 @@ theorem cq_full (γ : RaftNames) (t n : w64) (G : List EntryM) :
   isplitr; · ipureintro; exact H.1
   iexact Hr
 
-private theorem cq_term (γ : RaftNames) (t n : w64) (G : List EntryM) :
+theorem cq_term (γ : RaftNames) (t n : w64) (G : List EntryM) :
     cq (GF := GF) γ t n G ⊢ ⌜plogTermAt base0 G n = some t⌝ := by
   iintro #H
   icases cq_base γ t n G $$ H with ⟨%Hn, -⟩

@@ -464,14 +464,6 @@ private theorem matchedOk_nonleader (γ : RaftNames) (s : PState) :
   · exact absurd ‹_› H
   · exact true_intro
 
-private theorem cq_term (γ : RaftNames) (t n : w64) (G : List EntryM) :
-    ⊢ cq (GF := GF) γ t n G -∗ ⌜plogTermAt base0 G n = some t⌝ := by
-  iintro #H
-  icases cq_base γ t n G $$ H with ⟨%Hn, -⟩
-  ipureintro; exact Hn
-
-private theorem plogCommitTo_ge (c t : w64) : uint.Z c ≤ uint.Z (plogCommitTo c t) := by
-  unfold plogCommitTo; split <;> omega
 private theorem outbox_eq (γ : RaftNames) (s1 s2 : PState) :
     s2.outbox = s1.outbox →
     ⊢ ([∗list] m ∈ s1.outbox, isMessage (GF := GF) γ m) -∗ [∗list] m ∈ s2.outbox, isMessage γ m := by
@@ -1672,7 +1664,7 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
             $$ HrF HrFl with %Hag
           iapply commitIn_agree γ Fl (fp ++ s.log) m.commit s.term s.term (Int.le_refl _) Hag.2
             Hag.1 $$ Hmc
-        ihave %Hn := cq_term $$ Hq
+        ihave %Hn := cq_term _ _ _ _ $$ Hq
         have HsG : (plogTermAt base0 G m.commit).isSome :=
           full_term_at_some G m.commit n (by rw [Hn]; rfl) Hc'
         ihave %HXl := leadFull_agree γ s.term X Fl m.commit
@@ -1714,7 +1706,7 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
           icases boot_take_agree γ (fp ++ s.log) Fl m.commit HwF HwFl.1 Hcb HcF (by omega)
             $$ HrF HrFl with %Hag
           rw [Hag.1]; iexact Hmcm
-        ihave %Hn := cq_term $$ Hq
+        ihave %Hn := cq_term _ _ _ _ $$ Hq
         have HsG : (plogTermAt base0 G m.commit).isSome :=
           full_term_at_some G m.commit n (by rw [Hn]; rfl) Hc'
         have HsXc : (plogTermAt base0 X m.commit).isSome :=

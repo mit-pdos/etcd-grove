@@ -65,6 +65,17 @@ def HasKeyValAt (key : GoString) (c : w64) (val : GoString) (s : List EtcdKv) : 
 def createGuard (key : GoString) (rev : w64) : CmpModel :=
   compareM (cmpKeyM .create key) .eq (.num rev)
 
+/-- A failed guard `CreateRevision(key) = rev` on a sorted state: `key` is not there with create
+revision `rev`. -/
+theorem createGuard_false (pfx key : GoString) (rev : w64) (s : List EtcdKv)
+    (hwf : EtcdStateWf pfx s) (h : cmpHolds s (createGuard key rev) = false) :
+    ¬ HasKeyAt key rev s := by
+  rintro ⟨w, hw, hk, hc⟩
+  have hf := filter_key_single s hwf.1 key (fun v => inRange key [] v.key)
+    (fun v => by simp [inRange]) w hw hk
+  simp [cmpHolds, createGuard, compareM, cmpKeyM, hf, cmpKv, int64Cmp, cmpSign, CmpOp.holds,
+    hc] at h
+
 /-- `Campaign`'s transaction: if `key` was never created, put it with the value `val` and the
 lease; otherwise get it. -/
 def campaignTxn (key val : GoString) (lease : w64) : TxnModel :=

@@ -43,22 +43,12 @@ theorem demuxBEL_mem_drop {xs : List EvModel} {n : Nat} {e : EvModel} (h : e ∈
   rw [List.getElem?_drop] at hj
   exact ⟨n + j, by omega, hj⟩
 
-theorem demuxBEL_sorted_le {xs : List EvModel} (hs : EvRevSorted xs) {i j : Nat} {a b : EvModel}
-    (ha : xs[i]? = some a) (hb : xs[j]? = some b) (hij : i ≤ j) : sint.Z a.rev ≤ sint.Z b.rev := by
-  rcases Nat.lt_or_eq_of_le hij with h | rfl
-  · unfold EvRevSorted at hs
-    rw [List.pairwise_iff_getElem] at hs
-    obtain ⟨hi, rfl⟩ := List.getElem?_eq_some_iff.1 ha
-    obtain ⟨hj, rfl⟩ := List.getElem?_eq_some_iff.1 hb
-    exact hs i j hi hj h
-  · rw [ha] at hb; cases hb; exact Int.le_refl _
-
 theorem demuxBEL_le_last {xs : List EvModel} (hs : EvRevSorted xs) {eL : EvModel}
     (hL : xs[xs.length - 1]? = some eL) {e : EvModel} (he : e ∈ xs) :
     sint.Z e.rev ≤ sint.Z eL.rev := by
   obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 he
   have := (List.getElem?_eq_some_iff.1 hj).1
-  exact demuxBEL_sorted_le hs hj hL (by omega)
+  exact EvRevSorted.rev_le hs hj hL (by omega)
 
 /-- The events sent (`events[sendStart:]`) are the stream's batches from `n` on. -/
 theorem demuxBEL_send (st old : List Batch) (evs : List EvModel) (hst : st = old ++ splitBatches evs)
@@ -105,7 +95,7 @@ theorem demuxBEL_send (st old : List Batch) (evs : List EvModel) (hst : st = old
     obtain ⟨e, he, hr⟩ := demuxBEL_batch_mem hb
     obtain ⟨j, hj, hje⟩ := demuxBEL_mem_drop he
     have h1 := hat es hes
-    have h2 := demuxBEL_sorted_le hs hes hje hj
+    have h2 := EvRevSorted.rev_le hs hes hje hj
     have h3 := demuxBEL_le_last hs hL (List.mem_of_getElem? hje)
     simp only [decide_eq_true_eq]
     rw [hr, hL1]; omega
@@ -154,14 +144,6 @@ theorem demuxBEL_regsOk_full {c : DemuxCore} {k : Nat} {regs : GMap Loc RegInfo}
   mapped := h.mapped
   active_up w v hv ha b hb := hf w v hv ha b (by rw [List.take_length] at hb; exact hb)
 
-/-- An active watcher's start condition does not depend on its view. -/
-theorem demuxBEL_startOk_active {c : DemuxCore} {ri : RegInfo} {v : View} (h : StartOk c ri v)
-    (hph : v.phase = .active) (v' : View) : StartOk c ri v' := by
-  rcases h with h1 | h2 | ⟨h4, -⟩
-  · exact Or.inl h1
-  · exact Or.inr (Or.inl h2)
-  · rw [hph] at h4; cases h4
-
 /-- The "processed" fact after one more key. -/
 theorem demuxBEL_processed_step {keys : List Loc} {i : Nat} {key : Loc} (hkey : keys[i]? = some key)
     {views views' : GMap Loc View} {P : View → Prop}
@@ -205,13 +187,6 @@ theorem demuxBEL_eventsAt_drop (sl : GoSlice) (evs : List EvModel) (j : w64)
   iintro %i %ev %e %Hi %He
   rw [List.getElem?_drop] at Hi He
   iapply Hev $$ %(sint.nat j + i) %ev %e %Hi %He
-
-theorem demuxBEL_delete_none {V : Type} (m : GMap Loc V) (k : Loc) (h : m !! k = none) :
-    GMap.delete k m = m := by
-  apply GMap.ext; intro k'
-  by_cases hk : k = k'
-  · subst hk; rw [GMap.lookup_delete, h]
-  · rw [GMap.lookup_delete_ne _ hk]
 
 theorem demux.broadcastEventsLocked.wp_proof
     (wp_enqueueResponse : watcher.enqueueResponse.spec (GF := GF) (hG := hG)) :
@@ -367,7 +342,7 @@ theorem demux.broadcastEventsLocked.wp_proof
         · apply Hok.insert (by rw [Hri]; rfl)
           · intro _; exact Hmv
           · intro h; cases h
-        · exact Hrs.insert Hri _ (fun _ => demuxBEL_startOk_active HSO Hvact _)
+        · exact Hrs.insert Hri _ (fun _ => StartOk.of_active HSO Hvact _)
         · apply demuxBEL_processed_step Hkey Hdone
           · intro w hw; exact GMap.lookup_insert_ne _ _ (Ne.symm hw)
           · intro v' hv' ha
@@ -502,7 +477,7 @@ theorem demux.broadcastEventsLocked.wp_proof
               · apply Hok.insert (by rw [Hri]; rfl)
                 · intro _; exact Hmv
                 · intro h; cases h
-              · exact Hrs.insert Hri _ (fun _ => demuxBEL_startOk_active HSO Hvact _)
+              · exact Hrs.insert Hri _ (fun _ => StartOk.of_active HSO Hvact _)
               · apply demuxBEL_processed_step Hkey Hdone
                 · intro w hw; exact GMap.lookup_insert_ne _ _ (Ne.symm hw)
                 · intro v' hv' ha
@@ -536,7 +511,7 @@ theorem demux.broadcastEventsLocked.wp_proof
               isplitl
               · rw [lagOf_insert]
                 simp only [Hvact, reduceCtorEq, ↓reduceIte]
-                rw [demuxBEL_delete_none]
+                rw [GMap.delete_notin]
                 · iexact Hlag
                 rw [lagOf_lookup, Hvw]; simp [Hvact]
               ipureintro
@@ -547,7 +522,7 @@ theorem demux.broadcastEventsLocked.wp_proof
                 · intro _ b hb
                   have := Hall b (List.mem_of_mem_take hb)
                   simp only; rw [HeL1]; omega
-              · exact Hrs.insert Hri _ (fun _ => demuxBEL_startOk_active HSO Hvact _)
+              · exact Hrs.insert Hri _ (fun _ => StartOk.of_active HSO Hvact _)
               · apply demuxBEL_processed_step Hkey Hdone
                 · intro w hw; exact GMap.lookup_insert_ne _ _ (Ne.symm hw)
                 · intro v' hv' _ b hb

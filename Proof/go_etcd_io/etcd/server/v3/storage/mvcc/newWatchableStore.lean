@@ -79,8 +79,10 @@ theorem mvcc.newWatchableStore.wp_proof
   ipersist HRV
   -- the ghost state
   imod ghost_map_alloc_empty (K := Loc) (V := mvcc.WatcherNames) (GF := GF) with ⟨%γm, Hmeta⟩
-  imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl⟩
-  icases (mvcc.ghostVar_halves_nw γwl _).1 $$ Hwl with ⟨Hwl1, Hwl2⟩
+  imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl, -⟩
+  ihave ⟨Hwl1, Hwl2⟩ : iprop(monoListAuthOwn (GF := GF) γwl (1 : Qp).half ([[], []] : mvcc.Log) ∗
+      monoListAuthOwn γwl (1 : Qp).half ([[], []] : mvcc.Log)) $$ [Hwl]
+  · iapply (mvcc.monoList_halves γwl ([[], []] : mvcc.Log)).1 $$ Hwl
   imod ghostVar_alloc (GF := GF) mvcc.wsInit with ⟨%γwst, Hwst⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
   imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
@@ -100,6 +102,9 @@ theorem mvcc.newWatchableStore.wp_proof
   ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
+    isplitl [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
+    rotate_left
+    · ipureintro; exact mvcc.wsInit_settled
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
     iframe Hwst Hsy Hun victims Hmeta Hwt
@@ -128,7 +133,7 @@ theorem mvcc.newWatchableStore.wp_proof
     ipureintro; exact mvcc.wsInit_ok
   haveI := mvcc.watchStoreInv_fractional hsplit «$r0_ptr» γ
   imod sync.init_RWMutex (mvcc.watchStoreInv «$r0_ptr» γ) (mvcc.wsMuAddr «$r0_ptr») $$ Hbody mu with Hmus
-  icases mvcc.guard_of_slots_nw _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
+  icases guard_of_slots _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
   -- the channels
   imod start_bag (V := Unit) (fun _ => iprop(True)) _ vc γv trivial $$ Hvc Hvown with #Hvcb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γstc stc $$ Hstc Hstown with Hstop

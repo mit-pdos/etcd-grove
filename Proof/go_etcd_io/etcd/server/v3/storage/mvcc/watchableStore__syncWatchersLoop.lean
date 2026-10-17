@@ -29,48 +29,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-theorem mvcc.wsWg_mask_watchers : (↑mvcc.wsWgWGN : CoPset) ⊆ ⊤ \ ↑mvcc.wsWgN := by
-  unfold mvcc.wsWgWGN mvcc.wsWgN
-  exact sync.wg_mask_ndot_ne nroot "mvccWaitGroup" "mvccWgCounter" (by decide)
-
-/-- `s.wg.Done()` with a done token. -/
-theorem mvcc.wp_wsDone_watchers (s : Loc) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ mvcc.wsDone s }}
-      (App (Val (mvcc.wsWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
-    {{ RET #(); True }} := by
-  iintro %Φ ⟨#Hsync, Hd⟩ HΦ
-  iunfold mvcc.wsDone at Hd
-  icases Hd with ⟨%γwg, %γd, #Hwg, #Hinv, Htok⟩
-  iapply sync.WaitGroup.wp_Done (mvcc.wsWgAddr s) γwg mvcc.wsWgWGN $$ [] [Htok HΦ]
-  · iframe #
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro mvcc.wsWg_mask_watchers
-  iintro Hmask
-  inext
-  iunfold mvcc.wsWgInv at Hi
-  icases Hi with ⟨%ctr, %n, Hwgo, Hauth, %Hctr⟩
-  icombine Hauth Htok gives %Hle
-  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
-  have hlt : sint.Z ctr < 2 ^ 31 := by word
-  iexists ctr
-  iframe Hwgo
-  isplitr
-  · ipureintro; omega
-  iintro Hwgo
-  imod Hmask with -
-  imod ownTokAuth_delete_S γd n' $$ Hauth Htok with Hauth
-  imod Hclose $$ [Hwgo Hauth] with -
-  · inext
-    iunfold mvcc.wsWgInv
-    iexists ctr - W32 1, n'
-    iframe
-    ipureintro
-    have : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
-    omega
-  imodintro
-  iapply HΦ
-  itrivial
-
 theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
     (hNew : time.NewTicker.spec (GF := GF) (hG := hG))
     (hStop : time.Ticker.Stop.spec (GF := GF) (hG := hG))
@@ -109,7 +67,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP⟩
+  icases HP with ⟨%σ, HP, %Hset⟩
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   wp_apply time.wp_Now as %tm -
@@ -120,7 +78,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
       [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmur
-  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
+  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact Hset
   (try wp_auto)
   ihave HR : mvcc.watchReader s st γ $$ [Hsr0 Hmur]
   · iunfold mvcc.watchReader; iframe
@@ -168,7 +126,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
     wp_auto
     wp_for_post
     wp_apply hStop $$ [$Ht]
-    wp_apply mvcc.wp_wsDone_watchers s $$ [$Hsync $Hdone]
+    wp_apply mvcc.wp_wsDone s $$ [$Hsync $Hdone]
     iapply HΦ
     itrivial
   iapply BigAndL.bigAndL_nil.2

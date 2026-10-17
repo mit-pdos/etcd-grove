@@ -29,9 +29,6 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG := hG))
     (hCmp : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
     (hDel : EtcdGrove.OpDelete.spec (GF := GF) (hG := hG))
@@ -108,7 +105,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact ⟨deleteRevTxn_under pfx key rev Hk.1, TxnModel.exactGets_of_noGets _ (by simp [deleteRevTxn])
         (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩

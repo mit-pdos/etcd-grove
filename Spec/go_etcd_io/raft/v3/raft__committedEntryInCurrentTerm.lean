@@ -41,35 +41,6 @@ abbrev raft.committedEntryInCurrentTerm.spec : Prop :=
       ⌜b = true ↔ plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
                     = some s.term⌝ }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.committedEntryInCurrentTerm.spec` by `raft.committedEntryInCurrentTerm.spec_simple`. -/
-abbrev raft.committedEntryInCurrentTerm.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  s.term ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"committedEntryInCurrentTerm"))
-      (Val #()))
-  {{ (b : Bool), RET #b;
-      ownRaftPhys cfg r id s ∗
-      ⌜b = true ↔ plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
-                    = some s.term⌝ }}
-
-open Iris.ProofMode in
-theorem raft.committedEntryInCurrentTerm.spec_simple
-    (H : raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG)) :
-    raft.committedEntryInCurrentTerm.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Ht
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Ht $$ [$Hpkg $Hphys]
-  inext
-  iintro %b ⟨Hphys, %Hb⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro; exact Hb
-
 end spec
 
 end EtcdGrove

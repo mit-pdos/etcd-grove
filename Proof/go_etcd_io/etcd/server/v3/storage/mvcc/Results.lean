@@ -475,8 +475,19 @@ theorem mvcc_store_Read_after_Compact (s : Loc) (γ : mvcc.StoreNames) (mode : w
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
         ∃ (log : mvcc.Log) (rv : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rv crev Z ∗
           ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
-          ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ sint.Z rev ≤ crev⌝ }} :=
-  mvcc.store.wp_Read s γ mode trace m log₀ te (sint.Z rev) Z
+          ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ sint.Z rev ≤ crev⌝ }} := by
+  iintro %Φ ⟨#Hpkg, #Hs, Hrd, #HZ, Hm, #Hc0, #Hlb, %Ht, Htrc⟩ HΦ
+  iapply (mvcc.store.wp_Read s γ mode trace m log₀ te (sint.Z rev) Z none) $$ %Φ [Hrd Hm Htrc]
+  · iframe Hrd Hm Htrc; iframe #
+    isplitr
+    · ipureintro; exact Ht
+    unfold mvcc.logLent; itrivial
+  inext
+  iintro %mw ⟨%log, %rv, %crev, Htx, Hm, #Hlb', #Hrok, %Hp, -, -⟩
+  iapply HΦ
+  iexists log, rv, crev
+  iframe Htx Hm Hlb' Hrok
+  ipureintro; exact Hp
 
 /-- **`store.Write`, linked**, of a store that may be compacted. -/
 theorem mvcc_store_Write : mvcc.store.Write.spec (GF := GF) (hG := hG) := mvcc.store.wp_Write

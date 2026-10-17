@@ -216,7 +216,7 @@ theorem kvRaftOf_snoc (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : L
 
 /-! ## Shape: at most one revision per entry -/
 
-theorem commitLog_grow' (log : mvcc.Log) (pend : List mvcc.Change) :
+theorem commitLog_grow (log : mvcc.Log) (pend : List mvcc.Change) :
     mvcc.commitLog log pend = log ∨ ∃ cs, mvcc.commitLog log pend = log ++ [cs] := by
   unfold mvcc.commitLog
   split
@@ -233,11 +233,11 @@ theorem backendLog_grow (rq : apply.IRRModel) (log : mvcc.Log) :
       · right; exact ⟨_, rfl⟩
     · left; rfl
   · split
-    · exact commitLog_grow' _ _
+    · exact commitLog_grow _ _
     · left; rfl
   · split
     · split
-      · exact commitLog_grow' _ _
+      · exact commitLog_grow _ _
       · left; rfl
     · left; rfl
   · left; rfl

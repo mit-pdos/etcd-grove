@@ -757,7 +757,7 @@ theorem NewServer.wp_proof
   imod sync.init_RWMutex (leadTimeP s) (E := ⊤) (srvLeadTimeMuAddr s) $$ [leadElectedTime] leadTimeMu
     with Hltslots
   · inext; iunfold leadTimeP; iexists _; iexact leadElectedTime
-  icases read_guard_of_slots _ _ $$ Hltslots with ⟨-, #Hltg⟩
+  icases guard_of_slots _ _ $$ Hltslots with ⟨-, #Hltg⟩
   imod sync.init_RWMutex (bemuP s) (E := ⊤) (srvBemuAddr s) $$ [be] bemu with Hbmslots
   · inext; iunfold bemuP; iexists _; iexact be
   icases replicate_take1 _ _ hM1 $$ Hbmslots with ⟨Hbmr, -⟩

@@ -126,7 +126,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP⟩
+  icases HP with ⟨%σ, HP, %Hset⟩
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   wp_auto
@@ -144,7 +144,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     (l := σ.vbs.zip σ.VB)).2 $$ [Hvbs Hmov]
   · iframe Hvbs Hmov
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
-  · inext; iunfold mvcc.watchStoreInv; iexists _; iexact Hbody
+  · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody; ipureintro
+    exact mvcc.takeState_settled Hset slice.nil
   ihave %Hvsl := ownSlice_len $$ Hvs
   have Hone := Hok.v_one
   generalize σ.vbs = vbs0 at *
@@ -274,12 +275,40 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       have hrev : sint.Z (stw.minRev - W64 1) = sint.Z stw.minRev - 1 := by
         have : (0 : Int) ≤ γw.lo := by omega
         word
+      -- an empty batch covers its own watcher (K1b): delivered up to `minRev`
+      ihave #Hlb0 := monoListLbOwn_get _ _ _ $$ Hev
+      let cs : List mvcc.CovArg :=
+        if b.evs = [] then [⟨key, γw, r, fcs, evsw, sint.nat stw.minRev⟩] else []
+      ihave #Hcp : mvcc.covPre γ γw.wc (stw.minRev - W64 1) cs $$ []
+      · by_cases he : b.evs = []
+        · simp only [cs, he, ↓reduceIte]
+          iunfold mvcc.covPre
+          iapply BigSepL.bigSepL_cons.2
+          isplitl
+          · iunfold mvcc.covEntry
+            ihave #Hc' := Hc
+            iunfold mvcc.watcherChan at Hc'
+            icases Hc' with ⟨-, -, #Hreg⟩
+            irevert Hwf; try simp only [List.append_nil]; iintro #Hwf
+            iframe Hm Hf Hlb0 Hwf Hreg
+            ipureintro
+            rw [hrev]
+            refine ⟨?_, Or.inl ?_⟩
+            · show _ ≤ (((sint.Z stw.minRev).toNat : Nat) : Int); omega
+            · show (((sint.Z stw.minRev).toNat : Nat) : Int) ≤ _; omega
+          iapply BigSepL.bigSepL_nil.2; iempintro
+        · simp only [cs, he, ↓reduceIte]
+          iapply mvcc.covPre_nil
       icases mvcc.mv_ev_pre γ γw r evsw b.evs (sint.nat stw.minRev) $$ [$Hev $Hwf] with ⟨HevS, HevK⟩
+      icases (mvcc.mv_covAuth key γw r fcs evsw b.evs (sint.nat stw.minRev)).1 $$ HevK with HevK
       wp_apply (hSend γ key γw r fcs stw.ch (1 : Qp).half (1 : Qp).half evsw (sint.nat stw.minRev) _ ps
-          b.evs (DFrac.own 1) [] iprop(True)) $$ [Hchf Hl HevS Hsl] as %ok ⟨Hchf, Hl, Hsl, HevS, -⟩
-      · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB
+          b.evs (DFrac.own 1) cs (1 : Qp).half iprop(True)) $$ [Hchf Hl HevS Hsl HevK]
+          as %ok ⟨Hchf, Hl, Hsl, HevS, HevK, -⟩
+      · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB HevK
         isplitr
-        · iapply mvcc.covPre_nil
+        · iexact Hcp
+        isplitr
+        · ipureintro; intro h; simp [cs, h]
         isplitr
         · itrivial
         isplitr
@@ -288,6 +317,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         refine ⟨Hlen, rfl, fun _ => rfl, ?_, ?_⟩
         · intro ev hev; have := (hevs ev hev).2; simp only; rw [hrev]; omega
         · intro _ ev hev; have := (hevs ev hev).1; omega
+      icases (mvcc.mv_covAuth key γw r fcs evsw b.evs (sint.nat stw.minRev)).2 $$ HevK with HevK
       ihave Hev := mvcc.mv_ev_post γw evsw b.evs ok $$ [$HevS $HevK]
       have hi1 : (i + 1).toNat = i.toNat + 1 := by omega
       have hnvk : NV' !! key = none := by rw [(HPSo key hnot).2, hPBnv key (by rw [hp]; rfl)]
@@ -396,7 +426,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     wp_auto_lc 1
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
     iunfold mvcc.watchStoreInv at HP
-    icases HP with ⟨%σ1, HP⟩
+    icases HP with ⟨%σ1, HP, %Hset1⟩
     wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
     wp_auto_lc 2
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
@@ -425,18 +455,18 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         "Hsent" ∷ ([∗map] w ↦ p ∈ PS', mvcc.sentW γ w p) ∗
         "Hbody" ∷ mvcc.watchStoreBody s γ 1 σ' ∗
         "%Hq" ∷ ⌜0 ≤ j ∧ σ'.Lmu <+: C ∧
-          ∀ k, PS' !! k = if k ∈ keys2.take j.toNat then none else PS !! k⌝)) $$ Hvbm
+          (∀ k, PS' !! k = if k ∈ keys2.take j.toNat then none else PS !! k) ∧ σ'.settled⌝)) $$ Hvbm
     iintro %keys2 ⟨%Hkset2, %Hklen2, %Hknodup2⟩
     isplitl [eb w s newVictim curRev Hnvm Hsent Hbody]
     · iexists σ1, PS, zero_val Loc, zero_val Loc
       simp only [named, show (0 : Int).toNat = 0 from rfl, List.take_zero]
       iframe eb w s newVictim curRev Hnvm Hsent Hbody
-      ipureintro; exact ⟨Int.le_refl _, HpC, fun k => by simp⟩
+      ipureintro; exact ⟨Int.le_refl _, HpC, fun k => by simp, Hset1⟩
     isplitr
     · imodintro
       iintro %j %key %v ⟨%Hkey, %Hv⟩ HP
       iNamed HP
-      obtain ⟨hj0, HLC, HPS'⟩ := Hq
+      obtain ⟨hj0, HLC, HPS', Hset'⟩ := Hq
       rw [GMap.lookup_fmap] at Hv
       obtain ⟨b, hp⟩ : ∃ b, PB !! key = some (v, b) := by
         cases h : PB !! key with
@@ -480,7 +510,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       cases hnk : NV' !! key with
       | some x =>
         -- failed: skipped (its batch in `newVictim`)
-        simp only [Option.isSome_some, decide_true]
+        simp only [Option.isSome_some, _root_.decide_true]
         wp_auto
         unfold forMapPostcondition
         ileft
@@ -495,7 +525,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         rw [hj1]
         iframe eb w s newVictim curRev Hnvm Hsent Hbody
         ipureintro
-        refine ⟨by omega, HLC, fun k => ?_⟩
+        refine ⟨by omega, HLC, fun k => ?_, Hset'⟩
         rw [HPS' k, mvcc.mv_take_succ keys2 j.toNat key Hkey]
         by_cases hk : k = key
         · subst hk; simp [hpsk]
@@ -573,7 +603,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           rw [hj1, ← mvcc.mv_std_delete_eq]
           iframe eb w s newVictim curRev Hnvm Hsent Hbody
           ipureintro
-          refine ⟨by omega, HLC, fun k => ?_⟩
+          refine ⟨by omega, HLC, fun k => ?_,
+            mvcc.readdState_settled HokB Hset' r Hwo false _ (fun h => by cases h)⟩
           rw [mvcc.mv_take_succ keys2 j.toNat key Hkey]
           show GMap.delete key PS' !! k = _
           by_cases hk : k = key
@@ -613,7 +644,10 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           rw [hj1, ← mvcc.mv_std_delete_eq]
           iframe eb w s newVictim curRev Hnvm Hsent Hbody
           ipureintro
-          refine ⟨by omega, HLC, fun k => ?_⟩
+          refine ⟨by omega, HLC, fun k => ?_,
+            mvcc.readdState_settled HokB Hset' r Hwo true _ (fun _ => by
+              have := Hset'.2.2 key stw Hwo
+              show sint.nat stw.minRev ≤ σ'.Lmu.length; omega)⟩
           rw [mvcc.mv_take_succ keys2 j.toNat key Hkey]
           show GMap.delete key PS' !! k = _
           by_cases hk : k = key
@@ -621,7 +655,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           · rw [GMap.lookup_delete_ne _ (Ne.symm hk), HPS' k]; simp [hk]
     iintro HQ Hvbm
     iNamed HQ
-    obtain ⟨-, HLC, HPS'⟩ := Hq
+    obtain ⟨-, HLC, HPS', Hset'⟩ := Hq
     wp_auto
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ]
     · inext
@@ -634,7 +668,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     iintro HrevMuR
     wp_auto
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
-    · inext; iunfold mvcc.watchStoreInv; iexists _; iexact Hbody
+    · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody; ipureintro; exact Hset'
     wp_for_post
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     iframe HΦ Hmur HmuR HrevMuR HtiR HrtR s HvsM HvcapM
@@ -670,7 +704,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       wp_auto_lc 1
       imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
       iunfold mvcc.watchStoreInv at HP
-      icases HP with ⟨%σ2, HP⟩
+      icases HP with ⟨%σ2, HP, %Hset2⟩
       iunfold mvcc.watchStoreBody at HP
       iNamed HP
       icases persistent_entails_right (mvcc.mv_nv_wo γ σ2 Hok NV) $$ [$Hmeta $Hst $Hwo $Hnvr]
@@ -693,7 +727,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         iapply (BigSepM.bigSepM_mono (fun {k x} hk => ?_)) $$ Hnvb
         iintro H; iframe H; ipureintro; exact Hn.2.2.1 k x hk
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
-      · inext; iunfold mvcc.watchStoreInv; iexists _; iexact Hbody
+      · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody; ipureintro
+        exact mvcc.appendState_settled Hok Hset2 NV vs' nvv (fun w x h => (HNV2 w x h).1)
       (try wp_auto)
       iapply HΦ $$ HR
     · (try wp_auto)

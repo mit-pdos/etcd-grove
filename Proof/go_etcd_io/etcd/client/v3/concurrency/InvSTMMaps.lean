@@ -168,30 +168,6 @@ theorem readsAt_insert (pfx k : GoString) (rsMap : GMap GoString Loc)
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at Hp He
     iapply Hall $$ %k' %p' %e' %Hp %He
 
-/-- Two lists related pointwise by a persistent predicate, extended by a related pair. -/
-theorem pointwise_snoc {A B : Type} (P : A → B → IProp GF) [∀ a b, Persistent (P a b)]
-    (xs : List A) (ys : List B) (a : A) (b : B) (hlen : xs.length = ys.length) :
-    (□ ∀ (i : Nat) (x : A) (y : B), ⌜xs[i]? = some x⌝ -∗ ⌜ys[i]? = some y⌝ -∗ P x y) ∗ P a b ⊢
-      □ ∀ (i : Nat) (x : A) (y : B), ⌜(xs ++ [a])[i]? = some x⌝ -∗ ⌜(ys ++ [b])[i]? = some y⌝ -∗
-        P x y := by
-  iintro ⟨#H, #Hp⟩
-  imodintro
-  iintro %i %x %y %hx %hy
-  rcases Nat.lt_or_ge i xs.length with h | h
-  · rw [List.getElem?_append_left h] at hx
-    rw [List.getElem?_append_left (by omega)] at hy
-    iapply H $$ %i %x %y %hx %hy
-  · rw [List.getElem?_append_right h] at hx
-    rw [List.getElem?_append_right (by omega)] at hy
-    rcases Nat.lt_or_ge (i - xs.length) 1 with h' | h'
-    · rw [show i - xs.length = 0 by omega] at hx
-      rw [show i - ys.length = 0 by omega] at hy
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hx hy
-      subst hx; subst hy
-      iexact Hp
-    · rw [List.getElem?_eq_none (by simp; omega)] at hx
-      cases hx
-
 /-- The empty pointwise relation. -/
 theorem pointwise_nil {A B : Type} (P : A → B → IProp GF) :
     ⊢ (□ ∀ (i : Nat) (x : A) (y : B), ⌜([] : List A)[i]? = some x⌝ -∗

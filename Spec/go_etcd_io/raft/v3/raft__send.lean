@@ -223,34 +223,6 @@ abbrev raft.send.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.send.spec` by `raft.send.spec_simple`. -/
-abbrev raft.send.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (out : List Msg),
-  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
-  SendOk id s m ents ctx out →
-  SnapOut id s m sn out →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
-  {{ RET #(); ownRaftPhys cfg r id (sendMsgs s out) }}
-
-open Iris.ProofMode in
-theorem raft.send.spec_simple
-    (H : raft.send.spec (GF := GF) (hG := hG)) :
-    raft.send.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s ml m ents sn ctx rs out Hfrom Hok Hsn
-  iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC _ _ _ _ $$ Hphys
-  iapply H _ r id s ml m ents sn ctx rs out Hfrom Hok Hsn $$ [$Hpkg $Hphys $Hm]
-  inext
-  iintro Hphys
-  icases ownRaftPhysC_simple_toPhys _ _ _ _ _ $$ Hphys with ⟨Hphys, -⟩
-  iapply HΦ $$ Hphys
-
 end spec
 
 end EtcdGrove

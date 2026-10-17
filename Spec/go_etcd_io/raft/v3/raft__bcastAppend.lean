@@ -45,33 +45,6 @@ abbrev raft.bcastAppend.spec : Prop :=
       ⌜ReplSends id s ms⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.bcastAppend.spec` by `raft.bcastAppend.spec_simple`. -/
-abbrev raft.bcastAppend.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  s.role = .leader →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
-  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜ReplSends id s ms⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
-
-open Iris.ProofMode in
-theorem raft.bcastAppend.spec_simple
-    (H : raft.bcastAppend.spec (GF := GF) (hG := hG)) :
-    raft.bcastAppend.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hlead
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hlead $$ [$Hpkg $Hphys]
-  inext
-  iintro %ms %pvs ⟨Hphys, %H1, %H2⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro; exact ⟨H1, H2⟩
-
 end spec
 
 end EtcdGrove

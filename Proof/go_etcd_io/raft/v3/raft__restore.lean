@@ -238,7 +238,7 @@ local macro "snap_close" : tactic => `(tactic| (
   a term in the log) and `false`;
 - otherwise `raftLog.restore(s)`; the tracker replaced by the empty one
   `MakeProgressTracker` builds -- `ownRaftPhys` at the empty configuration, as in
-  `newRaft` (`ownRaftPhys_retrack`, `ownTracker_empty`; the tally was already empty,
+  `newRaft` (`ownRaftPhysC_retrack`, `ownTracker_empty`; the tally was already empty,
   `s.votes = ∅`); `confchange.Restore` on it, its `v0` read back out of the empty
   tracker; then `switchToConfig` to the snapshot's configuration and `assertConfStatesEquivalent`;
   `lastEntryID`, an `Infof` and `true`. -/

@@ -32,6 +32,12 @@ theorem wsInit_ok [FfiSyntax] : WsOk wsInit := by
     simp [wsInit, GMap.lookup_empty] at h
   constructor <;> intros <;> simp_all [wsInit, GMap.lookup_empty, WsState.victimOf]
 
+theorem wsInit_settled [FfiSyntax] : wsInit.settled := by
+  constructor
+  · intro w γw ed h; simp [wsInit, GMap.lookup_empty] at h
+  · exact ⟨fun w st h => by simp [wsInit, WsState.victimOf] at h,
+      fun w st h => by simp [wsInit, GMap.lookup_empty] at h⟩
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -42,17 +48,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 instance wsWgInv_timeless_ctor (γwg : sync.WaitGroupNames) (γd : GName) :
     Timeless (wsWgInv (GF := GF) γwg γd) := by
   unfold wsWgInv; infer_instance
-
-theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
-  sync.wg_mask_ndot_ne nroot "mvccWaitGroup" "mvccWgCounter" (by decide)
-
-theorem wsWg_maskN : (↑wsWgN : CoPset) ⊆ ⊤ \ ↑wsWgWGN :=
-  sync.wg_mask_ndot_ne nroot "mvccWgCounter" "mvccWaitGroup" (by decide)
-
-theorem ghostVar_halves_nw {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
-    (ghostVar (GF := GF) γ 1 a : IProp GF) ⊣⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
-  conv => lhs; rw [← Qp.half_add_half 1]
-  exact (ghostVar_fractional γ a).fractional _ _
 
 /-- Two lists of `n` resources, pointwise. -/
 theorem replicate_sep_nw (A B : IProp GF) : ∀ n : Nat,
@@ -68,23 +63,6 @@ theorem replicate_sep_nw (A B : IProp GF) : ∀ n : Nat,
     iframe Ha1 Hb1
     iapply replicate_sep_nw A B n
     iframe Ha Hb
-
-/-- A guard of a lock from its reader slots (there is at least one). -/
-theorem guard_of_slots_nw (rw : Loc) (P : Qp → IProp GF) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), sync.ownRWMutex rw P) ⊢
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), sync.ownRWMutex rw P) ∗
-        sync.isRWMutexGuard rw P := by
-  have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
-    Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
-  obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
-    ⟨_, (Nat.succ_pred_eq_of_pos hpos).symm⟩
-  rw [hm, List.replicate_succ]
-  iintro H
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨Htok, Htoks⟩
-  icases sync.ownRWMutex_guard _ _ $$ Htok with ⟨Htok, #Hguard⟩
-  iframe Hguard
-  iapply BigSepL.bigSepL_cons.2
-  iframe Htok Htoks
 
 /-- The watchable store's reader slots from the inner store's and its lock's. -/
 theorem watchReaders_of (s st : Loc) (γ : WsNames) (n : Nat) :

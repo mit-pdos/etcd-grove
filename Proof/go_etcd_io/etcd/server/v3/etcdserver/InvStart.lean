@@ -309,7 +309,7 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   icases Hch with ⟨%γchi, #Hint, Hflag⟩
   imod sync.init_WaitGroup goAttachWGN (srvWgAddr s) $$ Hwg with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
   imod ghostVar_alloc true with ⟨%γb, Hb⟩
-  icases (read_ghostVar_halves γb true).1 $$ Hb with ⟨Hb1, Hb2⟩
+  icases (mvcc.ghostVar_halves γb true).1 $$ Hb with ⟨Hb1, Hb2⟩
   imod token_alloc with ⟨%γclose, Hclose⟩
   imod ownTokAuth_alloc with ⟨%γrun, Hrun⟩
   ihave H0 := threadToks_zero (GF := GF)
@@ -332,7 +332,7 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
     iunfold stopPart
     simp only [↓reduceIte]
     iexact Hflag
-  icases read_guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
+  icases guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
   ihave #Hok : srvGoAttachOk s γ $$ []
   · iunfold srvGoAttachOk
     iexists ch, c

@@ -859,7 +859,7 @@ local macro "watch_resp" k:tactic : tactic => `(tactic| (
           isplitr
           · iunfold v3rpc.mvccCov
             iexists r.γc, rcv, r.γo, r.γa
-            iframe Haux HrL HrC HrR
+            iframe Haux HrL HrC HrR Hcq
             ipureintro; exact ⟨Hγoc2.1, Hγoc2.2, Hγoc.2.2.1, Hridx⟩
           ipureintro
           exact v3rpc.src_fresh hD Hidx0 x (by
@@ -1237,7 +1237,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
           iunfold v3rpc.mvccCov
           iexists r.γc, pre, r.γo, r.γa
           rw [hln]
-          iframe Haux HlN HcN HrN
+          iframe Haux HlN HcN HrN Hcq
           ipureintro; exact ⟨Hγoc2.1, Hγoc2.2, Hγoc.2.2.1, HiN⟩
         ipureintro
         exact v3rpc.src_fresh hDk Hidx0 xp.1 (by rw [HiN]; exact v3rpc.pend_not_sent hIk hpk)
@@ -1542,7 +1542,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmug, %Hγoc, #Hsp, -, %Hγoc2⟩
+    #Hmug, %Hγoc, #Hsp, #Hcq, %Hγoc2⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
   icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars⟩

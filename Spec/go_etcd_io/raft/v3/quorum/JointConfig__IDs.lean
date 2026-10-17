@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The ids of the voters, in some order, as `campaign` enumerates them: a fresh map
 with the keys of the incoming voter map `v` (the outgoing one being `nil`, the
 non-joint case). `campaign` calls this on `&r.trk.Config.Voters`, so the receiver is a
-field ref and not the tracker itself; `IDs.spec_tracker` below is that form.
+field ref and not the tracker itself; `IDs.spec_trackerC` below is that form.
 
 **In scope. The translation defect that blocked this is fixed** (2026-09-17); what is
 left is ordinary proof work.
@@ -53,49 +53,6 @@ abbrev quorum.JointConfig.IDs.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
   {{ (mref : Loc), RET #mref;
       p ↦{dq} jc ∗ ownIdsetQ v0 dq0 s0 ∗ ownIdsetQ v1 dq1 s1 ∗ mref ↦$ (s0 ∪ s1) }}
-
-/-- The tracker form: `IDs` on `&trk.Config.Voters` with the tracker sealed, as
-`campaign` and `VoterNodes` call it (the statement this spec had until 2026-10-08). -/
-theorem quorum.JointConfig.IDs.spec_tracker
-    (H : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ trk ↦ tv ∗
-        ownTracker cfg tv t }}
-      (App (Val (((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"])
-        @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
-    {{ (mref : Loc) (idm : GMap w64 Unit), RET #mref;
-        trk ↦ tv ∗ ownTracker cfg tv t ∗
-        mref ↦$ idm ∗ ⌜domSet idm = cfg⌝ }} := by
-  obtain ⟨votes, prs, pvs⟩ := t
-  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
-  iNamed Hown
-  -- the field `trk.Config.Voters` out of the struct, and back after the call
-  icases (Access.access (A := iprop(
-      (trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"] ↦
-        tv.Config'.Voters'))
-    (A' := iprop((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"] ↦
-        tv.Config'.Voters'))
-    (P := iprop(trk ↦ tv))) $$ Htrk with ⟨Hf, Hback⟩
-  ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hvoters
-  iapply H _ _ _ _ voters ∅ _ (DFrac.own 1) (DFrac.own 1) Hvoters_arr $$ [$Hf Hvoters]
-  · iPkgInit
-    isplitl [Hvoters]
-    · unfold ownIdsetQ; iright; iexact Hvoters
-    · unfold ownIdsetQ; ileft; ipureintro; exact ⟨rfl, rfl⟩
-  inext
-  iintro %mref ⟨Hf, Hvoters, -, Hidm⟩
-  unfold ownIdsetQ
-  icases Hvoters with (%Hc | Hvoters)
-  · exact absurd Hc.1 Hvnn
-  iapply HΦ
-  ihave Htrk := Hback $$ Hf
-  iframe Htrk Hidm
-  isplitl [Hvotes Hprogs Hvoters Hlearners HlearnersNext]
-  · iapply ownTracker_intro cfg tv votes prs pvs voters_ref voters learners learnersNext
-      Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
-      $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-  ipureintro
-  rw [GMap.map_union_empty, Hvoters_dom]
 
 /-- The tracker form at any configuration (2026-10-13, reconfiguration stage A1): `IDs` on
 `&trk.Config.Voters` with `ownTrackerC c` sealed returns the voters of both halves. -/

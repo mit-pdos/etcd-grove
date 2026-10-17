@@ -150,9 +150,9 @@ theorem remove_grow (wp_find : items.find.spec (GF := GF) (hG := hG))
       | key k =>
         simp only [Target.code] at Htyp
         subst Htyp
-        ihave #Hless := isCow_less_rm o f less c $$ Hcow
-        ihave #HisLess := isCow_isLess_rm o f less c $$ Hcow
-        ihave #Hall' := allItems_mono_rm o (l1 := is) (l2 := (Tree.node is []).elems)
+        ihave #Hless := isCow_less o f less c $$ Hcow
+        ihave #HisLess := isCow_isLess o f less c $$ Hcow
+        ihave #Hall' := allItems_mono o (l1 := is) (l2 := (Tree.node is []).elems)
           (fun e he => by simpa using he) $$ Hall
         rw [show targetItem o (Target.key k) item = o.item item k from rfl]
         wp_auto
@@ -198,11 +198,11 @@ theorem remove_grow (wp_find : items.find.spec (GF := GF) (hG := hG))
       have hcl : cs.length = is.length + 1 := ((shape_succ d h is cs).1 Hshape).1
       have hcsl0 : csl.len ≠ W64 0 := by
         intro h0; rw [h0] at Hcl; have h00 : sint.nat (W64 0) = 0 := rfl; omega
-      have hsi : Sorted o.lt is := sorted_sublist (items_sublist_elemsAux is cs)
+      have hsi : Sorted o.lt is := Sorted.sublist (items_sublist_elemsAux is cs)
         (by simpa using Hsorted)
-      ihave #Hless := isCow_less_rm o f less c $$ Hcow
-      ihave #HisLess := isCow_isLess_rm o f less c $$ Hcow
-      ihave #Hall' := allItems_mono_rm o (l1 := is) (l2 := (Tree.node is cs).elems)
+      ihave #Hless := isCow_less o f less c $$ Hcow
+      ihave #HisLess := isCow_isLess o f less c $$ Hcow
+      ihave #Hall' := allItems_mono o (l1 := is) (l2 := (Tree.node is cs).elems)
         (fun e he => (items_sublist_elemsAux is cs).subset (by simpa using he)) $$ Hall
       wp_join iprop(∃ (iv : w64) (fnd : Bool),
           i_ptr ↦ iv ∗ found_ptr ↦ fnd ∗ n_ptr ↦ n ∗ typ_ptr ↦ typ ∗ item_ptr ↦ item ∗
@@ -315,8 +315,8 @@ theorem remove_grow (wp_find : items.find.spec (GF := GF) (hG := hG))
         unfold nodeShallow nodeFields
         icases Hsh with ⟨%isl2, %csl2, ⟨%_, Hi, Hc, Hw⟩, Hisl, Hicap, Hcsl, Hccap⟩
         have hchsub := child_elems_sublist is cs _ ci Hci_lookup hjl
-        have hcsorted : Sorted o.lt ci.elems := sorted_sublist hchsub (by simpa using Hsorted)
-        ihave #Hallc := allItems_mono_rm o (l1 := ci.elems) (l2 := (Tree.node is cs).elems)
+        have hcsorted : Sorted o.lt ci.elems := Sorted.sublist hchsub (by simpa using Hsorted)
+        ihave #Hallc := allItems_mono o (l1 := ci.elems) (l2 := (Tree.node is cs).elems)
           (fun e he => by simpa using hchsub.subset he) $$ Hall
         have hpl' : sint.nat iv < ps.length := by omega
         cases fnd with
@@ -400,7 +400,7 @@ theorem remove_grow (wp_find : items.find.spec (GF := GF) (hG := hG))
     simp only [Tree.items_node, Tree.children_node] at Hlen H1 Hir Hci
     have hcl : cs.length = is.length + 1 := ((shape_succ d h is cs).1 Hshape).1
     have hsorted : Sorted o.lt (Tree.elemsAux is cs) := by simpa using Hsorted
-    have hsi : Sorted o.lt is := sorted_sublist (items_sublist_elemsAux is cs) hsorted
+    have hsi : Sorted o.lt is := Sorted.sublist (items_sublist_elemsAux is cs) hsorted
     have hjl : sint.nat i ≤ is.length := Hir ▸ remIdx_le o.lt tgt is
     wp_auto
     wp_join iprop(∃ t'' : Tree (V × K), ownedNode o c f less (DFrac.own 1) n t'' ∗

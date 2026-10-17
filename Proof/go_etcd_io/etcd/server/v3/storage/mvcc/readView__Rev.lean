@@ -51,11 +51,13 @@ theorem mvcc.readView.Rev.wp_proof
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
   imod mvcc.crevLb_neg γ.idx with #Hlbn
-  wp_apply (mvcc.kvOver_Read hRead kty kvv s γ _ t 0 [] true (-1) iprop(True)) $$ [$Hkvo $Hs $Hrd $Hnone $Hc0 $Hlbn $Htrc]
+  wp_apply (mvcc.kvOver_Read hRead kty kvv s γ _ t 0 [] true (-1) iprop(True) none) $$ [$Hkvo $Hs $Hrd $Hnone $Hc0 $Hlbn $Htrc]
     as %mw ⟨%log, %rev, %crev, Htx, -, -, -⟩
   · isplitr
     · iintro !>; itrivial
-    ipureintro; exact Ht
+    isplitr
+    · ipureintro; exact Ht
+    unfold mvcc.logLent; itrivial
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx

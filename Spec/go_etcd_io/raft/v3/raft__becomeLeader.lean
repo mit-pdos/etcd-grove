@@ -30,7 +30,7 @@ self-addressed `MsgAppResp` (`becomeLeader`, `Defs.lean`). It dereferences
 `r.trk.Progress[r.id]`, so the node's own `Progress` must be there: since 2026-10-13
 (reconfiguration stage A2, at any configuration `c`) that is not a premise, it follows from
 `ownRaftPhysC`'s `Hvoter` -- a non-follower is a voter of either half, and every voter is
-tracked (`CfgM.ids`). (The old statement, `raft.becomeLeader.specS`, took `id ∈ cfg`.) The term is nonzero (2026-10-10): `appendEntry`
+tracked (`CfgM.ids`). (The old statement, `raft.becomeLeader.specS`, took `id ∈ cfg`; it had no caller and is gone, 2026-10-17.) The term is nonzero (2026-10-10): `appendEntry`
 stamps the self-acknowledgement with it (a candidate's term, which `stepCandidate` has
 from the winning `MsgVoteResp`). -/
 abbrev raft.becomeLeader.spec : Prop :=
@@ -44,34 +44,6 @@ abbrev raft.becomeLeader.spec : Prop :=
       -- `Match` is what `reset` left: `BecomeReplicate` and the `RecentActive` store do
       -- not move it, and `appendEntry` does not touch a `Progress`
       ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
-
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.becomeLeader.spec` by `raft.becomeLeader.spec_simple`. -/
-abbrev raft.becomeLeader.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  s.role ≠ .follower →
-  id ∈ cfg →
-  s.term ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
-  {{ (pvs : GMap w64 Progress), RET #();
-      ownRaftPhys cfg r id { becomeLeader id s with prvals := pvs } ∗
-      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
-
-open Iris.ProofMode in
-theorem raft.becomeLeader.spec_simple
-    (H : raft.becomeLeader.spec (GF := GF) (hG := hG)) :
-    raft.becomeLeader.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hrole _ Hnz
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hrole Hnz $$ [$Hpkg $Hphys]
-  inext
-  iintro %pvs ⟨Hphys, %Hm⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro; exact Hm
 
 end spec
 

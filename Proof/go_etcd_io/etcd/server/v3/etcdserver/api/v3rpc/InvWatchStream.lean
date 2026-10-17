@@ -528,12 +528,14 @@ instance mvccExtra_persistent (γs : StreamNames) (r : mvcc.RespM) :
 channel `γc` (its registration indices, cancellation reason and sent list named by the stream's
 `γo`, the run's auxiliary name), the responses `pre` sent before it (`r.idx` its position, the
 snapshot `pre ++ [r]`), what it covers (`respCov`) and, for id `-1`, the watchers registered
-before it (`regsAt`). -/
+before it (`regsAt`); and the stream's cancellation reason, the client's cancel requests
+(`cancelQ`, saved at `γo.rsn`). -/
 def mvccCov (γs : StreamNames) (γ : mvcc.WsNames) (r : mvcc.RespM) : IProp GF :=
   iprop(∃ (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName),
     streamAuxIs γs (auxOf γo γa) ∗
     ⌜γo.regi = γc.regi ∧ γo.rsn = γc.rsn ∧ γo.sentl = γc.sentl ∧ r.idx = pre.length⌝ ∗
-    mvcc.chanSentLb γc (pre ++ [r]) ∗ mvcc.respCov γ γc pre r ∗ mvcc.regsAt γc pre.length r)
+    mvcc.chanSentLb γc (pre ++ [r]) ∗ mvcc.respCov γ γc pre r ∗ mvcc.regsAt γc pre.length r ∗
+    savedPredOwn γo.rsn DFrac.discard (cancelQ γs))
 
 instance mvccCov_persistent (γs : StreamNames) (γ : mvcc.WsNames) (r : mvcc.RespM) :
     Persistent (mvccCov (GF := GF) γs γ r) := by

@@ -185,6 +185,24 @@ def txnOpOf (o : OpFull) : Option TxnOp :=
   else if o.t = W64 3 then some (.delete o)
   else none
 
+/-- `len(s)` of a slice with length field `x`, as an integer. -/
+theorem len_eq_sint (n : Nat) (x : w64) (h : n = sint.nat x ∧ 0 ≤ sint.Z x) :
+    (n : Int) = sint.Z x := by
+  obtain ⟨h1, h2⟩ := h
+  subst h1
+  simp only [sint.nat, sint.Z] at *
+  omega
+
+/-- `OpPut(key, val, WithLease(id))` in a transaction. -/
+theorem putLeaseOp_txnOpOf (key val : GoString) (id : w64) :
+    txnOpOf (opPutModel key val [withLeaseM id]) = some (.put key val id) := by
+  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero, txnOpOf]
+
+theorem putLeaseOp_not_panics (key val : GoString) (id : w64) :
+    ¬ (opPutModel key val [withLeaseM id]).putPanics := by
+  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero,
+    OpFull.putPanics]
+
 /-- A put of `key` at revision `r` (see the module docstring). -/
 def putKv (r : w64) (key value : GoString) (lease : w64) (s : List EtcdKv) : List EtcdKv :=
   let nv : EtcdKv := match s.find? (fun v => decide (v.key = key)) with
@@ -423,6 +441,34 @@ def txnStates (pfx : GoString) (r : w64) (s s' : List EtcdKv) (wrote : Bool) : I
 instance txnStates_persistent (pfx : GoString) (r : w64) (s s' : List EtcdKv) (wrote : Bool) :
     Persistent (txnStates (GF := GF) pfx r s s' wrote) := by
   unfold txnStates; split <;> infer_instance
+
+/-- A transaction that did not write: the state it ran on is etcd's at its revision. -/
+theorem txnStates_read (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
+    txnStates (GF := GF) pfx r s s' false ⊢ □ etcdState r pfx s := by
+  unfold txnStates
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iintro #H
+  iexact H
+
+/-- A transaction that wrote: the state it leaves is etcd's at its revision. -/
+theorem txnStates_after (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
+    txnStates (GF := GF) pfx r s s' true ⊢ □ etcdState r pfx s' := by
+  unfold txnStates
+  simp only [↓reduceIte]
+  iintro ⟨-, #H⟩
+  iexact H
+
+/-- The state before a transaction has positive create revisions. -/
+theorem txnStates_createRev_pos (pfx : GoString) (r : w64) (s s' : List EtcdKv) (wrote : Bool) :
+    txnStates (GF := GF) pfx r s s' wrote ⊢ ⌜∀ v ∈ s, 0 < sint.Z v.createRev⌝ := by
+  unfold txnStates
+  split
+  · iintro ⟨#H1, -⟩
+    ihave %H := etcdState_revs _ _ _ $$ H1
+    ipureintro; intro v hv; exact (H v hv).1
+  · iintro #H1
+    ihave %H := etcdState_revs _ _ _ $$ H1
+    ipureintro; intro v hv; exact (H v hv).1
 
 /-- **What `Commit()` returns** for the transaction `t` under the prefix `pfx`, called knowing
 that etcd has reached `lo`: an error; or a response at a revision `r` (reached, below
@@ -1163,6 +1209,75 @@ instance isEtcdLeaseClient_persistent (client : Loc) :
   unfold isEtcdLeaseClient; infer_instance
 
 end client
+
+/-! ## Small shared lemmas (outside `client`: only the variables each needs) -/
+
+/-- A builder state `B b` read at an equal state (`ihave HB := txnBuild_conv B _ b' (by rfl) $$ HB`
+puts a computed state in the form a method's triple expects). -/
+theorem txnBuild_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
+    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
+
+/-- A pure `∀` from an entailment for every instance. -/
+theorem pure_forall_intro {PROP : Type _} [BI PROP] {P : PROP} {α : Sort _} {φ : α → Prop}
+    (h : ∀ x, P ⊢ ⌜φ x⌝) : P ⊢ ⌜∀ x, φ x⌝ :=
+  (forall_intro h).trans pure_forall.2
+
+/-- `Watch(key, WithRev(rev))` is a range watch of the key `key` from `rev` that does not panic. -/
+theorem keyWatch_opts (key : GoString) (rev : w64) :
+    (opWatchModel key [withRevM rev]).isRangeWatch rev = true ∧
+      ¬ opWatchPanics key [withRevM rev] ∧ (opWatchModel key [withRevM rev]).key = key ∧
+      (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
+  refine ⟨?_, ?_, ?_, ?_⟩ <;>
+  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
+    OpModel.zero, withRevM, OpFull.isRangeWatch]
+
+section pointwise
+variable {GF : BundledGFunctors}
+
+/-- Two lists related pointwise by a persistent predicate, extended by a related pair. -/
+theorem pointwise_snoc {A B : Type} (P : A → B → IProp GF) [∀ a b, Persistent (P a b)]
+    (xs : List A) (ys : List B) (a : A) (b : B) (hlen : xs.length = ys.length) :
+    (□ ∀ (i : Nat) (x : A) (y : B), ⌜xs[i]? = some x⌝ -∗ ⌜ys[i]? = some y⌝ -∗ P x y) ∗ P a b ⊢
+      □ ∀ (i : Nat) (x : A) (y : B), ⌜(xs ++ [a])[i]? = some x⌝ -∗ ⌜(ys ++ [b])[i]? = some y⌝ -∗
+        P x y := by
+  iintro ⟨#H, #Hp⟩
+  imodintro
+  iintro %i %x %y %hx %hy
+  rcases Nat.lt_or_ge i xs.length with h | h
+  · rw [List.getElem?_append_left h] at hx
+    rw [List.getElem?_append_left (by omega)] at hy
+    iapply H $$ %i %x %y %hx %hy
+  · rw [List.getElem?_append_right h] at hx
+    rw [List.getElem?_append_right (by omega)] at hy
+    rcases Nat.lt_or_ge (i - xs.length) 1 with h' | h'
+    · rw [show i - xs.length = 0 by omega] at hx
+      rw [show i - ys.length = 0 by omega] at hy
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hx hy
+      subst hx; subst hy
+      iexact Hp
+    · rw [List.getElem?_eq_none (by simp; omega)] at hx
+      cases hx
+
+end pointwise
+
+section heap
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- A wholly owned `int64` cell has no other points-to. -/
+theorem w64_ptsto_excl (l : Loc) (v1 v2 : w64) (dq : DFrac) :
+    (l ↦{DFrac.own 1} v1 : IProp GF) ∗ l ↦{dq} v2 ⊢ False := by
+  rw [typedPointsto_unseal]; unfold typedPointstoWrap
+  rw [typedPointstoDef_heap, typedPointstoDef_heap]
+  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+  icombine H1 H2 gives %Hv
+  exfalso
+  have := DFrac.valid_own_op Hv.1
+  simp at this
+
+end heap
 
 end EtcdGrove
 end Perennial
