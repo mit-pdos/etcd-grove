@@ -333,8 +333,9 @@ end mvcc
 
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
-  intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs qa CS
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, %Hown, Hidp, #Hidc,
+  intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs qa nl CS
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, Hnl, %Hnle, %Hown,
+    Hidp, #Hidc,
     %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
   ihave #Hfix' := Hfix
@@ -619,7 +620,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
     imodintro
     iapply HΦ
     simp only [↓reduceIte, hA.1]
-    iframe Hch Hlive Hsl Hevs Hca Hidp
+    iframe Hch Hlive Hsl Hevs Hca Hnl Hidp
   · -- the send
     have hsend : Deliv.sent (evm, mvcc.filtered fs evm) = true := by
       by_cases he : evm = []
@@ -682,10 +683,15 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               · ileft; ipureintro; exact h
               · iright; iframe h; ipureintro
                 exact ⟨h1.1, by show mvcc.filtered fs evm = []; rw [h1.2]; rfl⟩
+            -- (K2e-5) an event-less response: at least every earlier event-less one's revision
+            icases mvcc.respRev_new γ γw.wc sent L nl
+              (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length⟩ : mvcc.RespM)
+              (fun h => Hnle (Classical.byContradiction fun hne => hA ⟨hne, h⟩))
+              $$ [$Hsentl $Hnl] with ⟨Hsentl, Hnl, #Hrr⟩
             ihave #Hrc := mvcc.respCov_of_list γ γw.wc sent
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length⟩ : mvcc.RespM)
               cs rfl (fun h => Hown (Classical.byContradiction fun hne => hA ⟨hne, h⟩))
-              $$ [$Hcf $Hcx]
+              $$ [$Hcf $Hcx $Hrr]
             iexists s
             iframe Hch
             have hpre := Hpre.length_le
@@ -778,7 +784,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               wp_auto
               iapply HΦ
               simp only [↓reduceIte]
-              iframe Hch Hlive Hsl Hevs Hca Hidp
+              iframe Hch Hlive Hsl Hevs Hca Hnl Hidp
           · itrivial
         · iapply BigAndL.bigAndL_nil.2
           itrivial
@@ -788,7 +794,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
         ihave Hevs := mvcc.evs_drop evm _ _ $$ Hevs
         iapply HΦ
         simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe Hch Hlive Hsl Hevs Hca Hidp
+        iframe Hch Hlive Hsl Hevs Hca Hnl Hidp
 
 end proof
 

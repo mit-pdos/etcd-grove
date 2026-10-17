@@ -302,11 +302,15 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       icases mvcc.mv_ev_pre γ γw r evsw b.evs (sint.nat stw.minRev) $$ [$Hev $Hwf] with ⟨HevS, HevK⟩
       icases (mvcc.mv_covAuth key γw r fcs evsw b.evs (sint.nat stw.minRev)).1 $$ HevK with HevK
       wp_apply (hSend γ key γw r fcs stw.ch (1 : Qp).half (1 : Qp).half evsw (sint.nat stw.minRev) _ ps
-          b.evs (DFrac.own 1) cs (1 : Qp).half iprop(True)) $$ [Hchf Hl HevS Hsl HevK]
-          as %ok ⟨Hchf, Hl, Hsl, HevS, HevK, -⟩
+          b.evs (DFrac.own 1) cs (1 : Qp).half none iprop(True)) $$ [Hchf Hl HevS Hsl HevK]
+          as %ok ⟨Hchf, Hl, Hsl, HevS, HevK, -, -⟩
       · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB HevK
         isplitr
         · iexact Hcp
+        isplitr
+        · iapply mvcc.notifiedLent_none
+        isplitr
+        · ipureintro; intro h; exact absurd h Hbne
         isplitr
         · ipureintro; intro h; simp [cs, h]
         isplitr

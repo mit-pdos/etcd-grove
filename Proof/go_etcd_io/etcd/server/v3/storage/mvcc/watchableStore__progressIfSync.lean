@@ -488,6 +488,11 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     have hlive : σ.live u := Or.inl hsy
     obtain ⟨st0, hst0⟩ := Option.isSome_iff_exists.1 (Hok.live_st u hlive)
     icases (BigSepM.bigSepM_lookup_acc hst0).1 $$ Hst with ⟨Hwu, Hst⟩
+    -- the lock's fraction of the notified log, lent to the send (K2e-5)
+    iunfold mvcc.wlogQ at Hwlog
+    icases Hwlog with ⟨Hwl, Hla⟩
+    ihave Hwl : mvcc.notifiedLent γ (some (sync.rfrac.half, σ.Lmu)) $$ [Hwl]
+    · iunfold mvcc.notifiedLent; iexact Hwl
     ihave #Hfu := BigSepM.bigSepM_lookup hst0 $$ HF
     iunfold mvcc.memberFacts at Hfu
     icases Hfu with ⟨%γw, %rr, %fcs, %HMw, #HmetaW, #HfixW, Hfu⟩
@@ -547,8 +552,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         exact mvcc.mem_dedupL.2 (List.mem_filterMap.2 ⟨id0, (Hkset id0).2 (by rw [hid0]; rfl), hid0⟩)
       · iright; iexact Hr
     wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs
-        sync.rfrac.half CS)
-      $$ [$Hch $Hlv $HCS $Hca] as %b ⟨Hch, Hlv, -, -, Hca, HCS⟩
+        sync.rfrac.half (some (sync.rfrac.half, σ.Lmu)) CS)
+      $$ [$Hch $Hlv $HCS $Hca $Hwl] as %b ⟨Hch, Hlv, -, -, Hca, Hwl, HCS⟩
     · iframe #
       simp only [↓reduceIte, List.zip_nil_left]
       isplitr
@@ -557,10 +562,16 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       · iapply BigSepL.bigSepL_nil.2; iempintro
       isplitr
       · ipureintro; intro _
+        exact ⟨_, _, rfl, by have := hrevE; rw [← hClm] at this ⊢; omega⟩
+      isplitr
+      · ipureintro; intro _
         rw [Hcsw]
         exact mvcc.mem_dedupL.2 (List.mem_filterMap.2 ⟨key, (Hkset key).2 (by rw [Hu]; rfl), Hu⟩)
       ipureintro
       simp
+    iunfold mvcc.notifiedLent at Hwl
+    ihave Hwlog : mvcc.wlogQ γ sync.rfrac σ.Lmu $$ [Hwl Hla]
+    · iunfold mvcc.wlogQ; iframe Hwl Hla
     irevert Hlv; rw [← hγu]; iintro Hlv
     ihave Hlvs := Hlvb $$ Hlv
     iunfold mvcc.covAuth at Hca
