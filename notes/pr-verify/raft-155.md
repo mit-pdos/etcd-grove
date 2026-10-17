@@ -146,8 +146,8 @@ assumes the leader sends contiguous entries. Nothing validates them:
 `logSliceFromMsgApp`'s TODO says so, and `logSlice.valid` is never called on this path. The
 PR's comment "prev.index <= match.index <= a.lastIndex(), so the sub-slicing is safe" holds
 only for valid slices. Each case was reproduced with a Go test against the fork commit and
-against its parent (the test is at
-`/tmp/claude-0/-shared-etcd-grove/6101526d-6539-4872-a190-a0b4b0fe455b/scratchpad/raft-155/zz_probe_test.go`).
+against its parent: `raft-155/log_malformed_append_test.go`, with its outputs
+`raft-155/output-new.txt` and `raft-155/output-old.txt` (see `raft-155/README.md`).
 
 1. **Duplicate index.** Local log 1..10, all term 1, committed 3; append `prev=(1,5)`, entries
    at indices `6, 6`, term 1.

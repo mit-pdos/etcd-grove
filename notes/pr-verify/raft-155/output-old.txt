@@ -1,0 +1,3 @@
+log_malformed_append_test.go:54: duplicate: result: 7 true lastIndex: 10
+log_malformed_append_test.go:39: gap: panic: index, 3, is out of range [2]
+log_malformed_append_test.go:54: below-prev: result: 3 true lastIndex: 3
