@@ -2,10 +2,16 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.github_com.xiang90.probing
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.transport
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.golang_org.x.time.rate
 public import GeneratedProof.net.http
+public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
@@ -22,6 +28,25 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
+namespace Raft
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
+
+instance Raft_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft :=
+  sorry -- axiomatized type
+
+instance Raft_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end Raft
+
 namespace pipelineHandler
 section def_
 
@@ -31,12 +56,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance pipelineHandler_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"lg" l) v.lg' dq ∗
+    "localID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"localID" l) v.localID' dq ∗
+    "tr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"tr" l) v.tr' dq ∗
+    "r" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"r" l) v.r' dq ∗
+    "cid" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"cid" l) v.cid' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance pipelineHandler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler.underlying := by
+  solve_into_val_typed_struct
+
+instance pipelineHandler_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_load_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"localID" l) v.localID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"localID" l) v.localID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"localID" l) v.localID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"localID" l) localID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with localID' := localID' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_load_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"tr" l) v.tr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"tr" l) v.tr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_store_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (tr' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"tr" l) v.tr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"tr" l) tr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tr' := tr' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_load_r (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"r" l) v.r' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_store_r (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (r' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"r" l) v.r' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"r" l) r' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_load_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"cid" l) v.cid' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"cid" l) v.cid' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipelineHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"cid" l) v.cid' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"cid" l) cid' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cid' := cid' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end pipelineHandler
@@ -50,12 +164,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance snapshotHandler_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"lg" l) v.lg' dq ∗
+    "tr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"tr" l) v.tr' dq ∗
+    "r" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"r" l) v.r' dq ∗
+    "snapshotter" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"snapshotter" l) v.snapshotter' dq ∗
+    "localID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"localID" l) v.localID' dq ∗
+    "cid" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"cid" l) v.cid' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance snapshotHandler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler.underlying := by
+  solve_into_val_typed_struct
+
+instance snapshotHandler_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_load_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"tr" l) v.tr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"tr" l) v.tr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_store_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (tr' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"tr" l) v.tr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"tr" l) tr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tr' := tr' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_load_r (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"r" l) v.r' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_store_r (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (r' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"r" l) v.r' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"r" l) r' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_load_snapshotter (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"snapshotter" l) v.snapshotter' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"snapshotter" l) v.snapshotter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_store_snapshotter (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (snapshotter' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"snapshotter" l) v.snapshotter' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"snapshotter" l) snapshotter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshotter' := snapshotter' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_load_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"localID" l) v.localID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"localID" l) v.localID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"localID" l) v.localID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"localID" l) localID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with localID' := localID' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_load_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"cid" l) v.cid' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"cid" l) v.cid' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"cid" l) v.cid' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"cid" l) cid' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cid' := cid' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end snapshotHandler
@@ -69,12 +289,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance streamHandler_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"lg" l) v.lg' dq ∗
+    "tr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"tr" l) v.tr' dq ∗
+    "peerGetter" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"peerGetter" l) v.peerGetter' dq ∗
+    "r" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"r" l) v.r' dq ∗
+    "id" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"id" l) v.id' dq ∗
+    "cid" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"cid" l) v.cid' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance streamHandler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler.underlying := by
+  solve_into_val_typed_struct
+
+instance streamHandler_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_load_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"tr" l) v.tr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"tr" l) v.tr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_store_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (tr' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"tr" l) v.tr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"tr" l) tr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tr' := tr' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_load_peerGetter (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"peerGetter" l) v.peerGetter' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"peerGetter" l) v.peerGetter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_store_peerGetter (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (peerGetter' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"peerGetter" l) v.peerGetter' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"peerGetter" l) peerGetter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peerGetter' := peerGetter' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_load_r (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"r" l) v.r' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_store_r (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (r' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"r" l) v.r' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"r" l) r' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_load_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"id" l) v.id' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (id' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"id" l) id' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_load_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"cid" l) v.cid' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"cid" l) v.cid' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance streamHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"cid" l) v.cid' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"cid" l) cid' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cid' := cid' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end streamHandler
@@ -280,12 +606,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance peerStatus_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"lg" l) v.lg' dq ∗
+    "local'" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"local" l) v.local' dq ∗
+    "id" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"id" l) v.id' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"mu" l) v.mu' dq ∗
+    "active" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"active" l) v.active' dq ∗
+    "since" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"since" l) v.since' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance peerStatus_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus.underlying := by
+  solve_into_val_typed_struct
+
+instance peerStatus_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_load_local (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"local" l) v.local' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"local" l) v.local' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_store_local (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (local' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"local" l) v.local' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"local" l) local' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with local' := local' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_load_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"id" l) v.id' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (id' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"id" l) id' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_load_active (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"active" l) v.active' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"active" l) v.active' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_store_active (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (active' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"active" l) v.active' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"active" l) active' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with active' := active' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_load_since (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"since" l) v.since' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"since" l) v.since' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance peerStatus_access_store_since (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (since' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"since" l) v.since' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus go!"since" l) since' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with since' := since' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end peerStatus
@@ -299,12 +731,186 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance pipeline_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline where
+  typedPointstoDef l v dq := iprop(
+    "peerID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"peerID" l) v.peerID' dq ∗
+    "tr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"tr" l) v.tr' dq ∗
+    "picker" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"picker" l) v.picker' dq ∗
+    "status" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"status" l) v.status' dq ∗
+    "raft" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"raft" l) v.raft' dq ∗
+    "errorc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"errorc" l) v.errorc' dq ∗
+    "followerStats" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"followerStats" l) v.followerStats' dq ∗
+    "msgc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"msgc" l) v.msgc' dq ∗
+    "wg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"wg" l) v.wg' dq ∗
+    "stopc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"stopc" l) v.stopc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance pipeline_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.underlying := by
+  solve_into_val_typed_struct
+
+instance pipeline_access_load_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"peerID" l) v.peerID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"peerID" l) v.peerID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (peerID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"peerID" l) v.peerID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"peerID" l) peerID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peerID' := peerID' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"tr" l) v.tr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"tr" l) v.tr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_tr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (tr' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"tr" l) v.tr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"tr" l) tr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tr' := tr' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_picker (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"picker" l) v.picker' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"picker" l) v.picker' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_picker (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (picker' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"picker" l) v.picker' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"picker" l) picker' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with picker' := picker' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_status (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"status" l) v.status' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"status" l) v.status' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_status (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (status' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"status" l) v.status' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"status" l) status' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with status' := status' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"raft" l) v.raft' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"raft" l) v.raft' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (raft' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"raft" l) v.raft' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"raft" l) raft' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raft' := raft' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_errorc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"errorc" l) v.errorc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"errorc" l) v.errorc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_errorc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (errorc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"errorc" l) v.errorc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"errorc" l) errorc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errorc' := errorc' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_followerStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"followerStats" l) v.followerStats' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"followerStats" l) v.followerStats' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_followerStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (followerStats' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"followerStats" l) v.followerStats' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"followerStats" l) followerStats' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with followerStats' := followerStats' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_msgc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"msgc" l) v.msgc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"msgc" l) v.msgc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_msgc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (msgc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"msgc" l) v.msgc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"msgc" l) msgc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msgc' := msgc' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"wg" l) v.wg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"wg" l) v.wg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (wg' : sync.WaitGroup) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"wg" l) v.wg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"wg" l) wg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wg' := wg' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_load_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"stopc" l) v.stopc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"stopc" l) v.stopc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance pipeline_access_store_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (stopc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"stopc" l) v.stopc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"stopc" l) stopc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopc' := stopc' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end pipeline
@@ -318,34 +924,104 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance remote_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"lg" l) v.lg' dq ∗
+    "localID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"localID" l) v.localID' dq ∗
+    "id" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"id" l) v.id' dq ∗
+    "status" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"status" l) v.status' dq ∗
+    "pipeline" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) v.pipeline' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance remote_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote.underlying := by
+  solve_into_val_typed_struct
+
+instance remote_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_load_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"localID" l) v.localID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"localID" l) v.localID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"localID" l) v.localID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"localID" l) localID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with localID' := localID' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_load_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"id" l) v.id' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (id' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"id" l) id' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_load_status (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"status" l) v.status' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"status" l) v.status' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_store_status (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (status' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"status" l) v.status' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"status" l) status' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with status' := status' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_load_pipeline (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) v.pipeline' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) v.pipeline' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance remote_access_store_pipeline (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (pipeline' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) v.pipeline' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote go!"pipeline" l) pipeline' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pipeline' := pipeline' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end remote
-
-namespace Raft
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-
-instance Raft_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft :=
-  sorry -- axiomatized type
-
-instance Raft_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Raft
 
 namespace snapshotSender
 section def_
@@ -589,12 +1265,339 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance Transport_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport where
+  typedPointstoDef l v dq := iprop(
+    "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Logger" l) v.Logger' dq ∗
+    "DialTimeout" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialTimeout" l) v.DialTimeout' dq ∗
+    "DialRetryFrequency" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialRetryFrequency" l) v.DialRetryFrequency' dq ∗
+    "TLSInfo" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"TLSInfo" l) v.TLSInfo' dq ∗
+    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ID" l) v.ID' dq ∗
+    "URLs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"URLs" l) v.URLs' dq ∗
+    "ClusterID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ClusterID" l) v.ClusterID' dq ∗
+    "Raft" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Raft" l) v.Raft' dq ∗
+    "Snapshotter" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Snapshotter" l) v.Snapshotter' dq ∗
+    "ServerStats" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ServerStats" l) v.ServerStats' dq ∗
+    "LeaderStats" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"LeaderStats" l) v.LeaderStats' dq ∗
+    "ErrorC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ErrorC" l) v.ErrorC' dq ∗
+    "streamRt" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamRt" l) v.streamRt' dq ∗
+    "pipelineRt" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineRt" l) v.pipelineRt' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"mu" l) v.mu' dq ∗
+    "remotes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"remotes" l) v.remotes' dq ∗
+    "peers" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"peers" l) v.peers' dq ∗
+    "pipelineProber" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineProber" l) v.pipelineProber' dq ∗
+    "streamProber" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamProber" l) v.streamProber' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Transport_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.underlying := by
+  solve_into_val_typed_struct
+
+instance Transport_access_load_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Logger" l) v.Logger' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (Logger' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Logger" l) v.Logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Logger" l) Logger' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_DialTimeout (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialTimeout" l) v.DialTimeout' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialTimeout" l) v.DialTimeout' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_DialTimeout (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DialTimeout' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialTimeout" l) v.DialTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialTimeout" l) DialTimeout' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialTimeout' := DialTimeout' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_DialRetryFrequency (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialRetryFrequency" l) v.DialRetryFrequency' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialRetryFrequency" l) v.DialRetryFrequency' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_DialRetryFrequency (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DialRetryFrequency' : golang_org.x.time.rate.Limit) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialRetryFrequency" l) v.DialRetryFrequency' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"DialRetryFrequency" l) DialRetryFrequency' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialRetryFrequency' := DialRetryFrequency' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_TLSInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"TLSInfo" l) v.TLSInfo' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"TLSInfo" l) v.TLSInfo' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_TLSInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (TLSInfo' : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"TLSInfo" l) v.TLSInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"TLSInfo" l) TLSInfo' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TLSInfo' := TLSInfo' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ID" l) v.ID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ID" l) ID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_URLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"URLs" l) v.URLs' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"URLs" l) v.URLs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_URLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (URLs' : go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"URLs" l) v.URLs' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"URLs" l) URLs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with URLs' := URLs' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_ClusterID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ClusterID" l) v.ClusterID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ClusterID" l) v.ClusterID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_ClusterID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ClusterID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ClusterID" l) v.ClusterID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ClusterID" l) ClusterID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClusterID' := ClusterID' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_Raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Raft" l) v.Raft' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Raft" l) v.Raft' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_Raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (Raft' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Raft) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Raft" l) v.Raft' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Raft" l) Raft' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Raft' := Raft' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_Snapshotter (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Snapshotter" l) v.Snapshotter' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Snapshotter" l) v.Snapshotter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_Snapshotter (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (Snapshotter' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Snapshotter" l) v.Snapshotter' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"Snapshotter" l) Snapshotter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snapshotter' := Snapshotter' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_ServerStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ServerStats" l) v.ServerStats' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ServerStats" l) v.ServerStats' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_ServerStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ServerStats' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ServerStats" l) v.ServerStats' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ServerStats" l) ServerStats' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerStats' := ServerStats' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_LeaderStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"LeaderStats" l) v.LeaderStats' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"LeaderStats" l) v.LeaderStats' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_LeaderStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (LeaderStats' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"LeaderStats" l) v.LeaderStats' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"LeaderStats" l) LeaderStats' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeaderStats' := LeaderStats' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_ErrorC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ErrorC" l) v.ErrorC' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ErrorC" l) v.ErrorC' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_ErrorC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ErrorC' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ErrorC" l) v.ErrorC' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"ErrorC" l) ErrorC' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorC' := ErrorC' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_streamRt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamRt" l) v.streamRt' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamRt" l) v.streamRt' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_streamRt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (streamRt' : net.http.RoundTripper) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamRt" l) v.streamRt' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamRt" l) streamRt' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with streamRt' := streamRt' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_pipelineRt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineRt" l) v.pipelineRt' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineRt" l) v.pipelineRt' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_pipelineRt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (pipelineRt' : net.http.RoundTripper) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineRt" l) v.pipelineRt' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineRt" l) pipelineRt' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pipelineRt' := pipelineRt' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (mu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_remotes (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"remotes" l) v.remotes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"remotes" l) v.remotes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_remotes (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (remotes' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"remotes" l) v.remotes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"remotes" l) remotes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with remotes' := remotes' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_peers (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"peers" l) v.peers' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"peers" l) v.peers' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_peers (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (peers' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"peers" l) v.peers' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"peers" l) peers' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peers' := peers' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_pipelineProber (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineProber" l) v.pipelineProber' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineProber" l) v.pipelineProber' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_pipelineProber (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (pipelineProber' : github_com.xiang90.probing.Prober) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineProber" l) v.pipelineProber' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"pipelineProber" l) pipelineProber' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pipelineProber' := pipelineProber' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_load_streamProber (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamProber" l) v.streamProber' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamProber" l) v.streamProber' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Transport_access_store_streamProber (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (streamProber' : github_com.xiang90.probing.Prober) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamProber" l) v.streamProber' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport go!"streamProber" l) streamProber' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with streamProber' := streamProber' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Transport
@@ -608,12 +1611,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 instance urlPicker_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"mu" l) v.mu' dq ∗
+    "urls" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"urls" l) v.urls' dq ∗
+    "picked" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"picked" l) v.picked' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance urlPicker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker.underlying := by
+  solve_into_val_typed_struct
+
+instance urlPicker_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance urlPicker_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance urlPicker_access_load_urls (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"urls" l) v.urls' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"urls" l) v.urls' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance urlPicker_access_store_urls (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (urls' : go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"urls" l) v.urls' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"urls" l) urls' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with urls' := urls' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance urlPicker_access_load_picked (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"picked" l) v.picked' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"picked" l) v.picked' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance urlPicker_access_store_picked (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (picked' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"picked" l) v.picked' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker go!"picked" l) picked' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with picked' := picked' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end urlPicker

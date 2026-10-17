@@ -142,7 +142,8 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "net=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
-                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
+                    "golang.org/x/time=", "github.com/xiang90/probing="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -278,6 +279,10 @@ PROJECTS = [
             "go.etcd.io/etcd/client/v3/credentials",
             "go.etcd.io/etcd/client/v3/internal/resolver",
             # (and go.uber.org/zap, above)
+            # names only: the types of rafthttp.Transport's fields, so that its struct is
+            # translated (NewServer builds one; unit N4, 2026-10-17)
+            "golang.org/x/time/rate",
+            "github.com/xiang90/probing",
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                os.path.join("github_com", "prometheus"),
@@ -285,7 +290,8 @@ PROJECTS = [
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                "net", os.path.join("encoding", "hex"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
-               os.path.join("github_com", "dustin")],
+               os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
+               os.path.join("github_com", "xiang90")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",

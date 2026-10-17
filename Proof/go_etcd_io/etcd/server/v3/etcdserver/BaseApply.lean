@@ -136,6 +136,34 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
+
+-- the names-only packages of `rafthttp.Transport`'s fields (unit N4, 2026-10-17)
+namespace golang_org.x.time.rate
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.golang_org.x.time.rate :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.golang_org.x.time.rate :=
+  build_get_is_pkg_init_wf
+
+end golang_org.x.time.rate
+
+namespace github_com.xiang90.probing
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.xiang90.probing :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.xiang90.probing :=
+  build_get_is_pkg_init_wf
+
+end github_com.xiang90.probing
+
 -- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
@@ -175,15 +203,6 @@ end go_etcd_io.etcd.pkg.v3.idutil
 
 -- `api/v3/version`: `server/v3/lease/Base.lean` (2026-10-13, unit 9: the lessor's
 -- `shouldPersistCheckpoints` reads its `V3_6`)
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 

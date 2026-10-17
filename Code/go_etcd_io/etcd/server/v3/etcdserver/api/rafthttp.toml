@@ -3,7 +3,11 @@
 # the request path's unit 2: the server's `parseProposeCtxErr` loads `s.r.transport`;
 # otherwise an axiomatized type).
 translate = ["!*"]
-imports = ["!*", "net/http", "time", "go.etcd.io/raft/v3/raftpb", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/client/pkg/v3/types"]
+# Unit N4 (2026-10-17): the packages of `Transport`'s fields too (zap, the TLS info, the stats,
+# the rate limit, the probers, sync), so that its struct is translated (`NewServer` builds one).
+imports = ["!*", "net/http", "time", "go.etcd.io/raft/v3/raftpb", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/client/pkg/v3/types",
+  "go.uber.org/zap", "go.etcd.io/etcd/client/pkg/v3/transport", "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
+  "golang.org/x/time/rate", "github.com/xiang90/probing", "sync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

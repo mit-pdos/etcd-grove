@@ -4,8 +4,14 @@ module
 public import Code.go_etcd_io.raft.v3.raftpb
 public import Code.net.http
 public import Perennial.Code.time
+public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.snap
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
+public import Perennial.Code.sync
+public import Code.golang_org.x.time.rate
+public import Code.github_com.xiang90.probing
+public import Code.go_etcd_io.etcd.client.pkg.v3.transport
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -166,12 +172,6 @@ def urlPicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] urlPicker.ty
 
-axiom pipelineHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom snapshotHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom streamHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom messageEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom messageDecoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -182,12 +182,6 @@ axiom msgAppV2Decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom peer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom peerStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom pipeline.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom remote.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom outgoingConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom streamWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -195,10 +189,6 @@ axiom streamWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 axiom streamReader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom Raft.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Transport.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom urlPicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom connReadLimitByte [FfiSyntax] [GoGlobalContext] : val
 
@@ -524,7 +514,7 @@ noncomputable def addRemoteFromRequest [FfiSyntax] [GoGlobalContext] : GoString 
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.addRemoteFromRequest"
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp where
-  pkgImportedPkgs := [pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.net.http, pkg_id.time, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap]
+  pkgImportedPkgs := [pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.net.http, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.sync, pkg_id.golang_org.x.time.rate, pkg_id.github_com.xiang90.probing, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -532,6 +522,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -651,9 +647,21 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.golang_org.x.time.rate.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.xiang90.probing.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.initialize') (Val #()))))))))
 
 abbrev encoder [FfiSyntax] : Type := GoInterface
 
@@ -695,44 +703,205 @@ class writerToResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] writerToResponse.TypeAssumptions.underlying
 
-axiom pipelineHandler : Type
-axiom pipelineHandler.zero_val : ZeroVal pipelineHandler
-attribute [instance] pipelineHandler.zero_val
+abbrev Transporter [FfiSyntax] : Type := GoInterface
+
+@[reducible] def Transporter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ActivePeers" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ActiveSince" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"AddPeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"AddRemote" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"Handler" (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty])), (go.InterfaceElem.MethodElem go!"RemoveAllPeers" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RemovePeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false [])), (go.InterfaceElem.MethodElem go!"SendSnapshot" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"Start" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UpdatePeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))])
+
+class Transporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Transporter.ty Transporter.underlying
+
+attribute [instance] Transporter.TypeAssumptions.underlying
+
+axiom Raft : Type
+axiom Raft.zero_val : ZeroVal Raft
+attribute [instance] Raft.zero_val
+
+class Raft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Raft.underlying Raft
+  underlying : go.UnderlyingDirectedEq Raft.ty Raft.underlying
+  isUnderlying : go.IsUnderlying Raft.underlying Raft.underlying
+
+attribute [instance] Raft.TypeAssumptions.type_repr
+  Raft.TypeAssumptions.underlying
+  Raft.TypeAssumptions.isUnderlying
+
+structure pipelineHandler [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  tr' : Transporter
+  r' : Raft
+  cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+
+instance pipelineHandler.zero_val [FfiSyntax] : ZeroVal pipelineHandler :=
+  ⟨pipelineHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def pipelineHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"tr" Transporter.ty),
+(go.field_decl.FieldDecl go!"r" Raft.ty),
+(go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
+
+@[irreducible] def pipelineHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  pipelineHandler.fieldsUnsealed
+
+instance equals_unfold_pipelineHandler [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold pipelineHandler.fields pipelineHandler.fieldsUnsealed :=
+  ⟨by unfold pipelineHandler.fields; rfl⟩
+
+@[reducible] def pipelineHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType pipelineHandler.fields)
 
 class pipelineHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pipelineHandler.underlying pipelineHandler
   underlying : go.UnderlyingDirectedEq pipelineHandler.ty pipelineHandler.underlying
-  isUnderlying : go.IsUnderlying pipelineHandler.underlying pipelineHandler.underlying
+  get_lg : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : pipelineHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : pipelineHandler)))
+  get_localID : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"localID") #x (Val #(x.localID'))
+  set_localID : ∀ (x : pipelineHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : pipelineHandler)))
+  get_tr : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"tr") #x (Val #(x.tr'))
+  set_tr : ∀ (x : pipelineHandler) (y : Transporter), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : pipelineHandler)))
+  get_r : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"r") #x (Val #(x.r'))
+  set_r : ∀ (x : pipelineHandler) (y : Raft), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : pipelineHandler)))
+  get_cid : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"cid") #x (Val #(x.cid'))
+  set_cid : ∀ (x : pipelineHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : pipelineHandler)))
 
 attribute [instance] pipelineHandler.TypeAssumptions.type_repr
   pipelineHandler.TypeAssumptions.underlying
-  pipelineHandler.TypeAssumptions.isUnderlying
+  pipelineHandler.TypeAssumptions.get_lg
+  pipelineHandler.TypeAssumptions.set_lg
+  pipelineHandler.TypeAssumptions.get_localID
+  pipelineHandler.TypeAssumptions.set_localID
+  pipelineHandler.TypeAssumptions.get_tr
+  pipelineHandler.TypeAssumptions.set_tr
+  pipelineHandler.TypeAssumptions.get_r
+  pipelineHandler.TypeAssumptions.set_r
+  pipelineHandler.TypeAssumptions.get_cid
+  pipelineHandler.TypeAssumptions.set_cid
 
-axiom snapshotHandler : Type
-axiom snapshotHandler.zero_val : ZeroVal snapshotHandler
-attribute [instance] snapshotHandler.zero_val
+structure snapshotHandler [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  tr' : Transporter
+  r' : Raft
+  snapshotter' : Loc
+  localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+
+instance snapshotHandler.zero_val [FfiSyntax] : ZeroVal snapshotHandler :=
+  ⟨snapshotHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def snapshotHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"tr" Transporter.ty),
+(go.field_decl.FieldDecl go!"r" Raft.ty),
+(go.field_decl.FieldDecl go!"snapshotter" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)),
+(go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
+
+@[irreducible] def snapshotHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  snapshotHandler.fieldsUnsealed
+
+instance equals_unfold_snapshotHandler [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold snapshotHandler.fields snapshotHandler.fieldsUnsealed :=
+  ⟨by unfold snapshotHandler.fields; rfl⟩
+
+@[reducible] def snapshotHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType snapshotHandler.fields)
 
 class snapshotHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotHandler.underlying snapshotHandler
   underlying : go.UnderlyingDirectedEq snapshotHandler.ty snapshotHandler.underlying
-  isUnderlying : go.IsUnderlying snapshotHandler.underlying snapshotHandler.underlying
+  get_lg : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : snapshotHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : snapshotHandler)))
+  get_tr : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"tr") #x (Val #(x.tr'))
+  set_tr : ∀ (x : snapshotHandler) (y : Transporter), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : snapshotHandler)))
+  get_r : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"r") #x (Val #(x.r'))
+  set_r : ∀ (x : snapshotHandler) (y : Raft), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : snapshotHandler)))
+  get_snapshotter : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"snapshotter") #x (Val #(x.snapshotter'))
+  set_snapshotter : ∀ (x : snapshotHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"snapshotter") (PairV #x #y) (Val #(({ x with snapshotter' := y } : snapshotHandler)))
+  get_localID : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"localID") #x (Val #(x.localID'))
+  set_localID : ∀ (x : snapshotHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : snapshotHandler)))
+  get_cid : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"cid") #x (Val #(x.cid'))
+  set_cid : ∀ (x : snapshotHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : snapshotHandler)))
 
 attribute [instance] snapshotHandler.TypeAssumptions.type_repr
   snapshotHandler.TypeAssumptions.underlying
-  snapshotHandler.TypeAssumptions.isUnderlying
+  snapshotHandler.TypeAssumptions.get_lg
+  snapshotHandler.TypeAssumptions.set_lg
+  snapshotHandler.TypeAssumptions.get_tr
+  snapshotHandler.TypeAssumptions.set_tr
+  snapshotHandler.TypeAssumptions.get_r
+  snapshotHandler.TypeAssumptions.set_r
+  snapshotHandler.TypeAssumptions.get_snapshotter
+  snapshotHandler.TypeAssumptions.set_snapshotter
+  snapshotHandler.TypeAssumptions.get_localID
+  snapshotHandler.TypeAssumptions.set_localID
+  snapshotHandler.TypeAssumptions.get_cid
+  snapshotHandler.TypeAssumptions.set_cid
 
-axiom streamHandler : Type
-axiom streamHandler.zero_val : ZeroVal streamHandler
-attribute [instance] streamHandler.zero_val
+structure streamHandler [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  tr' : Loc
+  peerGetter' : peerGetter
+  r' : Raft
+  id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+
+instance streamHandler.zero_val [FfiSyntax] : ZeroVal streamHandler :=
+  ⟨streamHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def streamHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"tr" (go.GoType.PointerType Transport.ty)),
+(go.field_decl.FieldDecl go!"peerGetter" peerGetter.ty),
+(go.field_decl.FieldDecl go!"r" Raft.ty),
+(go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
+
+@[irreducible] def streamHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  streamHandler.fieldsUnsealed
+
+instance equals_unfold_streamHandler [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold streamHandler.fields streamHandler.fieldsUnsealed :=
+  ⟨by unfold streamHandler.fields; rfl⟩
+
+@[reducible] def streamHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType streamHandler.fields)
 
 class streamHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamHandler.underlying streamHandler
   underlying : go.UnderlyingDirectedEq streamHandler.ty streamHandler.underlying
-  isUnderlying : go.IsUnderlying streamHandler.underlying streamHandler.underlying
+  get_lg : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : streamHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : streamHandler)))
+  get_tr : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"tr") #x (Val #(x.tr'))
+  set_tr : ∀ (x : streamHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : streamHandler)))
+  get_peerGetter : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"peerGetter") #x (Val #(x.peerGetter'))
+  set_peerGetter : ∀ (x : streamHandler) (y : peerGetter), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"peerGetter") (PairV #x #y) (Val #(({ x with peerGetter' := y } : streamHandler)))
+  get_r : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"r") #x (Val #(x.r'))
+  set_r : ∀ (x : streamHandler) (y : Raft), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : streamHandler)))
+  get_id : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"id") #x (Val #(x.id'))
+  set_id : ∀ (x : streamHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : streamHandler)))
+  get_cid : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"cid") #x (Val #(x.cid'))
+  set_cid : ∀ (x : streamHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : streamHandler)))
 
 attribute [instance] streamHandler.TypeAssumptions.type_repr
   streamHandler.TypeAssumptions.underlying
-  streamHandler.TypeAssumptions.isUnderlying
+  streamHandler.TypeAssumptions.get_lg
+  streamHandler.TypeAssumptions.set_lg
+  streamHandler.TypeAssumptions.get_tr
+  streamHandler.TypeAssumptions.set_tr
+  streamHandler.TypeAssumptions.get_peerGetter
+  streamHandler.TypeAssumptions.set_peerGetter
+  streamHandler.TypeAssumptions.get_r
+  streamHandler.TypeAssumptions.set_r
+  streamHandler.TypeAssumptions.get_id
+  streamHandler.TypeAssumptions.set_id
+  streamHandler.TypeAssumptions.get_cid
+  streamHandler.TypeAssumptions.set_cid
 
 structure closeNotifier [FfiSyntax] where
   mk ::
@@ -877,57 +1046,206 @@ attribute [instance] failureType.TypeAssumptions.type_repr
   failureType.TypeAssumptions.get_action
   failureType.TypeAssumptions.set_action
 
-axiom peerStatus : Type
-axiom peerStatus.zero_val : ZeroVal peerStatus
-attribute [instance] peerStatus.zero_val
+structure peerStatus [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  local' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  mu' : _root_.Perennial.sync.Mutex
+  active' : Bool
+  since' : _root_.Perennial.time.Time
+
+instance peerStatus.zero_val [FfiSyntax] : ZeroVal peerStatus :=
+  ⟨peerStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def peerStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"local" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"active" go.bool),
+(go.field_decl.FieldDecl go!"since" _root_.Perennial.time.Time.ty)]
+
+@[irreducible] def peerStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  peerStatus.fieldsUnsealed
+
+instance equals_unfold_peerStatus [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold peerStatus.fields peerStatus.fieldsUnsealed :=
+  ⟨by unfold peerStatus.fields; rfl⟩
+
+@[reducible] def peerStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType peerStatus.fields)
 
 class peerStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerStatus.underlying peerStatus
   underlying : go.UnderlyingDirectedEq peerStatus.ty peerStatus.underlying
-  isUnderlying : go.IsUnderlying peerStatus.underlying peerStatus.underlying
+  get_lg : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : peerStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : peerStatus)))
+  get_local : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"local") #x (Val #(x.local'))
+  set_local : ∀ (x : peerStatus) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"local") (PairV #x #y) (Val #(({ x with local' := y } : peerStatus)))
+  get_id : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"id") #x (Val #(x.id'))
+  set_id : ∀ (x : peerStatus) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : peerStatus)))
+  get_mu : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : peerStatus) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : peerStatus)))
+  get_active : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"active") #x (Val #(x.active'))
+  set_active : ∀ (x : peerStatus) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"active") (PairV #x #y) (Val #(({ x with active' := y } : peerStatus)))
+  get_since : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"since") #x (Val #(x.since'))
+  set_since : ∀ (x : peerStatus) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"since") (PairV #x #y) (Val #(({ x with since' := y } : peerStatus)))
 
 attribute [instance] peerStatus.TypeAssumptions.type_repr
   peerStatus.TypeAssumptions.underlying
-  peerStatus.TypeAssumptions.isUnderlying
+  peerStatus.TypeAssumptions.get_lg
+  peerStatus.TypeAssumptions.set_lg
+  peerStatus.TypeAssumptions.get_local
+  peerStatus.TypeAssumptions.set_local
+  peerStatus.TypeAssumptions.get_id
+  peerStatus.TypeAssumptions.set_id
+  peerStatus.TypeAssumptions.get_mu
+  peerStatus.TypeAssumptions.set_mu
+  peerStatus.TypeAssumptions.get_active
+  peerStatus.TypeAssumptions.set_active
+  peerStatus.TypeAssumptions.get_since
+  peerStatus.TypeAssumptions.set_since
 
-axiom pipeline : Type
-axiom pipeline.zero_val : ZeroVal pipeline
-attribute [instance] pipeline.zero_val
+structure pipeline [FfiSyntax] where
+  mk ::
+  peerID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  tr' : Loc
+  picker' : Loc
+  status' : Loc
+  raft' : Raft
+  errorc' : GoChan
+  followerStats' : Loc
+  msgc' : GoChan
+  wg' : _root_.Perennial.sync.WaitGroup
+  stopc' : GoChan
+
+instance pipeline.zero_val [FfiSyntax] : ZeroVal pipeline :=
+  ⟨pipeline.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def pipeline.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"peerID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"tr" (go.GoType.PointerType Transport.ty)),
+(go.field_decl.FieldDecl go!"picker" (go.GoType.PointerType urlPicker.ty)),
+(go.field_decl.FieldDecl go!"status" (go.GoType.PointerType peerStatus.ty)),
+(go.field_decl.FieldDecl go!"raft" Raft.ty),
+(go.field_decl.FieldDecl go!"errorc" (go.GoType.ChannelType go.ChanDir.sendrecv go.error)),
+(go.field_decl.FieldDecl go!"followerStats" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats.ty)),
+(go.field_decl.FieldDecl go!"msgc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))),
+(go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty),
+(go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
+
+@[irreducible] def pipeline.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  pipeline.fieldsUnsealed
+
+instance equals_unfold_pipeline [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold pipeline.fields pipeline.fieldsUnsealed :=
+  ⟨by unfold pipeline.fields; rfl⟩
+
+@[reducible] def pipeline.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType pipeline.fields)
 
 class pipeline.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pipeline.underlying pipeline
   underlying : go.UnderlyingDirectedEq pipeline.ty pipeline.underlying
-  isUnderlying : go.IsUnderlying pipeline.underlying pipeline.underlying
+  get_peerID : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"peerID") #x (Val #(x.peerID'))
+  set_peerID : ∀ (x : pipeline) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"peerID") (PairV #x #y) (Val #(({ x with peerID' := y } : pipeline)))
+  get_tr : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"tr") #x (Val #(x.tr'))
+  set_tr : ∀ (x : pipeline) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : pipeline)))
+  get_picker : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"picker") #x (Val #(x.picker'))
+  set_picker : ∀ (x : pipeline) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"picker") (PairV #x #y) (Val #(({ x with picker' := y } : pipeline)))
+  get_status : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"status") #x (Val #(x.status'))
+  set_status : ∀ (x : pipeline) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : pipeline)))
+  get_raft : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"raft") #x (Val #(x.raft'))
+  set_raft : ∀ (x : pipeline) (y : Raft), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"raft") (PairV #x #y) (Val #(({ x with raft' := y } : pipeline)))
+  get_errorc : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"errorc") #x (Val #(x.errorc'))
+  set_errorc : ∀ (x : pipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"errorc") (PairV #x #y) (Val #(({ x with errorc' := y } : pipeline)))
+  get_followerStats : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"followerStats") #x (Val #(x.followerStats'))
+  set_followerStats : ∀ (x : pipeline) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"followerStats") (PairV #x #y) (Val #(({ x with followerStats' := y } : pipeline)))
+  get_msgc : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"msgc") #x (Val #(x.msgc'))
+  set_msgc : ∀ (x : pipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"msgc") (PairV #x #y) (Val #(({ x with msgc' := y } : pipeline)))
+  get_wg : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"wg") #x (Val #(x.wg'))
+  set_wg : ∀ (x : pipeline) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : pipeline)))
+  get_stopc : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"stopc") #x (Val #(x.stopc'))
+  set_stopc : ∀ (x : pipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : pipeline)))
 
 attribute [instance] pipeline.TypeAssumptions.type_repr
   pipeline.TypeAssumptions.underlying
-  pipeline.TypeAssumptions.isUnderlying
+  pipeline.TypeAssumptions.get_peerID
+  pipeline.TypeAssumptions.set_peerID
+  pipeline.TypeAssumptions.get_tr
+  pipeline.TypeAssumptions.set_tr
+  pipeline.TypeAssumptions.get_picker
+  pipeline.TypeAssumptions.set_picker
+  pipeline.TypeAssumptions.get_status
+  pipeline.TypeAssumptions.set_status
+  pipeline.TypeAssumptions.get_raft
+  pipeline.TypeAssumptions.set_raft
+  pipeline.TypeAssumptions.get_errorc
+  pipeline.TypeAssumptions.set_errorc
+  pipeline.TypeAssumptions.get_followerStats
+  pipeline.TypeAssumptions.set_followerStats
+  pipeline.TypeAssumptions.get_msgc
+  pipeline.TypeAssumptions.set_msgc
+  pipeline.TypeAssumptions.get_wg
+  pipeline.TypeAssumptions.set_wg
+  pipeline.TypeAssumptions.get_stopc
+  pipeline.TypeAssumptions.set_stopc
 
-axiom remote : Type
-axiom remote.zero_val : ZeroVal remote
-attribute [instance] remote.zero_val
+structure remote [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  status' : Loc
+  pipeline' : Loc
+
+instance remote.zero_val [FfiSyntax] : ZeroVal remote :=
+  ⟨remote.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def remote.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"status" (go.GoType.PointerType peerStatus.ty)),
+(go.field_decl.FieldDecl go!"pipeline" (go.GoType.PointerType pipeline.ty))]
+
+@[irreducible] def remote.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  remote.fieldsUnsealed
+
+instance equals_unfold_remote [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold remote.fields remote.fieldsUnsealed :=
+  ⟨by unfold remote.fields; rfl⟩
+
+@[reducible] def remote.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType remote.fields)
 
 class remote.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying remote.underlying remote
   underlying : go.UnderlyingDirectedEq remote.ty remote.underlying
-  isUnderlying : go.IsUnderlying remote.underlying remote.underlying
+  get_lg : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : remote)))
+  get_localID : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"localID") #x (Val #(x.localID'))
+  set_localID : ∀ (x : remote) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : remote)))
+  get_id : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"id") #x (Val #(x.id'))
+  set_id : ∀ (x : remote) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : remote)))
+  get_status : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"status") #x (Val #(x.status'))
+  set_status : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : remote)))
+  get_pipeline : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"pipeline") #x (Val #(x.pipeline'))
+  set_pipeline : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"pipeline") (PairV #x #y) (Val #(({ x with pipeline' := y } : remote)))
 
 attribute [instance] remote.TypeAssumptions.type_repr
   remote.TypeAssumptions.underlying
-  remote.TypeAssumptions.isUnderlying
-
-axiom Raft : Type
-axiom Raft.zero_val : ZeroVal Raft
-attribute [instance] Raft.zero_val
-
-class Raft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Raft.underlying Raft
-  underlying : go.UnderlyingDirectedEq Raft.ty Raft.underlying
-  isUnderlying : go.IsUnderlying Raft.underlying Raft.underlying
-
-attribute [instance] Raft.TypeAssumptions.type_repr
-  Raft.TypeAssumptions.underlying
-  Raft.TypeAssumptions.isUnderlying
+  remote.TypeAssumptions.get_lg
+  remote.TypeAssumptions.set_lg
+  remote.TypeAssumptions.get_localID
+  remote.TypeAssumptions.set_localID
+  remote.TypeAssumptions.get_id
+  remote.TypeAssumptions.set_id
+  remote.TypeAssumptions.get_status
+  remote.TypeAssumptions.set_status
+  remote.TypeAssumptions.get_pipeline
+  remote.TypeAssumptions.set_pipeline
 
 structure snapshotSender [FfiSyntax] where
   mk ::
@@ -1057,28 +1375,144 @@ attribute [instance] streamReader.TypeAssumptions.type_repr
   streamReader.TypeAssumptions.underlying
   streamReader.TypeAssumptions.isUnderlying
 
-abbrev Transporter [FfiSyntax] : Type := GoInterface
+structure Transport [FfiSyntax] where
+  mk ::
+  Logger' : Loc
+  DialTimeout' : _root_.Perennial.time.Duration
+  DialRetryFrequency' : _root_.Perennial.golang_org.x.time.rate.Limit
+  TLSInfo' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo
+  ID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  URLs' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs
+  ClusterID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  Raft' : Raft
+  Snapshotter' : Loc
+  ServerStats' : Loc
+  LeaderStats' : Loc
+  ErrorC' : GoChan
+  streamRt' : _root_.Perennial.net.http.RoundTripper
+  pipelineRt' : _root_.Perennial.net.http.RoundTripper
+  mu' : _root_.Perennial.sync.RWMutex
+  remotes' : GoMap
+  peers' : GoMap
+  pipelineProber' : _root_.Perennial.github_com.xiang90.probing.Prober
+  streamProber' : _root_.Perennial.github_com.xiang90.probing.Prober
 
-@[reducible] def Transporter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ActivePeers" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ActiveSince" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"AddPeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"AddRemote" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"Handler" (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty])), (go.InterfaceElem.MethodElem go!"RemoveAllPeers" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RemovePeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false [])), (go.InterfaceElem.MethodElem go!"SendSnapshot" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"Start" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UpdatePeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))])
+instance Transport.zero_val [FfiSyntax] : ZeroVal Transport :=
+  ⟨Transport.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-class Transporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Transporter.ty Transporter.underlying
+@[reducible] def Transport.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"DialTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"DialRetryFrequency" _root_.Perennial.golang_org.x.time.rate.Limit.ty),
+(go.field_decl.FieldDecl go!"TLSInfo" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.ty),
+(go.field_decl.FieldDecl go!"ID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"URLs" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty),
+(go.field_decl.FieldDecl go!"ClusterID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
+(go.field_decl.FieldDecl go!"Raft" Raft.ty),
+(go.field_decl.FieldDecl go!"Snapshotter" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)),
+(go.field_decl.FieldDecl go!"ServerStats" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats.ty)),
+(go.field_decl.FieldDecl go!"LeaderStats" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats.ty)),
+(go.field_decl.FieldDecl go!"ErrorC" (go.GoType.ChannelType go.ChanDir.sendrecv go.error)),
+(go.field_decl.FieldDecl go!"streamRt" _root_.Perennial.net.http.RoundTripper.ty),
+(go.field_decl.FieldDecl go!"pipelineRt" _root_.Perennial.net.http.RoundTripper.ty),
+(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
+(go.field_decl.FieldDecl go!"remotes" (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType remote.ty))),
+(go.field_decl.FieldDecl go!"peers" (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty Peer.ty)),
+(go.field_decl.FieldDecl go!"pipelineProber" _root_.Perennial.github_com.xiang90.probing.Prober.ty),
+(go.field_decl.FieldDecl go!"streamProber" _root_.Perennial.github_com.xiang90.probing.Prober.ty)]
 
-attribute [instance] Transporter.TypeAssumptions.underlying
+@[irreducible] def Transport.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  Transport.fieldsUnsealed
 
-axiom Transport : Type
-axiom Transport.zero_val : ZeroVal Transport
-attribute [instance] Transport.zero_val
+instance equals_unfold_Transport [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold Transport.fields Transport.fieldsUnsealed :=
+  ⟨by unfold Transport.fields; rfl⟩
+
+@[reducible] def Transport.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Transport.fields)
 
 class Transport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Transport.underlying Transport
   underlying : go.UnderlyingDirectedEq Transport.ty Transport.underlying
-  isUnderlying : go.IsUnderlying Transport.underlying Transport.underlying
+  get_Logger : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"Logger") #x (Val #(x.Logger'))
+  set_Logger : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Transport)))
+  get_DialTimeout : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"DialTimeout") #x (Val #(x.DialTimeout'))
+  set_DialTimeout : ∀ (x : Transport) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"DialTimeout") (PairV #x #y) (Val #(({ x with DialTimeout' := y } : Transport)))
+  get_DialRetryFrequency : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"DialRetryFrequency") #x (Val #(x.DialRetryFrequency'))
+  set_DialRetryFrequency : ∀ (x : Transport) (y : _root_.Perennial.golang_org.x.time.rate.Limit), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"DialRetryFrequency") (PairV #x #y) (Val #(({ x with DialRetryFrequency' := y } : Transport)))
+  get_TLSInfo : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"TLSInfo") #x (Val #(x.TLSInfo'))
+  set_TLSInfo : ∀ (x : Transport) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"TLSInfo") (PairV #x #y) (Val #(({ x with TLSInfo' := y } : Transport)))
+  get_ID : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ID") #x (Val #(x.ID'))
+  set_ID : ∀ (x : Transport) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Transport)))
+  get_URLs : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"URLs") #x (Val #(x.URLs'))
+  set_URLs : ∀ (x : Transport) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"URLs") (PairV #x #y) (Val #(({ x with URLs' := y } : Transport)))
+  get_ClusterID : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ClusterID") #x (Val #(x.ClusterID'))
+  set_ClusterID : ∀ (x : Transport) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ClusterID") (PairV #x #y) (Val #(({ x with ClusterID' := y } : Transport)))
+  get_Raft : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"Raft") #x (Val #(x.Raft'))
+  set_Raft : ∀ (x : Transport) (y : Raft), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"Raft") (PairV #x #y) (Val #(({ x with Raft' := y } : Transport)))
+  get_Snapshotter : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"Snapshotter") #x (Val #(x.Snapshotter'))
+  set_Snapshotter : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"Snapshotter") (PairV #x #y) (Val #(({ x with Snapshotter' := y } : Transport)))
+  get_ServerStats : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ServerStats") #x (Val #(x.ServerStats'))
+  set_ServerStats : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ServerStats") (PairV #x #y) (Val #(({ x with ServerStats' := y } : Transport)))
+  get_LeaderStats : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"LeaderStats") #x (Val #(x.LeaderStats'))
+  set_LeaderStats : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"LeaderStats") (PairV #x #y) (Val #(({ x with LeaderStats' := y } : Transport)))
+  get_ErrorC : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"ErrorC") #x (Val #(x.ErrorC'))
+  set_ErrorC : ∀ (x : Transport) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"ErrorC") (PairV #x #y) (Val #(({ x with ErrorC' := y } : Transport)))
+  get_streamRt : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"streamRt") #x (Val #(x.streamRt'))
+  set_streamRt : ∀ (x : Transport) (y : _root_.Perennial.net.http.RoundTripper), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"streamRt") (PairV #x #y) (Val #(({ x with streamRt' := y } : Transport)))
+  get_pipelineRt : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"pipelineRt") #x (Val #(x.pipelineRt'))
+  set_pipelineRt : ∀ (x : Transport) (y : _root_.Perennial.net.http.RoundTripper), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"pipelineRt") (PairV #x #y) (Val #(({ x with pipelineRt' := y } : Transport)))
+  get_mu : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : Transport) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Transport)))
+  get_remotes : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"remotes") #x (Val #(x.remotes'))
+  set_remotes : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"remotes") (PairV #x #y) (Val #(({ x with remotes' := y } : Transport)))
+  get_peers : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"peers") #x (Val #(x.peers'))
+  set_peers : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"peers") (PairV #x #y) (Val #(({ x with peers' := y } : Transport)))
+  get_pipelineProber : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"pipelineProber") #x (Val #(x.pipelineProber'))
+  set_pipelineProber : ∀ (x : Transport) (y : _root_.Perennial.github_com.xiang90.probing.Prober), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"pipelineProber") (PairV #x #y) (Val #(({ x with pipelineProber' := y } : Transport)))
+  get_streamProber : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"streamProber") #x (Val #(x.streamProber'))
+  set_streamProber : ∀ (x : Transport) (y : _root_.Perennial.github_com.xiang90.probing.Prober), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"streamProber") (PairV #x #y) (Val #(({ x with streamProber' := y } : Transport)))
 
 attribute [instance] Transport.TypeAssumptions.type_repr
   Transport.TypeAssumptions.underlying
-  Transport.TypeAssumptions.isUnderlying
+  Transport.TypeAssumptions.get_Logger
+  Transport.TypeAssumptions.set_Logger
+  Transport.TypeAssumptions.get_DialTimeout
+  Transport.TypeAssumptions.set_DialTimeout
+  Transport.TypeAssumptions.get_DialRetryFrequency
+  Transport.TypeAssumptions.set_DialRetryFrequency
+  Transport.TypeAssumptions.get_TLSInfo
+  Transport.TypeAssumptions.set_TLSInfo
+  Transport.TypeAssumptions.get_ID
+  Transport.TypeAssumptions.set_ID
+  Transport.TypeAssumptions.get_URLs
+  Transport.TypeAssumptions.set_URLs
+  Transport.TypeAssumptions.get_ClusterID
+  Transport.TypeAssumptions.set_ClusterID
+  Transport.TypeAssumptions.get_Raft
+  Transport.TypeAssumptions.set_Raft
+  Transport.TypeAssumptions.get_Snapshotter
+  Transport.TypeAssumptions.set_Snapshotter
+  Transport.TypeAssumptions.get_ServerStats
+  Transport.TypeAssumptions.set_ServerStats
+  Transport.TypeAssumptions.get_LeaderStats
+  Transport.TypeAssumptions.set_LeaderStats
+  Transport.TypeAssumptions.get_ErrorC
+  Transport.TypeAssumptions.set_ErrorC
+  Transport.TypeAssumptions.get_streamRt
+  Transport.TypeAssumptions.set_streamRt
+  Transport.TypeAssumptions.get_pipelineRt
+  Transport.TypeAssumptions.set_pipelineRt
+  Transport.TypeAssumptions.get_mu
+  Transport.TypeAssumptions.set_mu
+  Transport.TypeAssumptions.get_remotes
+  Transport.TypeAssumptions.set_remotes
+  Transport.TypeAssumptions.get_peers
+  Transport.TypeAssumptions.set_peers
+  Transport.TypeAssumptions.get_pipelineProber
+  Transport.TypeAssumptions.set_pipelineProber
+  Transport.TypeAssumptions.get_streamProber
+  Transport.TypeAssumptions.set_streamProber
 
 abbrev Pausable [FfiSyntax] : Type := GoInterface
 
@@ -1090,18 +1524,48 @@ class Pausable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] Pausable.TypeAssumptions.underlying
 
-axiom urlPicker : Type
-axiom urlPicker.zero_val : ZeroVal urlPicker
-attribute [instance] urlPicker.zero_val
+structure urlPicker [FfiSyntax] where
+  mk ::
+  mu' : _root_.Perennial.sync.Mutex
+  urls' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs
+  picked' : w64
+
+instance urlPicker.zero_val [FfiSyntax] : ZeroVal urlPicker :=
+  ⟨urlPicker.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def urlPicker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"urls" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty),
+(go.field_decl.FieldDecl go!"picked" go.int)]
+
+@[irreducible] def urlPicker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  urlPicker.fieldsUnsealed
+
+instance equals_unfold_urlPicker [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold urlPicker.fields urlPicker.fieldsUnsealed :=
+  ⟨by unfold urlPicker.fields; rfl⟩
+
+@[reducible] def urlPicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType urlPicker.fields)
 
 class urlPicker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying urlPicker.underlying urlPicker
   underlying : go.UnderlyingDirectedEq urlPicker.ty urlPicker.underlying
-  isUnderlying : go.IsUnderlying urlPicker.underlying urlPicker.underlying
+  get_mu : ∀ (x : urlPicker), go.IsGoStepPureDetTagged under (StructFieldGet urlPicker.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : urlPicker) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet urlPicker.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : urlPicker)))
+  get_urls : ∀ (x : urlPicker), go.IsGoStepPureDetTagged under (StructFieldGet urlPicker.underlying go!"urls") #x (Val #(x.urls'))
+  set_urls : ∀ (x : urlPicker) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet urlPicker.underlying go!"urls") (PairV #x #y) (Val #(({ x with urls' := y } : urlPicker)))
+  get_picked : ∀ (x : urlPicker), go.IsGoStepPureDetTagged under (StructFieldGet urlPicker.underlying go!"picked") #x (Val #(x.picked'))
+  set_picked : ∀ (x : urlPicker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet urlPicker.underlying go!"picked") (PairV #x #y) (Val #(({ x with picked' := y } : urlPicker)))
 
 attribute [instance] urlPicker.TypeAssumptions.type_repr
   urlPicker.TypeAssumptions.underlying
-  urlPicker.TypeAssumptions.isUnderlying
+  urlPicker.TypeAssumptions.get_mu
+  urlPicker.TypeAssumptions.set_mu
+  urlPicker.TypeAssumptions.get_urls
+  urlPicker.TypeAssumptions.set_urls
+  urlPicker.TypeAssumptions.get_picked
+  urlPicker.TypeAssumptions.set_picked
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   encoder_instance : encoder.TypeAssumptions
@@ -1135,8 +1599,14 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_snap_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions
+  import_v2stats_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_rate_Assumption : _root_.Perennial.golang_org.x.time.rate.Assumptions
+  import_probing_Assumption : _root_.Perennial.github_com.xiang90.probing.Assumptions
+  import_transport_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions
 
 attribute [instance] Assumptions.encoder_instance
   Assumptions.decoder_instance
@@ -1169,8 +1639,14 @@ attribute [instance] Assumptions.encoder_instance
   Assumptions.import_raftpb_Assumption
   Assumptions.import_http_Assumption
   Assumptions.import_time_Assumption
+  Assumptions.import_zap_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_snap_Assumption
+  Assumptions.import_v2stats_Assumption
+  Assumptions.import_sync_Assumption
+  Assumptions.import_rate_Assumption
+  Assumptions.import_probing_Assumption
+  Assumptions.import_transport_Assumption
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
