@@ -29,7 +29,7 @@ theorem auth.authStore.authInfoFromToken.wp_proof
     (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG)) :
     auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) := by
   intro st R ctx token
-  wp_start as #Hinv
+  wp_start as ⟨#Hinv, #Hip⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, -, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
@@ -39,7 +39,7 @@ theorem auth.authStore.authInfoFromToken.wp_proof
   (try wp_auto)
   wp_apply (h_Revision st R) $$ [$Hinv] as %rev -
   (try wp_auto)
-  wp_apply Hinfo as %a %ok Ha
+  wp_apply Hinfo $$ [$Hip] as %a %ok Ha
   iapply HΦ
   iexact Ha
 

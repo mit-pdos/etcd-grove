@@ -30,7 +30,9 @@ translate = ["!*",
   # the watch slice's unit W-W: interceptor.go's stream interceptor
   "newStreamInterceptor", "monitorLeader", "streamsMap", "cancellableContext",
   "newCancellableContext", "cancellableContext.Cancel", "cancellableContext.Err",
-  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod"]
+  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod",
+  # PR etcd#22259 (pr-verify/etcd-22259): the log interceptor's reader of the client IP
+  "clientIPFromContext"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",
@@ -40,7 +42,7 @@ imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
   "go.etcd.io/etcd/pkg/v3/adt", "go.etcd.io/etcd/server/v3/etcdserver",
   "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/txn",
-  "go.etcd.io/etcd/server/v3/auth",
+  "go.etcd.io/etcd/server/v3/auth", "google.golang.org/grpc/peer",
   # watch.go
   "io", "math/rand", "sync", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace",
   "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/mvccpb",

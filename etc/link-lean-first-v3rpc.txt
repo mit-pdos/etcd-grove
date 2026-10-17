@@ -92,7 +92,15 @@ NewQuotaKVServer: NewKVServer newBackendQuota EtcdServer__MemberID
 quotaAlarmer__check: EtcdServer__Alarm
 quotaKVServer__Put: quotaAlarmer__check
 quotaKVServer__Txn: quotaAlarmer__check
-newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats
+# PR etcd#22259 (pr-verify/etcd-22259): the log interceptor reads the run's peer (grpc's
+# `peer.FromContext`, with its body) and stores its address under `auth.ClientIPContextKey{}`
+# (`context.WithValue` at that key: an axiom, `Spec/context/WithValueClientIP.lean`);
+# `clientIPFromContext` reads it back (for `logUnaryRequestStats`, names only).
+peer_FromContext:
+context_WithValueClientIP:
+auth_ClientIPFromContext: @
+v3rpc_clientIPFromContext: auth_ClientIPFromContext
+newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats peer_FromContext context_WithValueClientIP
 newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner isRPCSupportedForLearner metadata_FromIncomingContext metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues EtcdServer__Leader
 #
 # Unit W-S (the watch slice): the gRPC watch service (watch.go), over the mvcc watch stream (its

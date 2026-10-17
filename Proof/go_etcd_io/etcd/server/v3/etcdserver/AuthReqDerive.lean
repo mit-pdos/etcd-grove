@@ -10,7 +10,9 @@ method calls `IsAuthEnabled`, which read-locks `enabledMu` (a reader slot: Peren
 `RD := auth.authRd st R` (the apply package's `isAuthStore` reader resource, of which the method
 uses the `enabledMu` slot, `auth.enabledRd st`), so that one resource serves both contracts. Its
 `AuthInfoFromTLS` clause is the method's (at the trust boundary:
-`auth.authStore.AuthInfoFromTLS.spec`).
+`auth.authStore.AuthInfoFromTLS.spec`). Since PR etcd#22259 the method's spec asks of the
+context that it answer `Value(ClientIPContextKey{})` (`auth.ctxClientIPOk`), which the clause's
+`mvcc.txnCtx` does not say: assumed, `auth.ctxClientIPOk_of_txnCtx` (`ClientIPCtx.lean`).
 -/
 module
 
@@ -18,6 +20,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthDerive
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ClientIPCtx
 
 @[expose] public section
 
@@ -72,7 +75,8 @@ theorem isReqAuth_of_authInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %ctx %cd %Φ !> ⟨-, Hrd⟩ HΦ
+  · iintro !> %ctx %cd %Φ !> ⟨#Htc, Hrd⟩ HΦ
+    ihave #Hip := auth.ctxClientIPOk_of_txnCtx ctx cd $$ Htc
     iunfold auth.authRd at Hrd
     icases Hrd with ⟨Hen, Hca, HR⟩
     iapply (hCtx st R (GoInterface.ok ctx)) $$ [Hen]
@@ -84,7 +88,8 @@ theorem isReqAuth_of_authInv
     isplitr
     · iapply authInfoRO_authInfoOpt a $$ Ha
     iapply EtcdGrove.apply.authErrIs_applyErrIs err $$ [$Hpkg $Herr]
-  · iintro !> %ctx %cd %Φ !> - HΦ
+  · iintro !> %ctx %cd %Φ !> #Htc HΦ
+    ihave #Hip := auth.ctxClientIPOk_of_txnCtx ctx cd $$ Htc
     iapply (hTLS st R (GoInterface.ok ctx)) $$ []
     · iframe #
     iintro !> %a #Ha

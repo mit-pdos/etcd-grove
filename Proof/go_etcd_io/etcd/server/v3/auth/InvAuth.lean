@@ -34,6 +34,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
+public import Proof.go_etcd_io.etcd.server.v3.auth.ClientIP
 
 @[expose] public section
 
@@ -142,11 +143,13 @@ instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) :
   unfold authBackendOk; infer_instance
 
 /-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract): `info(ctx, token,
-rev)` returns an auth info (`authInfoRO`) and a boolean. -/
+rev)` returns an auth info (`authInfoRO`) and a boolean. Since PR etcd#22259 the JWT provider's
+failure warnings log `clientIPFromContext(ctx)` (`ctx.Value`), so the contract is for a context
+that answers `Value(ClientIPContextKey{})` (`auth.ctxClientIPOk`; a nil `ctx` now panics there). -/
 def tokenProviderOk (tp : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
     □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
-      {{ True }}
+      {{ auth.ctxClientIPOk ctx }}
         (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx)) (Val #token)) (Val #rev))
       {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a }}))
 

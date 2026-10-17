@@ -2,8 +2,10 @@
 # interceptor passes to grpc's `Peer` call option and formats in its warning (`Peer.String`, names
 # only: an axiom, `Spec/google_golang_org/grpc/peer/Peer__String.lean`); its fields' types are
 # `net.Addr` (hence the import of `net`, names only) and `credentials.AuthInfo`.
-translate = ["!*"]
-imports = ["!*", "net", "google.golang.org/grpc/credentials"]
+# PR etcd#22259 (pr-verify/etcd-22259): `FromContext` (and its key type `peerKey`), with its
+# body: the server's log interceptor reads the run's peer with it.
+translate = ["!*", "FromContext", "peerKey"]
+imports = ["!*", "context", "net", "google.golang.org/grpc/credentials"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

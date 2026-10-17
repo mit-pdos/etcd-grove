@@ -1,0 +1,5 @@
+=== RUN   TestReviewLogInterceptorNilPeerAddr
+    peer_nil_addr_test.go:19: recovered: runtime error: invalid memory address or nil pointer dereference
+--- PASS: TestReviewLogInterceptorNilPeerAddr (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.034s

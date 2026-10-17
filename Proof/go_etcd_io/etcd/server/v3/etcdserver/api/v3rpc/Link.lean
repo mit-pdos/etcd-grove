@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeStr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestOp
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestBytesWithOverhead
+public import Proof.context.WithValueClientIP
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsDeadlineExceeded
@@ -61,6 +62,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInterceptor
+public import Proof.google_golang_org.grpc.peer.FromContext
 public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
@@ -82,6 +84,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.unicode.utf8.ValidString
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.clientIPFromContext
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer__Watch
 public import Proof.go_uber_org.zap.Duration
@@ -364,6 +367,10 @@ theorem etcdserverpb.wp__Watch_Watch_Handler :
     EtcdGrove.etcdserverpb._Watch_Watch_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Watch_Watch_Handler.wp_proof grpc.GenericServerStream.wp_Recv grpc.GenericServerStream.wp_Send grpc.GenericServerStream.wp_Context
 
+theorem context.wp_WithValueClientIP :
+    EtcdGrove.context.WithValueClientIP.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithValueClientIP.wp_proof
+
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsCtxErr.wp_proof
@@ -392,9 +399,13 @@ theorem wp_monitorLeader :
     EtcdGrove.v3rpc.monitorLeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.monitorLeader.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_StoppingNotify EtcdServer.wp_Leader
 
+theorem peer.wp_FromContext :
+    EtcdGrove.peer.FromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.peer.FromContext.wp_proof
+
 theorem wp_newLogUnaryInterceptor :
     EtcdGrove.v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_Logger wp_logUnaryRequestStats
+  EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_Logger wp_logUnaryRequestStats peer.wp_FromContext context.wp_WithValueClientIP
 
 theorem wp_newStreamInterceptor :
     EtcdGrove.v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) :=
@@ -447,6 +458,10 @@ theorem time.Ticker.wp_Stop :
 theorem serverWatchStream.wp_sendLoop :
     EtcdGrove.v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.watchStream.wp_RequestProgress verify.wp_Assert time.wp_NewTicker time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.watchStream.wp_Chan
+
+theorem wp_clientIPFromContext :
+    EtcdGrove.v3rpc.clientIPFromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.clientIPFromContext.wp_proof auth.wp_ClientIPFromContext
 
 theorem watchServer.wp_Watch :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=

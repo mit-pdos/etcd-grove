@@ -45,6 +45,48 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR etcd#22259 (client IP in auth log lines), verified on branch `pr-verify/etcd-22259` (2026-10-17)
+
+Report: `notes/pr-verify/etcd-22259.md`. The verified code is the PR's diff on the fork,
+`mit-pdos/etcd-grove` branch `pr-etcd-22259-goose-lean`. This branch is not for merging into
+`lean`.
+
+**Proved**:
+- `auth.ClientIPFromContext` and `auth.clientIPFromContext` (new);
+- `v3rpc.clientIPFromContext` (new);
+- grpc's `peer.FromContext`, now translated with its body;
+- `authStore.AuthInfoFromCtx`, with a new premise `auth.ctxClientIPOk`;
+- the log interceptor, with the new `v3rpc.logIcStoresIP`: the handler's context carries the peer
+  address.
+
+**Changed in the shared vocabulary**:
+- `srvInterceptorOk` (`InvGrpc.lean`): the handler continuation is now for any run context, since
+  the PR's interceptor derives one. Its users are re-proved: `srvChainWP_of_ok`, the four KV
+  handlers, `newUnaryInterceptor` (via `srvKont_here`).
+- `grpcRunCtx`, which is trusted: `ClientIPContextKey` is excepted from "nil at etcd keys", its
+  value is some IP or none, and it now includes `grpcRunPeer`/`grpcPeerIs`. That says the run's
+  peer has a non-nil `Addr`, which grpc v1.84's transports meet.
+- `tokenProviderOk`, `authInfoFromToken`, and the `AuthInfoFromTLS` and `logUnaryRequestStats`
+  axioms are premised on `ctxClientIPOk`.
+
+**New axioms**:
+- `context.WithValueClientIP.wp_proof`, a `valueCtx` triple at the new key;
+- `auth.ctxClientIPOk_of_txnCtx`, which says request-path contexts answer
+  `Value(ClientIPContextKey{})`.
+
+**Perennial limitations met**:
+- No `WithValue` model.
+- `isContext` specifies `Value` only for `&cancelCtxKey`, so nothing about other keys passes
+  through `WithTimeout`/`WithCancel` or `txnCtx`.
+
+The general fix, to propose separately, is a `Value` clause for every comparable key in
+`isContext`, plus a `WithValue` spec.
+
+**Spec bugs noted**: before this branch, `metadata.FromIncomingContext.spec` and `tokenProviderOk`
+claimed termination for any context, nil included, which panics in Go. `tokenProviderOk` is fixed
+here. `FromIncomingContext`'s spec is left as it was.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

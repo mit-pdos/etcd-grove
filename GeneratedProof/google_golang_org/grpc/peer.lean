@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.net
 public import Perennial.Golang.Theory

@@ -93,6 +93,8 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   iapply HΦ
   unfold srvInterceptorOk
   iintro !> %ci %cd %req %info %h %Ψ HR #Hctx #Hrc #Hinfo #HQ Hk
+  ihave Hk := srvKont_here h req iprop(True) Ψ ci cd $$ [Hk]
+  · iframe #; iframe
   iunfold srvInterceptorCall
   wp_auto
   wp_apply wp_IsCap as %b -

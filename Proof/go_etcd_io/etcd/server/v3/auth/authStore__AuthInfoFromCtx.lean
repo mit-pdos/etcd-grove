@@ -5,6 +5,7 @@ unit P2).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
+public import Spec.go_etcd_io.etcd.server.v3.auth.clientIPFromContext
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Spec.go_etcd_io.etcd.server.v3.auth.redactToken
@@ -37,10 +38,15 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     (h_authInfoFromToken : auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG))
     (h_redactToken : auth.redactToken.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
-    (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
+    (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (h_clientIP : auth.clientIPFromContext.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) := by
   intro st R ctx
-  wp_start as ⟨#Hinv, Hen⟩
+  wp_start as ⟨#Hinv, Hen, #Hip⟩
+  ihave #Hipok := Hip
+  iunfold auth.ctxClientIPOk at Hip
+  icases Hip with ⟨%ci, %o, %Hci, #Hip⟩
+  subst Hci
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave Hai : (authInit : IProp GF) $$ []
@@ -104,14 +110,18 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     · iframe Hts; ipureintro; exact hv0
     wp_apply strings.wp_TrimPrefix
     (try wp_auto)
-    wp_apply (h_authInfoFromToken st R) $$ [$Hinv] as %ai %uok Hai
+    wp_apply (h_authInfoFromToken st R) $$ [$Hinv $Hipok] as %ai %uok Hai
     cases uok
     · (try wp_auto)
       wp_apply h_redactToken _ as %fp -
       (try wp_auto)
       wp_apply h_String _ _ as %f -
       (try wp_auto)
-      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f]
+      wp_apply (h_clientIP ci o) $$ [$Hip]
+      (try wp_auto)
+      wp_apply h_String _ _ as %f2 -
+      (try wp_auto)
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f, f2]
       isplitr
       · ipureintro; rfl
       iintro %fsl ⟨-, -⟩
@@ -160,14 +170,18 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       · iframe Hts; ipureintro; exact hv0
       wp_apply strings.wp_TrimPrefix
       (try wp_auto)
-      wp_apply (h_authInfoFromToken st R) $$ [$Hinv] as %ai %uok Hai
+      wp_apply (h_authInfoFromToken st R) $$ [$Hinv $Hipok] as %ai %uok Hai
       cases uok
       · (try wp_auto)
         wp_apply h_redactToken _ as %fp -
         (try wp_auto)
         wp_apply h_String _ _ as %f -
         (try wp_auto)
-        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f]
+        wp_apply (h_clientIP ci o) $$ [$Hip]
+        (try wp_auto)
+        wp_apply h_String _ _ as %f2 -
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f, f2]
         isplitr
         · ipureintro; rfl
         iintro %fsl ⟨-, -⟩

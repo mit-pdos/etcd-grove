@@ -1,0 +1,11 @@
+=== RUN   TestClientIPInAuthLogs
+    client_ip_log_test.go:135: "authenticated a user"                   remote values (count): map[:1]
+    client_ip_log_test.go:135: "invalid authentication was requested"   remote values (count): map[127.0.0.1:48824:1]
+    client_ip_log_test.go:135: "invalid auth token"                     remote values (count): map[:1 127.0.0.1:48838:100]
+    client_ip_log_test.go:135: "request stats"                          remote values (count): map[127.0.0.1:48824:3 127.0.0.1:48838:100]
+    client_ip_log_test.go:139: "authenticated a user" logged with an empty "remote": the apply path's context does not carry the request's client IP
+    client_ip_log_test.go:144: "invalid auth token" logged with an empty "remote" (a stream RPC: only the unary interceptor stores the client IP)
+--- FAIL: TestClientIPInAuthLogs (3.64s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/embed	3.688s
+FAIL

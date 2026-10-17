@@ -76,13 +76,14 @@ theorem etcdserverpb._KV_Range_Handler.wp_proof :
         iframe #
         iframe
         isplit
-        · iunfold srvHandlerCall
+        · iintro %ci' %cd' #Hctx' #Hrc'
+          iunfold srvHandlerCall
           wp_auto
           simp only [hsrv]
           wp_auto
           iunfold grpcHandlerOk at Hh
-          wp_bind (App (App (Val _) (Val #(GoInterface.ok ci))) (Val _))
-          iapply Hh $$ %m %Φ' %ci %cd %_ [HS HSpec]
+          wp_bind (App (App (Val _) (Val #(GoInterface.ok ci'))) (Val _))
+          iapply Hh $$ %m %Φ' %ci' %cd' %_ [HS HSpec]
           · iframe; iframe #
           inext
           iintro %resp %err' ⟨HS, Hres⟩

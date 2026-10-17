@@ -77,6 +77,11 @@ def AuthenticateParamSimpleTokenPrefix.ty [FfiSyntax] [GoGlobalContext] : go.GoT
 
 attribute [irreducible] AuthenticateParamSimpleTokenPrefix.ty
 
+def ClientIPContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/auth.ClientIPContextKey" [])
+
+attribute [irreducible] ClientIPContextKey.ty
+
 def AuthStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/auth.AuthStore" [])
 
@@ -322,6 +327,12 @@ noncomputable def isValidPermissionRange [FfiSyntax] [GoGlobalContext] : GoStrin
 noncomputable def newTokenProviderSimple [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.newTokenProviderSimple"
 
+noncomputable def ClientIPFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/auth.ClientIPFromContext"
+
+noncomputable def clientIPFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/auth.clientIPFromContext"
+
 noncomputable def NewAuthStore [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.NewAuthStore"
 
@@ -501,7 +512,50 @@ noncomputable def isOpenEnded.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd")) (Val #(W64 0))))) (Val #(W8 0)))) (Val #false))))))
 
-/-- go: store.go:790:22 -/
+/-- ClientIPFromContext extracts the client IP address from context.
+    It looks for the IP stored by the gRPC logging interceptor.
+    Returns an empty string if not found.
+
+    go: store.go:97:6 -/
+noncomputable def ClientIPFromContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (App (Val exceptionDo)
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(go!"")))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 go.string))) (Let "$a0" (App (Val (GoInstruction (Convert ClientIPContextKey.ty go.any))) (App (Val (GoInstruction (CompositeLiteral ClientIPContextKey.ty))) (LiteralValue [])))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Value"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Var "$a0"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ip" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "ip")))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "ip") (Var "$r0"))))))))))))))))
+
+/-- clientIPFromContext is the unexported alias for internal use.
+
+    go: store.go:105:6 -/
+noncomputable def clientIPFromContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (App (Val exceptionDo)
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve ClientIPFromContext []))) (Val #())) (Var "$a0")))))))
+
+/-- go: store.go:809:22 -/
 noncomputable def authStore.authInfoFromToken.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -519,7 +573,7 @@ noncomputable def authStore.authInfoFromToken.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doReturn)
   (Pair (Var "$ret0") (Var "$ret1")))))))))))))
 
-/-- go: store.go:859:22 -/
+/-- go: store.go:878:22 -/
 noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "userName"
@@ -629,7 +683,7 @@ noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))))))))))))
 
-/-- go: store.go:901:22 -/
+/-- go: store.go:920:22 -/
 noncomputable def authStore.IsPutPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -646,7 +700,7 @@ noncomputable def authStore.IsPutPermitted.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))
 
-/-- go: store.go:905:22 -/
+/-- go: store.go:924:22 -/
 noncomputable def authStore.IsRangePermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -665,7 +719,7 @@ noncomputable def authStore.IsRangePermitted.impl [FfiSyntax] [GoGlobalContext] 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_READ)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:909:22 -/
+/-- go: store.go:928:22 -/
 noncomputable def authStore.IsDeleteRangePermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -684,7 +738,7 @@ noncomputable def authStore.IsDeleteRangePermitted.impl [FfiSyntax] [GoGlobalCon
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:913:22 -/
+/-- go: store.go:932:22 -/
 noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -741,7 +795,7 @@ noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: store.go:937:22 -/
+/-- go: store.go:956:22 -/
 noncomputable def authStore.IsAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -761,7 +815,7 @@ noncomputable def authStore.IsAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))))
 
-/-- go: store.go:1009:22 -/
+/-- go: store.go:1028:22 -/
 noncomputable def authStore.Revision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -771,7 +825,7 @@ noncomputable def authStore.Revision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef authStore.ty go!"revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadUint64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: store.go:1056:22 -/
+/-- go: store.go:1077:22 -/
 noncomputable def authStore.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -832,7 +886,11 @@ noncomputable def authStore.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] :
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"token-fingerprint"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "tokenFingerprint"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (Let "$sl1" (Let "$a0" (Val #(go!"remote"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve clientIPFromContext []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenFingerprint") (Var "$r0")))))))
@@ -1245,6 +1303,32 @@ class AuthenticateParamSimpleTokenPrefix.TypeAssumptions [FfiSyntax] [GoGlobalCo
 attribute [instance] AuthenticateParamSimpleTokenPrefix.TypeAssumptions.type_repr
   AuthenticateParamSimpleTokenPrefix.TypeAssumptions.underlying
 
+structure ClientIPContextKey [FfiSyntax] where
+  mk ::
+
+instance ClientIPContextKey.zero_val [FfiSyntax] : ZeroVal ClientIPContextKey :=
+  ⟨ClientIPContextKey.mk⟩
+
+@[reducible] def ClientIPContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  []
+
+@[irreducible] def ClientIPContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  ClientIPContextKey.fieldsUnsealed
+
+instance equals_unfold_ClientIPContextKey [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold ClientIPContextKey.fields ClientIPContextKey.fieldsUnsealed :=
+  ⟨by unfold ClientIPContextKey.fields; rfl⟩
+
+@[reducible] def ClientIPContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType ClientIPContextKey.fields)
+
+class ClientIPContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ClientIPContextKey.underlying ClientIPContextKey
+  underlying : go.UnderlyingDirectedEq ClientIPContextKey.ty ClientIPContextKey.underlying
+
+attribute [instance] ClientIPContextKey.TypeAssumptions.type_repr
+  ClientIPContextKey.TypeAssumptions.underlying
+
 abbrev AuthStore [FfiSyntax] : Type := GoInterface
 
 @[reducible] def AuthStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
@@ -1444,6 +1528,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   AuthInfo_instance : AuthInfo.TypeAssumptions
   AuthenticateParamIndex_instance : AuthenticateParamIndex.TypeAssumptions
   AuthenticateParamSimpleTokenPrefix_instance : AuthenticateParamSimpleTokenPrefix.TypeAssumptions
+  ClientIPContextKey_instance : ClientIPContextKey.TypeAssumptions
   AuthStore_instance : AuthStore.TypeAssumptions
   TokenProvider_instance : TokenProvider.TypeAssumptions
   AuthBackend_instance : AuthBackend.TypeAssumptions
@@ -1457,6 +1542,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   checkKeyInterval_unfold : FuncUnfold checkKeyInterval [] checkKeyInterval.impl
   checkKeyPoint_unfold : FuncUnfold checkKeyPoint [] checkKeyPoint.impl
   isOpenEnded_unfold : FuncUnfold isOpenEnded [] isOpenEnded.impl
+  ClientIPFromContext_unfold : FuncUnfold ClientIPFromContext [] ClientIPFromContext.impl
+  clientIPFromContext_unfold : FuncUnfold clientIPFromContext [] clientIPFromContext.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
@@ -1478,6 +1565,7 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.AuthInfo_instance
   Assumptions.AuthenticateParamIndex_instance
   Assumptions.AuthenticateParamSimpleTokenPrefix_instance
+  Assumptions.ClientIPContextKey_instance
   Assumptions.AuthStore_instance
   Assumptions.TokenProvider_instance
   Assumptions.AuthBackend_instance
@@ -1491,6 +1579,8 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.checkKeyInterval_unfold
   Assumptions.checkKeyPoint_unfold
   Assumptions.isOpenEnded_unfold
+  Assumptions.ClientIPFromContext_unfold
+  Assumptions.clientIPFromContext_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_zap_Assumption

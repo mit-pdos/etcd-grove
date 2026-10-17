@@ -3588,7 +3588,7 @@ noncomputable def numConnectedSince.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "connectedNum") (Var "$r0"))))))))))))))))
 
-/-- go: v3_server.go:106:22 -/
+/-- go: v3_server.go:107:22 -/
 noncomputable def EtcdServer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3799,7 +3799,7 @@ noncomputable def EtcdServer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
-/-- go: v3_server.go:295:22 -/
+/-- go: v3_server.go:296:22 -/
 noncomputable def EtcdServer.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3869,7 +3869,7 @@ noncomputable def EtcdServer.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
-/-- go: v3_server.go:310:22 -/
+/-- go: v3_server.go:311:22 -/
 noncomputable def EtcdServer.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -3935,7 +3935,7 @@ noncomputable def EtcdServer.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
-/-- go: v3_server.go:325:22 -/
+/-- go: v3_server.go:326:22 -/
 noncomputable def EtcdServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4185,7 +4185,7 @@ noncomputable def EtcdServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "readOnly") (Var "$r0")))))))))))))))
 
-/-- go: v3_server.go:726:22 -/
+/-- go: v3_server.go:727:22 -/
 noncomputable def EtcdServer.newHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4199,7 +4199,7 @@ noncomputable def EtcdServer.newHeader.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$v4" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Leader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ClusterId")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"MemberId")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Revision")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"RaftTerm")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"LeaderId")) (ElementExpression go.uint64 (Var "$v4")))])))))))))))))
 
-/-- go: v3_server.go:1013:22 -/
+/-- go: v3_server.go:1019:22 -/
 noncomputable def EtcdServer.raftRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4283,7 +4283,7 @@ noncomputable def EtcdServer.raftRequest.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- doSerialize handles the auth logic, with permissions checked by "chk", for a serialized request "get". Returns a non-nil error on authentication failure.
 
-    go: v3_server.go:1035:22 -/
+    go: v3_server.go:1041:22 -/
 noncomputable def EtcdServer.doSerialize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4355,7 +4355,7 @@ noncomputable def EtcdServer.doSerialize.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))
 
-/-- go: v3_server.go:1059:22 -/
+/-- go: v3_server.go:1065:22 -/
 noncomputable def EtcdServer.processInternalRaftRequestOnce.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -4601,7 +4601,7 @@ noncomputable def EtcdServer.processInternalRaftRequestOnce.impl [FfiSyntax] [Go
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "ai") (Var "$r0")))))))))))))))
 
-/-- go: v3_server.go:1136:6 -/
+/-- go: v3_server.go:1142:6 -/
 noncomputable def getRequestType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -4702,7 +4702,7 @@ noncomputable def getRequestType.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Watchable returns a watchable interface attached to the etcdserver.
 
-    go: v3_server.go:1204:22 -/
+    go: v3_server.go:1210:22 -/
 noncomputable def EtcdServer.Watchable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4711,7 +4711,7 @@ noncomputable def EtcdServer.Watchable.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"KV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
-/-- go: v3_server.go:1206:22 -/
+/-- go: v3_server.go:1212:22 -/
 noncomputable def EtcdServer.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"

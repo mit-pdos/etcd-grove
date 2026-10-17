@@ -22,11 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- `as.AuthInfoFromTLS(ctx)`: an auth info (`nil`, or a fresh one of the first verified chain's common name and the store's revision). The trust boundary (names only): the peer's `credentials.TLSInfo` and its x509 chains are axiomatized types. Go's type assertion `peer.AuthInfo.(credentials.TLSInfo)` panics for a peer whose `AuthInfo` is not a `TLSInfo`; etcd's gRPC servers have TLS credentials or none (`issues/etcd-auth-tls-info-assert.md`): not stated. -/
+/-- `as.AuthInfoFromTLS(ctx)`: an auth info (`nil`, or a fresh one of the first verified chain's common name and the store's revision). The trust boundary (names only): the peer's `credentials.TLSInfo` and its x509 chains are axiomatized types. Since PR etcd#22259 its log lines call `clientIPFromContext(ctx)` (`ctx.Value`): the context answers `Value(ClientIPContextKey{})` (`ctxClientIPOk`). Go's type assertion `peer.AuthInfo.(credentials.TLSInfo)` panics for a peer whose `AuthInfo` is not a `TLSInfo`; etcd's gRPC servers have TLS credentials or none (`issues/etcd-auth-tls-info-assert.md`): not stated. -/
 
 abbrev auth.authStore.AuthInfoFromTLS.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R ∗
+      auth.ctxClientIPOk ctx }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthInfoFromTLS")) (Val #ctx))
   {{ (a : Loc), RET #a; authInfoRO a }}
 

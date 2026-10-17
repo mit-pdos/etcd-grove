@@ -31,7 +31,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`logUnaryRequestStats(ctx, lg, warn, info, start, req, resp)` returns** (the log
 interceptor's deferred call): with a non-nil logger (`lg.Core().Enabled`, `lg.Debug`/`Warn`) and
 the call's `info` (`FullMethod`, read-only), it measures the call's duration, and if the logger
-is at debug level or the call was slow, logs the peer (`peer.FromContext`), the method and the
+is at debug level or the call was slow, logs the client IP the context carries (since PR
+etcd#22259 `clientIPFromContext(ctx)`, which calls `ctx.Value`: `auth.ctxClientIPOk`; before,
+`peer.FromContext`), the method and the
 request's and response's sizes and contents (`proto.Size`, the messages' stringers). It reads
 `req` and `resp` (a decoded request, the response the handler returned, as `any`), which the
 messages' predicates do not cover field by field (the protobuf runtime's reflection, the size
@@ -41,7 +43,7 @@ abbrev v3rpc.logUnaryRequestStats.spec : Prop :=
   ∀ (ctx : GoInterface) (lg : Loc) (warn : w64) (info : Loc) (start : time.Time)
     (req resp : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      ⌜lg ≠ null⌝ ∗ srvInfoIs info }}
+      ⌜lg ≠ null⌝ ∗ srvInfoIs info ∗ auth.ctxClientIPOk ctx }}
     (App (App (App (App (App (App (App (Val (@! v3rpc.logUnaryRequestStats)) (Val #ctx))
       (Val #lg)) (Val #warn)) (Val #info)) (Val #start)) (Val #req)) (Val #resp))
   {{ RET #(); True }}

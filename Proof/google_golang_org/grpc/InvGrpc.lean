@@ -45,6 +45,7 @@ module
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
+public import Proof.go_etcd_io.etcd.server.v3.auth.ClientIP
 
 @[expose] public section
 
@@ -86,6 +87,49 @@ attribute [instance] ProtoMsg.recv_persistent
 /-- **A gRPC method's spec** over the request's and reply's models (a predicate transformer). -/
 abbrev GrpcSpec (Req Rep : ProtoMsg GF) : Type := Req.M → (Rep.M → IProp GF) → IProp GF
 
+/-- **A peer grpc's server transport put in a run's context, at the address `s`** (persistent;
+PR etcd#22259, part of the trusted server runtime): its `Addr` field (read-only from then on)
+holds a non-nil `net.Addr` whose `String()` returns `s` (a `net` address's `String` is a function
+of its fields). grpc's `http2Server` sets it to the connection's `RemoteAddr()` and its
+`ServeHTTP` transport to the request's `RemoteAddr` (a `strAddr`), never `nil`. -/
+def grpcPeerIs (p : Loc) (s : GoString) : IProp GF :=
+  iprop(∃ a : GoInterfaceOk,
+    structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" p ↦□ GoInterface.ok a ∗
+    □ (∀ Φ : val → IProp GF, ▷ Φ #s -∗
+      WP (App (Val #(methods a.ty go!"String" a.v)) (Val #())) {{ Φ }}))
+
+instance grpcPeerIs_persistent (p : Loc) (s : GoString) :
+    Persistent (grpcPeerIs (GF := GF) p s) := by
+  unfold grpcPeerIs; infer_instance
+
+/-- The key `peerKey{}` (grpc's `peer` package), as an `any`. -/
+abbrev grpcPeerKeyVal : GoInterface :=
+  interface.mkOk google_golang_org.grpc.peer.peerKey.ty #(zero_val google_golang_org.grpc.peer.peerKey)
+
+/-- **The run's peer is at `o`** (persistent; PR etcd#22259): the context's `Value(peerKey{})`
+returns `nil` (`o = none`) or a non-nil `*peer.Peer` grpc wrote, at the address `s`
+(`o = some s`, `grpcPeerIs`). -/
+def grpcRunPeerIs (ci : GoInterfaceOk) (o : Option GoString) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF,
+    ▷ (∀ v : GoInterface, (match o with
+        | none => ⌜v = GoInterface.nil⌝
+        | some s => ∃ p : Loc,
+          ⌜v = interface.mkOk (go.GoType.PointerType google_golang_org.grpc.peer.Peer.ty) #p ∧
+            p ≠ null⌝ ∗ grpcPeerIs p s) -∗ Φ #v) -∗
+      WP (App (Val #(methods ci.ty go!"Value" ci.v)) (Val #grpcPeerKeyVal)) {{ Φ }})
+
+instance grpcRunPeerIs_persistent (ci : GoInterfaceOk) (o : Option GoString) :
+    Persistent (grpcRunPeerIs (GF := GF) ci o) := by
+  unfold grpcRunPeerIs; cases o <;> infer_instance
+
+/-- **The run's peer** (persistent; PR etcd#22259): at some address, or none (grpc's server sets
+it for every stream, `peer.NewContext(ctx, st.Peer())`). -/
+def grpcRunPeer (ci : GoInterfaceOk) : IProp GF :=
+  iprop(∃ o : Option GoString, grpcRunPeerIs ci o)
+
+instance grpcRunPeer_persistent (ci : GoInterfaceOk) : Persistent (grpcRunPeer (GF := GF) ci) := by
+  unfold grpcRunPeer; infer_instance
+
 /-- **The prefix of etcd's Go package paths** (`go.etcd.io/etcd/`). -/
 def etcdPkgPrefix : GoString := go!"go.etcd.io/etcd/"
 
@@ -95,15 +139,39 @@ etcd's own packages (`go.etcd.io/etcd/...`, e.g. `traceutil.TraceKey`) returns `
 server context carries grpc's values (metadata, peer, stream) and those of the stats handlers
 and interceptors in front of the handler (etcd's `v3rpc` interceptors, otelgrpc's), none under
 such a key. What the server's handlers rely on: a request's context carries no trace
-(`traceutil.ctxTraceIs ci none`, `v3rpc.srvCall`). -/
+(`traceutil.ctxTraceIs ci none`, `v3rpc.srvCall`).
+
+PR etcd#22259 (`pr-verify/etcd-22259`): etcd's log interceptor now stores the client's address
+under the etcd key `auth.ClientIPContextKey{}` (`context.WithValue`) and hands the derived context
+on (`srvInterceptorOk`), so the run's context is no longer grpc's own past the first interceptor.
+The key is excepted from the first clause; its value is some client IP or none (`ctxClientIPIs`:
+grpc's own context has none, the interceptor's has the address); and the run's peer
+(`grpcRunPeer`, what the interceptor reads with `peer.FromContext`) is part of the runtime's
+context. All three hold of the derived context (`WithValueClientIP`: a `valueCtx` asks its parent
+at a key of another type). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
-  iprop(□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
+  iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
+    ⌜go.GoType.Named n [] ≠ go_etcd_io.etcd.server.v3.auth.ClientIPContextKey.ty⌝ →
     ▷ Φ #GoInterface.nil -∗
     WP (App (Val #(methods ci.ty go!"Value" ci.v))
-      (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }})
+      (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }}) ∗
+    (∃ o : Option GoString, auth.ctxClientIPIs ci o) ∗
+    grpcRunPeer ci)
 
 instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF := GF) ci) := by
   unfold grpcRunCtx; infer_instance
+
+/-- A run context answers `Value(ClientIPContextKey{})` (`auth.ctxClientIPOk`, what the auth
+store's and the log interceptor's log lines need since PR etcd#22259). -/
+theorem ctxClientIPOk_of_runCtx (ci : GoInterfaceOk) :
+    grpcRunCtx (GF := GF) ci ⊢ auth.ctxClientIPOk (GoInterface.ok ci) := by
+  iintro #H
+  iunfold grpcRunCtx at H
+  icases H with ⟨-, ⟨%o, #Hip⟩, -⟩
+  iunfold auth.ctxClientIPOk
+  iexists ci, o
+  iframe Hip
+  ipureintro; rfl
 
 /-- **A service method `h` meets `Spec` with the per-run resource `S`** (persistent; see the file
 header; unit P3b: the registered service's method, which the generated handler calls below the
@@ -243,15 +311,18 @@ instance grpcMethodOk_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInt
 return, proved; what grpc-prometheus's is assumed to be): called with `R`, the run's context, a
 request with `Q` (what the interceptor reads of it: etcd's learner check reads a
 `*RangeRequest`'s `Serializable`), an `info` (`srvInfoIs`) and a handler `h`, it either calls `h`
-once on the same context and request and returns its result, or returns `(nil, err)` for some
+once on the same request and a run context (the same, or one derived from it: PR etcd#22259's
+log interceptor adds the client IP) and returns its result, or returns `(nil, err)` for some
 non-nil error without calling `h`; either way `R` comes back. The caller gives both
-continuations (`∧`: one is taken). -/
+continuations (`∧`: one is taken); the first for any run context (`isContext`, `grpcRunCtx`). -/
 def srvInterceptorOk (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF) : IProp GF :=
   iprop(□ ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (req : GoInterface)
       (info : Loc) (h : GoFunc) (Ψ : val → IProp GF),
     R -∗ context.isContext ci cd -∗ grpcRunCtx ci -∗ srvInfoIs info -∗ □ Q req -∗
-    (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (R -∗ Ψ v) }} ∧
+    ((∀ (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
+        context.isContext ci' cd' -∗ grpcRunCtx ci' -∗
+        WP (srvHandlerCall h #(GoInterface.ok ci') #req)
+          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (R -∗ Ψ v) }}) ∧
       (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
         Ψ (PairV #GoInterface.nil #err))) -∗
     WP (srvInterceptorCall ic #(GoInterface.ok ci) #req #info h) {{ Ψ }})
@@ -276,6 +347,28 @@ instance srvInterceptorsOk_persistent (Q : GoInterface → IProp GF) (ics : List
     | nil => unfold srvInterceptorsOk; infer_instance
     | cons R Rs => unfold srvInterceptorsOk; have := ih Rs; infer_instance
 
+/-- **An interceptor that keeps the run's context** (PR etcd#22259: `srvInterceptorOk`'s handler
+continuation takes any run context): the continuation at the context it was called with. -/
+theorem srvKont_here (h : GoFunc) (req : GoInterface) (R : IProp GF) (Ψ : val → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    context.isContext ci cd ∗ grpcRunCtx ci ∗
+      ((∀ (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
+          context.isContext ci' cd' -∗ grpcRunCtx ci' -∗
+          WP (srvHandlerCall h #(GoInterface.ok ci') #req)
+            {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (R -∗ Ψ v) }}) ∧
+        (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
+          Ψ (PairV #GoInterface.nil #err))) ⊢
+    (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
+        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (R -∗ Ψ v) }} ∧
+      (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
+        Ψ (PairV #GoInterface.nil #err))) := by
+  iintro ⟨#Hctx, #Hrc, Hk⟩
+  isplit
+  · icases Hk with ⟨Hk, -⟩
+    iapply Hk $$ Hctx Hrc
+  · icases Hk with ⟨-, Hk⟩
+    iexact Hk
+
 /-- **A chain of transparent interceptors runs the handler or fails** (`srvChainWP` from the
 interceptors' contracts): with the interceptors' resources, the run's context, an `info`, and
 both continuations of the handler's call (its result with the resources back, or an early
@@ -285,22 +378,25 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
     (Ψ : val → IProp GF) (Q : GoInterface → IProp GF) :
     srvInterceptorsOk Q ics Rs ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
       srvInfoIs info ∗ □ Q req ∗
-      (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            (([∗list] R ∈ Rs, R) -∗ Ψ v) }} ∧
+      ((∀ (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
+          context.isContext ci' cd' -∗ grpcRunCtx ci' -∗
+          WP (srvHandlerCall h #(GoInterface.ok ci') #req)
+            {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+              (([∗list] R ∈ Rs, R) -∗ Ψ v) }}) ∧
         (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
           Ψ (PairV #GoInterface.nil #err))) ⊢
     srvChainWP #info ics h #(GoInterface.ok ci) #req Ψ := by
-  induction ics generalizing Rs Ψ with
+  induction ics generalizing Rs Ψ ci cd with
   | nil =>
     cases Rs with
     | cons R Rs =>
       rw [show srvInterceptorsOk (GF := GF) Q [] (R :: Rs) = iprop(⌜False⌝) from rfl]
       iintro ⟨%H, -⟩; exact H.elim
     | nil =>
-      iintro ⟨-, -, -, -, -, -, H⟩
+      iintro ⟨-, -, #Hctx, #Hrc, -, -, H⟩
       unfold srvChainWP
       icases H with ⟨H, -⟩
+      ihave H := H $$ %ci %cd Hctx Hrc
       iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
         (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
       iintro %v ⟨%resp, %err, -, HΨ⟩
@@ -323,13 +419,16 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
       iunfold srvInterceptorOk at Hic
       iapply Hic $$ HR Hctx Hrc Hinfo HQ
       isplit
-      · iapply Hh'
-        iapply (ih Rs (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+      · iintro %ci' %cd' #Hctx' #Hrc'
+        iapply Hh'
+        iapply (ih Rs ci' cd' (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
           (R -∗ Ψ v))))
-        iframe #
+        iframe Hoks Hctx' Hrc' Hinfo HQ
         iframe
         isplit
         · icases H with ⟨H, -⟩
+          iintro %ci'' %cd'' #Hctx'' #Hrc''
+          ihave H := H $$ %ci'' %cd'' Hctx'' Hrc''
           iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
             (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
           iintro %v ⟨%resp, %err, %Hv, HΨ⟩

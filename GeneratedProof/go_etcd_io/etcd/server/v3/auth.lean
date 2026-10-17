@@ -287,6 +287,29 @@ instance AuthenticateParamSimpleTokenPrefix_into_val_typed :
 end def_
 end AuthenticateParamSimpleTokenPrefix
 
+namespace ClientIPContextKey
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+instance ClientIPContextKey_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.ClientIPContextKey where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance ClientIPContextKey_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.ClientIPContextKey go_etcd_io.etcd.server.v3.auth.ClientIPContextKey.underlying := by
+  solve_into_val_typed_struct
+
+end def_
+end ClientIPContextKey
+
 namespace authStore
 section def_
 

@@ -109,6 +109,7 @@ public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.go_etcd_io.etcd.server.v3.auth.ClientIPFromContext
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
@@ -122,6 +123,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
+public import Proof.go_etcd_io.etcd.server.v3.auth.clientIPFromContext
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
@@ -573,6 +575,10 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
+theorem auth.wp_ClientIPFromContext :
+    auth.ClientIPFromContext.spec (GF := GF) (hG := hG) :=
+  auth.ClientIPFromContext.wp_proof
+
 theorem auth.authStore.wp_IsAuthEnabled :
     auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsAuthEnabled.wp_proof
@@ -593,9 +599,13 @@ theorem auth.wp_redactToken :
     auth.redactToken.spec (GF := GF) (hG := hG) :=
   auth.redactToken.wp_proof
 
+theorem auth.wp_clientIPFromContext :
+    auth.clientIPFromContext.spec (GF := GF) (hG := hG) :=
+  auth.clientIPFromContext.wp_proof auth.wp_ClientIPFromContext
+
 theorem auth.authStore.wp_AuthInfoFromCtx :
     auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
+  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn auth.wp_clientIPFromContext
 
 theorem auth.authStore.wp_AuthInfoFromTLS :
     auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=

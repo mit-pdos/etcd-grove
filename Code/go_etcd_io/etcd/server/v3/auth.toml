@@ -20,7 +20,9 @@ translate = ["!*", "AuthInfo",
   "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
-  "ErrInvalidAuthToken"]
+  "ErrInvalidAuthToken",
+  # PR etcd#22259 (pr-verify/etcd-22259): the client IP's context key and its readers
+  "ClientIPContextKey", "ClientIPFromContext", "clientIPFromContext"]
 imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",

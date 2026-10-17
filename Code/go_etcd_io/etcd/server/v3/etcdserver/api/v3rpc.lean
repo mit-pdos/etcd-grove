@@ -13,6 +13,7 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import Perennial.Code.time
 public import Code.unicode.utf8
 public import Code.google_golang_org.grpc.metadata
+public import Code.google_golang_org.grpc.peer
 public import Code.google_golang_org.protobuf.proto
 public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
@@ -296,6 +297,9 @@ noncomputable def newHeader [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newHealthNotifier [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.newHealthNotifier"
 
+noncomputable def clientIPFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.clientIPFromContext"
+
 noncomputable def newUnaryInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.newUnaryInterceptor"
 
@@ -476,7 +480,20 @@ noncomputable def header.fillWithoutRevision.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: interceptor.go:47:6 -/
+/-- clientIPFromContext extracts the client IP from the context.
+    Uses the shared key from the auth package.
+    Returns empty string if not found.
+
+    go: interceptor.go:46:6 -/
+noncomputable def clientIPFromContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (App (Val exceptionDo)
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ClientIPFromContext []))) (Val #())) (Var "$a0")))))))
+
+/-- go: interceptor.go:55:6 -/
 noncomputable def newUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -578,7 +595,7 @@ noncomputable def newUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))))))))))
 
-/-- go: interceptor.go:79:6 -/
+/-- go: interceptor.go:87:6 -/
 noncomputable def newLogUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -596,6 +613,17 @@ noncomputable def newLogUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
   (Let "startTime" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.peer.FromContext []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "peerInfo" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
@@ -636,10 +664,23 @@ noncomputable def newLogUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "peerInfo")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Val UntypedNil))))) (Val #false))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ClientIPContextKey.ty go.any))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ClientIPContextKey.ty))) (LiteralValue [])))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Addr.ty go!"String"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Addr.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer.ty go!"Addr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "peerInfo"))))) (Val #())))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithValue []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Pair (Var "peerInfo") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "startTime") (Var "$r0")))))))))))))))))))))
 
-/-- go: interceptor.go:216:6 -/
+/-- go: interceptor.go:227:6 -/
 noncomputable def newStreamInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -791,7 +832,7 @@ noncomputable def newStreamInterceptor.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType streamsMap.ty)))) (Pair (Var "smap") (Var "$r0"))))))))))
 
-/-- go: interceptor.go:278:6 -/
+/-- go: interceptor.go:289:6 -/
 noncomputable def newCancellableContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "parent"
   (App (Val exceptionDo)
@@ -818,7 +859,7 @@ noncomputable def newCancellableContext.impl [FfiSyntax] [GoGlobalContext] : val
 /-- Cancel stores the cancellation reason and then delegates to context.WithCancel
     against the parent context.
 
-    go: interceptor.go:288:30 -/
+    go: interceptor.go:299:30 -/
 noncomputable def cancellableContext.Cancel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "reason"
@@ -844,7 +885,7 @@ noncomputable def cancellableContext.Cancel.impl [FfiSyntax] [GoGlobalContext] :
 /-- Err will return the preserved cancel reason error if present, and will
     otherwise return the underlying error from the parent context.
 
-    go: interceptor.go:297:30 -/
+    go: interceptor.go:308:30 -/
 noncomputable def cancellableContext.Err.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -870,7 +911,7 @@ noncomputable def cancellableContext.Err.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef cancellableContext.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType cancellableContext.ty)))) (Var "c")))) (Val #())))))))))
 
-/-- go: interceptor.go:313:32 -/
+/-- go: interceptor.go:324:32 -/
 noncomputable def serverStreamWithCtx.Context.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ssc"
   (Lam BAnon
@@ -879,7 +920,7 @@ noncomputable def serverStreamWithCtx.Context.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType cancellableContext.ty) _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType cancellableContext.ty)))) (App (Val (GoInstruction (StructFieldRef serverStreamWithCtx.ty go!"ctx"))) (Var "ssc")))))))))
 
-/-- go: interceptor.go:315:6 -/
+/-- go: interceptor.go:326:6 -/
 noncomputable def monitorLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -3557,7 +3598,7 @@ noncomputable def FiltersFromRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.FilterFunc.ty)))) (Pair (Var "filters") (Var "$r0"))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -3565,6 +3606,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3653,6 +3695,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.unicode.utf8.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.proto.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -4716,6 +4760,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   watchServer_instance : watchServer.TypeAssumptions
   serverWatchStream_instance : serverWatchStream.TypeAssumptions
   newHeader_unfold : FuncUnfold newHeader [] newHeader.impl
+  clientIPFromContext_unfold : FuncUnfold clientIPFromContext [] clientIPFromContext.impl
   newUnaryInterceptor_unfold : FuncUnfold newUnaryInterceptor [] newUnaryInterceptor.impl
   newLogUnaryInterceptor_unfold : FuncUnfold newLogUnaryInterceptor [] newLogUnaryInterceptor.impl
   newStreamInterceptor_unfold : FuncUnfold newStreamInterceptor [] newStreamInterceptor.impl
@@ -4753,6 +4798,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_utf8_Assumption : _root_.Perennial.unicode.utf8.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
   import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
@@ -4804,6 +4850,7 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.watchServer_instance
   Assumptions.serverWatchStream_instance
   Assumptions.newHeader_unfold
+  Assumptions.clientIPFromContext_unfold
   Assumptions.newUnaryInterceptor_unfold
   Assumptions.newLogUnaryInterceptor_unfold
   Assumptions.newStreamInterceptor_unfold
@@ -4841,6 +4888,7 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.import_time_Assumption
   Assumptions.import_utf8_Assumption
   Assumptions.import_metadata_Assumption
+  Assumptions.import_peer_Assumption
   Assumptions.import_proto_Assumption
   Assumptions.import_rpctypes_Assumption
   Assumptions.import_types_Assumption
