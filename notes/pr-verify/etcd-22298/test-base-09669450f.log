@@ -1,0 +1,36 @@
+--- FAIL: TestWritebackDedupesExistingBucket (0.00s)
+    --- FAIL: TestWritebackDedupesExistingBucket/no_overlap_between_buffers (0.00s)
+        tx_buffer_test.go:188: 
+            	Error Trace:	/shared/etcd-grove-pr/etcd-22298-scratch/base/server/storage/backend/tx_buffer_test.go:188
+            	Error:      	"[[122 122 122] [122 122 122]]" should have 1 item(s), but has 2
+            	Test:       	TestWritebackDedupesExistingBucket/no_overlap_between_buffers
+            	Messages:   	duplicate key survived writeback
+        tx_buffer_test.go:193: 
+            	Error Trace:	/shared/etcd-grove-pr/etcd-22298-scratch/base/server/storage/backend/tx_buffer_test.go:193
+            	Error:      	Not equal: 
+            	            	expected: []string{"new"}
+            	            	actual  : []string{"old", "new"}
+            	            	
+            	            	Diff:
+            	            	--- Expected
+            	            	+++ Actual
+            	            	@@ -1,2 +1,3 @@
+            	            	-([]string) (len=1) {
+            	            	+([]string) (len=2) {
+            	            	+ (string) (len=3) "old",
+            	            	  (string) (len=3) "new"
+            	Test:       	TestWritebackDedupesExistingBucket/no_overlap_between_buffers
+            	Messages:   	writeback must keep the newest value
+--- FAIL: TestReviewDupPut (0.03s)
+    review_dup_put_test.go:45: dup put, emptied read bucket: ReadTx: k=v1, want k=v2
+    review_dup_put_test.go:45: dup put, emptied read bucket: ConcurrentReadTx: k=v1, want k=v2
+    review_dup_put_test.go:45: mixed seq/put: ReadTx: m=s1, want m=p2
+    review_dup_put_test.go:45: mixed seq/put: ConcurrentReadTx: m=s1, want m=p2
+    review_dup_put_test.go:45: safe range: ReadTx: a=1 b=1 b=2 c=1, want a=1 b=2 c=1
+    review_dup_put_test.go:45: safe range: ConcurrentReadTx: a=1 b=1 b=2 c=1, want a=1 b=2 c=1
+    review_dup_put_test.go:45: after commit range: ConcurrentReadTx: a=1 b=2 c=3 b=2 c=3, want a=1 b=2 c=3
+--- FAIL: TestReadTxStaleAfterDuplicatePut (0.01s)
+    stale_read_test.go:45: ReadTx reads "v2", BatchTx reads "v3"
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/backend	0.068s
+FAIL

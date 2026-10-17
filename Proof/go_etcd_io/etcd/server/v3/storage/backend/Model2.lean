@@ -198,17 +198,9 @@ def safeSt (P : BParams) (st : BSess) : Prop :=
       e ∈ bkOf st.W.bks i → strLt kc e.1) ∧
     (∀ (kc vc : GoString), (bktOf st.C n).lookup kc = some vc → ∃ vs, (bktOf st.S n).lookup kc = some vs)
 
-/-- Where a bucket written by `put` may repeat a key (`WBuf.WfR`): the read buffer has no such
-bucket (the write-back then deduplicates it), or, in the hook's window, its read-buffer bucket
-is empty (the commit's reset that follows drops it). In Go the consistent-index hook re-puts its
-keys at every commit, and two commits with no write-back between leave both puts in the write
-buffer: `issues/etcd-backend-duplicate-put-stale-read.md`, where this is harmless. -/
-def wbDupOk (st : BSess) (id : w64) : Prop :=
-  st.R.bks.lookup id = none ∨ (st.cnt.hw = true ∧ bkOf st.R.bks id = [])
-
 /-- The state's facts at any time. -/
 def sessWf (P : BParams) (st : BSess) : Prop :=
-  st.W.WfR (wbDupOk st) ∧ st.R.Wf ∧ idsOk P st.W.bks ∧ idsOk P st.R.bks ∧
+  st.W.WfR (fun _ => True) ∧ st.R.Wf ∧ idsOk P st.W.bks ∧ idsOk P st.R.bks ∧
   0 ≤ sint.Z st.pend ∧ sint.Z st.pend < 2 ^ 58 ∧ 0 ≤ sint.Z st.ndel ∧
   sint.Z st.ndel ≤ sint.Z st.pend ∧
   (st.pend = W64 0 → ∀ i, bkOf st.R.bks i = []) ∧
@@ -296,7 +288,9 @@ def hookStep (P : BParams) (st st' : BSess) : Prop :=
 /-- What the pre-commit hook may count on when it runs (`hooksSpec`): the hook's window is open,
 there is room for its operations, and every bucket of the write buffer is empty or has an empty
 read-buffer bucket (a commit right after a write-back finds the write buffer empty; one after
-another commit, the read buffer: so a hook may re-put its keys, `wbDupOk`). -/
+another commit, the read buffer). Until etcd#22298 this let a hook re-put its keys (the
+write-back then assumed distinct keys where the read buffer had the bucket); since the
+write-back deduplicates every bucket written by `put`, the backend's proofs no longer need it. -/
 def hookPre (P : BParams) (st : BSess) : Prop :=
   st.cnt.hw = true ∧ sint.Z st.pend + P.hookMax < 2 ^ 58 ∧
   ∀ i, bkOf st.W.bks i = [] ∨ bkOf st.R.bks i = []

@@ -4,7 +4,7 @@
 # InvBbolt's axiomatized predicates); `sort.Stable` (Perennial translates it, proves only
 # `sort.Sort`); `verify.Assert`/`Verify` and verify.go's lock checks `ValidateCalled*` (names-only:
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
-# constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
+# constructors and `Logger.Fatal`; `time.Duration.Seconds`.
 # `New`/`NewDefaultBackend`/`newBackend` are not listed: bbolt's `Options` is an axiomatized type
 # (Perennial's `os.FileMode`), so the constructor is unproved.
 ValidateCalledInsideApply:
@@ -29,7 +29,6 @@ bbolt_Tx__DeleteBucket_kv:
 bbolt_Tx__Rollback_kv:
 bbolt_Tx__Size_kv:
 bbolt_Tx__Stats_kv:
-sort_Sort:
 sort_Stable:
 time_Duration__Seconds:
 verify_Assert:
@@ -114,5 +113,5 @@ txWriteBuffer__put: txWriteBuffer__putInternal
 txWriteBuffer__putInternal: newBucketBuffer bucketBuffer__add
 txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
 txWriteBuffer__reset: txBuffer__reset
-txWriteBuffer__writeback: bucketBuffer__dedupe sort_Sort bucketBuffer__Len bucketBuffer__Less bucketBuffer__Swap bucketBuffer__merge txWriteBuffer__reset
+txWriteBuffer__writeback: bucketBuffer__dedupe bucketBuffer__merge txWriteBuffer__reset
 unsafeRange: bbolt_Cursor__Seek_kv bbolt_Cursor__Next_kv

@@ -311,6 +311,33 @@ theorem canon_append_perm {a b b' : List Ent} (hp : b.Perm b') (hn : (b.map Prod
     | _ :: _ :: _, _, hlen => simp at hlen
   rw [hf]
 
+/-- A key's newest value in entries followed by others: the others', else the entries'. -/
+theorem lastVal_append (a b : List Ent) (k : GoString) :
+    lastVal (a ++ b) k = (lastVal b k).or (lastVal a k) := by
+  unfold lastVal
+  rw [List.reverse_append, List.find?_append]
+  cases b.reverse.find? (fun e => decide (e.1 = k)) <;> simp
+
+/-- Canonicalizing the later entries first changes nothing (`writeback` deduplicates the write
+buffer's bucket before `merge`, etcd#22298). -/
+theorem canon_append_canon (a b : List Ent) : canon (a ++ canon b) = canon (a ++ b) := by
+  apply eq_of_sorted_lastVal (canon_sorted _) (canon_sorted _)
+  intro k
+  rw [lastVal_canon, lastVal_canon, lastVal_append, lastVal_append, lastVal_canon]
+
+/-- The canonical form is empty exactly when the entries are. -/
+theorem canon_isEmpty (l : List Ent) : (canon l).isEmpty = l.isEmpty := by
+  cases l with
+  | nil => simp [canon, dedupLast]
+  | cons e l =>
+    have h := lastVal_canon (e :: l) e.1
+    rw [lastVal_cons] at h
+    cases hc : canon (e :: l) with
+    | nil =>
+      rw [hc] at h
+      cases hl : lastVal l e.1 <;> simp [hl, lastVal] at h
+    | cons _ _ => rfl
+
 theorem canon_length_le (l : List Ent) : (canon l).length ≤ l.length := by
   unfold canon
   exact Nat.le_trans (dedupLast_length_le _) (by simp)

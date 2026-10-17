@@ -4,7 +4,8 @@ Lean-first (no Rocq counterpart).
 
 The loop over the write buffer's buckets: after the first `i` keys `D`, a bucket of `D` the read
 buffer did not have is moved there (deleted here), canonical (`dedupe`, or already sorted); one
-it had is merged into the read buffer's (`merge`), after `sort.Sort` if `put` wrote it. The read
+it had is merged into the read buffer's (`merge`), after `dedupe` if `put` wrote it (etcd#22298:
+was `sort.Sort` when it had more than one entry, which needed its keys distinct). The read
 buffer's buckets are `wbMerge` on `D`, as they were elsewhere; the write buffer's are as they
 were outside `D`, and on `D` empty exactly when the moved-out model (`writebackW`'s filter) says
 so, which is all `reset` looks at (`bksReset_congr`).
@@ -13,12 +14,8 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer__dedupe
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer__Len
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer__Less
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer__Swap
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer__merge
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__reset
-public import Spec.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WBufLemmas
 
@@ -86,39 +83,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- A bucket buffer is a `sort.Interface` over its entries, ordered by key. -/
-theorem backend.txWriteBuffer.writeback.bbSorter
-    (hLen : backend.bucketBuffer.Len.spec (GF := GF) (hG := hG))
-    (hLess : backend.bucketBuffer.Less.spec (GF := GF) (hG := hG))
-    (hSwap : backend.bucketBuffer.Swap.spec (GF := GF) (hG := hG)) (bb : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ⊢
-      sorterSpec (interface.mk (go.GoType.PointerType bucketBuffer.ty) #bb) (ownBB bb)
-        (fun a b : Ent => decide (strLt a.1 b.1)) := by
-  iintro #Hpkg
-  unfold sorterSpec
-  isplitr
-  · imodintro
-    iintro %l
-    iintro !> %Φ Hl HΦ
-    iapply (hLen bb l) $$ [$Hpkg $Hl] HΦ
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ Hl HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    iapply (hLess bb l i j a b hi hj ha hb) $$ [$Hpkg $Hl] HΦ
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ Hl HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  iapply (hSwap bb l i j a b hi hj ha hb) $$ [$Hpkg $Hl] HΦ
-
 theorem backend.txWriteBuffer.writeback.wp_proof
     (hDedupe : backend.bucketBuffer.dedupe.spec (GF := GF) (hG := hG))
-    (hSort : sort.«Sort».spec (GF := GF) (hG := hG))
-    (hLen : backend.bucketBuffer.Len.spec (GF := GF) (hG := hG))
-    (hLess : backend.bucketBuffer.Less.spec (GF := GF) (hG := hG))
-    (hSwap : backend.bucketBuffer.Swap.spec (GF := GF) (hG := hG))
     (hMerge : backend.bucketBuffer.merge.spec (GF := GF) (hG := hG))
     (hReset : backend.txWriteBuffer.reset.spec (GF := GF) (hG := hG)) :
     backend.txWriteBuffer.writeback.spec (GF := GF) (hG := hG) := by
@@ -231,9 +197,10 @@ theorem backend.txWriteBuffer.writeback.wp_proof
     | some rbv =>
       obtain ⟨res, hBRr⟩ := bksOwn_some HdomR' hMR
       have hRk : R.bks !! key = some res := by rw [← hBRk]; exact hBRr
-      have hwf : wbBucketOk (W.seq !! key) es :=
-        hwf0.resolve_right (fun h => by rw [h.2] at hRk; cases hRk)
-      unfold wbBucketOk at hwf
+      -- a bucket not written by `put` is sorted (one written by `put` is deduplicated)
+      have hwf : W.seq !! key ≠ some false → entsSorted es := fun hne => by
+        have h := hwf0.resolve_right (fun h => hne h.1)
+        unfold wbBucketOk at h; simpa [hne] using h
       have hRs : entsSorted res := HRf key res hRk
       have hlen : res.length + es.length < bufBound := by
         have := Hbound key; unfold bkOf at this; rw [hWk, hRk] at this; simpa using this
@@ -243,53 +210,31 @@ theorem backend.txWriteBuffer.writeback.wp_proof
       icases bksOwn_acc Hmv hBW $$ HW with ⟨Hwb, HWback⟩
       rcases hseq : W.seq !! key with _ | ⟨_ | _⟩
       all_goals simp only [hseq, Option.isSome_none, Option.isSome_some, Bool.false_eq_true,
-        decide_false, _root_.decide_true, ↓reduceIte, reduceCtorEq] at hwf ⊢
+        decide_false, _root_.decide_true, ↓reduceIte, reduceCtorEq, ne_eq, not_false_eq_true,
+        forall_const, Option.some.injEq, Bool.true_eq_false] at hwf ⊢
       case' some.false =>
-        iunfold ownBB at Hwb
-        icases Hwb with ⟨%p, Hwb, %Hok⟩
-        iunfold bbAt at Hwb
-        icases Hwb with ⟨Hbb, Hsl, Hcap, #Hro, #Hin⟩
         wp_auto
-        ihave Hwb : ownBB wbv es $$ [Hbb Hsl Hcap]
-        · iunfold ownBB
-          iexists p
-          iunfold bbAt
-          iframe Hbb Hsl Hcap Hro Hin
-          ipureintro; exact Hok
-        have hlen' : es.length < bufBound := by omega
-        unfold bufBound at hlen'
-        by_cases hgt : 1 < es.length
-        case' pos =>
-          rw [_root_.decide_eq_true (show sint.Z (W64 1) < sint.Z (W64 es.length) by word)]
-          wp_auto
-          ihave #Hsorter := backend.txWriteBuffer.writeback.bbSorter hLen hLess hSwap wbv $$ Hpkg
-          wp_apply (hSort Ent (interface.mk (go.GoType.PointerType bucketBuffer.ty) #wbv) (ownBB wbv)
-              (fun a b : Ent => decide (strLt a.1 b.1)) es entLt_swo) $$ [$Hsorter $Hwb]
-            as %es2 ⟨Hwb, %Hes2⟩
-          · ipureintro; omega
-          have hperm : es.Perm es2 := Hes2.1
-          have hs2 : entsSorted es2 := entsSorted_of_sorted_nodup Hes2.1 hwf Hes2.2
-          have hnd : (es.map Prod.fst).Nodup := hwf
-        case' neg =>
-          rw [_root_.decide_eq_false (show ¬ sint.Z (W64 1) < sint.Z (W64 es.length) by word)]
-          wp_auto
-          obtain ⟨es2, hes2⟩ : ∃ es2, es2 = es := ⟨es, rfl⟩
-          ihave Hwb : ownBB wbv es2 $$ [Hwb]
-          · rw [hes2]; iexact Hwb
-          have hperm : es.Perm es2 := hes2 ▸ List.Perm.refl es
-          have hs2 : entsSorted es2 := hes2 ▸ entsSorted_le_one es (by omega)
-          have hnd : (es.map Prod.fst).Nodup := hwf
+        wp_apply (hDedupe wbv es) $$ [$Hwb] as Hwb
+        obtain ⟨es2, hes2⟩ : ∃ es2, es2 = canon es := ⟨_, rfl⟩
+        ihave Hwb : ownBB wbv es2 $$ [Hwb]
+        · rw [hes2]; iexact Hwb
+        have hs2 : entsSorted es2 := hes2 ▸ canon_sorted es
+        have hlen2 : res.length + es2.length < bufBound := by
+          have := canon_length_le es; rw [hes2]; omega
+        have hcanon : canon (res ++ es2) = canon (res ++ es) := hes2 ▸ canon_append_canon res es
+        have hemp : es2.isEmpty = es.isEmpty := hes2 ▸ canon_isEmpty es
       case' none | some.true =>
         wp_auto
         obtain ⟨es2, hes2⟩ : ∃ es2, es2 = es := ⟨es, rfl⟩
         ihave Hwb : ownBB wbv es2 $$ [Hwb]
         · rw [hes2]; iexact Hwb
-        have hperm : es.Perm es2 := hes2 ▸ List.Perm.refl es
         have hs2 : entsSorted es2 := hes2 ▸ hwf
-        have hnd : (es.map Prod.fst).Nodup := entsSorted_nodup hwf
+        have hlen2 : res.length + es2.length < bufBound := hes2 ▸ hlen
+        have hcanon : canon (res ++ es2) = canon (res ++ es) := hes2 ▸ rfl
+        have hemp : es2.isEmpty = es.isEmpty := hes2 ▸ rfl
       all_goals
         icases bksOwn_acc hMR hBRr $$ HR with ⟨Hrb, HRback⟩
-        wp_apply (hMerge rbv res wbv es2 hRs hs2 (by rw [← hperm.length_eq]; exact hlen))
+        wp_apply (hMerge rbv res wbv es2 hRs hs2 hlen2)
           $$ [$Hrb $Hwb] as ⟨Hrb, Hwb⟩
         ihave HW := HWback $$ %es2 Hwb
         ihave HR := HRback $$ %(canon (res ++ es2)) Hrb
@@ -317,8 +262,7 @@ theorem backend.txWriteBuffer.writeback.wp_proof
             rw [GMap.lookup_insert, GMap.lookup_filter, hWk]
             have : decide (id ∈ R.bks) = true := by simp [GMap.mem_iff, hRk]
             simp only [Option.map_some, Option.filter, this, ↓reduceIte, Option.some.injEq]
-            cases es <;> cases es2 <;> simp_all [List.Perm.length_eq hperm] <;>
-              exact absurd hperm.length_eq (by simp)
+            exact hemp
           · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)]
             exact HBW' id (hid.resolve_right he)
         · intro id
@@ -328,7 +272,7 @@ theorem backend.txWriteBuffer.writeback.wp_proof
             rw [GMap.lookup_insert, wbMerge_lookup_some hWk]
             simp only [List.mem_append, List.mem_singleton, _root_.or_true, ↓reduceIte, bkOf, hRk,
               Option.getD_some]
-            rw [canon_append_perm hperm hnd]
+            rw [hcanon]
           · rw [GMap.lookup_insert_ne _ _ (Ne.symm he), HBR id]
             simp [he]
   isplitr
@@ -384,6 +328,23 @@ theorem backend.txWriteBuffer.writeback.wp_proof
   iframe HbkR Hver
   iapply ownBks_close
   iframe HmR HR
+
+/-- The spec before etcd#22298 (at the pin): a bucket written by `put` may repeat a key only if
+the read buffer lacks it (the merge branch only sorted it, `sort.Sort`, assuming distinct keys). -/
+abbrev backend.txWriteBuffer.writeback.spec_old : Prop :=
+  ∀ (txw : Loc) (W : WBuf) (txr : Loc) (R : RBuf),
+  W.WfR (fun id => R.bks.lookup id = none) → R.Wf →
+  (∀ id, (bkOf R.bks id).length + (bkOf W.bks id).length < bufBound) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ownWB txw W ∗ ownRB txr R }}
+    (App (Val (txw @!! go.GoType.PointerType txWriteBuffer.ty @!! go!"writeback")) (Val #txr))
+  {{ RET #(); ownWB txw (writebackW W R) ∗ ownRB txr (writebackR W R) }}
+
+/-- The new spec is compatible: its premise is weaker, its postcondition the same. -/
+theorem backend.txWriteBuffer.writeback.spec_implies_old :
+    backend.txWriteBuffer.writeback.spec (GF := GF) (hG := hG) →
+    backend.txWriteBuffer.writeback.spec_old (GF := GF) (hG := hG) := by
+  intro h txw W txr R hW hR hb
+  exact h txw W txr R (hW.mono (fun _ _ => trivial)) hR hb
 
 end proof
 
