@@ -1,0 +1,8 @@
+=== RUN   TestWatchCancelStormLeaksServerWatchers
+    watch_send_queue_test.go:173: closed 300 watches: server got 300 cancel requests, 1 watches left on the server (keeper included); after one more event each: 300 cancel requests, 1 watches left
+--- PASS: TestWatchCancelStormLeaksServerWatchers (1.57s)
+=== RUN   TestWatchRequestProgressDroppedWhenQueueFull
+    watch_send_queue_test.go:217: RequestProgress returned <nil>; progress requests the server got: 1; keeper got a progress notification: true
+--- PASS: TestWatchRequestProgressDroppedWhenQueueFull (0.74s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	3.434s

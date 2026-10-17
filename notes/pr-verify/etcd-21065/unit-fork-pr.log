@@ -1,0 +1,10 @@
+    watch_send_queue_test.go:173: closed 300 watches: server got 129 cancel requests, 172 watches left on the server (keeper included); after one more event each: 129 cancel requests, 172 watches left
+    watch_send_queue_test.go:176: 171 closed watches are still registered on the server, and the client will never cancel them
+--- FAIL: TestWatchCancelStormLeaksServerWatchers (1.53s)
+=== RUN   TestWatchRequestProgressDroppedWhenQueueFull
+    watch_send_queue_test.go:217: RequestProgress returned <nil>; progress requests the server got: 0; keeper got a progress notification: false
+    watch_send_queue_test.go:219: RequestProgress returned nil, but its request was dropped: no progress notification
+--- FAIL: TestWatchRequestProgressDroppedWhenQueueFull (2.71s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	4.260s
+FAIL

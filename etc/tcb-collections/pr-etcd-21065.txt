@@ -1,0 +1,34 @@
+# etcd-io/etcd#21065 (notes/pr-verify/etcd-21065.md): the client watch stream's functions the PR
+# changes or adds, and their caller.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21065.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots watchGRPCStream__(run|sendLoop|recvLoop|enqueueCreateReq|enqueueBestEffortReq|newWatchClient)\.lean
+roots watchRequest__toPB\.lean
+roots watcher__newWatcherGRPCStream\.lean
+axiom context.WithCancelValCtx.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcServesStream
+axiom grpcServesStream_persistent
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
+axiom streamKeyFromCtx.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
+sorry watchGRPCStream.run.wp_proof

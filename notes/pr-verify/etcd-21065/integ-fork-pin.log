@@ -1,0 +1,13 @@
+=== RUN   TestV3WatchInProcessCancelStormServerWatchers
+    v3_watch_inprocess_cancel_storm_test.go:77: server watchers with all 2001 watches open: 2001
+    v3_watch_inprocess_cancel_storm_test.go:115: server watchers 5s after closing 2000 watches: 1919; after an event for each: 1919 (want 1, the keeper); keeper gets its event: false; a new watch is created: false
+    v3_watch_inprocess_cancel_storm_test.go:118: the watch stream is stuck
+    v3_watch_inprocess_cancel_storm_test.go:121: 1918 closed watches are still registered on the server
+--- FAIL: TestV3WatchInProcessCancelStormServerWatchers (19.66s)
+=== RUN   TestV3WatchGRPCCancelStormServerWatchers
+    v3_watch_inprocess_cancel_storm_test.go:77: server watchers with all 2001 watches open: 2001
+    v3_watch_inprocess_cancel_storm_test.go:115: server watchers 5s after closing 2000 watches: 1; after an event for each: 1 (want 1, the keeper); keeper gets its event: true; a new watch is created: true
+--- PASS: TestV3WatchGRPCCancelStormServerWatchers (9.10s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	28.838s
+FAIL

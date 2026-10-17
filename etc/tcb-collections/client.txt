@@ -82,3 +82,4 @@ axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Uint.wp_proof
+sorry watchGRPCStream.run.wp_proof
