@@ -1,0 +1,2 @@
+server/etcdserver/api/snap/message.go: NewMessage: changed
+server/etcdserver/snapshot_merge.go: newSnapshotReaderCloser: changed

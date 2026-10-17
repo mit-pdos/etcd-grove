@@ -1,0 +1,2 @@
+# go.etcd.io/etcd/server/v3/etcdserver/api/snap
+etcdserver/api/snap/message.go:42:24: rs.Size undefined (type *raftpb.Message has no field or method Size)

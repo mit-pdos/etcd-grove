@@ -3,7 +3,6 @@ module
 
 public import Perennial.Code.io
 public import Code.google_golang_org.protobuf.proto
-public import Code.go_etcd_io.etcd.pkg.v3.ioutil
 public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Golang.Defn
 
@@ -76,7 +75,7 @@ noncomputable def NewMessage [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.New"
 
-/-- go: message.go:41:6 -/
+/-- go: message.go:40:6 -/
 noncomputable def NewMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rs"
   (Lam "rc"
@@ -87,16 +86,14 @@ noncomputable def NewMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "rs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "rs"))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoAlloc Message.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "rs"))
-  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (Var "rc"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rcSize"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.NewExactReadCloser []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (Var "rc"))
   (Let "$v2" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "rs")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Size []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "rcSize"))))
   (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv go.bool)]))) (Val #())) (Val #(W64 1)))
   (App (Val (GoInstruction (CompositeLiteral Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Message")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"ReadCloser")) (ElementExpression _root_.Perennial.io.ReadCloser.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"TotalSize")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"closeC")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv go.bool) (Var "$v3")))])))))))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap where
-  pkgImportedPkgs := [pkg_id.io, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.pkg.v3.ioutil, pkg_id.go_etcd_io.raft.v3.raftpb]
+  pkgImportedPkgs := [pkg_id.io, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.raft.v3.raftpb]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -104,7 +101,6 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -129,8 +125,6 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.proto.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))))
 
@@ -202,7 +196,6 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewMessage_unfold : FuncUnfold NewMessage [] NewMessage.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
-  import_ioutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
 
 attribute [instance] Assumptions.Message_instance
@@ -210,7 +203,6 @@ attribute [instance] Assumptions.Message_instance
   Assumptions.NewMessage_unfold
   Assumptions.import_io_Assumption
   Assumptions.import_proto_Assumption
-  Assumptions.import_ioutil_Assumption
   Assumptions.import_raftpb_Assumption
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap

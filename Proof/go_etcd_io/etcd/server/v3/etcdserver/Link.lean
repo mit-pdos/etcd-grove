@@ -153,9 +153,6 @@ public import Proof.container.heap.Push
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
-public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.NewExactReadCloser
-public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser__Close
-public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser__Read
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
@@ -677,18 +674,6 @@ theorem heap.wp_Push :
 theorem idutil.wp_NewGenerator :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
   idutil.NewGenerator.wp_proof idutil.wp_lowbit
-
-theorem ioutil.wp_NewExactReadCloser :
-    ioutil.NewExactReadCloser.spec (GF := GF) (hG := hG) :=
-  ioutil.NewExactReadCloser.wp_proof
-
-theorem ioutil.exactReadCloser.wp_Close :
-    ioutil.exactReadCloser.Close.spec (GF := GF) (hG := hG) :=
-  ioutil.exactReadCloser.Close.wp_proof
-
-theorem ioutil.exactReadCloser.wp_Read :
-    ioutil.exactReadCloser.Read.spec (GF := GF) (hG := hG) :=
-  ioutil.exactReadCloser.Read.wp_proof
 
 theorem lease.LeaseQueue.wp_Len :
     lease.LeaseQueue.Len.spec (GF := GF) (hG := hG) :=
@@ -1255,7 +1240,7 @@ theorem raftNode.wp_getLatestTickTs :
 
 theorem snap.wp_NewMessage :
     snap.NewMessage.spec (GF := GF) (hG := hG) :=
-  snap.NewMessage.wp_proof ioutil.wp_NewExactReadCloser proto.wp_SizeMessage
+  snap.NewMessage.wp_proof proto.wp_SizeMessage
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=

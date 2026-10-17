@@ -1,0 +1,16 @@
+=== RUN   TestSnapshotSend
+    snapshot_test.go:88: #2: snapshot expected false, got true
+    snapshot_test.go:91: #2: expected 0 files, got 1 files
+--- FAIL: TestSnapshotSend (0.52s)
+=== RUN   TestSnapshotSendTruncatedByEOF
+    snapshot_truncated_test.go:41: a snapshot truncated to 262144 of 1048576 bytes was reported as sent
+    snapshot_truncated_test.go:44: the receiver kept 1 file(s) of a truncated snapshot: [- 0000000000000000.snap.db]
+--- FAIL: TestSnapshotSendTruncatedByEOF (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.546s
+FAIL
+    snapshot_long_test.go:17: 5 bytes sent for a declared 1: sent=true, 1 file(s) kept
+--- FAIL: TestSnapshotSendLongerThanDeclared (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.037s
+FAIL

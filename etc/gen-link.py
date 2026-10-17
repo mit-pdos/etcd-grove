@@ -26,6 +26,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
+       etc/gen-link.py --ioutil > Proof/go_etcd_io/etcd/pkg/v3/ioutil/Link.lean
        etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
        etc/gen-link.py --apply > Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean
        etc/gen-link.py --v3rpc > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Link.lean
@@ -168,6 +169,11 @@ LEAN_FIRST = {
     "--adt": ("link-lean-first-adt.txt", "go_etcd_io.etcd.pkg.v3.adt",
               "go_etcd_io.etcd.pkg.v3.adt.Assumptions",
               "The interval tree's proofs (etcd's `pkg/v3/adt`)", [""]),
+    # pkg/ioutil's exact reader (branch pr-verify/etcd-21569: etcd PR #21569 drops its one use,
+    # snap.NewMessage's, so no package the server's Link reaches imports ioutil any more)
+    "--ioutil": ("link-lean-first-ioutil.txt", "go_etcd_io.etcd.pkg.v3.ioutil",
+                 "go_etcd_io.etcd.pkg.v3.ioutil.Assumptions",
+                 "The exact reader's proofs (etcd's `pkg/v3/ioutil`, `readcloser.go`)", [""]),
     # the server's txn package (etcd's server/v3/etcdserver/txn), over the mvcc core
     "--txn": ("link-lean-first-txn.txt",
               "go_etcd_io.etcd.server.v3.etcdserver.txn go_etcd_io.etcd.server.v3.storage.mvcc "

@@ -29,7 +29,6 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
-public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.Base
 
 @[expose] public section
 
@@ -128,8 +127,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.config
 
--- (`snap` imports `pkg/v3/ioutil`, `io`, `proto` and `raftpb` on branch pr-verify/etcd-21569,
--- where `NewMessage` is translated with its body: `ioutil`'s instance is in its own `Base.lean`)
+-- (`snap` imports `io`, `proto` and `raftpb` on branch pr-verify/etcd-21569, where `NewMessage`
+-- is translated with its body)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=

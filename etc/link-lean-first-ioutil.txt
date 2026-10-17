@@ -1,0 +1,7 @@
+# etcd's pkg/ioutil exact reader (readcloser.go, with bodies; all Lean-first), read by
+# `etc/gen-link.py --ioutil`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# Branch pr-verify/etcd-21569: until etcd PR #21569, snap.NewMessage wrapped the snapshot's
+# database stream in it.
+ioutil_NewExactReadCloser:
+ioutil_exactReadCloser__Read:
+ioutil_exactReadCloser__Close:

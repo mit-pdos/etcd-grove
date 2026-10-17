@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.go_etcd_io.etcd.pkg.v3.ioutil
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io

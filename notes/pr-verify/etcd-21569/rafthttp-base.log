@@ -1,0 +1,7 @@
+=== RUN   TestSnapshotSend
+--- PASS: TestSnapshotSend (1.53s)
+=== RUN   TestSnapshotSendTruncatedByEOF
+--- PASS: TestSnapshotSendTruncatedByEOF (0.51s)
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	2.070s
+--- PASS: TestSnapshotSendLongerThanDeclared (0.50s)
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.516s
