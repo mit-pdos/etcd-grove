@@ -1,0 +1,3 @@
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	4.185s
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.045s
+ok  	go.etcd.io/etcd/etcdutl/v3/etcdutl	0.208s

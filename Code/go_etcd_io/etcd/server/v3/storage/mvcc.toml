@@ -42,6 +42,10 @@ translate = ["!*",
   "store.compactBarrier",
   # kvstore_compaction.go
   "store.scheduleCompaction",
+  # hash.go, kvstore.go: the hasher's filter (split out in the fork) and the hash's
+  # parameters (etcd-io/etcd#21202, pr-verify/etcd-21202)
+  "kvHashIncludes", "store.prepareHashParams", "store.hashByRev",
+  "store.hashByRevWithCompactRev", "store.hashByRevDetailed",
   # store.go
   "UnsafeReadFinishedCompact", "UnsafeReadScheduledCompact", "SetScheduledCompact",
   "UnsafeSetScheduledCompact", "SetFinishedCompact", "UnsafeSetFinishedCompact",

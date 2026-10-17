@@ -1,0 +1,33 @@
+=== RUN   TestReviewDetailedDropsUndecodableValue
+    review_21202_test.go:46: before corruption: {Hash:644646427 CompactRevision:-1 Revision:3}
+    review_21202_test.go:47: plain after corruption: {Hash:741228910 CompactRevision:-1 Revision:3} err=<nil>
+    review_21202_test.go:48: detailed total after corruption: {Hash:1404801747 CompactRevision:-1 Revision:3} err=<nil> keys=[{Key:foo Hash:3551063610 ModRev:2}]
+    review_21202_test.go:50: plain hash 741228910 != detailed total hash 1404801747 on the same store (undecodable value at rev 3 skipped by detailed mode)
+--- FAIL: TestReviewDetailedDropsUndecodableValue (0.02s)
+=== RUN   TestReviewCompactRevMaxInt64Overflow
+    review_21202_test.go:67: compactRev 0: {Hash:1339616597 CompactRevision:-1 Revision:6} <nil>
+    review_21202_test.go:68: compactRev MaxInt64: {Hash:1339616597 CompactRevision:9223372036854775807 Revision:6} <nil>
+    review_21202_test.go:69: compactRev MaxInt64-1: {Hash:1767330009 CompactRevision:9223372036854775806 Revision:6} <nil>
+    review_21202_test.go:71: compactRev MaxInt64 hashes every revision (== compactRev 0: 1339616597), MaxInt64-1 only the live ones (1767330009): overflow of compactRevision+1
+--- FAIL: TestReviewCompactRevMaxInt64Overflow (0.07s)
+=== RUN   TestReviewCompactRevNotIgnored
+    review_21202_test.go:87: stores differing only at revision 2, --rev 3 --compact-rev 2: {Hash:2899885886 CompactRevision:2 Revision:3} vs {Hash:3929263715 CompactRevision:2 Revision:3}
+    review_21202_test.go:89: revision 2 (<= compactRev 2) is not ignored: hashes differ (2899885886 vs 3929263715); it is hashed because it is live at 3
+    review_21202_test.go:103: empty keep, stores differing only at revision 2, --rev 5 --compact-rev 4: {Hash:3972353419 CompactRevision:4 Revision:5} vs {Hash:780571620 CompactRevision:4 Revision:5}
+    review_21202_test.go:105: empty keep: revision 2 (<= compactRev 4, deleted at 3) is hashed: 3972353419 vs 780571620
+--- FAIL: TestReviewCompactRevNotIgnored (0.09s)
+=== RUN   TestReviewDetailedTombstoneAmbiguous
+    review_21202_test.go:123: key hashes: [{Key:foo Hash:3551063610 ModRev:2} {Key:foo Hash:658718044 ModRev:3} {Key:foo Hash:1640387034 ModRev:3}] (KeyCount 3)
+    review_21202_test.go:130: 2 entries share key@modRevision foo@3 (tombstone and put not distinguished)
+--- FAIL: TestReviewDetailedTombstoneAmbiguous (0.03s)
+=== RUN   TestReviewUnsafeHashErrorFields
+    review_21202_test.go:149: unsafeHashByRev: {Hash:1084519789 CompactRevision:7 Revision:9} err=forEach failed
+    review_21202_test.go:150: unsafeHashByRevDetailed: {TotalHash:{Hash:0 CompactRevision:0 Revision:0} KeyHashes:[] CompactRevision:0 Revision:0 KeyCount:0} err=forEach failed
+    review_21202_test.go:152: detailed result on error has CompactRevision 0 / TotalHash {Hash:0 CompactRevision:0 Revision:0} / Revision 0, not 7/9
+--- FAIL: TestReviewUnsafeHashErrorFields (0.00s)
+=== RUN   TestReviewHashCache
+    review_21202_test.go:169: cached(5,0)={Hash:42 CompactRevision:3 Revision:5} cached(5,3)={Hash:42 CompactRevision:3 Revision:5} computed(5,4)={Hash:2286871934 CompactRevision:4 Revision:5}
+--- PASS: TestReviewHashCache (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.243s
+FAIL

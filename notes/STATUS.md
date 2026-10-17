@@ -45,6 +45,31 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21202 verified: the hash's parameters, `--compact-rev` (2026-10-17, branch `pr-verify/etcd-21202`, not for `lean`)
+
+The PR adds `etcdutl hashkv --compact-rev/--detailed/--output` and, in mvcc,
+`store.prepareHashParams` (the old `hashByRev`'s checks, with a caller's compaction revision),
+`hashByRevWithCompactRev`, `hashByRevDetailed` (`hashByRev` delegates with `0`), and
+`kvHasher.shouldWriteKeyValue` (`WriteKeyValue`'s filter, moved). The fork branch
+`pr-etcd-21202-goose-lean` splits that filter into `kvHashIncludes` (as pr-verify/etcd-22562 did;
+proved: the filter at the pin, `HashFilter.lean`'s `hashInclF_size_old`). `prepareHashParams`,
+`hashByRevWithCompactRev`, `hashByRev`, `hashByRevDetailed` are translated (`mvcc.toml`) and
+proved, no `sorry`, over two new trust-boundary axioms (`unsafeHashByRev`,
+`unsafeHashByRevDetailed`: crc32 and the backend's `UnsafeForEach`) and three premises
+(`HashParams.lean`): `0 ≤ rev` (`issues/etcd-hashkv-negative-revision.md`), a positive custom
+compaction revision at or above the store's (`hashCrevOk`: the PR's check does not refuse a
+revision the store compacted, the report's finding 1), and `storeCmp` (below). Report:
+`notes/pr-verify/etcd-21202.md`.
+
+Limits met here (worked around locally): the backend contract's `ReadTx` (`isKeyBackendG`) needs
+the bucket's view, which only `s.revMu`'s resource holds, but `hashByRev` (before and after the
+PR) calls it after releasing `s.revMu`, under `s.mu` alone; the specs use the compaction's
+view-less `ReadTx` (`metaReadTx`, under `storeCmp`), enough since the hash is opaque. The
+histogram `hashRevSec` is a premise (`hashRevSecOk`), not in `mvccInit` (adding it rebuilds every
+mvcc proof). `d.Seconds()` on a `time.Duration` needs `backend/InvBatch.lean`'s
+`notInterface_int64` instance; the regenerated server `Link.lean` drops its own
+`time.Duration.wp_Seconds`, now mvcc's.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

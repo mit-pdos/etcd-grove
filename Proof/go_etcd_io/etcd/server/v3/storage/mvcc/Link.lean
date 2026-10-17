@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHashIncludes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents
@@ -102,9 +103,14 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompa
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__hashByRev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__hashByRevDetailed
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__hashByRevWithCompactRev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__prepareHashParams
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
+public import Proof.time.Duration__Seconds
 public import Proof.time.NewTicker
 public import Proof.time.Since
 public import Proof.time.Ticker__Reset
@@ -133,6 +139,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__FirstRe
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.unsafeHashByRev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.unsafeHashByRevDetailed
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
@@ -364,6 +372,10 @@ theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_put
 
+theorem mvcc.wp_kvHashIncludes :
+    mvcc.kvHashIncludes.spec (GF := GF) (hG := hG) :=
+  mvcc.kvHashIncludes.wp_proof mvcc.wp_BytesToRev mvcc.wp_BytesToBucketKey mvcc.Revision.wp_GreaterThan
+
 theorem mvcc.kvHasher.wp_Hash :
     mvcc.kvHasher.Hash.spec (GF := GF) (hG := hG) :=
   mvcc.kvHasher.Hash.wp_proof
@@ -539,6 +551,10 @@ theorem zap.Logger.wp_Warn :
 theorem mvcc.treeIndex.wp_Keep [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Keep.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Keep.wp_proof btree.BTree.wp_Ascend mvcc.keyIndex.wp_keep
+
+theorem time.Duration.wp_Seconds :
+    time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
+  time.Duration.Seconds.wp_proof
 
 end links
 
@@ -798,6 +814,30 @@ theorem mvcc.store.wp_Write :
 theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
   mvcc.store.compactLockfree.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.wp_TODO mvcc.store.wp_compact
+
+theorem mvcc.store.wp_prepareHashParams [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.prepareHashParams.spec (GF := GF) (hG := hG) :=
+  mvcc.store.prepareHashParams.wp_proof mvcc.treeIndex.wp_Keep
+
+theorem mvcc.wp_unsafeHashByRev :
+    mvcc.unsafeHashByRev.spec (GF := GF) (hG := hG) :=
+  mvcc.unsafeHashByRev.wp_proof
+
+theorem mvcc.store.wp_hashByRevWithCompactRev [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.hashByRevWithCompactRev.spec (GF := GF) (hG := hG) :=
+  mvcc.store.hashByRevWithCompactRev.wp_proof mvcc.store.wp_prepareHashParams mvcc.wp_unsafeHashByRev time.wp_Since time.Duration.wp_Seconds
+
+theorem mvcc.store.wp_hashByRev [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.hashByRev.spec (GF := GF) (hG := hG) :=
+  mvcc.store.hashByRev.wp_proof mvcc.store.wp_hashByRevWithCompactRev
+
+theorem mvcc.wp_unsafeHashByRevDetailed :
+    mvcc.unsafeHashByRevDetailed.spec (GF := GF) (hG := hG) :=
+  mvcc.unsafeHashByRevDetailed.wp_proof
+
+theorem mvcc.store.wp_hashByRevDetailed [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.hashByRevDetailed.spec (GF := GF) (hG := hG) :=
+  mvcc.store.hashByRevDetailed.wp_proof mvcc.store.wp_prepareHashParams mvcc.wp_unsafeHashByRevDetailed time.wp_Since time.Duration.wp_Seconds
 
 theorem trace.wp_SpanFromContext :
     trace.SpanFromContext.spec (GF := GF) (hG := hG) :=

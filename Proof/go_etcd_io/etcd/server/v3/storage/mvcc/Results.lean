@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.StoreBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashFilter
 
 @[expose] public section
 
@@ -530,3 +531,15 @@ end Perennial
 #print axioms Perennial.EtcdGrove.mvcc_readView_FirstRev_frozen
 #print axioms Perennial.EtcdGrove.mvcc_store_Rev_frozen
 #print axioms Perennial.EtcdGrove.mvcc.rangeAnswers_not_del
+-- the hash's filter and parameters after etcd-io/etcd#21202 (pr-verify/etcd-21202,
+-- `HashFilter.lean`, `HashParams.lean`)
+#print axioms Perennial.EtcdGrove.mvcc.wp_kvHashIncludes
+#print axioms Perennial.EtcdGrove.mvcc.hashInclF_size_old
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_prepareHashParams
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_hashByRevWithCompactRev
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_hashByRev
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_hashByRevDetailed
+-- (pr-verify/etcd-22562's theorems on the filter, copied with `HashFilter.lean`)
+#print axioms Perennial.EtcdGrove.mvcc.hashIncl_keep_compact
+#print axioms Perennial.EtcdGrove.mvcc.hashInclOld_keep_compact_differ
+#print axioms Perennial.EtcdGrove.mvcc.hashInclOld_empty_ne

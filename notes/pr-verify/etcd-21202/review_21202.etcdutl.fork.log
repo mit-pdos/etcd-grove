@@ -1,0 +1,9 @@
+    review_21202_etcdutl_test.go:57: stdout:
+    review_21202_etcdutl_test.go:60: stdout of --detailed -w json is not one JSON document: invalid character '{' after top-level value
+--- FAIL: TestReviewDetailedStdoutMixed (0.03s)
+    review_21202_etcdutl_test.go:77: mode -rw-r--r--, contents [
+    review_21202_etcdutl_test.go:85: --output without --detailed: no file written, no error (stat /shared/etcd-grove-pr/etcd-21202-scratch/tmp/TestReviewOutputFile769079252/003/never.json: no such file or directory)
+--- PASS: TestReviewOutputFile (0.03s)
+FAIL
+FAIL	go.etcd.io/etcd/etcdutl/v3/etcdutl	0.125s
+FAIL

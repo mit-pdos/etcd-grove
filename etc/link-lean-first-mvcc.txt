@@ -235,6 +235,18 @@ newKVHasher:
 kvHasher__WriteKeyValue:
 kvHasher__Hash:
 hashStorage__Store:
+# pr-verify/etcd-21202 (etcd-io/etcd#21202): the hasher's filter, split out in the fork from the
+# PR's `shouldWriteKeyValue` (the filter at the pin, `HashFilter.lean`'s `hashInclF_size_old`), and
+# the hash's parameters (`HashParams.lean`); the hash itself (`unsafeHashByRev`,
+# `unsafeHashByRevDetailed`: crc32 and the backend's `UnsafeForEach`) at the trust boundary
+kvHashIncludes: BytesToRev BytesToBucketKey Revision__GreaterThan
+unsafeHashByRev:
+unsafeHashByRevDetailed:
+time_Duration__Seconds:
+store__prepareHashParams: treeIndex__Keep
+store__hashByRevWithCompactRev: store__prepareHashParams unsafeHashByRev time_Since time_Duration__Seconds
+store__hashByRevDetailed: store__prepareHashParams unsafeHashByRevDetailed time_Since time_Duration__Seconds
+store__hashByRev: store__hashByRevWithCompactRev
 keyIndex__doCompact: generation__walk
 keyIndex__compact: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__doCompact generation__isEmpty
 keyIndex__keep: keyIndex__isEmpty keyIndex__doCompact generation__isEmpty

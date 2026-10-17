@@ -139,6 +139,8 @@ axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom mvcc.store.Close.wp_proof
 axiom mvcc.store.restore.wp_proof
+axiom mvcc.unsafeHashByRev.wp_proof
+axiom mvcc.unsafeHashByRevDetailed.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom peer.Peer.String.wp_proof
 axiom prometheus.CounterVec.WithLabelValues.wp_proof

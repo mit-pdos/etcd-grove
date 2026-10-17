@@ -1,0 +1,25 @@
+=== RUN   TestHashByRevWithCompactRevBelowStoreCompaction
+    hash_compactrev_21202_test.go:65: compacted at 10: {Hash:1084519789 CompactRevision:3 Revision:5} err=<nil>; uncompacted: {Hash:2490824558 CompactRevision:3 Revision:5} err=<nil>
+    hash_compactrev_21202_test.go:67: HashByRevWithCompactRev(5, 3) on a store compacted at 10: err = <nil>, want ErrCompacted
+--- FAIL: TestHashByRevWithCompactRevBelowStoreCompaction (0.05s)
+=== RUN   TestHashByRevWithCompactRevBelowStoreCompactionDiffers
+    hash_compactrev_21202_test.go:80: compacted at 10: {Hash:699097053 CompactRevision:3 Revision:15} err=<nil>; uncompacted: {Hash:3976135748 CompactRevision:3 Revision:15} err=<nil>
+    hash_compactrev_21202_test.go:82: same history, same (rev 15, compactRev 3), no error, different hashes: 0x29ab5fdd vs 0xecff0444
+--- FAIL: TestHashByRevWithCompactRevBelowStoreCompactionDiffers (0.04s)
+=== RUN   TestHashByRevWithCompactRevAtStoreCompactionAgrees
+--- PASS: TestHashByRevWithCompactRevAtStoreCompactionAgrees (0.04s)
+=== RUN   TestHashByRevWithCompactRevEmptyKeepDisagrees
+    hash_compactrev_21202_test.go:106: compacted at 10: {Hash:4272701477 CompactRevision:10 Revision:21} err=<nil>; uncompacted: {Hash:1933587130 CompactRevision:10 Revision:21} err=<nil>
+    hash_compactrev_21202_test.go:108: same history, every key deleted at 21, (rev 21, compactRev 10): 0xfeac4025 vs 0x734032ba
+--- FAIL: TestHashByRevWithCompactRevEmptyKeepDisagrees (0.04s)
+=== RUN   TestHashByRevWithCompactRevAboveRev
+    hash_compactrev_21202_test.go:119: rev 21 explicit: err=mvcc: required revision has been compacted; rev 0: {Hash:2877210342 CompactRevision:121 Revision:21} err=<nil>
+    hash_compactrev_21202_test.go:121: compactRev 121 above the current revision 21: explicit rev err=mvcc: required revision has been compacted, rev 0 err=<nil> (result {Hash:2877210342 CompactRevision:121 Revision:21})
+--- FAIL: TestHashByRevWithCompactRevAboveRev (0.02s)
+=== RUN   TestHashByRevDetailedTotalMatches
+--- PASS: TestHashByRevDetailedTotalMatches (0.09s)
+=== RUN   TestHasherStoreWithCompactRev
+--- PASS: TestHasherStoreWithCompactRev (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.334s
+FAIL

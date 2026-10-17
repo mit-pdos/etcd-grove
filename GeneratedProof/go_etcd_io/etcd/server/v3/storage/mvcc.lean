@@ -133,6 +133,188 @@ instance KeyValueHash_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.serve
 end def_
 end KeyValueHash
 
+namespace KeyRevisionHash
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+instance KeyRevisionHash_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash where
+  typedPointstoDef l v dq := iprop(
+    "Key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Key" l) v.Key' dq ∗
+    "Hash" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Hash" l) v.Hash' dq ∗
+    "ModRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"ModRev" l) v.ModRev' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance KeyRevisionHash_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash.underlying := by
+  solve_into_val_typed_struct
+
+instance KeyRevisionHash_access_load_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Key" l) v.Key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeyRevisionHash_access_store_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (Key' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Key" l) Key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := Key' } : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeyRevisionHash_access_load_Hash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Hash" l) v.Hash' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Hash" l) v.Hash' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeyRevisionHash_access_store_Hash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (Hash' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Hash" l) v.Hash' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"Hash" l) Hash' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hash' := Hash' } : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeyRevisionHash_access_load_ModRev (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"ModRev" l) v.ModRev' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"ModRev" l) v.ModRev' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeyRevisionHash_access_store_ModRev (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (ModRev' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"ModRev" l) v.ModRev' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash go!"ModRev" l) ModRev' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ModRev' := ModRev' } : go_etcd_io.etcd.server.v3.storage.mvcc.KeyRevisionHash) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end KeyRevisionHash
+
+namespace DetailedHashResult
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+instance DetailedHashResult_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult where
+  typedPointstoDef l v dq := iprop(
+    "TotalHash" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"TotalHash" l) v.TotalHash' dq ∗
+    "KeyHashes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyHashes" l) v.KeyHashes' dq ∗
+    "CompactRevision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"CompactRevision" l) v.CompactRevision' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"Revision" l) v.Revision' dq ∗
+    "KeyCount" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyCount" l) v.KeyCount' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance DetailedHashResult_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult.underlying := by
+  solve_into_val_typed_struct
+
+instance DetailedHashResult_access_load_TotalHash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"TotalHash" l) v.TotalHash' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"TotalHash" l) v.TotalHash' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_store_TotalHash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (TotalHash' : go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"TotalHash" l) v.TotalHash' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"TotalHash" l) TotalHash' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalHash' := TotalHash' } : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_load_KeyHashes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyHashes" l) v.KeyHashes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyHashes" l) v.KeyHashes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_store_KeyHashes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (KeyHashes' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyHashes" l) v.KeyHashes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyHashes" l) KeyHashes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeyHashes' := KeyHashes' } : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_load_CompactRevision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"CompactRevision" l) v.CompactRevision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"CompactRevision" l) v.CompactRevision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_store_CompactRevision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (CompactRevision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"CompactRevision" l) v.CompactRevision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"CompactRevision" l) CompactRevision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactRevision' := CompactRevision' } : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"Revision" l) v.Revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (Revision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"Revision" l) Revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := Revision' } : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_load_KeyCount (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyCount" l) v.KeyCount' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyCount" l) v.KeyCount' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance DetailedHashResult_access_store_KeyCount (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (KeyCount' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyCount" l) v.KeyCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult go!"KeyCount" l) KeyCount' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeyCount' := KeyCount' } : go_etcd_io.etcd.server.v3.storage.mvcc.DetailedHashResult) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end DetailedHashResult
+
 namespace hashStorage
 section def_
 
@@ -223,6 +405,63 @@ instance hashStorage_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.st
 
 end def_
 end hashStorage
+
+namespace kvHasherDetailed
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+instance kvHasherDetailed_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed where
+  typedPointstoDef l v dq := iprop(
+    "kvHasher" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"kvHasher" l) v.kvHasher' dq ∗
+    "keyHashes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"keyHashes" l) v.keyHashes' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance kvHasherDetailed_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed.underlying := by
+  solve_into_val_typed_struct
+
+instance kvHasherDetailed_access_load_kvHasher (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"kvHasher" l) v.kvHasher' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"kvHasher" l) v.kvHasher' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasherDetailed_access_store_kvHasher (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed) (kvHasher' : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"kvHasher" l) v.kvHasher' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"kvHasher" l) kvHasher' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvHasher' := kvHasher' } : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasherDetailed_access_load_keyHashes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"keyHashes" l) v.keyHashes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"keyHashes" l) v.keyHashes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasherDetailed_access_store_keyHashes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed) (keyHashes' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"keyHashes" l) v.keyHashes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed go!"keyHashes" l) keyHashes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyHashes' := keyHashes' } : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasherDetailed) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end kvHasherDetailed
 
 namespace treeIndex
 section def_

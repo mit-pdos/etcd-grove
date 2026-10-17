@@ -212,7 +212,6 @@ public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.strconv.FormatBool
-public import Proof.time.Duration__Seconds
 public import Proof.time.Time__After
 public import Proof.time.Time__IsZero
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
@@ -360,10 +359,6 @@ theorem wp_isConnectedToQuorumSince :
 theorem strconv.wp_FormatBool :
     strconv.FormatBool.spec (GF := GF) (hG := hG) :=
   strconv.FormatBool.wp_proof
-
-theorem time.Duration.wp_Seconds :
-    time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
-  time.Duration.Seconds.wp_proof
 
 theorem prometheus.HistogramVec.wp_WithLabelValues :
     prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG) :=

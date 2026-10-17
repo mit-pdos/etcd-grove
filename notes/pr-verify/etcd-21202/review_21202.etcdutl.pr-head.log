@@ -1,0 +1,28 @@
+go: downloading github.com/olekukonko/tablewriter v1.1.3
+go: downloading github.com/olekukonko/ll v0.1.4-0.20260115111900-9e59c2286df0
+go: downloading github.com/clipperhouse/displaywidth v0.6.2
+=== RUN   TestReviewDetailedStdoutMixed
+    review_21202_etcdutl_test.go:57: stdout:
+        [
+          {
+            "key": "secret-key-name",
+            "hash": 3192029884,
+            "modRevision": 2
+          }
+        ]
+        {"hash":972079552,"hashRevision":2,"compactRevision":-1}
+    review_21202_etcdutl_test.go:60: stdout of --detailed -w json is not one JSON document: invalid character '{' after top-level value
+--- FAIL: TestReviewDetailedStdoutMixed (0.02s)
+=== RUN   TestReviewOutputFile
+    review_21202_etcdutl_test.go:77: mode -rw-r--r--, contents [
+          {
+            "key": "secret-key-name",
+            "hash": 3192029884,
+            "modRevision": 2
+          }
+        ]
+    review_21202_etcdutl_test.go:85: --output without --detailed: no file written, no error (stat /shared/etcd-grove-pr/etcd-21202-scratch/tmp/TestReviewOutputFile4185968449/003/never.json: no such file or directory)
+--- PASS: TestReviewOutputFile (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/etcdutl/v3/etcdutl	0.061s
+FAIL

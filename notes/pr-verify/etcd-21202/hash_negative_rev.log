@@ -1,0 +1,6 @@
+    hash_negative_rev_test.go:38: HashByRev(-5) = {Hash:1084519789 CompactRevision:-1 Revision:-5}, current revision 10, err <nil>
+    hash_negative_rev_test.go:40: HashByRev(-5): no error, hash {Hash:1084519789 CompactRevision:-1 Revision:-5} (current revision 10)
+--- FAIL: TestHashByRevNegativeRevision (0.04s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.057s
+FAIL

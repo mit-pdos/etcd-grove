@@ -1,0 +1,31 @@
+/-
+The trust boundary: `unsafeHashByRevDetailed` (`hash.go`, #21202's; names-only but for `kvHashIncludes`: the
+hasher's crc32 has no Perennial model, and the backend's `UnsafeForEach` no spec; pr-verify/etcd-21202).
+Its revision fields are what `newKVHasherDetailed` stores, `kvHasher.Hash` returns and the result's literal copies (read in the Go code).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.unsafeHashByRevDetailed
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+axiom mvcc.unsafeHashByRevDetailed.wp_proof : mvcc.unsafeHashByRevDetailed.spec (GF := GF) (hG := hG)
+
+end proof
+
+end EtcdGrove
+end Perennial
