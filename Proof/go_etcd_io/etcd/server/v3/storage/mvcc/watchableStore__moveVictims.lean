@@ -126,7 +126,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %Hset⟩
+  icases HP with ⟨%σ, HP, %HsetR⟩
+  obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   wp_auto
@@ -145,7 +146,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
   · iframe Hvbs Hmov
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
   · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody; ipureintro
-    exact mvcc.takeState_settled Hset slice.nil
+    exact ⟨mvcc.takeState_settled Hset slice.nil, Hsrb⟩
   ihave %Hvsl := ownSlice_len $$ Hvs
   have Hone := Hok.v_one
   generalize σ.vbs = vbs0 at *
@@ -293,9 +294,10 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
             iframe Hm Hf Hlb0 Hwf Hreg
             ipureintro
             rw [hrev]
-            refine ⟨?_, Or.inl ?_⟩
+            refine ⟨?_, Or.inl ?_, fun _ => ?_⟩
             · show _ ≤ (((sint.Z stw.minRev).toNat : Nat) : Int); omega
             · show (((sint.Z stw.minRev).toNat : Nat) : Int) ≤ _; omega
+            · show ((γw.lo : Nat) : Int) ≤ _; omega
           iapply BigSepL.bigSepL_nil.2; iempintro
         · simp only [cs, he, ↓reduceIte]
           iapply mvcc.covPre_nil
@@ -430,7 +432,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     wp_auto_lc 1
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
     iunfold mvcc.watchStoreInv at HP
-    icases HP with ⟨%σ1, HP, %Hset1⟩
+    icases HP with ⟨%σ1, HP, %HsetR1⟩
+    obtain ⟨Hset1, Hsrb1⟩ := HsetR1
     wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
     wp_auto_lc 2
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
@@ -459,18 +462,19 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         "Hsent" ∷ ([∗map] w ↦ p ∈ PS', mvcc.sentW γ w p) ∗
         "Hbody" ∷ mvcc.watchStoreBody s γ 1 σ' ∗
         "%Hq" ∷ ⌜0 ≤ j ∧ σ'.Lmu <+: C ∧
-          (∀ k, PS' !! k = if k ∈ keys2.take j.toNat then none else PS !! k) ∧ σ'.settled⌝)) $$ Hvbm
+          (∀ k, PS' !! k = if k ∈ keys2.take j.toNat then none else PS !! k) ∧ σ'.settled ∧
+          σ'.srBelow σ'.Lmu.length⌝)) $$ Hvbm
     iintro %keys2 ⟨%Hkset2, %Hklen2, %Hknodup2⟩
     isplitl [eb w s newVictim curRev Hnvm Hsent Hbody]
     · iexists σ1, PS, zero_val Loc, zero_val Loc
       simp only [named, show (0 : Int).toNat = 0 from rfl, List.take_zero]
       iframe eb w s newVictim curRev Hnvm Hsent Hbody
-      ipureintro; exact ⟨Int.le_refl _, HpC, fun k => by simp, Hset1⟩
+      ipureintro; exact ⟨Int.le_refl _, HpC, fun k => by simp, Hset1, Hsrb1⟩
     isplitr
     · imodintro
       iintro %j %key %v ⟨%Hkey, %Hv⟩ HP
       iNamed HP
-      obtain ⟨hj0, HLC, HPS', Hset'⟩ := Hq
+      obtain ⟨hj0, HLC, HPS', Hset', Hsrb'⟩ := Hq
       rw [GMap.lookup_fmap] at Hv
       obtain ⟨b, hp⟩ : ∃ b, PB !! key = some (v, b) := by
         cases h : PB !! key with
@@ -529,7 +533,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         rw [hj1]
         iframe eb w s newVictim curRev Hnvm Hsent Hbody
         ipureintro
-        refine ⟨by omega, HLC, fun k => ?_, Hset'⟩
+        refine ⟨by omega, HLC, fun k => ?_, Hset', Hsrb'⟩
         rw [HPS' k, mvcc.mv_take_succ keys2 j.toNat key Hkey]
         by_cases hk : k = key
         · subst hk; simp [hpsk]
@@ -608,7 +612,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           iframe eb w s newVictim curRev Hnvm Hsent Hbody
           ipureintro
           refine ⟨by omega, HLC, fun k => ?_,
-            mvcc.readdState_settled HokB Hset' r Hwo false _ (fun h => by cases h)⟩
+            mvcc.readdState_settled HokB Hset' r Hwo false _ (fun h => by cases h), Hsrb'⟩
           rw [mvcc.mv_take_succ keys2 j.toNat key Hkey]
           show GMap.delete key PS' !! k = _
           by_cases hk : k = key
@@ -651,7 +655,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           refine ⟨by omega, HLC, fun k => ?_,
             mvcc.readdState_settled HokB Hset' r Hwo true _ (fun _ => by
               have := Hset'.2.2 key stw Hwo
-              show sint.nat stw.minRev ≤ σ'.Lmu.length; omega)⟩
+              show sint.nat stw.minRev ≤ σ'.Lmu.length; omega),
+            Hsrb'⟩
           rw [mvcc.mv_take_succ keys2 j.toNat key Hkey]
           show GMap.delete key PS' !! k = _
           by_cases hk : k = key
@@ -659,7 +664,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           · rw [GMap.lookup_delete_ne _ (Ne.symm hk), HPS' k]; simp [hk]
     iintro HQ Hvbm
     iNamed HQ
-    obtain ⟨-, HLC, HPS', Hset'⟩ := Hq
+    obtain ⟨-, HLC, HPS', Hset', Hsrb'⟩ := Hq
     wp_auto
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ]
     · inext
@@ -672,7 +677,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     iintro HrevMuR
     wp_auto
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
-    · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody; ipureintro; exact Hset'
+    · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody; ipureintro; exact ⟨Hset', Hsrb'⟩
     wp_for_post
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     iframe HΦ Hmur HmuR HrevMuR HtiR HrtR s HvsM HvcapM
@@ -708,7 +713,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       wp_auto_lc 1
       imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
       iunfold mvcc.watchStoreInv at HP
-      icases HP with ⟨%σ2, HP, %Hset2⟩
+      icases HP with ⟨%σ2, HP, %HsetR2⟩
+      obtain ⟨Hset2, Hsrb2⟩ := HsetR2
       iunfold mvcc.watchStoreBody at HP
       iNamed HP
       icases persistent_entails_right (mvcc.mv_nv_wo γ σ2 Hok NV) $$ [$Hmeta $Hst $Hwo $Hnvr]
@@ -732,7 +738,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         iintro H; iframe H; ipureintro; exact (Hn.2.2.1 k x hk).1
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
       · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody; ipureintro
-        exact mvcc.appendState_settled Hok Hset2 NV vs' nvv (fun w x h => (HNV2 w x h).1)
+        exact ⟨mvcc.appendState_settled Hok Hset2 NV vs' nvv (fun w x h => (HNV2 w x h).1), Hsrb2⟩
       (try wp_auto)
       iapply HΦ $$ HR
     · (try wp_auto)

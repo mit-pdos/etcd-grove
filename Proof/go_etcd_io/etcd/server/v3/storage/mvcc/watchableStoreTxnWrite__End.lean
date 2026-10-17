@@ -484,7 +484,8 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %Hset⟩
+  icases HP with ⟨%σ, HP, %HsetR⟩
+  obtain ⟨Hset, Hsrb⟩ := HsetR
   icases persistent_entails_right (mvcc.body_pin s stw st γ σ ilog pend chs ps) $$
     [$HP $Hwlog $Hcore] with ⟨%Hpin, HP, Hwlog, Hcore⟩
   obtain ⟨hLmu, hbel⟩ := Hpin
@@ -505,7 +506,8 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     [$Hws0 $HP $Hlb $Hesl $Hdone] as ⟨Hesl, %σ', HP, %Hσ'⟩
   · ipureintro
     exact ⟨⟨hLmu, hbel, by rw [← hLmu]; exact Hset.2, by omega, Hwfc.2.2.2.2⟩, hdl, hevd⟩
-  obtain ⟨hLmu', hab, hbel', hvic'⟩ := Hσ'
+  obtain ⟨hLmu', hab, hbel', hvic', hMeq⟩ := Hσ'
+  have hLL : σ.Lmu.length = σ'.Lmu.length := by rw [hLmu, hLmu']
   (try wp_auto)
   ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog pend puts deletes putSize) $$ [Hcw]
   · simp only [mvcc.isTxnEnd]; iexists chs, ps, true; iexact Hcw
@@ -530,7 +532,14 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
         rw [List.length_append, List.length_singleton]; exact hbel'
       · show σ'.vicBelow (σ'.Lmu ++ [pend]).length
         rw [List.length_append, List.length_singleton]; exact hvic'
-    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP; ipureintro; exact hs''
+    have hsr'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).srBelow
+        ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).Lmu.length := by
+      intro w γw hm hs
+      have h0 : σ.M !! w = some γw := by rw [← hMeq]; exact hm
+      have := Hsrb w γw h0 hs
+      have hl := hLL
+      simp only [List.length_append, List.length_singleton]; omega
+    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP; ipureintro; exact ⟨hs'', hsr''⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd Hc Htrc

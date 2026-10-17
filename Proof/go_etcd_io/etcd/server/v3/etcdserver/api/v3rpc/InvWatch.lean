@@ -302,7 +302,7 @@ restricted (`watchReqOk`) and, for a create request, comes with a watch token of
 def upOk (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
   iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝ ∗
     (match m with
-     | .create _ => mvcc.watchTok γ
+     | .create c => mvcc.watchTok γ ∗ mvcc.startRead γ c.sr c.startRev
      | _ => iprop(True)))
 
 instance upOk_persistent (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) :
@@ -315,7 +315,7 @@ gives with each request, `Up` of the registered method): the request is restrict
 def watchUp (γ : mvcc.WsNames) (_i : Nat) (m : WatchReqM) : IProp GF :=
   iprop(⌜watchReqOk m⌝ ∗
     (match m with
-     | .create _ => mvcc.watchTok γ
+     | .create c => mvcc.watchTok γ ∗ mvcc.startRead γ c.sr c.startRev
      | _ => iprop(True)))
 
 /-- The registered content meets the watch server's restrictions and budget (`upOk`). -/

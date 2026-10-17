@@ -956,7 +956,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     iframe Hst Hmem Hout
     ipureintro
     refine ⟨⟨Hvlen, mvcc.WsOk_vs Hok vs'⟩, hLmu, fun w γw ed hw => ?_, fun w γw ed hw => ?_,
-      fun w st h1 hst => ?_, fun w st h => ?_⟩
+      ⟨fun w st h1 hst => ?_, fun w st h => ?_⟩, by first | rfl | trivial⟩
     · rw [hWse] at hw; cases hw
     · rw [hWse] at hw; cases hw
     · have := hvic.1 w st h1 hst; omega
@@ -1273,12 +1273,13 @@ theorem mvcc.watchableStore.notify.wp_proof
         ipureintro; rfl
       ipureintro; exact hok'
   ipureintro
-  refine ⟨hLmu, habove, mvcc.notify_settled σ N Hok hvic (by omega) _
+  have hns := mvcc.notify_settled σ N Hok hvic (by omega) _
     (fun k h => by
       cases hb : mvcc.batchOf σ.Ws σ.ST (mvcc.evsOfRevM N (stateAfter ilog) pend) !! k with
       | none => rw [hb] at h; cases h
       | some B => obtain ⟨r, _, hW, -⟩ := mvcc.batchOf_some hb; rw [hW]; rfl)
-    PB keys hkeys STi Wsi (GMap.fmap Prod.snd PBv) Out PBr Hrel vs' vm hvo'⟩
+    PB keys hkeys STi Wsi (GMap.fmap Prod.snd PBv) Out PBr Hrel vs' vm hvo'
+  exact ⟨hLmu, habove, hns.1, hns.2, rfl⟩
 
 end proof
 end EtcdGrove

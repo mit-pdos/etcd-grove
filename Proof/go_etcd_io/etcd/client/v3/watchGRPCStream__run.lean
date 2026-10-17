@@ -1328,8 +1328,9 @@ theorem watchGRPCStream.run.wp_proof
         · iframe
           unfold v3rpc.watchUp
           iframe
-          ipureintro
-          simp [v3rpc.watchReqOk, createOf]
+          isplitr
+          · ipureintro; simp [v3rpc.watchReqOk, createOf]
+          dsimp only; iframe; iunfold mvcc.startRead; ileft; ipureintro; rfl
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
             cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗ ⌜client.addCase S L' si si⌝ ∗
             (match si with
@@ -2074,8 +2075,9 @@ theorem watchGRPCStream.run.wp_proof
           · iframe
             unfold v3rpc.watchUp
             iframe
-            ipureintro
-            simp [v3rpc.watchReqOk, createOf]
+            isplitr
+            · ipureintro; simp [v3rpc.watchReqOk, createOf]
+            dsimp only; iframe; iunfold mvcc.startRead; ileft; ipureintro; rfl
           ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
               cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗
               ⌜(L' = S1.L ∧ si = none ∧ si = none) ∨

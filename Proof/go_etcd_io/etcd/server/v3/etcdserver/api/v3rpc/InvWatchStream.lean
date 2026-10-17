@@ -88,6 +88,9 @@ structure CreateReqM where
   prevKv : Bool
   watchId : w64
   fragment : Bool
+  /-- (K2e-6; ghost, not on the wire) the client's start revision was read from the store: the
+  request comes with `mvcc.startRead` (`watchUp`), the watcher registered with it. -/
+  sr : Bool := false
 
 /-- **A `*pb.WatchRequest`** as the server reads it: its oneof. `other` is a request the server
 ignores (an empty oneof, or a wrapper whose request is `nil`). -/
@@ -112,7 +115,7 @@ structure WatchRespM where
 
 instance CreateReqM.countable : Pos.Countable CreateReqM :=
   .ofInjective (fun c => Pos.Countable.encode (c.key, c.rangeEnd, c.startRev, c.progressNotify,
-      c.filters, c.prevKv, c.watchId, c.fragment))
+      c.filters, c.prevKv, c.watchId, c.fragment, c.sr))
     (fun a b h => by
       have := Pos.encode_inj h
       cases a; cases b; simp_all)

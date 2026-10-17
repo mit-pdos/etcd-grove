@@ -270,6 +270,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     rcases m with c | cid | _ | _
     · -- create
       ihave ⟨%Hok, Htok⟩ := Hup $$ HUp
+      icases Htok with ⟨Htok, #Hsrd⟩
       obtain ⟨Hpkv, Hfrag, Hfil, Hwid0⟩ := Hok
       ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L (.create c) $$ Hrt
       icases Hm with ⟨%cr, Hon, Hcr⟩
@@ -456,13 +457,16 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · unfold v3rpc.wParams mvcc.storeWatchParams; iexact Htok
         wp_apply hWatch r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo ctx'
           { r.cd with Values := vs } c.watchId ks' es2 fsl (if c.key = [] then [W8 0] else c.key)
-          (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) [] c.startRev $$ [$HR $Htok]
+          (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) [] c.startRev c.sr $$ [$HR $Htok]
           as %id' %werr ⟨Hwres, HR⟩
         · iframe #
           isplitl
           · iapply BigSepL.bigSepL_nil.2; iempintro
-          ipureintro; exact ⟨hsr0, Hwid0⟩
-        icases Hwres with (⟨%Hwe, %Hrng, %w, %lo, -, #HIWF, #Hia, Hit, %γc', #HOC, %Hrg⟩ | ⟨%Hid, Hwe⟩)
+          isplitr
+          · ipureintro; exact ⟨hsr0, Hwid0⟩
+          unfold v3rpc.wParams mvcc.storeWatchParams; iexact Hsrd
+        icases Hwres with (⟨%Hwe, %Hrng, %w, %lo, -, #HIWF, #Hia, Hit, ⟨%γc', #HOC, %Hrg⟩, #HWS⟩ |
+          ⟨%Hid, Hwe⟩)
         have Hid : c.watchId ≠ W64 0 → id' = c.watchId := fun h => absurd Hwid0 h
         · -- registered
           subst Hwe

@@ -41,7 +41,7 @@ abbrev mvcc.watchableStore.notify.spec : Prop :=
       (Val #(W64 ilog.length))) (Val #evs))
   {{ RET #(); evs ↦*{dq} es ∗ ∃ σ' : mvcc.WsState, mvcc.watchStoreBody s γ 1 σ' ∗
       ⌜σ'.Lmu = ilog ∧ σ'.syncedAbove (ilog.length + 1) ∧
-        σ'.syncedBelow (ilog.length + 1) ∧ σ'.vicBelow (ilog.length + 1)⌝ }}
+        σ'.syncedBelow (ilog.length + 1) ∧ σ'.vicBelow (ilog.length + 1) ∧ σ'.M = σ.M⌝ }}
 
 end spec
 
