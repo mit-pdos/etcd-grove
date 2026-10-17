@@ -1,0 +1,47 @@
+# etcd PR #22046 (branch pr-verify/etcd-22046 only): the snapshotter's pending-apply marks
+# (server/etcdserver/api/snap: New, markPendingDB, isPendingDB, ReleaseDBSnapshot,
+# ReleaseSnapDBs, SaveDBFrom) and storage.OpenSnapshotBackend, linked in the server's Link.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22046.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^snap\.
+roots storage\.wp_OpenSnapshotBackend$
+axiom config.ServerConfig.BackendPath.wp_proof
+axiom filepath.Base.wp_proof
+axiom filepath.Join.wp_proof
+axiom fileutil.Exist.wp_proof
+axiom fileutil.Fsync.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom go_humanize.Bytes.wp_proof
+axiom io.Copy.wp_proof
+axiom os.CreateTemp.wp_proof
+axiom os.File.Close.wp_proof
+axiom os.File.Name.wp_proof
+axiom os.File.Readdirnames.wp_proof
+axiom os.IsNotExist.wp_proof
+axiom os.Open.wp_proof
+axiom os.Remove.wp_proof
+axiom os.Rename.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.dbFilePath.wp_proof
+axiom snap.fsyncSnapDir.wp_proof
+axiom storage.OpenBackend.wp_proof
+axiom strconv.ParseUint.wp_proof
+axiom strings.HasSuffix.wp_proof
+axiom strings.TrimSuffix.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.NewNop.wp_proof
+axiom zap.String.wp_proof
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_into_val_typed
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_typed_pointsto
