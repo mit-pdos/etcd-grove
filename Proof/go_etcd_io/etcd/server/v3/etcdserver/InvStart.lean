@@ -28,7 +28,8 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
 * the reader slots `start` hands on: `s.lgMu`'s for `run` and for the read loop, and
   `s.firstCommitInTerm`'s for the read loop;
 * the write budget `txn.storeWTs E.γ N` (the backend's unit 6: the store's write tokens, one per
-  applied entry; `start`'s callers take `2 ^ 64 ≤ N`, every index's).
+  applied entry; `start`'s callers take the lifetime bound `srvLifeBound ρ.raft N`, D14g:
+  at most `N` entries ever applied).
 -/
 module
 
@@ -116,8 +117,8 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
-    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.P E.f ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD E.authOn ∗
+    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authOn ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗

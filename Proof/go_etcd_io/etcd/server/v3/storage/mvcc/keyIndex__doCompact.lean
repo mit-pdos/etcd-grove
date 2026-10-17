@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__doCompact
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -24,6 +25,59 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+set_option hygiene false in
+/-- The generation `gi` found, its `HcgI` given (the scan stopped at it, or it is the last): its
+`walk` from the end, collecting the revisions at or below `atRev`, and the result. -/
+local macro "dc_walk" : tactic => `(tactic| (
+    obtain ⟨gm, Hgm⟩ : ∃ gm, ki.gens[(sint.Z gi).toNat]? = some gm :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z gi) gm Hgi.1 Hgm $$ Hgens
+      with ⟨%gv, Hel, Hg, Hback⟩
+    wp_apply (h0 (sliceIndexRef generation (sint.Z gi) gs) gv gm dq _ (mvcc.pAbove atRev)
+      iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) A ∗ atRev_ptr ↦ atRev)
+      (fun r => iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) (GMap.insert (mvcc.revVal r) () A) ∗
+        atRev_ptr ↦ atRev))) $$ [Hel Hg Hm available atRev] as ⟨Hel, Hg, Hpost⟩
+    · iframe Hel Hg Hm available atRev
+      iunfold mvcc.walkFnSpecR
+      imodintro
+      iintro %r
+      wp_start as ⟨Hav, Hm, Hat⟩
+      wp_auto
+      wp_if_destruct
+      · -- at or below `atRev`: kept
+        wp_apply (wp_mapInsert Revision.ty m A r (zero_val Unit)) $$ [$(frameH `Hm)] as Hm
+        have hp : mvcc.pAbove atRev (mvcc.revOf r) = false := by
+          unfold mvcc.pAbove; rw [mvcc.revOf_main]; exact decide_eq_false (by omega)
+        simp only [hp, Bool.false_eq_true, ↓reduceIte, mvcc.revVal_revOf]
+        iapply HΦ
+        iframe
+      · -- above `atRev`: on
+        have hp : mvcc.pAbove atRev (mvcc.revOf r) = true := by
+          unfold mvcc.pAbove; rw [mvcc.revOf_main]; exact decide_eq_true (by omega)
+        simp only [hp, ↓reduceIte]
+        iapply HΦ
+        iframe
+    have Hgd : ki.gens.getD (sint.Z gi).toNat mvcc.Gen.empty = gm := by
+      simp [List.getD_eq_getElem?_getD, Hgm]
+    ispecialize Hback $$ %gv %gm Hel Hg
+    rw [mvcc.set_same Hgm]
+    have Hcr : mvcc.compactRevIdx atRev ki = mvcc.genWalk gm.revs (mvcc.pAbove atRev) := by
+      unfold mvcc.compactRevIdx; rw [HcgI, Hgd]
+    have Hav : mvcc.kiAvail atRev ki = if mvcc.genWalk gm.revs (mvcc.pAbove atRev) = -1 then none
+        else some (gm.revs.getD (mvcc.genWalk gm.revs (mvcc.pAbove atRev)).toNat mvcc.Rev.zero) := by
+      unfold mvcc.kiAvail; rw [HcgI, Hgd]
+    rw [HcgI, Hcr, Hav, show W64 (((sint.Z gi).toNat : Nat) : Int) = gi by word]
+    unfold mvcc.walkPost
+    split
+    all_goals
+      icases Hpost with ⟨Hav, Hm, Hat⟩
+      iapply HΦ
+      simp only [mvcc.availAdd]
+      iframe Hm
+      iunfold mvcc.ownKi
+      iframe
+  ))
 
 theorem mvcc.keyIndex.doCompact.wp_proof
     (h0 : mvcc.generation.walk.spec (GF := GF) (hG := hG)) :
@@ -99,60 +153,7 @@ theorem mvcc.keyIndex.doCompact.wp_proof
       have HcgI : mvcc.compactGenIdx atRev ki.gens = (sint.Z gi).toNat :=
         mvcc.compactGenIdx_eq atRev ki.gens _ (by omega) Hgi.2.2
           (Or.inr (by unfold mvcc.tombZ; rw [Hgd0]; omega))
-      obtain ⟨gm, Hgm⟩ : ∃ gm, ki.gens[(sint.Z gi).toNat]? = some gm :=
-        ⟨_, List.getElem?_eq_getElem (by omega)⟩
-      icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z gi) gm Hgi.1 Hgm $$ Hgens
-        with ⟨%gv, Hel, Hg, Hback⟩
-      wp_apply (h0 (sliceIndexRef generation (sint.Z gi) gs) gv gm dq _ (mvcc.pAbove atRev)
-        iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) A ∗ atRev_ptr ↦ atRev)
-        (fun r => iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) (GMap.insert (mvcc.revVal r) () A) ∗
-          atRev_ptr ↦ atRev))) $$ [Hel Hg Hm available atRev] as ⟨Hel, Hg, Hpost⟩
-      · iframe Hel Hg Hm available atRev
-        iunfold mvcc.walkFnSpecR
-        imodintro
-        iintro %r
-        wp_start as ⟨Hav, Hm, Hat⟩
-        wp_auto
-        wp_if_destruct
-        · -- at or below `atRev`: kept
-          wp_apply (wp_mapInsert Revision.ty m A r (zero_val Unit)) $$ [$Hm] as Hm
-          have hp : mvcc.pAbove atRev (mvcc.revOf r) = false := by
-            unfold mvcc.pAbove; rw [mvcc.revOf_main]; exact decide_eq_false (by omega)
-          simp only [hp, Bool.false_eq_true, ↓reduceIte, mvcc.revVal_revOf]
-          iapply HΦ
-          iframe
-        · -- above `atRev`: on
-          have hp : mvcc.pAbove atRev (mvcc.revOf r) = true := by
-            unfold mvcc.pAbove; rw [mvcc.revOf_main]; exact decide_eq_true (by omega)
-          simp only [hp, ↓reduceIte]
-          iapply HΦ
-          iframe
-      have Hgd : ki.gens.getD (sint.Z gi).toNat mvcc.Gen.empty = gm := by
-        simp [List.getD_eq_getElem?_getD, Hgm]
-      ispecialize Hback $$ %gv %gm Hel Hg
-      rw [mvcc.set_same Hgm]
-      have Hcr : mvcc.compactRevIdx atRev ki = mvcc.genWalk gm.revs (mvcc.pAbove atRev) := by
-        unfold mvcc.compactRevIdx; rw [HcgI, Hgd]
-      have Hav : mvcc.kiAvail atRev ki = if mvcc.genWalk gm.revs (mvcc.pAbove atRev) = -1 then none
-          else some (gm.revs.getD (mvcc.genWalk gm.revs (mvcc.pAbove atRev)).toNat mvcc.Rev.zero) := by
-        unfold mvcc.kiAvail; rw [HcgI, Hgd]
-      rw [HcgI, Hcr, Hav, show W64 (((sint.Z gi).toNat : Nat) : Int) = gi by word]
-      unfold mvcc.walkPost
-      split
-      · rename_i hw
-        icases Hpost with ⟨Hav, Hm, Hat⟩
-        iapply HΦ
-        simp only [mvcc.availAdd]
-        iframe Hm
-        iunfold mvcc.ownKi
-        iframe
-      · rename_i hw
-        icases Hpost with ⟨Hav, Hm, Hat⟩
-        iapply HΦ
-        simp only [mvcc.availAdd]
-        iframe Hm
-        iunfold mvcc.ownKi
-        iframe
+      dc_walk
     · -- below `atRev`: the next generation
       have Hb1 : 0 ≤ sint.Z (gi + W64 1) ∧ sint.Z (gi + W64 1) < sint.Z gs.len := by word
       simp only [Hb1, _root_.and_self, ↓reduceIte]
@@ -172,60 +173,7 @@ theorem mvcc.keyIndex.doCompact.wp_proof
     have Hgi' : sint.Z gi = (ki.gens.length : Int) - 1 := by word
     have HcgI : mvcc.compactGenIdx atRev ki.gens = (sint.Z gi).toNat :=
       mvcc.compactGenIdx_eq atRev ki.gens _ (by omega) Hgi.2.2 (Or.inl (by omega))
-    obtain ⟨gm, Hgm⟩ : ∃ gm, ki.gens[(sint.Z gi).toNat]? = some gm :=
-      ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z gi) gm Hgi.1 Hgm $$ Hgens
-      with ⟨%gv, Hel, Hg, Hback⟩
-    wp_apply (h0 (sliceIndexRef generation (sint.Z gi) gs) gv gm dq _ (mvcc.pAbove atRev)
-      iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) A ∗ atRev_ptr ↦ atRev)
-      (fun r => iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) (GMap.insert (mvcc.revVal r) () A) ∗
-        atRev_ptr ↦ atRev))) $$ [Hel Hg Hm available atRev] as ⟨Hel, Hg, Hpost⟩
-    · iframe Hel Hg Hm available atRev
-      iunfold mvcc.walkFnSpecR
-      imodintro
-      iintro %r
-      wp_start as ⟨Hav, Hm, Hat⟩
-      wp_auto
-      wp_if_destruct
-      · -- at or below `atRev`: kept
-        wp_apply (wp_mapInsert Revision.ty m A r (zero_val Unit)) $$ [$Hm] as Hm
-        have hp : mvcc.pAbove atRev (mvcc.revOf r) = false := by
-          unfold mvcc.pAbove; rw [mvcc.revOf_main]; exact decide_eq_false (by omega)
-        simp only [hp, Bool.false_eq_true, ↓reduceIte, mvcc.revVal_revOf]
-        iapply HΦ
-        iframe
-      · -- above `atRev`: on
-        have hp : mvcc.pAbove atRev (mvcc.revOf r) = true := by
-          unfold mvcc.pAbove; rw [mvcc.revOf_main]; exact decide_eq_true (by omega)
-        simp only [hp, ↓reduceIte]
-        iapply HΦ
-        iframe
-    have Hgd : ki.gens.getD (sint.Z gi).toNat mvcc.Gen.empty = gm := by
-      simp [List.getD_eq_getElem?_getD, Hgm]
-    ispecialize Hback $$ %gv %gm Hel Hg
-    rw [mvcc.set_same Hgm]
-    have Hcr : mvcc.compactRevIdx atRev ki = mvcc.genWalk gm.revs (mvcc.pAbove atRev) := by
-      unfold mvcc.compactRevIdx; rw [HcgI, Hgd]
-    have Hav : mvcc.kiAvail atRev ki = if mvcc.genWalk gm.revs (mvcc.pAbove atRev) = -1 then none
-        else some (gm.revs.getD (mvcc.genWalk gm.revs (mvcc.pAbove atRev)).toNat mvcc.Rev.zero) := by
-      unfold mvcc.kiAvail; rw [HcgI, Hgd]
-    rw [HcgI, Hcr, Hav, show W64 (((sint.Z gi).toNat : Nat) : Int) = gi by word]
-    unfold mvcc.walkPost
-    split
-    · rename_i hw
-      icases Hpost with ⟨Hav, Hm, Hat⟩
-      iapply HΦ
-      simp only [mvcc.availAdd]
-      iframe Hm
-      iunfold mvcc.ownKi
-      iframe
-    · rename_i hw
-      icases Hpost with ⟨Hav, Hm, Hat⟩
-      iapply HΦ
-      simp only [mvcc.availAdd]
-      iframe Hm
-      iunfold mvcc.ownKi
-      iframe
+    dc_walk
 
 end proof
 

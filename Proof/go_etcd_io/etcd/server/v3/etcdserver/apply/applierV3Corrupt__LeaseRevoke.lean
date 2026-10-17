@@ -37,24 +37,9 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
   iunfold apply.revokePre at Hpre
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨%Hk, -, -, -, Hkv, Hres, Hcs⟩
-  wp_auto
-  iapply HΦ
-  iunfold apply.kvPost
-  iexists (.rejected .corrupt)
-  isplitr
-  · ipureintro
-    simp only [apply.chainStep, apply.corruptRejects, Hk.2, ↓reduceIte]
-  simp only [apply.revokeOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-  iframe Hkv Hres
-  isplitl []
-  · isplitl []
-    · ipureintro; trivial
-    iunfold txn.errVarIs
-    iexists eC
-    iframe HeC
-    ipureintro; rfl
-  iright
-  iapply apply.csContract_pre $$ Hcs
+  -- D14h: no lease revocation in the workload
+  have hF := Hk.2.2
+  simp only [apply.rqOk, Hk.2.1] at hF
 
 end proof
 

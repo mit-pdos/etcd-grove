@@ -1,0 +1,8 @@
+# Types and names only: the types `transport.TLSInfo`'s function-typed fields name, `*tls.Conn`
+# and `tls.Certificate` (unit N4, 2026-10-17), and the type of `clientv3.Config`'s field `TLS`,
+# `*tls.Config` (item 5, client construction).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

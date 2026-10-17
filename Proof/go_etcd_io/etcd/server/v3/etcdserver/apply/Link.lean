@@ -182,10 +182,6 @@ theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Info.wp_proof
 
-theorem storage.wp_NewBackendQuota :
-    EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.NewBackendQuota.wp_proof
-
 theorem zap.Logger.wp_Panic :
     EtcdGrove.zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Panic.wp_proof
@@ -416,6 +412,10 @@ theorem applierV3backend.wp_DowngradeInfoSet :
 theorem wp_newApplierV3Backend [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.newApplierV3Backend.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.newApplierV3Backend.wp_proof applierV3backend.wp_Apply applierV3backend.wp_Put applierV3backend.wp_DeleteRange applierV3backend.wp_Range applierV3backend.wp_Txn applierV3backend.wp_LeaseRevoke applierV3backend.wp_LeaseGrant applierV3backend.wp_LeaseCheckpoint applierV3backend.wp_Alarm applierV3backend.wp_Authenticate applierV3backend.wp_UserAdd applierV3backend.wp_UserDelete applierV3backend.wp_UserChangePassword applierV3backend.wp_UserGrantRole applierV3backend.wp_UserGet applierV3backend.wp_UserRevokeRole applierV3backend.wp_RoleAdd applierV3backend.wp_RoleGrantPermission applierV3backend.wp_RoleGet applierV3backend.wp_RoleRevokePermission applierV3backend.wp_RoleDelete applierV3backend.wp_UserList applierV3backend.wp_RoleList applierV3backend.wp_AuthEnable applierV3backend.wp_AuthDisable applierV3backend.wp_AuthStatus applierV3backend.wp_ClusterVersionSet applierV3backend.wp_ClusterMemberAttrSet applierV3backend.wp_DowngradeInfoSet
+
+theorem storage.wp_NewBackendQuota :
+    EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewBackendQuota.wp_proof
 
 theorem quotaApplierV3.wp_Put :
     EtcdGrove.apply.quotaApplierV3.Put.spec (GF := GF) (hG := hG) :=

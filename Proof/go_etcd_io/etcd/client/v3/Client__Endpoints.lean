@@ -1,5 +1,5 @@
 /-
-**Trust boundary**: the client's `Endpoints` returns a slice (an axiom; see `Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean`). Lean-first (no Rocq counterpart).
+**Trust boundary**: the client's `Endpoints` returns a copy of its endpoints (an axiom; see `Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -22,7 +22,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **Trust boundary**: the client's `Endpoints` returns a slice. -/
+/-- **Trust boundary**: the client's `Endpoints` returns a new slice, a copy of `c.endpoints`
+(`make` and `copy` under `c.epMu.RLock()`). -/
 axiom Client.Endpoints.wp_proof : Client.Endpoints.spec (GF := GF) (hG := hG)
 
 end proof

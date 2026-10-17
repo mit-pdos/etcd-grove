@@ -262,8 +262,9 @@ theorem EtcdServer.run.wp_proof
     (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ N HN
-  wp_start as Hpre
+  intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ N
+  wp_start as ⟨#Hlife, Hpre⟩
+  iunfold srvLifeBound at Hlife
   iunfold isServerRun at Hpre
   iNamed Hpre
   obtain ⟨HEC, HEγr⟩ := HEr
@@ -609,12 +610,9 @@ theorem EtcdServer.run.wp_proof
       iapply HΦj
       iframe
     -- `sched.Schedule(f)`, tracked: `Q` the job's `Prev`, its `Post` saved as `post`
+    ihave %hle0 := Hlife $$ %(A ++ ce) Hlbr
     have hle : A.length + ce.length ≤ N := by
-      have h1 := hidx.1
-      simp only [List.length_append] at h1
-      push_cast at h1
-      have : (0 : Int) ≤ uint.Z ai₀ := by word
-      omega
+      simpa only [List.length_append] using hle0
     rw [show N - A.length = ce.length + (N - (A ++ ce).length) by
       simp only [List.length_append]; omega] at *
     icases (txn.storeWTs_add E.γ ce.length (N - (A ++ ce).length)).1 $$ HWB with ⟨HWBc, HWB⟩

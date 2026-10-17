@@ -23,7 +23,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `deleteRange(ctx, txnWrite, dr)` at a write transaction (committed log `ilog`, pending
+/-- (The write transaction `interface.mkOk tyX vX` over `mw`, `twWrap`: unit N4.) `deleteRange(ctx, txnWrite, dr)` at a write transaction (committed log `ilog`, pending
 changes `pend`): the keys of the request's range at the state read deleted (`delChanges`: the
 client's filter), the response with their number, the transaction's revision after the deletes
 and (`PrevKv`) the deleted key-values, read-only; or, with `PrevKv`, the range read's context error
@@ -31,12 +31,13 @@ and (`PrevKv`) the deleted key-values, read-only; or, with `PrevKv`, the range r
 abbrev txn.deleteRange.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (dr : Loc) (o : OpFull),
+    (dr : Loc) (o : OpFull) (tyX : go.GoType) (vX : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ txn.deleteRangeRequestIs dr o ∗
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ mvcc.twWrap tyX vX mw ∗
+      txn.deleteRangeRequestIs dr o ∗
       ⌜pend.length + (rangeIn (txn.pendState ilog pend) o).length < mvcc.putMax γ⌝ }}
-    (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #dr))
+    (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #dr))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗
         (∃ deletes' : w64, mvcc.isTxnWrite mw s γ trace ilog

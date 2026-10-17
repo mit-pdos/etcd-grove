@@ -41,13 +41,19 @@ backend's write-back budget; spent also when the lease check fails; 2026-10-13, 
 2026-10-14 (unit T1): the caller certifies the log the put commits (`certOk`, the store's
 `txnEndPre`).
 2026-10-15 (unit T2): a committed put that needs the previous key-value found it (and the
-caller certifies only such a put's log). -/
+caller certifies only such a put's log).
+2026-10-17 (unit N4, D14a): `kv` the plain store or a watchable store over it (`isKV`); for a
+watchable store the caller is the sole writer of the notified log `Lw` (`wlogOwn`: its `m` tokens
+all but the transaction's), and gets the writer's part back at the log it leaves. -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool),
+    (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
+    (Lw : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
-      mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.isTxnLessor le γ.leases ∗
+      mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
+      txn.wlogOwn s γ Lw ∗ ⌜γ.watchQ = true → m + 1 = txn.soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63⌝ ∗
+      txn.isTxnLessor le γ.leases ∗
       lease.lessorUser γ.leases L ∗
       txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ o.ignoreLease = true⌝ -∗
@@ -63,17 +69,18 @@ abbrev txn.Put.spec : Prop :=
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ((⌜o.leaseID ≠ W64 0 ∧ resp = null⌝ ∗
           txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ mvcc.revToken γ ∗
-          Pre) ∨
+          txn.wlogOwn s γ Lw ∗ Pre) ∨
        ∃ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ ilog ≠ []⌝ ∗ Post ∗
         ((⌜txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter ilog) = none ∧ resp = null⌝ ∗
             txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err ∗
-            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog) ∨
+            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog ∗ txn.wlogOwn s γ ilog) ∨
          (⌜err = GoInterface.nil ∧
               (txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter ilog)).isSome)⌝ ∗
             txn.putResponseIs resp (W64 (ilog.length : Int))
               (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter ilog) else none) ∗
             txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
             mvcc.idxCert γ.idx (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]]) ∗
+            txn.wlogOwn s γ (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]]) ∗
             txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))))) }}
 
 end spec

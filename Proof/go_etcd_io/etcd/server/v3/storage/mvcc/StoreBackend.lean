@@ -106,20 +106,25 @@ theorem mvcc.NewStore_backend
         mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle⟩ HΦ
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk f hf γb $$ [$Hbpkg $Hsch $Hb $Hhk $Hsz]
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false hcfg) $$ %Φ [Hv Hrg Hw1 Hw2 Hrts Hlrd]
-  · iframe Hpkg Hbk Hle
+    hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
+  -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
+  imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
+  imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false γi γok hcfg)
+    $$ %Φ [Hv Hrg Hw1 Hw2 Hrts Hlrd Hifresh Hok0]
+  · iframe Hpkg Hbk Hle Hifresh Hok0
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
       show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
       show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hok, Hh, Hv, Hr, Ht, Hc, -, Hcl, Hst, Hcr⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, Hcr⟩
+  ihave #Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk]
   iapply HΦ
   iexists γ
   iframe Hs Hok Hh Hv Hr Ht Hc Hcl Hst Hcr
-  ipureintro; exact Hγ
+  ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real
 instance `d`, its write token the backend's write-back budget. -/

@@ -31,63 +31,47 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
     (hCap : apply.newApplierV3Capped.spec (GF := GF) (hG := hG))
     (hCor : apply.newApplierV3Corrupt.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG) := by
-  intro E p opts a
-  wp_start as ⟨#Hu, Ha⟩
-  iunfold apply.uberIs at Hu
-  icases Hu with ⟨%Hpn, #Hok, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
-  iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨-, -, -, -, -, #Hal, -⟩
-  iunfold apply.isAlarmStore at Hal
-  icases Hal with ⟨%Halnn, #HGet, -⟩
+  intro p ast base a
+  wp_start as ⟨#Has, #HGet, #Hbs, Ha⟩
+  iunfold apply.alarmGetOk at HGet
   wp_auto
   wp_apply HGet as %s1 -
   wp_apply HGet as %s2 -
   wp_if_destruct
   · -- a `NOSPACE` alarm: capped
-    wp_apply (hCap E (baseChain E.authOn) base) $$ [] as %a1 #Ha1
-    · iframe #
+    wp_apply (hCap base) $$ [] as %a1 #Ha1
     (try wp_auto)
     wp_if_destruct
-    · wp_apply (hCor E (.capped (baseChain E.authOn)) a1) $$ [] as %a2 #Ha2
-      · iframe #
+    · wp_apply (hCor a1) $$ [] as %a2 #Ha2
       (try wp_auto)
       iapply HΦ
-      iexists true, true
-      iunfold apply.uberOwn
-      iexists _
-      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+      iexists true, true, _
       iframe
-      try iframe #
-      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
+      iintro !> %E #Hb
+      simp only [apply.alarmChain, ↓reduceIte]
+      iapply Ha2 $$ %E %_ (Ha1 $$ %E %_ Hb)
     · iapply HΦ
-      iexists true, false
-      iunfold apply.uberOwn
-      iexists _
-      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+      iexists true, false, _
       iframe
-      try iframe #
-      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
+      iintro !> %E #Hb
+      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+      iapply Ha1 $$ %E %_ Hb
   · (try wp_auto)
     wp_if_destruct
-    · wp_apply (hCor E (baseChain E.authOn) base) $$ [] as %a2 #Ha2
-      · iframe #
+    · wp_apply (hCor base) $$ [] as %a2 #Ha2
       (try wp_auto)
       iapply HΦ
-      iexists false, true
-      iunfold apply.uberOwn
-      iexists _
-      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+      iexists false, true, _
       iframe
-      try iframe #
-      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
+      iintro !> %E #Hb
+      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+      iapply Ha2 $$ %E %_ Hb
     · iapply HΦ
-      iexists false, false
-      iunfold apply.uberOwn
-      iexists _
-      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+      iexists false, false, _
       iframe
-      try iframe #
-      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
+      iintro !> %E #Hb
+      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+      iexact Hb
 
 end proof
 

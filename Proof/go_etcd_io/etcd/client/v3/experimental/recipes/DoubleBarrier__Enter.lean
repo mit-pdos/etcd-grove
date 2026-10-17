@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV__Dele
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV__Revision
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.WaitEvents
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.Session__Client
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -29,6 +30,71 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
+
+set_option hygiene false in
+/-- The wait for `b.key/ready` (`WaitEvents`) and `Enter`'s return, when `ek` is an earlier waiter (`ek.rev < lastWaiter.CreateRevision`) and when there are fewer than `b.count` waiters. -/
+local macro "enter_wait" : tactic => `(tactic| (
+    (try wp_auto)
+    wp_method_call
+    wp_auto
+    wp_apply wp_Revision (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
+      $$ [Hek] as Hek
+    · unfold ownRemoteKV RemoteKVSt.val'; iexact Hek
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %esl ⟨Hesl, -⟩
+    ipersist Hesl
+    wp_apply wp_WaitEvents client (key ++ go!"/") (key ++ go!"/ready") r _ [W32 0] (W32 0)
+      $$ [$(frameH `Hclosed) $(frameH `Hcl) $(frameH `Hesl)] as %ev %werr Hwr
+    · ipureintro; exact ⟨rfl, hpr, by word⟩
+    icases Hwr with (⟨%Hwnil, #Hev⟩ | %Hwne)
+    rotate_left
+    · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+        cases werr with
+        | nil => exact absurd rfl Hwne
+        | ok e => exact ⟨e, rfl⟩
+      (try wp_auto)
+      iapply HΦ
+      unfold enterResult
+      iright; iright
+      isplitr
+      · ipureintro; exact Hwne
+      iexists none
+      simp only [dbMyKey]
+      iexists ek; iexact Hmk
+    subst Hwnil
+    ihave ⟨%e, %v, %se, -, -, #Hre, #Hse, %Hve⟩ := waitedEvent_put _ _ _ _ $$ Hev
+    obtain ⟨-, -, Hwk, Hwe⟩ := keyWatchOp_fields (key ++ go!"/ready") r
+    (try wp_auto)
+    iapply HΦ
+    unfold enterResult
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists ek, ⟨GoInterface.ok kv, k, r, []⟩
+    simp only [dbMyKey]
+    iframe Hmk Hc
+    isplitl [Hek]
+    · unfold ownEphemeralKV ownRemoteKV RemoteKVSt.val'; iframe Hek Hkv
+      ipureintro; exact Hk
+    isplitr
+    · unfold enterReady
+      iright
+      iexists e.rev
+      iframe Hre
+      isplitr
+      · unfold readyPut
+        iexists se
+        iframe Hse
+        ipureintro
+        obtain ⟨hv, -, hvk, hvm, -, hin⟩ := Hve
+        rw [Hwk, Hwe] at hin
+        refine ⟨v, hv, ?_, hvm⟩
+        rw [hvk]; simpa [inRange] using hin
+      ipureintro; exact Hve.2.2.2.2.1
+    ipureintro; exact ⟨Hkr.1, Hkr.2.1, fun h => by cases h⟩
+  ))
 
 theorem DoubleBarrier.Enter.wp_proof
     (wp_Client : concurrency.Session.Client.spec (GF := GF) (hG := hG))
@@ -225,127 +291,9 @@ theorem DoubleBarrier.Enter.wp_proof
         word
       ipureintro; exact ⟨Hkr.1, Hkr.2.1, fun h => by cases h⟩
     -- an earlier waiter: wait for `key/ready`
-    (try wp_auto)
-    wp_method_call
-    wp_auto
-    wp_apply wp_Revision (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
-      $$ [Hek] as Hek
-    · unfold ownRemoteKV RemoteKVSt.val'; iexact Hek
-    wp_apply wp_slice_literal
-    isplitr
-    · ipureintro; rfl
-    iintro %esl ⟨Hesl, -⟩
-    ipersist Hesl
-    wp_apply wp_WaitEvents client (key ++ go!"/") (key ++ go!"/ready") r _ [W32 0] (W32 0)
-      $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
-    · ipureintro; exact ⟨rfl, hpr, by word⟩
-    icases Hwr with (⟨%Hwnil, #Hev⟩ | %Hwne)
-    rotate_left
-    · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
-        cases werr with
-        | nil => exact absurd rfl Hwne
-        | ok e => exact ⟨e, rfl⟩
-      (try wp_auto)
-      iapply HΦ
-      unfold enterResult
-      iright; iright
-      isplitr
-      · ipureintro; exact Hwne
-      iexists none
-      simp only [dbMyKey]
-      iexists ek; iexact Hmk
-    subst Hwnil
-    ihave ⟨%e, %v, %se, -, -, #Hre, #Hse, %Hve⟩ := waitedEvent_put _ _ _ _ $$ Hev
-    obtain ⟨-, -, Hwk, Hwe⟩ := keyWatchOp_fields (key ++ go!"/ready") r
-    (try wp_auto)
-    iapply HΦ
-    unfold enterResult
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexists ek, ⟨GoInterface.ok kv, k, r, []⟩
-    simp only [dbMyKey]
-    iframe Hmk Hc
-    isplitl [Hek]
-    · unfold ownEphemeralKV ownRemoteKV RemoteKVSt.val'; iframe Hek Hkv
-      ipureintro; exact Hk
-    isplitr
-    · unfold enterReady
-      iright
-      iexists e.rev
-      iframe Hre
-      isplitr
-      · unfold readyPut
-        iexists se
-        iframe Hse
-        ipureintro
-        obtain ⟨hv, -, hvk, hvm, -, hin⟩ := Hve
-        rw [Hwk, Hwe] at hin
-        refine ⟨v, hv, ?_, hvm⟩
-        rw [hvk]; simpa [inRange] using hin
-      ipureintro; exact Hve.2.2.2.2.1
-    ipureintro; exact ⟨Hkr.1, Hkr.2.1, fun h => by cases h⟩
+    enter_wait
   -- fewer than `count` waiters: wait for `key/ready`
-  (try wp_auto)
-  wp_method_call
-  wp_auto
-  wp_apply wp_Revision (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
-    $$ [Hek] as Hek
-  · unfold ownRemoteKV RemoteKVSt.val'; iexact Hek
-  wp_apply wp_slice_literal
-  isplitr
-  · ipureintro; rfl
-  iintro %esl ⟨Hesl, -⟩
-  ipersist Hesl
-  wp_apply wp_WaitEvents client (key ++ go!"/") (key ++ go!"/ready") r _ [W32 0] (W32 0)
-    $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
-  · ipureintro; exact ⟨rfl, hpr, by word⟩
-  icases Hwr with (⟨%Hwnil, #Hev⟩ | %Hwne)
-  rotate_left
-  · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
-      cases werr with
-      | nil => exact absurd rfl Hwne
-      | ok e => exact ⟨e, rfl⟩
-    (try wp_auto)
-    iapply HΦ
-    unfold enterResult
-    iright; iright
-    isplitr
-    · ipureintro; exact Hwne
-    iexists none
-    simp only [dbMyKey]
-    iexists ek; iexact Hmk
-  subst Hwnil
-  ihave ⟨%e, %v, %se, -, -, #Hre, #Hse, %Hve⟩ := waitedEvent_put _ _ _ _ $$ Hev
-  obtain ⟨-, -, Hwk, Hwe⟩ := keyWatchOp_fields (key ++ go!"/ready") r
-  (try wp_auto)
-  iapply HΦ
-  unfold enterResult
-  ileft
-  isplitr
-  · ipureintro; rfl
-  iexists ek, ⟨GoInterface.ok kv, k, r, []⟩
-  simp only [dbMyKey]
-  iframe Hmk Hc
-  isplitl [Hek]
-  · unfold ownEphemeralKV ownRemoteKV RemoteKVSt.val'; iframe Hek Hkv
-    ipureintro; exact Hk
-  isplitr
-  · unfold enterReady
-    iright
-    iexists e.rev
-    iframe Hre
-    isplitr
-    · unfold readyPut
-      iexists se
-      iframe Hse
-      ipureintro
-      obtain ⟨hv, -, hvk, hvm, -, hin⟩ := Hve
-      rw [Hwk, Hwe] at hin
-      refine ⟨v, hv, ?_, hvm⟩
-      rw [hvk]; simpa [inRange] using hin
-    ipureintro; exact Hve.2.2.2.2.1
-  ipureintro; exact ⟨Hkr.1, Hkr.2.1, fun h => by cases h⟩
+  enter_wait
 
 end proof
 

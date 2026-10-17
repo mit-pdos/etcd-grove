@@ -31,9 +31,12 @@ theorem apply.applierV3backend.UserAdd.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.UserAdd.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post
-  wp_start as ⟨#Hb, Hpre⟩
+  wp_start as ⟨#Hb, ⟨%n, #Hr, %Hn⟩, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
+  iunfold apply.kvOwn at Hkv
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
+  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -41,13 +44,13 @@ theorem apply.applierV3backend.UserAdd.wp_proof
   icases Hok with ⟨-, -, -, -, #Has, -⟩
   iunfold apply.isAuthStore at Has
   icases Has with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, #HM, -⟩
-  iunfold apply.authReqContract at HM
+  iunfold apply.authReqContractN at HM
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %r %Pre %Q %Post [$Hcs] as %resp %err ⟨HPP, Hhdr, #HeI⟩
-  iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
+  wp_apply HM $$ %r %n %Pre %Q %Post [$Hcs $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI⟩
+  · iframe Hr; ipureintro; exact Hn
+  ihave Hrd := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response
     iapply HΦ

@@ -30,21 +30,26 @@ the initial log (`watchWriter`: the certificate, every revision token and its ha
 notified log), every watch token (`watchToks`: a registration costs one), every reader slot of the two stores' locks (`watchReader`), the right to close the
 stop channel (`stopCloser`) and the inner store (`storeCloser`), and the zero wait group (for
 `New`). The lessor's `SetRangeDeleter` takes the deleter closure as an opaque value (its later
-calls of it are outside the model, as in `NewStore`). -/
+calls of it are outside the model, as in `NewStore`). The index's names `γi` and the
+certificate map's `γok` are the caller's, fresh, and the map's authority is handed back
+(2026-10-16, D13a: the etcd server chooses them before `newRaftNode`, and its KV certificates'
+invariant takes the authority). -/
 abbrev mvcc.newWatchableStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
-    (P : IProp GF) (f : val),
+    (P : IProp GF) (f : val) (γi : mvcc.IdxNames) (γok : GName),
   0 ≤ sint.Z cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P f) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
-      lease.lessorRdOf γl ∗ mvcc.isLessor le γl }}
+      lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
+      mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))
-  {{ (s : Loc), RET #s; ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb⌝ ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.hookIs γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
-      mvcc.watchToks γ (2 ^ 63 - 3) ∗
+  {{ (s : Loc), RET #s; ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
+        γ.st.idx = γi ∧ γ.st.cok = γok⌝ ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
+      mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.watchReader s st γ) ∗
       (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc) ∗

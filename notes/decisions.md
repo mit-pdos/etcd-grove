@@ -7741,3 +7741,369 @@ and `PreVote` settings stay premises.
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
   parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
   `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.
+
+## The server's construction: `NewServer` over `bootstrap`'s result (the server-construction unit)
+
+**2026-10-16 · adopted (units N1 and N2 now, N3 and N4 later; branch `raft-retarget`; from the
+design study of 2026-10-16, after R8b)**
+
+Every server result rests on `isServerBuilt` (`InvStart.lean`), the premise `start` takes and
+`NewServer` would discharge. R8b gave the raft rows a composition (`server_raft_node_start`). The
+study of `NewServer` against the premise, row by row, found two things that shape the unit.
+
+1. **The KV rows are false for the real server.** `srvReadBuilt` and `applyBuilt` use `txn.isKV`,
+   which pins the server's `kv` to a plain `*mvcc.store`; `NewServer` sets `srv.kv = mvcc.New(…)`,
+   a `*watchableStore`, whose write transaction is another type (`watchableStoreTxnWrite` over
+   `watchWriter`, notifying watchers at `End`). `mvcc.New` is proved and the watch path states the
+   truth (`watchSrvOk`); the request-path and apply results are thus proved for a server whose
+   store has no watchers. The fix is an abstraction of `txn.isKV` (and `isApplyKV`, `kvOwn`) over
+   the `KV` interface's `Read`/`Write` contracts met by both stores, the txn and apply proofs
+   re-linked, `server_kv_backend` redone for `mvcc.New`, and the hook order (`NewServer` installs
+   the backend's post-lock hook after creating the store; `server_kv_backend` wants it frozen
+   before): **unit N4**, coordinated with the mvcc/watch session, after N1/N2.
+2. **The workload clause of `rnEnvOk` is a cluster-wide premise.** `E.C = srvC …` asks of every
+   committed log `entriesOk c₀ L x₀` (every request meets the apply premises, `rqOk`/`dispatchOk`,
+   at the state it meets) and `batchWaitOk ρ E L` (its id is claimed under *this* server's
+   generator); nothing produces either. For one server `entriesOk` needs log-independent bounds
+   the deposit does not carry; for several members both are facts about the other members'
+   requests (and `issues/etcd-request-id-member-prefix.md` shows id prefixes can collide). The
+   honest form is a named premise `clusterWorkloadOk ρ E c₀ x₀ : □ ∀ L, srvRLogLb L -∗
+   ⌜entriesOk c₀ L x₀⌝ ∗ batchWaitOk ρ E L`, from which the clause follows (N2); discharging it
+   for one server is **unit N3** (may stay a premise).
+
+- **D13: `NewServer` is translated with its body and proved over `bootstrap`'s result as a
+  contract**, its postcondition `isServerBuilt` but a named residual. `bootstrap(cfg)` stays
+  names-only; `NewServer.spec` takes `bOk b` (what the bootstrapped record carries: the
+  consistent index `isCI`/`ciOwner` at `0`, the backend's `isBackendNH`/`plHook`/write tokens,
+  the cluster `isRaftCluster`/`clusterCid`, the snapshotter, the WAL, `b.raft` with
+  `NodeStartSpec`'s premises -- `CheckQuorum`/`PreVote` off among them, the user's decision) and
+  the constructors' contracts (`lease.NewLessor`, `auth.NewTokenProvider`/`NewAuthStore` on a
+  fresh backend giving `E.authOn = false`, `v3alarm.NewAlarmStore` giving no alarm,
+  `v3compactor.New`, `stats.*`, `rafthttp.Transport`'s `Start`/`AddRemote`/`AddPeer`,
+  `SetVersionChangedNotifier`, prometheus). The cluster-level ghost state is a premise too, as
+  `NodeStartSpec`'s: raft's `γ` with this node's `ownRaftGhost` at `bootPState`, `isCommitted γ
+  bootLog`, the commit invariant, the budget, and `allocClientBoot`'s continuation outputs
+  (`rLog γ bootLog`, the `reFresh`/`reRdFresh` authorities, the read credits), from which N2
+  builds `kvInv`/`etcdKV` at the boot log (`kvInv_alloc_boot`), `srvMintInv` and `srvRdFreshInv`.
+  The per-server names are allocated inside (`∃` in the post): the applied and committed
+  indices' invariants, the notifier, `kvCertInv`, `consInv`, the revision authority, the atomics'
+  invariants, the id generator's names. The post is `isServerBuilt` with the rows no `NewServer`
+  proof gives factored into one named residual `srvBuildGap` (the KV rows `txn.isKV`/`applyKV`/
+  `isReadView`/`storeWTs` as stated today, `clusterWorkloadOk`, `rnSnapOnce`, the id budget `□
+  |==> idCred`, `storeSmall`, `threadBound`), with `isServerBuilt_of_gap : built ∗ srvBuildGap ⊢
+  isServerBuilt`; N3 and N4 shrink the gap. The raft rows come from `server_raft_node_start` at
+  `r: *b.raft.newRaftNode(…)` (the struct value copied into the literal) and its installer at
+  `srv.r.transport = tr` after `tr.Start()`. *Rejected:* a contract on `mvcc.New` claiming
+  `txn.isKV` of its result (false); allocating raft's ghost state inside `NewServer` (the members
+  share it).
+- **Translation.** `NewServer`, the five `bootstrapped*` record types, `EtcdServer.restoreAlarms`,
+  `EtcdServer.NewUberApplier` (if not yet with bodies), `AccessController`, with `math` in the
+  imports; `bootstrap`, `bootstrappedServer.Close`, `addFeatureGateMetrics`,
+  `newCorruptionChecker`, `ensureLeadership` and the constructors stay names-only. The two
+  `defer` closures over the named results run only on error paths the spec excludes; the
+  checkpointer closure is an opaque value under `lease.Lessor.SetCheckpointer`'s contract.
+- **Staging.** N1 (translation, `NewServer.spec`, the literal and the field rows, the per-server
+  allocations, `srvBuildGap`) and N2 (the cluster-level lemmas: `kvInv_alloc_boot`, the mints
+  from the continuation, `consInv_alloc`, `kvCertInv_alloc`, the indices' allocations,
+  `rnEnvOk_of_cluster` from `clusterWorkloadOk`) in parallel; then N3 (the workload clause for one
+  server), N4 (the KV abstraction, with the mvcc/watch session).
+
+**Addendum (2026-10-16, after the N0 survey; adopted).** D13 as first written cannot be carried
+out: `newRaftNode` runs inside the `EtcdServer{…}` literal (`server.go:324`), before
+`idutil.NewGenerator` (331) and `mvcc.New` (370), and `newRaftNode.spec` fixes the raft
+environment's `C`/`T`/`RQ` in its channels' predicates at the call, while `isServerBuilt` needs
+`Er.C = srvC ρ E …` over the generator's names, the store's `γ.idx`/`γ.cok` and `γrev`.
+
+- **D13a: the names are chosen before the call (route B).** The proof allocates the ghost names
+  first and passes them in: `idutil.NewGenerator.spec` and `mvcc.New`/`newWatchableStore`/
+  `NewStore` take the caller's names (and `mvcc.New` returns the certificate authority
+  `ghostMapAuth γ.cok 1 ∅` it now drops); a lemma gives `srvC ρ E = srvC ρ E'` when the two agree
+  on `γ.idx`, `γ.cok`, `γrev` (the store's location is known only after `mvcc.New`).
+  `isServerBuilt` and the `run`/`start` proofs are unchanged. *Rejected:* route A, a late-bound
+  `C` through a one-shot saved predicate set after `mvcc.New` (changes `isServerBuilt`'s `%HEr`
+  and the proofs that rewrite with it). The mvcc/idutil spec changes are coordinated with the
+  mvcc/watch session.
+- **D13b: `bootstrap`'s contract is a premise of `NewServer.spec`**, a triple in its
+  precondition, not an axiom: `raftConfig` sets `CheckQuorum: true` on both bootstrap paths
+  (`bootstrap.go:572`), and `NodeStartSpec` needs it off, so an axiom giving `bOk` would be false.
+  The raft start result as proved thus does not cover etcd's actual configuration
+  (`CheckQuorum` on); this was already a premise, now made concrete.
+- **D13c: `clusterWorkloadOk` is a premise of `NewServer.spec`**, not part of `srvBuildGap`:
+  the raft installer `NewServer` runs needs `rnEnvOk`, whose `E.C` clause is the workload clause.
+- **D13d: `NewServer.spec` has an error case** (`srv = nil`, `err ≠ nil`): `NewTokenProvider`,
+  `v3compactor.New`, `restoreAlarms`, `tr.Start` can fail, so their contracts do not promise
+  success, and the proof steps through the two deferred closures (`b.Close()`,
+  `newSrv.kv.Close()`).
+
+## The KV over both stores, the hook installed late, the constructors' contracts (unit N4)
+
+**2026-10-17 · adopted (branch `raft-retarget`; D14; after N1 stopped, `notes/STATUS.md`,
+"Server construction, unit N1")**
+
+`NewServer` sets `srv.kv = mvcc.New(…)`, a `*watchableStore`, creates the lessor and the store
+before it installs the backend's post-lock hook (`server.go:412`), and calls eight names-only
+constructors. N1 found the request-path and apply results stated for a plain `*store`
+(`txn.isKV`), the stores' backend contracts needing the hook fixed at creation, and seven
+constructor contracts false. D14 settles the three.
+
+- **D14a: the KV abstraction, by the store's own two shapes.** The `mvcc.KV` value is either the
+  plain store or the watchable store wrapping it; everything the txn and apply proofs read goes
+  through the inner `*store` `s` and its names `γ` (the watchable store's `γw.st`), unchanged.
+  * `mvcc.kvIs kv s γ` (persistent): `kv` is `*store` at `s`, or a `*watchableStore` `ws` whose
+    embedded `store` is `s` (`ws.store ↦□ s`); with `isStore s γ`. `isReadView rv s γ` becomes
+    `rv.kv ↦□ kv ∗ kvIs kv s γ` (a watchable store points its inner store's `ReadView` at itself,
+    `newWatchableStore`): `readView.*`, `store.Rev` read through either (`Read` of the watchable
+    store is the promoted `store.Read`, a wrapper lemma).
+  * `txn.isKV kv s γ`: the plain store (`γ.watchQ = false`) or a watchable store over `s`
+    (`∃ ws γw, kv = *watchableStore ws ∗ isWatchableStore ws s γw ∗ γw.st = γ`, so
+    `γ.watchQ = true`). `isApplyKV` is unchanged in form (its read view is `isReadView`'s).
+  * **The writer.** The watchable store's write transaction needs the sole writer of its notified
+    log (`watchWriter γw L`: the certificate, every token, the writer's half of `γw.wlog`; K1a,
+    final on the watch side) and notifies under `s.mu` at `End`. So the writer's resource grows a
+    part that is empty for the plain store: `txn.wlogOwn s γ L` (`if γ.watchQ`: some watchable
+    store over `s`, `γw.st = γ`, the half `ghostVar γw.wlog ½ L` and the certificate of `L`), and
+    `txn.kvWriter s γ L := soleWriter γ L ∗ wlogOwn s γ L`. Which `ws`/`γw` the half belongs to
+    is fixed by `s`: two watchable stores over `s` are the same (`s.ReadView ↦□ rv`,
+    `rv.kv ↦□ ws`), and the transaction uses the names the writer's half carries.
+  * **The txn specs.** `Put`, `DeleteRange`, `Txn` keep their token-and-certificate form (`m`
+    tokens, a certificate of `log₀`, the pin) and add the writer's part: `wlogOwn s γ Lw` with
+    `γ.watchQ → m + 1 = soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63` (a watchable store's writer is
+    the sole writer), given back at the transaction's committed log. The sole-writer corollaries
+    (`SoleWriterKV.lean`, `txn/Results.lean`) and the apply thread's `kvOwn` take `kvWriter`
+    where they took `soleWriter`. `Range`/`Count` change only through `isKV`.
+  * **The write transaction as an interface value.** The functions handed `kv.Write`'s result
+    (`put`, `deleteRange`, `getPrevKV`, `checkAndGetPrevKV`, `executeTxn`/`txn` through
+    `txnViewIs`) take `interface.mkOk tyX vX` with `mvcc.twWrap tyX vX mw`: the `*metricsTxnWrite`
+    `mw` itself, or a `*watchableStoreTxnWrite` whose embedded `TxnWrite` is `mw`
+    (`twl ↦□ {mw, ws}`: `isWatchTxnWrite`'s struct made read-only; Go never writes it after
+    `Write`). Its `Range`/`Put`/`DeleteRange`/`Rev`/`FirstRev`/`Changes` are `mw`'s (wrapper
+    lemmas, `KVView.lean`); `End` is the store's own (`metricsTxnWrite.End` or
+    `watchableStoreTxnWrite.End`), taken at the top-level functions.
+  * The watch session's predicates (`isWatchableStore`, `watchStoreBody`, `wlogQ`) are unchanged;
+    `isWatchTxnWrite` (this unit's) changes only in its struct points-to.
+  *Rejected:* a `StoreNames` field naming the notified log (ripples through every store);
+  hiding the half in the watchable store's lock (changes `watchStoreBody`); the derived sole-writer
+  statements only for the watchable store (the request path's statements cover both today).
+
+- **D14b: the post-lock hook is a ghost slot the backend owns, frozen at install.** The store and
+  lessor never call `LockInsideApply` during construction (`NewStore`, `restore`,
+  `initAndRecover` take `LockOutsideApply`), but their persistent backend contracts name the hook
+  `f` that `LockInsideApply` runs, and `f` is the closure `getTxPostLockInsideApplyHook` allocates
+  at line 412 (its value is not known before). So the contracts name the slot, not the value:
+  `isKeyBackendG`/`isBatchTxG`/`batchTxSpecG`/`storeBackend` (and the lessor's `leaseBackend`)
+  take a ghost name `γhf` for `f`, and `LockInsideApply`'s triple quantifies the hook `g` with
+  `dghostVar γhf □ g` in its precondition. The store's names get `γ.hookFn := d.γB.hook` for the
+  real backend (`plHookRO d.γB g` is that `dghostVar`), its own frozen slot for mvcc's assumed
+  backend (as now). `hookIs γ P f` keeps its meaning (`P`'s saved proposition and the frozen
+  slot at `f`), so every caller's statement (`txn`, `apply`, the server) is unchanged; `NewStore`
+  and `mvcc.New` over the real backend give the saved proposition only (`hookInv γ P`), and the
+  holder of `plHookRO d.γB f` (after `SetTxPostLockInsideApplyHook` and `plHook_persist`) puts
+  `hookIs γ P f` together. The bridge (`mvcc_NewStore_backend`) no longer takes `plHookRO`.
+  *Rejected:* predicting the closure's value (it holds a fresh cell); a prophecy.
+
+- **D14c: what `bootOk` adds.** The backend fresh beyond the `Key` bucket: the clients' view of
+  the `Lease`, `Alarm`, `Auth` buckets empty or absent (a new cluster's backend: `bootstrap` on
+  an empty data directory) with the auth flag unset; the backend's `isBackend`-level resources the
+  constructors spend at construction (`bOpen` fractions, write-back tokens beyond `NewStore`'s
+  two, reader tokens). Stated with the backend's vocabulary (`bView`, `bOpen`, `wbTok`, `rdTok`).
+
+- **D14d: the constructors' contracts are axioms true of the Go code**, their apply-side clauses
+  tied to the real batch lock and hook instead of `∀ P f`: a contract `C P f` becomes
+  `□ ∀ f, backend.plHookRO γB f -∗ C Pk f` (`Pk` the backend's batch lock invariant,
+  `isBackend γB P W Pk b`); each takes the backend resources it uses (`isBackend`, a `bOpen`
+  fraction, write-back tokens) and the fresh-bucket facts of D14c. Their true shapes are N1's
+  audit (`notes/STATUS.md`): `NewLessor` gives `lessorInv`/`lessorCfg`/`lessorExpiredC`/
+  `lessorBackend` (with `leaseRevokeRate`'s default) and the empty live set, the derived
+  contracts following (`lessorOk_of_lessorInv`, `isLessor_of_lessorInv`,
+  `isApplyLessor_of_lessorInv`); `NewAuthStore` takes a non-nil token provider and the unset auth
+  flag and gives `authInv` (`isReqAuth_of_authInv`, `isAuthStore` at `on = false`);
+  `NewAlarmStore` the backend's `ForceCommit` resources and gives the alarm store at the real
+  lock. `lessor.Revoke`'s and `Lookup`'s clauses of `isApplyLessor` stay premises
+  (`isApplyLessor_of_lessorInv`), now at `kvWriter`.
+
+- **D14e: the background goroutines, the cheap option (the user's decision, 2026-10-17).**
+  Configuration premises turn them off or make them harmless; their full modelling is open work.
+  `cfg.AutoCompactionRetention = 0` (no compactor: `v3compactor.New` and `Run` are not reached;
+  also sidesteps `issues/etcd-compactor-periodic-tiny-retention.md` and
+  `issues/etcd-compactor-started-before-start.md`); the `LeaseCheckpoint` feature off (no
+  checkpointer installed: the lessor's `runLoop` never calls one, and a non-primary lessor's loop
+  only takes its lock); the peers' URLs valid (`types.NewURLs` succeeds on each member's: no
+  `AddRemote`/`AddPeer` panic). The transport's goroutines (inbound messages into `srv.Process`,
+  the peers' senders) and the lessor's loop are stated as what they are: the transport's contract
+  promises only what `NewServer` and `start` use (`Start` returns or errs, `AddRemote`/`AddPeer`
+  return, `transportStarted`), under a named premise `transportEffectsOk` that its goroutines'
+  calls into the server (`Process`, `ReportUnreachable`, `ReportSnapshot`, `IsIDRemoved`) are
+  outside the model -- the cluster's message trust assumption, explicit.
+
+- **Staging.** N4a (D14a: the abstraction, the txn/apply/server proofs over it, `server_kv_backend`
+  for `mvcc.New`); N4b (D14b); N4c (D14c-e: `bootOk`, the contracts); N4d (`NewServer.wp_proof`,
+  `srvBuildGap` without the KV rows).
+
+**Addendum (2026-10-17, unit N4 stopped at N4c; D14f adopted 2026-10-17, the user's choice A).**
+
+- **D14f (adopted 2026-10-17): the write contracts of the names-only stores take the backend's write
+  budget.** Making
+  the constructors' contracts true (D14d) found that every apply-side clause that writes the backend
+  under its batch lock without going through the store -- `isApplyLessor`'s `Grant`/`Checkpoint`
+  (`lease.leaseBackend`), `isAlarmStore`'s `Activate`/`Deactivate`, `isAuthStore`'s enable/disable
+  and admin requests, `isCluster`'s writes -- asks only `csContract P f`, while the real backend's
+  `LockInsideApply` needs an open share (`bOpen`) and its `Unlock` a write-back token (`wbTok`,
+  the read buffer's `uint64` version). As stated they are not true of the model over the real
+  backend, so the constructors cannot promise them. Proposal: `dispatch` hands its one write token
+  per entry (`mvcc.storeWT E.γ`, today the KV methods') to every write method, whose contract
+  clauses take it and lend the reader's open share (`mvcc.storeRT E.γ`, from `kvOwn`'s reader);
+  `leaseBackend`'s `LockInsideApply` takes the same. Then D14d's constructor contracts (axioms of
+  `NewLessor`, `NewAuthStore`, `NewAlarmStore` at the real `Pk` and `plHookRO`) are true. Independent
+  of it: `schema.alarmBackend`/`authBackend` are axiomatized types (`schema.toml`), so no contract
+  can say that `NewAlarmBackend(lg, be)` wraps the real backend; translate them with their fields
+  (and `NewAlarmBackend`/`NewAuthBackend` with bodies), or state the link with abstract predicates.
+
+- **D14g (adopted 2026-10-17, the user's choice (a)): the server's lifetime bound.** Unit N4 found
+  the server's write budget unsatisfiable over the real backend (`notes/STATUS.md`, "unit N4,
+  continued"): `bootOk` gave `2 ^ 64 + 3` write-back tokens and `start` took `2 ^ 64 ≤ N`, while the
+  backend's batch lock bounds the tokens out below `2 ^ 40` (`backend.bgOk`). Now:
+  * `bootOk γ id bootLog N b` (and `bootstrapContract … N`) gives the tokens the backend has, `N + 7`
+    (within the cap: a premise of `NewServer.spec`, satisfiable for `N + 7` below the backend's
+    budget): `N` for the applied entries, seven for the construction (`mvcc.New` two, `NewLessor`
+    one, `NewAuthStore` two, `NewAlarmStore` one, each a write-back of its recovery's `Unlock`,
+    and `SetTxPostLockInsideApplyHook` one);
+    and the fresh-bucket tokens of the lessor's and the auth store's data (`bkFresh`, opaque: the
+    model's readers' view cannot state a hook bucket's contents).
+  * **`srvLifeBound ρ.raft N`** (`InvRun.lean`, persistent): every log raft commits after the
+    start has at most `N` entries. A residual bound of the kind of `storeSmall` and the id
+    budget, a workload premise of `NewServer.spec` (beside `clusterWorkloadOk`) and a premise of
+    `run`, `start`, `Start` and `start_gives_views`, replacing `2 ^ 64 ≤ N`; `run` takes each
+    batch's tokens by it (the committed log `A ++ ce` has at most `N` entries).
+  * The write contracts take one token per write method (D14f). The backend's `Commit`/
+    `ForceCommit` specs take a token each, but in Go they commit first and their `Unlock` finds no
+    pending write, so it does not write back: the auth store's `Unlock` (`Unlock` then `Commit`) and
+    `AuthEnable`'s `ForceCommit` write back once. The axioms say so.
+  *Rejected:* raising the backend's `2 ^ 40` cap (it bounds the buffers' counters too,
+  `cnt.e ≤ hookMax * (2 ^ 40 + 2)`; a `2 ^ 64` budget would still not cover `start`'s old premise
+  with the construction's seven).
+
+- **D14h (adopted 2026-10-17, the user's choice 1A): leases outside the workload for now.** The
+  workload premise excludes lease requests: `apply.rqOk` is `False` for `LeaseGrant`,
+  `LeaseRevoke` and `LeaseCheckpoint` (with no lease granted none expires, so the lessor's loop
+  proposes no revocation and calls no checkpointer). So the `Revoke` clause of
+  `apply.isApplyLessor` is never used: it is stated vacuously (`⌜False⌝` in its precondition), and
+  `revokePre` carries `rqOk` (the `LeaseRevoke` appliers close by it); `lessor.Revoke` is not
+  specified (no false spec of it), its proof with the range deleter recorded in the lessor's
+  invariant stays with unit T3 (leases). `isApplyLessor`'s `Lookup` clause, called on every put
+  by the auth layer's `checkLeasePuts` (`Lookup(0)` included), cannot be excluded with them: it
+  is part of `lease.NewLessor`'s axiom (the lessor's lock read-locked; the model's reader slots
+  aside, the Go `RWMutex` bounds readers by `2 ^ 30`). Leased puts and transactions need not be
+  excluded: with no lease granted, `checkLeasePuts` finds none and the txn package's check fails
+  with `ErrLeaseNotFound`, both in the model. `ckptEffectsOk` stays a premise of `NewLessor`'s
+  axiom (a statement about the Go code, whatever the workload); under D14h it is never exercised.
+  `NewUberApplier.spec` names the raft status and the snapshot server (the server itself) in its
+  premise, which was undischargeable.
+
+## The client's construction: grpc's dial as descriptors, a trusted body (item 5, 2026-10-17)
+
+**Dial options as descriptors.** A `grpc.DialOption` is an opaque closure; the axioms of its
+constructors say what it does (`grpcDialOptIs o d`, `InvDial.lean`), and `NewClient`'s axiom
+composes the connection from the descriptors as grpc does (the last `WithUnaryInterceptor`'s
+interceptor, no chain, no default call options). An option no axiom describes has no descriptor,
+so a dial holding one is simply not covered: no catch-all "harmless option" is assumed. The
+caller's `Config.DialOptions` are excluded by a premise (empty) rather than modelled
+(`issues/etcd-client-dialoptions-unary-interceptor.md`).
+
+**Why `NewClient` asks for etcd's stream interceptor.** `grpcConn` (item 4's `InvGrpc.lean`,
+not ours to change) records the unary chain only, and `ClientConn.NewStream`'s axiom assumes the
+connection's stream interceptor is etcd's. `NewClient` therefore produces `grpcConn` only for a
+dial whose stream interceptors satisfy `etcdStreamInterceptor`, a property only
+`streamClientInterceptor`'s axiom introduces: a plain grpc client could not reach `NewStream`'s
+axiom with an interceptor it does not describe.
+
+**Why a trusted body for `dialWithBalancer`.** The pinned translator misnames grpc's
+`resolver.Builder` there (`pkgRef`'s same-name fallback) and its output does not elaborate. The
+alternatives were an axiom stating `dialWithBalancer`'s result directly (which would hide the
+dial: `dial`, `dialSetupOpts`, the interceptors, all unused), or a fork change (not pushable
+here). The translator's own output with the one type corrected keeps the proof over the real
+body; the axiom is that this text is the method's body, `MethodUnfold`'s shape, with grpc
+`resolver`'s `Builder.TypeAssumptions` (which `clientv3`'s assumptions lack, as `clientv3` does not
+import the package). Both go when Goose is fixed.
+
+**The resolver's state handed to grpc.** `etcdResolverOwn r eps` is exclusive: `SetEndpoints`
+needs it, and `NewClient` consumes its grpc form (`grpcResolverAt`), so `grpcConn`'s address is
+stable for good; after `New` nobody can call `SetEndpoints` (not in `New`'s postcondition), and
+`autoSync` (which would) is turned off by a premise.
+
+## Item 8: package initialization (2026-10-17, branch `construct`)
+
+**How a package's initialization is proved.** `etc/gen-init.py` writes `Proof/<pkg>/Init.lean`:
+`<pkg>.wp_initialize'` follows the translation's `initialize'` statement by statement (the
+`GlobalAlloc`s of translated variables, the imports' `initialize'` in Goose's order, the
+variables' initializers in Go's init order, the translated `init()` bodies). An untranslated
+initializer `X.init` is an axiom of the translation, so what it does is a trust-boundary axiom of
+the package: `opaqueInitsOk` (the listed ones run without panicking), `errorsNewVarsInit`
+(`X = errors.New(msg)`, messages from the Go source) or `<X>_init` (what a fact reads of `X`).
+Each is a triple about an uninterpreted constant, so a diverging `X.init` satisfies all of them:
+they cannot make the logic inconsistent. Translating the initializers instead (Goose config)
+would turn the `errors.New` ones into proofs; not done, to keep the translation unchanged under
+three concurrent agents.
+
+**A package fact states only its own variables.** A fact about another package's variable
+cannot be proved by the package's initializer (`package.init` gives back only the import's
+`isPkgInit` when it is already initialized). So the facts moved to their owners (`errorsInit`,
+raft's `isInitialized`, `traceutilInit`, `schemaInit`, `mvccInit`, `rpctypesInit`,
+`etcdserverpbInit`, `clientv3Init`, `backendInit`); the consumers' facts keep their copies, now
+derived. A fact that names a predicate defined above the owner's `Base.lean` is restated below it
+(`pbDescIs` for grpc's `grpcDescIs`; `OptsM`/`optsAt` moved to `BboltOptsDefs.lean`).
+
+**Method sets are premises** (`EtcdGrove.ErrorStringLeaf`, `EtcdGrove.RpctypesEtcdErrorMethods`),
+as Perennial's `context.ErrorStringIsError`: the semantics leaves method sets uninterpreted.
+
+**Item 8: context's facts (a Perennial proposal).** Perennial's `context` fact (`isInit`) keeps
+only that `Canceled` and `DeadlineExceeded` are typed errors, though its initializer stores
+`errors.New("context canceled")` (`wp_New_errorString`, the exact `*errorString`) and
+`deadlineExceededError{}`. `v3rpc` needs `Canceled` to be a pointer error (`togRPCError`'s
+`errors.Is`) and `read` needs both as leaf errors with their messages. A package fact cannot be
+strengthened after the fact (above), and an axiom `isPkgInit context ⊢ …` would be unsound
+(`isPkgInit` is not sealed: a proof that allocates the variables' cells can assemble it), so the
+fact is a premise here, `EtcdGrove.ContextCanceledPtr` (`v3rpc/Init.lean`). The general fix, to
+propose to Perennial on its own: `context.isInit` records the values, `Canceled ↦□
+interface.mkOk (ptr errorString) #x` with its message and `DeadlineExceeded ↦□
+interface.mkOk deadlineExceededError.ty #()`. It unblocks `v3rpc`'s premise and, with a registry
+model, `read`.
+
+**`read` stays assumed.** Its translated `init()` calls `prometheus.MustRegister`, which panics
+on a duplicate name. A true spec needs the default registry's registered names, a resource the
+whole program's initializers share; `wp_initialize'`'s shape (`ownInitializing` only) has no
+place for it, so adding one means changing every importer's theorem. `etcdserver`'s and `v3rpc`'s
+theorems take `read.initialize'.spec` as a hypothesis (`gen-init`'s `ASSUMED`).
+
+**mvcc's counter contract.** `mvcc.counterSpec` said `Add(x)` returns for every `x`; Go's
+`counter.Add` panics on a negative value. The contract now covers the arguments the code passes:
+`float64(n)` of an unsigned `n`, and of a signed `n ≥ 0`. `scheduleCompaction`'s compacted-keys
+count (an `int`) is shown non-negative by counting: the keys it deletes are distinct bucket keys
+of the job's log up to the compaction revision (a cursor orders the batches), so no more than
+that log's changes, fewer than `2 ^ 62` by the premise `mvcc.CompactSmall` (a physical bound,
+as `storeSmall`), carried by `compactJobPre` and taken by `updateCompactRev`, `Compact` and
+`compactLockfree`.
+
+## Repeated proof blocks as file-local macros
+
+**2026-10-17 · accepted**
+
+A Go `if`/`select`/`switch` whose arms continue with the same code got the same tactic block
+pasted into each arm of its proof (up to 350 lines, three times, in `closeSubstream`). The
+duplication review (notes/STATUS.md, "Repeated in-proof blocks as macros") replaced them.
+
+**Decision:** prove the shared continuation once when it is easy to state (a `have`, or merging
+identical `cases` arms); otherwise a `set_option hygiene false in local macro` just before the
+theorem, with a docstring naming the branches that use it, taking as arguments the values the
+copies differ in (the pattern of `txn__Else.lean`). Copies that differ in more than a couple of
+values stay copies. The cost: an error inside a macro is reported at its use, and a reader
+expands it by eye.
+
+- **Iris's frame `$H` inside a quotation.** In a macro's `` `(tactic| …) `` Lean reads `$H` as an
+  antiquotation, so a block that frames a hypothesis does not parse as a macro body. The macros
+  write ``$(frameH `H)``, which builds the node the parser makes for `$H`
+  (`Proof/go_etcd_io/raft/v3/FrameH.lean`, beside `ProjSimps.lean`, the other generic tactic
+  utility; at first each file had its own copy, 20 in all, moved there before merging). The
+  general fix is in Iris-Lean, a frame syntax that works inside a quotation, to propose there
+  as its own change (CLAUDE.md, "Changes to Perennial"); then `frameH` goes.
+- *Rejected:* a global macro per block (they are one proof's), and an auxiliary lemma for every
+  continuation (the statements, long Iris contexts, would be longer than the blocks).

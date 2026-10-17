@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 abbrev apply.applierV3backend.newHeader.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      mvcc.storeReader E.s E.γ ∗ txn.soleWriter E.γ log }}
+      mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"newHeader")) (Val #()))
-  {{ (h : Loc), RET #h; mvcc.storeReader E.s E.γ ∗ txn.soleWriter E.γ log ∗ ⌜h ≠ null⌝ }}
+  {{ (h : Loc), RET #h; mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗ ⌜h ≠ null⌝ }}
 
 end spec
 

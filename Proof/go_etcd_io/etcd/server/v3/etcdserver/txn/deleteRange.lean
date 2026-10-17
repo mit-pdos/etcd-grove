@@ -34,8 +34,8 @@ theorem txn.deleteRange.wp_proof
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     txn.deleteRange.spec (GF := GF) (hG := hG) := by
   have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
-  intro trace ctx cd nd mw s γ ilog pend puts deletes putSize dr o
-  wp_start as ⟨#Hctx, #Hnd, Htx, #Hdr, %Hbnd⟩
+  intro trace ctx cd nd mw s γ ilog pend puts deletes putSize dr o tyX vX
+  wp_start as ⟨#Hctx, #Hnd, Htx, #Hwrap, #Hdr, %Hbnd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.deleteRangeRequestIs at Hdr
@@ -87,6 +87,9 @@ theorem txn.deleteRange.wp_proof
     ihave Htx : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     iapply wp_fupd
+    wp_bind (App (App (Val #(methods tyX _ vX)) _) _)
+    iapply mvcc.tw_wp2 tyX vX mw go!"DeleteRange" (by unfold mvcc.twMethod; simp)
+    iframe Hwrap
     wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k (txn.srvEnd o.base.rangeEnd).2)
       $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
     · ipureintro; rw [hDlen]; exact Hbnd
@@ -124,6 +127,9 @@ theorem txn.deleteRange.wp_proof
   · -- `PrevKv`: the range read first
     (try wp_auto)
     icases mvcc.txnCtx_rangeCtx nd ctx cd $$ Hctx Hnd with ⟨%td, %Htd, #Hctx'⟩
+    wp_bind (App (App (App (App (Val #(methods tyX _ vX)) _) _) _) _)
+    iapply mvcc.tw_wp4 tyX vX mw go!"Range" (by unfold mvcc.twMethod; simp)
+    iframe Hwrap
     wp_apply (hRange trace mw s γ (.write ilog pend puts deletes putSize) ctx cd td ksl endk k
         (txn.srvEnd o.base.rangeEnd).2 (zero_val RangeOptions)) $$ [$Htx $Hctx' $Hks $Hend]
       as %rr %rerr ⟨%Hrn', Htx, Hout⟩
@@ -167,6 +173,9 @@ theorem txn.deleteRange.wp_proof
       · simp only [mvcc.isTxn]; iexact Htx
       ipersist Hnsl
       iapply wp_fupd
+      wp_bind (App (App (Val #(methods tyX _ vX)) _) _)
+      iapply mvcc.tw_wp2 tyX vX mw go!"DeleteRange" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k
           (txn.srvEnd o.base.rangeEnd).2) $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
       · ipureintro; rw [hDlen]; exact Hbnd

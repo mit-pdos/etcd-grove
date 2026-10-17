@@ -15,7 +15,8 @@ lessor's proofs (2026-10-13, unit 8 of the backend; they were the trust boundary
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
 
 @[expose] public section
 
@@ -35,16 +36,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
-
-/-- The `mvcc.KV` `kv` is the store at `s` (with ghost names `γ`), over either backend instance
-(`γ.kb`: mvcc's assumed contract, or the real backend; 2026-10-13, unit 6: it carried
-`γ.kb = none` before). A write transaction spends a write token (`mvcc.storeWT γ`: the real
-backend's write-back budget) and changes fewer than `mvcc.putMax γ` keys (`2 ^ 56` for the real
-backend). The store is not a watchable store's (`γ.watchQ = false`, unit W-K: its commits need no
-outer quarter of the committed log's authority). -/
-def isKV (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗ mvcc.isStore s γ ∗
-    ⌜γ.watchQ = false⌝)
 
 /-- Over mvcc's assumed backend a write token is free. -/
 theorem storeWT_none (γ : mvcc.StoreNames) (h : γ.kb = none) : ⊢ mvcc.storeWT (GF := GF) γ := by
@@ -89,10 +80,6 @@ theorem storeWTs_add (γ : mvcc.StoreNames) (a b : Nat) :
   | none => exact ⟨by iintro -; isplitl <;> itrivial, by iintro -; itrivial⟩
   | some d => exact ownToks_add b a d.γB.wb
 
-instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :
-    Persistent (isKV (GF := GF) kv s γ) := by
-  unfold isKV; infer_instance
-
 /-- The `lease.Lessor` `le` as the txn package uses it: mvcc's contract, and `Lookup(id)` by the
 lease owner (`lease.lessorUser γl L`: its half of the live set `L`, a reader slot of the lessor's
 lock) returns `nil` or a live lease (`id ∈ L`; 2026-10-13, unit 8 of the backend: derived from
@@ -108,6 +95,50 @@ instance isTxnLessor_persistent (le : GoInterface) (γl : GName) :
   unfold isTxnLessor; infer_instance
 
 end defs
+
+section kvdefs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
+
+/-- The `mvcc.KV` `kv` over the store at `s` (with ghost names `γ`), over either backend instance
+(`γ.kb`: mvcc's assumed contract, or the real backend; 2026-10-13, unit 6: it carried
+`γ.kb = none` before). A write transaction spends a write token (`mvcc.storeWT γ`: the real
+backend's write-back budget) and changes fewer than `mvcc.putMax γ` keys (`2 ^ 56` for the real
+backend). **Either store** (unit N4, D14a, `notes/decisions.md`): the plain store itself, not a
+watchable store's (`γ.watchQ = false`, unit W-K: its commits need no outer quarter of the
+committed log's authority), or a watchable store `ws` over it (`mvcc.New`'s, the etcd server's:
+`isWatchableStore ws s γw` with `γw.st = γ`, so `γ.watchQ = true`), whose write transaction
+needs the sole writer's half of its notified log (`wlogOwn`). -/
+def isKV (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
+  iprop((⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗ mvcc.isStore s γ ∗
+      ⌜γ.watchQ = false⌝) ∨
+    ∃ (ws : Loc) (γw : mvcc.WsNames),
+      ⌜kv = interface.mkOk (go.GoType.PointerType watchableStore.ty) #ws ∧ γw.st = γ⌝ ∗
+      mvcc.isWatchableStore ws s γw)
+
+/-- **The writer's part of a watchable store's notified log** (unit N4, D14a): for the inner store
+of a watchable store (`γ.watchQ`), a watchable store over `s` with `γw.st = γ`, the sole writer's
+half of its notified log `L` (`γw.wlog`, `mvcc.watchWriter`'s) and the certificate of `L`; nothing
+for a plain store. -/
+def wlogOwn (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
+  if γ.watchQ then
+    iprop(∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ⌝ ∗ mvcc.isWatchableStore ws s γw ∗
+      monoListAuthOwn γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L)
+  else iprop(True)
+
+instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :
+    Persistent (isKV (GF := GF) kv s γ) := by
+  unfold isKV; infer_instance
+
+/-- A plain store has no notified log. -/
+theorem wlogOwn_plain (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) (h : γ.watchQ = false) :
+    ⊢ wlogOwn (GF := GF) s γ L := by
+  unfold wlogOwn; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
+end kvdefs
 
 end txn
 end EtcdGrove

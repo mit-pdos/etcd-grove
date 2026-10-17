@@ -128,7 +128,7 @@ def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (
     IProp GF :=
   iprop(□ ∀ (rt : Loc) (t : TxnModel) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStore st P f RD on ∗ apply.isApplyLessor le γ P f ∗ ai ↦{dq} info ∗ RD ∗
+      apply.isAuthStore st γ P f RD on ∗ apply.isApplyLessorAny le γ P f ∗ ai ↦{dq} info ∗ RD ∗
       txn.txnRequestIs rt t -∗
     (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
         ⌜on = false → err = GoInterface.nil⌝ -∗ Φ #err) -∗
@@ -148,7 +148,7 @@ theorem apply.checkTxnReqs_of
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice)
     (ps : List Loc) (ops : List TxnOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStore st P f RD on ∗ apply.isApplyLessor le γ P f ∗ ai ↦{dq} info ∗ RD ∗
+      apply.isAuthStore st γ P f RD on ∗ apply.isApplyLessorAny le γ P f ∗ ai ↦{dq} info ∗ RD ∗
       reqs ↦*□ ps ∗ txn.requestOpsIs ps ops ∗ apply.txnPermT st le γ P f RD on ai info dq }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))

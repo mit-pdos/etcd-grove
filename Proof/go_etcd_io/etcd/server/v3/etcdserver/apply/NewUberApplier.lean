@@ -31,31 +31,38 @@ theorem apply.NewUberApplier.wp_proof
     (hN : apply.newApplierV3.spec (GF := GF) (hG := hG))
     (hR : apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG)) :
     apply.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  intro E opts
-  wp_start as ⟨#Hopts, Hard⟩
+  intro opts RD
+  wp_start as ⟨Hard, #HGet⟩
   wp_auto
-  wp_apply (hN E opts) $$ [Hard] as %base #Hbase
-  · iframe; iframe #
+  wp_apply (hN opts RD) $$ [Hard] as %base #Hbase
+  · iframe
   ihave ⟨Hu, %Hun⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hu
   ipersist lg
   ipersist alarmStore
   ipersist warningApplyDuration
   ipersist applyV3base
-  ihave #Hui : iprop(apply.uberIs E «$r0_ptr» opts) $$ []
-  · iunfold apply.uberIs
-    iframe #
-    ipureintro; exact Hun
-  wp_apply (hR E «$r0_ptr» opts base) $$ [applyV3] as ⟨%ns, %cr, Hown⟩
+  wp_apply (hR «$r0_ptr» opts.AlarmStore' base _) $$ [applyV3] as ⟨%ns, %cr, %a', Ha', #Hchain⟩
   · iframe #
     iframe applyV3
   iapply HΦ
   iexists «$r0_ptr»
-  iframe Hui
   isplitr
   · ipureintro; rfl
+  iintro %E %hRD #Hopts
+  ihave #Hb := Hbase $$ %E %hRD Hopts
+  isplitr
+  · iunfold apply.uberIs
+    iframe #
+    ipureintro; exact Hun
   iexists ns, cr
-  iexact Hown
+  iunfold apply.uberOwn
+  iexists a'
+  iframe Ha'
+  isplitr
+  · iapply Hchain $$ %E Hb
+  ipureintro
+  cases ns <;> cases cr <;> simp [apply.alarmChain, apply.baseChain, apply.Chain.authOn]
 
 end proof
 

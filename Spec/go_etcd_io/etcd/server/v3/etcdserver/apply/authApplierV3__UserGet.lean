@@ -31,7 +31,7 @@ abbrev apply.authApplierV3.UserGet.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
       (∃ n : GoString, apply.authUserGetIs r n) ∗
-      apply.mPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Q Post }}
+      apply.mPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"UserGet")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
 

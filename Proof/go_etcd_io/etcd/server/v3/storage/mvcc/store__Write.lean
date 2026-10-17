@@ -31,15 +31,19 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
-  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %f0, %Dep, Hs⟩
+  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %Dep, Hs⟩
   iNamed Hs
   iunfold mvcc.storeReaderC at Hrd
   icases Hrd with ⟨%ti2, Hrd⟩
   iNamedSuffix Hrd "R"
   wp_auto_lc 1
   -- the caller's hook is the store's
-  imod mvcc.hookIs_agree_lc ⊤ γ P P0 f f0 $$ [$Hlc1 $HhookC $Hhook] with ⟨%Hfeq, #HPP0, #HP0P⟩
-  subst Hfeq
+  imod mvcc.hookP_agree_lc ⊤ γ P P0 f $$ [$Hlc1 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
+  ihave #HhookC' := HhookC
+  iunfold mvcc.hookIs at HhookC'
+  icases HhookC' with ⟨-, #Hhf⟩
+  ihave #HhookW : mvcc.hookIs γ P0 f $$ []
+  · iunfold mvcc.hookIs; iframe Hhook Hhf
   ihave #Htr0 : □ ({{ P0 ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) $$ []
   · iintro !> %Φ !> ⟨HP0, Hpre⟩ HΦ
     iapply Htriple $$ %Φ [HP0 Hpre] HΦ
@@ -75,13 +79,13 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iunfold mvcc.isBatchTxG at Hbt
   icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
-      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked P0 f $$ []
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked P0 (mvcc.hookFn γ) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
   -- `tx.LockInsideApply()`: the writer's resources, the hook run on the caller's `Pre`
-  ihave #HLock' := HLock $$ %Pre %Q
-  wp_apply HLock' $$ [$Hpre $Htr0 $HrtR $Hwt] as ⟨Hlocked, HW, HQ, HrtR⟩
+  ihave #HLock' := HLock $$ %Pre %Q %f
+  wp_apply HLock' $$ [$Hpre $Htr0 $HrtR $Hwt $Hhf] as ⟨Hlocked, HW, HQ, HrtR⟩
   (try wp_auto)
   ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
   iunfold mvcc.writerRes at HW

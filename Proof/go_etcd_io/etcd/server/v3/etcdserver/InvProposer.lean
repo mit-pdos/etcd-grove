@@ -73,7 +73,7 @@ def apply.irrEmpty : apply.IRRModel where
   authDisable := false
   authStatus := false
   authenticate := none
-  authUserAdd := false
+  authUserAdd := none
   authUserDelete := false
   authUserGet := none
   authUserChangePassword := false
@@ -81,7 +81,7 @@ def apply.irrEmpty : apply.IRRModel where
   authUserRevokeRole := false
   authUserList := false
   authRoleList := false
-  authRoleAdd := false
+  authRoleAdd := none
   authRoleDelete := false
   authRoleGet := none
   authRoleGrantPermission := false
@@ -123,13 +123,13 @@ def reqTypeName (rq : apply.IRRModel) : GoString :=
   else if rq.authEnable then go!"AuthEnable"
   else if rq.authDisable then go!"AuthDisable"
   else if rq.authStatus then go!"AuthStatus"
-  else if rq.authUserAdd then go!"AuthUserAdd"
+  else if rq.authUserAdd.isSome then go!"AuthUserAdd"
   else if rq.authUserDelete then go!"AuthUserDelete"
   else if rq.authUserChangePassword then go!"AuthUserChangePassword"
   else if rq.authUserGrantRole then go!"AuthUserGrantRole"
   else if rq.authUserGet.isSome then go!"AuthUserGet"
   else if rq.authUserRevokeRole then go!"AuthUserRevokeRole"
-  else if rq.authRoleAdd then go!"AuthRoleAdd"
+  else if rq.authRoleAdd.isSome then go!"AuthRoleAdd"
   else if rq.authRoleGrantPermission then go!"AuthRoleGrantPermission"
   else if rq.authRoleGet.isSome then go!"AuthRoleGet"
   else if rq.authRoleRevokePermission then go!"AuthRoleRevokePermission"
@@ -177,7 +177,7 @@ def irrNoHdrIs (p : Loc) (rq : apply.IRRModel) : IProp GF :=
     apply.irrField p go!"AuthDisable" (fun l => apply.presentIs l rq.authDisable) ∗
     apply.irrField p go!"AuthStatus" (fun l => apply.presentIs l rq.authStatus) ∗
     apply.irrField p go!"Authenticate" (fun l => apply.optReqIs l rq.authenticate apply.authenticateIs) ∗
-    apply.irrField p go!"AuthUserAdd" (fun l => apply.presentIs l rq.authUserAdd) ∗
+    apply.irrField p go!"AuthUserAdd" (fun l => apply.optReqIs l rq.authUserAdd apply.authUserAddIs) ∗
     apply.irrField p go!"AuthUserDelete" (fun l => apply.presentIs l rq.authUserDelete) ∗
     apply.irrField p go!"AuthUserGet" (fun l => apply.optReqIs l rq.authUserGet apply.authUserGetIs) ∗
     apply.irrField p go!"AuthUserChangePassword" (fun l => apply.presentIs l rq.authUserChangePassword) ∗
@@ -185,7 +185,7 @@ def irrNoHdrIs (p : Loc) (rq : apply.IRRModel) : IProp GF :=
     apply.irrField p go!"AuthUserRevokeRole" (fun l => apply.presentIs l rq.authUserRevokeRole) ∗
     apply.irrField p go!"AuthUserList" (fun l => apply.presentIs l rq.authUserList) ∗
     apply.irrField p go!"AuthRoleList" (fun l => apply.presentIs l rq.authRoleList) ∗
-    apply.irrField p go!"AuthRoleAdd" (fun l => apply.presentIs l rq.authRoleAdd) ∗
+    apply.irrField p go!"AuthRoleAdd" (fun l => apply.optReqIs l rq.authRoleAdd apply.authRoleAddIs) ∗
     apply.irrField p go!"AuthRoleDelete" (fun l => apply.presentIs l rq.authRoleDelete) ∗
     apply.irrField p go!"AuthRoleGet" (fun l => apply.optReqIs l rq.authRoleGet apply.authRoleGetIs) ∗
     apply.irrField p go!"AuthRoleGrantPermission" (fun l => apply.presentIs l rq.authRoleGrantPermission) ∗
@@ -200,7 +200,8 @@ instance irrNoHdrIs_persistent (p : Loc) (rq : apply.IRRModel) :
     Persistent (irrNoHdrIs (GF := GF) p rq) := by
   unfold irrNoHdrIs apply.compactionIs apply.leaseGrantIs apply.leaseRevokeIs
     apply.alarmRequestIs apply.leaseCheckpointIs apply.checkpointIs apply.authenticateIs
-    apply.authUserGetIs apply.authRoleGetIs apply.clusterVersionSetIs apply.memberAttrSetIs
+    apply.authUserGetIs apply.authRoleGetIs apply.authUserAddIs apply.authRoleAddIs
+    apply.clusterVersionSetIs apply.memberAttrSetIs
     apply.downgradeInfoSetIs
   infer_instance
 

@@ -59,10 +59,10 @@ theorem EtcdServer.Start.wp_proof
     (hCH : EtcdServer.monitorCompactHash.spec (GF := GF) (hG := hG))
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hN
-  wp_start as ⟨Hb, Htok, Hlg, Hlgm⟩
+  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
+  wp_start as ⟨#Hlife, Hb, Htok, Hlg, Hlgm⟩
   wp_auto
-  wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hN $$ [Hb]
+  wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb]
     as ⟨%γw, #Hreq, #Hrd, Hst⟩
   · iframe #; iframe Hb
   iunfold srvStarted at Hst

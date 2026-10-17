@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -856,8 +857,11 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨-, -, #Hkvf, #Hkv, #Hrvf, #Hrv, -, -, -, -, -, -, -, #Hterm, -⟩
-  iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkveq, #Hst, %Hwq⟩
+  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
+  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
+  ihave ⟨#Hko0, #Hst⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
+  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
+  · rw [← Hkveq]; iexact Hko0
   iunfold kvGetOk
   simp only [srvKVAns]
   isplitr
@@ -865,12 +869,14 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     wp_apply hKV s w.kv $$ []
     · iframe #
     iapply HΦ
-    iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty, #E.s⟩
+    iexists ⟨kty, kvv⟩
     isplitr
     · ipureintro; exact Hkveq
     iintro !> %Φ' Hrd HΦ'
     imod ownToks_0 (GF := GF) E.γ.revs with Hnone
     imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #Hc0
+    iapply mvcc.kvOver_rev_wp kty kvv E.s
+    iframe Hko
     wp_apply hRev E.s w.rv E.γ 0 [] $$ [Hrd Hnone] as %rv ⟨Hrd, -, -⟩
     · iframe #; iframe Hrd Hnone
     iapply HΦ'

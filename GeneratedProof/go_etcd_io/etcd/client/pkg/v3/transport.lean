@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.crypto.tls
+public import GeneratedProof.go_uber_org.zap
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.pkg.v3.transport
 
@@ -121,12 +123,407 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 instance TLSInfo_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo where
+  typedPointstoDef l v dq := iprop(
+    "CertFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq ∗
+    "KeyFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq ∗
+    "ClientCertFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq ∗
+    "ClientKeyFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq ∗
+    "TrustedCAFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq ∗
+    "ClientCertAuth" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq ∗
+    "CRLFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq ∗
+    "InsecureSkipVerify" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq ∗
+    "SkipClientSANVerify" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq ∗
+    "ServerName" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq ∗
+    "HandshakeFailure" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq ∗
+    "CipherSuites" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq ∗
+    "MinVersion" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq ∗
+    "MaxVersion" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq ∗
+    "selfCert" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq ∗
+    "parseFunc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq ∗
+    "AllowedCN" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq ∗
+    "AllowedHostname" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq ∗
+    "AllowedCNs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq ∗
+    "AllowedHostnames" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq ∗
+    "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq ∗
+    "EmptyCN" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq ∗
+    "LocalAddr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance TLSInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.underlying := by
+  solve_into_val_typed_struct
+
+instance TLSInfo_access_load_CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (CertFile' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) CertFile' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CertFile' := CertFile' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (KeyFile' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) KeyFile' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeyFile' := KeyFile' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (ClientCertFile' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) ClientCertFile' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertFile' := ClientCertFile' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (ClientKeyFile' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) ClientKeyFile' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientKeyFile' := ClientKeyFile' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (TrustedCAFile' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) TrustedCAFile' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrustedCAFile' := TrustedCAFile' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (ClientCertAuth' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) ClientCertAuth' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertAuth' := ClientCertAuth' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (CRLFile' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) CRLFile' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CRLFile' := CRLFile' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (InsecureSkipVerify' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) InsecureSkipVerify' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InsecureSkipVerify' := InsecureSkipVerify' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (SkipClientSANVerify' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) SkipClientSANVerify' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SkipClientSANVerify' := SkipClientSANVerify' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (ServerName' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) ServerName' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerName' := ServerName' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (HandshakeFailure' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) HandshakeFailure' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HandshakeFailure' := HandshakeFailure' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (CipherSuites' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) CipherSuites' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CipherSuites' := CipherSuites' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (MinVersion' : w16) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) MinVersion' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinVersion' := MinVersion' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (MaxVersion' : w16) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) MaxVersion' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxVersion' := MaxVersion' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (selfCert' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) selfCert' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selfCert' := selfCert' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (parseFunc' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) parseFunc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parseFunc' := parseFunc' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (AllowedCN' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) AllowedCN' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedCN' := AllowedCN' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (AllowedHostname' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) AllowedHostname' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedHostname' := AllowedHostname' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (AllowedCNs' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) AllowedCNs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedCNs' := AllowedCNs' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (AllowedHostnames' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) AllowedHostnames' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedHostnames' := AllowedHostnames' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (Logger' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) Logger' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (EmptyCN' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) EmptyCN' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EmptyCN' := EmptyCN' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (LocalAddr' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) LocalAddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LocalAddr' := LocalAddr' } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end TLSInfo

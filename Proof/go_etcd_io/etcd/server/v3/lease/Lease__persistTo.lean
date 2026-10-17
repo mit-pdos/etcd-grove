@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 theorem lease.Lease.persistTo.wp_proof
     (hPut : schema.MustUnsafePutLease.spec (GF := GF) (hG := hG)) :
     lease.Lease.persistTo.spec (GF := GF) (hG := hG) := by
-  intro l b P f Pre Q Post id t r dq1 dq2 dq3
-  wp_start as ⟨#Hbk, Hcs, Hid, Ht, Hr⟩
+  intro l b P f T R Pre Q Post id t r dq1 dq2 dq3
+  wp_start as ⟨#Hbk, Hcs, HT, HR, Hid, Ht, Hr⟩
   ihave #Hschema : isPkgInit (PROP := IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
@@ -47,18 +47,19 @@ theorem lease.Lease.persistTo.wp_proof
   icases Htx with ⟨%Lk, #HLock, #HUnsafePut, #HUnlock⟩
   (try wp_auto)
   wp_bind (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #()))
-  iapply HLock $$ [Hcs] [-]
-  · iexact Hcs
+  iapply HLock $$ [Hcs HT HR] [-]
+  · iframe Hcs HT HR
   inext
   iintro HLk
   (try wp_auto)
   wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease))
     (Val #(GoInterface.ok tx))) (Val #lpb_ptr))
-  iapply (hPut tx lpb_ptr _ bk (Lk Post) (Lk Post)) $$ [lpb HLk] [-]
+  iapply (hPut tx lpb_ptr _ bk (Lk iprop(Post ∗ R)) (Lk iprop(Post ∗ R))) $$ [lpb HLk] [-]
   · iframe Hschema Hbkv lpb HLk
-    iintro !> %key %val %kb %vb %Φ' !> ⟨#Hk, #Hv, HL⟩ HΦ'
+    iintro !> %key %val %kb %vb %Φ' !> ⟨%Hk8, #Hk, #Hv, HL⟩ HΦ'
     iapply HUnsafePut $$ [HL] HΦ'
     iframe HL Hbkv Hk Hv
+    ipureintro; exact Hk8
   inext
   iintro ⟨-, HLk⟩
   (try wp_auto)
@@ -66,7 +67,7 @@ theorem lease.Lease.persistTo.wp_proof
   iapply HUnlock $$ [HLk] [-]
   · iexact HLk
   inext
-  iintro HPost
+  iintro ⟨HPost, HR⟩
   (try wp_auto)
   iapply HΦ
   iframe

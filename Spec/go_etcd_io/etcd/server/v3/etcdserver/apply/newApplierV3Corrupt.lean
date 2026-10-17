@@ -28,11 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`newApplierV3Corrupt(a)`**: the corrupt applier over `a` (an applier of the chain `c`): a pointer whose interface value is an applier of the chain `corrupt c`. -/
 abbrev apply.newApplierV3Corrupt.spec : Prop :=
-  ∀ (E : AEnv GF) (c : apply.Chain) (a : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.applierSpec E c a }}
+  ∀ (a : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Corrupt)) (Val #a))
   {{ (p : Loc), RET #p;
-      apply.applierSpec E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) }}
+      □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c a -∗
+        apply.applierSpec E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p)) }}
 
 end spec
 

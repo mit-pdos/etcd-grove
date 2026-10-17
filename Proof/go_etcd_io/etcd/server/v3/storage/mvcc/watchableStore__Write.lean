@@ -72,6 +72,7 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
     iframe
   (try wp_auto)
   wp_alloc wtw as Hwtw
+  ipersist Hwtw
   (try wp_auto)
   iapply HΦ
   iframe HQ

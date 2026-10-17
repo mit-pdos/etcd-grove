@@ -1,0 +1,8 @@
+# Types and names only (item 5, client construction): `resolver.Builder`, the type of
+# `grpc.WithResolvers`'s parameter, to which `clientv3`'s `dialWithBalancer` converts its
+# `*EtcdManualResolver`.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

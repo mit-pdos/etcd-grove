@@ -1,0 +1,7 @@
+# Names only, with the credentials requirement's type and constants (item 5, client
+# construction): `clientv3`'s `credentialsForEndpoint` switches on `RequiresCredentials`'s result.
+translate = ["!*", "CredsRequirement", "CredsRequire", "CredsDrop", "CredsOptional"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

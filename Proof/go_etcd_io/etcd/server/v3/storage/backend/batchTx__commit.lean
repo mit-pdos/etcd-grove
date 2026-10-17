@@ -46,9 +46,10 @@ theorem backend.batchTx.commit.wp_proof
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db1, %lg', #-, #-, #-, %-, #Hmi, #-⟩
+  ihave #Hbc := isBackend_beginCtx γ P W Pk b $$ Hb
   ihave Hi : (backendInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨⟨%h1, #Hg1, #Hs1⟩, ⟨%h2, #Hg2, #Hs2⟩, ⟨%h3, #Hg3, #Hs3⟩, ⟨%h4, #Hg4, #Hs4⟩⟩
+  icases Hi with ⟨⟨%h1, #Hg1, #Hs1⟩, ⟨%h2, #Hg2, #Hs2⟩, ⟨%h3, #Hg3, #Hs3⟩, ⟨%h4, #Hg4, #Hs4⟩, -⟩
   unfold histSpec
   unfold btW
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
@@ -136,7 +137,7 @@ theorem backend.batchTx.commit.wp_proof
       wp_auto
       cases stop
       · try wp_auto
-        wp_apply (hBegin γ P W Pk b db st.S true) $$ [$Hmu $Hown Hwr] as %tx' ⟨Hmu, Hown, #Htxdb', Hwtx'⟩
+        wp_apply (hBegin γ.db b db st.S true) $$ [$Hmu $Hown Hwr] as %tx' ⟨Hmu, Hown, #Htxdb', Hwtx'⟩
         · iframe #
           simp only [↓reduceIte]
           iexact Hwr

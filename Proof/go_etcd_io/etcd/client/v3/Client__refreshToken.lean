@@ -39,7 +39,7 @@ theorem Client.refreshToken.wp_proof
     iapply clientErrOk_nil
   | ok a =>
     wp_auto
-    wp_apply wp_getToken c ctx cd $$ [$Hc $Hctx] as %err #Herr
+    wp_apply wp_getToken c ctx cd $$ [$Hc $Hctx] as %err ⟨#Herr, -⟩
     iapply HΦ
     iexact Herr
 

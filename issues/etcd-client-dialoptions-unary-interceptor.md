@@ -106,7 +106,12 @@ func TestDialOptionsUnaryInterceptorReplacesRetry(t *testing.T) {
   `WithUnaryInterceptor` replaces the client's retry interceptor), or the client installs its
   interceptor with `grpc.WithChainUnaryInterceptor` so that a caller's `WithUnaryInterceptor`
   (which grpc runs first) does not remove it.
-- **How the proof handles it**: the client's results take the connection as a premise,
+- **How the proof handles it** (2026-10-17, item 5): `clientv3.New` is now proved
+  (`Spec/go_etcd_io/etcd/client/v3/New.lean`) under the configuration premise that
+  `Config.DialOptions` is empty (`clientCfgOk`), which excludes such an interceptor; grpc's
+  `NewClient` axiom (`Spec/google_golang_org/grpc/NewClient.lean`) composes the chain from the
+  options' descriptors (the last `WithUnaryInterceptor` wins). Before: the client's results took
+  the connection as a premise,
   `isEtcdConn conn addr` (`Proof/go_etcd_io/etcd/client/v3/InvKVConn.lean`): grpc's connection
   with exactly one unary interceptor, one meeting the retry interceptor's contract
   (`etcdInterceptorOk`, which `Client.unaryClientInterceptor` returns:

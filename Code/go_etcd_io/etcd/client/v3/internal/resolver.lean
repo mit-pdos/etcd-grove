@@ -28,7 +28,8 @@ attribute [irreducible] EtcdManualResolver.ty
 
 axiom EtcdManualResolver.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom Schema [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Schema [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"etcd-endpoints")
 
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/resolver.New"

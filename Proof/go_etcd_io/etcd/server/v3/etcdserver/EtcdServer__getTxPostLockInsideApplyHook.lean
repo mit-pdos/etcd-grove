@@ -37,7 +37,10 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
   wp_alloc sp as Hsp
   ipersist Hsp
   wp_auto
+  rw [recv_eq_func_mk]
   iapply HΦ
+  isplitr
+  · ipureintro; simp [func.nil]
   iunfold hookSpec
   iintro %st %i %t %b
   wp_start as ⟨HL, Hst, Happ, Hbe, %Hpre⟩

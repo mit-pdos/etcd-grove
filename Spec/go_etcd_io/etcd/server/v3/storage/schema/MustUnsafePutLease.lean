@@ -28,7 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 size cache, so it takes `*lpb` whole and leaves some value) and puts it into the `Lease` bucket
 under the lease's id as 8 big-endian bytes (`tx.UnsafePut(Lease, leaseIDToBytes(lpb.ID), val)`,
 its one call of `tx`): given that put's triple from `R` to `Q` for the bucket `bk` the variable
-`schema.Lease` holds, for any bytes (fresh slices, which the function does not touch again), it
+`schema.Lease` holds, for any 8-byte key (the lease's id; unit N4, 2026-10-17: any bytes until
+then, more than the backend gives: an empty key is fatal) and any value (fresh slices, which the function does not touch again), it
 goes from `R` to `Q`. -/
 abbrev schema.MustUnsafePutLease.spec : Prop :=
   ∀ (tx : GoInterfaceOk) (lpb : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease)
@@ -36,7 +37,7 @@ abbrev schema.MustUnsafePutLease.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       globalAddr schema.Lease ↦□ bk ∗ lpb ↦ v ∗ R ∗
       □ (∀ (key val : GoSlice) (kb vb : GoString),
-        {{ key ↦*□ kb ∗ val ↦*□ vb ∗ R }}
+        {{ ⌜kb.length = 8⌝ ∗ key ↦*□ kb ∗ val ↦*□ vb ∗ R }}
           (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #bk)) (Val #key))
             (Val #val))
         {{ RET #(); Q }}) }}

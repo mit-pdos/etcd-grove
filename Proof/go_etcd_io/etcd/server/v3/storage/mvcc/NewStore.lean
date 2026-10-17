@@ -87,8 +87,8 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f wq Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor⟩
+  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0
+  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -97,7 +97,7 @@ theorem mvcc.NewStore.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hsched : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
@@ -124,8 +124,8 @@ theorem mvcc.NewStore.wp_proof
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   -- the store's struct
-  wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hil, Hcu, Hcmp0, Hird⟩
-  · ipureintro; exact Hlgnn
+  wp_apply (hNewIdx γi) $$ [Hifresh] as %ti ⟨#Hti, Hiw, Hil, Hcu, Hcmp0, Hird⟩
+  · iframe Hifresh; ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, Hstop, Hq0, #Hp0⟩
   · ipureintro; exact Hlgnn
@@ -172,7 +172,6 @@ theorem mvcc.NewStore.wp_proof
   -- compaction's: the meta keys' record (nothing written), the finished compactions' counter
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm, Hmeta⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin, Hfin, -⟩
-  imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
@@ -180,8 +179,14 @@ theorem mvcc.NewStore.wp_proof
       γ.watchQ = wq :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
       rfl, rfl, rfl, rfl, rfl, rfl⟩
-  ihave #Hhook : mvcc.hookIs γ P f $$ []
-  · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
+  ihave #HhookP : mvcc.hookP γ P $$ []
+  · iunfold mvcc.hookP; rw [hγh]; iexact Hh
+  ihave #Hhook : mvcc.hookInit γ P f $$ []
+  · iunfold mvcc.hookInit
+    iframe HhookP
+    cases kb with
+    | none => simp only [hγk, mvcc.hookFn, mvcc.kbHookIs]; rw [hγhf]; iexact Hhf
+    | some d => simp only [hγk]; itrivial
   ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin]
   · iunfold mvcc.compactRes
     iexists none, none, 0
@@ -219,7 +224,7 @@ theorem mvcc.NewStore.wp_proof
   ipersist stopc
   ipersist hashes
   -- `tx := s.b.BatchTx()`: the backend's contract at the store's names
-  ihave #Hbk1 : mvcc.storeBackend b «$r0_ptr» γ P f $$ [Hbk]
+  ihave #Hbk1 : mvcc.storeBackend b «$r0_ptr» γ P $$ [Hbk]
   · iapply Hbk $$ %«$r0_ptr» %γ
     ipureintro; exact ⟨hγb, rfl⟩
   iunfold mvcc.storeBackend at Hbk1
@@ -334,7 +339,7 @@ theorem mvcc.NewStore.wp_proof
     iframe HcmpM HcmpB
   -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
-      %(1 : Qp).half %P %f %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
+      %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
       as ⟨Hbv2, HcurB, HcmpF, revMu⟩
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
@@ -384,7 +389,7 @@ theorem mvcc.NewStore.wp_proof
   · rw [hγl]; iexact Hlessor0
   ihave #Hs : mvcc.isStore «$r0_ptr» γ $$ []
   · iunfold mvcc.isStore
-    iexists (GoInterface.ok bi), (lease.lessorIface lp), ti, lg', P, f, Dep, cfg2, sc, stopc, hp
+    iexists (GoInterface.ok bi), (lease.lessorIface lp), ti, lg', P, Dep, cfg2, sc, stopc, hp
     simp only [named]
     iframe #
     ipureintro; exact ⟨Hlgnn, Hcfg2⟩
@@ -394,7 +399,7 @@ theorem mvcc.NewStore.wp_proof
   iapply HΦ
   iexists γ
   isplitr
-  · ipureintro; exact ⟨hγb, hγl, rfl, hγw⟩
+  · ipureintro; refine ⟨hγb, hγl, rfl, hγw, ?_, ?_⟩ <;> first | rfl | assumption
   iframe Hs Hok' Hhook Htoks Hcert HlogQ
   isplitl [ReadView WriteView]
   · iexists rv, wv
@@ -403,6 +408,7 @@ theorem mvcc.NewStore.wp_proof
     simp only [named]
     iframe ReadView WriteView
     iframe #
+    iunfold mvcc.kvOver; ileft; ipureintro; rfl
   isplitl [Hmus Hrevs Hird Hrts]
   · iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
     iframe Hmus Hrevs Hird Hrts

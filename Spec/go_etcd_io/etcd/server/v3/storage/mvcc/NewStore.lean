@@ -30,7 +30,9 @@ views (owned: `newWatchableStore` overwrites them), all the reader slots of its 
 resource `writerRes` needs `ilog.length + ntok + 3 ≤ 2 ^ 63`, with the initial log of length 2),
 and the index's certificate of the initial log. The caller says whether the store is a
 watchable store's (`wq`, `γ.watchQ`, unit W-K); if so, it gets the outer quarter of the committed
-log's authority (`logQ`), which the watchable store's `s.mu` keeps.
+log's authority (`logQ`), which the watchable store's `s.mu` keeps. The index's names `γi` and
+the certificate map's `γok` are the caller's (fresh: `mvcc.idxFresh`, an empty map's authority,
+handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`).
 
 * The backend is of the instance `kb` (2026-10-13, unit 5): `none`, mvcc's assumed contract over
   the store's own ghost map `γb`; `some d`, the real backend (`BackendBridge.lean`). Its contract
@@ -44,8 +46,10 @@ log's authority (`logQ`), which the watchable store's `s.mu` keeps.
   write tokens (`kbWT kb`: the first `Unlock` and `ForceCommit`).
 * The lessor's ghost name `γl` (its granted leases) is its own: the lessor exists before the
   store.
-* The backend's batch lock has invariant `P` and runs the post-lock hook `f` (`P f`, any); the
-  store records them (`hookIs`, returned), for its writers.
+* The backend's batch lock has invariant `P`; the store records it (`hookInit`, returned) and,
+  over mvcc's assumed backend, the post-lock hook `f` (any). Over the real backend the hook is
+  the backend's slot, frozen when the etcd server installs it (`hookIs_of_init`; unit N4, D14b):
+  the contract (`storeBackend`) names the slot, not the hook.
 * The contract (`storeBackend`) includes the compaction's calls where the instance supports them
   (`storeCmp`: mvcc's assumed backend; the real backend's model does not, 2026-10-13, the merge
   with the compaction), and the batch lock's deposit witness its first `Unlock` returns.
@@ -63,18 +67,19 @@ log's authority (`logQ`), which the watchable store's `s.mu` keeps.
   transactions take (`storeReader_of`). -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
-    (P : IProp GF) (f : val) (wq : Bool),
+    (P : IProp GF) (f : val) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName),
   0 ≤ sint.Z cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P f) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
-      lease.lessorRdOf γl ∗ mvcc.isLessor le γl }}
+      lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
+      mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-      ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq⌝ ∗
-      mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ P f ∗
+      ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok⌝ ∗
+      mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookInit γ P f ∗
       (∃ rv wv : Loc,
         s.[store, go!"ReadView"] ↦
           (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗

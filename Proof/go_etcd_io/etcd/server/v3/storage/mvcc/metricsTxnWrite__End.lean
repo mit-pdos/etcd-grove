@@ -38,9 +38,9 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
   iunfold counterSpec at HctS HcrS HcpS HcdS
   iunfold gaugeSpec at HgS
   icases HctS with ⟨#HctI, -⟩
-  icases HcrS with ⟨-, #HcrA⟩
-  icases HcpS with ⟨-, #HcpA⟩
-  icases HcdS with ⟨-, #HcdA⟩
+  icases HcrS with ⟨-, #HcrA, -⟩
+  icases HcpS with ⟨-, #HcpA, -⟩
+  icases HcdS with ⟨-, #HcdA, -⟩
   icases HgS with ⟨-, -, #HgA⟩
   cases kind with
   | read log rev =>

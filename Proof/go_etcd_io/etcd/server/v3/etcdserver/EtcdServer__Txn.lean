@@ -429,6 +429,7 @@ theorem EtcdServer.Txn.wp_proof
   iunfold isFeatureGate at Hfg
   icases Hfg with ⟨%fi, %Hfi, #HEn⟩
   ihave #Hle' := Hle
+  ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ $$ Hle
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨#HtLe, -⟩
   ihave #HisRead' := HisRead

@@ -29,14 +29,15 @@ lease `l` (its `ID` and `ttl` read-only: its `ttl` the larger of `ttl` and the l
 `id` added to the live set, its record written to the backend (`Post`). -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF),
+    (T R : IProp GF) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      lessorCfg lp ∗ lessorBackend lp P f ∗ leaseOwn γl L ∗ mvcc.csContract P f Pre Q Post }}
+      lessorCfg lp ∗ lessorBackend lp P f T R ∗ leaseOwn γl L ∗ mvcc.csContract P f Pre Q Post ∗
+      T ∗ R }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Grant")) (Val #id)) (Val #ttl))
-  {{ (l : Loc) (err : GoInterface), RET (PairV #l #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ lessorErrIs err ∗ leaseOwn γl L ∗ Pre) ∨
+  {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); R ∗
+      ((⌜err ≠ GoInterface.nil⌝ ∗ lessorErrIs err ∗ leaseOwn γl L ∗ Pre) ∨
       (⌜err = GoInterface.nil ∧ l ≠ null ∧ id ∉ L⌝ ∗ leaseOwn γl (L ++ [id]) ∗ Post ∗
-        lsF go!"ID" l ↦□ id ∗ ∃ t : w64, lsF go!"ttl" l ↦□ t) }}
+        lsF go!"ID" l ↦□ id ∗ ∃ t : w64, lsF go!"ttl" l ↦□ t)) }}
 
 end spec
 

@@ -70,6 +70,16 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
 
 end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
+-- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17)
+namespace crypto.tls
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
+  build_get_is_pkg_init_wf
+
+end crypto.tls
+
 namespace go_etcd_io.etcd.client.pkg.v3.transport
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=
@@ -90,15 +100,7 @@ end go_etcd_io.etcd.pkg.v3.featuregate
 
 -- names only (stage R8b of the raft v3.7 retarget, 2026-10-16): the packages the raft wrapper's
 -- construction names (`newRaftNode`'s dead logger branch, the WAL `bootstrappedRaft.newRaftNode`
--- wraps).
-namespace go_etcd_io.etcd.client.pkg.v3.logutil
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.client.pkg.v3.logutil
+-- wraps); `logutil`'s instance is in `cache/v3/Base.lean` (item 5: `clientv3` imports it).
 
 namespace go_etcd_io.etcd.server.v3.storage.wal
 
@@ -135,6 +137,34 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
+
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
+
+-- the names-only packages of `rafthttp.Transport`'s fields (unit N4, 2026-10-17)
+namespace golang_org.x.time.rate
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.golang_org.x.time.rate :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.golang_org.x.time.rate :=
+  build_get_is_pkg_init_wf
+
+end golang_org.x.time.rate
+
+namespace github_com.xiang90.probing
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.xiang90.probing :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.xiang90.probing :=
+  build_get_is_pkg_init_wf
+
+end github_com.xiang90.probing
 
 -- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
@@ -175,15 +205,6 @@ end go_etcd_io.etcd.pkg.v3.idutil
 
 -- `api/v3/version`: `server/v3/lease/Base.lean` (2026-10-13, unit 9: the lessor's
 -- `shouldPersistCheckpoints` reads its `V3_6`)
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
@@ -313,7 +334,8 @@ instance gaugeSetSpec_persistent (g : GoInterfaceOk) :
 /-- The raft wrapper's part of the server's package facts (2026-10-12, `raft.go`): the metrics of
 `metrics.go` the `Ready` loop updates each hold a fixed gauge (`hasLeader`, `isLeader`,
 `proposalsCommitted`: `Set`) or counter (`leaderChanges`, `heartbeatSendFailures`: `Inc`, mvcc's
-`counterSpec`). -/
+`counterSpec`); and the gauge vectors the construction uses (`serverFeatureEnabled`, `serverID`;
+unit N4, 2026-10-17). -/
 abbrev srvRaftInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr hasLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     (∃ g : GoInterfaceOk, globalAddr isLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
@@ -321,7 +343,10 @@ abbrev srvRaftInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr leaderChanges ↦□ GoInterface.ok c ∗
       go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr heartbeatSendFailures ↦□ GoInterface.ok c ∗
-      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c))
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    -- the construction's metrics (unit N4, 2026-10-17: `NewServer`'s `addFeatureGateMetrics(…,
+    -- serverFeatureEnabled)` and `serverID.With(…)`): two fixed gauge vectors
+    (∃ gv : Loc, globalAddr serverFeatureEnabled ↦□ gv) ∗ (∃ gv : Loc, globalAddr serverID ↦□ gv))
 
 instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
   unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance

@@ -1,0 +1,7 @@
+# Types and names only (unit N4, 2026-10-17: `url.URL`, the element type of `types.URLs`, a field
+# type of the server's configuration).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

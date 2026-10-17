@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 
@@ -26,12 +27,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.Assumptions]
 
 instance DiscoveryConfig_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig where
+  typedPointstoDef l v dq := iprop(
+    "ConfigSpec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) v.ConfigSpec' dq ∗
+    "Token" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) v.Token' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance DiscoveryConfig_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.underlying := by
+  solve_into_val_typed_struct
+
+instance DiscoveryConfig_access_load_ConfigSpec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) v.ConfigSpec' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) v.ConfigSpec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance DiscoveryConfig_access_store_ConfigSpec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (ConfigSpec' : go_etcd_io.etcd.client.v3.ConfigSpec) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) v.ConfigSpec' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) ConfigSpec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfigSpec' := ConfigSpec' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance DiscoveryConfig_access_load_Token (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) v.Token' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) v.Token' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance DiscoveryConfig_access_store_Token (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (Token' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) v.Token' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) Token' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Token' := Token' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end DiscoveryConfig

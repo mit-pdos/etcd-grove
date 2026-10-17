@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -102,22 +103,25 @@ theorem txn.Txn_sole
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
+    (hWWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hNewRo : mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG))
     (htxn : txn.txn.spec (GF := GF) (hG := hG))
-    (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
+    (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG))
+    (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.specSole (GF := GF) (hG := hG) := by
-  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
-  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEndF := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
   intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te F
   wp_start as ⟨#Hkv, Hrd, Hsw, #HF, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, #Hcok, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
+  iunfold txn.kvWriter at Hsw
+  icases Hsw with ⟨Hsw, Hwl⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
-  subst Hkv
+  ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
+  obtain ⟨kty, kvv, rfl⟩ := Hkvok
+  ihave ⟨#Hko, #Hs⟩ := txn.isKV_kvOver _ s γ $$ Hkv
   wp_auto
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
     as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
@@ -130,6 +134,9 @@ theorem txn.Txn_sole
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
   have hlen3 : log.length + 3 ≤ 2 ^ 63 := by have := Hpre.1; omega
+  wp_bind (App (App (Val #(methods kty _ kvv)) _) _)
+  iapply mvcc.kvOver_read_wp kty kvv s md trace
+  iframe Hko
   wp_apply (txn.soleWriter_Read_floor hRead s γ md trace log false F hlen3 Htr) $$ [$Hs $Hrd $Hsw $Htrc $HF]
     as %mw ⟨%rev, Htx, Hsw, %HFl⟩
   -- `compareToPath` in the trace's step
@@ -192,13 +199,15 @@ theorem txn.Txn_sole
       ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
       ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
       · simp only [mvcc.txnEndPre]; itrivial
-      wp_apply (hEnd trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te9, Htrc⟩
+      wp_apply (hEndF trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te9, Htrc⟩
       iapply HΦ
       iframe Hrd Hu
       ileft
-      iframe Hce Hsw HPre
+      iframe Hce HPre
       isplitr
       · ipureintro; exact ⟨rfl, rfl, Hne, Hnp⟩
+      isplitl [Hsw Hwl]
+      · iunfold txn.kvWriter; iframe Hsw Hwl
       iexists trace, te9
       iframe Htrc
       ipureintro; exact Hteq
@@ -268,7 +277,9 @@ theorem txn.Txn_sole
     isplitr
     · ipureintro; exact Hteq
     simp only [mvcc.commitLog, ↓reduceIte]
-    iframe Hsw Hresp Hhdr
+    iframe Hresp Hhdr
+    isplitl [Hsw Hwl]
+    · iunfold txn.kvWriter; iframe Hsw Hwl
     isplitl []
     · iexact Hknown
     simp only [hro, ↓reduceIte]
@@ -281,25 +292,30 @@ theorem txn.Txn_sole
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
     · simp only [mvcc.txnEndPre]; itrivial
-    wp_apply (hEnd trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te6, Htrc⟩
+    wp_apply (hEndF trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te6, Htrc⟩
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
-    wp_apply (hWrite s γ trace P Pre Q f te6) $$ [$Hs $Hrd $Htok $Hwt $Hhook $HPre $Htr $Htrc]
-      as %mw' ⟨⟨%ilog, Htx⟩, HQ⟩
-    · ipureintro; exact Htr
-    -- the caller's update (the writes are the model's): the lock's invariant back for `End`
-    imod Hupd $$ HQ with ⟨HP, HPost⟩
     iunfold soleWriterOpen at Hsw
     icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
+    have hsb : soleBudget log - 1 + 1 = soleBudget log := by unfold soleBudget; omega
+    wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f te6 (soleBudget log - 1) log)
+      $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $HPre $Htr $Htrc]
+      as %tyX %vX ⟨%ilog, %mw', Htx, Hte, Htoks, -, HQ⟩
+    · ipureintro; exact ⟨fun _ => ⟨hsb, hlen4⟩, Htr⟩
+    ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw' ilog $$ Hte
+    -- the caller's update (the writes are the model's): the lock's invariant back for `End`
+    imod Hupd $$ HQ with ⟨HP, HPost⟩
     ihave ⟨%Hpin, Htoks, -, Htx⟩ := isTxnWrite_pinned γ log ilog [] mw' s (W64 0) (W64 0) (W64 0)
       (soleBudget log - 1) $$ [$Htoks $Hc $Htx]
     have hil := pinned_sole log ilog hlen4 Hpin
     subst ilog
     ihave Htx : mvcc.isTxn mw' s γ trace (.write log [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
-    ihave Htv := (txnViewIs_mw mw' s γ _).2 $$ Htx
+    icases txnViewIs_wrap tyX vX mw' s γ (.write log [] (W64 0) (W64 0) (W64 0)) $$ Hw
+      with ⟨-, Hvb⟩
+    ihave Htv := Hvb $$ Htx
     ihave Htw := txnWriteIs_of_view _ s γ false log [] _ ⟨_, _, _, rfl⟩ $$ Htv
     have htxn' := htxn trace ctx' { cd with Values := vs } true lg s γ
-      (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw') false log rt t sl skip L
+      (interface.mkOk tyX vX) false log rt t sl skip L
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true] at htxn'
     iunfold EtcdGrove.lease.lessorUser at Hu
     icases Hu with ⟨Hown, Hrdo⟩
@@ -315,12 +331,19 @@ theorem txn.Txn_sole
     icases txnWriteIs_kind _ s γ false log _ $$ Htw with ⟨%kind, Hv, %Hk⟩
     obtain ⟨hkis, -, -, -, -⟩ := Hk
     obtain ⟨p1, p2, p3, rfl⟩ := hkis
-    ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
-    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
-    wp_apply (hEnd trace mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te5, Htrc⟩
-    · iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ Hwq); iframe Hhook HP; simp only [hro, Bool.false_eq_true, ↓reduceIte]; isimp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn] at Hcok; iapply Hcok; ipureintro; exact Hign
-    ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
-    · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
+    icases txnViewIs_wrap tyX vX mw' s γ (.write log _ p1 p2 p3) $$ Hw with ⟨Hva, -⟩
+    ihave Htx := Hva $$ Hv
+    simp only [mvcc.isTxn]
+    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw' log _ p1 p2 p3 (soleBudget log - 1) P f)
+      $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te5, Htrc⟩, #Hc', Htok, Htoks, Hwl⟩
+    · iframe HP Hhook
+      isplitl []
+      · ipureintro; exact fun _ => hsb
+      simp only [hro, Bool.false_eq_true, ↓reduceIte]; isimp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn] at Hcok; iapply Hcok; ipureintro; exact Hign
+    ihave Hsw := soleWriter_close γ log _ hlen4 $$ [Htoks Hc' Htok]
+    · iframe Hc' Htok; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
+    ihave Hsw : txn.kvWriter s γ (mvcc.commitLog log _) $$ [Hsw Hwl]
+    · iunfold txn.kvWriter; iframe Hsw Hwl
     ihave #Hresp2 := Hresp
     iunfold txnResponseIs at Hresp2
     icases Hresp2 with ⟨%Hrn, #Hf⟩
@@ -373,7 +396,6 @@ theorem txn.Txn_read
     (htxn : txn.txn.spec (GF := GF) (hG := hG))
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.specRead (GF := GF) (hG := hG) := by
-  have hRead := mvcc.store.Read.spec_frozen hRead
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
   intro ctx cd lg rt shared kv le skip s γ m log₀ t ot te
@@ -381,9 +403,8 @@ theorem txn.Txn_read
   obtain ⟨Hlg, hro, hgets⟩ := Hpre
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
-  subst Hkv
+  ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
+  obtain ⟨kty, kvv, rfl⟩ := Hkvok
   wp_auto
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
     as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
@@ -395,7 +416,7 @@ theorem txn.Txn_read
   · (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
-  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, #Hcok, %Hpin⟩
+  wp_apply (txn.kv_Read hRead kty kvv s γ md trace m log₀ false) $$ [$Hkv $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, #Hcok, %Hpin⟩
   · ipureintro; exact Htr
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩
@@ -582,11 +603,14 @@ theorem txn.Txn.wp_proof
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
+    (hWWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hNewRo : mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG))
     (htxn : txn.txn.spec (GF := GF) (hG := hG))
-    (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
+    (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG))
+    (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.spec (GF := GF) (hG := hG) :=
-  ⟨txn.Txn_sole hEnsure hRO hRead hStepF hPath hAdd hCheck hEnd hStep hWrite hNewRo htxn hRoEnd,
+  ⟨txn.Txn_sole hEnsure hRO hRead hStepF hPath hAdd hCheck hEnd hStep hWrite hWWrite hNewRo htxn
+      hRoEnd hWEnd,
     txn.Txn_read hEnsure hRO hRead hStepF hPath hAdd hCheck hEnd hStep hWrite hNewRo htxn hRoEnd⟩
 
 end proof

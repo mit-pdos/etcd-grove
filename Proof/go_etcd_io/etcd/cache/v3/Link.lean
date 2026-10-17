@@ -77,6 +77,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.WithResyncInterval
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSerializable
 public import Proof.go_etcd_io.etcd.cache.v3.WithWaitTimeout
+public import Proof.go_etcd_io.etcd.cache.v3.New
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__add
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__remove
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__run
@@ -149,7 +150,6 @@ public import Proof.go_etcd_io.etcd.cache.v3.store__applyEventsLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyProgressNotifyLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__getSnapshot
 public import Proof.time.Duration__String
-public import Proof.go_etcd_io.etcd.cache.v3.New
 public import Proof.go_etcd_io.etcd.cache.v3.Range
 public import Proof.go_etcd_io.etcd.cache.v3.newNotifier
 public import Proof.go_etcd_io.etcd.cache.v3.notifier__notify
@@ -734,22 +734,6 @@ theorem Prefix.wp_Match :
     Prefix.Match.spec (GF := GF) (hG := hG) :=
   Prefix.Match.wp_proof
 
-theorem conditionalProgressRequestor.wp_run :
-    conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) :=
-  conditionalProgressRequestor.run.wp_proof fmt.wp_Printf
-
-theorem demux.wp_Compact :
-    demux.Compact.spec (GF := GF) (hG := hG) :=
-  demux.Compact.wp_proof demux.wp_purge
-
-theorem demux.wp_LatestRev :
-    demux.LatestRev.spec (GF := GF) (hG := hG) :=
-  demux.LatestRev.wp_proof
-
-theorem demux.wp_Purge :
-    demux.Purge.spec (GF := GF) (hG := hG) :=
-  demux.Purge.wp_proof demux.wp_purge
-
 theorem wp_newReady :
     newReady.spec (GF := GF) (hG := hG) :=
   newReady.wp_proof
@@ -758,13 +742,13 @@ theorem wp_newConditionalProgressRequestor :
     newConditionalProgressRequestor.spec (GF := GF) (hG := hG) :=
   newConditionalProgressRequestor.wp_proof
 
+theorem conditionalProgressRequestor.wp_run :
+    conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) :=
+  conditionalProgressRequestor.run.wp_proof fmt.wp_Printf
+
 theorem wp_newCache :
     newCache.spec (GF := GF) (hG := hG) :=
   newCache.wp_proof wp_newStore wp_newReady wp_newConditionalProgressRequestor wp_NewDemux Cache.wp_getWatchLoop conditionalProgressRequestor.wp_run
-
-theorem ready.wp_WaitNotReady :
-    ready.WaitNotReady.spec (GF := GF) (hG := hG) :=
-  ready.WaitNotReady.wp_proof ready.wp_waitForState
 
 theorem realTimer.wp_Chan :
     realTimer.Chan.spec (GF := GF) (hG := hG) :=
@@ -785,6 +769,22 @@ theorem realClock.wp_NewTimer :
 theorem wp_New :
     New.spec (GF := GF) (hG := hG) :=
   New.wp_proof wp_defaultConfig wp_newCache realClock.wp_NewTimer
+
+theorem demux.wp_Compact :
+    demux.Compact.spec (GF := GF) (hG := hG) :=
+  demux.Compact.wp_proof demux.wp_purge
+
+theorem demux.wp_LatestRev :
+    demux.LatestRev.spec (GF := GF) (hG := hG) :=
+  demux.LatestRev.wp_proof
+
+theorem demux.wp_Purge :
+    demux.Purge.spec (GF := GF) (hG := hG) :=
+  demux.Purge.wp_proof demux.wp_purge
+
+theorem ready.wp_WaitNotReady :
+    ready.WaitNotReady.spec (GF := GF) (hG := hG) :=
+  ready.WaitNotReady.wp_proof ready.wp_waitForState
 
 end links_hasLC
 

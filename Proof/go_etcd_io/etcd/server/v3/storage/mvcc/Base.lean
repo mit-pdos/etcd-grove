@@ -22,6 +22,7 @@ the watch stream's errors and gauge, and the watcher group's `watchBatchMaxRevs`
 -/
 module
 
+public import Proof.errors.NewVar
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
@@ -53,8 +54,13 @@ variable [sem : go.Semantics]
 
 namespace go_etcd_io.etcd.pkg.v3.traceutil
 
+/-- `traceutil`'s fact (item 8, 2026-10-17: moved here from the server's `srvReqInit`): `Tracer`
+holds a fixed tracer (`trace.go`: `noop.NewTracerProvider().Tracer(...)`). -/
+abbrev traceutilInit : IProp GF :=
+  iprop(∃ tr : GoInterfaceOk, globalAddr Tracer ↦□ GoInterface.ok tr)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init traceutilInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
   build_get_is_pkg_init_wf
 
@@ -118,10 +124,17 @@ end go_opentelemetry_io.otel.trace
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 
-/-- A prometheus `Counter` as the KV core uses it: `Inc()` and `Add(x)` return. -/
+/-- A prometheus `Counter` as the KV core uses it: `Inc()` returns, and so does `Add(v)` for a
+non-negative `v` (prometheus' `counter.Add` panics on a negative value, "counter cannot decrease in
+value"; item 8, 2026-10-17: until then `Add(x)` for every `x`, false of the Go code), stated for
+the arguments the code passes: `float64(n)` of an unsigned `n` (`metricsTxnWrite.End`) and of a
+non-negative signed `n` (`scheduleCompaction`'s compacted-keys count). -/
 def counterSpec (c : GoInterfaceOk) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods c.ty go!"Inc" c.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ (∀ x : w64, {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #x)) {{ RET #(); True }}))
+    □ (∀ n : w64, {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #(uint64ToFloat64 n)))
+      {{ RET #(); True }}) ∗
+    □ (∀ n : w64, ⌜0 ≤ sint.Z n⌝ →
+      {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #(int64ToFloat64 n))) {{ RET #(); True }}))
 
 instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (GF := GF) c) := by
   unfold counterSpec; infer_instance
@@ -169,7 +182,9 @@ and compaction's (2026-10-13, unit 5a): the two `Meta` key names it reads and wr
 `"scheduledCompactRev"` and `"finishedCompactRev"`, read-only; `schema` is names-only for them,
 and its own facts are the consistent index's), and the compaction metrics (`metrics.go`: the
 histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs`, whose
-`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`). -/
+`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`); and
+(item 8, 2026-10-17) `ErrCompacted` and `ErrFutureRev` as the `errors.New` errors they are, which
+the apply package's facts take from here. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -202,7 +217,9 @@ abbrev mvccInit : IProp GF :=
     (∃ h : GoInterfaceOk, globalAddr dbCompactionPauseMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr dbCompactionTotalMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ c : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
-    (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g))
+    (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    EtcdGrove.errorsNewVar ErrCompacted go!"mvcc: required revision has been compacted" ∗
+    EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

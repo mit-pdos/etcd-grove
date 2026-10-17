@@ -327,7 +327,7 @@ theorem wp_deleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.DeleteRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.DeleteRange.wp_proof traceutil.wp_EnsureTrace mvcc.store.wp_Write wp_deleteRange mvcc.metricsTxnWrite.wp_End
+  EtcdGrove.txn.DeleteRange.wp_proof traceutil.wp_EnsureTrace mvcc.store.wp_Write mvcc.watchableStore.wp_Write wp_deleteRange mvcc.metricsTxnWrite.wp_End mvcc.watchableStoreTxnWrite.wp_End
 
 theorem wp_IsTxnReadonly :
     EtcdGrove.txn.IsTxnReadonly.spec (GF := GF) (hG := hG) :=
@@ -351,7 +351,7 @@ theorem wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.Put.wp_proof traceutil.wp_EnsureTrace proto.wp_Size wp_checkLease mvcc.store.wp_Write wp_checkAndGetPrevKV wp_put mvcc.metricsTxnWrite.wp_End
+  EtcdGrove.txn.Put.wp_proof traceutil.wp_EnsureTrace proto.wp_Size wp_checkLease mvcc.store.wp_Write mvcc.watchableStore.wp_Write wp_checkAndGetPrevKV wp_put mvcc.metricsTxnWrite.wp_End mvcc.watchableStoreTxnWrite.wp_End
 
 theorem wp_compareInt64 :
     EtcdGrove.txn.compareInt64.spec (GF := GF) (hG := hG) :=
@@ -403,7 +403,7 @@ theorem wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.Txn.wp_proof traceutil.wp_EnsureTrace wp_IsTxnReadonly mvcc.store.wp_Read traceutil.Trace.wp_StepWithFunction wp_compareToPath traceutil.Trace.wp_AddField wp_checkTxn mvcc.metricsTxnWrite.wp_End traceutil.Trace.wp_Step mvcc.store.wp_Write mvcc.wp_NewReadOnlyTxnWrite wp_txn mvcc.txnReadWrite.wp_End
+  EtcdGrove.txn.Txn.wp_proof traceutil.wp_EnsureTrace wp_IsTxnReadonly mvcc.store.wp_Read traceutil.Trace.wp_StepWithFunction wp_compareToPath traceutil.Trace.wp_AddField wp_checkTxn mvcc.metricsTxnWrite.wp_End traceutil.Trace.wp_Step mvcc.store.wp_Write mvcc.watchableStore.wp_Write mvcc.wp_NewReadOnlyTxnWrite wp_txn mvcc.txnReadWrite.wp_End mvcc.watchableStoreTxnWrite.wp_End
 
 theorem wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Range.spec (GF := GF) (hG := hG) :=

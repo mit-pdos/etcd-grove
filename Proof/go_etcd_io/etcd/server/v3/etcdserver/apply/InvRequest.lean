@@ -104,7 +104,9 @@ structure IRRModel where
   authDisable : Bool
   authStatus : Bool
   authenticate : Option AuthenticateModel
-  authUserAdd : Bool
+  /-- the user's name (unit N4, D14g, 2026-10-17: a `Bool` until then; the auth store's
+  `UserAdd` makes it a bbolt key, `issues/etcd-auth-useradd-long-name-fatal.md`) -/
+  authUserAdd : Option GoString
   authUserDelete : Bool
   authUserGet : Option GoString
   authUserChangePassword : Bool
@@ -112,7 +114,8 @@ structure IRRModel where
   authUserRevokeRole : Bool
   authUserList : Bool
   authRoleList : Bool
-  authRoleAdd : Bool
+  /-- the role's name (as `authUserAdd`'s) -/
+  authRoleAdd : Option GoString
   authRoleDelete : Bool
   authRoleGet : Option GoString
   authRoleGrantPermission : Bool
@@ -172,13 +175,13 @@ def dispatchKind (rq : IRRModel) : ReqKind :=
   else if rq.authEnable then .authEnable
   else if rq.authDisable then .authDisable
   else if rq.authStatus then .authStatus
-  else if rq.authUserAdd then .authUserAdd
+  else if rq.authUserAdd.isSome then .authUserAdd
   else if rq.authUserDelete then .authUserDelete
   else if rq.authUserChangePassword then .authUserChangePassword
   else if rq.authUserGrantRole then .authUserGrantRole
   else if rq.authUserGet.isSome then .authUserGet
   else if rq.authUserRevokeRole then .authUserRevokeRole
-  else if rq.authRoleAdd then .authRoleAdd
+  else if rq.authRoleAdd.isSome then .authRoleAdd
   else if rq.authRoleGrantPermission then .authRoleGrantPermission
   else if rq.authRoleGet.isSome then .authRoleGet
   else if rq.authRoleRevokePermission then .authRoleRevokePermission
@@ -195,8 +198,8 @@ def noSideEffect (rq : IRRModel) : Bool :=
 /-- `needAdminPermission(r)` (`auth.go`): the auth requests that change users or roles, enable
 or disable auth, or list users or roles. -/
 def needAdminPermission (rq : IRRModel) : Bool :=
-  [rq.authEnable, rq.authDisable, rq.authUserAdd, rq.authUserDelete, rq.authUserChangePassword,
-    rq.authUserGrantRole, rq.authUserRevokeRole, rq.authRoleAdd, rq.authRoleGrantPermission,
+  [rq.authEnable, rq.authDisable, rq.authUserAdd.isSome, rq.authUserDelete, rq.authUserChangePassword,
+    rq.authUserGrantRole, rq.authUserRevokeRole, rq.authRoleAdd.isSome, rq.authRoleGrantPermission,
     rq.authRoleRevokePermission, rq.authRoleDelete, rq.authUserList, rq.authRoleList].or
 
 /-- A KV request: what the txn package applies (and the corrupt applier rejects). -/
@@ -299,6 +302,14 @@ def authUserGetIs (u : Loc) (name : GoString) : IProp GF :=
 def authRoleGetIs (r : Loc) (role : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthRoleGetRequest go!"Role" r ↦□ role)
 
+/-- The `*pb.AuthUserAddRequest` `u` (not nil): its `Name`, read-only (unit N4, 2026-10-17). -/
+def authUserAddIs (u : Loc) (name : GoString) : IProp GF :=
+  iprop(⌜u ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" u ↦□ name)
+
+/-- The `*pb.AuthRoleAddRequest` `r` (not nil): its `Name`, read-only (unit N4, 2026-10-17). -/
+def authRoleAddIs (r : Loc) (name : GoString) : IProp GF :=
+  iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthRoleAddRequest go!"Name" r ↦□ name)
+
 /-- The `*membershippb.ClusterVersionSetRequest` `c` (not nil): its `Ver`, read-only. -/
 def clusterVersionSetIs (c : Loc) (ver : GoString) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗
@@ -350,6 +361,12 @@ instance authUserGetIs_persistent (u : Loc) (name : GoString) : Persistent (auth
 instance authRoleGetIs_persistent (r : Loc) (role : GoString) : Persistent (authRoleGetIs (GF := GF) r role) := by
   unfold authRoleGetIs; infer_instance
 
+instance authUserAddIs_persistent (u : Loc) (name : GoString) : Persistent (authUserAddIs (GF := GF) u name) := by
+  unfold authUserAddIs; infer_instance
+
+instance authRoleAddIs_persistent (r : Loc) (name : GoString) : Persistent (authRoleAddIs (GF := GF) r name) := by
+  unfold authRoleAddIs; infer_instance
+
 instance clusterVersionSetIs_persistent (c : Loc) (ver : GoString) : Persistent (clusterVersionSetIs (GF := GF) c ver) := by
   unfold clusterVersionSetIs; infer_instance
 
@@ -381,7 +398,7 @@ def internalRaftRequestIs (p : Loc) (rq : IRRModel) : IProp GF :=
     irrField p go!"AuthDisable" (fun l => presentIs l rq.authDisable) ∗
     irrField p go!"AuthStatus" (fun l => presentIs l rq.authStatus) ∗
     irrField p go!"Authenticate" (fun l => optReqIs l rq.authenticate authenticateIs) ∗
-    irrField p go!"AuthUserAdd" (fun l => presentIs l rq.authUserAdd) ∗
+    irrField p go!"AuthUserAdd" (fun l => optReqIs l rq.authUserAdd authUserAddIs) ∗
     irrField p go!"AuthUserDelete" (fun l => presentIs l rq.authUserDelete) ∗
     irrField p go!"AuthUserGet" (fun l => optReqIs l rq.authUserGet authUserGetIs) ∗
     irrField p go!"AuthUserChangePassword" (fun l => presentIs l rq.authUserChangePassword) ∗
@@ -389,7 +406,7 @@ def internalRaftRequestIs (p : Loc) (rq : IRRModel) : IProp GF :=
     irrField p go!"AuthUserRevokeRole" (fun l => presentIs l rq.authUserRevokeRole) ∗
     irrField p go!"AuthUserList" (fun l => presentIs l rq.authUserList) ∗
     irrField p go!"AuthRoleList" (fun l => presentIs l rq.authRoleList) ∗
-    irrField p go!"AuthRoleAdd" (fun l => presentIs l rq.authRoleAdd) ∗
+    irrField p go!"AuthRoleAdd" (fun l => optReqIs l rq.authRoleAdd authRoleAddIs) ∗
     irrField p go!"AuthRoleDelete" (fun l => presentIs l rq.authRoleDelete) ∗
     irrField p go!"AuthRoleGet" (fun l => optReqIs l rq.authRoleGet authRoleGetIs) ∗
     irrField p go!"AuthRoleGrantPermission" (fun l => presentIs l rq.authRoleGrantPermission) ∗
@@ -403,7 +420,8 @@ def internalRaftRequestIs (p : Loc) (rq : IRRModel) : IProp GF :=
 instance internalRaftRequestIs_persistent (p : Loc) (rq : IRRModel) :
     Persistent (internalRaftRequestIs (GF := GF) p rq) := by
   unfold internalRaftRequestIs headerIs compactionIs leaseGrantIs leaseRevokeIs alarmRequestIs
-    leaseCheckpointIs checkpointIs authenticateIs authUserGetIs authRoleGetIs clusterVersionSetIs
+    leaseCheckpointIs checkpointIs authenticateIs authUserGetIs authRoleGetIs authUserAddIs
+    authRoleAddIs clusterVersionSetIs
     memberAttrSetIs downgradeInfoSetIs
   infer_instance
 

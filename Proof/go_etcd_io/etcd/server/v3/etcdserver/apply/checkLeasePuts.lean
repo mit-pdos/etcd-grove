@@ -31,6 +31,8 @@ theorem apply.checkLeasePuts.wp_proof
   intro st le γ P f RD on ai info dq id
   wp_start as ⟨#Hst, #Hle, Hai, Hrd⟩
   ihave #Hle' := Hle
+  iunfold apply.isApplyLessorAny at Hle'
+  icases Hle' with ⟨%sk, Hle'⟩
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨-, %li, %Hli, -, -, -, #HLookup⟩
   subst Hli
@@ -47,7 +49,7 @@ theorem apply.checkLeasePuts.wp_proof
     icases Hl' with ⟨%Hln, -⟩
     simp only [Hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st P f RD on ai info dq l id) $$ [$Hst $Hai $Hl $Hrd] as %err ⟨Hai, Hrd, #HeI, %Hoff⟩
+    wp_apply (hKeys st γ P f RD on ai info dq l id) $$ [$Hst $Hai $Hl $Hrd] as %err ⟨Hai, Hrd, #HeI, %Hoff⟩
     iapply HΦ; iframe Hai Hrd HeI; ipureintro; exact Hoff
 
 end proof

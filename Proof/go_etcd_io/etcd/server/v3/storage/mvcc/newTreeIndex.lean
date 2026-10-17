@@ -45,8 +45,8 @@ theorem mvcc.newTreeIndex.wp_proof
     (hLess : mvcc.keyIndex.Less.spec (GF := GF) (hG := hG)) :
     mvcc.newTreeIndex.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
-  intro lg
-  wp_start as %Hlgnn
+  intro γ lg
+  wp_start as ⟨%Hlgnn, Hfresh⟩
   wp_auto
   -- `btree.New(32, func(aki, bki) bool { return aki.Less(bki) })`
   wp_apply (wp_btree_New mvcc.kiPtrT (W64 32) _ mvcc.kiItemIs mvcc.kiItemLess) $$ [] as %t Ht
@@ -71,11 +71,9 @@ theorem mvcc.newTreeIndex.wp_proof
   iStructNamed Hti
   ipersist tree
   ipersist lg
-  imod mono_list_own_alloc (GF := GF) ([] : List mvcc.HistItem) with ⟨%γh, Hhauth, #Hhlb⟩
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γn, Hnauth, #Hnlb⟩
-  imod mono_list_own_alloc (GF := GF) ([] : mvcc.Log) with ⟨%γl, Hlauth, #Hllb⟩
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hcauth, #Hclb⟩
-  imod ghostVar_alloc (GF := GF) ((-1 : Int), ([] : List Loc)) with ⟨%γm, Hcmp⟩
+  obtain ⟨γh, γn, γl, γc, γm⟩ := γ
+  iunfold mvcc.idxFresh at Hfresh
+  icases Hfresh with ⟨Hhauth, #Hhlb, Hnauth, #Hnlb, Hlauth, #Hllb, Hcauth, #Hclb, Hcmp⟩
   have hcmph := (ghostVar_fractional (GF := GF) γm ((-1 : Int), ([] : List Loc))).fractional
     (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hcmph
@@ -132,7 +130,6 @@ theorem mvcc.newTreeIndex.wp_proof
   icases BigSepL.bigSepL_cons.1 $$ Htoks with ⟨Htok, Htoks⟩
   icases sync.ownRWMutex_guard _ _ $$ Htok with ⟨Htok, #Hguard⟩
   iapply HΦ
-  iexists γ
   isplitl []
   · iunfold mvcc.isTreeIndex
     iexists t, lg

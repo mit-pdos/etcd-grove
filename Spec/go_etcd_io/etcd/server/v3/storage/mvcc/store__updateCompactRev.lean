@@ -42,7 +42,8 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
   mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev) ∧
+        mvcc.CompactSmall log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);

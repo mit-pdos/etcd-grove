@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 
 @[expose] public section
 
@@ -2532,6 +2533,92 @@ theorem client_newWatcher_rangeWatcher (V : WEnv GF) (c : Loc) (callSl : GoSlice
 
 end watcher
 
+/-! ## etcd's KV service, started (item 4 of the client→server path, 2026-10-17)
+
+What `v3rpc.Server` (proved, `v3rpc/Link.lean`'s `v3rpc.wp_Server`), `net.Listen`
+and grpc's start (`grpc.start`, `Proof/google_golang_org/grpc/InvGrpcServer.lean`) give the
+client: the premises `isGrpcRpc addr "/etcdserverpb.KV/Put" (etcdPutSpec ...)` and the
+`Range`/`DeleteRange`/`Txn` analogues of `client_put_end_to_end`, ... (above).
+
+A program starts the server as etcd's `embed` does: `gs := v3rpc.Server(s, nil, nil)`,
+`lis, err := net.Listen("tcp", addr)`, `go gs.Serve(lis)`. `etcd_kv_started` is the ghost step
+between the `Listen` and the `go`: from `Server`'s postcondition (the server being built with
+etcd's chains, the KV methods among its registrations, the quota wrapper and the interceptors'
+contracts) and `Listen`'s (`netListenerAt lis addr`), it gives the right to serve
+(`grpcServeTok gs lis`, what `Serve` takes: `grpc.Server.Serve.spec`, in the forked goroutine),
+the stream registrations (for `etcd_watch_served_chain`), and etcd's four KV specs at `addr`,
+given the server's request-path premises `etcd_kv_served` takes (`isServerReq`, `isServerRead`,
+the id budget, `N` run slots).
+-/
+
+/-- The method-set facts of `v3rpc.Server` give `QuotaKVServerIsKVServer` (the KV service's). -/
+instance quotaKV_of_methodSets [FfiSyntax] [GoGlobalContext] [GoLocalContext]
+    [GoSemanticsFunctions] [h : v3rpc.ServerMethodSets] : v3rpc.QuotaKVServerIsKVServer :=
+  ⟨h.kv_impl⟩
+
+section start
+open Iris.ProofMode
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+theorem etcdKVRegs_eq (q : Loc) : etcdKVRegs (GF := GF) q = v3rpc.kvRegs q := rfl
+
+/-- `Server`'s `kvServerIs` holds `kvServerAt` (its contract dropped). -/
+theorem kvServerAt_of_is (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) :
+    v3rpc.kvServerIs (GF := GF) p s A cid mid n ⊢ v3rpc.kvServerAt p s A cid mid n := by
+  iintro #H
+  iunfold v3rpc.kvServerIs at H
+  icases H with ⟨%Hp, #Hh, #Hk, #Hn, -⟩
+  iunfold v3rpc.kvServerAt
+  iframe #
+  ipureintro; exact Hp
+
+/-- **etcd's KV service, started** (see the file header): the server `v3rpc.Server` built
+(`grpcSrvNew` with its chains and registrations, the KV methods `kvRegs q` among them, the quota
+wrapper `q` over `p`, the interceptors' contracts) and a listener at `addr` become, in a ghost
+step, the right to serve `gs` on `lis`, the stream registrations at `addr`, and etcd's specs of
+`Put`, `Range`, `DeleteRange` and `Txn` registered at `addr` (`isGrpcRpc`), given the server's
+request-path premises (`etcd_kv_served`'s). -/
+theorem etcd_kv_started [v3rpc.ServerMethodSets] (addr : GoString) (gs q p s : Loc)
+    (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
+    (il im iu ims is : GoFunc) (svcs : List GoString)
+    (regs sregs : List (GoString × val × GoInterface)) (N : Nat)
+    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗
+        v3rpc.kvServerAt p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) cid mid n ∗
+        □ (|==> idCred ρ.ids 1) ∗
+        v3rpc.quotaKVServerAt q
+          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+        (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
+        (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
+        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        ([∗list] _x ∈ List.replicate N (), etcdGrpcSlot s E γr) ⊢
+      |={⊤}=> grpcServeTok gs lis ∗ grpcStreamServerAt addr [ims, is] sregs ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) := by
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots⟩
+  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgs Hlis] with ⟨Hat', Hst, Htok⟩
+  · iframe
+  ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
+  ihave #Him' := Him $$ %v3rpc.learnerReqOk
+  imod (etcd_kv_served addr p q s E ρ γr cid mid n il im iu regs N
+    (by rw [etcdKVRegs_eq]; exact hregs)) $$ [Hat' Hslots] with H
+  · iframe; iframe #
+  imodintro
+  iframe
+
+end start
+
 end client
 
 #print axioms Perennial.EtcdGrove.client.client_get_value
@@ -2560,6 +2647,8 @@ end client
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Do
 #print axioms Perennial.EtcdGrove.client.v3.wp_NewKV
 #print axioms Perennial.EtcdGrove.client.v3.wp_ContextError
+#print axioms Perennial.EtcdGrove.client.etcd_kv_started
+#print axioms Perennial.EtcdGrove.v3rpc.wp_Server
 
 end EtcdGrove
 end Perennial

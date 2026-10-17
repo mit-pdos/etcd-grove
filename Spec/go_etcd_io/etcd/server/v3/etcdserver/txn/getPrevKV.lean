@@ -23,16 +23,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `getPrevKV(trace, txnWrite, p)` of a transaction (a read or a write one: `checkPut` reads at
+/-- `getPrevKV(trace, txnWrite, p)` of a transaction (the interface value `txnWrite` over the
+`*metricsTxnWrite` `mw`, `twWrap`: the store's or a watchable store's, unit N4; a read or a write one: `checkPut` reads at
 `Txn`'s read transaction, `Put` at its write transaction): if the put reads the previous
 key-value (`IgnoreValue`, `IgnoreLease` or `PrevKv`), the transaction's range read of the key at
 `context.TODO()`, which does not fail: the key's key-value at the state the transaction reads,
 if it has one (`prevKvIs`); else `nil`. -/
 abbrev txn.getPrevKV.spec : Prop :=
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (p : Loc) (o : OpFull),
+  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (p : Loc) (o : OpFull)
+    (tyX : go.GoType) (vX : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind ∗
-      txn.putRequestIs p o }}
-    (App (App (App (Val (@! txn.getPrevKV)) (Val #trace)) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #p))
+      mvcc.twWrap tyX vX mw ∗ txn.putRequestIs p o }}
+    (App (App (App (Val (@! txn.getPrevKV)) (Val #trace)) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #p))
   {{ (r : Loc), RET (PairV #r #(GoInterface.nil)); mvcc.isTxn mw s γ trace kind ∗
       if txn.readsPrev o then txn.prevKvIs r (txn.kindState kind) o.key else ⌜r = null⌝ }}
 

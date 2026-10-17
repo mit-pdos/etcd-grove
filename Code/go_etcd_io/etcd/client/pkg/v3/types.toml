@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized.
 translate = ["!*"]
-imports = ["!*"]
+# (unit N4, 2026-10-17: `net/url`, so that `URLs` is translated)
+imports = ["!*", "net/url"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

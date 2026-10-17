@@ -66,12 +66,20 @@ instance membership.clusterCid_persistent (c : Loc) (cid : w64) :
     Persistent (membership.clusterCid (GF := GF) c cid) := by
   unfold membership.clusterCid; infer_instance
 
-/-- The member `m`, owned, with the id `id` (its fields, and its URL slices' elements). -/
+/-- **Peer URLs that parse** (opaque; unit N4, D14e, 2026-10-17): `types.NewURLs(us)` returns no
+error (each string a URL with a scheme and a host, no path). The transport's `AddRemote`/`AddPeer`
+panic otherwise; a cluster's members' URLs were parsed when they were added (the initial cluster
+by `NewURLsMap`, later members by the client's `MemberAdd`), which the model of the cluster
+records (`memberIs`) as a premise from bootstrap. -/
+opaque membership.peerURLsOk (us : List GoString) : Prop
+
+/-- The member `m`, owned, with the id `id` (its fields, and its URL slices' elements, its peer
+URLs parsing: `peerURLsOk`, unit N4, 2026-10-17). -/
 def membership.memberIs (m : Loc) (id : w64) : IProp GF :=
   iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
     membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
     membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
-    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus)
+    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗ ⌜membership.peerURLsOk pus⌝)
 
 /-- The member `m`, owned (some id). -/
 def membership.ownMember (m : Loc) : IProp GF :=
@@ -122,13 +130,14 @@ theorem membership.memberIs_id_acc (m : Loc) (id : w64) :
     membership.memberIs (GF := GF) m id ⊢
       membership.mIDAddr m ↦ id ∗ (membership.mIDAddr m ↦ id -∗ membership.memberIs m id) := by
   unfold membership.memberIs
-  iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
+  iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
   iframe Hid
   iintro Hid
   isplitr
   · ipureintro; exact Hnn
   iexists pu, cu, il, nm, pus, cus
   iframe
+  ipureintro; exact Hpok
 
 /-- One member of a list of (pointer, id) members, borrowed. -/
 theorem membership.membersL_acc (l : List (Loc × w64)) (k : Nat) (x : Loc × w64)

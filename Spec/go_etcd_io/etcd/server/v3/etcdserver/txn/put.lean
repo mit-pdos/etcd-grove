@@ -23,7 +23,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `put(ctx, txnWrite, p, prevKV)` at a write transaction (committed log `ilog`, pending
+/-- `put(ctx, txnWrite, p, prevKV)` at a write transaction (`interface.mkOk tyX vX` over
+`mw`, `twWrap`: the store's or a watchable store's, unit N4; committed log `ilog`, pending
 changes `pend`), `prevKV` being `getPrevKV`'s answer there, the previous key-value there if the
 put needs it, and the lease it writes one it may attach: the put's change (`putChangeOf`: the
 request's value and lease, or the previous ones) pending, and the response at the pending
@@ -32,17 +33,18 @@ read-only). -/
 abbrev txn.put.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (p : Loc) (o : OpFull) (prev : Loc) (L : List w64),
+    (p : Loc) (o : OpFull) (prev : Loc) (L : List w64) (tyX : go.GoType) (vX : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx (some trace) ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ txn.putRequestIs p o ∗
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ mvcc.twWrap tyX vX mw ∗
+      txn.putRequestIs p o ∗
       (if txn.readsPrev o then txn.prevKvIs prev (txn.pendState ilog pend) o.key
         else ⌜prev = null⌝) ∗
       ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.pendState ilog pend)).isSome⌝ ∗
       txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState ilog pend))) ∗
       lease.leaseOwn γ.leases L ∗
       ⌜pend.length + 1 < mvcc.putMax γ⌝ }}
-    (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #p))
+    (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #p))
       (Val #prev))
   {{ (resp : Loc), RET #resp;
       (∃ puts' putSize' : w64, mvcc.isTxnWrite mw s γ trace ilog

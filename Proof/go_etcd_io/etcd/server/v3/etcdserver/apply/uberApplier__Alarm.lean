@@ -30,7 +30,14 @@ theorem apply.uberApplier.Alarm.wp_proof
     (hR : apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Alarm.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r am log Pre Q Post
-  wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre⟩
+  wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre, Hwt⟩
+  ihave #Hu' := Hu
+  iunfold apply.uberIs at Hu'
+  icases Hu' with ⟨-, #Hok, #Hlgf, #Hasf, #Hwadf, %base, #Hbsf, #Hbase⟩
+  ihave #Hok' := Hok
+  iunfold apply.backendOptsOk at Hok'
+  icases Hok' with ⟨-, -, -, -, -, #Hal, -⟩
+  ihave #HGet := apply.alarmGetOk_of _ _ _ _ $$ Hal
   ihave #Hs' := Hs
   iunfold apply.applierSpec at Hs'
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
@@ -41,35 +48,35 @@ theorem apply.uberApplier.Alarm.wp_proof
   iunfold apply.alarmRequestIs at Hr'
   icases Hr' with ⟨%Hrnn, #Hact, -, -⟩
   wp_auto
-  wp_apply HResp $$ %go!"Alarm" %r %log %Pre %Q %Post [] [Hpre] as %resp %err ⟨Hpost, #HeI⟩
+  wp_apply HResp $$ %go!"Alarm" %r %log %Pre %Q %Post [] [Hpre Hwt] as %resp %err ⟨Hpost, #HeI⟩
   · ipureintro; simp [apply.respMethods]
   · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-    iframe Hpre
+    iframe Hpre Hwt
     iexists am
     iexact Hr
   wp_if_destruct
   · -- `ACTIVATE`: the chain the alarms ask for
-    wp_apply (hR E p opts (.ok ai)) $$ [Ha] as ⟨%ns, %cr, Hown⟩
+    wp_apply (hR p opts.AlarmStore' base (.ok ai)) $$ [Ha] as ⟨%ns, %cr, %a', Ha', #Hch⟩
     · iframe #
       iexact Ha
-    iunfold apply.uberOwn at Hown
-    icases Hown with ⟨%a', Ha', #Hs'', -⟩
     iapply HΦ
     iframe Hpost HeI
     iexists a', (apply.alarmChain E.authOn ns cr)
-    iframe Ha' Hs''
+    iframe Ha'
+    isplitr
+    · iapply Hch $$ %E Hbase
     ipureintro; right; exact ⟨ns, cr, rfl⟩
   wp_if_destruct
   · -- `DEACTIVATE`: likewise
-    wp_apply (hR E p opts (.ok ai)) $$ [Ha] as ⟨%ns, %cr, Hown⟩
+    wp_apply (hR p opts.AlarmStore' base (.ok ai)) $$ [Ha] as ⟨%ns, %cr, %a', Ha', #Hch⟩
     · iframe #
       iexact Ha
-    iunfold apply.uberOwn at Hown
-    icases Hown with ⟨%a', Ha', #Hs'', -⟩
     iapply HΦ
     iframe Hpost HeI
     iexists a', (apply.alarmChain E.authOn ns cr)
-    iframe Ha' Hs''
+    iframe Ha'
+    isplitr
+    · iapply Hch $$ %E Hbase
     ipureintro; right; exact ⟨ns, cr, rfl⟩
   · -- `GET` (or another action): the chain as it is
     iapply HΦ

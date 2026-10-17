@@ -38,7 +38,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres, Hcs⟩
-  icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
+  icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok

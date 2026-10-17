@@ -35,8 +35,8 @@ theorem lease.lessor.Checkpoint.wp_proof
     (hPrim : lease.lessor.isPrimary.spec (GF := GF) (hG := hG))
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Checkpoint.spec (GF := GF) (hG := hG) := by
-  intro lp γl id rem P f Pre Q Post
-  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hcs⟩
+  intro lp γl id rem P f T R Pre Q Post
+  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hcs, Hwtk, Hrtk⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
@@ -69,6 +69,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       iframe Hls
       ipureintro; exact HL
     iapply HΦ
+    iframe Hrtk
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     isplitr
@@ -83,14 +84,14 @@ theorem lease.lessor.Checkpoint.wp_proof
     icases Hml with ⟨#HID, ⟨%t, #Httl⟩, #Hrc, ⟨%r, Hrem⟩, Hexp, #HexG⟩
     (try wp_auto)
     wp_apply (hShould lp) $$ [$Hpkg $Hcfg] as %sp -
-    wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗ (Post ∨ Pre))
-      with [le l Hrem Hcs] as ⟨le, l, Hrem, HPP⟩
+    wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗ (Post ∨ Pre) ∗ R)
+      with [le l Hrem Hcs Hwtk Hrtk] as ⟨le, l, Hrem, HPP, Hrtk⟩
     · iunfold mvcc.csContract at Hcs
       icases Hcs with ⟨HPre, -, -⟩
       iframe
     · (try wp_auto)
-      wp_apply (hPersist l b P f Pre Q Post id t rem DFrac.discard DFrac.discard (DFrac.own 1))
-        $$ [$Hpkg $Hbk $Hcs $HID $Httl $Hrem] as ⟨HPost, -, -, Hrem⟩
+      wp_apply (hPersist l b P f T R Pre Q Post id t rem DFrac.discard DFrac.discard (DFrac.own 1))
+        $$ [$Hpkg $Hbk $Hcs $Hwtk $Hrtk $HID $Httl $Hrem] as ⟨HPost, Hrtk, -, -, Hrem⟩
       wp_join_done
     wp_apply (hPrim lp dc (DFrac.own 1)) $$ [$Hdc] as Hdc
     wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗ lF go!"cp" lp ↦ cp ∗
@@ -122,6 +123,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       iframe Hls
       ipureintro; exact HL
     iapply HΦ
+    iframe Hrtk
     iframe
     ipureintro; rfl
 

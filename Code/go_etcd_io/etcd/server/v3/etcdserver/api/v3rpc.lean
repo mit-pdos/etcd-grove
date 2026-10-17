@@ -5,11 +5,19 @@ public import Perennial.Code.context
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.server.v3.auth
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
+public import Code.crypto.tls
+public import Perennial.Code.math
 public import Perennial.Code.sync
+public import Code.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 public import Code.github_com.prometheus.client_golang.prometheus
+public import Code.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 public import Code.go_uber_org.zap
 public import Code.google_golang_org.grpc
+public import Code.google_golang_org.grpc.health
+public import Code.google_golang_org.grpc.health.grpc_health_v1
+public import Code.go_etcd_io.etcd.client.v3.credentials
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import Code.go_etcd_io.etcd.server.v3.features
 public import Perennial.Code.time
 public import Code.unicode.utf8
 public import Code.google_golang_org.grpc.metadata
@@ -24,7 +32,10 @@ public import Code.go_etcd_io.etcd.pkg.v3.adt
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Perennial.Code.errors
 public import Perennial.Code.io
+public import Code.go_etcd_io.etcd.server.v3.config
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
 public import Code.go_etcd_io.etcd.server.v3.storage
+public import Code.go_etcd_io.etcd.server.v3.storage.backend
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
 public import Perennial.Code.math.rand
 public import Code.go_opentelemetry_io.otel.«attribute»
@@ -198,17 +209,11 @@ def serverWatchStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] serverWatchStream.ty
 
-axiom healthNotifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def maxSendBytes [FfiSyntax] [GoGlobalContext] : val :=
+  #(2147483647 : Int)
 
-axiom BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom ConfigGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom maintenanceServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom maxSendBytes [FfiSyntax] [GoGlobalContext] : val
-
-axiom allGRPCServices [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def allGRPCServices [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"")
 
 @[reducible] noncomputable def maxNoLeaderCnt [FfiSyntax] [GoGlobalContext] : val :=
   #(3 : Int)
@@ -398,6 +403,262 @@ noncomputable def filterNoPut [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def FiltersFromRequest [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.FiltersFromRequest"
 
+/-- go: auth.go:31:6 -/
+noncomputable def NewAuthServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc AuthServer.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val (GoInstruction (CompositeLiteral AuthServer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"authenticator")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v0")))]))))))))
+
+/-- go: grpc.go:44:6 -/
+noncomputable def Server.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "tls"
+  (Lam "interceptor"
+  (Lam "gopts"
+  (App (Val exceptionDo)
+  (Let "gopts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "gopts"))
+  (Let "interceptor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor"))
+  (Let "tls" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Var "tls"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Val #())))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType codec.ty) _root_.Perennial.google_golang_org.grpc.Codec.ty))) (App (Val (GoInstruction (GoAlloc codec.ty))) (App (Val (GoInstruction (CompositeLiteral codec.ty))) (LiteralValue []))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.CustomCodec []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Metrics"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve getServerMetrics []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "serverMetrics" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve newLogUnaryInterceptor []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (Let "$a0" (Val #slice.nil)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty) go!"UnaryServerInterceptor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Var "serverMetrics"))) (Var "$a0")))
+  (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve newUnaryInterceptor []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty (Var "$v2")))])))))
+  (Let "chainUnaryInterceptors" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Let "$a0" (Val #slice.nil)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty) go!"StreamServerInterceptor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Var "serverMetrics"))) (Var "$a0")))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve newStreamInterceptor []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty (Var "$v1")))]))))
+  (Let "chainStreamInterceptors" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (Var "chainUnaryInterceptors"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.ChainUnaryInterceptor []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty)))) (Var "chainStreamInterceptors"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.ChainStreamInterceptor []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (Convert go.uint go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"MaxRequestBytesWithOverhead"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSize []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxSendBytes))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.MaxSendMsgSize []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"MaxConcurrentStreams"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.MaxConcurrentStreams []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "gopts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.NewServer []))) (Val #())) (Var "$a0")))
+  (Let "grpcServer" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.health.NewServer []))) (Val #())) (Val #()))
+  (Let "hsrv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Var "hsrv"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (App (Val (GoInstruction (FuncResolve newHealthNotifier []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "healthNotifier" (App (Val (GoInstruction (GoAlloc notifier.ty))) (App (Val (GoInstruction (GoZeroVal notifier.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.reflection.ServiceInfoProvider.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty) go!"InitializeMetrics"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Var "serverMetrics"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad notifier.ty))) (Var "healthNotifier"))
+  (App (App (App (Val (GoInstruction (FuncResolve NewMaintenanceServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterMaintenanceServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Var "hsrv")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.RegisterHealthServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore notifier.ty))) (Pair (Var "healthNotifier") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Pair (Var "hsrv") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewAuthServer []))) (Val #())) (Var "$a0"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterAuthServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType ClusterServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewClusterServer []))) (Val #())) (Var "$a0"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterClusterServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewQuotaLeaseServer []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterLeaseServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewWatchServer []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterWatchServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "grpcServer")))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewQuotaKVServer []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterKVServer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "grpcServer") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"EnableDistributedTracing"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Option.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"TracerOptions"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.NewServerHandler []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StatsHandler []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty)))) (Pair (Var "chainStreamInterceptors") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (Var "chainUnaryInterceptors"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (Pair (Var "chainUnaryInterceptors") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty)))) (Pair (Var "chainUnaryInterceptors") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Pair (Var "serverMetrics") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Var "tls")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Var "opts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Var "tls"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.NewTransportCredential []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.Creds []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (Pair (Var "opts") (Var "$r0"))))))))))))))))
+
+/-- go: grpc.go:97:6 -/
+noncomputable def getServerMetrics.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "metricType"
+  (Lam "lg"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "metricType" (App (Val (GoInstruction (GoAlloc go.string))) (Var "metricType"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (App (Val (GoInstruction (GlobalVarAddr metricsServerCached))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (App (Val (GoInstruction (GlobalVarAddr metricsServerCached))) (Val #()))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Val UntypedNil)))))
+  (Let "mopts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty)))) (Var "mopts"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.NewServerMetrics []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty) _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (App (Val (GoInstruction (GlobalVarAddr metricsServerCached))) (Val #()))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Register []))) (Val #())) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"etcdserver: failed to register grpc metrics"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr metricsServerCached))) (Val #())) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "metricType")) (Val #(go!"extensive")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty)))) (Var "mopts"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #slice.nil)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.WithServerHandlingTimeHistogram []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetricsOption.ty)))) (Pair (Var "mopts") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GlobalVarAddr metricsServerLock))) (Val #())))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (GlobalVarAddr metricsServerLock))) (Val #()))) (Val #()))))))))))
+
 /-- go: header.go:30:6 -/
 noncomputable def newHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -475,6 +736,60 @@ noncomputable def header.fillWithoutRevision.impl [FfiSyntax] [GoGlobalContext] 
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))))))
+
+/-- go: health.go:35:6 -/
+noncomputable def newHealthNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "hs"
+  (Lam "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "hs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Var "hs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc healthNotifier.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Var "hs"))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "$v2" (Let "$a0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.StopGRPCServiceOnDefrag)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"FeatureEnabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral healthNotifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"hs")) (ElementExpression (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"stopGRPCServiceOnDefrag")) (ElementExpression go.bool (Var "$v2")))]))))))
+  (Let "hc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType healthNotifier.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType healthNotifier.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType healthNotifier.ty) notifier.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType healthNotifier.ty)))) (Var "hc"))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType healthNotifier.ty) go!"startServe"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType healthNotifier.ty)))) (Var "hc"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType healthNotifier.ty)))) (Pair (Var "hc") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Var "hs")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected nil gRPC health server")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))
+
+/-- go: health.go:62:27 -/
+noncomputable def healthNotifier.startServe.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "hc"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "hc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType healthNotifier.ty)))) (Var "hc"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val allGRPCServices))
+  (Let "$a1" (Val _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_SERVING)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty) go!"SetServingStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)))) (App (Val (GoInstruction (StructFieldRef healthNotifier.ty go!"hs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType healthNotifier.ty)))) (Var "hc"))))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"grpc service status changed"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"service"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val allGRPCServices))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"status"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty go!"String"))) (Val _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_SERVING)) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef healthNotifier.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType healthNotifier.ty)))) (Var "hc"))))) (Var "$a0")) (Var "$a1")))))))))))
 
 /-- go: interceptor.go:47:6 -/
 noncomputable def newUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -1957,6 +2272,80 @@ noncomputable def checkRequestOp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound))) (Val #()))))))))))))))))))))))))))
 
+/-- go: lease.go:36:6 -/
+noncomputable def NewLeaseServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc LeaseServer.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve newHeader []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral LeaseServer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"le")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"hdr")) (ElementExpression header.ty (Var "$v2")))]))))))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType LeaseServer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType LeaseServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "srv"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "srv")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "srv"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseServer.ty)))) (Pair (Var "srv") (Var "$r0"))))))))))
+
+/-- go: maintenance.go:97:6 -/
+noncomputable def NewMaintenanceServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "healthNotifier"
+  (App (Val exceptionDo)
+  (Let "healthNotifier" (App (Val (GoInstruction (GoAlloc notifier.ty))) (Var "healthNotifier"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc maintenanceServer.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"HashStorage"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"KV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))) (Val #()))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v7" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve newHeader []))) (Val #())) (Var "$a0")))
+  (Let "$v8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v9" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v10" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.NewServerVersionAdapter []))) (Val #())) (Var "$a0")))
+  (Let "$v11" (App (Val (GoInstruction (GoLoad notifier.ty))) (Var "healthNotifier"))
+  (Let "$v12" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val (GoInstruction (CompositeLiteral maintenanceServer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"hasher")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"bg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"defrag")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"a")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v5"))), (KeyedElement (some (KeyField go!"lt")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v6"))), (KeyedElement (some (KeyField go!"hdr")) (ElementExpression header.ty (Var "$v7"))), (KeyedElement (some (KeyField go!"cs")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v8"))), (KeyedElement (some (KeyField go!"d")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v9"))), (KeyedElement (some (KeyField go!"vs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty (Var "$v10"))), (KeyedElement (some (KeyField go!"healthNotifier")) (ElementExpression notifier.ty (Var "$v11"))), (KeyedElement (some (KeyField go!"cg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v12")))]))))))))))))))))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType maintenanceServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType maintenanceServer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType authMaintenanceServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.ty))) (App (Val (GoInstruction (GoAlloc authMaintenanceServer.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType maintenanceServer.ty)))) (Var "srv"))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc AuthAdmin.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val (GoInstruction (CompositeLiteral AuthAdmin.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v0")))]))))
+  (App (Val (GoInstruction (CompositeLiteral authMaintenanceServer.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType maintenanceServer.ty) (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.PointerType AuthAdmin.ty) (Var "$v1")))])))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef maintenanceServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType maintenanceServer.ty)))) (Var "srv")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef maintenanceServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType maintenanceServer.ty)))) (Var "srv"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType maintenanceServer.ty)))) (Pair (Var "srv") (Var "$r0"))))))))))))
+
+/-- go: member.go:36:6 -/
+noncomputable def NewClusterServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc ClusterServer.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val (GoInstruction (CompositeLiteral ClusterServer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"cluster")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"server")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1")))])))))))))
+
 /-- check whether request satisfies the quota. If there is not enough space,
     ignore request and raise the free space alarm.
 
@@ -2067,6 +2456,22 @@ noncomputable def quotaKVServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
+
+/-- go: quota.go:86:6 -/
+noncomputable def NewQuotaLeaseServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType quotaLeaseServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (GoAlloc quotaLeaseServer.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewLeaseServer []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$a1" (Val #(go!"lease"))
+  (App (App (App (Val (GoInstruction (FuncResolve newBackendQuota []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral quotaAlarmer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral quotaLeaseServer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty (Var "$v0"))), (KeyedElement none (ElementExpression quotaAlarmer.ty (Var "$v1")))]))))))))))
 
 /-- go: quota.go:93:6 -/
 noncomputable def newBackendQuota.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -3557,7 +3962,7 @@ noncomputable def FiltersFromRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.FilterFunc.ty)))) (Pair (Var "filters") (Var "$r0"))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.crypto.tls, pkg_id.math, pkg_id.sync, pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.health, pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -3565,6 +3970,19 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3638,15 +4056,31 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.crypto.tls.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.health.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3676,7 +4110,13 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.config.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3693,6 +4133,10 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc metricsServerLock _root_.Perennial.sync.Mutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc metricsServerCached (go.GoType.PointerType _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc progressReportInterval _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -3865,18 +4309,50 @@ class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] notifier.TypeAssumptions.underlying
 
-axiom healthNotifier : Type
-axiom healthNotifier.zero_val : ZeroVal healthNotifier
-attribute [instance] healthNotifier.zero_val
+structure healthNotifier [FfiSyntax] where
+  mk ::
+  hs' : Loc
+  lg' : Loc
+  stopGRPCServiceOnDefrag' : Bool
+
+instance healthNotifier.zero_val [FfiSyntax] : ZeroVal healthNotifier :=
+  ⟨healthNotifier.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def healthNotifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"hs" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.Server.ty)),
+(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"stopGRPCServiceOnDefrag" go.bool)]
+
+@[irreducible] def healthNotifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  healthNotifier.fieldsUnsealed
+
+instance equals_unfold_healthNotifier [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold healthNotifier.fields healthNotifier.fieldsUnsealed :=
+  ⟨by unfold healthNotifier.fields; rfl⟩
+
+@[reducible] def healthNotifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType healthNotifier.fields)
 
 class healthNotifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying healthNotifier.underlying healthNotifier
   underlying : go.UnderlyingDirectedEq healthNotifier.ty healthNotifier.underlying
-  isUnderlying : go.IsUnderlying healthNotifier.underlying healthNotifier.underlying
+  get_hs : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"hs") #x (Val #(x.hs'))
+  set_hs : ∀ (x : healthNotifier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"hs") (PairV #x #y) (Val #(({ x with hs' := y } : healthNotifier)))
+  get_lg : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : healthNotifier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : healthNotifier)))
+  get_stopGRPCServiceOnDefrag : ∀ (x : healthNotifier), go.IsGoStepPureDetTagged under (StructFieldGet healthNotifier.underlying go!"stopGRPCServiceOnDefrag") #x (Val #(x.stopGRPCServiceOnDefrag'))
+  set_stopGRPCServiceOnDefrag : ∀ (x : healthNotifier) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet healthNotifier.underlying go!"stopGRPCServiceOnDefrag") (PairV #x #y) (Val #(({ x with stopGRPCServiceOnDefrag' := y } : healthNotifier)))
+  ptr_startServe_unfold : MethodUnfold (go.GoType.PointerType healthNotifier.ty) go!"startServe" healthNotifier.startServe.impl
 
 attribute [instance] healthNotifier.TypeAssumptions.type_repr
   healthNotifier.TypeAssumptions.underlying
-  healthNotifier.TypeAssumptions.isUnderlying
+  healthNotifier.TypeAssumptions.get_hs
+  healthNotifier.TypeAssumptions.set_hs
+  healthNotifier.TypeAssumptions.get_lg
+  healthNotifier.TypeAssumptions.set_lg
+  healthNotifier.TypeAssumptions.get_stopGRPCServiceOnDefrag
+  healthNotifier.TypeAssumptions.set_stopGRPCServiceOnDefrag
+  healthNotifier.TypeAssumptions.ptr_startServe_unfold
 
 structure streamsMap [FfiSyntax] where
   mk ::
@@ -4175,18 +4651,15 @@ class KVGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 
 attribute [instance] KVGetter.TypeAssumptions.underlying
 
-axiom BackendGetter : Type
-axiom BackendGetter.zero_val : ZeroVal BackendGetter
-attribute [instance] BackendGetter.zero_val
+abbrev BackendGetter [FfiSyntax] : Type := GoInterface
+
+@[reducible] def BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Backend" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))])
 
 class BackendGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying BackendGetter.underlying BackendGetter
   underlying : go.UnderlyingDirectedEq BackendGetter.ty BackendGetter.underlying
-  isUnderlying : go.IsUnderlying BackendGetter.underlying BackendGetter.underlying
 
-attribute [instance] BackendGetter.TypeAssumptions.type_repr
-  BackendGetter.TypeAssumptions.underlying
-  BackendGetter.TypeAssumptions.isUnderlying
+attribute [instance] BackendGetter.TypeAssumptions.underlying
 
 abbrev Defrager [FfiSyntax] : Type := GoInterface
 
@@ -4238,31 +4711,124 @@ class ClusterStatusGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
 
 attribute [instance] ClusterStatusGetter.TypeAssumptions.underlying
 
-axiom ConfigGetter : Type
-axiom ConfigGetter.zero_val : ZeroVal ConfigGetter
-attribute [instance] ConfigGetter.zero_val
+abbrev ConfigGetter [FfiSyntax] : Type := GoInterface
+
+@[reducible] def ConfigGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Config" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty]))])
 
 class ConfigGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ConfigGetter.underlying ConfigGetter
   underlying : go.UnderlyingDirectedEq ConfigGetter.ty ConfigGetter.underlying
-  isUnderlying : go.IsUnderlying ConfigGetter.underlying ConfigGetter.underlying
 
-attribute [instance] ConfigGetter.TypeAssumptions.type_repr
-  ConfigGetter.TypeAssumptions.underlying
-  ConfigGetter.TypeAssumptions.isUnderlying
+attribute [instance] ConfigGetter.TypeAssumptions.underlying
 
-axiom maintenanceServer : Type
-axiom maintenanceServer.zero_val : ZeroVal maintenanceServer
-attribute [instance] maintenanceServer.zero_val
+structure maintenanceServer [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  rg' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter
+  hasher' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage
+  bg' : BackendGetter
+  defrag' : Defrager
+  a' : Alarmer
+  lt' : LeaderTransferrer
+  hdr' : header
+  cs' : ClusterStatusGetter
+  d' : Downgrader
+  vs' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server
+  cg' : ConfigGetter
+  healthNotifier' : notifier
+  UnsafeMaintenanceServer' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer
+
+instance maintenanceServer.zero_val [FfiSyntax] : ZeroVal maintenanceServer :=
+  ⟨maintenanceServer.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def maintenanceServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"rg" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter.ty),
+(go.field_decl.FieldDecl go!"hasher" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty),
+(go.field_decl.FieldDecl go!"bg" BackendGetter.ty),
+(go.field_decl.FieldDecl go!"defrag" Defrager.ty),
+(go.field_decl.FieldDecl go!"a" Alarmer.ty),
+(go.field_decl.FieldDecl go!"lt" LeaderTransferrer.ty),
+(go.field_decl.FieldDecl go!"hdr" header.ty),
+(go.field_decl.FieldDecl go!"cs" ClusterStatusGetter.ty),
+(go.field_decl.FieldDecl go!"d" Downgrader.ty),
+(go.field_decl.FieldDecl go!"vs" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty),
+(go.field_decl.FieldDecl go!"cg" ConfigGetter.ty),
+(go.field_decl.FieldDecl go!"healthNotifier" notifier.ty),
+(go.field_decl.EmbeddedField go!"UnsafeMaintenanceServer" _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer.ty)]
+
+@[irreducible] def maintenanceServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  maintenanceServer.fieldsUnsealed
+
+instance equals_unfold_maintenanceServer [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold maintenanceServer.fields maintenanceServer.fieldsUnsealed :=
+  ⟨by unfold maintenanceServer.fields; rfl⟩
+
+@[reducible] def maintenanceServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType maintenanceServer.fields)
 
 class maintenanceServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying maintenanceServer.underlying maintenanceServer
   underlying : go.UnderlyingDirectedEq maintenanceServer.ty maintenanceServer.underlying
-  isUnderlying : go.IsUnderlying maintenanceServer.underlying maintenanceServer.underlying
+  get_lg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : maintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : maintenanceServer)))
+  get_rg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"rg") #x (Val #(x.rg'))
+  set_rg : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : maintenanceServer)))
+  get_hasher : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hasher") #x (Val #(x.hasher'))
+  set_hasher : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hasher") (PairV #x #y) (Val #(({ x with hasher' := y } : maintenanceServer)))
+  get_bg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"bg") #x (Val #(x.bg'))
+  set_bg : ∀ (x : maintenanceServer) (y : BackendGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"bg") (PairV #x #y) (Val #(({ x with bg' := y } : maintenanceServer)))
+  get_defrag : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"defrag") #x (Val #(x.defrag'))
+  set_defrag : ∀ (x : maintenanceServer) (y : Defrager), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"defrag") (PairV #x #y) (Val #(({ x with defrag' := y } : maintenanceServer)))
+  get_a : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"a") #x (Val #(x.a'))
+  set_a : ∀ (x : maintenanceServer) (y : Alarmer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : maintenanceServer)))
+  get_lt : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lt") #x (Val #(x.lt'))
+  set_lt : ∀ (x : maintenanceServer) (y : LeaderTransferrer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lt") (PairV #x #y) (Val #(({ x with lt' := y } : maintenanceServer)))
+  get_hdr : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hdr") #x (Val #(x.hdr'))
+  set_hdr : ∀ (x : maintenanceServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : maintenanceServer)))
+  get_cs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cs") #x (Val #(x.cs'))
+  set_cs : ∀ (x : maintenanceServer) (y : ClusterStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : maintenanceServer)))
+  get_d : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"d") #x (Val #(x.d'))
+  set_d : ∀ (x : maintenanceServer) (y : Downgrader), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : maintenanceServer)))
+  get_vs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"vs") #x (Val #(x.vs'))
+  set_vs : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"vs") (PairV #x #y) (Val #(({ x with vs' := y } : maintenanceServer)))
+  get_cg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cg") #x (Val #(x.cg'))
+  set_cg : ∀ (x : maintenanceServer) (y : ConfigGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cg") (PairV #x #y) (Val #(({ x with cg' := y } : maintenanceServer)))
+  get_healthNotifier : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"healthNotifier") #x (Val #(x.healthNotifier'))
+  set_healthNotifier : ∀ (x : maintenanceServer) (y : notifier), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"healthNotifier") (PairV #x #y) (Val #(({ x with healthNotifier' := y } : maintenanceServer)))
+  get_UnsafeMaintenanceServer : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"UnsafeMaintenanceServer") #x (Val #(x.UnsafeMaintenanceServer'))
+  set_UnsafeMaintenanceServer : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"UnsafeMaintenanceServer") (PairV #x #y) (Val #(({ x with UnsafeMaintenanceServer' := y } : maintenanceServer)))
 
 attribute [instance] maintenanceServer.TypeAssumptions.type_repr
   maintenanceServer.TypeAssumptions.underlying
-  maintenanceServer.TypeAssumptions.isUnderlying
+  maintenanceServer.TypeAssumptions.get_lg
+  maintenanceServer.TypeAssumptions.set_lg
+  maintenanceServer.TypeAssumptions.get_rg
+  maintenanceServer.TypeAssumptions.set_rg
+  maintenanceServer.TypeAssumptions.get_hasher
+  maintenanceServer.TypeAssumptions.set_hasher
+  maintenanceServer.TypeAssumptions.get_bg
+  maintenanceServer.TypeAssumptions.set_bg
+  maintenanceServer.TypeAssumptions.get_defrag
+  maintenanceServer.TypeAssumptions.set_defrag
+  maintenanceServer.TypeAssumptions.get_a
+  maintenanceServer.TypeAssumptions.set_a
+  maintenanceServer.TypeAssumptions.get_lt
+  maintenanceServer.TypeAssumptions.set_lt
+  maintenanceServer.TypeAssumptions.get_hdr
+  maintenanceServer.TypeAssumptions.set_hdr
+  maintenanceServer.TypeAssumptions.get_cs
+  maintenanceServer.TypeAssumptions.set_cs
+  maintenanceServer.TypeAssumptions.get_d
+  maintenanceServer.TypeAssumptions.set_d
+  maintenanceServer.TypeAssumptions.get_vs
+  maintenanceServer.TypeAssumptions.set_vs
+  maintenanceServer.TypeAssumptions.get_cg
+  maintenanceServer.TypeAssumptions.set_cg
+  maintenanceServer.TypeAssumptions.get_healthNotifier
+  maintenanceServer.TypeAssumptions.set_healthNotifier
+  maintenanceServer.TypeAssumptions.get_UnsafeMaintenanceServer
+  maintenanceServer.TypeAssumptions.set_UnsafeMaintenanceServer
 
 structure authMaintenanceServer [FfiSyntax] where
   mk ::
@@ -4715,7 +5281,11 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   quotaLeaseServer_instance : quotaLeaseServer.TypeAssumptions
   watchServer_instance : watchServer.TypeAssumptions
   serverWatchStream_instance : serverWatchStream.TypeAssumptions
+  NewAuthServer_unfold : FuncUnfold NewAuthServer [] NewAuthServer.impl
+  Server_unfold : FuncUnfold Server [] Server.impl
+  getServerMetrics_unfold : FuncUnfold getServerMetrics [] getServerMetrics.impl
   newHeader_unfold : FuncUnfold newHeader [] newHeader.impl
+  newHealthNotifier_unfold : FuncUnfold newHealthNotifier [] newHealthNotifier.impl
   newUnaryInterceptor_unfold : FuncUnfold newUnaryInterceptor [] newUnaryInterceptor.impl
   newLogUnaryInterceptor_unfold : FuncUnfold newLogUnaryInterceptor [] newLogUnaryInterceptor.impl
   newStreamInterceptor_unfold : FuncUnfold newStreamInterceptor [] newStreamInterceptor.impl
@@ -4729,7 +5299,11 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   checkTxnRequest_unfold : FuncUnfold checkTxnRequest [] checkTxnRequest.impl
   checkIntervals_unfold : FuncUnfold checkIntervals [] checkIntervals.impl
   checkRequestOp_unfold : FuncUnfold checkRequestOp [] checkRequestOp.impl
+  NewLeaseServer_unfold : FuncUnfold NewLeaseServer [] NewLeaseServer.impl
+  NewMaintenanceServer_unfold : FuncUnfold NewMaintenanceServer [] NewMaintenanceServer.impl
+  NewClusterServer_unfold : FuncUnfold NewClusterServer [] NewClusterServer.impl
   NewQuotaKVServer_unfold : FuncUnfold NewQuotaKVServer [] NewQuotaKVServer.impl
+  NewQuotaLeaseServer_unfold : FuncUnfold NewQuotaLeaseServer [] NewQuotaLeaseServer.impl
   newBackendQuota_unfold : FuncUnfold newBackendQuota [] newBackendQuota.impl
   togRPCError_unfold : FuncUnfold togRPCError [] togRPCError.impl
   isRPCSupportedForLearner_unfold : FuncUnfold isRPCSupportedForLearner [] isRPCSupportedForLearner.impl
@@ -4745,11 +5319,19 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
+  import_math_Assumption : _root_.Perennial.math.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import_providers_prometheus_Assumption : _root_.Perennial.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions
+  import_client_golang_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import_otelgrpc_Assumption : _root_.Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import_health_Assumption : _root_.Perennial.google_golang_org.grpc.health.Assumptions
+  import_grpc_health_v1_Assumption : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions
+  import_credentials_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions
   import_apply_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
+  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_utf8_Assumption : _root_.Perennial.unicode.utf8.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
@@ -4764,7 +5346,10 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_txn_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
+  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
   import_storage_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
+  import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
   import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
   import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
   import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
@@ -4803,7 +5388,11 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.quotaLeaseServer_instance
   Assumptions.watchServer_instance
   Assumptions.serverWatchStream_instance
+  Assumptions.NewAuthServer_unfold
+  Assumptions.Server_unfold
+  Assumptions.getServerMetrics_unfold
   Assumptions.newHeader_unfold
+  Assumptions.newHealthNotifier_unfold
   Assumptions.newUnaryInterceptor_unfold
   Assumptions.newLogUnaryInterceptor_unfold
   Assumptions.newStreamInterceptor_unfold
@@ -4817,7 +5406,11 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.checkTxnRequest_unfold
   Assumptions.checkIntervals_unfold
   Assumptions.checkRequestOp_unfold
+  Assumptions.NewLeaseServer_unfold
+  Assumptions.NewMaintenanceServer_unfold
+  Assumptions.NewClusterServer_unfold
   Assumptions.NewQuotaKVServer_unfold
+  Assumptions.NewQuotaLeaseServer_unfold
   Assumptions.newBackendQuota_unfold
   Assumptions.togRPCError_unfold
   Assumptions.isRPCSupportedForLearner_unfold
@@ -4833,11 +5426,19 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_auth_Assumption
   Assumptions.import_etcdserver_Assumption
+  Assumptions.import_tls_Assumption
+  Assumptions.import_math_Assumption
   Assumptions.import_sync_Assumption
-  Assumptions.import_prometheus_Assumption
+  Assumptions.import_providers_prometheus_Assumption
+  Assumptions.import_client_golang_prometheus_Assumption
+  Assumptions.import_otelgrpc_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_grpc_Assumption
+  Assumptions.import_health_Assumption
+  Assumptions.import_grpc_health_v1_Assumption
+  Assumptions.import_credentials_Assumption
   Assumptions.import_apply_Assumption
+  Assumptions.import_features_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_utf8_Assumption
   Assumptions.import_metadata_Assumption
@@ -4852,7 +5453,10 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.import_txn_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_io_Assumption
+  Assumptions.import_config_Assumption
+  Assumptions.import_version_Assumption
   Assumptions.import_storage_Assumption
+  Assumptions.import_backend_Assumption
   Assumptions.import_mvcc_Assumption
   Assumptions.import_rand_Assumption
   Assumptions.import_attribute_Assumption

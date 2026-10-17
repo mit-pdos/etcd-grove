@@ -46,8 +46,10 @@ theorem idutil_suffix_lt (x : BitVec 64) : (x &&& 0xffffffffff#64) <<< 8#64 < 0x
 
 theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := hG)) :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) := by
-  intro memberID now Φc
-  wp_start as -
+  intro γi memberID now Φc
+  wp_start as Hfresh
+  iunfold idNamesFresh at Hfresh
+  icases Hfresh with ⟨HCa, HCf, HI, HS⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   wp_auto
@@ -64,13 +66,7 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
     simp [uint.Z]; simp at h'; omega
   have Hpl : W64 (uint.Z memberID) <<< W64 48 &&& W64 (2 ^ 48 - 1) = W64 0 :=
     idutil_prefix_low _
-  obtain ⟨N, hN⟩ : ∃ N : Nat, N = 2 ^ 48 - 1 := ⟨_, rfl⟩
-  imod own_alloc ((● N : Auth Nat) • ◯ N)
-    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γc, HC⟩
-  icases (own_op γc _ _).1 $$ HC with ⟨HCa, HCf⟩
-  subst hN
-  imod (ghost_map_alloc_empty (K := w64) (V := Option (List w8 × GName))) with ⟨%γI, HI⟩
-  imod (ghost_map_alloc_empty (K := w64) (V := Unit)) with ⟨%γS, HS⟩
+  obtain ⟨γc, γI, γS⟩ := γi
   imod inv_alloc idN ⊤ iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8 × GName))) (S : GMap w64 Unit),
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" gp ↦
         (s0 + W64 (k : Int)) ∗
@@ -97,8 +93,6 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
     itrivial
   wp_auto
   iapply HΦ
-  iexists ⟨γc, γI, γS⟩
-  iunfold idCred
   iframe HCf
   iunfold idGen
   iexists (W64 (uint.Z memberID) <<< W64 48), s0

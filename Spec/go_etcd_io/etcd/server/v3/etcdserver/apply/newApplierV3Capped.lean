@@ -28,10 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`newApplierV3Capped(base)`**: the capped applier over `base` (an applier of the chain `c`): an applier of the chain `capped c`. -/
 abbrev apply.newApplierV3Capped.spec : Prop :=
-  ∀ (E : AEnv GF) (c : apply.Chain) (base : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.applierSpec E c base }}
+  ∀ (base : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Capped)) (Val #base))
-  {{ (a : GoInterface), RET #a; apply.applierSpec E (.capped c) a }}
+  {{ (a : GoInterface), RET #a;
+      □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c base -∗
+        apply.applierSpec E (.capped c) a) }}
 
 end spec
 

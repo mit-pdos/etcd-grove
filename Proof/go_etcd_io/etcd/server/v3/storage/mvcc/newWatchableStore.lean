@@ -34,8 +34,8 @@ theorem mvcc.newWatchableStore.wp_proof
     (hNewWG : mvcc.newWatcherGroup.spec (GF := GF) (hG := hG))
     (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor⟩
+  intro lg b le cfg kb γb γl P f γi γok Hcfg0
+  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -44,8 +44,9 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ _ true Hcfg0) $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw⟩, #Hst, -, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, -,
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0)
+    $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
+    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, -,
       Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right
   -- given up, the readers those of a never-compacted store
@@ -143,7 +144,7 @@ theorem mvcc.newWatchableStore.wp_proof
   iapply HΦ
   iexists st, γ
   isplitr
-  · ipureintro; exact ⟨hγb, hγl, hγk⟩
+  · ipureintro; exact ⟨hγb, hγl, hγk, hγi, hγok⟩
   isplitr
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv
@@ -154,13 +155,15 @@ theorem mvcc.newWatchableStore.wp_proof
       iexists γstc; iexact Hstop0
     ipureintro; exact hγw
   iframe HhookP Hsclose wg
-  isplitr [Hmus Hreaders Hstop Htw]
+  isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter
     iframe Hcert Hwl2
     have hb : mvcc.wBudget [[], []] = 2 ^ 63 - 5 := by unfold mvcc.wBudget; rfl
     rw [hb]; iexact Htoks
   isplitl [Htw]
   · iunfold mvcc.watchToks; iexact Htw
+  isplitl [Hok]
+  · iexact Hok
   isplitr [Hstop]
   · iapply mvcc.watchReaders_of «$r0_ptr» st γ
     iframe Hreaders Hmus

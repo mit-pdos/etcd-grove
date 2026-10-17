@@ -43,8 +43,21 @@ theorem apply.newAuthApplierV3.wp_proof
     (hUG : apply.authApplierV3.UserGet.spec (GF := GF) (hG := hG))
     (hRG : apply.authApplierV3.RoleGet.spec (GF := GF) (hG := hG)) :
     apply.newAuthApplierV3.spec (GF := GF) (hG := hG) := by
-  intro E c st base le
-  wp_start as ⟨#Hst, #Hle, Hard, #Hbase⟩
+  intro st base le RD
+  wp_start as Hard
+  wp_auto
+  wp_alloc p as Hp
+  iStructNamed Hp
+  ipersist applierV3
+  ipersist as'
+  ipersist lessor
+  imod sync.init_Mutex iprop(apply.authInfoOwn (GF := GF) p ∗ RD) ⊤
+      (structFieldRef authApplierV3 go!"mu" p) $$ [mu] [authInfo Hard] with #Hmu
+  · iexact mu
+  · inext; iframe Hard; iunfold apply.authInfoOwn; iexists _; iexact authInfo
+  wp_auto
+  iapply HΦ
+  iintro !> %E %c %hRD #Hst #Hle #Hbase
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb
   icases Hb with ⟨%bi, %Hbi, #Ht⟩
@@ -52,24 +65,13 @@ theorem apply.newAuthApplierV3.wp_proof
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
     #HApply⟩
-  wp_auto
-  wp_alloc p as Hp
-  iStructNamed Hp
-  ipersist applierV3
-  ipersist as'
-  ipersist lessor
-  imod sync.init_Mutex iprop(apply.authInfoOwn (GF := GF) p ∗ E.RD) ⊤
-      (structFieldRef authApplierV3 go!"mu" p) $$ [mu] [authInfo Hard] with #Hmu
-  · iexact mu
-  · inext; iframe Hard; iunfold apply.authInfoOwn; iexists _; iexact authInfo
   ihave #Hauth : apply.authIs E p (.ok bi) $$ []
   · iunfold apply.authIs
+    rw [hRD]
     iframe applierV3 Hmu
     isplitl
     · iexists st; iframe #
     · iexists le; iframe #
-  wp_auto
-  iapply HΦ
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType authApplierV3.ty, #p⟩
   isplitr
@@ -131,26 +133,26 @@ theorem apply.newAuthApplierV3.wp_proof
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl | rfl
     case inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       simp [apply.reqFacts]
-      iapply (hUG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm] HΦ'
-      iframe HR Hm
+      iapply (hUG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
+      iframe HR Hm Hwt
       iframe #
     case inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       simp [apply.reqFacts]
-      iapply (hRG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm] HΦ'
-      iframe HR Hm
+      iapply (hRG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
+      iframe HR Hm Hwt
       iframe #
     all_goals
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       iunfold apply.mPre at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp $$ %_ %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
+      iapply HResp $$ %_ %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.respMethods]
       · iframe HR
         iunfold apply.mPre
@@ -175,10 +177,11 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
+      icases Hpre with ⟨Hpre, Hwt⟩
       iunfold apply.mPre at Hpre
       icases Hpre with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.resp0Methods]
       · ipureintro; exact hon
       · iunfold apply.mPre
@@ -220,11 +223,11 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       iunfold apply.mPreV at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.clusterMethods]
       · iframe HR
         iunfold apply.mPreV

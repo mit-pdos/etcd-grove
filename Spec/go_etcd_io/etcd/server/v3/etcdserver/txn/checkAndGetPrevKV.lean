@@ -23,14 +23,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `checkAndGetPrevKV(trace, txnWrite, p)`: `getPrevKV`'s answer, or, if the put needs the
+/-- (The transaction `interface.mkOk tyX vX` over `mw`, `twWrap`: unit N4.) `checkAndGetPrevKV(trace, txnWrite, p)`: `getPrevKV`'s answer, or, if the put needs the
 previous key-value (`IgnoreValue` or `IgnoreLease`) and the key has none,
 `errors.ErrKeyNotFound`. -/
 abbrev txn.checkAndGetPrevKV.spec : Prop :=
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (p : Loc) (o : OpFull),
+  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (p : Loc) (o : OpFull)
+    (tyX : go.GoType) (vX : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind ∗
-      txn.putRequestIs p o }}
-    (App (App (App (Val (@! txn.checkAndGetPrevKV)) (Val #trace)) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #p))
+      mvcc.twWrap tyX vX mw ∗ txn.putRequestIs p o }}
+    (App (App (App (Val (@! txn.checkAndGetPrevKV)) (Val #trace)) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #p))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); mvcc.isTxn mw s γ trace kind ∗
       ((⌜err = GoInterface.nil⌝ ∗
           ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.kindState kind)).isSome⌝ ∗

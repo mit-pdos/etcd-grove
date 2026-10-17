@@ -86,18 +86,19 @@ theorem apply.newApplierV3Backend.wp_proof
     (hClusterMemberAttrSet : apply.applierV3backend.ClusterMemberAttrSet.spec (GF := GF) (hG := hG))
     (hDowngradeInfoSet : apply.applierV3backend.DowngradeInfoSet.spec (GF := GF) (hG := hG))
     : apply.newApplierV3Backend.spec (GF := GF) (hG := hG) := by
-  intro E opts
-  wp_start as #Hopts
+  intro opts
+  wp_start
   wp_auto
   wp_alloc p as Hp
   iStructNamed Hp
   ipersist options
   wp_auto
+  iapply HΦ
+  iintro !> %E #Hopts
   ihave #Hbk : apply.backendIs E p $$ []
   · iunfold apply.backendIs
     iexists opts
     iframe #
-  iapply HΦ
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType applierV3backend.ty, #p⟩
   isplitr
@@ -168,8 +169,8 @@ theorem apply.newApplierV3Backend.wp_proof
       iapply (hAuthenticate E p r log Pre Q Post) $$ [HR Hm] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm⟩
-      iapply (hUserAdd E p r log Pre Q Post) $$ [Hm] HΦ'
+    · icases Hpre with ⟨HR, Hm⟩
+      iapply (hUserAdd E p r log Pre Q Post) $$ [HR Hm] HΦ'
       iframe
       iframe #
     · icases Hpre with ⟨-, Hm⟩
@@ -192,8 +193,8 @@ theorem apply.newApplierV3Backend.wp_proof
       iapply (hUserRevokeRole E p r log Pre Q Post) $$ [Hm] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm⟩
-      iapply (hRoleAdd E p r log Pre Q Post) $$ [Hm] HΦ'
+    · icases Hpre with ⟨HR, Hm⟩
+      iapply (hRoleAdd E p r log Pre Q Post) $$ [HR Hm] HΦ'
       iframe
       iframe #
     · icases Hpre with ⟨-, Hm⟩

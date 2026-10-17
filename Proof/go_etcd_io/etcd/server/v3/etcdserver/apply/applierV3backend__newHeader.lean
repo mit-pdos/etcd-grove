@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 
 @[expose] public section
 
@@ -44,8 +45,11 @@ theorem apply.applierV3backend.newHeader.wp_proof
   icases Hrs with ⟨%ri, %Hri, #HMem, #HLead, #HTerm⟩
   iunfold apply.isApplyKV at Hkv
   icases Hkv with ⟨#HisKV, %rv, #HRV, #Hrv⟩
-  iunfold txn.isKV at HisKV
-  icases HisKV with ⟨%Hkveq, #Hst, %Hwq⟩
+  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ HisKV
+  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
+  ihave ⟨#Hko0, #Hst⟩ := txn.isKV_kvOver _ E.s E.γ $$ HisKV
+  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
+  · rw [← Hkveq]; iexact Hko0
   wp_auto
   wp_apply HID as %cid -
   rw [Hri]
@@ -53,8 +57,13 @@ theorem apply.applierV3backend.newHeader.wp_proof
   wp_apply HMem as %mid -
   rw [Hkveq]
   wp_auto
+  iunfold txn.kvWriter at Hsw
+  icases Hsw with ⟨Hsw, Hwl⟩
   iunfold txn.soleWriter at Hsw
   icases Hsw with ⟨#Hcert, Htoks, %Hl2⟩
+  wp_bind (App (Val #(methods kty _ kvv)) _)
+  iapply mvcc.kvOver_rev_wp kty kvv E.s
+  iframe Hko
   wp_apply (hRev E.s rv E.γ (txn.soleBudget log) log) $$ [$Hrd $Htoks]
     as %v ⟨Hrd, Htoks, -⟩
   · iframe #
@@ -64,8 +73,10 @@ theorem apply.applierV3backend.newHeader.wp_proof
   wp_auto
   iapply HΦ
   iframe Hrd
-  isplitl [Htoks]
-  · iunfold txn.soleWriter
+  isplitl [Htoks Hwl]
+  · iunfold txn.kvWriter
+    iframe Hwl
+    iunfold txn.soleWriter
     iframe Htoks
     iframe #
     ipureintro; exact Hl2

@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 
 @[expose] public section
 
@@ -32,13 +33,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.DeleteRange.wp_proof
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
     (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
+    (hWWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hdel : txn.deleteRange.spec (GF := GF) (hG := hG))
-    (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
+    (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
+    (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
-  have hWrite := mvcc.store.Write.spec_frozen hWrite
-  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
-  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hct, Hto, #Hnd, %Hbig, #Hcok, Hcs, #Hhook⟩
+  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te Lw
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hdr, #Hctx, #Hct, Hto, #Hnd, %Hbig, #Hcok, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -68,13 +69,17 @@ theorem txn.DeleteRange.wp_proof
     exact traceutil.fieldsWf_cons_string _ _ _
       (traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil)
   (try wp_auto)
-  -- `kv.Write(trace)`: the store's
-  iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
-  subst Hkv
+  -- `kv.Write(trace)`: the store's, or the watchable store's (unit N4)
+  ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
+  obtain ⟨kty, kvv, rfl⟩ := Hkvok
   (try wp_auto)
-  wp_apply (hWrite s γ trace P Pre Q f false) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
-  · ipureintro; exact Ht
+  wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f false m Lw)
+    $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $Hpre $Htr $Htrc]
+    as %tyX %vX ⟨%ilog, %mw, Htx, Hte, Htoks, %Hil, HQ⟩
+  · ipureintro; exact ⟨fun h => Hsole h, Ht⟩
+  ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw ilog $$ Hte
+  have hsole : γ.watchQ = true → m + 1 = txn.soleBudget ilog := by
+    intro h; rw [Hil h]; exact (Hsole h).1
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
@@ -88,8 +93,8 @@ theorem txn.DeleteRange.wp_proof
     rw [txn.pendState_nil]
     have := Hbig ilog Hpin
     simp only [List.length_nil]; omega
-  wp_apply (hdel trace ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
-    $$ [$Hctx' $Htx $Hdr] as %resp %err Hout
+  wp_apply (hdel trace ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o
+      tyX vX) $$ [$Hctx' $Htx $Hw $Hdr] as %resp %err Hout
   · isplitl [Hnd]
     · cases nd
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
@@ -99,15 +104,14 @@ theorem txn.DeleteRange.wp_proof
   simp only [List.nil_append]
   icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr⟩ | ⟨%Hne, Htx⟩)
   · -- deleted: the deferred `End` commits (if something was deleted)
-    ihave Htx : mvcc.isTxn mw s γ trace (.write ilog (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0)
-        deletes' (W64 0)) $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
-    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
-    wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
-    · iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ Hwq); iframe Hhook HP; iapply Hcok; ipureintro; exact Hpin
-    ihave Hpost := mvcc.txnEndPost_plain _ _ _ _ _ _ Hwq $$ Hpost
-    icases Hpost with ⟨#Hc, Htok⟩
+    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
+        (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0) deletes' (W64 0) m P f)
+      $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl⟩
+    · iframe HP Hhook
+      isplitl []
+      · ipureintro; exact hsole
+      iapply Hcok; ipureintro; exact Hpin
     (try wp_auto)
     iapply HΦ
     iframe Hrd Htoks
@@ -122,18 +126,17 @@ theorem txn.DeleteRange.wp_proof
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
     ileft
-    iframe Hresp Hhdr Hc Htok
+    iframe Hresp Hhdr Hc Htok Hwl
     ipureintro; exact Herr
   · -- the range read's context error: nothing written, the token back
-    ihave Htx : mvcc.isTxn mw s γ trace (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
-    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
-    wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
-    · iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ Hwq); iframe Hhook HP; iunfold mvcc.certOkNext; ileft; ipureintro; rfl
-    ihave Hpost := mvcc.txnEndPost_plain _ _ _ _ _ _ Hwq $$ Hpost
+    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) m P f)
+      $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl⟩
+    · iframe HP Hhook
+      isplitl []
+      · ipureintro; exact hsole
+      iunfold mvcc.certOkNext; ileft; ipureintro; rfl
     simp only [mvcc.commitLog, ↓reduceIte]
-    icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
     iapply HΦ
     iframe Hrd Htoks
@@ -148,7 +151,7 @@ theorem txn.DeleteRange.wp_proof
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
     iright
-    iframe Htok Hc
+    iframe Htok Hc Hwl
     ipureintro; exact Hne
 
 end proof

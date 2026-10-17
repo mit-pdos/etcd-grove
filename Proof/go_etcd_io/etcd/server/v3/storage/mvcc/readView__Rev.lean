@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 
@@ -36,7 +37,10 @@ theorem mvcc.readView.Rev.wp_proof
   intro rv s γ
   wp_start as ⟨#Hrv, Hrd⟩
   iunfold mvcc.isReadView at Hrv
+  icases Hrv with ⟨%kv, Hrv⟩
   iNamed Hrv
+  ihave %Hkvok := mvcc.kvOver_ok kv s $$ Hkvo
+  obtain ⟨kty, kvv, rfl⟩ := Hkvok
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
@@ -47,7 +51,7 @@ theorem mvcc.readView.Rev.wp_proof
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
   imod mvcc.crevLb_neg γ.idx with #Hlbn
-  wp_apply (hRead s γ _ t 0 [] true (-1) iprop(True) none) $$ [$Hs $Hrd $Hnone $Hc0 $Hlbn $Htrc]
+  wp_apply (mvcc.kvOver_Read hRead kty kvv s γ _ t 0 [] true (-1) iprop(True) none) $$ [$Hkvo $Hs $Hrd $Hnone $Hc0 $Hlbn $Htrc]
     as %mw ⟨%log, %rev, %crev, Htx, -, -, -⟩
   · isplitr
     · iintro !>; itrivial

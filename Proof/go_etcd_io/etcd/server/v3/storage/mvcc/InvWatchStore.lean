@@ -1486,12 +1486,14 @@ def watchWriter (γ : WsNames) (L : Log) : IProp GF :=
 
 /-- The write transaction `s.Write` returns (`tw`, a `watchableStoreTxnWrite`): its fields, the
 inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and the
-sole writer's certificate, tokens but the transaction's and notified-log half. -/
+sole writer's certificate, tokens but the transaction's and notified-log half. The struct is
+read-only (Go never writes it after `Write`; unit N4, D14a: the txn package's functions take the
+wrapper as an interface value over `mw`, `KVView.lean`'s `twWrap`). -/
 def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) : IProp GF :=
   iprop(∃ mw : Loc,
-    "Htw" ∷ tw ↦ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
-                    s' := s } : watchableStoreTxnWrite) ∗
+    "#Htw" ∷ tw ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
+                      s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
     "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize ∗
     "#Hcert" ∷ idxCert γ.st.idx ilog ∗

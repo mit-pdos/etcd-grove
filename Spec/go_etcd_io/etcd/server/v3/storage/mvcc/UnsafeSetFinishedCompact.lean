@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 `metaCompact`, is its own: the caller updates it). -/
 abbrev mvcc.UnsafeSetFinishedCompact.spec : Prop :=
   ∀ (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (Del : GoString → IProp GF)
-    (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (f : val) (l : mvcc.Puts)
+    (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF) (l : mvcc.Puts)
     (value : w64),
   0 ≤ sint.Z value →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.batchTxSpec bt View Del W Dep Locked P f ∗ Locked l }}
+      mvcc.batchTxSpec bt View Del W Dep Locked P HF ∗ Locked l }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact)) (Val #(GoInterface.ok bt)))
       (Val #value))
   {{ RET #(); Locked l }}

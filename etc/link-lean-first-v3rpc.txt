@@ -160,3 +160,49 @@ EtcdServer__GoAttach: @
 EtcdServer__StoppingNotify: @
 monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader
 newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues
+#
+# Item 4 (the server start, 2026-10-17): `v3rpc.Server` (grpc.go) and what it calls. grpc's server
+# side is the trust boundary (axioms, `Proof/google_golang_org/grpc/InvGrpcServer.lean`): its options,
+# `NewServer`, `Server.RegisterService` (under the generated `Register*Server`, proved), grpc's health
+# service and grpc-prometheus's metrics; otelgrpc's stats handler, prometheus's `Register`. etcd's
+# `NewMaintenanceServer` is assumed (an axiom: its literal stores a `version.Server`, axiomatized
+# by the translation). The server's getters `Cluster`, `FeatureEnabled` are linked in its Link (`@`).
+EtcdServer__Cluster: @
+EtcdServer__FeatureEnabled: @
+grpc_CustomCodec:
+grpc_StatsHandler:
+otelgrpc_NewServerHandler:
+grpc_ChainUnaryInterceptor:
+grpc_ChainStreamInterceptor:
+grpc_MaxRecvMsgSize:
+grpc_MaxSendMsgSize:
+grpc_MaxConcurrentStreams:
+grpc_NewServer:
+grpc_Server__RegisterService:
+health_NewServer:
+health_Server__SetServingStatus:
+grpc_health_v1_HealthCheckResponse_ServingStatus__String:
+grpc_health_v1_RegisterHealthServer:
+prometheus_NewServerMetrics:
+prometheus_WithServerHandlingTimeHistogram:
+prometheus_ServerMetrics__UnaryServerInterceptor:
+prometheus_ServerMetrics__StreamServerInterceptor:
+prometheus_ServerMetrics__InitializeMetrics:
+prometheus_Register:
+zap_String:
+zap_Logger__Info:
+RegisterKVServer: grpc_Server__RegisterService
+RegisterWatchServer: grpc_Server__RegisterService
+RegisterLeaseServer: grpc_Server__RegisterService
+RegisterClusterServer: grpc_Server__RegisterService
+RegisterAuthServer: grpc_Server__RegisterService
+RegisterMaintenanceServer: grpc_Server__RegisterService
+NewMaintenanceServer:
+NewLeaseServer: newHeader zap_NewNop
+NewQuotaLeaseServer: NewLeaseServer newBackendQuota EtcdServer__MemberID
+NewClusterServer: EtcdServer__Cluster
+NewAuthServer:
+healthNotifier__startServe: zap_String zap_Logger__Info health_Server__SetServingStatus grpc_health_v1_HealthCheckResponse_ServingStatus__String
+newHealthNotifier: healthNotifier__startServe EtcdServer__Logger EtcdServer__FeatureEnabled
+getServerMetrics: prometheus_NewServerMetrics prometheus_WithServerHandlingTimeHistogram prometheus_Register zap_Logger__Warn zap_Error
+Server: grpc_CustomCodec grpc_StatsHandler otelgrpc_NewServerHandler grpc_ChainUnaryInterceptor grpc_ChainStreamInterceptor grpc_MaxRecvMsgSize grpc_MaxSendMsgSize grpc_MaxConcurrentStreams grpc_NewServer getServerMetrics newLogUnaryInterceptor prometheus_ServerMetrics__UnaryServerInterceptor newUnaryInterceptor prometheus_ServerMetrics__StreamServerInterceptor newStreamInterceptor config_ServerConfig__MaxRequestBytesWithOverhead NewQuotaKVServer RegisterKVServer NewWatchServer RegisterWatchServer NewQuotaLeaseServer RegisterLeaseServer NewClusterServer RegisterClusterServer NewAuthServer RegisterAuthServer health_NewServer newHealthNotifier grpc_health_v1_RegisterHealthServer NewMaintenanceServer RegisterMaintenanceServer prometheus_ServerMetrics__InitializeMetrics

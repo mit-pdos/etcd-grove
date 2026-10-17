@@ -12,6 +12,7 @@ roots ^mvcc\.treeIndex\.wp_(Compact|Keep)$
 roots ^mvcc\.keyIndex\.wp_(compact|keep|doCompact)$
 roots ^mvcc\.wp_(Unsafe)?(Set|Read)(Scheduled|Finished)Compact$
 roots ^schedule\.(job\.)?wp_(NewJob|Do|Name)$
+axiom backend.optsAt
 axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats

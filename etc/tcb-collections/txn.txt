@@ -7,6 +7,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/(Link|Results)\.lean$
 axiom NewLoggableTxnRequest.wp_proof
+axiom backend.optsAt
 axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats
@@ -18,6 +19,7 @@ axiom proto.Unmarshal.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
+axiom verify.Verify.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int32.wp_proof

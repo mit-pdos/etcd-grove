@@ -26,12 +26,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 lease's remaining TTL if it is granted, writes its record to the backend if the lessor persists
 checkpoints (`Post`; otherwise `Pre` back), schedules the next checkpoint if primary; `nil`. -/
 abbrev lease.lessor.Checkpoint.spec : Prop :=
-  ∀ (lp : Loc) (γl : GName) (id rem : w64) (P : IProp GF) (f : val) (Pre Q Post : IProp GF),
+  ∀ (lp : Loc) (γl : GName) (id rem : w64) (P : IProp GF) (f : val) (T R : IProp GF)
+    (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      lessorCfg lp ∗ lessorBackend lp P f ∗ mvcc.csContract P f Pre Q Post }}
+      lessorCfg lp ∗ lessorBackend lp P f T R ∗ mvcc.csContract P f Pre Q Post ∗ T ∗ R }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Checkpoint")) (Val #id))
       (Val #rem))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ (Post ∨ Pre) }}
+  {{ (err : GoInterface), RET #err; R ∗ ⌜err = GoInterface.nil⌝ ∗ (Post ∨ Pre) }}
 
 end spec
 

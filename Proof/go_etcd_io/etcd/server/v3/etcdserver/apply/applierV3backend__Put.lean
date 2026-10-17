@@ -40,7 +40,7 @@ theorem apply.applierV3backend.Put.wp_proof
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
-  icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
+  icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok

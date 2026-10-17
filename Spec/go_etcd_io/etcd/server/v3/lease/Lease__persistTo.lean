@@ -25,13 +25,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 /-- `l.persistTo(b)`: writes the lease's record (`ID`, `ttl`, `remainingTTL`, read) into the
 backend's `Lease` bucket under the batch lock, the critical-section contract's `Pre` to `Post`. -/
 abbrev lease.Lease.persistTo.spec : Prop :=
-  ∀ (l : Loc) (b : GoInterface) (P : IProp GF) (f : val) (Pre Q Post : IProp GF)
+  ∀ (l : Loc) (b : GoInterface) (P : IProp GF) (f : val) (T R : IProp GF) (Pre Q Post : IProp GF)
     (id t r : w64) (dq1 dq2 dq3 : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseBackend b P f ∗
-      mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseBackend b P f T R ∗
+      mvcc.csContract P f Pre Q Post ∗ T ∗ R ∗
       lsF go!"ID" l ↦{dq1} id ∗ lsF go!"ttl" l ↦{dq2} t ∗ lsF go!"remainingTTL" l ↦{dq3} r }}
     (App (Val (l @!! go.GoType.PointerType Lease.ty @!! go!"persistTo")) (Val #b))
-  {{ RET #(); Post ∗
+  {{ RET #(); Post ∗ R ∗
       lsF go!"ID" l ↦{dq1} id ∗ lsF go!"ttl" l ↦{dq2} t ∗ lsF go!"remainingTTL" l ↦{dq3} r }}
 
 end spec

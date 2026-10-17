@@ -41,8 +41,8 @@ theorem lease.lessor.Grant.wp_proof
     (hReg : lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG))
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Grant.spec (GF := GF) (hG := hG) := by
-  intro lp γl id ttl L P f Pre Q Post
-  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hcs⟩
+  intro lp γl id ttl L P f T R Pre Q Post
+  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hcs, Hwtk, Hrtk⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
@@ -72,6 +72,7 @@ theorem lease.lessor.Grant.wp_proof
   · -- `id == NoLease`
     (try wp_auto)
     iapply HΦ
+    iframe Hrtk
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
@@ -87,6 +88,7 @@ theorem lease.lessor.Grant.wp_proof
   · -- `ttl > MaxLeaseTTL`
     (try wp_auto)
     iapply HΦ
+    iframe Hrtk
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
@@ -143,6 +145,7 @@ theorem lease.lessor.Grant.wp_proof
       iframe Hls
       ipureintro; exact HL
     iapply HΦ
+    iframe Hrtk
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
@@ -175,8 +178,8 @@ theorem lease.lessor.Grant.wp_proof
         [$Hpkg $Hrem $Httl $Hexp $HexG] as ⟨Hrem, -, Hexp⟩
       wp_join_done
     wp_apply (wp_mapInsert LeaseID.ty lm M id l) $$ HM as HM
-    wp_apply (hPersist l b P f Pre Q Post id t (W64 0) DFrac.discard DFrac.discard (DFrac.own 1))
-      $$ [$Hpkg $Hbk $Hcs $HID $Httl $Hrem] as ⟨HPost, -, -, Hrem⟩
+    wp_apply (hPersist l b P f T R Pre Q Post id t (W64 0) DFrac.discard DFrac.discard (DFrac.own 1))
+      $$ [$Hpkg $Hbk $Hcs $Hwtk $Hrtk $HID $Httl $Hrem] as ⟨HPost, Hrtk, -, -, Hrem⟩
     (try wp_auto)
     iunfold go_etcd_io.etcd.server.v3.storage.backend.histSpec at Hhts
     icases Hhts with #Hhts
@@ -244,6 +247,7 @@ theorem lease.lessor.Grant.wp_proof
         · right; rfl
         · left; exact h
     iapply HΦ
+    iframe Hrtk
     iright
     iunfold leaseOwn
     iframe Hown HPost HID
