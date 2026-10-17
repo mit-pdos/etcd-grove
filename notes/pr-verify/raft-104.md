@@ -104,7 +104,7 @@ clamp fires only after a follower lost entries it acknowledged.
    `nextCommittedEnts` returns entries 2..3 of term 1, while the cluster's committed entries 2..3
    are of term 2. A heartbeat carries no log check, so nothing stops this.
    - Reproduction against the PR head (upstream, gogoproto):
-     `notes/pr-verify/raft-104/upstream_commit_regression_divergence_test.go.txt`, test
+     `notes/pr-verify/raft-104/commit_regression_divergence_test.go`, test
      `TestCommitToClampCommitsDivergentEntries`. It fails on the PR head and panics on its base.
 2. **No recovery after the clamp.** The second test, `TestCommitToClampNeverRepaired`, runs the
    leader and the follower for 50 heartbeat/append rounds. Entries 2..3 stay divergent on the
@@ -116,8 +116,10 @@ clamp fires only after a follower lost entries it acknowledged.
      `prev = 5` and being rejected, with or without the clamp. The lost acknowledgement leaves the
      leader's `Match` too high, and nothing lowers it.
 
-   The v3.7 port of the test (protobuf-go v2 messages) is
-   `notes/pr-verify/raft-104/fork_clamp_test.go.txt`. Raising `committed` without lowering the
+   The v3.7 port of the test (protobuf-go v2 messages, `TestForkClampNeverRepaired`) is
+   `notes/pr-verify/raft-104/commit_regression_divergence_v37_test.go`; the no-clamp
+   counterfactuals are `no-clamp-upstream.diff` and `no-clamp-v37.diff` there, and the outputs at
+   each revision are the `*.log` files (`notes/pr-verify/raft-104/README.md`). Raising `committed` without lowering the
    leader's `Match` therefore does not let the follower recover. #25's proposal did: answer the
    heartbeat with a rejection so the leader lowers `Match`/`Next` and probes by term.
 3. **The PR's comment and title misname the cause.** Losing a persisted commit index is harmless:

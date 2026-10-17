@@ -1,0 +1,10 @@
+## PR head d9c4b3582
+--- FAIL: TestCommitToClampCommitsDivergentEntries (0.01s)
+    commit_regression_divergence_test.go:34: follower applies entry 2 of term 1 ("old-2"); the leader's committed entry 2 is of term 2
+    commit_regression_divergence_test.go:34: follower applies entry 3 of term 1 ("old-3"); the leader's committed entry 3 is of term 2
+--- FAIL: TestCommitToClampNeverRepaired (0.01s)
+    commit_regression_divergence_test.go:96: after 50 rounds, entry 2: leader term 2, follower term 1 (follower committed 3, last 3)
+    commit_regression_divergence_test.go:96: after 50 rounds, entry 3: leader term 2, follower term 1 (follower committed 3, last 3)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.062s
+FAIL

@@ -1,0 +1,18 @@
+--- a/commit_regression_divergence_test.go
++++ b/commit_regression_divergence_test.go
+@@ -77,6 +77,7 @@
+ 		for i := 0; i < 10; i++ {
+ 			for _, m := range r1.readMessages() {
+ 				if m.To == 2 {
++					if round < 2 && m.Type != pb.MsgHeartbeat { t.Logf("L->F %v idx=%d logterm=%d n=%d commit=%d", m.Type, m.Index, m.LogTerm, len(m.Entries), m.Commit) }
+ 					r2.Step(m)
+ 				}
+ 			}
+@@ -84,6 +85,7 @@
+ 			nextEnts(r2, s2)
+ 			for _, m := range r2.readMessages() {
+ 				if m.To == 1 {
++					if round < 2 && m.Type != pb.MsgHeartbeatResp { t.Logf("F->L %v idx=%d rej=%v hint=%d; pr=%v", m.Type, m.Index, m.Reject, m.RejectHint, r1.prs.Progress[2]) }
+ 					r1.Step(m)
+ 				}
+ 			}

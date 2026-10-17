@@ -1,0 +1,5 @@
+## base 89c97ed7f (PR's merge base)
+--- FAIL: TestCommitToClampCommitsDivergentEntries (0.00s)
+panic: tocommit(5) is out of range [lastIndex(3)]. Was the raft log corrupted, truncated, or lost? [recovered, repanicked]
+panic({0xe0e3e0?, 0x37387ffd6b10?})
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/panic.go:859 +0x125

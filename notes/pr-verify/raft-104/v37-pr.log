@@ -1,0 +1,8 @@
+## fork pr-raft-104-goose-lean 0997b9505
+--- FAIL: TestForkClampNeverRepaired (0.12s)
+    commit_regression_divergence_v37_test.go:54: follower committed 3 last 3
+    commit_regression_divergence_v37_test.go:59: entry 2: leader term 2, follower term 1
+    commit_regression_divergence_v37_test.go:59: entry 3: leader term 2, follower term 1
+FAIL
+FAIL	go.etcd.io/raft/v3	0.138s
+FAIL

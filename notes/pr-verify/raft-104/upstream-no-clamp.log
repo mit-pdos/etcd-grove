@@ -1,0 +1,6 @@
+## PR head d9c4b3582 + no-clamp-upstream.diff
+--- FAIL: TestCommitToClampCommitsDivergentEntries (0.00s)
+    commit_regression_divergence_test.go:29: committed = 1, want 3 (clamped)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.022s
+FAIL

@@ -1,0 +1,11 @@
+--- a/log.go
++++ b/log.go
+@@ -322,7 +322,7 @@
+ 			// this can happen when the follower crashed before the commit index persistent
+ 			// after the leader received its ack (it is too expensive to do fsync on every write)
+ 			l.logger.Warningf("tocommit(%d) is out of range [lastIndex(%d)]. Was the raft log corrupted, truncated, or lost?", tocommit, l.lastIndex())
+-			l.committed = l.lastIndex()
++			// no clamp
+ 			return
+ 		}
+ 		l.committed = tocommit
