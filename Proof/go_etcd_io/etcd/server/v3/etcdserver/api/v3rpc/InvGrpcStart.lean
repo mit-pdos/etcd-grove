@@ -104,7 +104,76 @@ def v3rpc.kvDescMethods : List (GoString × val) :=
 /-- `getServerMetrics`'s lock (the package variable `metricsServerLock`). -/
 abbrev v3rpc.metricsMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.metricsServerLock
 
+/-- The registrations of a descriptor's methods, through their names and handlers. -/
+theorem v3rpc.descRegs_eq (sn : GoString) (mds : List google_golang_org.grpc.MethodDesc)
+    (ss : GoInterface) :
+    descRegs sn mds ss = (mds.map fun md => (md.MethodName', (#md.Handler' : val))).map
+      (fun x => (grpcFullName sn x.1, x.2, ss)) := by
+  simp only [descRegs, List.map_map]; rfl
+
+/-- **The KV service's registration contains `kvRegs`** (from the descriptor's methods). -/
+theorem v3rpc.kvRegs_sub (q : Loc) (mds : List google_golang_org.grpc.MethodDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.kvDescMethods) :
+    ∀ x ∈ v3rpc.kvRegs q, x ∈ descRegs go!"etcdserverpb.KV" mds
+      (interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q) := by
+  intro x hx
+  rw [v3rpc.descRegs_eq, h]
+  simp only [v3rpc.kvRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
+  simp only [v3rpc.kvDescMethods, List.map_cons, List.map_nil]
+  rcases hx with rfl | rfl | rfl | rfl
+  · exact List.mem_cons_of_mem _ (List.mem_cons_self ..)
+  · exact List.mem_cons_self ..
+  · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))
+  · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_self ..)))
+
+/-- The KV descriptor's names are distinct. -/
+theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
+    (sds : List google_golang_org.grpc.StreamDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.kvDescMethods ∧
+      sds.map (·.StreamName') = [go!"RangeStream"]) :
+    (descNames mds sds).Nodup := by
+  have h1 : mds.map (·.MethodName') = v3rpc.kvDescMethods.map Prod.fst := by
+    rw [← h.1, List.map_map]; rfl
+  simp only [descNames, h1, h.2, v3rpc.kvDescMethods, List.map_cons, List.map_nil]
+  decide
+
+/-- **The Watch service's registration contains `watchSReg`**. -/
+theorem v3rpc.watchSReg_mem (p : Loc) (sds : List google_golang_org.grpc.StreamDesc)
+    (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+      [(go!"Watch", @! etcdserverpb._Watch_Watch_Handler)]) :
+    v3rpc.watchSReg p ∈ descSRegs go!"etcdserverpb.Watch" sds
+      (interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p) := by
+  have e : descSRegs go!"etcdserverpb.Watch" sds
+      (interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p) =
+      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map
+        (fun x => (grpcFullName go!"etcdserverpb.Watch" x.1, x.2,
+          interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p)) := by
+    simp only [descSRegs, List.map_map]; rfl
+  rw [e, h]
+  exact List.mem_cons_self ..
+
+/-- The Watch descriptor's names are distinct. -/
+theorem v3rpc.watchDesc_nodup (sds : List google_golang_org.grpc.StreamDesc)
+    (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+      [(go!"Watch", @! etcdserverpb._Watch_Watch_Handler)]) :
+    (descNames [] sds).Nodup := by
+  have h1 : sds.map (·.StreamName') = [go!"Watch"] := by
+    rw [show (sds.map (·.StreamName')) =
+      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map Prod.fst by
+        rw [List.map_map]; rfl, h]
+    rfl
+  simp only [descNames, List.map_nil, List.nil_append, h1]
+  exact List.Pairwise.cons (fun _ h => by cases h) List.Pairwise.nil
+
 end pure
+
+/-- **etcd's codec is a protobuf codec** (an axiom; `v3rpc/codec.go`): `(*codec).Marshal(v)` is
+`proto.Marshal(v.(proto.Message))` (golang/protobuf's, over protobuf-go's) and `Unmarshal(data, v)`
+is `proto.Unmarshal(data, v.(proto.Message))`, each also adding the byte count to a prometheus
+counter (`sentBytes`, `receivedBytes`); its `String()` is `"proto"`, the default codec's name. -/
+axiom v3rpc.codec_proto [FfiSyntax] [GoGlobalContext] (l : Loc) :
+  grpcProtoCodec (interface.mkOk (go.GoType.PointerType v3rpc.codec.ty) #l)
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
