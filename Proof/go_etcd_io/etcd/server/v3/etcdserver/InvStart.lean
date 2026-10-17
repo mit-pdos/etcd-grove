@@ -163,6 +163,26 @@ def clusterVersionOk (s : Loc) : IProp GF :=
 instance clusterVersionOk_persistent (s : Loc) : Persistent (clusterVersionOk (GF := GF) s) := by
   unfold clusterVersionOk; infer_instance
 
+/-- **The cluster `cl`'s `Version()`** (`membership.RaftCluster`, names-only; a contract of
+`bootstrap`'s, `bootOk`; srvBuildGap's rows, 2026-10-17): `cl` is not `nil`, and its `Version()`
+returns `nil` until the cluster's version is known, non-`nil` from then on (the ghost witness
+`monoNatLbOwn γcv 1`). True of the Go code: `Version` reads `c.version` under the cluster's lock
+and returns `nil` or a fresh parse of it; `c.version` is written by `SetVersion` (non-`nil`) and
+by `Recover`/`UnsafeLoad` from the backend, after a snapshot, whose backend holds the version
+once a member has applied the `ClusterVersionSet` entry the snapshot covers. `EtcdServer.
+ClusterVersion` (translated) turns it into `clusterVersionOk`. -/
+def clusterVersionMono (cl : Loc) (γcv : GName) : IProp GF :=
+  iprop(⌜cl ≠ null⌝ ∗ □ (∀ known : Bool,
+    {{ if known then monoNatLbOwn γcv 1 else True }}
+      (App (Val (cl @!! go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Version"))
+        (Val #()))
+    {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨ ⌜v ≠ null⌝ ∗ monoNatLbOwn γcv 1 }}))
+
+instance clusterVersionMono_persistent (cl : Loc) (γcv : GName) :
+    Persistent (clusterVersionMono (GF := GF) cl γcv) := by
+  unfold clusterVersionMono; infer_instance
+
 /-- **The apply thread's resources when `start` begins** (`applyStart` but the `wgMu` reader slot,
 of the protocol `start` sets up, and the server's wait, which `start` makes: the applier's KV
 state at `x₀`). -/

@@ -8215,3 +8215,65 @@ its spec as a hypothesis).
   `DeadlineExceeded` a leaf `deadlineExceededError{}`): a premise, `EtcdGrove.ContextReadErrs`
   (`read/Init.lean`), as `ContextCanceledPtr` was ("Item 8: context's facts"), which it replaces:
   `v3rpc`'s `Canceled` fact now follows from it.
+
+## `srvBuildGap`'s rows: the lifetime bounds as workload premises, the cluster's version from its contract (D17)
+
+**2026-10-17 · adopted for four rows; the fifth (`rnSnapOnce`) stopped for a decision (branch
+`raft-retarget`; open-work item "srvBuildGap's rows")**
+
+After D14i `srvBuildGap` (the rows of `start`'s construction premise no `NewServer` proof gave)
+had five rows. Three are bounds that are not facts of the code (a process issues fewer than
+`2 ^ 48` request ids, the store's sealed logs stay below `2 ^ 62` changes, the logic's thread
+bound), one is a fact of the code behind a names-only package (`ClusterVersion()` monotone), one
+is a resource the model cannot give (`rnSnapOnce`).
+
+- **D17a: the id budget is a lifetime bound, not credits.** `idCred γi n` was `n` exclusive
+  credits of the `2 ^ 48 - 1` `NewGenerator` handed out (an `Auth Nat` authority in `idGen`'s
+  invariant), and `srvBuildGap` asked `□ |==> idCred ρ.ids 1`: an unbounded supply, which together
+  with the authority proves `False` (mint `2 ^ 48` credits) -- the residual was unsatisfiable, and
+  every result composed with it vacuous. The request path cannot thread a finite supply: the read
+  loop issues an id per `ReadIndex` round, retries on timeouts, and runs forever. Now `idGen`'s
+  invariant counts the ids issued (`γi.cred` a monotone counter, `monoNatAuthOwn`), and
+  `idCred γi n := idLifeBound γi`, the persistent premise `□ ∀ k, monoNatLbOwn γi.cred k -∗
+  ⌜k < 2 ^ 48⌝` (`n` unused, kept so the ~60 statements over `idCred` keep their form). `Next`
+  counts one more id and gets `k + 1 < 2 ^ 48` from it, which is all the uniqueness argument used.
+  `idNamesFresh` is the counter at `0` and the empty maps; `NewGenerator.spec` no longer returns
+  credits. `NewServer.spec` takes `idLifeBound ρ.ids` (a premise of the kind of `srvLifeBound`,
+  D14g, at names the caller chooses before the call, D13a) and gives `□ |==> idCred ρ.ids 1`
+  (`idCred_supply`). *Rejected:* credits minted from an invariant (a fancy update, `|={E}=>`,
+  where ~20 statements have `|==>`, and the same bound on the mints); threading credits per
+  request (the read loop's ids are not per request).
+- **D17b: `storeSmall` and the thread bound are workload premises of `NewServer.spec`.**
+  `storeSmall E₀.γ` (it reads only the index names, which `E₀` fixes before the call) and
+  `threadBound GF ≤ 2 ^ 31` (the adequacy theorem's `T`, its caller's choice). *Considered for
+  `storeSmall`:* a change counter in mvcc's invariant bounded by the write budget `N` (D14g). A
+  write token is spent per transaction, not per change, and a `DeleteRange` changes every live key
+  in its range, so the bound needs the store's live keys counted against the puts (changes at most
+  twice the puts, the puts at most `N` times the request's operations): an mvcc invariant change
+  for a bound the adequacy example states as easily as `srvLifeBound`. Left as the premise.
+- **D17c: `ClusterVersion()` from the cluster's contract.** `EtcdServer.ClusterVersion` is
+  translated with its body (`nil` without a cluster, else `s.cluster.Version()`) and proved
+  (`EtcdServer__ClusterVersion.lean`) over `clusterVersionMono cl γcv` (`InvStart.lean`): `cl`
+  non-`nil` and its `Version()` `nil` until a ghost witness is owned, non-`nil` from then on.
+  `bootOk` (`bootstrap`'s contract, a premise, D13b) gives it for `b.cluster.cl`, beside its other
+  cluster contracts; `NewServer` builds `clusterVersionOk s`. True of the Go code: `RaftCluster.
+  Version` reads `c.version` under the cluster's lock; it is set by `SetVersion` (non-`nil`) and by
+  `Recover` from a snapshot's backend, which holds the version once the entry setting it is
+  covered.
+- **D17d: `rnSnapOnce` stays the residual (stopped; needs a decision).** `run` calls
+  `s.r.raftStorage.Snapshot()` while raft's node goroutine owns the storage; Go serializes them
+  with `ms.Mutex`, but the model puts the storage's snapshot field and object in
+  `ownMemoryStorage` (raft's, exclusive), so no application-side triple for `Snapshot()` exists
+  and no proof can establish `rnSnapOnce` as stated (strengthening `MemoryStorage.Snapshot.spec` and
+  `proto.CloneSnapshot`'s axiom to state the clone's pointers non-`nil` is easy but does not help).
+  The fix is a change to raft's `MemoryStorage` model: the snapshot under the lock with a ghost
+  variable of its id/conf state split between the lock, the owner and an application token that
+  `ApplySnapshot`/`CreateSnapshot` also take (`NewMemoryStorage` gives it). It meets `InitialState`,
+  which reads `ms.snapshot` *without* the lock (`issues/raft-memorystorage-initialstate-unlocked.md`):
+  with the snapshot under the lock its unlocked read has no ownership, unless the snapshot starts
+  outside the lock and some locked call after `InitialState` deposits it, which the abstract
+  `isStorage` contract cannot promise the application. The options (each changes raft's public
+  `MemoryStorage` specs): (1) `InitialState`'s spec takes the application token, and the token
+  lends the snapshot while no other goroutine runs (`StartNode` calls it before the node
+  goroutine); (2) a trust-boundary premise that `InitialState` runs before any concurrent
+  `Snapshot()`; (3) leave `rnSnapOnce` as the construction's premise. Not decided here.

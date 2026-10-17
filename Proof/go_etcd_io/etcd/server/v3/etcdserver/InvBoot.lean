@@ -16,7 +16,8 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
     `PreVote` as `cfg` sets them, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
     `InitialState` closure, `Marshal` at the peers' conf changes) and the cluster's
     `IsIDRemoved` contract;
-  - the cluster (`isRaftCluster`, its id, this node's id, the remote members, read-only);
+  - the cluster (`isRaftCluster`, its id, this node's id, the remote members, read-only; its
+    `Version()` monotone, `clusterVersionMono`, D17);
   - the consistent index at `0` (`isCI`, `ciOwner` of the backend, the applying index at `0`)
     and the apply protocol's names and invariant (`consInv`, the apply thread's half at the start:
     the backend's batch lock's resource names them, so they exist before the backend; the
@@ -166,6 +167,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f)
     "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #bc.cl') ∗
+    -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
+    -- `clusterVersionOk`
+    "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
     "#Hisc" ∷ □ (∀ (γ' : mvcc.StoreNames) (f : GoFunc), ⌜γ'.kb = some d⌝ -∗
       backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
       apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f) ∗

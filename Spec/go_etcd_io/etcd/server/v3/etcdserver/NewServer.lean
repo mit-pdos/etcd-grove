@@ -20,7 +20,9 @@
   stand-in environment `E₀` carries (the construction's apply environment agrees with it,
   `envAgree`).
 * The workload clause `clusterWorkloadOk` at `E₀` (D13c), the start `bootKV` at the consistent
-  index `0`.
+  index `0`; the lifetime bounds (D14g, D17): `srvLifeBound` (at most `N` entries applied),
+  `idLifeBound` (fewer than `2 ^ 48` ids issued), `storeSmall` (the store's sealed logs small), and
+  the logic's thread bound `threadBound GF ≤ 2 ^ 31`.
 * `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; `rnTickerOk` at the
   server's raft environment `srvEr`), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
@@ -29,7 +31,7 @@
 **The postcondition** (D13d): an error, the server `nil`; or the built part `srvBuilt`
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
 agreeing with `E₀`, auth disabled, and the client's `etcdKV` at the bootstrap log's model. The
-rows of `isServerBuilt` no `NewServer` proof gives are the residual `srvBuildGap`
+row of `isServerBuilt` no `NewServer` proof gives (`rnSnapOnce`) is the residual `srvBuildGap`
 (`isServerBuilt_of_gap`, `BuildGap.lean`).
 -/
 module
@@ -71,6 +73,8 @@ abbrev NewServer.spec : Prop :=
   cfg.AutoCompactionRetention' = 0 →
   -- raft's `CheckQuorum` and `PreVote` off (D15, temporary: not etcd's default configuration)
   cfg.DisableCheckQuorum' = true → cfg.PreVote' = false →
+  -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
+  threadBound GF ≤ 2 ^ 31 →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -94,6 +98,9 @@ abbrev NewServer.spec : Prop :=
       "#Hwork" ∷ clusterWorkloadOk ρ E₀ (W64 0) bootKV ∗
       -- the lifetime bound (D14g): at most `N` entries ever applied, `bootstrap`'s budget
       "#Hlife" ∷ srvLifeBound ρ.raft N ∗
+      -- the other lifetime bounds (D17): fewer than `2 ^ 48` request ids issued by this
+      -- server's generator, every sealed log of the store at most `2 ^ 62` changes
+      "#Hidl" ∷ idLifeBound ρ.ids ∗ "#Hsmall" ∷ storeSmall E₀.γ ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the background
       -- goroutines' effects and the auth store's record bound
       "%Htrok" ∷ ⌜transportEffectsOk⌝ ∗ "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
