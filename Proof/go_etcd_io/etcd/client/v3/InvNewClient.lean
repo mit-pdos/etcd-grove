@@ -28,6 +28,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 public import Spec.fmt.ErrorfWrap
+public import Proof.go_etcd_io.etcd.client.v3.ErrOrigin
 
 @[expose] public section
 
@@ -65,7 +66,11 @@ instance newClientVars_persistent : Persistent (newClientVars (GF := GF)) := by
   unfold newClientVars; infer_instance
 
 /-- **The fields of the client `c` fixed from the dial on** (persistent): those of the record
-`cl`, read-only; the logger (`isClientLogger`); a token comes with a credential bundle. -/
+`cl`, read-only, and valid: the mutex and the resolver non-nil, the context one of the model with
+its cancel function, the configuration's endpoints (those `SetEndpoints` set) read-only and not
+empty, its dial options read-only; the logger (`isClientLogger`); a token comes with a credential
+bundle. (What the names-only callees need not to panic: the reviewer's point that read-only fields
+alone admit a nil mutex or resolver.) -/
 def clientFixed (c : Loc) (cl : go_etcd_io.etcd.client.v3.Client) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗ isClientLogger c ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"cfg" c ↦□ cl.cfg' ∗
@@ -79,7 +84,13 @@ def clientFixed (c : Loc) (cl : go_etcd_io.etcd.client.v3.Client) : IProp GF :=
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"Token" c ↦□ cl.Token' ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"authTokenBundle" c ↦□ cl.authTokenBundle' ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ cl.callOpts' ∗
-    ⌜cl.Token' ≠ go!"" → cl.authTokenBundle' ≠ GoInterface.nil⌝)
+    ⌜cl.Token' ≠ go!"" → cl.authTokenBundle' ≠ GoInterface.nil⌝ ∗
+    ⌜cl.epMu' ≠ null⌝ ∗ ⌜cl.resolver' ≠ null⌝ ∗
+    (∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜cl.ctx' = GoInterface.ok ci⌝ ∗
+      context.isContext ci cd) ∗
+    (∃ γ : context.ContextNames, context.cancelSpec cl.cancel' γ iprop(True)) ∗
+    (∃ xs : List GoString, cl.cfg'.Endpoints' ↦*□ xs ∗ ⌜xs ≠ []⌝) ∗
+    (∃ ds : List GoInterface, cl.cfg'.DialOptions' ↦*□ ds))
 
 instance clientFixed_persistent (c : Loc) (cl : go_etcd_io.etcd.client.v3.Client) :
     Persistent (clientFixed (GF := GF) c cl) := by
@@ -121,7 +132,7 @@ instance clientBuiltAt_persistent (c : Loc) : Persistent (clientBuiltAt (GF := G
 theorem retryClientOk_of_clientFixed (c : Loc) (cl : go_etcd_io.etcd.client.v3.Client) :
     clientFixed (GF := GF) c cl ⊢ retryClientOk c := by
   unfold clientFixed retryClientOk
-  iintro #⟨%Hc, #Hlg, -, -, -, -, -, -, -, -, #Htok, #Hatb, -, %Hta⟩
+  iintro #⟨%Hc, #Hlg, -, -, -, -, -, -, -, -, #Htok, #Hatb, -, %Hta, -⟩
   iframe #
   isplitl []
   · ipureintro; exact Hc
@@ -141,7 +152,7 @@ instance cfgCtxOk_persistent (ctx : GoInterface) : Persistent (cfgCtxOk (GF := G
 whose endpoints are `xs`:
 * `ErrMutuallyExclusiveCfg` itself, for a token with a user name or password;
 * the logger's construction (`cfg.LogConfig.Build()`, `logutil.CreateDefaultZapLogger`), when the
-  configuration gives no logger;
+  configuration gives no logger: an error those return (`loggerErr`, a ghost mark);
 * the size check (`fmt.Errorf` of the two limits), when the receive limit is set and below the
   send limit;
 * the endpoints check (`errors.New`), when there are none;
@@ -151,19 +162,20 @@ whose endpoints are `xs`:
 * **the token** (`getToken`): an error wrapping a client error `inner` (`clientErrOk`: a leaf
   error grpc's `status` accepts, an `rpctypes.EtcdError` when typed), **the PR's second change**:
   before it, the error was `inner` itself;
-* the version check (`checkVersion`), when `RejectOldCluster` is set.
+* the version check (`checkVersion`), when `RejectOldCluster` is set: an error it returns
+  (`versionErr`).
 The message (with the endpoints, `strings.Join(xs, ";")`) is not stated: the model of `fmt`
 does not format. -/
 def newClientErr (cv : go_etcd_io.etcd.client.v3.Config) (xs : List GoString)
     (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜cv.Token' ≠ go!"" ∧ (cv.Username' ≠ go!"" ∨ cv.Password' ≠ go!"")⌝ ∗
       globalAddr go_etcd_io.etcd.client.v3.ErrMutuallyExclusiveCfg ↦□ (GoInterface.ok e)) ∨
-    ⌜cv.Logger' = null⌝ ∨
+    ⌜cv.Logger' = null ∧ loggerErr e⌝ ∨
     ⌜0 < sint.Z cv.MaxCallRecvMsgSize' ∧ sint.Z cv.MaxCallRecvMsgSize' < sint.Z cv.MaxCallSendMsgSize'⌝ ∨
     ⌜xs = []⌝ ∨
     (∃ inner : GoInterfaceOk, errorStringSpec inner ∗ fmt.wrapsErr e inner) ∨
     (∃ inner : GoInterfaceOk, clientErrOk (GoInterface.ok inner) ∗ fmt.wrapsErr e inner) ∨
-    ⌜cv.RejectOldCluster' = true⌝)
+    ⌜cv.RejectOldCluster' = true ∧ versionErr e⌝)
 
 instance newClientErr_persistent (cv : go_etcd_io.etcd.client.v3.Config) (xs : List GoString)
     (e : GoInterfaceOk) : Persistent (newClientErr (GF := GF) cv xs e) := by

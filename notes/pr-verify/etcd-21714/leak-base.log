@@ -1,0 +1,11 @@
+=== RUN   TestNewSizeErrorCancelsContext
+        	            	expected: 0
+        	            	actual  : 100
+--- FAIL: TestNewSizeErrorCancelsContext (0.04s)
+=== RUN   TestNewLoggerErrorCancelsContext
+        	            	expected: 0
+        	            	actual  : 100
+--- FAIL: TestNewLoggerErrorCancelsContext (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.058s
+FAIL

@@ -1,0 +1,1980 @@
+=== RUN   TestReviewDialSetEndpointsRace
+==================
+WARNING: DATA RACE
+Write at 0x00c000002168 by goroutine 48:
+  go.etcd.io/etcd/client/v3.(*Client).SetEndpoints()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:180 +0xeb
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+
+Previous read at 0x00c000002168 by goroutine 43:
+  go.etcd.io/etcd/client/v3.(*Client).dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:327 +0x34b
+  go.etcd.io/etcd/client/v3.(*Client).Dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:282 +0x22c
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:25 +0x376
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+
+Goroutine 48 (running) created at:
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:18 +0x332
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+
+Goroutine 43 (running) created at:
+  testing.(*T).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0xb12
+  testing.runTests.func1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2742 +0x84
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.runTests()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2740 +0x9e9
+  testing.(*M).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2600 +0xf44
+  go.etcd.io/etcd/client/pkg/v3/testutil.MustTestMainWithLeakDetection()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/pkg/testutil/leak.go:204 +0x26
+  go.etcd.io/etcd/client/v3_test.TestMain()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/main_test.go:40 +0x172
+  main.main()
+      _testmain.go:196 +0x16d
+  runtime.main()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:302 +0x426
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  go.etcd.io/etcd/api/v3/etcdserverpb.init.1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/etcdserverpb/raft_internal.pb.go:627 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:264 +0x24a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:250 +0x4a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.init.0()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:245 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_routing_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:692 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.6()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:647 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_resource_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:654 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.5()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:608 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_info_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:387 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.3()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:341 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_behavior_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:261 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.2()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:242 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_client_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2065 +0x2c4
+  google.golang.org/genproto/googleapis/api/annotations.init.1()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2045 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:114 +0x24a
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:100 +0x4a
+  google.golang.org/genproto/googleapis/api/annotations.init.0()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:95 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/protobuf/types/gofeaturespb.file_google_protobuf_go_features_proto_init()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:307 +0x2c4
+  google.golang.org/protobuf/types/gofeaturespb.init.0()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:287 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  go.etcd.io/etcd/api/v3/versionpb.file_version_proto_init()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:130 +0x24a
+  go.etcd.io/etcd/api/v3/versionpb.init.0()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:112 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c000002168 by goroutine 43:
+  go.etcd.io/etcd/client/v3.(*Client).dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:327 +0x34b
+  go.etcd.io/etcd/client/v3.(*Client).Dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:282 +0x22c
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:25 +0x376
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+
+Previous write at 0x00c000002168 by goroutine 48:
+  go.etcd.io/etcd/client/v3.(*Client).SetEndpoints()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:180 +0xeb
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+
+Goroutine 43 (running) created at:
+  testing.(*T).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0xb12
+  testing.runTests.func1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2742 +0x84
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.runTests()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2740 +0x9e9
+  testing.(*M).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2600 +0xf44
+  go.etcd.io/etcd/client/pkg/v3/testutil.MustTestMainWithLeakDetection()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/pkg/testutil/leak.go:204 +0x26
+  go.etcd.io/etcd/client/v3_test.TestMain()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/main_test.go:40 +0x172
+  main.main()
+      _testmain.go:196 +0x16d
+  runtime.main()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:302 +0x426
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  go.etcd.io/etcd/api/v3/etcdserverpb.init.1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/etcdserverpb/raft_internal.pb.go:627 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:264 +0x24a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:250 +0x4a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.init.0()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:245 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_routing_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:692 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.6()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:647 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_resource_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:654 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.5()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:608 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_info_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:387 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.3()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:341 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_behavior_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:261 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.2()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:242 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_client_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2065 +0x2c4
+  google.golang.org/genproto/googleapis/api/annotations.init.1()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2045 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:114 +0x24a
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:100 +0x4a
+  google.golang.org/genproto/googleapis/api/annotations.init.0()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:95 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/protobuf/types/gofeaturespb.file_google_protobuf_go_features_proto_init()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:307 +0x2c4
+  google.golang.org/protobuf/types/gofeaturespb.init.0()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:287 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  go.etcd.io/etcd/api/v3/versionpb.file_version_proto_init()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:130 +0x24a
+  go.etcd.io/etcd/api/v3/versionpb.init.0()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:112 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+
+Goroutine 48 (running) created at:
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:18 +0x332
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c0007bee60 by goroutine 43:
+  go.etcd.io/etcd/client/v3.(*Client).dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:327 +0x379
+  go.etcd.io/etcd/client/v3.(*Client).Dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:282 +0x22c
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:25 +0x376
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+
+Previous write at 0x00c0007bee60 by goroutine 48:
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xd4
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+
+Goroutine 43 (running) created at:
+  testing.(*T).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0xb12
+  testing.runTests.func1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2742 +0x84
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.runTests()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2740 +0x9e9
+  testing.(*M).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2600 +0xf44
+  go.etcd.io/etcd/client/pkg/v3/testutil.MustTestMainWithLeakDetection()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/pkg/testutil/leak.go:204 +0x26
+  go.etcd.io/etcd/client/v3_test.TestMain()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/main_test.go:40 +0x172
+  main.main()
+      _testmain.go:196 +0x16d
+  runtime.main()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:302 +0x426
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  go.etcd.io/etcd/api/v3/etcdserverpb.init.1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/etcdserverpb/raft_internal.pb.go:627 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:264 +0x24a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:250 +0x4a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.init.0()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:245 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_routing_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:692 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.6()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:647 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_resource_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:654 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.5()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:608 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_info_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:387 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.3()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:341 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_behavior_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:261 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.2()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:242 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_client_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2065 +0x2c4
+  google.golang.org/genproto/googleapis/api/annotations.init.1()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2045 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:114 +0x24a
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:100 +0x4a
+  google.golang.org/genproto/googleapis/api/annotations.init.0()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:95 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/protobuf/types/gofeaturespb.file_google_protobuf_go_features_proto_init()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:307 +0x2c4
+  google.golang.org/protobuf/types/gofeaturespb.init.0()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:287 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  go.etcd.io/etcd/api/v3/versionpb.file_version_proto_init()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:130 +0x24a
+  go.etcd.io/etcd/api/v3/versionpb.init.0()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:112 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+
+Goroutine 48 (running) created at:
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:18 +0x332
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c000002168 by goroutine 43:
+  go.etcd.io/etcd/client/v3.(*Client).dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:327 +0x34b
+  go.etcd.io/etcd/client/v3.(*Client).Dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:282 +0x22c
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:25 +0x376
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+
+Previous write at 0x00c000002168 by goroutine 48:
+  go.etcd.io/etcd/client/v3.(*Client).SetEndpoints()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:180 +0xeb
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+
+Goroutine 43 (running) created at:
+  testing.(*T).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0xb12
+  testing.runTests.func1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2742 +0x84
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.runTests()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2740 +0x9e9
+  testing.(*M).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2600 +0xf44
+  go.etcd.io/etcd/client/pkg/v3/testutil.MustTestMainWithLeakDetection()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/pkg/testutil/leak.go:204 +0x26
+  go.etcd.io/etcd/client/v3_test.TestMain()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/main_test.go:40 +0x172
+  main.main()
+      _testmain.go:196 +0x16d
+  runtime.main()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:302 +0x426
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  go.etcd.io/etcd/api/v3/etcdserverpb.init.1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/etcdserverpb/raft_internal.pb.go:627 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:264 +0x24a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:250 +0x4a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.init.0()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:245 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_routing_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:692 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.6()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:647 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_resource_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:654 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.5()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:608 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_info_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:387 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.3()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:341 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_behavior_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:261 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.2()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:242 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_client_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2065 +0x2c4
+  google.golang.org/genproto/googleapis/api/annotations.init.1()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2045 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:114 +0x24a
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:100 +0x4a
+  google.golang.org/genproto/googleapis/api/annotations.init.0()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:95 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/protobuf/types/gofeaturespb.file_google_protobuf_go_features_proto_init()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:307 +0x2c4
+  google.golang.org/protobuf/types/gofeaturespb.init.0()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:287 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  go.etcd.io/etcd/api/v3/versionpb.file_version_proto_init()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:130 +0x24a
+  go.etcd.io/etcd/api/v3/versionpb.init.0()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:112 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+
+Goroutine 48 (finished) created at:
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:18 +0x332
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c0007bf060 by goroutine 43:
+  go.etcd.io/etcd/client/v3.(*Client).dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:327 +0x379
+  go.etcd.io/etcd/client/v3.(*Client).Dial()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:282 +0x22c
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:25 +0x376
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+
+Previous write at 0x00c0007bf060 by goroutine 48:
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xd4
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace.func1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:21 +0xab
+
+Goroutine 43 (running) created at:
+  testing.(*T).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0xb12
+  testing.runTests.func1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2742 +0x84
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.runTests()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2740 +0x9e9
+  testing.(*M).Run()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2600 +0xf44
+  go.etcd.io/etcd/client/pkg/v3/testutil.MustTestMainWithLeakDetection()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/pkg/testutil/leak.go:204 +0x26
+  go.etcd.io/etcd/client/v3_test.TestMain()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/main_test.go:40 +0x172
+  main.main()
+      _testmain.go:196 +0x16d
+  runtime.main()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:302 +0x426
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  go.etcd.io/etcd/api/v3/etcdserverpb.init.1()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/etcdserverpb/raft_internal.pb.go:627 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:264 +0x24a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.file_protoc_gen_openapiv2_options_annotations_proto_init()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:250 +0x4a
+  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options.init.0()
+      /root/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@v2.30.0/protoc-gen-openapiv2/options/annotations.pb.go:245 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_routing_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:692 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.6()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/routing.pb.go:647 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_resource_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:654 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.5()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/resource.pb.go:608 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_info_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:387 +0x2bd
+  google.golang.org/genproto/googleapis/api/annotations.init.3()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_info.pb.go:341 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_field_behavior_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:261 +0x284
+  google.golang.org/genproto/googleapis/api/annotations.init.2()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/field_behavior.pb.go:242 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_client_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2065 +0x2c4
+  google.golang.org/genproto/googleapis/api/annotations.init.1()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/client.pb.go:2045 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:114 +0x24a
+  google.golang.org/genproto/googleapis/api/annotations.file_google_api_annotations_proto_init()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:100 +0x4a
+  google.golang.org/genproto/googleapis/api/annotations.init.0()
+      /root/go/pkg/mod/google.golang.org/genproto/googleapis/api@v0.0.0-20260819154853-08b0e4226688/annotations/annotations.pb.go:95 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  google.golang.org/protobuf/types/gofeaturespb.file_google_protobuf_go_features_proto_init()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:307 +0x2c4
+  google.golang.org/protobuf/types/gofeaturespb.init.0()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/types/gofeaturespb/go_features.pb.go:287 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:550 +0x121
+  google.golang.org/protobuf/reflect/protoregistry.(*Types).RegisterExtension()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:549 +0x10a
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:236 +0xa5e
+  google.golang.org/protobuf/internal/filetype.Builder.Build()
+      /root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x29d
+  go.etcd.io/etcd/api/v3/versionpb.file_version_proto_init()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:130 +0x24a
+  go.etcd.io/etcd/api/v3/versionpb.init.0()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/api/versionpb/version.pb.go:112 +0x1c
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+  runtime.doInit1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/proc.go:8154 +0xd4
+
+Goroutine 48 (finished) created at:
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:18 +0x332
+  go.etcd.io/etcd/client/v3.newClient()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:444 +0x12ba
+  go.etcd.io/etcd/client/v3.New()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/client.go:91 +0x154
+  go.etcd.io/etcd/client/v3.TestReviewDialSetEndpointsRace()
+      /shared/etcd-grove-pr/etcd-21714-scratch/up-head/client/v3/review_dial_race_test.go:11 +0x32
+  testing.tRunner()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2193 +0x21c
+  testing.(*T).Run.gowrap1()
+      /root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2258 +0x38
+==================
+    testing.go:1865: race detected during execution of test
+--- FAIL: TestReviewDialSetEndpointsRace (0.09s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.141s
+FAIL

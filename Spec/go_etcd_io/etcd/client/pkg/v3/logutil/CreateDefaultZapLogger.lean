@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_etcd_io.etcd.client.v3.ErrOrigin
 
 @[expose] public section
 
@@ -22,14 +23,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `logutil.CreateDefaultZapLogger(level)` returns a non-nil logger and no error, or an error whose
-`Error()` returns some string (`DefaultZapLoggerConfig.Build()`'s). -/
+`Error()` returns some string, marked `loggerErr` (`ErrOrigin.lean`, a ghost mark) (`DefaultZapLoggerConfig.Build()`'s). -/
 abbrev logutil.CreateDefaultZapLogger.spec : Prop :=
   ∀ (lv : w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.logutil.CreateDefaultZapLogger)) (Val #lv))
   {{ (lg : Loc) (err : GoInterface), RET (PairV #lg #err);
       ((⌜err = GoInterface.nil⌝ ∗ ⌜lg ≠ null⌝) ∨
-        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e) }}
+        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e ∗ ⌜loggerErr e⌝) }}
 
 end spec
 

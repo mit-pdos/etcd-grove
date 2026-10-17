@@ -24,15 +24,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `New(cfg)`, for a configuration `cv` whose endpoints `xs` are read-only (the caller does not
-write them after: the client keeps the slice) and whose `Context` is none or a context: a client
+/-- `New(cfg)`, for a configuration `cv` whose endpoints `xs` and dial options `ds` are read-only (the
+caller does not write them after: the client keeps the slices) and whose `Context` is none or a context: a client
 built (`clientBuiltAt`, `retryClientOk`), or no client and an error whose `Error()` returns some
 string: `ErrNoAvailableEndpoints` itself for no endpoints, else one of `newClient`'s
 (`newClientErr`: for a failed dial or token request, an error wrapping the callee's). -/
-abbrev New.spec : Prop :=
-  ∀ (cv : go_etcd_io.etcd.client.v3.Config) (xs : List GoString),
+abbrev clientv3.New.spec : Prop :=
+  ∀ (cv : go_etcd_io.etcd.client.v3.Config) (xs : List GoString) (ds : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ newClientVars ∗
-      cv.Endpoints' ↦*□ xs ∗ cfgCtxOk cv.Context' }}
+      cv.Endpoints' ↦*□ xs ∗ cv.DialOptions' ↦*□ ds ∗ cfgCtxOk cv.Context' }}
     (App (Val (@! go_etcd_io.etcd.client.v3.New)) (Val #cv))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
       (⌜err = GoInterface.nil⌝ ∗ clientBuiltAt c ∗ retryClientOk c) ∨

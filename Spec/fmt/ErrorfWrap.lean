@@ -49,7 +49,8 @@ def fmt.fmtSW (format : GoString) : Prop :=
     W8 37 ∉ a ∧ W8 37 ∉ b ∧ W8 37 ∉ c
 
 /-- **`fmt.Errorf(format, s, err)`** for a format of one `%s` and one `%w` (`fmtSW`), a string
-`s` and a non-nil error `err` whose `Error()` returns some string: a non-nil error whose
+`s` and a non-nil error `err` whose `Error()` returns some string (and which, as `Spec/fmt/Errorf.lean`'s
+arguments, is assumed not to implement `fmt.Formatter`, whose `Format` Go would call instead): a non-nil error whose
 `Error()` returns some string (the formatted message) and which wraps `err` (`fmt.wrapsErr`); the
 arguments' slice comes back. -/
 abbrev fmt.ErrorfWrap.spec : Prop :=
@@ -112,7 +113,7 @@ theorem errorIsTree_wrap (S : GoError → Prop) (M : GoInterfaceOk → Prop) (ta
       ipureintro; exact Or.inr he'
     · by_cases h2 : methodSet ii.ty !! go!"Unwrap" =
           some (go.Signature [] false [go.GoType.SliceType go.error])
-      · simp only [if_neg h1, if_pos h2, named]
+      · simp only [ite_eq_right_of_eq_false _ _ (eq_false h1), ite_eq_left_of_eq_true _ _ (eq_true h2), named]
         iintro !> %Φ _ HΦ
         iapply HUw
         · itrivial
@@ -120,7 +121,7 @@ theorem errorIsTree_wrap (S : GoError → Prop) (M : GoInterfaceOk → Prop) (ta
         iapply HΦ
         iframe Hs
         ipureintro; intro x hx; exact Or.inr (hes x hx)
-      · simp only [if_neg h1, if_neg h2, named]
+      · simp only [h1, h2, ↓reduceIte, named]
         itrivial
 
 end lemmas

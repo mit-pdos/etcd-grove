@@ -1,0 +1,12 @@
+=== RUN   TestReviewPostulatesPanic
+    review_postulates_test.go:23: dialWithBalancer/epMu nil: panic: runtime error: invalid memory address or nil pointer dereference
+    review_postulates_test.go:23: dialWithBalancer/no endpoints: panic: runtime error: index out of range [0] with length 0
+    review_postulates_test.go:23: SetEndpoints/resolver nil: panic: runtime error: invalid memory address or nil pointer dereference
+    review_postulates_test.go:23: SetEndpoints/epMu nil: panic: runtime error: invalid memory address or nil pointer dereference
+    review_postulates_test.go:23: EtcdManualResolver.Close/nil: panic: runtime error: invalid memory address or nil pointer dereference
+    review_postulates_test.go:23: Close/cancel nil: panic: runtime error: invalid memory address or nil pointer dereference
+    review_postulates_test.go:23: autoSync/ctx nil: panic: runtime error: invalid memory address or nil pointer dereference
+    review_postulates_test.go:23: checkVersion/ctx nil: panic: cannot create context from nil parent
+--- PASS: TestReviewPostulatesPanic (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	0.040s

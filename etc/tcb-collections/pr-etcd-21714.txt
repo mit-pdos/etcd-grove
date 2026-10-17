@@ -1,0 +1,33 @@
+# PR etcd-io/etcd#21714 (branch pr-verify/etcd-21714 only): `newClient` with its dial and token
+# errors wrapped with the endpoints, and `New` over it (Proof/go_etcd_io/etcd/client/v3/Link.lean's
+# `v3.wp_newClient`, `v3.wp_New`).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21714.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots v3\.wp_newClient$
+roots v3\.clientv3\.wp_New$
+axiom Client.Close.wp_proof
+axiom Client.SetEndpoints.wp_proof
+axiom Client.autoSync.wp_proof
+axiom Client.checkVersion.wp_proof
+axiom Client.dialWithBalancer.wp_proof
+axiom Client.getToken.wp_proof
+axiom ClientLogLevel.wp_proof
+axiom NewAuth.wp_proof
+axiom NewCluster.wp_proof
+axiom NewLease.wp_proof
+axiom NewMaintenance.wp_proof
+axiom context.WithCancelTODO.wp_proof
+axiom credentials.NewPerRPCCredentialBundle.wp_proof
+axiom credentials.NewTransportCredential.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom fmt.ErrorfWrap.wp_proof
+axiom grpc.MaxCallRecvMsgSize.wp_proof
+axiom grpc.MaxCallSendMsgSize.wp_proof
+axiom logutil.CreateDefaultZapLogger.wp_proof
+axiom resolver.EtcdManualResolver.Close.wp_proof
+axiom resolver.New.wp_proof
+axiom zap.Config.Build.wp_proof
+axiom zap.Logger.Named.wp_proof

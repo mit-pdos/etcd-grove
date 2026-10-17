@@ -548,9 +548,9 @@ theorem v3.wp_newClient :
     EtcdGrove.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.newClient.wp_proof credentials.wp_NewTransportCredential context.wp_TODO context.wp_WithCancelTODO zap.Config.wp_Build v3.wp_ClientLogLevel logutil.wp_CreateDefaultZapLogger zap.Logger.wp_Named credentials.wp_NewPerRPCCredentialBundle grpc.wp_MaxCallSendMsgSize grpc.wp_MaxCallRecvMsgSize fmt.wp_Errorf resolver.wp_New v3.Client.wp_SetEndpoints v3.Client.wp_dialWithBalancer resolver.EtcdManualResolver.wp_Close fmt.wp_ErrorfWrap v3.wp_NewCluster v3.wp_NewKVAny v3.wp_NewLease v3.wp_NewWatcherAny v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_Close v3.Client.wp_checkVersion v3.Client.wp_autoSync
 
-theorem v3.wp_New :
-    EtcdGrove.New.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.New.wp_proof v3.wp_newClient
+theorem v3.clientv3.wp_New :
+    EtcdGrove.clientv3.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.clientv3.New.wp_proof v3.wp_newClient
 
 theorem context.wp_WithCancelValCtx :
     EtcdGrove.context.WithCancelValCtx.spec (GF := GF) (hG := hG) :=

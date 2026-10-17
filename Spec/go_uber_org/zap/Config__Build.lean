@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_etcd_io.etcd.client.v3.ErrOrigin
 
 @[expose] public section
 
@@ -22,7 +23,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `lc.Build()` (no options) returns a non-nil logger and no error, or an error whose `Error()`
-returns some string. It reads the caller's `*zap.Config` (opaque here, `zap` names only). -/
+returns some string, marked `loggerErr` (`ErrOrigin.lean`, a ghost mark). It reads the caller's `*zap.Config` (opaque here, `zap` names only). -/
 abbrev zap.Config.Build.spec : Prop :=
   ∀ (lc : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap }}
@@ -30,7 +31,7 @@ abbrev zap.Config.Build.spec : Prop :=
       (Val #slice.nil))
   {{ (lg : Loc) (err : GoInterface), RET (PairV #lg #err);
       ((⌜err = GoInterface.nil⌝ ∗ ⌜lg ≠ null⌝) ∨
-        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e) }}
+        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e ∗ ⌜loggerErr e⌝) }}
 
 end spec
 

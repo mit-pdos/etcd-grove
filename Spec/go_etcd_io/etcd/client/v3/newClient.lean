@@ -33,7 +33,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `newClient(cfg)`, for a configuration `cv` read-only at `cfg` (the caller's, never written:
-`New`'s copy) whose endpoints `xs` are read-only too, and whose `Context` is none or a context
+`New`'s copy) whose endpoints `xs` and dial options `ds` are read-only too, and whose `Context` is none or a context
 (`cfgCtxOk`), with the package's variables (`newClientVars`): either
 * no error and a client `c` built (`clientBuiltAt`: its fields fixed, its logger non-nil, a token
   with a credential bundle, its connection and services set) that the retry interceptor can use
@@ -42,9 +42,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
   `newClientErr` lists: in particular, for a failed dial or token request, **an error wrapping the
   callee's error** (`fmt.wrapsErr`, what the PR changes). -/
 abbrev newClient.spec : Prop :=
-  ∀ (cfgp : Loc) (cv : go_etcd_io.etcd.client.v3.Config) (xs : List GoString),
+  ∀ (cfgp : Loc) (cv : go_etcd_io.etcd.client.v3.Config) (xs : List GoString) (ds : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ newClientVars ∗
-      cfgp ↦□ cv ∗ cv.Endpoints' ↦*□ xs ∗ cfgCtxOk cv.Context' }}
+      cfgp ↦□ cv ∗ cv.Endpoints' ↦*□ xs ∗ cv.DialOptions' ↦*□ ds ∗ cfgCtxOk cv.Context' }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #cfgp))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
       (⌜err = GoInterface.nil⌝ ∗ clientBuiltAt c ∗ retryClientOk c) ∨

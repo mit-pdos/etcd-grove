@@ -22,11 +22,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.SetEndpoints(eps...)`, its mutex and resolver fixed, the endpoints read-only: under `c.epMu`
+/-- `c.SetEndpoints(eps...)`, its mutex and resolver fixed and non-nil, the endpoints read-only: under `c.epMu`
 it sets `c.endpoints` (whose points-to the call takes: from here on the field is the mutex's, not
 modeled) and the resolver's endpoints. -/
 abbrev Client.SetEndpoints.spec : Prop :=
-  ∀ (c : Loc) (mu r : Loc) (old eps : GoSlice) (xs : List GoString),
+  ∀ (c : Loc) (mu r : Loc) (old eps : GoSlice) (xs : List GoString), mu ≠ null → r ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"epMu" c ↦□ mu ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"resolver" c ↦□ r ∗

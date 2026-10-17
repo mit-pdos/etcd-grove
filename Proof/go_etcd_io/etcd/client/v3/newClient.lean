@@ -94,10 +94,10 @@ theorem newClient.wp_proof
     (wp_checkVersion : Client.checkVersion.spec (GF := GF) (hG := hG))
     (wp_autoSync : Client.autoSync.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
-  intro cfgp cv xs
+  intro cfgp cv xs ds
   have hi1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) < (0 + 1 + 1 + 1 : Nat) := by word
   have hi2 : 0 ≤ sint.Z (W64 2) ∧ sint.Z (W64 2) < (0 + 1 + 1 + 1 : Nat) := by word
-  wp_start as ⟨#Hvars, #Hcfg, #Hxs, #Hctx⟩
+  wp_start as ⟨#Hvars, #Hcfg, #Hxs, #Hds, #Hctx⟩
   ihave %Hcnn := typedPointsto_not_null _ _ _ $$ Hcfg
   wp_auto
   wp_if_destruct
@@ -183,7 +183,7 @@ theorem newClient.wp_proof
   -- the logger: the configuration's, or built
   wp_join iprop(∃ (lg : Loc) (err : GoInterface), lg_ptr ↦ lg ∗ err_ptr ↦ err ∗
       ((⌜err = GoInterface.nil⌝ ∗ ⌜lg ≠ null⌝) ∨
-        (∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e ∗ ⌜cv.Logger' = null⌝)))
+        (∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e ∗ ⌜cv.Logger' = null ∧ loggerErr e⌝)))
     with [lg err] as ⟨%lg, %err, lg, err, Hlgerr⟩
   · -- none in the configuration
     wp_if_destruct
@@ -194,35 +194,35 @@ theorem newClient.wp_proof
       · wp_join_done
         iexists _, _
         iframe
-        icases Hle with (⟨%He, %Hn⟩ | ⟨%e, %He, #Hes⟩)
+        icases Hle with (⟨%He, %Hn⟩ | ⟨%e, %He, #Hes, %Hle'⟩)
         · exact absurd rfl Hn
         iright
         iexists e
         iframe #
-        ipureintro; exact ⟨He, ‹_›⟩
+        ipureintro; exact ⟨He, ‹cv.Logger' = null›, Hle'⟩
       · wp_apply wp_Named lg0 _ Hif as %l %Hl
         wp_join_done
         iexists _, _
         iframe
-        icases Hle with (⟨%He, %Hn⟩ | ⟨%e, %He, #Hes⟩)
+        icases Hle with (⟨%He, %Hn⟩ | ⟨%e, %He, #Hes, %Hle'⟩)
         · ileft
           ipureintro; exact ⟨He, Hl⟩
         iright
         iexists e
         iframe #
-        ipureintro; exact ⟨He, ‹_›⟩
+        ipureintro; exact ⟨He, ‹cv.Logger' = null›, Hle'⟩
     · -- `LogConfig.Build()`
       wp_apply wp_Build as %lg0 %err0 Hle
       wp_join_done
       iexists _, _
       iframe
-      icases Hle with (⟨%He, %Hn⟩ | ⟨%e, %He, #Hes⟩)
+      icases Hle with (⟨%He, %Hn⟩ | ⟨%e, %He, #Hes, %Hle'⟩)
       · ileft
         ipureintro; exact ⟨He, Hn⟩
       iright
       iexists e
       iframe #
-      ipureintro; exact ⟨He, ‹_›⟩
+      ipureintro; exact ⟨He, ‹cv.Logger' = null›, Hle'⟩
   · -- the configuration's
     iexists _, _
     iframe
@@ -315,7 +315,7 @@ theorem newClient.wp_proof
     by_cases hR : sint.Z (W64 0) < sint.Z cv.MaxCallRecvMsgSize' <;>
     by_cases hRS : sint.Z cv.MaxCallRecvMsgSize' < sint.Z cv.MaxCallSendMsgSize'
     all_goals (repeat (first | wp_auto |
-      simp only [hS, hR, hRS, decide_true, decide_false, Bool.not_true, Bool.not_false] |
+      simp only [hS, hR, hRS, decide_true, decide_false] |
       wp_apply wp_MaxCallSendMsgSize as %o1 - | wp_apply wp_MaxCallRecvMsgSize as %o2 -))
     · -- the receive limit below the send limit: the size error
       wp_apply wp_slice_literal
@@ -345,7 +345,7 @@ theorem newClient.wp_proof
         wp_apply wp_MaxCallSendMsgSize as %o1 - | wp_apply wp_MaxCallRecvMsgSize as %o2 - |
         (wp_apply wp_store_slice_index $$ [Hsl] as Hsl
          iframe; ipureintro
-         simp only [go.arrayLiteralSize, List.length_cons, List.length_nil, List.length_set]
+         simp only [List.length_cons, List.length_nil, List.length_set]
          first | exact hi1 | exact hi2))
       ileft
       isplitr
@@ -363,7 +363,7 @@ theorem newClient.wp_proof
         wp_apply wp_MaxCallSendMsgSize as %o1 - | wp_apply wp_MaxCallRecvMsgSize as %o2 - |
         (wp_apply wp_store_slice_index $$ [Hsl] as Hsl
          iframe; ipureintro
-         simp only [go.arrayLiteralSize, List.length_cons, List.length_nil, List.length_set]
+         simp only [List.length_cons, List.length_nil, List.length_set]
          first | exact hi1 | exact hi2))
       ileft
       isplitr
@@ -381,7 +381,7 @@ theorem newClient.wp_proof
         wp_apply wp_MaxCallSendMsgSize as %o1 - | wp_apply wp_MaxCallRecvMsgSize as %o2 - |
         (wp_apply wp_store_slice_index $$ [Hsl] as Hsl
          iframe; ipureintro
-         simp only [go.arrayLiteralSize, List.length_cons, List.length_nil, List.length_set]
+         simp only [List.length_cons, List.length_nil, List.length_set]
          first | exact hi1 | exact hi2))
       ileft
       isplitr
@@ -416,7 +416,7 @@ theorem newClient.wp_proof
         wp_apply wp_MaxCallSendMsgSize as %o1 - | wp_apply wp_MaxCallRecvMsgSize as %o2 - |
         (wp_apply wp_store_slice_index $$ [Hsl] as Hsl
          iframe; ipureintro
-         simp only [go.arrayLiteralSize, List.length_cons, List.length_nil, List.length_set]
+         simp only [List.length_cons, List.length_nil, List.length_set]
          first | exact hi1 | exact hi2))
       ileft
       isplitr
@@ -455,7 +455,7 @@ theorem newClient.wp_proof
     ipureintro; exact Hsz
   subst Hv
   wp_auto
-  wp_apply wp_resolverNew as %r -
+  wp_apply wp_resolverNew as %r %Hrnn
   · iframe #
   ihave %Hxlen := ownSlice_len _ _ _ $$ Hxs
   wp_if_destruct
@@ -478,9 +478,12 @@ theorem newClient.wp_proof
     ipureintro
     apply List.eq_nil_of_length_eq_zero
     word
+  ihave %Hmunn := typedPointsto_not_null _ _ _ $$ «$v5»
+  have Hxsne : xs ≠ [] := by
+    intro h; rw [h] at Hxlen; simp at Hxlen; word
   ipersist CepMu
   ipersist Cresolver
-  wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil cv.Endpoints' xs $$ [Cendpoints]
+  wp_apply (wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil cv.Endpoints' xs Hmunn Hrnn) $$ [Cendpoints]
   · iframe
     iframe #
   -- the dial: the fields read from here on are fixed
@@ -501,7 +504,7 @@ theorem newClient.wp_proof
     simp only
     iframe #
     ipureintro
-    exact ⟨Hcl, Hta⟩
+    exact ⟨Hcl, Hta, Hmunn, Hrnn, rfl, Hxsne⟩
   ihave #Hdial : clientDialAt «$r0_ptr» $$ []
   · unfold clientDialAt
     iexists _
@@ -516,7 +519,7 @@ theorem newClient.wp_proof
     iunfold context.cancelSpec at Hcan
     wp_apply Hcan as -
     · imodintro; itrivial
-    wp_apply wp_resolverClose
+    wp_apply (wp_resolverClose r Hrnn)
     wp_apply _root_.Perennial.strings.wp_Join $$ [Hxs] as -
     · iframe #
     wp_apply wp_slice_literal
@@ -669,7 +672,7 @@ theorem newClient.wp_proof
   · wp_auto
     wp_apply wp_checkVersion «$r0_ptr» $$ [] as %cverr Hcv
     · iframe #
-    icases Hcv with (%Hcvn | ⟨%ce, %Hce, #Hces⟩)
+    icases Hcv with (%Hcvn | ⟨%ce, %Hce, #Hces, %Hve⟩)
     · subst Hcvn
       wp_auto
       wp_apply wp_fork
@@ -694,7 +697,7 @@ theorem newClient.wp_proof
       · ipureintro; rfl
       unfold newClientErr
       iright; iright; iright; iright; iright; iright
-      ipureintro; exact hrej
+      ipureintro; exact ⟨hrej, Hve⟩
   · wp_auto
     wp_apply wp_fork
     · wp_apply wp_autoSync «$r0_ptr» $$ []

@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvNewClient
+public import Proof.go_etcd_io.etcd.client.v3.ErrOrigin
 
 @[expose] public section
 
@@ -23,12 +24,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.checkVersion()` of a built client returns `nil` or an error whose `Error()` returns some string
-(a `Status` call's, a version parse's, or `ErrOldCluster`). -/
+(a `Status` call's, a version parse's, or `ErrOldCluster`), marked `versionErr` (`ErrOrigin.lean`). -/
 abbrev Client.checkVersion.spec : Prop :=
   ∀ (c : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientBuiltAt c }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"checkVersion")) (Val #()))
-  {{ (err : GoInterface), RET #err; (⌜err = GoInterface.nil⌝ ∨ ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e) }}
+  {{ (err : GoInterface), RET #err; (⌜err = GoInterface.nil⌝ ∨
+      ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errorStringSpec e ∗ ⌜versionErr e⌝) }}
 
 end spec
 

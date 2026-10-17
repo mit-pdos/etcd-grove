@@ -21,9 +21,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `r.Close()` returns (it closes grpc's manual resolver; the resolver's state is opaque here). -/
+/-- `r.Close()` of a non-nil resolver returns (it closes grpc's manual resolver; the resolver's state is opaque here). -/
 abbrev resolver.EtcdManualResolver.Close.spec : Prop :=
-  ∀ (r : Loc),
+  ∀ (r : Loc), r ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty @!! go!"Close"))
       (Val #()))

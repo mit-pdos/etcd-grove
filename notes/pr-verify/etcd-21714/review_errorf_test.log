@@ -1,0 +1,6 @@
+=== RUN   TestReviewErrorfWrapCallsFormat
+    review_errorf_test.go:23: e.Error() = "etcdclient: dialing [a;b] failed: formatted(v)", Format calls = 1
+    review_errorf_test.go:24: errors.Unwrap(e) == inner: true; type *fmt.wrapError
+--- PASS: TestReviewErrorfWrapCallsFormat (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	0.042s

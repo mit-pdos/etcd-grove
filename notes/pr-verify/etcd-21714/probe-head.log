@@ -1,0 +1,41 @@
+=== RUN   TestPR21714TokenError
+    err.Error()                        = "etcdclient: communicating with [unix://etcd-pr21714-auth:0] failed: etcdserver: authentication failed, invalid user ID or password"
+    errors.Is(err, ErrAuthFailed)      = true
+    err == ErrAuthFailed               = false
+    errors.As(err, &EtcdError)         = true
+    err.(rpctypes.EtcdError) ok        = false
+    errors.Is(err, DeadlineExceeded)   = false
+    err == context.DeadlineExceeded    = false
+    status.Code(err)                   = Unknown
+    rpctypes.ErrorDesc(err)            = "etcdclient: communicating with [unix://etcd-pr21714-auth:0] failed: etcdserver: authentication failed, invalid user ID or password"
+--- PASS: TestPR21714TokenError (0.01s)
+=== RUN   TestPR21714UnreachableNoAuth
+    New: no error; the first request fails instead: "context deadline exceeded" (no endpoint in it)
+--- PASS: TestPR21714UnreachableNoAuth (1.00s)
+=== RUN   TestPR21714UnreachableWithAuth
+    after 1s
+    err.Error()                        = "etcdclient: communicating with [127.0.0.1:39057] failed: context deadline exceeded"
+    errors.Is(err, ErrAuthFailed)      = false
+    err == ErrAuthFailed               = false
+    errors.As(err, &EtcdError)         = false
+    err.(rpctypes.EtcdError) ok        = false
+    errors.Is(err, DeadlineExceeded)   = true
+    err == context.DeadlineExceeded    = false
+    status.Code(err)                   = Unknown
+    rpctypes.ErrorDesc(err)            = "etcdclient: communicating with [127.0.0.1:39057] failed: context deadline exceeded"
+--- PASS: TestPR21714UnreachableWithAuth (1.00s)
+=== RUN   TestPR21714DialError
+    err.Error()                        = "etcdclient: dialing [127.0.0.1:2379;127.0.0.1:22379] failed: grpc: the credentials require transport level security (use grpc.WithTransportCredentials() to set)"
+    errors.Is(err, ErrAuthFailed)      = false
+    err == ErrAuthFailed               = false
+    errors.As(err, &EtcdError)         = false
+    err.(rpctypes.EtcdError) ok        = false
+    errors.Is(err, DeadlineExceeded)   = false
+    err == context.DeadlineExceeded    = false
+    status.Code(err)                   = Unknown
+    rpctypes.ErrorDesc(err)            = "etcdclient: dialing [127.0.0.1:2379;127.0.0.1:22379] failed: grpc: the credentials require transport level security (use grpc.WithTransportCredentials() to set)"
+--- PASS: TestPR21714DialError (0.00s)
+=== RUN   TestPR21714MutuallyExclusive
+    err.Error() = "etcdclient: username/password and token configurations are mutually exclusive"
+--- PASS: TestPR21714MutuallyExclusive (0.00s)
+ok  	go.etcd.io/etcd/client/v3	2.033s

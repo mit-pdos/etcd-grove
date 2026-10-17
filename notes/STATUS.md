@@ -45,6 +45,43 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21714: `clientv3.New`'s dial and token errors carry the endpoints (2026-10-17, branch `pr-verify/etcd-21714`)
+
+Verification of an open PR, not for merging into `lean`: the translation is of the fork branch
+`pr-etcd-21714-goose-lean` (`etc/goose.py --check` fails here by design). Report:
+`notes/pr-verify/etcd-21714.md`.
+- `client/v3.toml` translates `New` and `newClient` with bodies. For `newClient`'s field reads and
+  writes not to rest on axiomatized types, three types are now translated: `clientv3.Config`
+  (`crypto/tls` added names-only, `Code/crypto/tls.toml`, lean root `crypto/tls=`), `clientv3.Maintenance`
+  (import `io`) and grpc's `credentials.TransportCredentials` (import `net` in
+  `grpc/credentials.toml`); this removes the `sorry -- axiomatized type` instances other client
+  results reached through `Client`'s typed points-to (`pr-verify/etcd-21809`'s `NewCtxClient`).
+  `logutil`'s `IsPkgInit` instances moved from `etcdserver/BaseApply.lean` to `cache/v3/Base.lean`
+  (the client imports it now), `net`'s above grpc `credentials`' (which imports it).
+- `newClient` and `New` are proved, no `sorry`: on success a client `clientBuiltAt` (its fields
+  fixed from the dial on, logger invariant, a token with a bundle) with `retryClientOk` (what the
+  retry interceptor's proofs assumed of a client `New` built: now established); on failure no
+  client and an error of one of `newClientErr`'s origins, the dial's and the token's wrapped
+  (`fmt.wrapsErr`; `errorIsTree_wrap`: `errors.Is` sees through). New trust-boundary axioms: the
+  wrapping half of `fmt.Errorf` (`Spec/fmt/ErrorfWrap.lean`), `context.WithCancel(context.TODO())`
+  (`Spec/context/WithCancelTODO.lean`), and the names-only callees (the dial, `SetEndpoints`,
+  `NewCluster`/`NewLease`/`NewAuth`/`NewMaintenance`, `Close`, `checkVersion`, `autoSync`,
+  `ClientLogLevel`, zap's `Config.Build`/`Logger.Named`, `logutil.CreateDefaultZapLogger`, the
+  client's `credentials`/`resolver` functions, grpc's `MaxCall*MsgSize`); `NewKV`/`NewWatcher`
+  through proved specs for any connection (`NewKVAny`, `NewWatcherAny`).
+- `etc/gen-link.py` also names a spec by its package's last two components (`client_v3_New`),
+  for functions whose `<last component>_<fn>` two packages share (`cache/v3` and `client/v3`).
+- The logger's and the version check's errors carry ghost marks (`ErrOrigin.lean`, `opaque`
+  predicates `loggerErr`, `versionErr`) so that `newClientErr` is not vacuous for the default
+  configuration; `clientFixed` carries what the names-only callees need not to panic (non-nil mutex
+  and resolver, a context with its cancel function, non-empty endpoints, read-only dial options).
+- Found: `issues/etcd-client-new-context-leak.md` (two config-error returns of `newClient` leave
+  the context registered with its parent), `issues/etcd-client-dial-endpoints-race.md` (`Client.Dial`
+  reads `endpoints` without `epMu`), `issues/etcd-client-doc-new-deadline.md` (`doc.go`'s `New`
+  example).
+- `clientv3.New`'s spec is `clientv3.New.spec` (the cache's `New.spec` shares `EtcdGrove`), so
+  `etc/verified-code.py` does not match it to `New` and reports it "translated".
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

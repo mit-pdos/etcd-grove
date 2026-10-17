@@ -1,6 +1,12 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
+axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
+axiom Client.SetEndpoints.wp_proof
+axiom Client.autoSync.wp_proof
+axiom Client.checkVersion.wp_proof
+axiom Client.dialWithBalancer.wp_proof
 axiom Client.getToken.wp_proof
+axiom ClientLogLevel.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.Alarm.wp_proof
 axiom EtcdServer.Cleanup.wp_proof
@@ -22,7 +28,11 @@ axiom EtcdServer.revokeExpiredLeases.wp_proof
 axiom EtcdServer.sendMergedSnap.wp_proof
 axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
+axiom NewAuth.wp_proof
+axiom NewCluster.wp_proof
+axiom NewLease.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
+axiom NewMaintenance.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
 axiom attribute.Bool.wp_proof
@@ -87,14 +97,18 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
+axiom context.WithCancelTODO.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom credentials.NewPerRPCCredentialBundle.wp_proof
+axiom credentials.NewTransportCredential.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
+axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
 axiom fmt.Sscanf.wp_proof
@@ -109,6 +123,8 @@ axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.GenericServerStream.Context.wp_proof
 axiom grpc.GenericServerStream.Recv.wp_proof
 axiom grpc.GenericServerStream.Send.wp_proof
+axiom grpc.MaxCallRecvMsgSize.wp_proof
+axiom grpc.MaxCallSendMsgSize.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.serve
@@ -128,6 +144,7 @@ axiom heap.Push.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom logutil.CreateDefaultZapLogger.wp_proof
 axiom membership.localKept
 axiom membership.localKept_persistent
 axiom metadata.FromIncomingContext.wp_proof
@@ -162,6 +179,8 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.ValueOf.wp_proof
+axiom resolver.EtcdManualResolver.Close.wp_proof
+axiom resolver.New.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
 axiom schedule.Scheduler.Stop.wp_proof
@@ -210,6 +229,7 @@ axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.ByteString.wp_proof
+axiom zap.Config.Build.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
@@ -219,6 +239,7 @@ axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Named.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.NewNop.wp_proof

@@ -26,10 +26,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-theorem New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
-    New.spec (GF := GF) (hG := hG) := by
-  intro cv xs
-  wp_start as ⟨#Hvars, #Hxs, #Hctx⟩
+theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
+    clientv3.New.spec (GF := GF) (hG := hG) := by
+  intro cv xs ds
+  wp_start as ⟨#Hvars, #Hxs, #Hds, #Hctx⟩
   ihave %Hxlen := ownSlice_len _ _ _ $$ Hxs
   ihave #Hvars0 := Hvars
   iunfold newClientVars at Hvars
@@ -53,7 +53,7 @@ theorem New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
     ipureintro
     apply List.eq_nil_of_length_eq_zero
     word
-  wp_apply wp_newClient cfg_ptr cv xs $$ [] as %c %err Hpost
+  wp_apply wp_newClient cfg_ptr cv xs ds $$ [] as %c %err Hpost
   · iframe #
   iapply HΦ
   icases Hpost with (Hok | ⟨%Hc, %e, %He, #Hes, #Herr⟩)
