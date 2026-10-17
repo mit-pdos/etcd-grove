@@ -26,7 +26,9 @@ at index `v'`, with mvcc's certificate of the KV log `L` it left (the request pa
 stores `v'` into the atomic `s.appliedIndex` and, at that point, raises the ghost applied index to
 `v'` and makes `L` the current applied log. Since 2026-10-14 (unit C2a) the log `L` is deposited
 ahead as the log applied through `v' = v + 1` (`srvAppliedPre γr v v' L`, `applied_predeposit`:
-before the entry's result goes to its proposer), and the store publishes it. -/
+before the entry's result goes to its proposer), and the store publishes it. Since 2026-10-17
+(etcd-io/etcd#22529) `v'` is any index above `v` (`srvAppliedPre`, `applied_predeposit_gt`): a
+leader snapshot's, which `applySnapshot` publishes (`EtcdServer.applySnapshot.publish_ok`). -/
 abbrev EtcdServer.setAppliedIndex.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

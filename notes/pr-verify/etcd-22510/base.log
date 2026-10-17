@@ -1,0 +1,14 @@
+--- FAIL: TestApplySnapshotUpdatesAppliedIndex (0.01s)
+        	Error Trace:	server/etcdserver/server_test.go:953
+        	Error:      	Not equal: 
+        	            	expected: 0x2711
+        	            	actual  : 0x0
+        	Error Trace:	server/etcdserver/server_test.go:954
+        	Error:      	Not equal: 
+        	            	expected: 0x1
+        	            	actual  : 0x0
+        	Error Trace:	server/etcdserver/server_test.go:961
+        	Error:      	Target error should not be in err chain:
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.025s
+FAIL

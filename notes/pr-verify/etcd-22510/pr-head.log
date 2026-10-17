@@ -1,0 +1,2 @@
+--- PASS: TestApplySnapshotUpdatesAppliedIndex (0.12s)
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.136s

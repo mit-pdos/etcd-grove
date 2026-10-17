@@ -1,0 +1,9 @@
+# etcd-io/etcd#22529: tests and logs
+
+The report is `../etcd-22529.md`.
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `base.log` | The PR's own test `TestApplySnapshotAdvancesAppliedIndexAndTerm` (in the PR's `server/etcdserver/server_test.go`, head `cdaa4d718`) **fails** without the PR's two lines: `getAppliedIndex()` and `getTerm()` are 0 after the snapshot (expected 5001 and 7). | the fork's pinned `goose-lean` (`09669450f`) `server/etcdserver/server.go` with the PR's `server_test.go` | in a checkout of `mit-pdos/etcd-grove` branch `pr-etcd-22529-goose-lean`: `git show 09669450f:server/etcdserver/server.go > server/etcdserver/server.go; git show cdaa4d718:server/etcdserver/server_test.go > server/etcdserver/server_test.go` (`cdaa4d718` fetched from etcd-io/etcd `pull/22529/head`), then `cd server && GOTOOLCHAIN=go1.27.1 go test ./etcdserver/ -run 'TestApplySnapshotAdvancesAppliedIndexAndTerm$' -count=1` |
+| `pr-head.log` | The same test passes with the PR. | `mit-pdos/etcd-grove` branch `pr-etcd-22529-goose-lean` (`dcbf0f95b`) with the PR's `server_test.go` | as above without the first `git show` |
+| `review_restart_test.go` | (The reviewer's.) After a restart from a raft-storage snapshot at index 6000, `s.appliedIndex`/`s.term` are 0 while `ep.appliedi` is 6000, until the first entry after the snapshot is applied (which repairs them); in that window a committed index above 5000 makes `exceedsRequestLimit` reject proposals. The PR does not change this. (The test calls `exceedsRequestLimit` with the committed index the first `Ready` would set rather than racing a proposal.) | etcd-io/etcd PR head `cdaa4d718` (also the fork branch) | `cp review_restart_test.go <checkout>/server/etcdserver/ && cd <checkout>/server && GOTOOLCHAIN=go1.27.1 go test ./etcdserver/ -run TestReviewRestartAppliedIndexZero -count=1 -v` |
