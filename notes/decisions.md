@@ -6932,6 +6932,46 @@ proved).
   (`kvLeasedCommitTodo`) is now stated in the clients' model (`txnCommitResultTok` from
   `etcdReached lo`), as `kvLeasedPutTodo` was.
 
+## What a progress response covers (unit W-K, K1b, 2026-10-17 · in progress)
+
+**The claim the client needs.** A progress response at revision `p` on a watch means: the watch
+has received every event of its range up to `p` (the cache's `EtcdStep c p pfx []`). A per-watcher
+progress response (`WithProgressNotify`, `progress(w)`) is for one watcher; a broadcast (id `-1`,
+`RequestProgressAll`) is for every watcher in the stream's map `ws.watchers` when it is sent, and
+the client applies it to every substream it has (`broadcastResponse`).
+
+**Where the knowledge is.** mvcc knows the map `M` given to `progressIfSync` (its watchers all
+synced, so delivered up to the store's revision: `synced_d` and K1a's `wlogQ_cert_prefix`); which ids
+the stream assigned (`idsInv`) and which it cancelled (`Cancel` removes from `ws.watchers`); the
+order of the channel (O1's sent list). Only v3rpc knows why a watcher was cancelled (a client
+cancel request, `recvLoop`), and only the client knows its substream is live.
+
+**The design (mvcc-centric).**
+- *Registration index* (M1): a watcher registered on a channel records the channel's sent length
+  then (`chanRegAt γc w n`, a persistent element of a ghost map whose authority is with the sent
+  list's, keys among the registered watchers, values at most the sent length).
+- *Cancellation record* (M2): `watchStream.Cancel X` records `cancelAt γo X n` (`n` the sent length
+  then) with the caller's reason, a saved predicate fixed at the stream's creation (v3rpc: "the
+  client sent a cancel request for `X`", `∃ i, upAtW γs i (.cancel X)`, which `recvLoop` has when it
+  calls `Cancel`).
+- *Coverage* (M3): every progress response at channel index `k` with covered set `C` (the map's
+  watchers) carries, persistently in the channel invariant: (a) every `w ∈ C` has its deliveries
+  before index `k` cover the revisions `[lo, rev + 1)`; (b) for id `-1`, every id `X` the stream
+  assigned to a watcher `w` registered at an index `≤ k` has `w ∈ C` or was cancelled at an index
+  `≤ k` (the stream's lock invariant: an assigned id is in `ws.watchers` until `Cancel`); (c) for a
+  watcher's own id, its watcher is in `C`.
+- *v3rpc*: `createdAfter` adds that the created watcher was registered before its snapshot `l0`
+  (`recvLoop` takes `l0` after the registration); `mvccOk` exports a response's channel index and
+  coverage.
+- *Client* (K2): a broadcast at down position `j` after a substream's `Created` at `jc < j` has
+  channel index at least the snapshot's length (O3: every id `-1` response before the snapshot was
+  sent before `jc`, each response is sent once), so after the registration; the substream is live
+  and never sent a cancel request for its id, so not cancelled (the reason predicate); so its
+  watcher is in `C` and the response covers it.
+
+*Rejected:* the claim attached by `recvLoop` (its live set) after `progressAll` returns: `sendLoop`
+may forward the response first. *Rejected:* a client-side fix (`issues/etcd-watch-progress-before-created.md`).
+
 ## The recipes are verified against the closed-watch fix (unit W-Q, 2026-10-16 · adopted)
 
 **The rule and the precedent.** The verified etcd is upstream main plus the commits that make it
