@@ -13434,3 +13434,22 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## Branch `pr-verify/etcd-21569` (etcd PR #21569, not for `lean`)
+
+`snap.NewMessage` (message.go) is translated with its body (`snap.toml`). So is `pkg/v3/ioutil`'s
+`readcloser.go` exact reader (`NewExactReadCloser`, `exactReadCloser.Read`/`Close`; new package in
+`etc/goose.py`, `Code/go_etcd_io/etcd/pkg/v3/ioutil.toml`; its package facts are
+`ioutil/Base.lean`, `ioutilInit`). Both are proved, with no `sorry`. The reader specs are over an
+abstract underlying reader (`readerSpec`/`closerSpec`, `ioutil/Defs.lean`). Commit `6fda2bba0`
+translates the base and proves the old `NewMessage` (its `ReadCloser` an exact reader). The branch
+head translates the PR, where `ReadCloser` is `rc`; the old statement is kept as
+`snap.NewMessage.spec_old`. Since the PR, no package the server reaches imports `ioutil`, so the
+exact reader's proofs have their own Link (`etc/gen-link.py --ioutil`,
+`etc/link-lean-first-ioutil.txt`). New trust boundary: `proto.SizeMessage` (`proto.Size` of a
+`*raftpb.Message`, as `SizeEntry`). Report: `notes/pr-verify/etcd-21569.md`.
+
+Proof notes: a channel `make` needs `HeapGS HasLC.hasLC` (`chan.wp_make2`), so
+`snap.NewMessage.spec` is stated at `hasLC`. A `wp_apply` of an interface method's spec held in a
+persistent hypothesis failed with "unknown free variable" when the frame was given as `[HC]`; it
+works as `[$HC]` (`exactReadCloser__Close.lean`).

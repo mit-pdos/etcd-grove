@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-17
+checked: 2026-10-17 (gh search of etcd-io/etcd issues and PRs for "ExactReadCloser": only #21569)
 links:
   - etcd-io/etcd#21569 pr open: removes NewExactReadCloser's only use (snap.NewMessage); does not touch this
 ---
@@ -25,7 +25,9 @@ truncated stream. Only `Close` then returns `ErrShortRead`. Reproduction:
 In etcd the one caller, `snap.NewMessage`, wraps the `io.PipeReader` of
 `etcdserver.newSnapshotReaderCloser`, and a pipe never returns data together with `io.EOF`. So
 the snapshot sender is not affected. It would be if the wrapped reader were ever one that does
-this (`testing/iotest.DataErrReader` makes any reader do it). The sender (`rafthttp/snapshot_sender.go`, `defer body.Close()`) ignores the `Close` error.
+this (`testing/iotest.DataErrReader` makes any reader do it). In the sender (`rafthttp/snapshot_sender.go`), a `Close`-time `ErrShortRead` only reaches
+`merged.CloseWithError`, which runs after `ReportSnapshot(SnapshotFinish)` and makes `CloseNotify`
+report `false`. Raft is not told, and the receiver has already saved the stream.
 
 **Expected**: `Read` returns `ErrShortRead` whenever the stream ends (`err == io.EOF`) before
 `totalBytes`, whatever `n` is.

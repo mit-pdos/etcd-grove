@@ -1,0 +1,25 @@
+=== RUN   TestTruncatedSnapshotDB
+    trunc_test.go:69: tx.Size()=41492480, kept 10373120 bytes; child exit: exit status 2
+        === RUN   TestTruncatedSnapshotDB
+        unexpected fault address 0x7f7733d91008
+        fatal error: fault
+        [signal SIGBUS: bus error code=0x2 addr=0x7f7733d91008 pc=0x55ab37]
+        
+        goroutine 7 gp=0x39810fdb7860 m=0 mp=0x766d80 [running]:
+        runtime.throw({0x58346d?, 0x41fc98?})
+        	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/panic.go:1243 +0x48 fp=0x39810fed3a48 sp=0x39810fed3a18 pc=0x486888
+        runtime.sigpanic()
+        	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/signal_unix.go:928 +0x10a fp=0x39810fed3aa8 sp=0x39810fed3a48 pc=0x48828a
+        go.etcd.io/bbolt/internal/common.(*Page).IsFreelistPage(...)
+        	/root/go/pkg/mod/go.etcd.io/bbolt@v1.5.0/internal/common/page.go:74
+        go.etcd.io/bbolt/internal/freelist.(*shared).Read(0x5838e6?, 0x0?)
+        	/root/go/pkg/mod/go.etcd.io/bbolt@v1.5.0/internal/freelist/shared.go:258 +0x17 fp=0x39810fed3b38 sp=0x39810fed3aa8 pc=0x55ab37
+        go.etcd.io/bbolt.(*DB).loadFreelist.func1()
+        	/root/go/pkg/mod/go.etcd.io/bbolt@v1.5.0/db.go:430 +0xc2 fp=0x39810fed3b70 sp=0x39810fed3b38 pc=0x5706c2
+        sync.(*Once).doSlow(0x39810fed3ba0?, 0x39810fec2180?)
+        	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/sync/once.go:78 +0xab fp=0x39810fed3bc8 sp=0x39810fed3b70 pc=0x49102b
+        sync.(*Once).Do(...)
+        	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/sync/once.go:69
+        go.etcd.io/bbolt.(*DB).loadFreelist(0x39810fec2180?)
+        	/root/go/pkg/mod/go.etcd.io/bbolt@v1.5.0/db.go:423 +0x3b fp=0x39810fed3bf8 sp=0x39810fed3bc8 pc=0x563cbb
+        go.etcd.io/bbolt.Open({0x39810fddc00f, 0x5f}, 0x180, 0x39810fec4100)

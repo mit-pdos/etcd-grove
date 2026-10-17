@@ -1,0 +1,11 @@
+# etcd PR #21569 (branch pr-verify/etcd-21569): snap.NewMessage (the PR's, without the exact
+# reader), the trust boundary it adds (proto.Size of a raft message), and pkg/ioutil's exact
+# reader (the base's NewMessage wrapped the stream in it), Proof/go_etcd_io/etcd/pkg/v3/ioutil/Link.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21569.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots snap/NewMessage
+roots ^Proof/go_etcd_io/etcd/pkg/v3/ioutil/Link\.lean$
+axiom proto.SizeMessage.wp_proof

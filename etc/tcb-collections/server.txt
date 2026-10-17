@@ -125,6 +125,7 @@ axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.SizeEntry.wp_proof
+axiom proto.SizeMessage.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
