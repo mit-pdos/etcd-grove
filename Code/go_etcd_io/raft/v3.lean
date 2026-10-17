@@ -793,67 +793,48 @@ noncomputable def raftLog.maybeAppend.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raftLog.ty)))) (Var "l"))
   (Let "committed" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "committed"))
   (Let "a" (App (Val (GoInstruction (GoAlloc logSlice.ty))) (Var "a"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a")))) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad logSlice.ty))) (Var "a"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"findConflict"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0")))
-  (Let "ci" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "match" (App (Val (GoInstruction (GoAlloc entryID.ty))) (App (Val (GoInstruction (GoZeroVal entryID.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "match"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a"))))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "match"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lastnewi")) (Val #true)))))
+  (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType logSlice.ty) go!"lastIndex"))) (Var "a")) (Val #())) (Val #true)))))
   (App (Val doExecute)
   (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "committed"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lastnewi"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType logSlice.ty) go!"lastIndex"))) (Var "a")) (Val #()))
   (App (App (App (Val (GoInstruction (FuncResolve go.min [go.uint64, go.uint64]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"commitTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0")))))))
-  (Let "$sw" (Val #true)
-  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (Val #(W64 0))))))
   (App (Val doExecute)
-  (Val #()))
-  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"append"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"entry %d conflict with committed entry [committed(%d)]"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a")))) (Val #(W64 1))))
-  (Let "offset" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "offset"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$s")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"append"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "offset")))) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(go!"index, %d, is out of range [%d]"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ci")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "offset")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.int (go.GoType.InterfaceType [])))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "offset") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "ci") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "lastnewi") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "a")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"matchTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "a")) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doReturn)
   (Pair (Val #(W64 0)) (Val #false)))
   (App (Val doExecute)
-  (Val #())))))))))))))
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "match") (Var "$r0"))))))))))))))))))))
 
-/-- go: log.go:133:19 -/
+/-- go: log.go:127:19 -/
 noncomputable def raftLog.append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "ents"
@@ -868,20 +849,20 @@ noncomputable def raftLog.append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType unstable.ty) go!"truncateAndAppend"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$a0")))))))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #())) (Val #(W64 1))))
-  (Let "after" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #()))
+  (Let "first" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "after")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"after(%d) is out of range [committed(%d)]"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "after")))
+  (Let "$a0" (Val #(go!"entry %d is already committed [committed(%d)]"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "after") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "first") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doReturn)
@@ -889,42 +870,50 @@ noncomputable def raftLog.append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- findConflict finds the index of the conflict.
-    It returns the first pair of conflicting entries between the existing
-    entries and the given entries, if there are any.
-    If there is no conflicting entries, and the existing entries contains
-    all the given entries, zero will be returned.
-    If there is no conflicting entries, but the given entries contains new
-    entries, the index of the first new entry will be returned.
-    An entry is considered to be conflicting if it has the same index but
-    a different term.
-    The index of the given entries MUST be continuously increasing.
+/-- findConflict finds the last entry in the given log slice that matches the
+    log. The next entry either mismatches, or is missing.
 
-    go: log.go:154:19 -/
+    If the slice partially/fully matches, this method returns true. The returned
+    entryID is the ID of the last matching entry. It can be s.prev if it is the
+    only matching entry. It is guaranteed that the returned entryID.index is in
+    the [s.prev.index, s.lastIndex()] range.
+
+    All the entries up to the returned entryID are already present in the log,
+    and do not need to be appended again. The caller can safely fast-forward an
+    append request to the next entry after it.
+
+    Returns false if the given slice mismatches the log entirely, i.e. the s.prev
+    entry has a mismatching entryID.term. In this case an append request can not
+    proceed.
+
+    go: log.go:153:19 -/
 noncomputable def raftLog.findConflict.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
-  (Lam "ents"
+  (Lam "s"
   (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raftLog.ty)))) (Var "l"))
-  (Let "ents" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc logSlice.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad entryID.ty))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "s")))
+  (Let "match" (App (Val (GoInstruction (GoAlloc entryID.ty))) (App (Val (GoInstruction (GoZeroVal entryID.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (Pair (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "match")) (Val #true)))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "s")))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"entries"))) (Var "s"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (Val (GoInstruction (FuncResolve pbEntryID []))) (Val #())) (Var "$a0")))
   (Let "id" (App (Val (GoInstruction (GoAlloc entryID.ty))) (App (Val (GoInstruction (GoZeroVal entryID.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "id"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"matchTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "id"))))))
+  (Pair (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "match")) (Val #true)))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "id"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #())))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"found conflict at index %d [existing term: %d, conflicting term: %d]"))
@@ -940,13 +929,28 @@ noncomputable def raftLog.findConflict.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
-  (Val #()))))
+  (Val #()))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "id"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"matchTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
   (App (Val doExecute)
-  (Val #())))))
+  (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "match") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "id") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "match") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (App (Val (GoInstruction (StructFieldRef logSlice.ty go!"prev"))) (Var "s")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"matchTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0"))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (CompositeLiteral entryID.ty))) (LiteralValue [])) (Val #false)))
+  (App (Val doExecute)
+  (Val #())))))))))
 
 /-- findConflictByTerm returns a best guess on where this log ends matching
     another log, given that the only information known about the other log is the
@@ -962,7 +966,7 @@ noncomputable def raftLog.findConflict.impl [FfiSyntax] [GoGlobalContext] : val 
     an unsuccessful append to a follower, and ultimately restore the steady flow
     of appends.
 
-    go: log.go:182:19 -/
+    go: log.go:195:19 -/
 noncomputable def raftLog.findConflictByTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "index"
@@ -1005,7 +1009,7 @@ noncomputable def raftLog.findConflictByTerm.impl [FfiSyntax] [GoGlobalContext] 
 /-- nextUnstableEnts returns all entries that are available to be written to the
     local stable log and are not already in-progress.
 
-    go: log.go:198:19 -/
+    go: log.go:211:19 -/
 noncomputable def raftLog.nextUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1017,7 +1021,7 @@ noncomputable def raftLog.nextUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : 
 /-- hasNextUnstableEnts returns if there are any entries that are available to be
     written to the local stable log and are not already in-progress.
 
-    go: log.go:204:19 -/
+    go: log.go:217:19 -/
 noncomputable def raftLog.hasNextUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1031,7 +1035,7 @@ noncomputable def raftLog.hasNextUnstableEnts.impl [FfiSyntax] [GoGlobalContext]
     available to be written to the local stable log or in the process of being
     written to the local stable log.
 
-    go: log.go:211:19 -/
+    go: log.go:224:19 -/
 noncomputable def raftLog.hasNextOrInProgressUnstableEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1047,7 +1051,7 @@ noncomputable def raftLog.hasNextOrInProgressUnstableEnts.impl [FfiSyntax] [GoGl
     entries from the unstable log may be returned; otherwise, only entries known
     to reside locally on stable storage will be returned.
 
-    go: log.go:220:19 -/
+    go: log.go:233:19 -/
 noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "allowUnstable"
@@ -1130,7 +1134,7 @@ noncomputable def raftLog.nextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] :
 /-- hasNextCommittedEnts returns if there is any available entries for execution.
     This is a fast check without heavy raftLog.slice() in nextCommittedEnts().
 
-    go: log.go:248:19 -/
+    go: log.go:261:19 -/
 noncomputable def raftLog.hasNextCommittedEnts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "allowUnstable"
@@ -1168,7 +1172,7 @@ noncomputable def raftLog.hasNextCommittedEnts.impl [FfiSyntax] [GoGlobalContext
     applied; otherwise, only entries known to reside locally on stable storage
     can be applied.
 
-    go: log.go:267:19 -/
+    go: log.go:280:19 -/
 noncomputable def raftLog.maxAppliableIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "allowUnstable"
@@ -1195,7 +1199,7 @@ noncomputable def raftLog.maxAppliableIndex.impl [FfiSyntax] [GoGlobalContext] :
 /-- nextUnstableSnapshot returns the snapshot, if present, that is available to
     be applied to the local storage and is not already in-progress.
 
-    go: log.go:277:19 -/
+    go: log.go:290:19 -/
 noncomputable def raftLog.nextUnstableSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1207,7 +1211,7 @@ noncomputable def raftLog.nextUnstableSnapshot.impl [FfiSyntax] [GoGlobalContext
 /-- hasNextUnstableSnapshot returns if there is a snapshot that is available to
     be applied to the local storage and is not already in-progress.
 
-    go: log.go:283:19 -/
+    go: log.go:296:19 -/
 noncomputable def raftLog.hasNextUnstableSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1219,7 +1223,7 @@ noncomputable def raftLog.hasNextUnstableSnapshot.impl [FfiSyntax] [GoGlobalCont
 /-- hasNextOrInProgressSnapshot returns if there is pending snapshot waiting for
     applying or in the process of being applied.
 
-    go: log.go:289:19 -/
+    go: log.go:302:19 -/
 noncomputable def raftLog.hasNextOrInProgressSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1228,7 +1232,7 @@ noncomputable def raftLog.hasNextOrInProgressSnapshot.impl [FfiSyntax] [GoGlobal
   (App (Val doReturn)
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (StructFieldRef unstable.ty go!"snapshot"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Val UntypedNil))))))))))
 
-/-- go: log.go:293:19 -/
+/-- go: log.go:306:19 -/
 noncomputable def raftLog.snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1247,7 +1251,7 @@ noncomputable def raftLog.snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: log.go:300:19 -/
+/-- go: log.go:313:19 -/
 noncomputable def raftLog.firstIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1295,7 +1299,7 @@ noncomputable def raftLog.firstIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:311:19 -/
+/-- go: log.go:324:19 -/
 noncomputable def raftLog.lastIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1343,7 +1347,7 @@ noncomputable def raftLog.lastIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:322:19 -/
+/-- go: log.go:335:19 -/
 noncomputable def raftLog.commitTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "tocommit"
@@ -1370,7 +1374,7 @@ noncomputable def raftLog.commitTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:332:19 -/
+/-- go: log.go:345:19 -/
 noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1414,7 +1418,7 @@ noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: log.go:347:19 -/
+/-- go: log.go:360:19 -/
 noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1451,7 +1455,7 @@ noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))))))))))))
 
-/-- go: log.go:367:19 -/
+/-- go: log.go:380:19 -/
 noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1465,7 +1469,7 @@ noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "id"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType unstable.ty) go!"stableTo"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$a0"))))))))))
 
-/-- go: log.go:369:19 -/
+/-- go: log.go:382:19 -/
 noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1484,7 +1488,7 @@ noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val 
     to be marked as being in-progress, to avoid returning them with future calls
     to Ready().
 
-    go: log.go:375:19 -/
+    go: log.go:388:19 -/
 noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1498,7 +1502,7 @@ noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- lastEntryID returns the ID of the last entry in the log.
 
-    go: log.go:378:19 -/
+    go: log.go:391:19 -/
 noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1538,7 +1542,7 @@ noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))))
 
-/-- go: log.go:387:19 -/
+/-- go: log.go:400:19 -/
 noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1607,7 +1611,7 @@ noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0"))))))))))))))))))
 
-/-- go: log.go:415:19 -/
+/-- go: log.go:428:19 -/
 noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1633,7 +1637,7 @@ noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- allEntries returns all entries in the log.
 
-    go: log.go:423:19 -/
+    go: log.go:436:19 -/
 noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1678,7 +1682,7 @@ noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
     whichever log has the larger lastIndex is more up-to-date. If the logs are
     the same, the given log is up-to-date.
 
-    go: log.go:442:19 -/
+    go: log.go:455:19 -/
 noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "their"
@@ -1693,7 +1697,7 @@ noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "our") (Var "$r0"))))))))))))
 
-/-- go: log.go:447:19 -/
+/-- go: log.go:460:19 -/
 noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1723,7 +1727,7 @@ noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:455:19 -/
+/-- go: log.go:468:19 -/
 noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "at"
@@ -1744,7 +1748,7 @@ noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:466:19 -/
+/-- go: log.go:479:19 -/
 noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "s"
@@ -1781,7 +1785,7 @@ noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the callback returns an error, scan terminates and returns this error
     immediately. This can be used to stop the scan early ("break" the loop).
 
-    go: log.go:482:19 -/
+    go: log.go:495:19 -/
 noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1849,7 +1853,7 @@ noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- slice returns a slice of log entries from lo through hi-1, inclusive.
 
-    go: log.go:499:19 -/
+    go: log.go:512:19 -/
 noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1986,7 +1990,7 @@ noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- l.firstIndex <= lo <= hi <= l.firstIndex + len(l.entries)
 
-    go: log.go:551:19 -/
+    go: log.go:564:19 -/
 noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -2036,7 +2040,7 @@ noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: log.go:567:19 -/
+/-- go: log.go:580:19 -/
 noncomputable def raftLog.zeroTermOnOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "t"

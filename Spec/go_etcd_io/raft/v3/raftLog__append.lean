@@ -35,9 +35,13 @@ and return the new last index (`raftLog.append.impl`,
 `Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:599).
 
     if len(ents) == 0 { return l.lastIndex() }
-    if after := ents[0].Index - 1; after < l.committed {
-        l.logger.Panicf("after(%d) is out of range [committed(%d)]", …)
+    if first := ents[0].Index; first <= l.committed {
+        l.logger.Panicf("entry %d is already committed [committed(%d)]", …)
     }
+
+(etcd-io/raft#155 rewrote the check from `after := ents[0].Index - 1; after < l.committed`:
+the same for `ents[0].Index ≥ 1`; at index `0` the old check wrapped and passed, the new one
+panics. The premise below excludes both.)
     l.unstable.truncateAndAppend(ents)
     return l.lastIndex()
 
@@ -53,7 +57,7 @@ Premises (for a non-empty batch, `e0 = ents[0]`):
 
 - `committed < e0.Index <= lastIndex() + 1`: the upper bound is `truncateAndAppend`'s
   (a gap would be a `Panicf` in `u.slice`); the lower bound makes the `Panicf` above
-  dead (`after = e0.Index - 1 >= committed`) -- the protocol fact "an accepted `MsgApp`
+  dead (`first > committed`) -- the protocol fact "an accepted `MsgApp`
   never rewrites a committed entry" (`raft-replication-model.md`, "Protocol facts the
   code needs") -- and keeps `committed` inside the new log;
 - contiguous indices from `e0.Index` and `e0.Index + |ents| < 2^64`: the new log is

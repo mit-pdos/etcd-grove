@@ -26,42 +26,55 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `l.findConflict(ents)`: the index of the first entry of the batch the log does not
-have (a different term at that index, or nothing there); `0` if it has them all --
-`plogFindConflict` (`Plog.lean`).
+/-- `l.findConflict(s)` (etcd-io/raft#155, `notes/pr-verify/raft-155.md`): whether the log has
+`s.prev`, and if it does the id of the last entry of `s` the log has before the first one it
+does not -- `s.prev` if the first entry already mismatches -- which is `plogFindMatch`
+(`Plog.lean`).
 
 The body (`raftLog.findConflict.impl`, `Code/go_etcd_io/raft/v3.lean`):
 
-    for i := range ents {
-        if id := pbEntryID(&ents[i]); !l.matchTerm(id) {
-            if id.index <= l.lastIndex() {
-                l.logger.Infof("found conflict ...", id.index,
-                    l.zeroTermOnOutOfBounds(l.term(id.index)), id.term)
-            }
-            return id.index
+    if !l.matchTerm(s.prev) { return entryID{}, false }
+    match := s.prev
+    for i := range s.entries {
+        id := pbEntryID(&s.entries[i])
+        if l.matchTerm(id) { match = id; continue }
+        if id.index <= l.lastIndex() {
+            l.logger.Infof("found conflict ...", id.index,
+                l.zeroTermOnOutOfBounds(l.term(id.index)), id.term)
         }
+        return match, true
     }
-    return 0
+    return match, true
 
-**Premise**: every entry of the batch is at or above the compaction boundary
-`prev.index'`. It is not about the result (which is `plogFindConflict` regardless) but
-about the log line: at a conflicting entry with `id.index <= lastIndex()` it makes
-`term` return a `nil` error, which is what `zeroTermOnOutOfBounds`'s spec takes (see
-there for why that spec stops at `nil`). `maybeAppend` supplies it: its batch starts
-right after `a.prev`, which `matchTerm` has just placed at or above `prev.index'`. The
-Go comment's "the index of the given entries MUST be continuously increasing" is not
-needed for this function -- `plogFindConflict` is defined entry by entry, as the loop
-is.
+Postcondition: `ok` is whether `s.prev` matches; when it does, the id is `plogFindMatch`,
+otherwise `entryID{}` (which the one caller, `maybeAppend`, does not read). What the doc comment promises
+of the id (it is in `[s.prev.index, s.lastIndex()]`, every entry up to it is in the log, the
+next is not) is `plogFindMatch_drop` (`Plog.lean`), for a well-formed slice.
+
+**Premise**: `s` is a well-formed log slice (`PlogWf s.prev ents`: contiguous indices after
+`s.prev`, what `logSlice.valid` would check and the doc comment's range claim needs). Nothing
+checks it on the `MsgApp` path (`logSliceFromMsgApp` does not call `valid`): it is the
+caller's premise, ultimately an assumption that the leader sends well-formed appends
+(`raft__handleAppendEntries.lean`). Without it the PR's fast-forward misbehaves where the old
+code did not (`notes/pr-verify/raft-155.md`, "Findings"). It also
+places every entry above `s.prev`, so above the compaction boundary once `s.prev` has
+matched: at a conflicting entry with `id.index <= lastIndex()` `term` returns a `nil` error,
+what `zeroTermOnOutOfBounds`'s spec takes (the role of the old spec's premise). Before
+etcd-io/raft#155 the function took `[]*Entry` and returned the first conflict's index
+(`plogFindConflict`); `maybeAppend` did the `prev` check itself.
 
 The batch is lent at any fraction and comes back; the log is unchanged. -/
 abbrev raftLog.findConflict.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (es : GoSlice) (dq : DFrac) (ents : List EntryM),
-  (∀ e ∈ ents, uint.Z ls.prev.index' ≤ uint.Z e.Index') →
+  ∀ (l : Loc) (ls : LogState) (s : logSlice) (dq : DFrac) (ents : List EntryM),
+  PlogWf s.prev' ents →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "Hes" ∷ entsPts es dq ents }}
-    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"findConflict")) (Val #es))
-  {{ RET #(plogFindConflict ls.prev (ls.sents ++ ls.uents) ents);
-      ownRaftLog l ls ∗ entsPts es dq ents }}
+      "Hes" ∷ entsPts s.entries' dq ents }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"findConflict")) (Val #s))
+  {{ (m : entryID) (ok : Bool), RET (PairV #m #ok);
+      ownRaftLog l ls ∗ entsPts s.entries' dq ents ∗
+      ⌜ok = decide (PlogMatches ls.prev (ls.sents ++ ls.uents) s.prev') ∧
+        (ok = true → m = plogFindMatch ls.prev (ls.sents ++ ls.uents) s.prev' ents) ∧
+        (ok = false → m = zero_val entryID)⌝ }}
 
 end spec
 

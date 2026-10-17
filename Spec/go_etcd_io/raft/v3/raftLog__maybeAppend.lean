@@ -35,21 +35,21 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.maybeAppend(a, committed)`: a follower's handling of a `MsgApp`'s entries --
 `plogMaybeAppend` (`Plog.lean`) plus the commit.
 
-The body (`raftLog.maybeAppend.impl`, `Code/go_etcd_io/raft/v3.lean`):
+The body (`raftLog.maybeAppend.impl`, `Code/go_etcd_io/raft/v3.lean`), since
+etcd-io/raft#155 (`notes/pr-verify/raft-155.md`; the statement is unchanged, the PR being a
+refactor):
 
-    if !l.matchTerm(a.prev) { return 0, false }
-    lastnewi = a.prev.index + uint64(len(a.entries))
-    ci := l.findConflict(a.entries)
-    switch {
-    case ci == 0:
-    case ci <= l.committed: l.logger.Panicf(...)
-    default:
-        offset := a.prev.index + 1
-        if ci-offset > uint64(len(a.entries)) { l.logger.Panicf(...) }
-        l.append(a.entries[ci-offset:]...)
-    }
-    l.commitTo(min(committed, lastnewi))
-    return lastnewi, true
+    match, ok := l.findConflict(a)
+    if !ok { return 0, false }
+    a.entries = a.entries[match.index-a.prev.index:]
+    a.prev = match
+    l.append(a.entries...)
+    l.commitTo(min(committed, a.lastIndex()))
+    return a.lastIndex(), true
+
+Before it, the `prev` check was here, `findConflict` returned the first conflict index `ci`,
+and a `switch` panicked on `ci <= l.committed` (now `append`'s panic) and on
+`ci - offset > len(a.entries)` (gone); `plogMaybeAppend` still says it that way.
 
 Postcondition: when `a.prev` does not match, `(0, false)` and the log unchanged;
 otherwise `(lastnewi, true)`, the entries are `plogMaybeAppend`'s, and `committed` is
@@ -60,18 +60,20 @@ moves it back).
 Premises, one per way the body could go wrong:
 - the batch is a well-formed log slice after `a.prev` (`PlogWf a.prev ents`) and
   `a.prev.index + |ents| + 1 < 2^64`: what `findConflict`, `append` and the no-wrap of
-  the new log need; it also makes the second `Panicf` (`ci - offset > len`) dead -- the
-  design's "arithmetic" fact;
+  the new log need; it also keeps the sub-slicing `a.entries[match.index-a.prev.index:]`
+  in bounds -- the design's "arithmetic" fact (before etcd-io/raft#155 it made the second
+  `Panicf`, `ci - offset > len`, dead);
 - **the conflict fact** (`raft-replication-model.md`, "Protocol facts the code needs",
   `app_no_conflict_below_commit`): if `a.prev` matches, the conflict index is `0` or
-  above `committed`. It kills the first `Panicf` and is `append`'s
-  `committed < ents[0].Index`. (Until 2026-10-13 also: no configuration change in the
-  batch, `append`'s scope premise.)
+  above `committed`. The conflict index is the first entry left after the fast-forward
+  (`plogFindMatch_drop`), so it kills `append`'s `Panicf` (before etcd-io/raft#155 also
+  `maybeAppend`'s own) and is `append`'s `committed < ents[0].Index`. (Until 2026-10-13
+  also: no configuration change in the batch, `append`'s scope premise.)
 `commitTo`'s premise is *not* a premise here: after the append the log reaches
 `lastnewi`, so `min(committed, lastnewi)` is inside it.
 
 **The batch's slice** is taken read-only with its capacity, and the capacity is not
-returned: `append` may adopt `a.entries[ci-offset:]` as `u.entries`
+returned: `append` may adopt `a.entries[match.index-a.prev.index:]` as `u.entries`
 (`Spec/raftLog__append.lean`), after which raft's own later `append`s write into its
 slack. So the caller must own that slack (for a `MsgApp` handed to `Step`, the
 message's `Entries` buffer). -/

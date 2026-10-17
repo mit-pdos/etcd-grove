@@ -87,6 +87,7 @@ public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.limitSize
 public import Proof.go_etcd_io.raft.v3.lockedRand__Intn
 public import Proof.go_etcd_io.raft.v3.logSliceFromMsgApp
+public import Proof.go_etcd_io.raft.v3.logSlice__lastIndex
 public import Proof.go_etcd_io.raft.v3.needStorageAppendRespMsg
 public import Proof.go_etcd_io.raft.v3.needStorageApplyMsg
 public import Proof.go_etcd_io.raft.v3.needStorageApplyRespMsg
@@ -1064,9 +1065,13 @@ theorem raftLog.wp_findConflict [StorageModel GF] :
     raftLog.findConflict.spec (GF := GF) (hG := hG) :=
   raftLog.findConflict.wp_proof wp_pbEntryID raftLog.wp_matchTerm raftLog.wp_lastIndex raftLog.wp_term raftLog.wp_zeroTermOnOutOfBounds
 
+theorem logSlice.wp_lastIndex :
+    logSlice.lastIndex.spec (GF := GF) (hG := hG) :=
+  logSlice.lastIndex.wp_proof
+
 theorem raftLog.wp_maybeAppend [StorageModel GF] :
     raftLog.maybeAppend.spec (GF := GF) (hG := hG) :=
-  raftLog.maybeAppend.wp_proof raftLog.wp_matchTerm raftLog.wp_findConflict raftLog.wp_append raftLog.wp_commitTo
+  raftLog.maybeAppend.wp_proof raftLog.wp_findConflict raftLog.wp_append raftLog.wp_commitTo logSlice.wp_lastIndex
 
 theorem raftLog.wp_findConflictByTerm [StorageModel GF] :
     raftLog.findConflictByTerm.spec (GF := GF) (hG := hG) :=

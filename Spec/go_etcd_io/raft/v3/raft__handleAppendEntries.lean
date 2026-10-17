@@ -119,8 +119,8 @@ m.Index), entries: m.Entries}`:
 - the batch is a well-formed log slice after `(m.LogTerm, m.Index)` and does not wrap
   (until 2026-10-13 also: holds no configuration change);
 - **the conflict fact**, as hypothetical as the code allows: only when the stale test
-  has failed (`committed ≤ m.Index`) and the prefix matches is `maybeAppend`'s `Panicf`
-  reachable, and there the conflict index must be `0` or above `committed`
+  has failed (`committed ≤ m.Index`) and the prefix matches is the `Panicf` on a
+  committed entry reachable (`append`'s; also `maybeAppend`'s own before etcd-io/raft#155), and there the conflict index must be `0` or above `committed`
   (`app_no_conflict_below_commit`, `Protocol/Facts.lean`);
 - the `Entries` slice read-only with its capacity owned, because `maybeAppend` may
   adopt it as the unstable suffix. On the other two exits the capacity is simply

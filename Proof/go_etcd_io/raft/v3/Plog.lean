@@ -85,6 +85,15 @@ def plogFindConflict (b : entryID) (es : List EntryM) :
       if PlogMatches b es (entId e) then plogFindConflict b es ents'
       else e.Index'
 
+/-- `findConflict(s)` since etcd-io/raft#155 (2026-10-16, `notes/pr-verify/raft-155.md`): scanning
+`ents` from the match `m` on, the id of the last entry the log has before the first one it does
+not (a different term, or nothing there); `m` if the first entry already mismatches. -/
+def plogFindMatch (b : entryID) (es : List EntryM) :
+    entryID → List EntryM → entryID
+  | m, [] => m
+  | m, e :: ents' =>
+      if PlogMatches b es (entId e) then plogFindMatch b es (entId e) ents' else m
+
 /-- The entries of the log from index `i` on (empty when `i` is past the end; the
 whole suffix when `i ≤ b.index + 1`). -/
 def plogFrom (b : entryID) (es : List EntryM) (i : w64) : List EntryM :=
@@ -316,6 +325,49 @@ theorem PlogWf_truncateAppend (b : entryID) (es ents : List EntryM)
         (uint.Z e.Index' - uint.Z b.index' - 1).toNat := by omega
     rw [this]
     push_cast; omega
+
+/-- What `findConflict`'s doc comment promises, for a well-formed slice after `prev`
+(etcd-io/raft#155): the match `m` is `k` entries past `prev`, `k ≤ |ents|`; if `prev` is in
+the log so is `m`, and so is every entry up to it (`ents.take k`); and the entries after it,
+`ents.drop k`, start at the first entry the log does not have -- `plogFindConflict` (the conflict index the code used before) is `0` when
+nothing is left and that entry's index otherwise. -/
+theorem plogFindMatch_drop (b : entryID) (es : List EntryM) :
+    ∀ (prev : entryID) (ents : List EntryM), PlogWf prev ents →
+    ∃ k : Nat, k ≤ ents.length ∧
+      uint.Z (plogFindMatch b es prev ents).index' = uint.Z prev.index' + (k : Int) ∧
+      (PlogMatches b es prev → PlogMatches b es (plogFindMatch b es prev ents)) ∧
+      (∀ e ∈ ents.take k, PlogMatches b es (entId e)) ∧
+      (match ents.drop k with
+       | [] => plogFindConflict b es ents = W64 0
+       | e :: _ => plogFindConflict b es ents = e.Index' ∧
+           ¬ PlogMatches b es (entId e)) := by
+  intro prev ents
+  induction ents generalizing prev with
+  | nil => intro _; exact ⟨0, by simp, by simp [plogFindMatch], by simp [plogFindMatch], by simp, rfl⟩
+  | cons e ents IH =>
+    intro Hwf
+    have He : uint.Z e.Index' = uint.Z prev.index' + 1 := by
+      have := Hwf 0 e rfl; push_cast at this; omega
+    by_cases Hm : PlogMatches b es (entId e)
+    · have Hwf' : PlogWf (entId e) ents := by
+        intro k e' Hk
+        have := Hwf (k + 1) e' (by simpa using Hk)
+        simp only [entId]; push_cast at this ⊢; omega
+      obtain ⟨k, Hk, Hidx, Hmm, Htk, Hd⟩ := IH (entId e) Hwf'
+      refine ⟨k + 1, by simp; omega, ?_, ?_, ?_, ?_⟩
+      · simp only [plogFindMatch, Hm, ↓reduceIte]
+        rw [Hidx]; simp only [entId]; push_cast; omega
+      · intro _; simp only [plogFindMatch, Hm, ↓reduceIte]; exact Hmm Hm
+      · intro x Hx
+        rw [List.take_succ_cons] at Hx
+        rcases List.mem_cons.1 Hx with rfl | Hx
+        · exact Hm
+        · exact Htk x Hx
+      · simp only [List.drop_succ_cons, plogFindConflict, Hm, ↓reduceIte]
+        exact Hd
+    · refine ⟨0, by simp, by simp [plogFindMatch, Hm], ?_, by simp, ?_⟩
+      · intro Hp; simp only [plogFindMatch, Hm, ↓reduceIte]; exact Hp
+      · simp [plogFindConflict, Hm]
 
 end plog
 

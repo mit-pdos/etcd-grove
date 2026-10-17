@@ -1,0 +1,20 @@
+# etcd-io/raft#155 (log: clean-up log conflict search; notes/pr-verify/raft-155.md): the
+# functions it changes, the new callee `logSlice.lastIndex`, and the callers of the changed
+# functions (whose specs are unchanged).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-155.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots /raftLog__findConflict\.lean$
+roots /raftLog__maybeAppend\.lean$
+roots /raftLog__append\.lean$
+roots /logSlice__lastIndex\.lean$
+roots /raft__handleAppendEntries\.lean$
+roots /raft__appendEntry\.lean$
+roots /RawNode__Bootstrap\.lean$
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof

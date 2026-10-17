@@ -13392,3 +13392,12 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification: etcd-io/raft#155 (branch `pr-verify/raft-155`, not for `lean`)
+
+2026-10-16. etcd-io/raft#155 ("log: clean-up log conflict search", head `85f43e657`, open) applied
+to the verified raft (fork branch `pr-raft-155-goose-lean`, `9e87f483a`, not pushed; the pin in
+`etc/goose.py` is left alone, so `etc/goose.py --check` fails on this branch by design). `findConflict`
+re-specified (`plogFindMatch`, `Plog.lean`), `maybeAppend` and `append` re-proved at their
+unchanged specs, `logSlice.lastIndex` specified and proved; no new axiom or `sorry`. Report:
+`notes/pr-verify/raft-155.md`.
