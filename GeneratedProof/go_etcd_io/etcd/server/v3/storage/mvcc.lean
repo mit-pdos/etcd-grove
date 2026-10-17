@@ -517,6 +517,7 @@ instance RangeOptions_typed_pointsto :
     "Limit" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"Limit" l) v.Limit' dq ∗
     "Rev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"Rev" l) v.Rev' dq ∗
     "CountOnly" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"CountOnly" l) v.CountOnly' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"Key" l) v.Key' dq ∗
     "FastKeysOnly" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"FastKeysOnly" l) v.FastKeysOnly' dq ∗
     "WithTotalCount" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"WithTotalCount" l) v.WithTotalCount' dq ∗
     "_" ∷ True)
@@ -573,6 +574,22 @@ instance RangeOptions_access_store_CountOnly (l : Loc) (v : go_etcd_io.etcd.serv
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"CountOnly" l) v.CountOnly' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"CountOnly" l) CountOnly' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CountOnly' := CountOnly' } : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance RangeOptions_access_load_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"Key" l) v.Key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance RangeOptions_access_store_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (Key' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions go!"Key" l) Key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := Key' } : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

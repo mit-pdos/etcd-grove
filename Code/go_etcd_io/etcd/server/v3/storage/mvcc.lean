@@ -1997,7 +1997,7 @@ noncomputable def generation.walk.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "l") (Var "$r0"))))))))))))
 
-/-- go: kv.go:97:26 -/
+/-- go: kv.go:98:26 -/
 noncomputable def txnReadWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "trw"
   (Lam "key"
@@ -2012,7 +2012,7 @@ noncomputable def txnReadWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected DeleteRange")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))))))))
 
-/-- go: kv.go:98:26 -/
+/-- go: kv.go:99:26 -/
 noncomputable def txnReadWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "trw"
   (Lam "key"
@@ -2028,7 +2028,7 @@ noncomputable def txnReadWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected Put")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))
 
-/-- go: kv.go:101:26 -/
+/-- go: kv.go:102:26 -/
 noncomputable def txnReadWrite.Changes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "trw"
   (Lam BAnon
@@ -2037,7 +2037,7 @@ noncomputable def txnReadWrite.Changes.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Val UntypedNil)))))))
 
-/-- go: kv.go:103:6 -/
+/-- go: kv.go:104:6 -/
 noncomputable def NewReadOnlyTxnWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "txn"
   (App (Val exceptionDo)
@@ -7761,16 +7761,18 @@ structure RangeOptions [FfiSyntax] where
   Limit' : w64
   Rev' : w64
   CountOnly' : Bool
+  Key' : Bool
   FastKeysOnly' : Bool
   WithTotalCount' : Bool
 
 instance RangeOptions.zero_val [FfiSyntax] : ZeroVal RangeOptions :=
-  ⟨RangeOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨RangeOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def RangeOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Limit" go.int64),
 (go.field_decl.FieldDecl go!"Rev" go.int64),
 (go.field_decl.FieldDecl go!"CountOnly" go.bool),
+(go.field_decl.FieldDecl go!"Key" go.bool),
 (go.field_decl.FieldDecl go!"FastKeysOnly" go.bool),
 (go.field_decl.FieldDecl go!"WithTotalCount" go.bool)]
 
@@ -7793,6 +7795,8 @@ class RangeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_Rev : ∀ (x : RangeOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RangeOptions.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : RangeOptions)))
   get_CountOnly : ∀ (x : RangeOptions), go.IsGoStepPureDetTagged under (StructFieldGet RangeOptions.underlying go!"CountOnly") #x (Val #(x.CountOnly'))
   set_CountOnly : ∀ (x : RangeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RangeOptions.underlying go!"CountOnly") (PairV #x #y) (Val #(({ x with CountOnly' := y } : RangeOptions)))
+  get_Key : ∀ (x : RangeOptions), go.IsGoStepPureDetTagged under (StructFieldGet RangeOptions.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : RangeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RangeOptions.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : RangeOptions)))
   get_FastKeysOnly : ∀ (x : RangeOptions), go.IsGoStepPureDetTagged under (StructFieldGet RangeOptions.underlying go!"FastKeysOnly") #x (Val #(x.FastKeysOnly'))
   set_FastKeysOnly : ∀ (x : RangeOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RangeOptions.underlying go!"FastKeysOnly") (PairV #x #y) (Val #(({ x with FastKeysOnly' := y } : RangeOptions)))
   get_WithTotalCount : ∀ (x : RangeOptions), go.IsGoStepPureDetTagged under (StructFieldGet RangeOptions.underlying go!"WithTotalCount") #x (Val #(x.WithTotalCount'))
@@ -7806,6 +7810,8 @@ attribute [instance] RangeOptions.TypeAssumptions.type_repr
   RangeOptions.TypeAssumptions.set_Rev
   RangeOptions.TypeAssumptions.get_CountOnly
   RangeOptions.TypeAssumptions.set_CountOnly
+  RangeOptions.TypeAssumptions.get_Key
+  RangeOptions.TypeAssumptions.set_Key
   RangeOptions.TypeAssumptions.get_FastKeysOnly
   RangeOptions.TypeAssumptions.set_FastKeysOnly
   RangeOptions.TypeAssumptions.get_WithTotalCount

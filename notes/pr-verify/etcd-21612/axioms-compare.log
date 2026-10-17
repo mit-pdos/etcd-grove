@@ -1,0 +1,17 @@
+# #print axioms of Proof/go_etcd_io/etcd/server/v3/{storage/mvcc,etcdserver/txn}/Results.lean
+# lean 51547df02 (lake env lean on each Results file) vs pr-verify/etcd-21612 (lake build --log-level=info)
+results: lean 194, PR 194
+sha256 of the sorted (result, axioms) lists:
+8edd92b1245dc99a6a27f5c368cac07200608093d1dd45a087452616d35e61f4 lean.ax
+8edd92b1245dc99a6a27f5c368cac07200608093d1dd45a087452616d35e61f4 pr.ax
+identical: yes
+results whose axioms include sorryAx (same on both; the kvHasher axiomatized-type sorrys of etc/tcb-baseline.txt):
+'Perennial.EtcdGrove.mvcc.store.wp_Compact'
+'Perennial.EtcdGrove.mvcc.store.wp_compact'
+'Perennial.EtcdGrove.mvcc.store.wp_compactLockfree'
+'Perennial.EtcdGrove.mvcc.store.wp_scheduleCompaction'
+'Perennial.EtcdGrove.mvcc_store_Compact'
+
+downstream builds on the PR branch:
+  mvcc+txn Link,Results: Build completed successfully (2319 jobs).
+  server, apply, v3rpc, read Link,Results: Build completed successfully (3914 jobs).
