@@ -265,7 +265,8 @@ theorem entryOwn_def (e : LeaseEntry) (dq : DFrac) :
     entryOwn (GF := GF) e dq = iprop(⌜e.li ≠ null⌝ ∗
       structFieldRef leaseKey go!"response" e.li ↦{dq} e.resp ∗
       structFieldRef leaseKey go!"rev" e.li ↦{dq} e.rev ∗
-      structFieldRef leaseKey go!"waitc" e.li ↦{dq} e.waitc ∗ respOwn e dq ∗ waitcOk e.waitc) := rfl
+      structFieldRef leaseKey go!"waitc" e.li ↦{dq} e.waitc ∗ respOwn e dq ∗ waitcOk e.waitc ∗
+      ⌜e.countOk⌝) := rfl
 
 theorem respOwn_def (e : LeaseEntry) (dq : DFrac) :
     respOwn (GF := GF) e dq = iprop(⌜e.resp ≠ null⌝ ∗

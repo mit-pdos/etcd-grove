@@ -85,7 +85,7 @@ theorem leasingKV.get.wp_proof
   wp_apply hCG (lkvLeases lkv) γ.lc pfx (leasingX lkv γ) (leasingSeen γ) ctx cs opv o
     $$ [$Hpkg $Hcache $Hrd $Hpeek $Hctx $Hop] as %ret %ok ⟨Hrd, Hres⟩
   icases Hres with (⟨%Hbad, %Hret, %Hok⟩ | ⟨%Hbad, %Hok, %Hret⟩ |
-    ⟨⟨%Hbad, %Hok⟩, %st, %e, #Hseen, %He, #Hfacts, Hfresh⟩)
+    ⟨⟨%Hbad, %Hok⟩, %st, %e, #Hseen, %He, %Hcnt, #Hfacts, Hfresh⟩)
   · -- not a get the cache serves: the client's `Do`
     subst Hret Hok
     wp_auto
@@ -151,7 +151,8 @@ theorem leasingKV.get.wp_proof
         subst Heq
         unfold acquireResult
         icases Hacq with ⟨%r, %s, %hdr, %hm, %rsl, %p0, %w, %rr, %ps, %n, %ok, %Hf, #Hr, #Hs, #HH,
-          #Hhdr, HS, #HR, #Hps, %Hp0, #Hw0, #Hrr0, %Hrr, Hrro, Hokf⟩
+          #Hhdr, HS, #HR, #Hps, %Hp0, #Hw0, #Hrr0, %Hrrn, Hrro, Hokf⟩
+        obtain ⟨Hrr, Hn⟩ := Hrrn
         ihave %Hlen := ownSlice_len _ _ _ $$ Hps
         iunfold rangeRespOwn at Hrro
         icases Hrro with ⟨%h0, Hh0, Hbody⟩
@@ -190,7 +191,12 @@ theorem leasingKV.get.wp_proof
         icases Hbody with ⟨%sl, %cs1, %more, Hkvs, Hsl, Hcap, Hcs, %Hok, Hmore, Hcount⟩
         let e0 : LeaseEntry := LeaseEntry.mk null hm.revision null rr hdr hm sl cs1 more
           (W64 (n : Int)) id (kvOf s o.key)
-        have he0 : e0.rev = e0.hm.revision ∧ e0.acq = e0.kv := ⟨rfl, (keyGet_head o.key s cs1 Hwf Hok).symm⟩
+        have he0 : e0.rev = e0.hm.revision ∧ e0.acq = e0.kv ∧ e0.countOk := by
+          refine ⟨rfl, (keyGet_head o.key s cs1 Hwf Hok).symm, ?_⟩
+          show W64 (n : Int) = W64 (cs1.length : Int)
+          have hc := keyGet_count o.key s _ Hok
+          rw [List.length_map] at hc
+          rw [Hn, ← hc]
         ihave HrespOwn : respOwn (GF := GF) e0 (DFrac.own 1) $$ [Hh0 Hkvs Hsl Hcap Hcs Hmore Hcount]
         · unfold respOwn
           iframe
@@ -251,7 +257,7 @@ theorem leasingKV.get.wp_proof
         iframe
         iframe #
         ipureintro
-        exact ⟨he0.2.symm, Hrev.symm, Hlo_r⟩
+        exact ⟨he0.2.1.symm, Hrev.symm, Hlo_r, he0.2.2⟩
     · wp_auto
       wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
       · ipureintro; exact Ho
@@ -279,7 +285,7 @@ theorem leasingKV.get.wp_proof
     iexists st, e
     iframe
     iframe #
-    ipureintro; exact ⟨He, Hnn⟩
+    ipureintro; first | exact ⟨⟨He, Hcnt⟩, Hnn⟩ | exact ⟨He, Hcnt, Hnn⟩
 
 end proof
 

@@ -79,7 +79,7 @@ theorem leaseCache.notify.wp_proof : leaseCache.notify.spec (GF := GF) (hG := hG
       simp only [Option.map_some, Option.getD_some]
       icases (BigSepM.bigSepM_lookup_acc hk).1 $$ Hents with ⟨He, Hents⟩
       unfold entryOwn
-      icases He with ⟨%-, Hr, Hrev, Hwc, Hresp, #Hw⟩
+      icases He with ⟨%-, Hr, Hrev, Hwc, Hresp, #Hw, %Hcnt⟩
       rw [decide_eq_false hli]
       wp_auto
       obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 (Hwf.entries_installed key e hk)
@@ -94,7 +94,7 @@ theorem leaseCache.notify.wp_proof : leaseCache.notify.spec (GF := GF) (hG := hG
         iapply Hents
         iframe
         iframe #
-        ipureintro; exact hli
+        ipureintro; first | exact hli | exact ⟨hli, Hcnt⟩
       iapply HΦ
       iframe
       iexists st
