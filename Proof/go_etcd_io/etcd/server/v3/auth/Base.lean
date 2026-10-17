@@ -27,6 +27,10 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.strings
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
+-- PR etcd#22338: the auth package imports `time` and prometheus (the simple-token keeper's
+-- expiry map and gauge); prometheus's instance is the backend's
+public import Perennial.Proof.time
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 
 @[expose] public section
 

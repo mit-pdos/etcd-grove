@@ -1,0 +1,40 @@
+/-
+`(*simpleTokenTTLKeeper).deleteSimpleToken` (`server/auth/simple_token.go`), as PR etcd#22338
+changes it: after deleting the token's expiry, it sets `simpleTokenGauge` to the map's new size.
+Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvSimpleToken.lean`.
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvSimpleToken
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
+
+section spec
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+/-- `tm.deleteSimpleToken(token)` (the caller holds the provider's lock): `token` is deleted from
+the expiry map and the gauge is set to the count of the new map. -/
+abbrev auth.simpleTokenTTLKeeper.deleteSimpleToken.spec : Prop :=
+  ∀ (tm : Loc) (tokens : GoMap) (ttl : time.Duration) (lg : Loc)
+    (m : GMap GoString time.Time) (G : w64 → IProp GF) (x : w64) (token : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      keeperRO tm tokens ttl lg ∗ tokens ↦$ m ∗ gaugeModel G ∗ G x }}
+    (App (Val (tm @!! go.GoType.PointerType simpleTokenTTLKeeper.ty @!! go!"deleteSimpleToken"))
+      (Val #token))
+  {{ RET #(); tokens ↦$ (GMap.delete token m) ∗ G (tokenCount (GMap.delete token m)) }}
+
+end spec
+
+end EtcdGrove
+end Perennial
