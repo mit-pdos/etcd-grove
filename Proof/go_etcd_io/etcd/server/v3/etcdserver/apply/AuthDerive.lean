@@ -68,13 +68,13 @@ def isAuthStoreAdmin (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f
           (Val #pw))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
           respHdrOk etcdserverpb.AuthenticateResponse resp ∗ applyErrIs err }}) ∗
-    authReqContract ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f ∗
+    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f authUserAddIs ∗
     authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse γ P f ∗
     authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse γ P f ∗
     authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse γ P f ∗
     authReqContract ai go!"UserGet" etcdserverpb.AuthUserGetResponse γ P f ∗
     authReqContract ai go!"UserRevokeRole" etcdserverpb.AuthUserRevokeRoleResponse γ P f ∗
-    authReqContract ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse γ P f ∗
+    authReqContractN ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse γ P f authRoleAddIs ∗
     authReqContract ai go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionResponse γ P f ∗
     authReqContract ai go!"RoleGet" etcdserverpb.AuthRoleGetResponse γ P f ∗
     authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse γ P f ∗
@@ -84,7 +84,7 @@ def isAuthStoreAdmin (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f
 
 instance isAuthStoreAdmin_persistent (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
     (f : val) : Persistent (isAuthStoreAdmin st γ P f) := by
-  unfold isAuthStoreAdmin authReqContract; infer_instance
+  unfold isAuthStoreAdmin authReqContract authReqContractN; infer_instance
 
 end defs
 

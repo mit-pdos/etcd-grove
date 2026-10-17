@@ -249,6 +249,10 @@ def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   | .txn => ∀ t, rq.txn = some t → txn.TxnPre log t
   | .leaseCheckpoint => ∀ cs, rq.leaseCheckpoint = some cs → cs.length ≤ 1
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v
+  -- unit N4, D14g (2026-10-17): a new user's or role's name is a bbolt key, within its bound
+  -- (`issues/etcd-auth-useradd-long-name-fatal.md`)
+  | .authUserAdd => ∀ n, rq.authUserAdd = some n → n.length ≤ backend.maxKeySize
+  | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
   | _ => True
 
 section defs
@@ -623,6 +627,10 @@ def reqFacts (m : GoString) (r : Loc) : IProp GF :=
   else if m = go!"Alarm" then iprop(∃ am : AlarmModel, alarmRequestIs r am)
   else if m = go!"Authenticate" then iprop(∃ am : AuthenticateModel, authenticateIs r am)
   else if m = go!"UserGet" then iprop(∃ n : GoString, authUserGetIs r n)
+  else if m = go!"UserAdd" then
+    iprop(∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝)
+  else if m = go!"RoleAdd" then
+    iprop(∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝)
   else if m = go!"RoleGet" then iprop(∃ n : GoString, authRoleGetIs r n)
   else if m = go!"ClusterVersionSet" then
     iprop(∃ v : GoString, clusterVersionSetIs r v ∗ ⌜semverValid v⌝)

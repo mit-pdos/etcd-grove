@@ -133,6 +133,19 @@ def authReqContract (ai : GoInterfaceOk) (m : GoString) (T : Type) (γ : mvcc.St
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
         respHdrOk T resp ∗ applyErrIs err }}))
 
+/-- An auth-store method adding a user or a role (`m` `UserAdd` or `RoleAdd`) from a request `r`
+whose name (`Is r n`, read-only) is within bbolt's key bound: as `authReqContract`. The name is
+the new record's bbolt key, and a longer one makes the backend's put fatal
+(`issues/etcd-auth-useradd-long-name-fatal.md`; unit N4, D14g, 2026-10-17: until then the
+clause took any request, false of the Go code). The workload clause bounds the names (`rqOk`). -/
+def authReqContractN (ai : GoInterfaceOk) (m : GoString) (T : Type) (γ : mvcc.StoreNames)
+    (P : IProp GF) (f : val) (Is : Loc → GoString → IProp GF) : IProp GF :=
+  iprop(□ (∀ (r : Loc) (n : GoString) (Pre Q Post : IProp GF),
+    {{ Is r n ∗ ⌜n.length ≤ backend.maxKeySize⌝ ∗ mvcc.csContract P f Pre Q Post ∗
+        mvcc.storeWT γ ∗ mvcc.storeRT γ }} (App (Val #(methods ai.ty m ai.v)) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
+        respHdrOk T resp ∗ applyErrIs err }}))
+
 /-- A permission check `m(authInfo, key...)` of the auth store, with the caller's reader
 resource `RD` (held and given back) and the key shorter than `2 ^ 63 - 1`: some error; the
 caller's `AuthInfo` and keys kept. -/
@@ -197,13 +210,13 @@ def isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : va
           (Val #pw))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
           respHdrOk etcdserverpb.AuthenticateResponse resp ∗ applyErrIs err }}) ∗
-    authReqContract ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f ∗
+    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f authUserAddIs ∗
     authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse γ P f ∗
     authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse γ P f ∗
     authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse γ P f ∗
     authReqContract ai go!"UserGet" etcdserverpb.AuthUserGetResponse γ P f ∗
     authReqContract ai go!"UserRevokeRole" etcdserverpb.AuthUserRevokeRoleResponse γ P f ∗
-    authReqContract ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse γ P f ∗
+    authReqContractN ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse γ P f authRoleAddIs ∗
     authReqContract ai go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionResponse γ P f ∗
     authReqContract ai go!"RoleGet" etcdserverpb.AuthRoleGetResponse γ P f ∗
     authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse γ P f ∗
@@ -213,7 +226,7 @@ def isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : va
 
 instance isAuthStore_persistent (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RD : IProp GF) (on : Bool) : Persistent (isAuthStore st γ P f RD on) := by
-  unfold isAuthStore permCheck2 permCheck3 authReqContract; infer_instance
+  unfold isAuthStore permCheck2 permCheck3 authReqContract authReqContractN; infer_instance
 
 /-! ## The lessor -/
 
@@ -318,7 +331,9 @@ instance alarmMemberIs_persistent (m : Loc) : Persistent (alarmMemberIs (GF := G
 
 /-- **The `*v3alarm.AlarmStore` `st`** (trust boundary: `v3alarm` is names-only): `Get` returns
 a slice (its own: a loop over its map, under its mutex); `Activate` and `Deactivate` write the
-alarm bucket under the batch lock (or not: an alarm already set, or not set). -/
+alarm bucket under the batch lock (or not: an alarm already set, or not set). `Activate` takes an alarm type other than `NONE` (`0`): the
+member `{0, NONE}` encodes to an empty bbolt key, fatal (`issues/etcd-alarm-activate-none-zero-fatal.md`;
+unit N4, 2026-10-17); its one caller, `applierV3backend.Alarm`, skips `NONE`. -/
 def isAlarmStore (st : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) : IProp GF :=
   iprop(⌜st ≠ null⌝ ∗
     □ (∀ at' : w32,
@@ -327,7 +342,7 @@ def isAlarmStore (st : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) : IP
           (Val #at'))
       {{ (sl : GoSlice), RET #sl; True }}) ∗
     □ (∀ (id : w64) (at' : w32) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ }}
+      {{ ⌜at' ≠ W32 0⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ }}
         (App (App (Val (st @!! go.GoType.PointerType etcdserver.api.v3alarm.AlarmStore.ty @!!
           go!"Activate")) (Val #id)) (Val #at'))
       {{ (m : Loc), RET #m; (Post ∨ Pre) ∗ mvcc.storeRT γ ∗ (⌜m = null⌝ ∨ alarmMemberIs m) }}) ∗

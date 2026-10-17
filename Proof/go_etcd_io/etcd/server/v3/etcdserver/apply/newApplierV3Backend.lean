@@ -168,8 +168,8 @@ theorem apply.newApplierV3Backend.wp_proof
       iapply (hAuthenticate E p r log Pre Q Post) $$ [HR Hm] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm⟩
-      iapply (hUserAdd E p r log Pre Q Post) $$ [Hm] HΦ'
+    · icases Hpre with ⟨HR, Hm⟩
+      iapply (hUserAdd E p r log Pre Q Post) $$ [HR Hm] HΦ'
       iframe
       iframe #
     · icases Hpre with ⟨-, Hm⟩
@@ -192,8 +192,8 @@ theorem apply.newApplierV3Backend.wp_proof
       iapply (hUserRevokeRole E p r log Pre Q Post) $$ [Hm] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm⟩
-      iapply (hRoleAdd E p r log Pre Q Post) $$ [Hm] HΦ'
+    · icases Hpre with ⟨HR, Hm⟩
+      iapply (hRoleAdd E p r log Pre Q Post) $$ [HR Hm] HΦ'
       iframe
       iframe #
     · icases Hpre with ⟨-, Hm⟩

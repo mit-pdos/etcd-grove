@@ -75,9 +75,8 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   ihave %h12 := apply.optReqIs_nil l12 rq.authenticate _ apply.authenticateIs_nn $$ H12
   have e12 : rq.authenticate.isSome = !decide (l12 = null) := by
     cases hc : rq.authenticate <;> simp_all
-  iunfold apply.presentIs at H13
-  icases H13 with %h13
-  have e13 : rq.authUserAdd = !decide (l13 = null) := by
+  ihave %h13 := apply.optReqIs_nil l13 rq.authUserAdd _ apply.authUserAddIs_nn $$ H13
+  have e13 : rq.authUserAdd.isSome = !decide (l13 = null) := by
     cases hc : rq.authUserAdd <;> simp_all
   iunfold apply.presentIs at H14
   icases H14 with %h14
@@ -106,9 +105,8 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   icases H20 with %h20
   have e20 : rq.authRoleList = !decide (l20 = null) := by
     cases hc : rq.authRoleList <;> simp_all
-  iunfold apply.presentIs at H21
-  icases H21 with %h21
-  have e21 : rq.authRoleAdd = !decide (l21 = null) := by
+  ihave %h21 := apply.optReqIs_nil l21 rq.authRoleAdd _ apply.authRoleAddIs_nn $$ H21
+  have e21 : rq.authRoleAdd.isSome = !decide (l21 = null) := by
     cases hc : rq.authRoleAdd <;> simp_all
   iunfold apply.presentIs at H22
   icases H22 with %h22

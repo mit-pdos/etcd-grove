@@ -46,7 +46,8 @@ variable [sem : go.Semantics]
 
 /-- **The batch transaction `tx`** as the lessor's writes use it (persistent): `LockInsideApply()`
 under the critical-section contract gives the lock's token `Lk Post`; `UnsafePut` into the
-`Lease` bucket (the value of `schema.Lease`) keeps it; `Unlock()` gives `Post`. -/
+`Lease` bucket (the value of `schema.Lease`) of an 8-byte key (a lease's id: unit N4, 2026-10-17;
+an empty key is fatal in the real backend) keeps it; `Unlock()` gives `Post`. -/
 def leaseBatchTx (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF) : IProp GF :=
   iprop(∃ Lk : IProp GF → IProp GF,
     □ (∀ (Pre Q Post : IProp GF),
@@ -54,7 +55,7 @@ def leaseBatchTx (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF) 
         (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #()))
       {{ RET #(); Lk iprop(Post ∗ R) }}) ∗
     □ (∀ (R : IProp GF) (bk : GoInterface) (key val : GoSlice) (kb vb : GoString),
-      {{ Lk R ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk ∗
+      {{ ⌜kb.length = 8⌝ ∗ Lk R ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk ∗
           key ↦*□ kb ∗ val ↦*□ vb }}
         (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #bk)) (Val #key))
           (Val #val))

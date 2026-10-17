@@ -43,6 +43,10 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "AuthUserRevokeRoleResponse", "AuthRoleAddResponse", "AuthRoleGrantPermissionResponse",
   "AuthRoleGetRequest", "AuthRoleGetResponse", "AuthRoleRevokePermissionResponse",
   "AuthRoleDeleteResponse", "AuthUserListResponse", "AuthRoleListResponse",
+  # unit N4 (D14g, 2026-10-17): the user and role additions, whose names the apply package's
+  # request model records (a name above bbolt's key bound is fatal:
+  # issues/etcd-auth-useradd-long-name-fatal.md)
+  "AuthUserAddRequest", "AuthRoleAddRequest",
   # the server's RaftKV interface names the stream of RangeStream (an alias of a generic grpc
   # interface: an untranslated alias is emitted without the `.ty` its users name)
   "KV_RangeStreamServer",

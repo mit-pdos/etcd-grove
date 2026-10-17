@@ -176,14 +176,14 @@ theorem apply.uberApplier.dispatch.wp_proof
   ihave %nAE := apply.presentIs_null _ _ $$ HAE
   ihave %nAD := apply.presentIs_null _ _ $$ HAD
   ihave %nAS := apply.presentIs_null _ _ $$ HAS
-  ihave %nUA := apply.presentIs_null _ _ $$ HUA
+  ihave %nUA := apply.optReqIs_null _ _ _ (apply.authUserAddIs_nn lUA) $$ HUA
   ihave %nUD := apply.presentIs_null _ _ $$ HUD
   ihave %nUC := apply.presentIs_null _ _ $$ HUC
   ihave %nUGR := apply.presentIs_null _ _ $$ HUGR
   ihave %nURR := apply.presentIs_null _ _ $$ HURR
   ihave %nUL := apply.presentIs_null _ _ $$ HUL
   ihave %nRL := apply.presentIs_null _ _ $$ HRL
-  ihave %nRA := apply.presentIs_null _ _ $$ HRA
+  ihave %nRA := apply.optReqIs_null _ _ _ (apply.authRoleAddIs_nn lRA) $$ HRA
   ihave %nRD := apply.presentIs_null _ _ $$ HRD
   ihave %nRGP := apply.presentIs_null _ _ $$ HRGP
   ihave %nRRP := apply.presentIs_null _ _ $$ HRRP
@@ -600,10 +600,8 @@ theorem apply.uberApplier.dispatch.wp_proof
   wp_if_destruct
   · -- AuthUserAdd
     have hl : lUA ≠ null := by simpa using Hif
-    have hs : rq.authUserAdd = true := by
-      cases h : rq.authUserAdd
-      · exact absurd (nUA.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUA.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUA
     have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
@@ -611,13 +609,13 @@ theorem apply.uberApplier.dispatch.wp_proof
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
-      iframe
+      iframe; iexists x; iframe HR; ipureintro; exact hok x hs
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
     fin_same
     itrivial
-  have zAuthUserAdd : rq.authUserAdd = false := nUA.1 (by simpa using Hif)
+  have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserDelete
     have hl : lUD ≠ null := by simpa using Hif
@@ -724,10 +722,8 @@ theorem apply.uberApplier.dispatch.wp_proof
   wp_if_destruct
   · -- AuthRoleAdd
     have hl : lRA ≠ null := by simpa using Hif
-    have hs : rq.authRoleAdd = true := by
-      cases h : rq.authRoleAdd
-      · exact absurd (nRA.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRA.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRA
     have hk : dispatchKind rq = .authRoleAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
@@ -735,13 +731,13 @@ theorem apply.uberApplier.dispatch.wp_proof
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
-      iframe
+      iframe; iexists x; iframe HR; ipureintro; exact hok x hs
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
     fin_same
     itrivial
-  have zAuthRoleAdd : rq.authRoleAdd = false := nRA.1 (by simpa using Hif)
+  have zAuthRoleAdd : rq.authRoleAdd = none := nRA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGrantPermission
     have hl : lRGP ≠ null := by simpa using Hif

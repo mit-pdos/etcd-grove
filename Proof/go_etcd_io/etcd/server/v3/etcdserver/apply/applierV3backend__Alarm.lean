@@ -82,6 +82,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
     icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
     wp_apply HAct $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm⟩
+    · ipureintro; exact Hif
     ihave Hrd := Hrdb $$ Hrt
     ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
     · iunfold apply.kvOwn; iframe

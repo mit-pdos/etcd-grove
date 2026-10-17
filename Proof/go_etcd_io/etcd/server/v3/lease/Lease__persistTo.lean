@@ -56,9 +56,10 @@ theorem lease.Lease.persistTo.wp_proof
     (Val #(GoInterface.ok tx))) (Val #lpb_ptr))
   iapply (hPut tx lpb_ptr _ bk (Lk iprop(Post ∗ R)) (Lk iprop(Post ∗ R))) $$ [lpb HLk] [-]
   · iframe Hschema Hbkv lpb HLk
-    iintro !> %key %val %kb %vb %Φ' !> ⟨#Hk, #Hv, HL⟩ HΦ'
+    iintro !> %key %val %kb %vb %Φ' !> ⟨%Hk8, #Hk, #Hv, HL⟩ HΦ'
     iapply HUnsafePut $$ [HL] HΦ'
     iframe HL Hbkv Hk Hv
+    ipureintro; exact Hk8
   inext
   iintro ⟨-, HLk⟩
   (try wp_auto)
