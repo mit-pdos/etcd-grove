@@ -211,7 +211,12 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
           iintro %i %w0 %h
           simp only [GMap.lookup_insert_eq_iff] at h
           split at h
-          · cases h; iframe HIW HOC
+          · cases h
+            iframe HIW HOC
+            iexists _, _, lo
+            iframe HIWF
+            rename_i hii
+            ipureintro; first | exact hii | exact hii.symm
           · iapply Hws $$ %i %w0 %h
         isplitr
         · imodintro

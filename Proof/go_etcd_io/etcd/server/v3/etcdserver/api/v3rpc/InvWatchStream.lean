@@ -275,13 +275,13 @@ theorem ansPool_mint (γa : GName) (n : Nat) :
 /-- The ghost names a watch run publishes in its stream's auxiliary name (`streamAuxIs`): its
 mvcc watch stream's (`γo`) and its answers' (`γa`). -/
 def auxOf (γo : mvcc.WsStreamNames) (γa : GName) : List GName :=
-  [γo.tok, γo.ids, γo.fresh, γo.prog, γo.sentl, γa]
+  [γo.tok, γo.ids, γo.fresh, γo.prog, γo.sentl, γo.rsn, γa]
 
 theorem auxOf_inj {γo γo' : mvcc.WsStreamNames} {γa γa' : GName}
     (h : auxOf γo γa = auxOf γo' γa') : γo = γo' ∧ γa = γa' := by
   unfold auxOf at h
   simp only [List.cons.injEq, and_true] at h
-  obtain ⟨h1, h2, h3, h5, h6, h4⟩ := h
+  obtain ⟨h1, h2, h3, h5, h6, h7, h4⟩ := h
   cases γo; cases γo'
   simp_all
 
@@ -496,6 +496,16 @@ def progQ (γs : StreamNames) : IProp GF := iprop(∃ i : Nat, upAtW γs i .prog
 
 instance progQ_persistent (γs : StreamNames) : Persistent (progQ (GF := GF) γs) := by
   unfold progQ; infer_instance
+
+/-- **The stream's cancellation reason** (unit W-K, K1b): the client sent a cancel request for
+`id`. The handler saves it as the mvcc stream's (`NewWatchStream`'s `Ψ`); `recvLoop` has it when it
+calls `Cancel id`, so a progress response of id `-1` covers every watcher of the stream registered
+before it whose id the client did not ask to cancel. -/
+def cancelQ (γs : StreamNames) (id : w64) : IProp GF := iprop(∃ i : Nat, upAtW γs i (.cancel id))
+
+instance cancelQ_persistent (γs : StreamNames) (id : w64) :
+    Persistent (cancelQ (GF := GF) γs id) := by
+  unfold cancelQ; infer_instance
 
 instance progQ_timeless (γs : StreamNames) : Timeless (progQ (GF := GF) γs) := by
   unfold progQ upAtW; infer_instance

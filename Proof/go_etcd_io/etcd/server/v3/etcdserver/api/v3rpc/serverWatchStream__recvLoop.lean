@@ -133,7 +133,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmu, %Hγoc, #Hsp⟩
+    #Hmu, %Hγoc, #Hsp, #Hcq⟩
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
   icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
@@ -752,6 +752,13 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_auto
       wp_apply hCancel r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo $$ [] as %cerr Hcerr
       · iframe #
+        iunfold mvcc.rsnFor
+        iexists v3rpc.cancelQ r.γs
+        iframe Hcq
+        iintro !>
+        iunfold v3rpc.cancelQ
+        iexists _
+        iexact Hat
       icases Hcerr with (%Hce | #Hce)
       · subst Hce
         wp_auto

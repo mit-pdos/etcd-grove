@@ -427,7 +427,8 @@ def swsIs (sws : Loc) (r : WRun GF) : IProp GF :=
     sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm) ∗
     ⌜r.γo.ids = r.γc.ids ∧ r.γo.prog = r.γc.prog ∧ r.γo.sentl = r.γc.sentl ∧
       0 < sint.Z r.γc.ch.chanCap⌝ ∗
-    savedPropOwn r.γo.prog DFrac.discard (progQ r.γs))
+    savedPropOwn r.γo.prog DFrac.discard (progQ r.γs) ∗
+    savedPredOwn r.γo.rsn DFrac.discard (cancelQ r.γs))
 
 instance swsIs_persistent (sws : Loc) (r : WRun GF) : Persistent (swsIs sws r) := by
   unfold swsIs; infer_instance

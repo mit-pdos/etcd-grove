@@ -160,8 +160,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     (hsend : mvcc.watcher.send.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.progressIfSync.spec (GF := GF) (hG := hG) := by
   have hrev := mvcc.watchableStore.rev.spec_frozen hrev
-  intro s st γ m dq M rid γc
-  wp_start as ⟨#Hws, Hm, #HM, HR⟩
+  intro s st γ m dq M rid γc CS
+  wp_start as ⟨#Hws, Hm, #HM, HCS, #Hcw, HR⟩
   iunfold mvcc.watchReader at HR
   icases HR with ⟨Hrd, Hslot⟩
   ihave #Hws0 := Hws
@@ -191,11 +191,11 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
-      "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗
+      "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS ∗
       "%Hi" ∷ ⌜0 ≤ i ∧ ∀ (j : Nat) (id : w64) (w : Loc), j < i.toNat → keys[j]? = some id →
         M !! id = some w → (σ.Ws !! w).isSome⌝)) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [w s responseWatchID watchers Hrl Hdx HP Hrd rev HΦ]
+  isplitl [w s responseWatchID watchers Hrl Hdx HP Hrd rev HΦ HCS]
   · iexists _
     simp only [named]
     iframe
@@ -240,7 +240,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
       wp_auto
       iapply HΦ
-      iframe Hm
+      iframe Hm HCS
       iunfold mvcc.watchReader
       iframe
     · simp only [Option.isSome_map, hsy]
@@ -264,7 +264,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
         wp_auto
         iapply HΦ
-        iframe Hm
+        iframe Hm HCS
         iunfold mvcc.watchReader
         iframe
       · (try wp_auto)
@@ -329,9 +329,9 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
-      "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ mvcc.watchReader s st γ -∗ Φ #b))) $$ Hm
+      "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS)) $$ Hm
   iintro %keys2 -
-  isplitl [w responseWatchID Hrl Hdx HP Hrd rev HΦ]
+  isplitl [w responseWatchID Hrl Hdx HP Hrd rev HΦ HCS]
   · iexists _
     simp only [named]
     iframe
@@ -361,8 +361,29 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     ihave %Hag2 := mvcc.watcherFixed_agree u rr rr2 fcs fcs2 $$ [$HfixW $Hf2]
     obtain ⟨rfl, rfl⟩ := Hag2
     subst Hag1
-    wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs)
-      $$ [$Hch $Hlv] as %b ⟨Hch, Hlv, -, -⟩
+    -- the response's id, and (K1b) for `-1`, the registered watchers: the map's, or cancelled
+    ihave #Hidc : iprop(⌜rid = rr.id⌝ ∨
+        mvcc.complW γw sync.rfrac.half CS (cs.map mvcc.CovArg.w) rid) $$ []
+    · icases Hrid with (%h | #Hp)
+      · ileft; ipureintro; exact h
+      icases Hcw with (%hne | #Hcw')
+      · iright; iunfold mvcc.complW; iintro !> %L %hm
+        exact absurd hm hne
+      iright; iunfold mvcc.complW
+      iintro !> %L %hm HCS Hregl Hlv
+      iunfold mvcc.complWS at Hcw'
+      have hex : ∃ id : w64, M !! id = some u := ⟨key, Hu⟩
+      icases Hcw' $$ %L %u %γw %sync.rfrac.half %hex HmetaW HCS Hregl Hlv
+        with ⟨HCS, Hregl, Hlv, #Hcm⟩
+      iframe HCS Hregl Hlv Hp
+      iintro !> %w0 %hw0
+      icases Hcm $$ %w0 %hw0 with (⟨%id0, %hid0⟩ | #Hr)
+      · ileft; ipureintro
+        rw [Hcsw]
+        exact List.mem_filterMap.2 ⟨id0, (Hkset id0).2 (by rw [hid0]; rfl), hid0⟩
+      · iright; iexact Hr
+    wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs CS)
+      $$ [$Hch $Hlv $HCS] as %b ⟨Hch, Hlv, -, -, HCS⟩
     · iframe #
       simp only [↓reduceIte, List.zip_nil_left]
       isplitr
@@ -400,7 +421,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
     wp_auto
     iapply HΦ
-    iframe Hm
+    iframe Hm HCS
     iunfold mvcc.watchReader
     iframe
   iintro HP' Hm
@@ -410,7 +431,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
   wp_auto
   iapply HΦ
-  iframe Hm
+  iframe Hm HCS
   iunfold mvcc.watchReader
   iframe
 

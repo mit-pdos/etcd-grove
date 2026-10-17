@@ -766,7 +766,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitr
       · iexists γw, r, fcs
         iframe Hmw Hfixed
-        ipureintro; exact Hsr
+        ipureintro; exact ⟨Hsr, Hidm⟩
       isplitr
       · iexists γw
         iframe Hmw
@@ -782,7 +782,7 @@ theorem mvcc.watchableStore.watch.wp_proof
           simp only [mvcc.storeWatchParams]
           iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         (try wp_auto)
         iapply HΦ'
         simp only [mvcc.storeWatchParams] at *
@@ -869,7 +869,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitr
       · iexists γw, r, fcs
         iframe Hmw Hfixed
-        ipureintro; exact Hsr
+        ipureintro; exact ⟨Hsr, Hidm⟩
       isplitr
       · iexists γw
         iframe Hmw
@@ -885,7 +885,7 @@ theorem mvcc.watchableStore.watch.wp_proof
           simp only [mvcc.storeWatchParams]
           iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         (try wp_auto)
         iapply HΦ'
         simp only [mvcc.storeWatchParams] at *
@@ -982,7 +982,7 @@ theorem mvcc.watchableStore.watch.wp_proof
         isplitr
         · iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         isplitr
         · iexists γw
           iframe Hmw
@@ -998,7 +998,7 @@ theorem mvcc.watchableStore.watch.wp_proof
             simp only [mvcc.storeWatchParams]
             iexists γw, r, fcs
             iframe Hmw Hfixed
-            ipureintro; exact Hsr
+            ipureintro; exact ⟨Hsr, Hidm⟩
           (try wp_auto)
           iapply HΦ'
           simp only [mvcc.storeWatchParams] at *
@@ -1086,7 +1086,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitr
       · iexists γw, r, fcs
         iframe Hmw Hfixed
-        ipureintro; exact Hsr
+        ipureintro; exact ⟨Hsr, Hidm⟩
       isplitr
       · iexists γw
         iframe Hmw
@@ -1102,7 +1102,7 @@ theorem mvcc.watchableStore.watch.wp_proof
           simp only [mvcc.storeWatchParams]
           iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         (try wp_auto)
         iapply HΦ'
         simp only [mvcc.storeWatchParams] at *

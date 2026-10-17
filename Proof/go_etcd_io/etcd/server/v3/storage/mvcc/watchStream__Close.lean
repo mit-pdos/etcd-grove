@@ -40,6 +40,7 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
   cases closed with
   | true =>
     simp only [↓reduceIte]
+    icases Hcl with ⟨Hcl, -⟩
     iunfold mvcc.watchStreamOpen at Hcl Htok
     icases token_exclusive γ.tok $$ Hcl Htok with ⟨⟩
   | false =>
@@ -102,11 +103,13 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
   wp_apply Hclose $$ [$HCR]
   · imodintro
     iintro %w %hin
-    icases HL $$ %w %hin with (⟨%id, %hid⟩ | #Hwc)
+    icases HL $$ %w %hin with (⟨%id, %hid⟩ | #Hcf)
     · have hk : id ∈ keys := by
         rw [Hkset, Hdom id, hid]; rfl
       iapply Hdone $$ %id %w %hk %hid
-    · iexact Hwc
+    · iunfold mvcc.cancelledFor at Hcf
+      icases Hcf with ⟨#Hwc, -⟩
+      iexact Hwc
   iunfold gaugeSpec at HgS
   icases HgS with ⟨-, #HDec, -⟩
   wp_apply HDec
@@ -117,7 +120,14 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
     simp only [named, ↓reduceIte]
     iframe
     iframe #
-    ipureintro; exact ⟨Hdom, Hnn⟩
+    isplitr
+    · ipureintro; exact Hdom
+    isplitr
+    · ipureintro; exact Hnn
+    iintro !> %id %w %hid
+    have hk : id ∈ keys := by
+      rw [Hkset, Hdom id, hid]; rfl
+    iapply Hdone $$ %id %w %hk %hid
   iapply HΦ
   itrivial
 

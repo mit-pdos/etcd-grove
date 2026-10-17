@@ -40,17 +40,55 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
   iunfold mvcc.watchStreamInv at HR
   iNamed HR
   wp_auto
-  wp_apply HprogAll $$ [$Hwm $Hws $Hpf $HPR] as %b ⟨Hwm, HPR⟩
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hcl]
-  · inext
-    iunfold mvcc.watchStreamInv
-    iexists nextID, closed, cm, wm, CM, WM
-    simp only [named]
-    iframe
-    iframe #
-    ipureintro; exact ⟨Hdom, Hnn⟩
-  iapply HΦ
-  iframe HPR
+  -- what the store is lent (K1b): open, the close right with the registered watchers, each in the
+  -- map or cancelled for its reason; closed, every watcher of the map cancelled
+  ihave #Hws2 : iprop(□ ∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc) $$ []
+  · iintro !> %id %w %h
+    icases Hws $$ %id %w %h with ⟨#H1, #H2, -⟩
+    iframe H1 H2
+  cases closed with
+  | true =>
+    simp only [↓reduceIte]
+    icases Hcl with ⟨Hop, #Hall⟩
+    ihave #Hpa := HprogAll $$ %wm %(DFrac.own 1) %WM %γc %false %ch %([] : List Loc)
+    wp_apply Hpa $$ [$Hwm $Hws2 $Hpf $HPR]
+      as %b ⟨Hwm, -, HPR⟩
+    · iunfold mvcc.progCompl
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iintro !> %id %w %h
+      iapply Hall $$ %id %w %h
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hop]
+    · inext
+      iunfold mvcc.watchStreamInv
+      iexists nextID, true, cm, wm, CM, WM
+      simp only [named, ↓reduceIte]
+      iframe
+      iframe #
+      ipureintro; exact ⟨Hdom, Hnn⟩
+    iapply HΦ
+    iframe HPR
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
+    ihave #Hpa := HprogAll $$ %wm %(DFrac.own 1) %WM %γc %true %ch %L
+    wp_apply Hpa $$ [$Hwm $Hws2 $Hpf $HPR HCR]
+      as %b ⟨Hwm, HPC, HPR⟩
+    · iunfold mvcc.progCompl
+      simp only [↓reduceIte]
+      iframe HCR HL
+    iunfold mvcc.progCompl at HPC
+    simp only [↓reduceIte]
+    icases HPC with ⟨HCR, -⟩
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids HCR]
+    · inext
+      iunfold mvcc.watchStreamInv
+      iexists nextID, false, cm, wm, CM, WM
+      simp only [named, Bool.false_eq_true, ↓reduceIte]
+      iframe
+      iframe #
+      ipureintro; exact ⟨Hdom, Hnn, Hcnt⟩
+    iapply HΦ
+    iframe HPR
 
 end proof
 

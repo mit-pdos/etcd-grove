@@ -32,6 +32,7 @@ theorem mvcc.watchableStore.progress.wp_proof
   ihave #Hiw' := Hiw
   simp only [mvcc.storeWatchParams]
   icases Hiw' with ⟨%γw, %r, %fcs, #Hmeta, #Hfix, %Hsr⟩
+  have Hrid := Hsr.2
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
   icases Hfix' with ⟨%Hnn, %ks, %es, -, -, -, -, -, #Hid, -⟩
@@ -39,22 +40,25 @@ theorem mvcc.watchableStore.progress.wp_proof
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %mp Hmp
   wp_apply wp_mapInsert WatchID.ty mp ∅ r.id w $$ [$Hmp] as Hmp
   (try wp_auto)
-  wp_apply (hPIS s st γ mp (DFrac.own 1) (<[r.id := w]> ∅) r.id γw.wc) $$ [$Hws $Hmp $HR] as %b ⟨-, HR⟩
-  · imodintro
-    iintro %id %w' %Hl
-    by_cases h : id = r.id
-    · subst h; rw [GMap.lookup_insert] at Hl; cases Hl
-      simp only [mvcc.storeWatchParams]
-      isplitr
-      · iexists γw, r, fcs
+  wp_apply (hPIS s st γ mp (DFrac.own 1) (<[r.id := w]> ∅) r.id γw.wc iprop(True))
+    $$ [$Hws $Hmp $HR] as %b ⟨-, -, HR⟩
+  · isplitr
+    · imodintro
+      iintro %id %w' %Hl
+      by_cases h : id = r.id
+      · subst h; rw [GMap.lookup_insert] at Hl; cases Hl
+        simp only [mvcc.storeWatchParams]
+        isplitr
+        · iexists γw, r, fcs
+          iframe #
+          ipureintro; exact Hsr
+        iexists γw, r, fcs
         iframe #
-        ipureintro; exact Hsr
-      iexists γw, r, fcs
-      iframe #
-      isplitr
-      · ipureintro; rfl
-      ileft; ipureintro; rfl
-    · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), GMap.lookup_empty] at Hl; cases Hl
+        isplitr
+        · ipureintro; rfl
+        ileft; ipureintro; rfl
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), GMap.lookup_empty] at Hl; cases Hl
+    ileft; ipureintro; exact Hrid
   (try wp_auto)
   iapply HΦ
   iframe HR

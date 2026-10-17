@@ -171,6 +171,9 @@ structure WatchChanNames where
   prog : GName
   sentl : GName
   regi : GName
+  /-- the reason a watcher of the channel's stream was cancelled (unit W-K, K1b): a saved
+  predicate on its id, the stream's creator's (`rsnFor`) -/
+  rsn : GName
 
 /-- **The progress fact of the saved proposition `g`** (persistent; unit W-M2): some `Q` saved at
 `g`, and `Q`. A stream's creator fixes `Q` (`NewWatchStream`); a response of id `-1` on the
@@ -180,6 +183,16 @@ def progFact (g : GName) : IProp GF :=
 
 instance progFact_persistent (g : GName) : Persistent (progFact (GF := GF) g) := by
   unfold progFact; infer_instance
+
+/-- **The reason the watcher of id `id` was cancelled** (persistent; unit W-K, K1b): some `Ψ`
+saved at `g`, and `Ψ id`. A stream's creator fixes `Ψ` (`NewWatchStream`), and gives `Ψ id` to
+`Cancel id` (v3rpc: the client asked to cancel `id`); a progress response of id `-1` covers every
+watcher registered on the channel before it, or that watcher was cancelled for this reason. -/
+def rsnFor (g : GName) (id : w64) : IProp GF :=
+  iprop(∃ Ψ : w64 → IProp GF, savedPredOwn g DFrac.discard Ψ ∗ □ Ψ id)
+
+instance rsnFor_persistent (g : GName) (id : w64) : Persistent (rsnFor (GF := GF) g id) := by
+  unfold rsnFor; infer_instance
 
 /-- **The channel's stream assigned `id` to the watcher `w`** (persistent; unit W-M2): an element
 of the channel's id map. The stream's `idAssigned` is the same element (`γ.ids = γc.ids`,
@@ -245,6 +258,25 @@ instance cancelSpec_persistent (P : WatchParams GF) (c : GoFunc) (w : Loc) :
     Persistent (cancelSpec P c w) := by
   unfold cancelSpec; infer_instance
 
+/-- **A cancelled watcher's reason** (persistent; K1b): `w` is cancelled, with a fixed range
+whose id has its reason (`rsnFor`). -/
+def cancelledFor (P : WatchParams GF) (γc : WatchChanNames) (w : Loc) : IProp GF :=
+  iprop(P.WC w ∗ ∃ (r : WatchRange) (fcs : GoSlice) (lo : Nat), P.IWF w r fcs lo ∗
+    rsnFor γc.rsn r.id)
+
+instance cancelledFor_persistent (P : WatchParams GF) (γc : WatchChanNames) (w : Loc) :
+    Persistent (cancelledFor P γc w) := by
+  unfold cancelledFor; infer_instance
+
+/-- **What `progressAll(m)` is lent of the stream** (K1b): open (`o`), the close right of `ch`
+(with the watchers `L` registered on the channel), every one of `L` in the map or cancelled for
+its reason; closed, every watcher of the map cancelled. -/
+def progCompl (P : WatchParams GF) (γc : WatchChanNames) (M : GMap w64 Loc) (o : Bool)
+    (ch : GoChan) (L : List Loc) : IProp GF :=
+  if o then iprop(P.CR ch γc L ∗
+      □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ (∃ id : w64, ⌜M !! id = some w⌝) ∨ cancelledFor P γc w))
+  else iprop(□ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ P.WC w))
+
 /-- **The `watchable` the stream uses** (persistent), the interface value `wa`:
 `watch(key, end, startRev, id, ch, fcs)` registers a watcher on `ch` (the stream's channel,
 converted to send-only, names `γc`) with the range `key`/`end` and the filters `fcs`, all
@@ -277,11 +309,12 @@ def isWatchable (wa : GoInterface) (P : WatchParams GF) : IProp GF :=
     □ (∀ w : Loc,
       {{ P.IW w ∗ P.R }} (App (Val #(methods wi.ty go!"progress" wi.v)) (Val #w))
       {{ RET #(); P.R }}) ∗
-    □ (∀ (m : Loc) (dq : DFrac) (M : GMap w64 Loc) (γc : WatchChanNames),
+    □ (∀ (m : Loc) (dq : DFrac) (M : GMap w64 Loc) (γc : WatchChanNames) (o : Bool) (ch : GoChan)
+        (L : List Loc),
       {{ m ↦${dq} M ∗ □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc) ∗
-          progFact γc.prog ∗ P.R }}
+          progFact γc.prog ∗ progCompl P γc M o ch L ∗ P.R }}
         (App (Val #(methods wi.ty go!"progressAll" wi.v)) (Val #m))
-      {{ (b : Bool), RET #b; m ↦${dq} M ∗ P.R }}) ∗
+      {{ (b : Bool), RET #b; m ↦${dq} M ∗ progCompl P γc M o ch L ∗ P.R }}) ∗
     □ ({{ P.R }} (App (Val #(methods wi.ty go!"rev" wi.v)) (Val #()))
       {{ (r : w64), RET #r; P.R }}))
 
@@ -302,6 +335,8 @@ structure WsStreamNames where
   /-- the channel's sent list's name (unit W-K: `γ.sentl = γc.sentl`, `isWatchStream`), so that
   what names the stream names the points of its channel's order -/
   sentl : GName
+  /-- the cancellation reason's name (K1b: `γ.rsn = γc.rsn`, `isWatchStream`) -/
+  rsn : GName
 
 /-- The token of an open stream: `NewWatchStream` returns it, `Close` consumes it. -/
 def watchStreamOpen (γ : WsStreamNames) : IProp GF := token γ.tok
@@ -426,13 +461,14 @@ def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γc : WatchCha
     "Hwm" ∷ wm ↦$ WM ∗
     "%Hdom" ∷ ⌜∀ id, (CM !! id).isSome = (WM !! id).isSome⌝ ∗
     "%Hnn" ∷ ⌜∀ id w, WM !! id = some w → w ≠ null⌝ ∗
-    "#Hws" ∷ □ (∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc) ∗
+    "#Hws" ∷ □ (∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc ∗
+      ∃ (r : WatchRange) (fcs : GoSlice) (lo : Nat), P.IWF w r fcs lo ∗ ⌜r.id = id⌝) ∗
     "#Hcs" ∷ □ (∀ (id : w64) (c : GoFunc) (w : Loc), ⌜CM !! id = some c⌝ -∗
       ⌜WM !! id = some w⌝ -∗ cancelSpec P c w) ∗
     "Hids" ∷ idsInv γ nextID ∗
-    "Hcl" ∷ (if closed then watchStreamOpen γ else
+    "Hcl" ∷ (if closed then watchStreamOpen γ ∗ □ (∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ P.WC w) else
       ∃ L : List Loc, P.CR ch γc L ∗
-        □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ ((∃ id : w64, ⌜WM !! id = some w⌝) ∨ P.WC w)) ∗
+        □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ ((∃ id : w64, ⌜WM !! id = some w⌝) ∨ cancelledFor P γc w)) ∗
         ⌜sint.Z nextID + aboveCnt nextID WM ≤ L.length ∧ L.length + 3 ≤ 2 ^ 63⌝))
 
 /-- **The stream** `ws` over the watchable `wa` (persistent; see the module doc): its channel
@@ -440,7 +476,7 @@ def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γc : WatchCha
 def isWatchStream (ws : Loc) (wa : GoInterface) (P : WatchParams GF) (γ : WsStreamNames) :
     IProp GF :=
   iprop(∃ (ch : GoChan) (γc : WatchChanNames),
-    "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog ∧ γ.sentl = γc.sentl⌝ ∗
+    "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog ∧ γ.sentl = γc.sentl ∧ γ.rsn = γc.rsn⌝ ∗
     "#Hwa" ∷ ws.[watchStream, go!"watchable"] ↦□ wa ∗
     "#Hch" ∷ ws.[watchStream, go!"ch"] ↦□ ch ∗
     "#HC" ∷ P.C ch ∗

@@ -1461,7 +1461,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmug, %Hγoc, #Hsp⟩
+    #Hmug, %Hγoc, #Hsp, -⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
   icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars⟩
