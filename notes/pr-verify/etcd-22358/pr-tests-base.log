@@ -1,0 +1,11 @@
+--- FAIL: TestInt64ComparableCompareExtremes (0.00s)
+    interval_tree_test.go:544: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-22358-scratch/base/pkg/adt/interval_tree_test.go:544
+        	Error:      	Not equal: 
+        	            	expected: 1
+        	            	actual  : -1
+        	Test:       	TestInt64ComparableCompareExtremes
+        	Messages:   	MaxInt64 must compare greater than MinInt64
+FAIL
+FAIL	go.etcd.io/etcd/pkg/v3/adt	0.008s
+FAIL

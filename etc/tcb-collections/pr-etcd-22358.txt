@@ -1,0 +1,11 @@
+# etcd#22358 (pkg/adt: Int64Comparable.Compare and NewInt64Point at the int64 extremes), branch
+# pr-verify/etcd-22358: the two functions it changes.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22358.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update. Not run on this branch (it needs
+# a full `lake build`); `#print axioms` in adt/Results.lean shows no axiom or sorry of this
+# repository under either root (the baseline below is empty).
+roots Int64Comparable__Compare
+roots NewInt64Point

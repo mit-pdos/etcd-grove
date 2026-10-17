@@ -1,0 +1,12 @@
+    review_probe_test.go:14: Stab(Point(M)) on tree {Point(M),Point(5)} = 0 results; Intersects=false; Find=true
+    review_probe_test.go:16: Stab(Point(5)) = 1 results
+    review_probe_test.go:20: Stab(Point(M)) on {[Min,M)} = 0; Stab(Point(M-1)) = 1
+    review_probe_test.go:24: Stab([5,5)) on {[0,10)} = 1; Intersects([5,5))=true
+    review_probe_test.go:27: Stab(Point(5)) on {[5,5)} = 0; Stab([0,10)) on {[5,5)} = 1
+    review_probe_test.go:31: pm.Compare(x)=1 x.Compare(pm)=-1
+    review_probe_test.go:33: Max.Compare(Min)=1 Min.Compare(Max)=-1 Max.Compare(-1)=1 0.Compare(Min)=1 Min.Compare(1)=-1
+    review_probe_test.go:40: StringAffinePoint(""): Begin.Compare(End)=1; BytesAffinePoint(nil): Begin.Compare(End)=1
+    review_probe_test.go:43: Stab(StringAffinePoint("")) on {[a,+inf)} = 0
+--- PASS: TestReviewProbe (0.00s)
+PASS
+ok  	go.etcd.io/etcd/pkg/v3/adt	0.022s

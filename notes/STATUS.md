@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR verification: etcd-io/etcd#22358, `Int64Comparable.Compare` and `NewInt64Point` at the int64 extremes (2026-10-17, branch `pr-verify/etcd-22358`)
+
+The PR translated (fork `pr-etcd-22358-goose-lean` `473edb101`, not pushed; the pin is unchanged, so
+`etc/goose.py --check` fails on this branch). Both functions specified and proved (new specs; neither
+had one): `Compare` is the signed order, `NewInt64Point` keeps `Begin <= End` and is empty at
+`MaxInt64` (`Proof/go_etcd_io/etcd/pkg/v3/adt/Int64Ivl.lean`); no new axiom or `sorry`. The adt
+Link and Results rebuild. Issues: `etcd-adt-int64-compare-overflow.md` (what the PR fixes),
+`etcd-adt-affine-point-empty-key.md`. Report `notes/pr-verify/etcd-22358.md`. Not for `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

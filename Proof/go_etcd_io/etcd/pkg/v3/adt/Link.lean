@@ -8,9 +8,11 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Int64Comparable__Compare
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Interval__Compare
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffineInterval
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewInt64Point
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewStringAffineInterval
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewStringAffinePoint
@@ -53,6 +55,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
+theorem adt.Int64Comparable.wp_Compare :
+    adt.Int64Comparable.Compare.spec (GF := GF) (hG := hG) :=
+  adt.Int64Comparable.Compare.wp_proof
+
 theorem adt.StringAffineComparable.wp_Compare :
     adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG) :=
   adt.StringAffineComparable.Compare.wp_proof
@@ -68,6 +74,10 @@ theorem adt.wp_NewBytesAffineInterval :
 theorem adt.wp_NewBytesAffinePoint :
     adt.NewBytesAffinePoint.spec (GF := GF) (hG := hG) :=
   adt.NewBytesAffinePoint.wp_proof adt.wp_NewBytesAffineInterval
+
+theorem adt.wp_NewInt64Point :
+    adt.NewInt64Point.spec (GF := GF) (hG := hG) :=
+  adt.NewInt64Point.wp_proof
 
 theorem adt.wp_NewIntervalTree :
     adt.NewIntervalTree.spec (GF := GF) (hG := hG) :=

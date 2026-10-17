@@ -1,0 +1,7 @@
+--- FAIL: TestProbeInt64ExtremesRandom (0.00s)
+    int64_extremes_probe_test.go:79: intervals [{-9223372036854775807 1} {-9223372036854775807 4611686018427387904} {-4611686018427387904 2}]: Stab(-9223372036854775807) has 1 results, want 2
+    int64_extremes_probe_test.go:79: intervals [{-9223372036854775807 1} {-9223372036854775807 4611686018427387904} {-4611686018427387904 2}]: Stab(1) has 0 results, want 2
+    int64_extremes_probe_test.go:79: intervals [{-9223372036854775807 1} {-9223372036854775807 4611686018427387904} {-4611686018427387904 2}]: Stab(2) has 0 results, want 1
+FAIL
+FAIL	go.etcd.io/etcd/pkg/v3/adt	0.006s
+FAIL
