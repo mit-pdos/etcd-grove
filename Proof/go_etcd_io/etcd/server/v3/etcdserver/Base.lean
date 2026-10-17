@@ -67,12 +67,16 @@ instance bucketIs_persistent (b : GoInterface) (id : w64) (name : GoString) (saf
 /-- `schema`'s package facts: the `Meta` bucket and the two key names of `cindex.go`, and the
 `Key` bucket (the mvcc store's), the two buckets as `bucket.go` makes them (`bucketIs`: id 2,
 `"meta"`, not safe-range; id 1, `"key"`, safe-range; 2026-10-13: they were only some values,
-before `bucket.go` was translated). -/
+before `bucket.go` was translated); and (item 8, 2026-10-17: moved here from the server's and
+mvcc's facts) `AllBuckets` some slice and the compaction's two key names (`bucket.go`). -/
 abbrev schemaInit : IProp GF :=
   iprop((∃ b : GoInterface, globalAddr Meta ↦□ b ∗ bucketIs b (W64 2) metaName false) ∗
     (∃ s : GoSlice, globalAddr MetaConsistentIndexKeyName ↦□ s ∗ s ↦*□ ciKeyBytes) ∗
     (∃ s : GoSlice, globalAddr MetaTermKeyName ↦□ s ∗ s ↦*□ termKeyBytes) ∗
-    (∃ b : GoInterface, globalAddr Key ↦□ b ∗ bucketIs b (W64 1) keyName true))
+    (∃ b : GoInterface, globalAddr Key ↦□ b ∗ bucketIs b (W64 1) keyName true) ∗
+    (∃ sl : GoSlice, globalAddr AllBuckets ↦□ sl) ∗
+    (∃ s : GoSlice, globalAddr ScheduledCompactKeyName ↦□ s ∗ s ↦*□ (go!"scheduledCompactRev" : GoString)) ∗
+    (∃ s : GoSlice, globalAddr FinishedCompactKeyName ↦□ s ∗ s ↦*□ (go!"finishedCompactRev" : GoString)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit

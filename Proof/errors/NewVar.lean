@@ -75,6 +75,40 @@ theorem errorMsg_triple (ty : go.GoType) (v : val) (msg : GoString) :
   iapply HΦ
   itrivial
 
+/-- **`X` holds an `errors.New(msg)` error** (persistent; a package fact): a fixed `*errorString`
+whose `Error()` returns `msg`. What `errorsNewVarInit` gives, made persistent. -/
+def errorsNewVar (X msg : GoString) : IProp GF :=
+  iprop(∃ x : Loc,
+    globalAddr X ↦□ interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x ∗
+    □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }})
+
+instance errorsNewVar_persistent (X msg : GoString) : Persistent (errorsNewVar (GF := GF) X msg) := by
+  unfold errorsNewVar; infer_instance
+
+/-- `errorsNewVar` of each `(X, msg)` of a list. -/
+def errorsNewVars : List (GoString × GoString) → IProp GF
+  | [] => iprop(True)
+  | (X, m) :: l => iprop(errorsNewVar X m ∗ errorsNewVars l)
+
+instance errorsNewVars_persistent (l : List (GoString × GoString)) :
+    Persistent (errorsNewVars (GF := GF) l) := by
+  induction l with
+  | nil => unfold errorsNewVars; infer_instance
+  | cons p l ih => obtain ⟨X, m⟩ := p; unfold errorsNewVars; infer_instance
+
+theorem errorsNewVars_mem {l : List (GoString × GoString)} {X m : GoString} (h : (X, m) ∈ l) :
+    errorsNewVars (GF := GF) l ⊢ errorsNewVar X m := by
+  induction l with
+  | nil => cases h
+  | cons p l ih =>
+    obtain ⟨Y, n⟩ := p
+    unfold errorsNewVars
+    rcases List.mem_cons.1 h with h | h
+    · cases h; exact sep_elim_left
+    · exact sep_elim_right.trans (ih h)
+
 end defs
 
 end EtcdGrove

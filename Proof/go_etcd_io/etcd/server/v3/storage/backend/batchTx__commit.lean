@@ -49,7 +49,7 @@ theorem backend.batchTx.commit.wp_proof
   ihave #Hbc := isBackend_beginCtx γ P W Pk b $$ Hb
   ihave Hi : (backendInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨⟨%h1, #Hg1, #Hs1⟩, ⟨%h2, #Hg2, #Hs2⟩, ⟨%h3, #Hg3, #Hs3⟩, ⟨%h4, #Hg4, #Hs4⟩⟩
+  icases Hi with ⟨⟨%h1, #Hg1, #Hs1⟩, ⟨%h2, #Hg2, #Hs2⟩, ⟨%h3, #Hg3, #Hs3⟩, ⟨%h4, #Hg4, #Hs4⟩, -⟩
   unfold histSpec
   unfold btW
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩

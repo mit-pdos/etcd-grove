@@ -24,6 +24,7 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.fmt
 public import Perennial.Proof.slices
 public import Perennial.Proof.cmp
+public import Proof.errors.NewVar
 public import Perennial.Proof.encoding.binary
 public import Perennial.Proof.strings
 public import Perennial.Proof.math
@@ -226,7 +227,11 @@ def isInitialized : IProp GF :=
     -- (2026-10-13) `errBreak = errors.New("break")`, the sentinel `hasUnappliedConfChanges`'
     -- callback stops `scan` with and then compares against (so `IsNewError`)
     "#ErrBreak" ∷ (∃ eb : GoInterface, (globalAddr errBreak ↦□ eb : IProp GF) ∗
-      ⌜eb ≠ interface.nil ∧ IsNewError eb⌝))
+      ⌜eb ≠ interface.nil ∧ IsNewError eb⌝) ∗
+    -- (item 8, 2026-10-17) `ErrStopped` and `ErrProposalDropped` as the `errors.New` errors they
+    -- are (`node.go`, `raft.go`), which the server's and the read loop's facts take from here
+    "#ErrStoppedNew" ∷ EtcdGrove.errorsNewVar ErrStopped go!"raft: stopped" ∗
+    "#ErrPropDroppedNew" ∷ EtcdGrove.errorsNewVar ErrProposalDropped go!"raft proposal dropped")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

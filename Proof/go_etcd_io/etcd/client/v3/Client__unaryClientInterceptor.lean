@@ -62,7 +62,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_start as ⟨#Hc, #Hsl, #Hros⟩
   ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, ⟨%dp, %dov, #Hdp, #Hdov, #Hdbf⟩⟩
+  icases Hci with ⟨-, ⟨%dp, %dov, #Hdp, #Hdov, #Hdbf⟩, -⟩
   wp_auto
   ipersist c
   wp_apply_raw wp_reuse dp sl ros $$ []

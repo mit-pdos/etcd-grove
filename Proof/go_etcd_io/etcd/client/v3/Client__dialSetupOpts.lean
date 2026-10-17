@@ -45,7 +45,9 @@ theorem Client.dialSetupOpts.wp_proof
     (wp_WithUnaryInterceptor : grpc.WithUnaryInterceptor.spec (GF := GF) (hG := hG)) :
     Client.dialSetupOpts.spec (GF := GF) (hG := hG) := by
   intro c cfg cr sl ds
-  wp_start as ⟨#Hvars, #Hc, #Hcfg, %Hka, #Hds⟩
+  wp_start as ⟨#Hc, #Hcfg, %Hka, #Hds⟩
+  ihave #Hvars : (clientNewVars : IProp GF) $$ []
+  · iapply clientNewVars_of_init; iPkgInit
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   ihave #Hins : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure $$ []

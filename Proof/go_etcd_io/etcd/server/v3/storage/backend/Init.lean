@@ -3,7 +3,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.backend`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`backendInit`, `Base.lean`): the commit's histograms `rebalanceSec`,
-`spillSec`, `writeSec`, `commitSec` hold `Histogram`s whose `Observe` returns. Its initializer
+`spillSec`, `writeSec`, `commitSec` hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`). Its initializer
 allocates and sets its translated constants, initializes its imports and runs its variables'
 untranslated initializers; the trust-boundary axioms `<X>_init` state the four the fact reads
 (`metrics.go`: `prometheus.NewHistogram(...)`), `opaqueInitsOk` the others.
@@ -54,8 +54,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([boltOpenOptions.init,
-        defragSec.init,
+    ∀ v ∈ ([defragSec.init,
         defragBlockingSec.init,
         snapshotTransferSec.init,
         isDefragActive.init] : List val),
@@ -80,6 +79,11 @@ axiom spillSec_init :
 axiom writeSec_init :
     {{ (True : IProp GF) }} (App (Val writeSec.init) (Val #()))
     {{ RET #(); ∃ h : GoInterfaceOk, globalAddr writeSec ↦ GoInterface.ok h ∗ histSpec h }}
+
+/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems): read-write options with the default page size and `OpenFile`. -/
+axiom boltOpenOptions_init :
+    {{ (True : IProp GF) }} (App (Val boltOpenOptions.init) (Val #()))
+    {{ RET #(); ∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝) }}
 
 end go_etcd_io.etcd.server.v3.storage.backend
 end opaqueInits
@@ -130,7 +134,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of defragLimit))
   -- translated initializer of InitialMmapSize))
   -- translated initializer of minSnapshotWarningTimeout))
-  wp_apply (opaqueInitsOk boltOpenOptions.init (by mem_tac))
+  wp_apply boltOpenOptions_init as ⟨%pboltOpenOptions, HboltOpenOptions, #SboltOpenOptions⟩
   wp_apply commitSec_init as ⟨%hcommitSec, HcommitSec, #ScommitSec⟩
   wp_apply rebalanceSec_init as ⟨%hrebalanceSec, HrebalanceSec, #SrebalanceSec⟩
   wp_apply spillSec_init as ⟨%hspillSec, HspillSec, #SspillSec⟩
@@ -143,6 +147,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ipersist HrebalanceSec
   ipersist HspillSec
   ipersist HwriteSec
+  ipersist HboltOpenOptions
   iframe Hown
   imodintro
   isplitr
@@ -150,7 +155,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold backendInit
+  unfold backendInit EtcdGrove.backend.boltOpenOptionsOk
   iframe #
 
 

@@ -31,6 +31,7 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.time
 public import Proof.go_etcd_io.bbolt.internal.common.Init
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptsDefs
 
 @[expose] public section
 
@@ -120,12 +121,14 @@ instance histSpec_persistent (h : GoInterfaceOk) : Persistent (histSpec (GF := G
   unfold histSpec; infer_instance
 
 /-- The backend's package facts: the commit's histograms of `metrics.go` (`rebalanceSec`,
-`spillSec`, `writeSec`, `commitSec`), each a fixed interface value whose `Observe` returns. -/
+`spillSec`, `writeSec`, `commitSec`), each a fixed interface value whose `Observe` returns; and
+(item 8, 2026-10-17: until then a premise of `New`) `boltOpenOptions` (`boltOpenOptionsOk`). -/
 abbrev backendInit : IProp GF :=
   iprop((∃ h : GoInterfaceOk, globalAddr rebalanceSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr spillSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr writeSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
-    (∃ h : GoInterfaceOk, globalAddr commitSec ↦□ GoInterface.ok h ∗ histSpec h))
+    (∃ h : GoInterfaceOk, globalAddr commitSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
+    EtcdGrove.backend.boltOpenOptionsOk)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
   define_is_pkg_init backendInit

@@ -76,7 +76,7 @@ theorem mvcc.rangeEvents.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
   iunfold mvcc.keyRangeReadSpec at Hrange
   ihave HRg := Hrange $$ %bK %mn' %mx'
   (try wp_auto)

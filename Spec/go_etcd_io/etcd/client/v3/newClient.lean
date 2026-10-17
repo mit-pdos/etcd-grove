@@ -30,7 +30,7 @@ connection), or an error (the dial's) and `nil`. -/
 abbrev newClient.spec : Prop :=
   ∀ (p : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (ep : GoString) (V : WEnv GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ clientNewVars ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       p ↦□ cfg ∗ clientCfgOk cfg ep ∗ watchAddrFacts V ∗ ⌜V.addr = ep ∧ threadBound GF ≤ 2 ^ 31⌝ }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #p))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);

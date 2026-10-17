@@ -76,7 +76,9 @@ theorem newClient.wp_proof
     (wp_autoSync : Client.autoSync.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
   intro p cfg ep V
-  wp_start as ⟨#Hvars, #Hp, #Hcfg, #Hw, %HV⟩
+  wp_start as ⟨#Hp, #Hcfg, #Hw, %HV⟩
+  ihave #Hvars : (clientNewVars : IProp GF) $$ []
+  · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
   icases Hcfg with ⟨#Heps, #Hdo, %Hc⟩
   obtain ⟨Hplain, Htls, Hun, Hpw, Htok, Hctx, Hlg, Hms, Hmr, Hka, Hrej, Has⟩ := Hc
@@ -161,7 +163,7 @@ theorem newClient.wp_proof
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
   wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' ep
-    $$ [$Hvars0 $Hrc $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
+    $$ [$Hrc $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
     as %conn %derr Hres
   · isplitr
     · ipureintro; exact Hka

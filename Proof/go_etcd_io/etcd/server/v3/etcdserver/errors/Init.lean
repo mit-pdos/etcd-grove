@@ -2,9 +2,10 @@
 Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.errors`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`errorsInit`, `errors/Base.lean`): `ErrNoSpace` holds a pointer error. Its
-initializer runs its variables' initializers, all untranslated `errors.New` calls (`errors.go`),
-which the trust-boundary axiom `errorsNewVarsInit` states.
+Its fact (`errorsInit`, `errors/Base.lean`): `ErrNoSpace` holds a pointer error, and every
+error variable its `errors.New` error (`errorsNewVars errorsMsgs`). Its initializer runs its
+variables' initializers, all untranslated `errors.New` calls (`errors.go`), which the
+trust-boundary axiom `errorsNewVarsInit` states.
 -/
 module
 
@@ -130,7 +131,28 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     as ⟨%xErrWrongDowngradeVersionFormat, HErrWrongDowngradeVersionFormat, #MErrWrongDowngradeVersionFormat⟩
   wp_apply (errorsNewVarsInit ErrKeyNotFound.init ErrKeyNotFound go!"etcdserver: key not found" (by mem_tac))
     as ⟨%xErrKeyNotFound, HErrKeyNotFound, #MErrKeyNotFound⟩
+  ipersist HErrUnknownMethod
+  ipersist HErrStopped
+  ipersist HErrCanceled
+  ipersist HErrTimeout
+  ipersist HErrTimeoutDueToLeaderFail
+  ipersist HErrTimeoutDueToConnectionLost
+  ipersist HErrTimeoutLeaderTransfer
+  ipersist HErrTimeoutWaitAppliedIndex
+  ipersist HErrLeaderChanged
+  ipersist HErrNotEnoughStartedMembers
+  ipersist HErrLearnerNotReady
+  ipersist HErrNoLeader
+  ipersist HErrNotLeader
+  ipersist HErrRequestTooLarge
   ipersist HErrNoSpace
+  ipersist HErrTooManyRequests
+  ipersist HErrUnhealthy
+  ipersist HErrCorrupt
+  ipersist HErrBadLeaderTransferee
+  ipersist HErrClusterVersionUnavailable
+  ipersist HErrWrongDowngradeVersionFormat
+  ipersist HErrKeyNotFound
   iframe Hown
   imodintro
   isplitr
@@ -139,8 +161,9 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   try (isplitl []; · (imodintro; itrivial))
   imodintro
-  iexists _
-  iframe HErrNoSpace
+  unfold errorsInit errorsMsgs
+  simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]
+  iframe #
   ipureintro
   exact ⟨_, _, rfl, rfl⟩
 

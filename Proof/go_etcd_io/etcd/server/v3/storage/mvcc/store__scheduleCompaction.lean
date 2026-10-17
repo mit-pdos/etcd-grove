@@ -231,7 +231,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
     ⟨%hIdx, #HIdxG, #HIdx⟩, ⟨%hPause, #HPauseG, #HPause⟩, ⟨%hTot, #HTotG, #HTot⟩,
-    ⟨%cKeys, #HKeysG, #HKeys⟩, ⟨%gLast, #HLastG, #HLast⟩⟩
+    ⟨%cKeys, #HKeysG, #HKeys⟩, ⟨%gLast, #HLastG, #HLast⟩, -⟩
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   iunfold mvcc.compactTok at Htok
@@ -273,7 +273,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
   ihave #Hc2 := Hcert
   iunfold mvcc.idxCert at Hc2
   icases Hc2 with ⟨-, -, %Hlwf, -⟩

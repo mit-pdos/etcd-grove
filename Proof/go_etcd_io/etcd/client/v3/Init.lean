@@ -74,17 +74,33 @@ axiom opaqueInitsOk :
         defaultWaitForReady.init,
         defaultMaxCallSendMsgSize.init,
         defaultMaxCallRecvMsgSize.init,
-        defaultUnaryMaxRetries.init,
-        defaultStreamMaxRetries.init,
-        defaultBackoffWaitBetween.init,
-        defaultBackoffJitterFraction.init,
-        defaultCallOpts.init] : List val),
+        defaultStreamMaxRetries.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- `defaultOptions = &options{..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`'s float arithmetic and `rand.Float64`, which do not panic). -/
 axiom defaultOptions_init :
     {{ (True : IProp GF) }} (App (Val defaultOptions.init) (Val #()))
     {{ RET #(); ∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ go_etcd_io.etcd.cache.v3.backoffOk ov.backoffFunc' }}
+
+/-- `defaultCallOpts = []grpc.CallOption{defaultWaitForReady, defaultMaxCallSendMsgSize, defaultMaxCallRecvMsgSize}` (`options.go`): grpc's `WaitForReady(true)`, `MaxCallSendMsgSize(...)`, `MaxCallRecvMsgSize(...)`, options holding only scalars (`FailFastCallOption`, `MaxSendMsgSizeCallOption`, `MaxRecvMsgSizeCallOption`). -/
+axiom defaultCallOpts_init :
+    {{ (True : IProp GF) }} (App (Val defaultCallOpts.init) (Val #()))
+    {{ RET #(); ∃ (sl : GoSlice) (vs : List GoInterface), globalAddr defaultCallOpts ↦ sl ∗ sl ↦*□ vs ∗ ⌜sl.len = sl.cap ∧ ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty, google_golang_org.grpc.MaxSendMsgSizeCallOption.ty, google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝ }}
+
+/-- `defaultUnaryMaxRetries uint = 100` (`options.go`). -/
+axiom defaultUnaryMaxRetries_init :
+    {{ (True : IProp GF) }} (App (Val defaultUnaryMaxRetries.init) (Val #()))
+    {{ RET #(); ∃ n : w64, globalAddr defaultUnaryMaxRetries ↦ n }}
+
+/-- `defaultBackoffWaitBetween = 25 * time.Millisecond` (`options.go`). -/
+axiom defaultBackoffWaitBetween_init :
+    {{ (True : IProp GF) }} (App (Val defaultBackoffWaitBetween.init) (Val #()))
+    {{ RET #(); ∃ d : time.Duration, globalAddr defaultBackoffWaitBetween ↦ d }}
+
+/-- `defaultBackoffJitterFraction = 0.10` (`options.go`): a float. -/
+axiom defaultBackoffJitterFraction_init :
+    {{ (True : IProp GF) }} (App (Val defaultBackoffJitterFraction.init) (Val #()))
+    {{ RET #(); ∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f }}
 
 end go_etcd_io.etcd.client.v3
 end opaqueInits
@@ -155,11 +171,11 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk defaultWaitForReady.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultMaxCallSendMsgSize.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultMaxCallRecvMsgSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultUnaryMaxRetries.init (by mem_tac))
+  wp_apply defaultUnaryMaxRetries_init as ⟨%ndefaultUnaryMaxRetries, HdefaultUnaryMaxRetries⟩
   wp_apply (opaqueInitsOk defaultStreamMaxRetries.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultBackoffWaitBetween.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultBackoffJitterFraction.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultCallOpts.init (by mem_tac))
+  wp_apply defaultBackoffWaitBetween_init as ⟨%ddefaultBackoffWaitBetween, HdefaultBackoffWaitBetween⟩
+  wp_apply defaultBackoffJitterFraction_init as ⟨%fdefaultBackoffJitterFraction, HdefaultBackoffJitterFraction⟩
+  wp_apply defaultCallOpts_init as ⟨%sldefaultCallOpts, %vsdefaultCallOpts, HdefaultCallOpts, #SdefaultCallOpts, %PdefaultCallOpts⟩
   wp_apply defaultOptions_init as ⟨%dpdefaultOptions, %ovdefaultOptions, HdefaultOptions, #PdefaultOptions, #SdefaultOptions⟩
   -- translated initializer of valCtxCh))
   -- translated initializer of zeroTime))
@@ -169,6 +185,10 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ipersist Hsnp
   ipersist HnoPrefixEnd
   ipersist HdefaultOptions
+  ipersist HdefaultCallOpts
+  ipersist HdefaultUnaryMaxRetries
+  ipersist HdefaultBackoffWaitBetween
+  ipersist HdefaultBackoffJitterFraction
   iframe Hown
   imodintro
   isplitr
@@ -178,6 +198,8 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   imodintro
   unfold go_etcd_io.etcd.cache.v3.clientv3Init
   iframe #
+  ipureintro
+  exact PdefaultCallOpts
 
 
 end go_etcd_io.etcd.client.v3

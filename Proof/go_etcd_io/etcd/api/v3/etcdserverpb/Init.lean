@@ -2,10 +2,11 @@
 Package initialization of `go_etcd_io.etcd.api.v3.etcdserverpb`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates and sets the translated gRPC service
-descriptors (`KV_ServiceDesc`, ...: `grpc.ServiceDesc` literals), initializes its imports and
-runs its other variables' untranslated initializers (the generated protobuf descriptors and enum
-name maps), which the trust-boundary axiom `opaqueInitsOk` says run.
+Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
+initializer allocates and sets the translated gRPC service descriptors (`KV_ServiceDesc`, ...:
+`grpc.ServiceDesc` literals), initializes its imports and runs its other variables' untranslated
+initializers (the generated protobuf descriptors and enum maps): the trust-boundary axioms
+`<X>_init` state the two the fact reads, `opaqueInitsOk` the others.
 -/
 module
 
@@ -53,9 +54,7 @@ axiom opaqueInitsOk :
         file_raft_internal_proto_depIdxs.init,
         AlarmType_name.init,
         AlarmType_value.init,
-        RangeRequest_SortOrder_name.init,
         RangeRequest_SortOrder_value.init,
-        RangeRequest_SortTarget_name.init,
         RangeRequest_SortTarget_value.init,
         Compare_CompareResult_name.init,
         Compare_CompareResult_value.init,
@@ -72,6 +71,16 @@ axiom opaqueInitsOk :
         file_rpc_proto_goTypes.init,
         file_rpc_proto_depIdxs.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+/-- `RangeRequest_SortOrder_name = map[int32]string{...}` (`rpc.pb.go`): the enumeration's names, keys `0` to `2`. -/
+axiom RangeRequest_SortOrder_name_init :
+    {{ (True : IProp GF) }} (App (Val RangeRequest_SortOrder_name.init) (Val #()))
+    {{ RET #(); ∃ (mp : Loc) (M : GMap w32 GoString), globalAddr RangeRequest_SortOrder_name ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝ }}
+
+/-- `RangeRequest_SortTarget_name = map[int32]string{...}` (`rpc.pb.go`): the enumeration's names, keys `0` to `4`. -/
+axiom RangeRequest_SortTarget_name_init :
+    {{ (True : IProp GF) }} (App (Val RangeRequest_SortTarget_name.init) (Val #()))
+    {{ RET #(); ∃ (mp : Loc) (M : GMap w32 GoString), globalAddr RangeRequest_SortTarget_name ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝ }}
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end opaqueInits
@@ -119,9 +128,9 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk file_raft_internal_proto_depIdxs.init (by mem_tac))
   wp_apply (opaqueInitsOk AlarmType_name.init (by mem_tac))
   wp_apply (opaqueInitsOk AlarmType_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk RangeRequest_SortOrder_name.init (by mem_tac))
+  wp_apply RangeRequest_SortOrder_name_init as ⟨%mpRangeRequest_SortOrder_name, %MRangeRequest_SortOrder_name, HRangeRequest_SortOrder_name, #SRangeRequest_SortOrder_name, %PRangeRequest_SortOrder_name⟩
   wp_apply (opaqueInitsOk RangeRequest_SortOrder_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk RangeRequest_SortTarget_name.init (by mem_tac))
+  wp_apply RangeRequest_SortTarget_name_init as ⟨%mpRangeRequest_SortTarget_name, %MRangeRequest_SortTarget_name, HRangeRequest_SortTarget_name, #SRangeRequest_SortTarget_name, %PRangeRequest_SortTarget_name⟩
   wp_apply (opaqueInitsOk RangeRequest_SortTarget_value.init (by mem_tac))
   wp_apply (opaqueInitsOk Compare_CompareResult_name.init (by mem_tac))
   wp_apply (opaqueInitsOk Compare_CompareResult_value.init (by mem_tac))
@@ -144,8 +153,19 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of Maintenance_ServiceDesc))
   -- translated initializer of Auth_ServiceDesc))
   repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; wp_auto)
+  ipersist HRangeRequest_SortOrder_name
+  ipersist HRangeRequest_SortTarget_name
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit
+  iframe #
+  ipureintro
+  exact ⟨PRangeRequest_SortOrder_name, PRangeRequest_SortTarget_name⟩
 
 
 end go_etcd_io.etcd.api.v3.etcdserverpb

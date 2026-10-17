@@ -3,7 +3,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.schema`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta` and `Key` buckets, as
-`bucket.go` makes them, and the consistent index's two key names (`cindex.go`). Its initializer
+`bucket.go` makes them, the consistent index's two key names (`cindex.go`), `AllBuckets` and the compaction's two key
+names (untranslated: the trust-boundary axioms `<X>_init`). Its initializer
 allocates and sets those translated variables (with `keyBucketName`, `metaBucketName`),
 initializes its imports and runs its other variables' untranslated initializers, which the
 trust-boundary axiom `opaqueInitsOk` says run.
@@ -66,9 +67,6 @@ axiom opaqueInitsOk :
         AuthUsers.init,
         AuthRoles.init,
         Test.init,
-        AllBuckets.init,
-        ScheduledCompactKeyName.init,
-        FinishedCompactKeyName.init,
         AuthEnabledKeyName.init,
         AuthRevisionKeyName.init,
         MetaConfStateName.init,
@@ -78,6 +76,21 @@ axiom opaqueInitsOk :
         emptyStorageVersion.init,
         schemaChanges.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+/-- `AllBuckets = []backend.Bucket{Key, Meta, ...}` (`bucket.go`): a slice. -/
+axiom AllBuckets_init :
+    {{ (True : IProp GF) }} (App (Val AllBuckets.init) (Val #()))
+    {{ RET #(); ∃ sl : GoSlice, globalAddr AllBuckets ↦ sl }}
+
+/-- `ScheduledCompactKeyName = []byte("scheduledCompactRev")` (`bucket.go`). -/
+axiom ScheduledCompactKeyName_init :
+    {{ (True : IProp GF) }} (App (Val ScheduledCompactKeyName.init) (Val #()))
+    {{ RET #(); ∃ s : GoSlice, globalAddr ScheduledCompactKeyName ↦ s ∗ s ↦*□ (go!"scheduledCompactRev" : GoString) }}
+
+/-- `FinishedCompactKeyName = []byte("finishedCompactRev")` (`bucket.go`). -/
+axiom FinishedCompactKeyName_init :
+    {{ (True : IProp GF) }} (App (Val FinishedCompactKeyName.init) (Val #()))
+    {{ RET #(); ∃ s : GoSlice, globalAddr FinishedCompactKeyName ↦ s ∗ s ↦*□ (go!"finishedCompactRev" : GoString) }}
 
 end go_etcd_io.etcd.server.v3.storage.schema
 end opaqueInits
@@ -146,9 +159,9 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk AuthUsers.init (by mem_tac))
   wp_apply (opaqueInitsOk AuthRoles.init (by mem_tac))
   wp_apply (opaqueInitsOk Test.init (by mem_tac))
-  wp_apply (opaqueInitsOk AllBuckets.init (by mem_tac))
-  wp_apply (opaqueInitsOk ScheduledCompactKeyName.init (by mem_tac))
-  wp_apply (opaqueInitsOk FinishedCompactKeyName.init (by mem_tac))
+  wp_apply AllBuckets_init as ⟨%slAllBuckets, HAllBuckets⟩
+  wp_apply ScheduledCompactKeyName_init as ⟨%sScheduledCompactKeyName, HScheduledCompactKeyName, #SScheduledCompactKeyName⟩
+  wp_apply FinishedCompactKeyName_init as ⟨%sFinishedCompactKeyName, HFinishedCompactKeyName, #SFinishedCompactKeyName⟩
   -- translated initializer of MetaConsistentIndexKeyName))
   wp_apply wp_string_to_bytes go!"consistent_index" as %sci ⟨Hsci, -⟩
   try wp_auto
@@ -173,6 +186,9 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ipersist HMeta
   ipersist HMetaConsistentIndexKeyName
   ipersist HMetaTermKeyName
+  ipersist HAllBuckets
+  ipersist HScheduledCompactKeyName
+  ipersist HFinishedCompactKeyName
   iframe Hown
   imodintro
   isplitr

@@ -52,13 +52,13 @@ theorem Client.dial.wp_proof
     (wp_Sprintf : fmt.SprintfClientPtr.spec (GF := GF) (hG := hG)) :
     Client.dial.spec (GF := GF) (hG := hG) := by
   intro c cfg cr sl rb esl ep
-  wp_start as ⟨#Hvars, #Hc, #Hcfg, %Hka, #Hdo, #Hatb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
+  wp_start as ⟨#Hc, #Hcfg, %Hka, #Hdo, #Hatb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_dialSetupOpts c cfg cr sl [.resolvers [rb]] $$ [$Hvars $Hc $Hcfg $Hds]
+  wp_apply wp_dialSetupOpts c cfg cr sl [.resolvers [rb]] $$ [$Hc $Hcfg $Hds]
     as %o1 ⟨%si, %ic, #Ho1, Ho1c, %Hsi, #Hic⟩
   · ipureintro; exact Hka
   iunfold dialOptsAt at Ho1

@@ -6,7 +6,8 @@ Its fact (`rpctypesInit`, `cache/v3/Base.lean`): the errors `ErrFutureRev`, `Err
 (`EtcdError`s, whose `Error()` returns), the map `errStringToError` (its values `status.Error`
 errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, a
 premise on the method sets), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
-`ErrAuthOldRevision` and the pointer error `ErrGRPCNotSupportedForLearner`. Its variables'
+`ErrAuthOldRevision` and the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors
+`v3rpc`'s checks and interceptors return and its metadata keys. Its variables'
 initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
 `<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.
 -/
@@ -44,17 +45,8 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrGRPCEmptyKey.init,
-        ErrGRPCKeyNotFound.init,
-        ErrGRPCValueProvided.init,
-        ErrGRPCLeaseProvided.init,
-        ErrGRPCTooManyOps.init,
-        ErrGRPCDuplicateKey.init,
-        ErrGRPCInvalidClientAPIVersion.init,
-        ErrGRPCInvalidSortOption.init,
-        ErrGRPCCompacted.init,
+    ∀ v ∈ ([ErrGRPCCompacted.init,
         ErrGRPCFutureRev.init,
-        ErrGRPCNoSpace.init,
         ErrGRPCLeaseNotFound.init,
         ErrGRPCLeaseExist.init,
         ErrGRPCLeaseTTLTooLarge.init,
@@ -88,10 +80,8 @@ axiom opaqueInitsOk :
         ErrGRPCInvalidAuthToken.init,
         ErrGRPCInvalidAuthMgmt.init,
         ErrGRPCAuthOldRevision.init,
-        ErrGRPCNoLeader.init,
         ErrGRPCNotLeader.init,
         ErrGRPCLeaderChanged.init,
-        ErrGRPCNotCapable.init,
         ErrGRPCStopped.init,
         ErrGRPCTimeout.init,
         ErrGRPCTimeoutDueToLeaderFail.init,
@@ -159,10 +149,7 @@ axiom opaqueInitsOk :
         ErrWrongDowngradeVersionFormat.init,
         ErrInvalidDowngradeTargetVersion.init,
         ErrDowngradeInProcess.init,
-        ErrNoInflightDowngrade.init,
-        MetadataRequireLeaderKey.init,
-        MetadataHasLeader.init,
-        MetadataClientAPIVersionKey.init] : List val),
+        ErrNoInflightDowngrade.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/
@@ -210,6 +197,76 @@ axiom TokenFieldNameSwagger_init :
     {{ (True : IProp GF) }} (App (Val TokenFieldNameSwagger.init) (Val #()))
     {{ RET #(); ∃ s : GoString, globalAddr TokenFieldNameSwagger ↦ s }}
 
+/-- `ErrGRPCEmptyKey = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCEmptyKey_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCEmptyKey.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCEmptyKey ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCInvalidSortOption = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCInvalidSortOption_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCInvalidSortOption.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCInvalidSortOption ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCValueProvided = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCValueProvided_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCValueProvided.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCValueProvided ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCLeaseProvided = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCLeaseProvided_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCLeaseProvided.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCLeaseProvided ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCTooManyOps = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCTooManyOps_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCTooManyOps.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCTooManyOps ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCDuplicateKey = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCDuplicateKey_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCDuplicateKey.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCDuplicateKey ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCKeyNotFound = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCKeyNotFound_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCKeyNotFound.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCKeyNotFound ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCNoSpace = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCNoSpace_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCNoSpace.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNoSpace ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCNotCapable = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCNotCapable_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCNotCapable.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotCapable ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCInvalidClientAPIVersion = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCInvalidClientAPIVersion_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCInvalidClientAPIVersion.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCInvalidClientAPIVersion ↦ GoInterface.ok e }}
+
+/-- `ErrGRPCNoLeader = status.Error(...)` (`error.go`): a non-nil error. -/
+axiom ErrGRPCNoLeader_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCNoLeader.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNoLeader ↦ GoInterface.ok e }}
+
+/-- `MetadataClientAPIVersionKey = "client-api-version"` (`metadatafields.go`): a string. -/
+axiom MetadataClientAPIVersionKey_init :
+    {{ (True : IProp GF) }} (App (Val MetadataClientAPIVersionKey.init) (Val #()))
+    {{ RET #(); ∃ k : GoString, globalAddr MetadataClientAPIVersionKey ↦ k }}
+
+/-- `MetadataRequireLeaderKey = "hasleader"` (`metadatafields.go`): a string. -/
+axiom MetadataRequireLeaderKey_init :
+    {{ (True : IProp GF) }} (App (Val MetadataRequireLeaderKey.init) (Val #()))
+    {{ RET #(); ∃ k : GoString, globalAddr MetadataRequireLeaderKey ↦ k }}
+
+/-- `MetadataHasLeader = "true"` (`metadatafields.go`): a string. -/
+axiom MetadataHasLeader_init :
+    {{ (True : IProp GF) }} (App (Val MetadataHasLeader.init) (Val #()))
+    {{ RET #(); ∃ k : GoString, globalAddr MetadataHasLeader ↦ k }}
+
 end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 end opaqueInits
 
@@ -246,17 +303,17 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply _root_.Perennial.google_golang_org.grpc.status.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply _root_.Perennial.google_golang_org.grpc.codes.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk ErrGRPCEmptyKey.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCKeyNotFound.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCValueProvided.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCLeaseProvided.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCTooManyOps.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCDuplicateKey.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCInvalidClientAPIVersion.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCInvalidSortOption.init (by mem_tac))
+  wp_apply ErrGRPCEmptyKey_init as ⟨%eErrGRPCEmptyKey, HErrGRPCEmptyKey⟩
+  wp_apply ErrGRPCKeyNotFound_init as ⟨%eErrGRPCKeyNotFound, HErrGRPCKeyNotFound⟩
+  wp_apply ErrGRPCValueProvided_init as ⟨%eErrGRPCValueProvided, HErrGRPCValueProvided⟩
+  wp_apply ErrGRPCLeaseProvided_init as ⟨%eErrGRPCLeaseProvided, HErrGRPCLeaseProvided⟩
+  wp_apply ErrGRPCTooManyOps_init as ⟨%eErrGRPCTooManyOps, HErrGRPCTooManyOps⟩
+  wp_apply ErrGRPCDuplicateKey_init as ⟨%eErrGRPCDuplicateKey, HErrGRPCDuplicateKey⟩
+  wp_apply ErrGRPCInvalidClientAPIVersion_init as ⟨%eErrGRPCInvalidClientAPIVersion, HErrGRPCInvalidClientAPIVersion⟩
+  wp_apply ErrGRPCInvalidSortOption_init as ⟨%eErrGRPCInvalidSortOption, HErrGRPCInvalidSortOption⟩
   wp_apply (opaqueInitsOk ErrGRPCCompacted.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCFutureRev.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCNoSpace.init (by mem_tac))
+  wp_apply ErrGRPCNoSpace_init as ⟨%eErrGRPCNoSpace, HErrGRPCNoSpace⟩
   wp_apply (opaqueInitsOk ErrGRPCLeaseNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseTTLTooLarge.init (by mem_tac))
@@ -290,10 +347,10 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCInvalidAuthToken.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCInvalidAuthMgmt.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCAuthOldRevision.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCNoLeader.init (by mem_tac))
+  wp_apply ErrGRPCNoLeader_init as ⟨%eErrGRPCNoLeader, HErrGRPCNoLeader⟩
   wp_apply (opaqueInitsOk ErrGRPCNotLeader.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaderChanged.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCNotCapable.init (by mem_tac))
+  wp_apply ErrGRPCNotCapable_init as ⟨%eErrGRPCNotCapable, HErrGRPCNotCapable⟩
   wp_apply (opaqueInitsOk ErrGRPCStopped.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCTimeoutDueToLeaderFail.init (by mem_tac))
@@ -369,11 +426,25 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrInvalidDowngradeTargetVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrDowngradeInProcess.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrNoInflightDowngrade.init (by mem_tac))
-  wp_apply (opaqueInitsOk MetadataRequireLeaderKey.init (by mem_tac))
-  wp_apply (opaqueInitsOk MetadataHasLeader.init (by mem_tac))
-  wp_apply (opaqueInitsOk MetadataClientAPIVersionKey.init (by mem_tac))
+  wp_apply MetadataRequireLeaderKey_init as ⟨%kMetadataRequireLeaderKey, HMetadataRequireLeaderKey⟩
+  wp_apply MetadataHasLeader_init as ⟨%kMetadataHasLeader, HMetadataHasLeader⟩
+  wp_apply MetadataClientAPIVersionKey_init as ⟨%kMetadataClientAPIVersionKey, HMetadataClientAPIVersionKey⟩
   wp_apply TokenFieldNameGRPC_init as ⟨%sTokenFieldNameGRPC, HTokenFieldNameGRPC⟩
   wp_apply TokenFieldNameSwagger_init as ⟨%sTokenFieldNameSwagger, HTokenFieldNameSwagger⟩
+  ipersist HErrGRPCEmptyKey
+  ipersist HErrGRPCInvalidSortOption
+  ipersist HErrGRPCValueProvided
+  ipersist HErrGRPCLeaseProvided
+  ipersist HErrGRPCTooManyOps
+  ipersist HErrGRPCDuplicateKey
+  ipersist HErrGRPCKeyNotFound
+  ipersist HErrGRPCNoSpace
+  ipersist HErrGRPCNotCapable
+  ipersist HErrGRPCInvalidClientAPIVersion
+  ipersist HErrGRPCNoLeader
+  ipersist HMetadataClientAPIVersionKey
+  ipersist HMetadataRequireLeaderKey
+  ipersist HMetadataHasLeader
   ipersist HTokenFieldNameGRPC
   ipersist HTokenFieldNameSwagger
   ipersist HErrFutureRev

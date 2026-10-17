@@ -37,7 +37,7 @@ theorem Client.dialWithBalancer.wp_proof
     (wp_dial : Client.dial.spec (GF := GF) (hG := hG)) :
     Client.dialWithBalancer.spec (GF := GF) (hG := hG) := by
   intro c cfg cr r esl ep
-  wp_start as ⟨#Hvars, #Hc, #Hcfg, %Hka, #Hdo, #Hatb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
+  wp_start as ⟨#Hc, #Hcfg, %Hka, #Hdo, #Hatb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_auto
@@ -70,7 +70,7 @@ theorem Client.dialWithBalancer.wp_proof
   ipersist Ho2
   (try wp_auto)
   ihave Hrb := etcdResolver_grpc (GF := GF) r ep Hplain $$ Hro
-  wp_apply wp_dial c cfg cr o2 (resolverIface r) esl ep $$ [$Hvars $Hc $Hcfg $Hdo $Hatb $Heps $Hesl $Hrb]
+  wp_apply wp_dial c cfg cr o2 (resolverIface r) esl ep $$ [$Hc $Hcfg $Hdo $Hatb $Heps $Hesl $Hrb]
     as %conn %err Hres
   · isplitr
     · ipureintro; exact Hka

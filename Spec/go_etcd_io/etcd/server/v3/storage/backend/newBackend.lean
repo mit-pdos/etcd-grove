@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 abbrev backend.newBackend.spec : Prop :=
   ∀ (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      boltOpenOptionsOk ∗ fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
+      fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ) }}
     (App (Val (@! newBackend)) (Val #cfg))
   {{ (r : val), RET r; (∃ (b : Loc) (γ : BNames), ⌜r = #b⌝ ∗ newPost γ P W Pk b D) ∨

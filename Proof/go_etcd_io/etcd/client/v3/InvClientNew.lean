@@ -114,6 +114,40 @@ def clientNewVars : IProp GF :=
 instance clientNewVars_persistent : Persistent (clientNewVars (GF := GF)) := by
   unfold clientNewVars; infer_instance
 
+/-- Options holding only scalars are call options the client passes. -/
+theorem callOptsOk_scalar (vs : List GoInterface) :
+    ⌜∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ grpcScalarOptTys⌝ ⊢
+      callOptsOk (GF := GF) vs := by
+  induction vs with
+  | nil => iintro -; unfold callOptsOk; iapply BigSepL.bigSepL_nil.2; itrivial
+  | cons v vs ih =>
+    iintro %h
+    unfold callOptsOk
+    iapply BigSepL.bigSepL_cons.2
+    isplitl []
+    · unfold callOptOk; ileft; ipureintro; exact h v List.mem_cons_self
+    · have ih' := ih; unfold callOptsOk at ih'
+      iapply ih'; ipureintro; exact fun w hw => h w (List.mem_cons_of_mem _ hw)
+
+/-- **`clientNewVars` is part of `client/v3`'s package facts** (`clientv3Init`; item 8, 2026-10-17:
+until then a premise of `New` and its callees). -/
+theorem clientNewVars_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ⊢ clientNewVars := by
+  iintro #Hp
+  ihave Hi : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hi with ⟨-, -, ⟨%sl, %vs, #Hsl, #Hvs, %Hv⟩, #Hn, #Hd, #Hf⟩
+  unfold clientNewVars
+  iframe #
+  unfold callOptsAt
+  iexists vs
+  iframe Hvs
+  isplitr
+  · ipureintro; exact Hv.1
+  iapply callOptsOk_scalar
+  ipureintro
+  exact Hv.2
+
 /-- **What the client's API constructors read of a `*Client`** (persistent; `NewCluster`,
 `NewLease`, `NewAuth`, `NewMaintenance`): non-nil, its logger, its connection, call options and
 configuration, read-only. -/

@@ -28,6 +28,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
+public import Perennial.Proof.context.NewErrorString
 
 @[expose] public section
 
@@ -279,7 +280,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   repeat (first
     | (wp_apply log.wp_New as %_ _)
-    | (wp_apply errors.wp_New_ptr as %_ ⟨%_, #_⟩)
+    | (wp_apply _root_.Perennial.context.wp_New_errorString as %_ #_)
     | wp_auto)
   iStructNamed «$r0»
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu
@@ -330,7 +331,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   · iexists _
     iframe HEB
     ipureintro
-    exact ⟨nofun, isNewError_of_ptr (by assumption)⟩
+    exact ⟨nofun, ⟨_, _, rfl⟩⟩
   -- (raft v3.7, stage R4) `emptyState = &pb.HardState{}`: a pointer to a fresh zero struct,
   -- as `hsRO es ⟨0, 0, 0⟩` unfolded (phase 3)
   ihave #HEmpty' : iprop(∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ ⌜es ≠ null⌝ ∗
@@ -346,9 +347,11 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     iframe HEmpty HeT HeV HeC HesPb
     ipureintro; exact HesNN
   iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
+  simp only [named, EtcdGrove.errorsNewVar]
+  iframe #
   ipureintro
-  exact ⟨nofun, nofun, isNewError_of_ptr (by assumption), nofun, nofun,
-    isNewError_of_ptr (by assumption), isNewError_of_ptr (by assumption), nofun⟩
+  exact ⟨nofun, nofun, ⟨_, _, rfl⟩, nofun, nofun,
+    ⟨_, _, rfl⟩, ⟨_, _, rfl⟩, nofun⟩
 
 end raft_init
 

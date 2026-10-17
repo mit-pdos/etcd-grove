@@ -15,7 +15,8 @@ instances are `sorry -- axiomatized type`, which no result may use. `newBackend`
 fields; this file states those operations' effects, over an abstract points-to `optsAt`, for
 the part of an `Options` value bbolt's `Open` depends on (`OptsM`).
 
-**What is assumed** (each true of Go: the struct's fields and their types are as in
+**What is assumed** (each true of Go; `OptsM`, `optsAt` and the backend's fact
+`boltOpenOptionsOk` are in `BboltOptsDefs.lean`, which the backend's `Base.lean` imports: the struct's fields and their types are as in
 `db.go`, a composite literal `bolt.Options{}` is the zero value):
 - `optsAt l dq o`: the `Options` at `l` (fraction `dq`) has the fields `o` (and some others);
   `optsVal v o`: the Go value `v` is such an `Options`.
@@ -46,28 +47,6 @@ namespace backend
 
 open Iris Iris.BI Iris.ProofMode
 
-section types
-variable [FfiSyntax]
-
-/-- The part of a bbolt `Options` value that `Open`'s behaviour depends on here: read-only (no
-write transaction then), the page size (a new file's pages: `Open` makes a `4 * PageSize` buffer,
-so a negative one panics), the `OpenFile` function (called by `Open`; nil: `os.OpenFile`), and
-the logger (called by `Open` and later). -/
-structure OptsM where
-  readOnly : Bool
-  pageSize : w64
-  openFile : GoFunc
-  logger : GoInterface
-
-/-- `bolt.Options{}`'s fields. -/
-def optsZero : OptsM := ⟨false, W64 0, func.nil, GoInterface.nil⟩
-
-/-- Options `Open` accepts here: read-write, the default page size, the default `OpenFile`. -/
-def OptsM.ok (o : OptsM) : Prop := o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil
-
-theorem optsZero_ok : optsZero.ok := ⟨rfl, rfl, rfl⟩
-
-end types
 
 section preds
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -76,17 +55,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [bbolt_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- The `Options` at `l`, at fraction `dq`, has the fields `o`. -/
-axiom optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF
 /-- The `Options` value `v` has the fields `o`. -/
 axiom optsVal (v : go_etcd_io.bbolt.Options) (o : OptsM) : Prop
 /-- `l` is a `bolt.Logger` whose methods behave as bbolt's calls need. -/
 axiom boltLogger (l : GoInterface) : IProp GF
 
-@[instance] axiom optsAt_timeless (l : Loc) (dq : DFrac) (o : OptsM) :
-  Timeless (optsAt (GF := GF) l dq o)
-@[instance] axiom optsAt_discard_persistent (l : Loc) (o : OptsM) :
-  Persistent (optsAt (GF := GF) l DFrac.discard o)
 @[instance] axiom boltLogger_persistent (l : GoInterface) : Persistent (boltLogger (GF := GF) l)
 @[instance] axiom boltLogger_timeless (l : GoInterface) : Timeless (boltLogger (GF := GF) l)
 
@@ -157,27 +130,6 @@ axiom optsAt_logger (l : Loc) (o : OptsM) :
 
 end preds
 
-section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [bbolt_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- The backend's package variable `boltOpenOptions` (`config_linux.go`:
-`&bolt.Options{MmapFlags: syscall.MAP_POPULATE}`; nil on other systems), never written: nil, or
-options `Open` accepts. A package-initialization fact (the variable's initializer is names-only:
-`syscall.MAP_POPULATE` is not translated); a premise of the constructor until the backend's
-package facts (`backendInit`) state it. -/
-def boltOpenOptionsOk : IProp GF :=
-  iprop(∃ p : Loc,
-    globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions ↦□ p ∗
-    (⌜p = Loc.null⌝ ∨ ∃ o : OptsM, optsAt p DFrac.discard o ∗ ⌜o.ok⌝))
-
-instance boltOpenOptionsOk_persistent : Persistent (boltOpenOptionsOk (GF := GF)) := by
-  unfold boltOpenOptionsOk; infer_instance
-
-end init
 
 end backend
 end EtcdGrove

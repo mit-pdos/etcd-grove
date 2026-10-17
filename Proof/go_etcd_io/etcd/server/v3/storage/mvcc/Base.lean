@@ -22,6 +22,7 @@ the watch stream's errors and gauge, and the watcher group's `watchBatchMaxRevs`
 -/
 module
 
+public import Proof.errors.NewVar
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
@@ -53,8 +54,13 @@ variable [sem : go.Semantics]
 
 namespace go_etcd_io.etcd.pkg.v3.traceutil
 
+/-- `traceutil`'s fact (item 8, 2026-10-17: moved here from the server's `srvReqInit`): `Tracer`
+holds a fixed tracer (`trace.go`: `noop.NewTracerProvider().Tracer(...)`). -/
+abbrev traceutilInit : IProp GF :=
+  iprop(∃ tr : GoInterfaceOk, globalAddr Tracer ↦□ GoInterface.ok tr)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init traceutilInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
   build_get_is_pkg_init_wf
 
@@ -176,7 +182,9 @@ and compaction's (2026-10-13, unit 5a): the two `Meta` key names it reads and wr
 `"scheduledCompactRev"` and `"finishedCompactRev"`, read-only; `schema` is names-only for them,
 and its own facts are the consistent index's), and the compaction metrics (`metrics.go`: the
 histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs`, whose
-`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`). -/
+`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`); and
+(item 8, 2026-10-17) `ErrCompacted` and `ErrFutureRev` as the `errors.New` errors they are, which
+the apply package's facts take from here. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -209,7 +217,9 @@ abbrev mvccInit : IProp GF :=
     (∃ h : GoInterfaceOk, globalAddr dbCompactionPauseMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr dbCompactionTotalMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ c : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
-    (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g))
+    (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    EtcdGrove.errorsNewVar ErrCompacted go!"mvcc: required revision has been compacted" ∗
+    EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

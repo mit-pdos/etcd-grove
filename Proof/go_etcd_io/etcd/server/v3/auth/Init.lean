@@ -173,7 +173,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ihave #TIA := EtcdGrove.errorMsg_triple _ _ _ $$ MIA
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd11
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩
   iframe Hown
   imodintro
   isplitr

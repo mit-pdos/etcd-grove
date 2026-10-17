@@ -377,10 +377,104 @@ are untranslated (`opaqueInitsOk`).''',
             'ihave #TIA := EtcdGrove.errorMsg_triple _ _ _ $$ MIA',
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
             '· iapply isPkgInit_access $$ Hd11',
-            'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS⟩'] + FIN_PRE[:6] + [
+            'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
 )
+
+# Item 8, step 3 (2026-10-17): facts moved into their owners' packages.
+_E = SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.errors']
+_E['doc'] = """Its fact (`errorsInit`, `errors/Base.lean`): `ErrNoSpace` holds a pointer error, and every
+error variable its `errors.New` error (`errorsNewVars errorsMsgs`). Its initializer runs its
+variables' initializers, all untranslated `errors.New` calls (`errors.go`), which the
+trust-boundary axiom `errorsNewVarsInit` states."""
+_E['finish'] = ([f'ipersist H{x}' for x in _E['newvars']] + FIN_PRE[:6] +
+    ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+     'unfold errorsInit errorsMsgs', 'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
+     'iframe #', 'ipureintro', 'exact ⟨_, _, rfl, rfl⟩'])
+
+_B = SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']
+_B['custom']['boltOpenOptions'] = dict(
+    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems): read-write options with the default page size and `OpenFile`. -/',
+    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)',
+    pat='⟨%p@, H@, #S@⟩')
+_B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`).")
+_B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
+                 'ipersist HboltOpenOptions'] + FIN_PRE[:6] +
+                ['imodintro', 'unfold backendInit EtcdGrove.backend.boltOpenOptionsOk', 'iframe #'])
+
+SPECIAL['go_etcd_io.etcd.pkg.v3.traceutil'] = dict(
+    doc="""Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
+variables' initializers are untranslated: the trust-boundary axiom `Tracer_init` states the one
+the fact reads (`trace.go`), `opaqueInitsOk` the others.""",
+    custom={'Tracer': dict(
+        doc='/-- `Tracer = noop.NewTracerProvider().Tracer(instrumentationScope)` (`trace.go`): a `trace.Tracer`. -/',
+        post='∃ tr : GoInterfaceOk, globalAddr Tracer ↦ GoInterface.ok tr', pat='⟨%tr@, H@⟩')},
+    finish=['ipersist HTracer'] + FIN_PRE[:6] + ['imodintro', 'unfold traceutilInit', 'iframe #'],
+)
+
+_R = SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']
+_RERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided', 'ErrGRPCLeaseProvided',
+          'ErrGRPCTooManyOps', 'ErrGRPCDuplicateKey', 'ErrGRPCKeyNotFound', 'ErrGRPCNoSpace',
+          'ErrGRPCNotCapable', 'ErrGRPCInvalidClientAPIVersion', 'ErrGRPCNoLeader']
+_RKEYS = {'MetadataClientAPIVersionKey': 'client-api-version', 'MetadataRequireLeaderKey': 'hasleader',
+          'MetadataHasLeader': 'true'}
+for x in _RERRS:
+    _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(...)` (`error.go`): a non-nil error. -/',
+                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e', pat='⟨%e@, H@⟩')
+for x, v in _RKEYS.items():
+    _R['custom'][x] = dict(doc=f'/-- `{x} = "{v}"` (`metadatafields.go`): a string. -/',
+                           post=f'∃ k : GoString, globalAddr {x} ↦ k', pat='⟨%k@, H@⟩')
+_R['finish'] = [f'ipersist H{x}' for x in _RERRS + list(_RKEYS)] + _R['finish']
+_R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`.", "the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors\n`v3rpc`'s checks and interceptors return and its metadata keys.")
+
+_P = SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb']
+_P['doc'] = """Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
+initializer allocates and sets the translated gRPC service descriptors (`KV_ServiceDesc`, ...:
+`grpc.ServiceDesc` literals), initializes its imports and runs its other variables' untranslated
+initializers (the generated protobuf descriptors and enum maps): the trust-boundary axioms
+`<X>_init` state the two the fact reads, `opaqueInitsOk` the others."""
+for x, n in [('RangeRequest_SortOrder_name', 2), ('RangeRequest_SortTarget_name', 4)]:
+    _P['custom'] = _P.get('custom', {})
+    _P['custom'][x] = dict(
+        doc=f'/-- `{x} = map[int32]string{{...}}` (`rpc.pb.go`): the enumeration\'s names, keys `0` to `{n}`. -/',
+        post=f'∃ (mp : Loc) (M : GMap w32 GoString), globalAddr {x} ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ {n}⌝',
+        pat='⟨%mp@, %M@, H@, #S@, %P@⟩')
+_P['finish'] = ([_P['finish'][0], 'ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name'] +
+                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit', 'iframe #',
+                 'ipureintro', 'exact ⟨PRangeRequest_SortOrder_name, PRangeRequest_SortTarget_name⟩'])
+
+_C = SPECIAL['go_etcd_io.etcd.client.v3']
+_C['custom'].update({
+    'defaultCallOpts': dict(
+        doc='/-- `defaultCallOpts = []grpc.CallOption{defaultWaitForReady, defaultMaxCallSendMsgSize, defaultMaxCallRecvMsgSize}` (`options.go`): grpc\'s `WaitForReady(true)`, `MaxCallSendMsgSize(...)`, `MaxCallRecvMsgSize(...)`, options holding only scalars (`FailFastCallOption`, `MaxSendMsgSizeCallOption`, `MaxRecvMsgSizeCallOption`). -/',
+        post='∃ (sl : GoSlice) (vs : List GoInterface), globalAddr defaultCallOpts ↦ sl ∗ sl ↦*□ vs ∗ ⌜sl.len = sl.cap ∧ ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty, google_golang_org.grpc.MaxSendMsgSizeCallOption.ty, google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝',
+        pat='⟨%sl@, %vs@, H@, #S@, %P@⟩'),
+    'defaultUnaryMaxRetries': dict(doc='/-- `defaultUnaryMaxRetries uint = 100` (`options.go`). -/',
+        post='∃ n : w64, globalAddr defaultUnaryMaxRetries ↦ n', pat='⟨%n@, H@⟩'),
+    'defaultBackoffWaitBetween': dict(doc='/-- `defaultBackoffWaitBetween = 25 * time.Millisecond` (`options.go`). -/',
+        post='∃ d : time.Duration, globalAddr defaultBackoffWaitBetween ↦ d', pat='⟨%d@, H@⟩'),
+    'defaultBackoffJitterFraction': dict(doc='/-- `defaultBackoffJitterFraction = 0.10` (`options.go`): a float. -/',
+        post='∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f', pat='⟨%f@, H@⟩'),
+})
+_C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
+                 'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
+                 'ipersist HdefaultBackoffJitterFraction'] + FIN_PRE[:6] +
+                ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
+                 'ipureintro', 'exact PdefaultCallOpts'])
+
+_S = SPECIAL['go_etcd_io.etcd.server.v3.storage.schema']
+_S['custom'] = {
+    'AllBuckets': dict(doc='/-- `AllBuckets = []backend.Bucket{Key, Meta, ...}` (`bucket.go`): a slice. -/',
+                       post='∃ sl : GoSlice, globalAddr AllBuckets ↦ sl', pat='⟨%sl@, H@⟩'),
+    'ScheduledCompactKeyName': dict(doc='/-- `ScheduledCompactKeyName = []byte("scheduledCompactRev")` (`bucket.go`). -/',
+        post='∃ s : GoSlice, globalAddr ScheduledCompactKeyName ↦ s ∗ s ↦*□ (go!"scheduledCompactRev" : GoString)', pat='⟨%s@, H@, #S@⟩'),
+    'FinishedCompactKeyName': dict(doc='/-- `FinishedCompactKeyName = []byte("finishedCompactRev")` (`bucket.go`). -/',
+        post='∃ s : GoSlice, globalAddr FinishedCompactKeyName ↦ s ∗ s ↦*□ (go!"finishedCompactRev" : GoString)', pat='⟨%s@, H@, #S@⟩'),
+}
+_S['doc'] = _S['doc'].replace("and the consistent index's two key names (`cindex.go`).", "the consistent index's two key names (`cindex.go`), `AllBuckets` and the compaction's two key\nnames (untranslated: the trust-boundary axioms `<X>_init`).")
+_S['finish'] = (_S['finish'][:8] + ['ipersist HAllBuckets', 'ipersist HScheduledCompactKeyName', 'ipersist HFinishedCompactKeyName']
+                + _S['finish'][8:])
 
 
 RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft.v3.tracker',

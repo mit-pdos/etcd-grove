@@ -314,7 +314,7 @@ theorem key_isBucket (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
   iintro ⟨#Hpkg, #Hk⟩
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsi with ⟨-, -, -, ⟨%b0, #Hk0, #Hb0⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%b0, #Hk0, #Hb0⟩, -⟩
   icombine Hk Hk0 gives %Heq
   subst Heq
   iapply bucketIs_isBucket hID hName hSafe $$ [$Hpkg $Hb0]

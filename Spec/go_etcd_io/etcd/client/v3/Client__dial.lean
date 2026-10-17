@@ -30,7 +30,7 @@ installed), or an error. -/
 abbrev Client.dial.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (sl : GoSlice)
     (rb : GoInterface) (esl : GoSlice) (ep : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientNewVars ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗ ⌜sint.Z cfg.DialKeepAliveTime' ≤ 0⌝ ∗
       cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
       clientF c go!"authTokenBundle" ↦□ GoInterface.nil ∗
