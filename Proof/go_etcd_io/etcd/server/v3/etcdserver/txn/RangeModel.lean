@@ -11,8 +11,9 @@ relates it to the client model's `rangeSel`/`rangeKvsOk` (`InvEtcd.lean`).
   when it is positive and below `MaxInt64`, the ordering is the default (`isDefaultOrd` of the
   request's raw target and order) and there is no revision filter; else no limit (`0`).
 * **What mvcc reads** (`kvRead`): with `FastKeysOnly` (`fastKeysOnly`: keys-only and not sorted
-  by value) a key-value without its value *and its lease* (mvcc's `kvPtrIs false`): the
-  server's keys-only responses carry lease `0` unless sorted by value.
+  by value) a key-value without its value (mvcc's `kvPtrIs false`), with its lease since
+  etcd-io/etcd#22550 (the key index records it; before, lease `0`:
+  `issues/etcd-range-keys-only-lease.md`).
 * **The key-values sorted** (`srvPre`): the state's in the range, at most `rangeLimitOf o` of
   them, as read, those passing the revision filters (`kvFilterOk`); none if count-only.
 * **Sorted** (`srvSorted`): a permutation sorted by the target, ascending or descending
@@ -21,8 +22,9 @@ relates it to the client model's `rangeSel`/`rangeKvsOk` (`InvEtcd.lean`).
 * **Limited and assembled** (`srvTrunc`, `srvMore`, `respKv`): the first `limit`, `More` when
   more remained, values dropped if keys-only.
 
-**Where the server and the client model differ** (`srvRangeOk_rangeKvsOk`): (1) a fast keys-only
-response's key-values have lease `0` (`leaseZ`); (2) a sort by a target other than the key with
+**Where the server and the client model differ** (`srvRangeOk_rangeKvsOk`): (1) before
+etcd-io/etcd#22550, a fast keys-only response's key-values had lease `0` (no longer); (2) a sort
+by a target other than the key with
 no order (`SortOrder = NONE`: the server sorts ascending) and a positive limit (no revision
 filter) sorts only the first `limit + 1` keys of the range, since `rangeLimit` tests the
 request's raw order (`IsDefaultOrdering(target, NONE)` is true) while `sortRangeResults` tests
@@ -95,9 +97,10 @@ def rangeLimitOf (o : OpFull) : w64 :=
 /-- mvcc reads keys and revisions only (`FastKeysOnly`): keys-only, not sorted by value. -/
 def fastKeysOnly (o : OpFull) : Bool := o.keysOnly && decide (o.sortTarget ≠ W64 4)
 
-/-- A key-value as mvcc's read gives it: without value and lease for a fast keys-only read. -/
+/-- A key-value as mvcc's read gives it: without value for a fast keys-only read (with its
+lease: etcd-io/etcd#22550). -/
 def kvRead (fast : Bool) (v : EtcdKv) : EtcdKv :=
-  if fast then { v with value := [], lease := W64 0 } else v
+  if fast then { v with value := [] } else v
 
 /-- **The key-values `executeRange` sorts**: the state's in the range, at most `rangeLimitOf o`
 of them, as mvcc reads them, those passing the revision filters; none if count-only. -/
@@ -146,9 +149,6 @@ read with a positive limit (the request's target is not the key, its order `NONE
 positive, no revision filter). -/
 def cutEarly (o : OpFull) : Prop :=
   (o.effSortOrder = W64 1 ∨ o.effSortOrder = W64 2) ∧ 0 < sint.Z (rangeLimitOf o)
-
-/-- A fast keys-only read zeroes the lease. -/
-def leaseZ (fast : Bool) (v : EtcdKv) : EtcdKv := if fast then { v with lease := W64 0 } else v
 
 /-- The request's sort target is one of the protobuf's (`KEY` .. `VALUE`): `sortRangeResults`
 panics (`lg.Panic("unexpected sort target")`) on any other when it sorts. The gRPC layer
@@ -455,9 +455,8 @@ theorem kvLeBy_kvRead (t : w64) (f : Bool) (hf : f = true → t ≠ W64 4) (a b 
     simp only [↓reduceIte, this]
 
 theorem respKv_kvRead (o : OpFull) (v : EtcdKv) :
-    respKv o (kvRead (fastKeysOnly o) v) =
-      leaseZ (fastKeysOnly o) (if o.keysOnly then { v with value := [] } else v) := by
-  unfold respKv kvRead leaseZ fastKeysOnly
+    respKv o (kvRead (fastKeysOnly o) v) = (if o.keysOnly then { v with value := [] } else v) := by
+  unfold respKv kvRead fastKeysOnly
   cases hk : o.keysOnly <;> by_cases ht : o.sortTarget = W64 4 <;>
     simp only [ht, ne_eq, not_true, not_false_eq_true, decide_true, decide_false,
       Bool.and_true, Bool.and_false, ↓reduceIte, Bool.false_eq_true] <;> rfl
@@ -629,20 +628,19 @@ def clientResp (o : OpFull) (v : EtcdKv) : EtcdKv :=
   if o.keysOnly then { v with value := [] } else v
 
 theorem respKv_map_kvRead (o : OpFull) (L : List EtcdKv) :
-    (L.map (kvRead (fastKeysOnly o))).map (respKv o) =
-      (L.map (clientResp o)).map (leaseZ (fastKeysOnly o)) := by
+    (L.map (kvRead (fastKeysOnly o))).map (respKv o) = L.map (clientResp o) := by
   simp only [List.map_map]
   congr 1
   funext v
   simp [clientResp, respKv_kvRead]
 
-/-- **The server's range is the client's** (`rangeKvsOk` of `rangeSel`), up to the lease of a
-fast keys-only read (`leaseZ`), unless the sort is cut early (`cutEarly`); and `More` is the
-client's (`getRespMore`'s) below the largest limit. -/
+/-- **The server's range is the client's** (`rangeKvsOk` of `rangeSel`), unless the sort is cut
+early (`cutEarly`); and `More` is the client's (`getRespMore`'s) below the largest limit. (Before
+etcd-io/etcd#22550, only up to the lease of a fast keys-only read, which was `0`.) -/
 theorem srvRangeOk_rangeKvsOk (o : OpFull) (s : List EtcdKv) (kvs : List EtcdKv) (more : Bool)
     (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
     (h : srvRangeOk o s kvs more) (hcut : ¬ cutEarly o) :
-    ∃ kvs', rangeKvsOk o (rangeSel s o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o)) ∧
+    ∃ kvs', rangeKvsOk o (rangeSel s o) kvs' ∧ kvs = kvs' ∧
       (o.base.countOnly = false → sint.Z o.base.limit < 2 ^ 63 - 1 →
         more = decide (0 < sint.Z o.base.limit ∧
           sint.Z o.base.limit < ((rangeSel s o).length : Int))) := by
@@ -665,11 +663,10 @@ theorem srvRangeOk_rangeKvsOk (o : OpFull) (s : List EtcdKv) (kvs : List EtcdKv)
     intro v _
     simp [Function.comp, kvFilterOk_kvRead]
   -- the client's key-values for a list `L` the server sorted
-  have hclient : ∀ L : List EtcdKv, kvs = ((srvTrunc o L).map (clientResp o)).map
-      (leaseZ (fastKeysOnly o)) → kvs = ((if o.base.countOnly then []
+  have hclient : ∀ L : List EtcdKv, kvs = (srvTrunc o L).map (clientResp o) →
+      kvs = (if o.base.countOnly then []
         else ((if 0 < sint.Z o.base.limit then L.take (sint.Z o.base.limit).toNat else L).map
-          (fun v => if o.keysOnly then { v with value := [] } else v)))).map
-            (leaseZ (fastKeysOnly o)) := by
+          (fun v => if o.keysOnly then { v with value := [] } else v))) := by
     intro L hL
     rw [hL, srvTrunc_eq, hco']
     rfl

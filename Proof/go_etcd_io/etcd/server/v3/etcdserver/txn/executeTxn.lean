@@ -170,7 +170,7 @@ theorem txn.rangeResult_txn_or_err_et (resp : Loc) (err : GoInterface) (log : mv
           rangeResponseIs resp rev kvs more
             (W64 ((rangeIn (mvcc.stateAt log (sint.nat rev)) o).length : Int)) ∗
           ⌜∃ kvs', rangeKvsOk o (rangeSel (mvcc.stateAt log (sint.nat rev)) o) kvs' ∧
-            kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨ mvcc.errorfIs err := by
+            kvs = kvs'⌝) ∨ mvcc.errorfIs err := by
   iintro #H
   ihave #H2 := H
   iunfold rangeResult at H2
@@ -348,7 +348,7 @@ theorem txn.executeTxn.wp_proof
           ∃ rev : w64, if skip then rangeResponseIs rr0 rev [] false (W64 0)
             else ∃ (kvs : List EtcdKv) (more : Bool),
               rangeResponseIs rr0 rev kvs more (W64 ((rangeIn stn o).length : Int)) ∗
-              ⌜∃ kvs', rangeKvsOk o (rangeSel stn o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨
+              ⌜∃ kvs', rangeKvsOk o (rangeSel stn o) kvs' ∧ kvs = kvs'⌝) ∨
           (∃ e' : GoInterface, ⌜v = returnVal (PairV #(W64 0) #e')⌝ ∗ ⌜nd = false⌝ ∗
             mvcc.errorfIs e' ∗ ∃ pend' : List mvcc.Change,
               txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend')))

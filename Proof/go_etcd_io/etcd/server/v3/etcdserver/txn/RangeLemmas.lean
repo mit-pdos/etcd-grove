@@ -5,7 +5,7 @@ Lean-first.
 
 * `rangeKvs_kvsAt`: the key-values mvcc's read fills (`rangeKvs`, one per answer, each the
   state's key-value of the answer's key) are the owned key-values of the selection, as read
-  (`kvRead`: a fast keys-only read's have no value and lease);
+  (`kvRead`: a fast keys-only read's have no value);
 * `taken_stateAt`, `total_stateAt`: the answers taken and the count, against the state at the
   revision read (`Lemmas.lean`'s `rangeAnswers_stateAt` at a word revision);
 * `srvPre_small`: the sort's premise from a small state (`stateAt_small`).
@@ -197,8 +197,8 @@ variable [sem : go.Semantics]
 
 open go_etcd_io.etcd.server.v3.storage.mvcc in
 /-- **`rangeResult` in the client model's terms**: a success's key-values are `rangeKvsOk` of
-the client's selection `rangeSel` of the state read, up to the lease of a fast keys-only read
-(`leaseZ`), and `More` is the client's below the largest limit; the other outcomes as in
+the client's selection `rangeSel` of the state read (a fast keys-only read's with their leases
+since etcd-io/etcd#22550), and `More` is the client's below the largest limit; the other outcomes as in
 `rangeResult`. -/
 def rangeResultClient (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull)
     (withTotal : Bool) : IProp GF :=
@@ -212,7 +212,7 @@ def rangeResultClient (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w
       rangeResponseIs resp rev kvs more
         (srvCount o (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) withTotal) ∗
       ⌜rangeKvsOk o (rangeSel (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) o) kvs' ∧
-        kvs = kvs'.map (leaseZ (fastKeysOnly o)) ∧
+        kvs = kvs' ∧
         (o.base.countOnly = false → sint.Z o.base.limit < 2 ^ 63 - 1 →
           more = decide (0 < sint.Z o.base.limit ∧ sint.Z o.base.limit <
             ((rangeSel (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev o.base.rev))) o).length : Int)))⌝))

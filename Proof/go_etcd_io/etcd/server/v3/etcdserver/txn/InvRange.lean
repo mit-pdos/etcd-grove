@@ -117,7 +117,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- A fast keys-only read's key-value is an owned one without value and lease. -/
+/-- A fast keys-only read's key-value is an owned one without value (with its lease). -/
 theorem kvPtrIs_false (p : Loc) (v : EtcdKv) :
     mvcc.kvPtrIs (GF := GF) false p v ⊢ |==> kvAt p (kvRead true v) := by
   simp only [kvAt, mvcc.kvPtrIs, kvRead, ↓reduceIte, Bool.false_eq_true]

@@ -356,7 +356,7 @@ theorem txnWriteIs_of_view (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (
   ipureintro; exact h
 
 /-- **A range of a transaction at its own revision** (revision `0`) at a context never canceled:
-no error, the response the client's `rangeKvsOk` of the selection (up to `leaseZ`), the count
+no error, the response the client's `rangeKvsOk` of the selection, the count
 the range's. -/
 theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull)
     (hrev0 : o.base.rev = W64 0) (h0 : 0 ≤ sint.Z rev)
@@ -367,7 +367,7 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
         rangeResponseIs resp rev kvs more
           (W64 ((rangeIn (mvcc.stateAt log (sint.nat rev)) o).length : Int)) ∗
         ⌜∃ kvs', rangeKvsOk o (rangeSel (mvcc.stateAt log (sint.nat rev)) o) kvs' ∧
-          kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝ := by
+          kvs = kvs'⌝ := by
   have h00 : sint.Z (W64 0 : w64) = 0 := by decide
   have hRR : mvcc.rangeRev rev o.base.rev = rev := by
     unfold mvcc.rangeRev; rw [hrev0, h00]; simp

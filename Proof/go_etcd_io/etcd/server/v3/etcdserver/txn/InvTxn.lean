@@ -13,8 +13,8 @@ wrapper).
 
 **The responses** (`responseOpIs`, `responseOpsIs`, `txnRespFieldsIs`, `txnResponseIs`; moved
 from `Requests.lean`, unit 0's, and changed): they mirror `TxnOpResult`. A range's response is the
-server's (`RangeModel.lean`): its key-values are the client's `rangeKvsOk` of the selection up to
-the lease of a fast keys-only read (`leaseZ`, `issues/etcd-range-keys-only-lease.md`), its count
+server's (`RangeModel.lean`): its key-values are the client's `rangeKvsOk` of the selection (a fast
+keys-only read's with their leases since etcd-io/etcd#22550, `issues/etcd-range-keys-only-lease.md`), its count
 the result's; or (`skip`, `skipRangeExecution`) header-only: no key-values, `More` false, count
 `0`. A put's and a delete's headers and previous key-values are any (`PrevKv` is outside
 `TxnOpResult`); a delete has its count; a nested transaction its own outcome and results, with a
@@ -116,7 +116,7 @@ def responseOpIs (skip : Bool) (p : Loc) : TxnOp → TxnOpResult → IProp GF
             if skip then rangeResponseIs r rev [] false (W64 0)
             else ∃ (kvs : List EtcdKv) (more : Bool),
               rangeResponseIs r rev kvs more (W64 (n : Int)) ∗
-              ⌜∃ kvs', rangeKvsOk o sel kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝)
+              ⌜∃ kvs', rangeKvsOk o sel kvs' ∧ kvs = kvs'⌝)
       | .put _ _ _, .put | .putKeep _ _, .put | .putIgnVal _ _, .put => iprop(
           ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty)
             #w⌝ ∗
