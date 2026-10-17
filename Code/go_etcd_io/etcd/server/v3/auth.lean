@@ -3,8 +3,10 @@ module
 
 public import Perennial.Code.context
 public import Perennial.Code.errors
+public import Perennial.Code.time
 public import Code.go_uber_org.zap
 public import Perennial.Code.sync
+public import Code.github_com.prometheus.client_golang.prometheus
 public import Code.go_etcd_io.etcd.api.v3.authpb
 public import Code.go_etcd_io.etcd.pkg.v3.adt
 public import Perennial.Code.strings
@@ -131,10 +133,6 @@ axiom tokenJWT.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom jwtOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom simpleTokenTTLKeeper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom tokenSimple.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom optSignMethod [FfiSyntax] [GoGlobalContext] : val
 
 axiom optPublicKey [FfiSyntax] [GoGlobalContext] : val
@@ -146,6 +144,9 @@ axiom optTTL [FfiSyntax] [GoGlobalContext] : val
 axiom letters [FfiSyntax] [GoGlobalContext] : val
 
 axiom defaultSimpleTokenLength [FfiSyntax] [GoGlobalContext] : val
+
+@[reducible] noncomputable def simpleTokenCountWarnThreshold [FfiSyntax] [GoGlobalContext] : val :=
+  #(10000 : Int)
 
 axiom rootUser [FfiSyntax] [GoGlobalContext] : val
 
@@ -168,6 +169,9 @@ noncomputable def reportCurrentAuthRev [FfiSyntax] [GoGlobalContext] : GoString 
 
 axiom reportCurrentAuthRev.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def simpleTokenGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/auth.simpleTokenGauge"
+
 noncomputable def knownOptions [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.knownOptions"
 
@@ -181,12 +185,8 @@ axiom DefaultTTL.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def simpleTokenTTLDefault [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.simpleTokenTTLDefault"
 
-axiom simpleTokenTTLDefault.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def simpleTokenTTLResolution [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.simpleTokenTTLResolution"
-
-axiom simpleTokenTTLResolution.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def rootPerm [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.rootPerm"
@@ -500,6 +500,443 @@ noncomputable def isOpenEnded.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd")) (Val #(W64 0))))) (Val #(W8 0)))) (Val #false))))))
+
+/-- go: simple_token.go:57:33 -/
+noncomputable def simpleTokenTTLKeeper.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tm"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "tm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm")))))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase (go.GoType.StructType []) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #()))))])))))))))))
+
+/-- go: simple_token.go:65:33 -/
+noncomputable def simpleTokenTTLKeeper.addSimpleToken.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tm"
+  (Lam "token"
+  (App (Val exceptionDo)
+  (Let "tm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"simpleTokenTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"Add"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.string _root_.Perennial.time.Time.ty)]))) (Val #())) (Var "$a0")))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val simpleTokenCountWarnThreshold)))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"high number of simple tokens stored in memory"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"simple-token-count"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"auth-token-ttl"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"simpleTokenTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr simpleTokenGauge))) (Val #())))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))) (Var "$r0")))))))))))
+
+/-- go: simple_token.go:80:33 -/
+noncomputable def simpleTokenTTLKeeper.resetSimpleToken.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tm"
+  (Lam "token"
+  (App (Val exceptionDo)
+  (Let "tm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string _root_.Perennial.time.Time.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "token")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"simpleTokenTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"Add"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))) (Var "$r0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))))))
+
+/-- go: simple_token.go:86:33 -/
+noncomputable def simpleTokenTTLKeeper.deleteSimpleToken.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tm"
+  (Lam "token"
+  (App (Val exceptionDo)
+  (Let "tm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.float64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.string _root_.Perennial.time.Time.ty)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr simpleTokenGauge))) (Val #())))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.string _root_.Perennial.time.Time.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))))
+
+/-- go: simple_token.go:91:33 -/
+noncomputable def simpleTokenTTLKeeper.run.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tm"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "tm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr simpleTokenTTLResolution))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.NewTicker []))) (Val #())) (Var "$a0")))
+  (Let "tokenTicker" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.time.Ticker.ty go!"C"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Var "tokenTicker"))))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "nowtime" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.float64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.string _root_.Perennial.time.Time.ty)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr simpleTokenGauge))) (Val #())))) (Var "$a0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (Let "tokenendtime" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (map.forRange go.string _root_.Perennial.time.Time.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "tokenendtime"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"After"))) (Var "nowtime")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "t"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.string _root_.Perennial.time.Time.ty)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "t"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"deleteTokenFunc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm")))) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "t") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "tokenendtime") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "nowtime") (Var "$r0"))))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #()))))]))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef simpleTokenTTLKeeper.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tm"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Ticker.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Var "tokenTicker"))) (Val #())))))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Pair (Var "tokenTicker") (Var "$r0")))))))))))))
+
+/-- go: simple_token.go:140:23 -/
+noncomputable def tokenSimple.assignSimpleTokenToUser.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "username"
+  (Lam "token"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "token")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"addSimpleToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (Val (GoInstruction (FuncResolve redactToken []))) (Val #())) (Var "$a0")))
+  (Let "tokenFingerprint" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to assign already-used simple token to a user"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"user-name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"token-fingerprint"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "tokenFingerprint"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenFingerprint") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (Val #())))))))))))))
+
+/-- go: simple_token.go:161:23 -/
+noncomputable def tokenSimple.invalidateUser.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "username"
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))
+  (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (Val #())))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (map.forRange go.string go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (App (Val (GoInstruction (GoLoad go.string))) (Var "username")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"deleteSimpleToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.string go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "token") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- go: simple_token.go:175:23 -/
+noncomputable def tokenSimple.enable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "tk"
+  (App (Val exceptionDo)
+  (Let "tk" (App (Val (GoInstruction (GoAlloc go.string))) (Var "tk"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "tk")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "tk"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType go.string go.string)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"deleted a simple token"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"user-name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"token"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "tk"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "username") (Var "$r0"))))))))))))))))
+  (Let "delf" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc simpleTokenTTLKeeper.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string _root_.Perennial.time.Time.ty)]))) (Val #())) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "$v2" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (Var "delf"))
+  (Let "$v4" (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (App (Val (GoInstruction (CompositeLiteral simpleTokenTTLKeeper.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tokens")) (ElementExpression (go.GoType.MapType go.string _root_.Perennial.time.Time.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"donec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v1"))), (KeyedElement (some (KeyField go!"stopc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v2"))), (KeyedElement (some (KeyField go!"deleteTokenFunc")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.string] false [])) (Var "$v3"))), (KeyedElement (some (KeyField go!"mu")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"simpleTokenTTL")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v6")))]))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"run"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (Pair (Var "delf") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr simpleTokenTTLDefault))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenTTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (Val #()))))))))))
+
+/-- go: simple_token.go:207:23 -/
+noncomputable def tokenSimple.disable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))))
+  (Let "tk" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string go.string)]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 0))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr simpleTokenGauge))) (Val #())))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tk")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Var "tk"))) (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokenKeeper"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType simpleTokenTTLKeeper.ty)))) (Pair (Var "tk") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef tokenSimple.ty go!"simpleTokensMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "t")))) (Val #())))))))))
 
 /-- go: store.go:790:22 -/
 noncomputable def authStore.authInfoFromToken.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -882,7 +1319,7 @@ noncomputable def authStore.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] :
   (Val #())))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.auth where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strings, pkg_id.sync.atomic, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strings, pkg_id.sync.atomic, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -911,6 +1348,20 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"auth"))
+  (Let "$v2" (Val #(go!"simple_tokens"))
+  (Let "$v3" (Val #(go!"The current number of simple tokens stored in memory."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 300)) (Val _root_.Perennial.time.Second)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1)) (Val _root_.Perennial.time.Second)))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -997,13 +1448,15 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val simpleTokenTTLResolution.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr simpleTokenTTLResolution))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val simpleTokenTTLDefault.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr simpleTokenTTLDefault))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val DefaultTTL.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val knownOptions.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr simpleTokenGauge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val currentAuthRevision.init) (Val #()))))))
   (App (Val doExecute)
@@ -1013,9 +1466,13 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1030,6 +1487,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc simpleTokenGauge _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc simpleTokenTTLDefault _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc simpleTokenTTLResolution _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrUserEmpty go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -1130,31 +1593,151 @@ attribute [instance] unifiedRangePermissions.TypeAssumptions.type_repr
   unifiedRangePermissions.TypeAssumptions.get_writePerms
   unifiedRangePermissions.TypeAssumptions.set_writePerms
 
-axiom simpleTokenTTLKeeper : Type
-axiom simpleTokenTTLKeeper.zero_val : ZeroVal simpleTokenTTLKeeper
-attribute [instance] simpleTokenTTLKeeper.zero_val
+structure simpleTokenTTLKeeper [FfiSyntax] where
+  mk ::
+  tokens' : GoMap
+  donec' : GoChan
+  stopc' : GoChan
+  deleteTokenFunc' : GoFunc
+  mu' : Loc
+  simpleTokenTTL' : _root_.Perennial.time.Duration
+  lg' : Loc
+
+instance simpleTokenTTLKeeper.zero_val [FfiSyntax] : ZeroVal simpleTokenTTLKeeper :=
+  ⟨simpleTokenTTLKeeper.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def simpleTokenTTLKeeper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"tokens" (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)),
+(go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"deleteTokenFunc" (go.GoType.FunctionType (go.signature.Signature [go.string] false []))),
+(go.field_decl.FieldDecl go!"mu" (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)),
+(go.field_decl.FieldDecl go!"simpleTokenTTL" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
+
+@[irreducible] def simpleTokenTTLKeeper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  simpleTokenTTLKeeper.fieldsUnsealed
+
+instance equals_unfold_simpleTokenTTLKeeper [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold simpleTokenTTLKeeper.fields simpleTokenTTLKeeper.fieldsUnsealed :=
+  ⟨by unfold simpleTokenTTLKeeper.fields; rfl⟩
+
+@[reducible] def simpleTokenTTLKeeper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType simpleTokenTTLKeeper.fields)
 
 class simpleTokenTTLKeeper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying simpleTokenTTLKeeper.underlying simpleTokenTTLKeeper
   underlying : go.UnderlyingDirectedEq simpleTokenTTLKeeper.ty simpleTokenTTLKeeper.underlying
-  isUnderlying : go.IsUnderlying simpleTokenTTLKeeper.underlying simpleTokenTTLKeeper.underlying
+  get_tokens : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"tokens") #x (Val #(x.tokens'))
+  set_tokens : ∀ (x : simpleTokenTTLKeeper) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"tokens") (PairV #x #y) (Val #(({ x with tokens' := y } : simpleTokenTTLKeeper)))
+  get_donec : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"donec") #x (Val #(x.donec'))
+  set_donec : ∀ (x : simpleTokenTTLKeeper) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : simpleTokenTTLKeeper)))
+  get_stopc : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"stopc") #x (Val #(x.stopc'))
+  set_stopc : ∀ (x : simpleTokenTTLKeeper) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : simpleTokenTTLKeeper)))
+  get_deleteTokenFunc : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"deleteTokenFunc") #x (Val #(x.deleteTokenFunc'))
+  set_deleteTokenFunc : ∀ (x : simpleTokenTTLKeeper) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"deleteTokenFunc") (PairV #x #y) (Val #(({ x with deleteTokenFunc' := y } : simpleTokenTTLKeeper)))
+  get_mu : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : simpleTokenTTLKeeper) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : simpleTokenTTLKeeper)))
+  get_simpleTokenTTL : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"simpleTokenTTL") #x (Val #(x.simpleTokenTTL'))
+  set_simpleTokenTTL : ∀ (x : simpleTokenTTLKeeper) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"simpleTokenTTL") (PairV #x #y) (Val #(({ x with simpleTokenTTL' := y } : simpleTokenTTLKeeper)))
+  get_lg : ∀ (x : simpleTokenTTLKeeper), go.IsGoStepPureDetTagged under (StructFieldGet simpleTokenTTLKeeper.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : simpleTokenTTLKeeper) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet simpleTokenTTLKeeper.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : simpleTokenTTLKeeper)))
+  ptr_addSimpleToken_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"addSimpleToken" simpleTokenTTLKeeper.addSimpleToken.impl
+  ptr_deleteSimpleToken_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"deleteSimpleToken" simpleTokenTTLKeeper.deleteSimpleToken.impl
+  ptr_resetSimpleToken_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"resetSimpleToken" simpleTokenTTLKeeper.resetSimpleToken.impl
+  ptr_run_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"run" simpleTokenTTLKeeper.run.impl
+  ptr_stop_unfold : MethodUnfold (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"stop" simpleTokenTTLKeeper.stop.impl
 
 attribute [instance] simpleTokenTTLKeeper.TypeAssumptions.type_repr
   simpleTokenTTLKeeper.TypeAssumptions.underlying
-  simpleTokenTTLKeeper.TypeAssumptions.isUnderlying
+  simpleTokenTTLKeeper.TypeAssumptions.get_tokens
+  simpleTokenTTLKeeper.TypeAssumptions.set_tokens
+  simpleTokenTTLKeeper.TypeAssumptions.get_donec
+  simpleTokenTTLKeeper.TypeAssumptions.set_donec
+  simpleTokenTTLKeeper.TypeAssumptions.get_stopc
+  simpleTokenTTLKeeper.TypeAssumptions.set_stopc
+  simpleTokenTTLKeeper.TypeAssumptions.get_deleteTokenFunc
+  simpleTokenTTLKeeper.TypeAssumptions.set_deleteTokenFunc
+  simpleTokenTTLKeeper.TypeAssumptions.get_mu
+  simpleTokenTTLKeeper.TypeAssumptions.set_mu
+  simpleTokenTTLKeeper.TypeAssumptions.get_simpleTokenTTL
+  simpleTokenTTLKeeper.TypeAssumptions.set_simpleTokenTTL
+  simpleTokenTTLKeeper.TypeAssumptions.get_lg
+  simpleTokenTTLKeeper.TypeAssumptions.set_lg
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_addSimpleToken_unfold
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_deleteSimpleToken_unfold
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_resetSimpleToken_unfold
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_run_unfold
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_stop_unfold
 
-axiom tokenSimple : Type
-axiom tokenSimple.zero_val : ZeroVal tokenSimple
-attribute [instance] tokenSimple.zero_val
+structure tokenSimple [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  indexWaiter' : GoFunc
+  simpleTokenKeeper' : Loc
+  simpleTokensMu' : _root_.Perennial.sync.Mutex
+  simpleTokens' : GoMap
+  simpleTokenTTL' : _root_.Perennial.time.Duration
+
+instance tokenSimple.zero_val [FfiSyntax] : ZeroVal tokenSimple :=
+  ⟨tokenSimple.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def tokenSimple.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"indexWaiter" (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))),
+(go.field_decl.FieldDecl go!"simpleTokenKeeper" (go.GoType.PointerType simpleTokenTTLKeeper.ty)),
+(go.field_decl.FieldDecl go!"simpleTokensMu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"simpleTokens" (go.GoType.MapType go.string go.string)),
+(go.field_decl.FieldDecl go!"simpleTokenTTL" _root_.Perennial.time.Duration.ty)]
+
+@[irreducible] def tokenSimple.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  tokenSimple.fieldsUnsealed
+
+instance equals_unfold_tokenSimple [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold tokenSimple.fields tokenSimple.fieldsUnsealed :=
+  ⟨by unfold tokenSimple.fields; rfl⟩
+
+@[reducible] def tokenSimple.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType tokenSimple.fields)
 
 class tokenSimple.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenSimple.underlying tokenSimple
   underlying : go.UnderlyingDirectedEq tokenSimple.ty tokenSimple.underlying
-  isUnderlying : go.IsUnderlying tokenSimple.underlying tokenSimple.underlying
+  get_lg : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : tokenSimple) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : tokenSimple)))
+  get_indexWaiter : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"indexWaiter") #x (Val #(x.indexWaiter'))
+  set_indexWaiter : ∀ (x : tokenSimple) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"indexWaiter") (PairV #x #y) (Val #(({ x with indexWaiter' := y } : tokenSimple)))
+  get_simpleTokenKeeper : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokenKeeper") #x (Val #(x.simpleTokenKeeper'))
+  set_simpleTokenKeeper : ∀ (x : tokenSimple) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokenKeeper") (PairV #x #y) (Val #(({ x with simpleTokenKeeper' := y } : tokenSimple)))
+  get_simpleTokensMu : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokensMu") #x (Val #(x.simpleTokensMu'))
+  set_simpleTokensMu : ∀ (x : tokenSimple) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokensMu") (PairV #x #y) (Val #(({ x with simpleTokensMu' := y } : tokenSimple)))
+  get_simpleTokens : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokens") #x (Val #(x.simpleTokens'))
+  set_simpleTokens : ∀ (x : tokenSimple) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokens") (PairV #x #y) (Val #(({ x with simpleTokens' := y } : tokenSimple)))
+  get_simpleTokenTTL : ∀ (x : tokenSimple), go.IsGoStepPureDetTagged under (StructFieldGet tokenSimple.underlying go!"simpleTokenTTL") #x (Val #(x.simpleTokenTTL'))
+  set_simpleTokenTTL : ∀ (x : tokenSimple) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet tokenSimple.underlying go!"simpleTokenTTL") (PairV #x #y) (Val #(({ x with simpleTokenTTL' := y } : tokenSimple)))
+  ptr_assignSimpleTokenToUser_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"assignSimpleTokenToUser" tokenSimple.assignSimpleTokenToUser.impl
+  ptr_disable_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"disable" tokenSimple.disable.impl
+  ptr_enable_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"enable" tokenSimple.enable.impl
+  ptr_invalidateUser_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"invalidateUser" tokenSimple.invalidateUser.impl
 
 attribute [instance] tokenSimple.TypeAssumptions.type_repr
   tokenSimple.TypeAssumptions.underlying
-  tokenSimple.TypeAssumptions.isUnderlying
+  tokenSimple.TypeAssumptions.get_lg
+  tokenSimple.TypeAssumptions.set_lg
+  tokenSimple.TypeAssumptions.get_indexWaiter
+  tokenSimple.TypeAssumptions.set_indexWaiter
+  tokenSimple.TypeAssumptions.get_simpleTokenKeeper
+  tokenSimple.TypeAssumptions.set_simpleTokenKeeper
+  tokenSimple.TypeAssumptions.get_simpleTokensMu
+  tokenSimple.TypeAssumptions.set_simpleTokensMu
+  tokenSimple.TypeAssumptions.get_simpleTokens
+  tokenSimple.TypeAssumptions.set_simpleTokens
+  tokenSimple.TypeAssumptions.get_simpleTokenTTL
+  tokenSimple.TypeAssumptions.set_simpleTokenTTL
+  tokenSimple.TypeAssumptions.ptr_assignSimpleTokenToUser_unfold
+  tokenSimple.TypeAssumptions.ptr_disable_unfold
+  tokenSimple.TypeAssumptions.ptr_enable_unfold
+  tokenSimple.TypeAssumptions.ptr_invalidateUser_unfold
 
 structure AuthInfo [FfiSyntax] where
   mk ::
@@ -1459,8 +2042,10 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isOpenEnded_unfold : FuncUnfold isOpenEnded [] isOpenEnded.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
   import_adt_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
@@ -1493,8 +2078,10 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.isOpenEnded_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_errors_Assumption
+  Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_sync_Assumption
+  Assumptions.import_prometheus_Assumption
   Assumptions.import_authpb_Assumption
   Assumptions.import_adt_Assumption
   Assumptions.import_strings_Assumption

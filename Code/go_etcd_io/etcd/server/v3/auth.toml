@@ -20,11 +20,26 @@ translate = ["!*", "AuthInfo",
   "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
-  "ErrInvalidAuthToken"]
+  "ErrInvalidAuthToken",
+  "simpleTokenTTLKeeper", "tokenSimple",
+  "simpleTokenTTLKeeper.addSimpleToken", "simpleTokenTTLKeeper.deleteSimpleToken",
+  "simpleTokenTTLKeeper.resetSimpleToken", "simpleTokenTTLKeeper.run",
+  "simpleTokenTTLKeeper.stop",
+  "tokenSimple.assignSimpleTokenToUser", "tokenSimple.invalidateUser",
+  "tokenSimple.enable", "tokenSimple.disable",
+  "simpleTokenCountWarnThreshold", "simpleTokenGauge",
+  "simpleTokenTTLDefault", "simpleTokenTTLResolution"]
 imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
-  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]
+  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt",
+  "time", "github.com/prometheus/client_golang/prometheus"]
+
+# PR etcd#22338 (pr-verify/etcd-22338): the simple-token provider's TTL keeper with bodies
+# (`addSimpleToken`, `deleteSimpleToken`, `resetSimpleToken`, `run`, `stop`) and the
+# `tokenSimple` methods around it (`assignSimpleTokenToUser`, `invalidateUser`, `enable`,
+# `disable`), the gauge `simpleTokenGauge` (metrics.go) and the TTL globals; `time` for the
+# keeper's expiry map and ticker, `prometheus` for the gauge's type.
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
