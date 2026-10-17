@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd-io/raft#139 verified on this branch (2026-10-16, branch `pr-verify/raft-139`, not for `lean`)
+
+The PR (raftLog's `leaderTerm`; `commitTo(leaderTerm, tocommit)`) applied to the fork (branch
+`pr-raft-139-goose-lean`, `1daf55cb3`, not pushed: `etc/goose.py --check` fails on this branch by
+design) and verified: `notes/pr-verify/raft-139.md`. What moved in the proof: `LogState.leaderTerm`;
+the model's follower commits may be skipped (`Step.heartbeat`/`appAccept`/`snapFastfwd` take a flag
+`cm`, ghost and `RInv` proofs re-done); `NStateWf` carries `LtInv` (leader term ≤ term, = at a
+leader); `newRaft` gains the premise "last stored term ≤ `HardState.Term`". If the PR merges and the
+pin moves past it, start from this branch.
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

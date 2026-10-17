@@ -1,0 +1,15 @@
+# etcd-io/raft#139 (notes/pr-verify/raft-139.md): the functions the PR changes and the callers
+# re-checked, by their spec files.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-139.txt --check
+roots ^Spec/go_etcd_io/raft/v3/(raftLog__(commitTo|append|maybeAppend|maybeCommit)|newLogWithSize|raft__(handleHeartbeat|handleAppendEntries|handleSnapshot|restore|appendEntry|becomeLeader|maybeCommit|switchToConfig|applyConfChange|Step)|RawNode__(Bootstrap|ApplyConfChange)|stepFollower|stepCandidate|stepLeader|newRaft|NewRawNode)\.lean$
+axiom DescribeConfChange.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
