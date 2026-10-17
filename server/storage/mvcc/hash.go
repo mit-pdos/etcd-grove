@@ -61,19 +61,25 @@ func newKVHasher(compactRev, rev int64, keep map[Revision]struct{}) kvHasher {
 
 // shouldWriteKeyValue determines whether a key-value pair should be included in the hash calculation
 func (h *kvHasher) shouldWriteKeyValue(k []byte) bool {
+	return kvHashIncludes(h.compactRevision, h.revision, h.keep, k)
+}
+
+// kvHashIncludes is shouldWriteKeyValue on a hasher of compactRevision, revision
+// and keep (split out for Goose: the hasher's crc32 has no model, the filter does).
+func kvHashIncludes(compactRevision, revision int64, keep map[Revision]struct{}, k []byte) bool {
 	kr := BytesToRev(k)
-	upper := Revision{Main: h.revision + 1}
+	upper := Revision{Main: revision + 1}
 	if !upper.GreaterThan(kr) {
 		return false
 	}
 
 	isTombstone := BytesToBucketKey(k).tombstone
 
-	lower := Revision{Main: h.compactRevision + 1}
+	lower := Revision{Main: compactRevision + 1}
 	// skip revisions that are scheduled for deletion
 	// due to compacting; don't skip if there isn't one.
-	if lower.GreaterThan(kr) && len(h.keep) > 0 {
-		if _, ok := h.keep[kr]; !ok {
+	if lower.GreaterThan(kr) && len(keep) > 0 {
+		if _, ok := keep[kr]; !ok {
 			return false
 		}
 	}
@@ -84,7 +90,7 @@ func (h *kvHasher) shouldWriteKeyValue(k []byte) bool {
 	// delete it. So we should skip the tombstone in such cases when
 	// computing the hash to ensure that both older and newer versions
 	// can always generate the same hash values.
-	if kr.Main == h.compactRevision && isTombstone {
+	if kr.Main == compactRevision && isTombstone {
 		return false
 	}
 
