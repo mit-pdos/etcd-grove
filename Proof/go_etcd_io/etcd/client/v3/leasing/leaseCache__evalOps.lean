@@ -117,7 +117,7 @@ theorem leaseCache.evalOps.wp_proof
         simp only [Option.map_some, Option.getD_some]
         icases (BigSepM.bigSepM_lookup_acc hk).1 $$ Hents with ⟨He, Hents⟩
         rw [entryOwn_def]
-        icases He with ⟨%-, Hr, Hrev, Hwc, Hresp, #Hw⟩
+        icases He with ⟨%-, Hr, Hrev, Hwc, Hresp, #Hw, %Hcnt⟩
         ihave Hlk := (leaseKey_struct e.li e.lk _ hli).1 $$ [Hr Hrev Hwc]
         · simp only [LeaseEntry.lk]; iframe
         rw [decide_eq_false hli]
@@ -127,7 +127,7 @@ theorem leaseCache.evalOps.wp_proof
         icases (leaseKey_struct e.li e.lk _ hli).2 $$ Hlk with ⟨Hr, Hrev, Hwc⟩
         simp only [LeaseEntry.lk]
         ihave Hents := Hents $$ [Hr Hrev Hwc Hresp]
-        · iframe; iframe #; ipureintro; exact hli
+        · iframe; iframe #; ipureintro; first | exact hli | exact ⟨hli, Hcnt⟩
         rw [decide_eq_false Hretnn]
         wp_auto
         ihave %Hrlen := ownSlice_len $$ Hrsl
@@ -156,7 +156,7 @@ theorem leaseCache.evalOps.wp_proof
           unfold respOpFresh
           iframe
           ipureintro
-          exact ⟨⟨Hoi, hk⟩, Hr0nn⟩
+          first | exact ⟨⟨Hoi, hk⟩, Hr0nn, Hcnt⟩ | exact ⟨⟨Hoi, hk⟩, ⟨Hr0nn, Hcnt⟩⟩ | exact ⟨Hoi, hk, Hr0nn, Hcnt⟩
         wp_for_post
         iframe
         iexists (n + W64 1), v, n, done ++ [«$r0_ptr»]

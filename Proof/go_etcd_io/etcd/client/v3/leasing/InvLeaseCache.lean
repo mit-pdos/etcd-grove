@@ -195,11 +195,13 @@ def LeaseEntry.del (e : LeaseEntry) (h : Loc) (hm : HdrM) : LeaseEntry :=
     { e with kvsSl := slice.nil, kvs := [], count := W64 0, hdr := h, hm := hm }
   else e
 
-/-- **An entry's `Count` is the number of its cached key-values** (`0` or `1`: the leasing KV caches
-single keys), as etcd's `Count` of a single-key get is the number of keys it found. An acquisition's
-response has it; `Update` keeps it (count `1` with the fresh key-value); `delete` keeps it only
-since etcd#22585, which sets the count to `0` with the key-values dropped. -/
-def LeaseEntry.countOk (e : LeaseEntry) : Prop := e.count = W64 (e.kvs.length : Int)
+/-- **An entry caches at most one key-value, and its `Count` is their number** (`0` or `1`), as
+etcd's `Count` of a single-key get is the number of keys it found (before revision filters,
+count-only and limits, which only drop key-values from the answer). An acquisition's response has
+it; `Update` keeps it (count `1` with the fresh key-value); `delete` keeps it only since
+etcd#22585, which sets the count to `0` with the key-values dropped. -/
+def LeaseEntry.countOk (e : LeaseEntry) : Prop :=
+  e.kvs.length ≤ 1 ∧ e.count = W64 (e.kvs.length : Int)
 
 /-- Change `k`'s entry (if any) by `f`. -/
 def LeaseCacheSt.modify (k : GoString) (f : LeaseEntry → LeaseEntry) (st : LeaseCacheSt) :
