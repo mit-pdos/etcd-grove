@@ -289,6 +289,48 @@ def softstateVal (h : SoftSt) : SoftState :=
 
 theorem hsAbs_hardstateVal (h : HardSt) : hsAbs (hardstateVal h) = h := rfl
 
+/-! ### The proposal-forwarding callback (PR etcd-io/raft#88, `notes/pr-verify/raft-88.md`)
+
+`Config.DisableProposalForwardingCallback`, copied by `newRaft` into
+`r.disableProposalForwardingCallback` and never written after. `stepFollower` calls it on a
+`MsgProp` it would otherwise forward, and drops the proposal (`ErrProposalDropped`) when it
+returns `true`. The callback's contract, `pfcbSpec f p`: called on a message pointer, at any
+ownership of the message, it returns `p ms` -- a function of the message's contents -- and gives
+the message back unchanged (it does not write the message, panic, or need anything of raft's).
+`pfcbImpl f none` is a nil callback; `pfcbIs r p` (persistent) is the struct's field, read-only,
+holding a callback implementing `p`: `raftOwn` keeps it (`ownRaftPhysCV_pfcb` reads it out). -/
+def pfcbSpec (f : GoFunc) (p : MsgSt → Bool) : IProp GF :=
+  iprop(∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
+    {{ msgPtsC l dq dqe cap ms }} (App (Val #f) (Val #l))
+    {{ RET #(p ms); msgPtsC l dq dqe cap ms }})
+
+instance pfcbSpec_persistent (f : GoFunc) (p : MsgSt → Bool) :
+    Persistent (pfcbSpec (GF := GF) f p) := by
+  unfold pfcbSpec; infer_instance
+
+/-- The callback `f` implements `p`: nil for `none`, a non-nil function meeting `pfcbSpec`
+otherwise. -/
+def pfcbImpl (f : GoFunc) : Option (MsgSt → Bool) → IProp GF
+  | none => iprop(⌜f = func.nil⌝)
+  | some p => iprop(⌜f ≠ func.nil⌝ ∗ pfcbSpec f p)
+
+instance pfcbImpl_persistent (f : GoFunc) (p : Option (MsgSt → Bool)) :
+    Persistent (pfcbImpl (GF := GF) f p) := by
+  cases p <;> unfold pfcbImpl <;> infer_instance
+
+/-- Whether the callback `p` drops the proposal `ms` (a nil callback drops nothing). -/
+def pfcbDrops : Option (MsgSt → Bool) → MsgSt → Bool
+  | none, _ => false
+  | some p, ms => p ms
+
+/-- The struct at `r` holds, for good, a callback implementing `p`. -/
+def pfcbIs (r : Loc) (p : Option (MsgSt → Bool)) : IProp GF :=
+  iprop(∃ (f : GoFunc), r.[raft, go!"disableProposalForwardingCallback"] ↦□ f ∗ pfcbImpl f p)
+
+instance pfcbIs_persistent (r : Loc) (p : Option (MsgSt → Bool)) :
+    Persistent (pfcbIs (GF := GF) r p) := by
+  unfold pfcbIs; infer_instance
+
 /-! ### The raft struct's points-to, with `id` and `logger` shared (2026-10-10)
 
 `raftOwn l v` is the struct points-to `l ↦ v` with the two fields nobody writes after
@@ -333,12 +375,17 @@ def raftOwn (l : Loc) (v : raft) : IProp GF :=
     "H_step" ∷ l.[raft, go!"step"] ↦ v.step' ∗
     "#H_logger" ∷ l.[raft, go!"logger"] ↦□ v.logger' ∗
     "H_pendingReadIndexMessages" ∷ l.[raft, go!"pendingReadIndexMessages"] ↦ v.pendingReadIndexMessages' ∗
-    "H_traceLogger" ∷ l.[raft, go!"traceLogger"] ↦ v.traceLogger')
+    "H_traceLogger" ∷ l.[raft, go!"traceLogger"] ↦ v.traceLogger' ∗
+    -- (PR raft#88) never written after `newRaft`: persistent, with the callback's contract
+    "#H_disableProposalForwardingCallback" ∷
+      l.[raft, go!"disableProposalForwardingCallback"] ↦□ v.disableProposalForwardingCallback' ∗
+    "#H_pfcb" ∷ (∃ p, pfcbImpl v.disableProposalForwardingCallback' p))
 
 
-theorem raftOwn_of_pts (l : Loc) (v : raft) :
-    ⊢ (l ↦ v : IProp GF) ==∗ raftOwn l v := by
-  iintro Hl
+theorem raftOwn_of_pts (l : Loc) (v : raft) (p : Option (MsgSt → Bool)) :
+    ⊢ (l ↦ v : IProp GF) -∗ pfcbImpl (GF := GF) v.disableProposalForwardingCallback' p ==∗
+      raftOwn l v := by
+  iintro Hl #Hcb
   rw [typedPointsto_unseal_eq l v]
   icases Hl with ⟨Hf, -⟩
   simp only [TypedPointsto.typedPointstoDef]
@@ -346,11 +393,13 @@ theorem raftOwn_of_pts (l : Loc) (v : raft) :
   ipersist id
   ipersist logger
   ipersist stepDownOnRemoval
+  ipersist disableProposalForwardingCallback
   imodintro
   unfold raftOwn
   simp only [named]
   iframe
   try iframe #
+  try (iexists p; iexact Hcb)
 
 theorem raftOwn_id (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"id"] ↦□ v.id' := by
@@ -359,6 +408,13 @@ theorem raftOwn_id (l : Loc) (v : raft) :
 theorem raftOwn_sdr (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"stepDownOnRemoval"] ↦□ v.stepDownOnRemoval' := by
   iintro H; unfold raftOwn; iNamed H; iexact H_stepDownOnRemoval
+
+theorem raftOwn_pfcb (l : Loc) (v : raft) :
+    ⊢ raftOwn (GF := GF) l v -∗ ∃ p, pfcbIs l p := by
+  iintro H; unfold raftOwn; iNamed H
+  icases H_pfcb with ⟨%p, #Hp⟩
+  iexists p; unfold pfcbIs; iexists v.disableProposalForwardingCallback'
+  iframe H_disableProposalForwardingCallback Hp
 
 theorem raftOwn_logger (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"logger"] ↦□ v.logger' := by
@@ -380,7 +436,8 @@ local macro "raftOwn_access " f:ident : tactic =>
                 H_pendingConfIndex H_disableConfChangeValidation H_uncommittedSize H_readOnly
                 H_electionElapsed H_heartbeatElapsed H_checkQuorum H_preVote H_heartbeatTimeout
                 H_electionTimeout H_randomizedElectionTimeout H_disableProposalForwarding
-                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger))
+                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger
+                H_disableProposalForwardingCallback H_pfcb))
 
 theorem raftOwn_access_load_Term (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"Term"] ↦ v.Term') (l.[raft, go!"Term"] ↦ v.Term')
@@ -1694,7 +1751,8 @@ local macro "split_field_proof " f:ident : tactic =>
                 H_pendingConfIndex H_disableConfChangeValidation H_uncommittedSize H_readOnly
                 H_electionElapsed H_heartbeatElapsed H_checkQuorum H_preVote H_heartbeatTimeout
                 H_electionTimeout H_randomizedElectionTimeout H_disableProposalForwarding
-                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger))
+                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger
+                H_disableProposalForwardingCallback H_pfcb))
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -2816,6 +2874,18 @@ theorem raft.wp_load_disableProposalForwardingC (r : Loc) (id : w64) (s : NState
   iNamed_physC H
   wp_apply wp_load_access _ rv.disableProposalForwarding' _ (raftOwn_access_load_disableProposalForwarding _ _) $$ Hr as Hr
   rw [HpropForward]; iapply HΦ; resealC c s
+
+/-- The proposal-forwarding callback (PR raft#88): the struct's field, read-only, holding a
+callback implementing some `p` (`pfcbIs`), read out without consuming anything. -/
+theorem ownRaftPhysCV_pfcb (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      (∃ p, pfcbIs r p) ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  ihave #Hp := raftOwn_pfcb _ _ $$ Hr
+  isplitr
+  · iexact Hp
+  resealC c s
 
 /-- `false` (2026-10-13): `ownRaftPhysC`'s scope conjunct. -/
 theorem raft.wp_load_disableConfChangeValidationC (r : Loc) (id : w64) (s : NState) :

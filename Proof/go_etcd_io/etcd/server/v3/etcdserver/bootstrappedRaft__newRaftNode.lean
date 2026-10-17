@@ -35,7 +35,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γ bud b ss wal cl dq bv cv lok γs reg pre pv ps ctxs bootLog
-    Hlg Hhb Hvalid Hlok Hstor Hinfl Hcq Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied
+    Hlg Hhb Hvalid Hlok Hstor Hinfl Hcq Hdpf Hdpfcb Hro Hdccv Hsizes Hasync Hpv Happlied
     Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk
   wp_start as Hpre
   iNamed Hpre
@@ -67,7 +67,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   (try wp_auto)
   -- `raft.StartNode(b.config, b.peers)`
   wp_apply (wp_StartNode γ bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
-    memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
+    memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false) none
     bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hcq Hdpf Hro Hdccv Hsizes Hasync Hpv
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
     rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk)
@@ -80,6 +80,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       #bv.storage' from rfl]
     rw [method_unfold (t := go.GoType.PointerType MemoryStorage.ty) (m := go!"InitialState")]
     iframe #; iframe Hc Hsto Hghost Hpeers
+    iunfold pfcbImpl; ipureintro; exact Hdpfcb
   icases Hpost with ⟨%γn, %n, %Hnd, #Hnode, Hdrv, Hncfg, Hpeers⟩
   obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hndeq⟩ := Hnd
   subst Hndeq

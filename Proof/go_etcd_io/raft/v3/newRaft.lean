@@ -132,15 +132,15 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si σ hs csm
+  intro c cv lok si σ hs csm pcb
     Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
-  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, HInit⟩
+  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #Hpcb, HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
   obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO, HpDCC,
-    HpSDR⟩ :=
+    HpSDR, HpCB⟩ :=
     Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
@@ -209,7 +209,10 @@ theorem newRaft.wp_proof
   ihave Hcap1 := ownSliceCap_nil (V := Loc) (GF := GF)
   ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
   ihave Hob := outboxRel_nil (GF := GF)
-  imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
+  ihave #Hpcb' : pfcbImpl (GF := GF) cv'.DisableProposalForwardingCallback' pcb $$ [Hpcb]
+  · rw [HpCB]; iexact Hpcb
+  imod raftOwn_of_pts «$r0_ptr» _ pcb $$ «$r0» [] with «$r0»
+  · simp only; iexact Hpcb'
   -- the struct, left open at its tracker (`ownRaftPhys_intro_trk`, 2026-10-16, stage R8b: the
   -- empty tracker's own maps may be what `switchToConfig` installs, so they cannot also seal the
   -- struct first); `switchToConfig` installs the configuration and seals it

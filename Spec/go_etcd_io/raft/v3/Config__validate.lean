@@ -58,7 +58,9 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   cv'.DisableConfChangeValidation' = cv.DisableConfChangeValidation' ∧
   -- read by `newRaft` (2026-10-14, reconfiguration stage B7 part 2: a dynamic `RawNode` needs
   -- it on)
-  cv'.StepDownOnRemoval' = cv.StepDownOnRemoval'
+  cv'.StepDownOnRemoval' = cv.StepDownOnRemoval' ∧
+  -- read by `newRaft` (PR raft#88)
+  cv'.DisableProposalForwardingCallback' = cv.DisableProposalForwardingCallback'
 
 end defs
 

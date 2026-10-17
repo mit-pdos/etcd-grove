@@ -189,7 +189,9 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     ConfigValid cv → cv.Logger' = interface.ok lok →
     cv.Storage' = memStorIface bv.storage' →
     sint.Z cv.MaxInflightMsgs' < 2 ^ 62 → cv.CheckQuorum' = false →
-    cv.DisableProposalForwarding' = false → cv.ReadOnlyOption' = W64 0 →
+    cv.DisableProposalForwarding' = false →
+    -- (PR raft#88) no proposal-forwarding callback (etcd sets none)
+    cv.DisableProposalForwardingCallback' = func.nil → cv.ReadOnlyOption' = W64 0 →
     cv.DisableConfChangeValidation' = false →
     (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
     cv.AsyncStorageWrites' = false → cv.PreVote' = false → cv.Applied' = W64 0 →
@@ -278,12 +280,12 @@ theorem raftNode_of_StartNode (reg : GName)
     NodeStartSpec (GF := GF) reg := by
   letI : MemStorReg GF := ⟨reg⟩
   intro E s γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
-    Hcq Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
+    Hcq Hdpf Hdpfcb Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
     HbootOk HEγ HEpre HEai Hpol
   iintro %Φ Hpre HΦ
   iNamed Hpre
   wp_apply (wp_bnr E γ bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
-    Hstor Hinfl Hcq Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
+    Hstor Hinfl Hcq Hdpf Hdpfcb Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
     Hboot HbootOk) $$ [Hb Hc Hsto Hpeers Hghost]
     as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, Hbuilt, Hb, Hpeers⟩
   · iframe #; iframe Hb Hc Hsto Hpeers Hghost

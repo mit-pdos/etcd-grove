@@ -95,7 +95,9 @@ def FollowerStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
   if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
   else if m.Type' = MsgProp then
     if s.lead = W64 0 then dropped = true ∧ s' = s
-    else dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents cl]
+    -- (PR raft#88) or dropped by `Config.DisableProposalForwardingCallback`
+    else (dropped = true ∧ s' = s) ∨
+      (dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents cl])
   else if m.Type' = MsgApp then
     dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
   else if m.Type' = MsgHeartbeat then
@@ -132,6 +134,44 @@ the configuration `c'` the node is at afterwards: `c` itself, except after a `Ms
 configuration its `ConfState`'s lists `scfg` denote, any; `SnapCfgOk`); `MsgTimeoutNow` campaigns
 at `c` (`HupOkC`). -/
 def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
+    (c' : CfgM) (cl : List w8 := []) : Prop :=
+  (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
+   else c' = c) ∧
+  (if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
+     else if m.Type' = MsgProp then
+       if s.lead = W64 0 then dropped = true ∧ s' = s
+       -- (PR raft#88) or dropped by `Config.DisableProposalForwardingCallback`
+       else (dropped = true ∧ s' = s) ∨
+         (dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents cl])
+     else if m.Type' = MsgApp then
+       dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
+     else if m.Type' = MsgHeartbeat then
+       dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl
+     else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
+       dropped = false ∧ s' = s
+     else if m.Type' = MsgSnap then
+       dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s'
+     else if m.Type' = MsgPreVoteResp then dropped = false ∧ s' = s
+     -- read-index (2026-10-12): a request goes to the leader, a response becomes a `ReadState`
+     else if m.Type' = MsgReadIndex then
+       dropped = false ∧
+       (if s.lead = W64 0 then s' = s
+        else s' = sendMsgs s [readForward id s.lead m ents cl])
+     else if m.Type' = MsgReadIndexResp then
+       dropped = false ∧
+       (match ents with
+        | [e] => s' = addReadState s m.Index' e.Data'
+        | _ => s' = s)
+     else if m.Type' = MsgForgetLeader then dropped = false ∧ s' = { s with lead := W64 0 }
+     else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
+       dropped = false ∧ s' = s
+     else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOkC c id s s'
+     else False)
+
+/-- `FollowerStepResultC` before PR raft#88: a proposal with a leader known is always forwarded.
+Kept for `stepFollower.spec_nil_old`: with a nil callback the new code does exactly this. -/
+def FollowerStepResultCOld (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
   (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
@@ -181,6 +221,31 @@ theorem FollowerStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64
   · simp only [hT, ite_false] at h ⊢
     exact h
 
+/-- (PR raft#88) A step that drops no proposal while a leader is known -- what a nil callback
+gives (`stepFollower.spec_cb` at `p = none`) -- is the step as it was before the PR. -/
+theorem FollowerStepResultC.old {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
+    {m : MessageM} {ents : List EntryM} {sv : SnapshotM} {dropped : Bool} {s' : NState}
+    {c' : CfgM} {cl : List w8}
+    (h : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl)
+    (hnd : m.Type' = MsgProp → s.lead ≠ W64 0 → dropped = false) :
+    FollowerStepResultCOld c scfg id s m ents sv dropped s' c' cl := by
+  unfold FollowerStepResultC at h
+  unfold FollowerStepResultCOld
+  refine ⟨h.1, ?_⟩
+  obtain ⟨-, h⟩ := h
+  by_cases hV : m.Type' = MsgVoteResp
+  · simp only [hV, ite_true] at h ⊢; exact h
+  simp only [hV, ite_false] at h ⊢
+  by_cases hP : m.Type' = MsgProp
+  · simp only [hP, ite_true] at h ⊢
+    by_cases hl : s.lead = W64 0
+    · simp only [hl, ite_true] at h ⊢; exact h
+    · simp only [hl, ite_false] at h ⊢
+      rcases h with ⟨hd, -⟩ | h
+      · exact absurd (hd.symm.trans (hnd hP hl)) (by decide)
+      · exact h
+  · simp only [hP, ite_false] at h ⊢; exact h
+
 end results
 
 section spec
@@ -213,6 +278,8 @@ of its ids: `SnapScope`, `CSLists.Has`; in A3 non-joint with any voters; until t
 `restore` installed it (`SnapCfgOk`). (The statement on `ownRaftPhys`, `specS`, had no caller
 and is gone.)
 -/
+-- (PR raft#88) a proposal with a leader known may also be dropped, by the callback
+-- (`FollowerStepResultC`'s `MsgProp` arm); `stepFollower.spec_cb` says when.
 abbrev stepFollower.spec : Prop :=
   ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
@@ -268,6 +335,75 @@ abbrev stepFollower.spec : Prop :=
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
       ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- (PR raft#88) `stepFollower.spec` with the struct's proposal-forwarding callback named: the
+precondition adds `pfcbIs r p` (the field holds a callback implementing `p`, or nil for `none`),
+and the postcondition says which proposals are dropped: with a leader known, exactly those the
+callback returns `true` for (`pfcbDrops`; none for a nil callback, where the step is the one
+before the PR, `FollowerStepResultC.old`). `stepFollower.spec` is this with `p` read out of the
+struct (`ownRaftPhysCV_pfcb`) and forgotten. -/
+abbrev stepFollower.spec_cb : Prop :=
+  ∀ (p : Option (MsgSt → Bool)) (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
+   m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
+  -- (2026-10-12) a read-index request is unstamped, and the leader is another node
+  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
+  (m.Type' = MsgProp →
+     (m.From' = W64 0 ∨ m.From' = id) ∧
+     m.Term' = W64 0 ∧
+     s.lead ≠ id) →
+  (m.Type' = MsgApp →
+     PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
+     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
+     (let ls := s.logst
+      let es := ls.sents ++ ls.uents
+      uint.Z ls.committed ≤ uint.Z m.Index' →
+      PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
+      plogFindConflict ls.prev es ents = W64 0 ∨
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     -- from another node (2026-10-10, `handleAppendEntries`'s premise)
+     m.From' ≠ id ∧
+     -- (2026-10-16, stage R8a) not a leader (`handleAppendEntries`'s premise: a leader's log only
+     -- grows); `Step` dispatches here at a follower
+     s.role ≠ .leader) →
+  (m.Type' = MsgHeartbeat →
+     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
+     m.From' ≠ id) →
+  -- (2026-10-13) a leader-transfer request is forwarded only unstamped (`send` panics on
+  -- a stamped one; a stamped request reaches a follower of its term only without a leader:
+  -- `raft.Step`'s premise), to another node; `MsgTimeoutNow` campaigns: the term does not
+  -- wrap and `r.step` agrees with the role (`hup`'s premises)
+  (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
+     (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
+        ents = [] ∧ cl = []) ∧
+     (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
+  -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
+  (m.Type' = MsgSnap →
+     sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a
+      -- forwarded proposal and the response to a heartbeat carry)
+      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      -- (PR raft#88) the struct's proposal-forwarding callback, implementing `p`
+      "#Hcb" ∷ pfcbIs r p }}
+    (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
+      ownRaftPhysCV c' c'.voters r id s' ∗
+      -- (PR raft#88) and a proposal with a leader known is dropped exactly when the callback
+      -- says so
+      ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl ∧
+        (m.Type' = MsgProp → s.lead ≠ W64 0 → dropped = pfcbDrops p ⟨m, ents, sn, cl, rs⟩)⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
 

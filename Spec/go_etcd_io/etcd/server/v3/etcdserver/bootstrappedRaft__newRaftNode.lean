@@ -75,6 +75,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
   cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
+  -- (PR raft#88) no proposal-forwarding callback (etcd sets none)
+  cv.DisableProposalForwardingCallback' = func.nil →
   cv.ReadOnlyOption' = W64 0 →
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →

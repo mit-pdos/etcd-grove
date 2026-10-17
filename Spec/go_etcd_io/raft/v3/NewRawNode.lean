@@ -97,7 +97,7 @@ def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :
 abbrev NewRawNode.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM),
+    (hs : HardStateM) (csm : ConfStateM) (pcb : Option (MsgSt → Bool)),
   -- the Config, as for `newRaft`
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -132,6 +132,8 @@ abbrev NewRawNode.spec : Prop :=
   csm.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- (PR raft#88) the proposal-forwarding callback, as for `newRaft`
+      pfcbImpl cv.DisableProposalForwardingCallback' pcb ∗
       -- (2026-10-16, stage R5) `InitialState` in `newRaft`'s shape (stage R4, D7): the hard state
       -- `hsOpt hp hs` and the conf state read-only for good (stage R6b: its `AutoLeave` cell set
       -- or not, `al`), `ownStorage` back at once

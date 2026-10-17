@@ -64,7 +64,7 @@ abbrev StartNode.spec : Prop :=
   ∀ (γ : RaftNames) (bud : BudgetNames) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM)
+    (hs : HardStateM) (csm : ConfStateM) (pcb : Option (MsgSt → Bool))
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
     (bootLog : List EntryM),
   -- `NewRawNode`'s premises
@@ -103,6 +103,8 @@ abbrev StartNode.spec : Prop :=
   BootLogOk γ.reCCOk ps bootLog →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- (PR raft#88) the proposal-forwarding callback, as for `newRaft`
+      pfcbImpl cv.DisableProposalForwardingCallback' pcb ∗
       -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗

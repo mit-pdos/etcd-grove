@@ -33,9 +33,9 @@ theorem RestartNode.wp_proof
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
-  intro γ md bud c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
+  intro γ md bud c cv lok si σ hs csm pcb P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
     P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
-  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0⟩
+  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hpcb, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
     | static =>
@@ -48,9 +48,9 @@ theorem RestartNode.wp_proof
       icases Hg with ⟨Hg, -⟩
       iapply ownRaftGhost_inv_md $$ Hg
   wp_auto
-  wp_apply wp_NewRawNode c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9
+  wp_apply wp_NewRawNode c cv lok si σ hs csm pcb P1 P2 P3 P4 P5 P6 P7 P8 P9
     P10 P11 P12 P13 P14 P15 P16 P17 P19 P20 P21 P22 P23 P24 P25
-    $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
+    $$ [$Hc $Hlg $Hsto $Hown $Hpcb $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
   subst Herr
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
   -- leaves it open, `rawNodeFresh`)

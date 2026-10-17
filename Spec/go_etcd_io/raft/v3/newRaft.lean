@@ -21,6 +21,8 @@ are, in order:
   `MaxInflightMsgs ≥ 2^62`** (found writing this spec, 2026-09-24). Not a bug a real run
   can hit -- the buffer only grows to `2^62` with that many messages in flight -- but a
   gap between what raft accepts and what the proof covers.
+- (PR raft#88) `DisableProposalForwardingCallback`: nil or a callback meeting `pfcbImpl` (any
+  `pcb`), which the struct keeps (`pfcbIs`).
 - the development's scope: `CheckQuorum = false`, and `DisableProposalForwarding =
   false` (a follower forwards proposals; since 2026-10-02, for `stepFollower`'s
   forwarding arm). `PreVote` is either value since 2026-10-04: the state records it
@@ -119,7 +121,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM),
+    (hs : HardStateM) (csm : ConfStateM) (pcb : Option (MsgSt → Bool)),
   -- the Config
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -161,6 +163,10 @@ abbrev newRaft.spec : Prop :=
   csm.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- (PR raft#88) `Config.DisableProposalForwardingCallback`: nil, or a callback implementing
+      -- `pcb` (`pfcbImpl`, `InvRaftPhys.lean`: it reads the message, returns a function of it,
+      -- and gives it back unchanged); the struct keeps it (`pfcbIs`, `ownRaftPhysCV_pfcb`)
+      pfcbImpl cv.DisableProposalForwardingCallback' pcb ∗
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
             hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗

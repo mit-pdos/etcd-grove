@@ -207,30 +207,44 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
         iright; iexact Herrn
-    · -- forwarded: `StepC.propForward`
-      rw [ite_neg Hl0] at Hres
-      obtain ⟨rfl, rfl⟩ := Hres
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Herrn with %Herrn
-      subst Herrn
-      wp_auto
-      iapply HΦ
-      iframe Hphys
-      isplitr
-      · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
-      isplitr
-      · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
-      isplitr
-      · ipureintro
-        refine ⟨[absMsg .propose m ents ctx], by simp, StepCD.frame ?_ (by rframe)⟩
-        have Hld : (toPState s).lead = s.lead :=
-          toPState_lead_nonpre s (by rw [Hrole]; exact PRole.noConfusion)
-        rw [toPState_sendMsgs]
-        have := StepCF.propForward (c := c) (id := id) (absMsg .propose m ents ctx) (toPState s)
-          rfl (by rw [toPState_role, Hrole]; rfl) (by rw [Hld]; exact Hl0)
-        rw [Hld] at this
-        exact this
-      ileft; ipureintro; rfl
+    · rw [ite_neg Hl0] at Hres
+      rcases Hres with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      · -- (PR raft#88) dropped by `DisableProposalForwardingCallback`: as without a leader
+        simp only [↓reduceIte]
+        cases err
+        all_goals
+          wp_auto
+          iapply HΦ
+          iframe Hphys
+          isplitr
+          · ipureintro; exact Hwf
+          isplitr
+          · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+          isplitr
+          · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
+          iright; iexact Herrn
+      · -- forwarded: `StepC.propForward`
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        icases Herrn with %Herrn
+        subst Herrn
+        wp_auto
+        iapply HΦ
+        iframe Hphys
+        isplitr
+        · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
+        isplitr
+        · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
+        isplitr
+        · ipureintro
+          refine ⟨[absMsg .propose m ents ctx], by simp, StepCD.frame ?_ (by rframe)⟩
+          have Hld : (toPState s).lead = s.lead :=
+            toPState_lead_nonpre s (by rw [Hrole]; exact PRole.noConfusion)
+          rw [toPState_sendMsgs]
+          have := StepCF.propForward (c := c) (id := id) (absMsg .propose m ents ctx) (toPState s)
+            rfl (by rw [toPState_role, Hrole]; rfl) (by rw [Hld]; exact Hl0)
+          rw [Hld] at this
+          exact this
+        ileft; ipureintro; rfl
   · -- Candidate: drop
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx

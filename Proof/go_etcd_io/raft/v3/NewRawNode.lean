@@ -35,14 +35,14 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs Hasync HpvF
+  intro c cv lok si σ hs csm pcb Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs Hasync HpvF
     Happ Hprev Hents Hss Hpe Hhs Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
-  wp_start as ⟨Hc, #Hlg, #Hst, HSt, Hinit⟩
+  wp_start as ⟨Hc, #Hlg, #Hst, HSt, #Hpcb, Hinit⟩
   wp_auto
-  wp_apply wp_newRaft c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs
+  wp_apply wp_newRaft c cv lok si σ hs csm pcb Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs
     (by rw [Hents]; intro k e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
     Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
-    $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨Hphys, Hc, %HAW, %Hpost⟩
+    $$ [$Hc $Hlg $Hst $HSt $Hpcb $Hinit] as %r %s %cv' ⟨Hphys, Hc, %HAW, %Hpost⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   try wp_auto

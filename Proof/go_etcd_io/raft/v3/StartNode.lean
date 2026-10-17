@@ -30,16 +30,16 @@ theorem StartNode.wp_proof
     (wp_setupNode : setupNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) := by
-  intro γ bud c cv lok si σ hs csm peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11
+  intro γ bud c cv lok si σ hs csm pcb peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11
     P12 P13 P14 P15 P16 P17 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9
-  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted,
+  wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hpcb, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted,
     #Hbud, #Hlb1⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · iapply ownRaftGhost_inv γ cv.ID' (bootPState bootLog) $$ Hghost
   wp_auto
-  wp_apply wp_setupNode γ c cv lok si σ hs csm peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
+  wp_apply wp_setupNode γ c cv lok si σ hs csm pcb peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
     P8 P9 P10 P11 P12 P13 P14 P15 P16 P17 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9
-    $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted]
+    $$ [$Hc $Hlg $Hsto $Hown $Hpcb $Hinit $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted]
     as %np ⟨%nv, %rn, Hn, %Hnvrn, Hchans, Hrn, Hpeers⟩
   ipersist Hn
   try wp_auto

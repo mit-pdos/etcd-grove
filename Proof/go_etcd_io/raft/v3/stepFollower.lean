@@ -61,7 +61,7 @@ frozen (`cellRO_alloc`) and stored (`msgPtsC_store_To`), then the message is fro
 (`msgIn_to_msgOwn`) and given to `send`; `MsgApp`/`MsgSnap` hand the received message to
 `handleAppendEntries`/`handleSnapshot` (entries read-only: not a `MsgProp`). A `MsgReadIndexResp`'s
 `ReadState` holds the entry's data slice (`readStatesPts`, D6). -/
-theorem stepFollower.wp_proof
+theorem stepFollower.wp_proof_cb
     (wp_raft_handleAppendEntries : raft.handleAppendEntries.spec (GF := GF) (hG := hG))
     (wp_raft_handleHeartbeat : raft.handleHeartbeat.spec (GF := GF) (hG := hG))
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
@@ -72,8 +72,8 @@ theorem stepFollower.wp_proof
     (wp_GetEntries : raftpb.Message.GetEntries.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.Message.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
-    stepFollower.spec (GF := GF) (hG := hG) := by
-  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hprop Happ Hhb Hrest Hsnap
+    stepFollower.spec_cb (GF := GF) (hG := hG) := by
+  intro p c scfg r id s ml m ents sn rs sv cl Hty Hri Hprop Happ Hhb Hrest Hsnap
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -112,28 +112,85 @@ theorem stepFollower.wp_proof
       · ipureintro
         simp [FollowerStepResultC, MsgSnap, Hty, Hlead, MsgVoteResp, MsgProp]
       iexact ErrPropDropped
-    · -- forwarded to the leader: `m.To = new(r.lead)`, the message frozen and sent
+    · -- a leader known: `disableProposalForwarding` is `false`; (PR raft#88) the callback, if
+      -- set, is asked; dropped if it says so, else `m.To = new(r.lead)`, the message frozen and
+      -- sent
       rw [decide_eq_false Hlead]
       wp_auto
       wp_apply raft.wp_load_disableProposalForwardingC $$ Hphys as Hphys
-      wp_apply raft.wp_load_leadC $$ Hphys as Hphys
-      imod cellRO_alloc $$ «$r0» with #cTo
-      icases msgPtsC_store_To _ _ _ _ $$ Hm with ⟨%pTo, HTo, Hback⟩
+      iunfold pfcbIs at Hcb
+      icases Hcb with ⟨%f, #Hf, #Hfi⟩
       wp_auto
-      ihave Hm := Hback $$ %_ %s.lead HTo cTo
-      imod msgIn_to_msgOwn $$ Hm with Hm
-      wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
-          [propForward id s.lead m ents cl]
-          (Or.imp_right Or.inl Hfrom0)
-          (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
-          (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
-        $$ [$Hphys $Hm] as Hphys
-      iapply HΦ $$ %GoInterface.nil %_ %false %c
-      iframe
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro
-      simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp]
-      exact Hlead
+      cases p with
+      | none =>
+        iunfold pfcbImpl at Hfi
+        icases Hfi with %Hfn
+        subst Hfn
+        have HND : false = pfcbDrops none ⟨m, ents, sn, cl, rs⟩ := rfl
+        wp_auto
+        wp_apply raft.wp_load_leadC $$ Hphys as Hphys
+        imod cellRO_alloc $$ «$r0» with #cTo
+        icases msgPtsC_store_To _ _ _ _ $$ Hm with ⟨%pTo, HTo, Hback⟩
+        wp_auto
+        ihave Hm := Hback $$ %_ %s.lead HTo cTo
+        imod msgIn_to_msgOwn $$ Hm with Hm
+        wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
+            [propForward id s.lead m ents cl]
+            (Or.imp_right Or.inl Hfrom0)
+            (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
+            (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
+          $$ [$Hphys $Hm] as Hphys
+        iapply HΦ $$ %GoInterface.nil %_ %false %c
+        iframe
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        ipureintro
+        refine ⟨⟨?_, fun _ _ => HND⟩, trivial⟩
+        simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp]
+        exact Hlead
+      | some q =>
+        iunfold pfcbImpl at Hfi
+        icases Hfi with ⟨%Hfn, #Hspec⟩
+        rw [decide_eq_false Hfn]
+        wp_auto
+        iunfold pfcbSpec at Hspec
+        wp_apply Hspec $$ %ml %(DFrac.own 1) %_ %_ %(MsgSt.mk m ents sn cl rs) [$Hm] as Hm
+        cases Hq : q ⟨m, ents, sn, cl, rs⟩
+        · -- the callback keeps it: forwarded
+          have HND : false = pfcbDrops (some q) ⟨m, ents, sn, cl, rs⟩ := Hq.symm
+          wp_auto
+          wp_apply raft.wp_load_leadC $$ Hphys as Hphys
+          imod cellRO_alloc $$ «$r0» with #cTo
+          icases msgPtsC_store_To _ _ _ _ $$ Hm with ⟨%pTo, HTo, Hback⟩
+          wp_auto
+          ihave Hm := Hback $$ %_ %s.lead HTo cTo
+          imod msgIn_to_msgOwn $$ Hm with Hm
+          wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
+              [propForward id s.lead m ents cl]
+              (Or.imp_right Or.inl Hfrom0)
+              (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
+              (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
+            $$ [$Hphys $Hm] as Hphys
+          iapply HΦ $$ %GoInterface.nil %_ %false %c
+          iframe
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          ipureintro
+          refine ⟨⟨?_, fun _ _ => HND⟩, trivial⟩
+          simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp]
+          exact Hlead
+        · -- the callback drops it: logged, `ErrProposalDropped`
+          wp_auto
+          wp_apply raft.wp_load_idC $$ Hphys as Hphys
+          wp_apply raft.wp_load_leadC $$ Hphys as Hphys
+          wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+          wp_raft_logC
+          iapply HΦ $$ %errPropDropped %s %true %c
+          iframe Hphys
+          simp only [↓reduceIte]
+          isplitr
+          · ipureintro
+            refine ⟨?_, fun _ _ => by simp [pfcbDrops, Hq]⟩
+            simp [FollowerStepResultC, MsgSnap, Hty, Hlead, MsgVoteResp, MsgProp]
+          iexact ErrPropDropped
   · -- `MsgApp`: adopt the sender as leader, then `handleAppendEntries`
     obtain ⟨Hwf, Hnw, Hconf, Hfid, Hnl⟩ := Happ Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
@@ -461,6 +518,92 @@ theorem stepFollower.wp_proof
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
         MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+
+/-- (PR raft#88) `stepFollower.spec`: `spec_cb` at the callback the struct holds
+(`ownRaftPhysCV_pfcb`), the drop condition forgotten. -/
+theorem stepFollower.wp_proof
+    (wp_raft_handleAppendEntries : raft.handleAppendEntries.spec (GF := GF) (hG := hG))
+    (wp_raft_handleHeartbeat : raft.handleHeartbeat.spec (GF := GF) (hG := hG))
+    (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
+    (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
+    (wp_raft_hup : raft.hup.spec (GF := GF) (hG := hG))
+    (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
+    (wp_GetEntries : raftpb.Message.GetEntries.spec (GF := GF) (hG := hG))
+    (wp_GetIndex : raftpb.Message.GetIndex.spec (GF := GF) (hG := hG))
+    (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
+    stepFollower.spec (GF := GF) (hG := hG) := by
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hprop Happ Hhb Hrest Hsnap
+  iintro %Φ ⟨Hpkg, Hphys, Hm⟩ HΦ
+  icases ownRaftPhysCV_pfcb _ _ _ $$ Hphys with ⟨⟨%p, #Hcb⟩, Hphys⟩
+  wp_apply stepFollower.wp_proof_cb wp_raft_handleAppendEntries wp_raft_handleHeartbeat
+      wp_raft_handleSnapshot wp_raft_send wp_raft_hup wp_GetType wp_GetFrom wp_GetEntries
+      wp_GetIndex wp_GetData p c scfg r id s ml m ents sn rs sv cl Hty Hri Hprop Happ Hhb Hrest
+      Hsnap $$ [$Hpkg $Hphys $Hm $Hcb]
+    as %err %s' %dropped %c' ⟨Hphys, %Hres, Herr⟩
+  iapply HΦ $$ %err %s' %dropped %c'
+  iframe Hphys Herr
+  ipureintro
+  exact Hres.1
+
+/-- (PR raft#88) With a nil callback (`pfcbIs r none`), `stepFollower` does exactly what it did
+before the PR: `spec_cb` at `none` with the step as it was (`FollowerStepResultCOld`). -/
+theorem stepFollower.spec_nil_old (H : stepFollower.spec_cb (GF := GF) (hG := hG)) :
+  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
+   m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
+  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
+  (m.Type' = MsgProp →
+     (m.From' = W64 0 ∨ m.From' = id) ∧
+     m.Term' = W64 0 ∧
+     s.lead ≠ id) →
+  (m.Type' = MsgApp →
+     PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
+     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
+     (let ls := s.logst
+      let es := ls.sents ++ ls.uents
+      uint.Z ls.committed ≤ uint.Z m.Index' →
+      PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
+      plogFindConflict ls.prev es ents = W64 0 ∨
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     m.From' ≠ id ∧
+     s.role ≠ .leader) →
+  (m.Type' = MsgHeartbeat →
+     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
+     m.From' ≠ id) →
+  (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
+     (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
+        ents = [] ∧ cl = []) ∧
+     (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
+  (m.Type' = MsgSnap →
+     sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      ownRaftPhysCV c c.voters r id s ∗
+      msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      pfcbIs r none }}
+    (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
+      ownRaftPhysCV c' c'.voters r id s' ∗
+      ⌜FollowerStepResultCOld c scfg id s m ents sv dropped s' c' cl⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }} := by
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hprop Happ Hhb Hrest Hsnap
+  iintro %Φ ⟨Hpkg, Hphys, Hm, Hcb⟩ HΦ
+  wp_apply H none c scfg r id s ml m ents sn rs sv cl Hty Hri Hprop Happ Hhb Hrest Hsnap
+      $$ [$Hpkg $Hphys $Hm $Hcb]
+    as %err %s' %dropped %c' ⟨Hphys, %Hres, Herr⟩
+  iapply HΦ $$ %err %s' %dropped %c'
+  iframe Hphys Herr
+  ipureintro
+  exact Hres.1.old Hres.2
 
 end proof
 

@@ -256,7 +256,8 @@ abbrev nodeConfig (id : w64) (st : Loc) : Config :=
     PreVote' := false, ReadOnlyOption' := 0,
     Logger' := interface.mkOk qLoggerTy #qLoggerV,
     DisableProposalForwarding' := false, DisableConfChangeValidation' := false,
-    StepDownOnRemoval' := true, TraceLogger' := GoInterface.nil }
+    StepDownOnRemoval' := true, TraceLogger' := GoInterface.nil,
+    DisableProposalForwardingCallback' := func.nil }
 
 theorem nodeConfig_valid (id : w64) (st : Loc) (h : id ∈ clusterIds) :
     ConfigValid (nodeConfig id st) := by
@@ -431,17 +432,20 @@ theorem Main.wp_proof
       isplitr
       · ipureintro; exact ⟨Hdyn, rfl⟩
       iexact Hghost
+    -- (PR raft#88) no proposal-forwarding callback
+    ihave #Hpcb : pfcbImpl (GF := GF) func.nil none $$ []
+    · iunfold pfcbImpl; ipureintro; rfl
     wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
       bud _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
-      (register.regConfState clusterIds)
+      (register.regConfState clusterIds) none
       (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl rfl rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
       (fun _ => rfl))
-      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0]
+      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hpcb $Hinit $Hghost $Hc0 $Hbinv $Hlb0]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
     obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
