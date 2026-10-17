@@ -115,7 +115,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   cases hg : mvcc.kiGet (mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k) (W64 (ilog.length : Int)) with
   | some a =>
     obtain ⟨m, c, ver⟩ := a
-    simp only [mvcc.kiGetVal, hg]
+    simp only [mvcc.kiGetVal4, hg]
     (try wp_auto)
     -- `err == nil`: the key exists (resolved by `wp_auto`)
     -- `oldLease = tw.s.le.GetLease(lease.LeaseItem{Key: string(key)})`
@@ -334,7 +334,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           (try wp_auto)
           iapply HΦ; iframe Hown Htrc; iapply Hpack; iexact Htw
   | none =>
-    simp only [mvcc.kiGetVal, hg]
+    simp only [mvcc.kiGetVal4, hg]
     (try wp_auto)
     -- `err == nil` fails: `oldLease` stays `NoLease` (resolved by `wp_auto`)
     have hkvm' : mvcc.changeKv (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)

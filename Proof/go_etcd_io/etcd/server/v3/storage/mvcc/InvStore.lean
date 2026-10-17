@@ -2216,8 +2216,8 @@ instance isReadView_persistent (rv s : Loc) (γ : StoreNames) :
 /-! ## The result of a range read -/
 
 /-- A fresh `*mvccpb.KeyValue` holding the model's `kv`: all its fields (`full`), or, for a
-keys-only read, its key and revisions and version (value and lease zero); the key and value
-as read-only slices. -/
+keys-only read, its key, revisions, version and lease (value zero; the lease from the key
+index since etcd-io/etcd#22550); the key and value as read-only slices. -/
 def kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
   iprop(∃ (ks : GoSlice) (st : google_golang_org.protobuf.internal.impl.MessageState)
     (uf : GoSlice) (sc : w32),
@@ -2231,7 +2231,7 @@ def kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
     else
       p ↦ ({
         state' := st, Key' := ks, CreateRevision' := kv.createRev, ModRevision' := kv.modRev,
-        Version' := kv.version, Value' := slice.nil, Lease' := W64 0, unknownFields' := uf,
+        Version' := kv.version, Value' := slice.nil, Lease' := kv.lease, unknownFields' := uf,
         sizeCache' := sc } : go_etcd_io.etcd.api.v3.mvccpb.KeyValue))
 
 /-- The key-values of a `RangeResult` (`KVs`): fresh, one per answer of the index, in order,

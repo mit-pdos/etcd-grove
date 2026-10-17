@@ -298,14 +298,15 @@ theorem LogWf.of_wf' {log : Log} (h : LogWf' log) (hne : log ≠ []) : LogWf log
 
 /-- Every answer `(key, (mod, created, ver))` of a range read at revision `r` has its
 key-value: in the state at `r`, with those revisions and version, and encoded in the bucket
-at `mod`'s bytes. -/
+at `mod`'s bytes (`BucketHas`: what the change at `mod` wrote). -/
 theorem rangeAnswers_kv (log : Log) (hwf : LogWf log) (hlen : log.length < 2 ^ 63)
     (hcs : ∀ cs ∈ log, cs.length < 2 ^ 63) (endNil : Bool) (k e : GoString) (r : Nat)
     (hr : r < 2 ^ 63) :
     ∀ a ∈ rangeAnswers log endNil k e (W64 r), ∃ kv : EtcdKv,
       findKey a.1 (stateAt log r) = some kv ∧ kv.modRev = a.2.1.main ∧
       kv.createRev = a.2.2.1.main ∧ kv.version = a.2.2.2 ∧
-      (bucketMap log).lookup (revBytes a.2.1 false) = some (kvEncode kv) := by
+      (bucketMap log).lookup (revBytes a.2.1 false) = some (kvEncode kv) ∧
+      BucketHas log a.2.1 kv := by
   rintro ⟨key, m, c, v⟩ ha
   simp only
   -- the answer is `kiGet` of the key's index
@@ -344,7 +345,7 @@ theorem rangeAnswers_kv (log : Log) (hwf : LogWf log) (hlen : log.length < 2 ^ 6
   | some kv =>
     rw [hf] at hm
     obtain ⟨hmod, hcr, hver, hb⟩ := hm
-    exact ⟨kv, rfl, hmod, hcr, hver, bucketMap_lookup_of_BucketHas log hwf hlen hcs m kv hb hmod⟩
+    exact ⟨kv, rfl, hmod, hcr, hver, bucketMap_lookup_of_BucketHas log hwf hlen hcs m kv hb hmod, hb⟩
 
 /-! ### The pending revision grows: well-formedness -/
 
