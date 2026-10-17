@@ -14,6 +14,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.codes
 public import GeneratedProof.google_golang_org.grpc.credentials
+public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
@@ -1186,256 +1187,240 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
 
 instance lessor_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.lessor :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.lessor where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"mu" l) v.mu' dq ∗
+    "donec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"donec" l) v.donec' dq ∗
+    "loopErr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"loopErr" l) v.loopErr' dq ∗
+    "remote" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l) v.remote' dq ∗
+    "stream" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stream" l) v.stream' dq ∗
+    "streamCancel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"streamCancel" l) v.streamCancel' dq ∗
+    "stopCtx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCtx" l) v.stopCtx' dq ∗
+    "stopCancel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCancel" l) v.stopCancel' dq ∗
+    "keepAlives" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"keepAlives" l) v.keepAlives' dq ∗
+    "firstKeepAliveTimeout" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveTimeout" l) v.firstKeepAliveTimeout' dq ∗
+    "firstKeepAliveOnce" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveOnce" l) v.firstKeepAliveOnce' dq ∗
+    "callOpts" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l) v.callOpts' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"lg" l) v.lg' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance lessor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.lessor go_etcd_io.etcd.client.v3.lessor.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.lessor go_etcd_io.etcd.client.v3.lessor.underlying := by
+  solve_into_val_typed_struct
+
+instance lessor_access_load_mu (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_mu (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"donec" l) v.donec' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"donec" l) v.donec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (donec' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"donec" l) v.donec' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"donec" l) donec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := donec' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_loopErr (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"loopErr" l) v.loopErr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"loopErr" l) v.loopErr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_loopErr (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (loopErr' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"loopErr" l) v.loopErr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"loopErr" l) loopErr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with loopErr' := loopErr' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l) v.remote' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l) v.remote' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (remote' : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l) v.remote' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l) remote' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with remote' := remote' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_stream (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stream" l) v.stream' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stream" l) v.stream' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_stream (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (stream' : (google_golang_org.grpc.BidiStreamingClient go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse)) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stream" l) v.stream' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stream" l) stream' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stream' := stream' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_streamCancel (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"streamCancel" l) v.streamCancel' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"streamCancel" l) v.streamCancel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_streamCancel (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (streamCancel' : context.CancelFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"streamCancel" l) v.streamCancel' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"streamCancel" l) streamCancel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with streamCancel' := streamCancel' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_stopCtx (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCtx" l) v.stopCtx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCtx" l) v.stopCtx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_stopCtx (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (stopCtx' : context.Context) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCtx" l) v.stopCtx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCtx" l) stopCtx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopCtx' := stopCtx' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_stopCancel (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCancel" l) v.stopCancel' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCancel" l) v.stopCancel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_stopCancel (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (stopCancel' : context.CancelFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCancel" l) v.stopCancel' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"stopCancel" l) stopCancel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopCancel' := stopCancel' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_keepAlives (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"keepAlives" l) v.keepAlives' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"keepAlives" l) v.keepAlives' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_keepAlives (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (keepAlives' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"keepAlives" l) v.keepAlives' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"keepAlives" l) keepAlives' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keepAlives' := keepAlives' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_firstKeepAliveTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveTimeout" l) v.firstKeepAliveTimeout' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveTimeout" l) v.firstKeepAliveTimeout' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_firstKeepAliveTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (firstKeepAliveTimeout' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveTimeout" l) v.firstKeepAliveTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveTimeout" l) firstKeepAliveTimeout' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstKeepAliveTimeout' := firstKeepAliveTimeout' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_firstKeepAliveOnce (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveOnce" l) v.firstKeepAliveOnce' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveOnce" l) v.firstKeepAliveOnce' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_firstKeepAliveOnce (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (firstKeepAliveOnce' : sync.Once) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveOnce" l) v.firstKeepAliveOnce' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"firstKeepAliveOnce" l) firstKeepAliveOnce' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstKeepAliveOnce' := firstKeepAliveOnce' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_callOpts (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l) v.callOpts' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l) v.callOpts' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_callOpts (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (callOpts' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l) v.callOpts' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l) callOpts' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callOpts' := callOpts' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_load_lg (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance lessor_access_store_lg (l : Loc) (v : go_etcd_io.etcd.client.v3.lessor) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.lessor go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.client.v3.lessor) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end lessor
-
-namespace keepAlive
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
-
-instance keepAlive_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.keepAlive where
-  typedPointstoDef l v dq := iprop(
-    "chs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"chs" l) v.chs' dq ∗
-    "ctxs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"ctxs" l) v.ctxs' dq ∗
-    "deadline" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"deadline" l) v.deadline' dq ∗
-    "nextKeepAlive" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"nextKeepAlive" l) v.nextKeepAlive' dq ∗
-    "donec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"donec" l) v.donec' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance keepAlive_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.keepAlive go_etcd_io.etcd.client.v3.keepAlive.underlying := by
-  solve_into_val_typed_struct
-
-instance keepAlive_access_load_chs (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"chs" l) v.chs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"chs" l) v.chs' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_store_chs (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (chs' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"chs" l) v.chs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"chs" l) chs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with chs' := chs' } : go_etcd_io.etcd.client.v3.keepAlive) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_load_ctxs (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"ctxs" l) v.ctxs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"ctxs" l) v.ctxs' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_store_ctxs (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (ctxs' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"ctxs" l) v.ctxs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"ctxs" l) ctxs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctxs' := ctxs' } : go_etcd_io.etcd.client.v3.keepAlive) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_load_deadline (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"deadline" l) v.deadline' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"deadline" l) v.deadline' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_store_deadline (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (deadline' : time.Time) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"deadline" l) v.deadline' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"deadline" l) deadline' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with deadline' := deadline' } : go_etcd_io.etcd.client.v3.keepAlive) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_load_nextKeepAlive (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"nextKeepAlive" l) v.nextKeepAlive' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"nextKeepAlive" l) v.nextKeepAlive' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_store_nextKeepAlive (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (nextKeepAlive' : time.Time) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"nextKeepAlive" l) v.nextKeepAlive' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"nextKeepAlive" l) nextKeepAlive' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextKeepAlive' := nextKeepAlive' } : go_etcd_io.etcd.client.v3.keepAlive) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_load_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"donec" l) v.donec' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"donec" l) v.donec' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance keepAlive_access_store_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.keepAlive) (donec' : GoChan) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"donec" l) v.donec' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"donec" l) donec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := donec' } : go_etcd_io.etcd.client.v3.keepAlive) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end keepAlive
-
-namespace keepAliveCtxKey
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
-
-instance keepAliveCtxKey_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.keepAliveCtxKey where
-  typedPointstoDef l v dq := iprop(
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance keepAliveCtxKey_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.keepAliveCtxKey go_etcd_io.etcd.client.v3.keepAliveCtxKey.underlying := by
-  solve_into_val_typed_struct
-
-end def_
-end keepAliveCtxKey
-
-namespace SnapshotResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
-
-instance SnapshotResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.SnapshotResponse :=
-  sorry -- axiomatized type
-
-instance SnapshotResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.SnapshotResponse go_etcd_io.etcd.client.v3.SnapshotResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end SnapshotResponse
-
-namespace maintenance
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
-
-instance maintenance_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.maintenance where
-  typedPointstoDef l v dq := iprop(
-    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"lg" l) v.lg' dq ∗
-    "dial" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"dial" l) v.dial' dq ∗
-    "remote" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"remote" l) v.remote' dq ∗
-    "callOpts" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"callOpts" l) v.callOpts' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance maintenance_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.maintenance go_etcd_io.etcd.client.v3.maintenance.underlying := by
-  solve_into_val_typed_struct
-
-instance maintenance_access_load_lg (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"lg" l) v.lg' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"lg" l) v.lg' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance maintenance_access_store_lg (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (lg' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"lg" l) v.lg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"lg" l) lg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.client.v3.maintenance) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance maintenance_access_load_dial (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"dial" l) v.dial' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"dial" l) v.dial' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance maintenance_access_store_dial (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (dial' : GoFunc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"dial" l) v.dial' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"dial" l) dial' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dial' := dial' } : go_etcd_io.etcd.client.v3.maintenance) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance maintenance_access_load_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"remote" l) v.remote' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"remote" l) v.remote' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance maintenance_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (remote' : go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"remote" l) v.remote' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"remote" l) remote' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with remote' := remote' } : go_etcd_io.etcd.client.v3.maintenance) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance maintenance_access_load_callOpts (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"callOpts" l) v.callOpts' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"callOpts" l) v.callOpts' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance maintenance_access_store_callOpts (l : Loc) (v : go_etcd_io.etcd.client.v3.maintenance) (callOpts' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"callOpts" l) v.callOpts' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.maintenance go!"callOpts" l) callOpts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callOpts' := callOpts' } : go_etcd_io.etcd.client.v3.maintenance) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end maintenance
 
 end go_etcd_io.etcd.client.v3
 end

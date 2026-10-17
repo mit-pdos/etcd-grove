@@ -48,6 +48,7 @@ axiom grpcServesStream
 axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
+axiom metadata.FromOutgoingContext.wp_proof
 axiom peer.Peer.String.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Clone.wp_proof
