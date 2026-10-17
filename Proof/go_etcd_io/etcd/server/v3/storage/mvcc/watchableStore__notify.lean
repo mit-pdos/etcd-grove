@@ -762,7 +762,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
       iexists γw, r, fcs
       iframe Hm Hf Hc Hfo Ha Hl Hwf
       ipureintro
-      have hvb : victimBatchOk γw.lo st B := by
+      have hvb : victimBatchOk γw.lo st B ∧ B.evs ≠ [] := by
         obtain ⟨-, hBt⟩ := hrel.bv k B hb
         obtain ⟨r0, st0, -, -, hmb⟩ := batchOf_some hBt
         have hlen' : ilog.length < 2 ^ 63 := by omega
@@ -781,14 +781,16 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
           by_cases h : watchEvents (ilog ++ [pend]) r0 N (N + 1) = []
           · rw [if_pos h] at hnb; cases hnb
           · rw [if_neg h] at hnb; exact Option.some.inj hnb
-        refine ⟨fun h => by rw [hBeq] at h; exact absurd rfl h, fun ev hev => ?_⟩
+        have hBn : B.evs ≠ [] := by
+          rw [hBeq]; intro h0; simp only at h0; rw [if_pos h0] at hnb; cases hnb
+        refine ⟨⟨fun h => by rw [hBeq] at h; exact absurd rfl h, fun ev hev => ?_⟩, hBn⟩
         have hlo' := Hlo (List.ne_nil_of_mem hev)
         rw [hBeq] at hev
         have hm := watchEvents_next_modRev ilog pend hne r0 ev (by rw [hN]; exact hev)
         have hz : sint.Z ev.kv.modRev = N := by rw [hm, hN]; word
         rw [hz, Hmin.2]
         omega
-      refine ⟨hM, Hsr, rfl, Hmin.1, ?_, hvb⟩
+      refine ⟨hM, Hsr, rfl, Hmin.1, ?_, hvb.1, hvb.2⟩
       have : sint.Z st.minRev = ((N + 1 : Nat) : Int) := by rw [Hmin.2]; push_cast; rfl
       have h2 : sint.nat st.minRev = (sint.Z st.minRev).toNat := rfl
       rw [h2, this]; rfl

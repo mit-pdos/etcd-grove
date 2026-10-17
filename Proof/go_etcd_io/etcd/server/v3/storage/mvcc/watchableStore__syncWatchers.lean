@@ -527,11 +527,11 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           ihave Hmw := mvcc.sw_memberRes_new_victim γ σ v key r' B st' γw fcs evsw C.length
             hM Hsr hvWs fvo ⟨by rw [hst'm]; omega, by
               show C.length = (sint.Z st'.minRev).toNat; rw [hst'm]; simp,
-              fun h => absurd hmr0 h, fun ev hev => by
+              ⟨fun h => absurd hmr0 h, fun ev hev => by
                 have := hmodB ev hev
                 have : (sint.nat st.minRev : Int) = sint.Z st.minRev := by
                   show ((sint.Z st.minRev).toNat : Int) = _; omega
-                rw [hst'm]; omega⟩
+                rw [hst'm]; omega⟩, hBne⟩
             $$ [Hmeta Hfx Hch Hfo Ha Hlv Hwf']
           · rw [← hst']; iframe; iframe #
           ihave Hwo : mvcc.watcherOwn key st' $$ [HminRev Hvict Hcomp Hrest0 Hchf]
@@ -683,11 +683,11 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           ihave Hmw := mvcc.sw_memberRes_new_victim γ σ v key r' B st' γw fcs evsw M
             hM Hsr hvWs fvo ⟨by rw [hst'm]; omega, by
               show M = (sint.Z st'.minRev).toNat; rw [hst'm]; simp,
-              fun _ => by rw [← hst'], fun ev hev => by
+              ⟨fun _ => by rw [← hst'], fun ev hev => by
                 have := hmodB ev hev
                 have : (sint.nat st.minRev : Int) = sint.Z st.minRev := by
                   show ((sint.Z st.minRev).toNat : Int) = _; omega
-                rw [hst'm]; omega⟩
+                rw [hst'm]; omega⟩, hBne⟩
             $$ [Hmeta Hfx Hch Hfo Ha Hlv Hwf']
           · rw [← hst']; iframe; iframe #
           ihave Hwo : mvcc.watcherOwn key st' $$ [HminRev Hvict Hcomp Hrest0 Hchf]

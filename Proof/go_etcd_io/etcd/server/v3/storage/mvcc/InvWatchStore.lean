@@ -1102,7 +1102,7 @@ def popFacts (γ : WsNames) (σ : WsState) (w : Loc) (r : WatchRange) (lo : Nat)
       ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.Z st.minRev < Lc.length⌝)
   else match σ.victimOf w with
     | some B => iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧
-          victimBatchOk lo st B⌝ ∗
+          victimBatchOk lo st B ∧ B.evs ≠ []⌝ ∗
         evsWf γ r lo (evsw ++ B.evs) d)
     | none => iprop(True)
 
@@ -1138,8 +1138,8 @@ theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange)
     (st : WatcherSt) (evsw : List EvM) (d : Nat) (B : EventBatch) (h1 : (σ.Ws !! k).isSome = false)
     (h2 : (σ.Wu !! k).isSome = false) (h3 : σ.victimOf k = some B) :
     popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B⌝ ∗
-        evsWf γ r lo (evsw ++ B.evs) d) := by
+      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B ∧
+        B.evs ≠ []⌝ ∗ evsWf γ r lo (evsw ++ B.evs) d) := by
   unfold popFacts; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
 
 /-- `memberRes` moves to a state that agrees with it at the watcher. -/

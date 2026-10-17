@@ -751,7 +751,8 @@ theorem sw_memberRes_new_victim (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
     (evsw : List EvM) (D : Nat) (hM : σ.M !! key = some γw)
     (hsr : sint.Z r.startRev ≤ (γw.lo : Int)) (hWs0 : v.Ws !! key = none)
     (hvo : σ.victimOf key = none)
-    (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ D = sint.nat st'.minRev ∧ victimBatchOk γw.lo st' B) :
+    (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ D = sint.nat st'.minRev ∧ victimBatchOk γw.lo st' B ∧
+      B.evs ≠ []) :
     watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo (evsw ++ B.evs) D ⊢
