@@ -1,0 +1,4 @@
+--- PASS: TestV3ElectionCampaignAuthTokenExpiration (3.22s)
+--- PASS: TestV3ElectionCampaignAuthRevisionUpdate (0.67s)
+--- PASS: TestV3LockLockAuthTokenExpiration (3.24s)
+ok  	go.etcd.io/etcd/tests/v3/integration	7.216s

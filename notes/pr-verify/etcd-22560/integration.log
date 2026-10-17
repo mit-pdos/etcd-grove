@@ -1,0 +1,17 @@
+== up
+    v3lock_auth_renew_test.go:61: KV Delete with the revoked token: etcdserver: revision of auth store is old
+    v3lock_auth_renew_test.go:63: Lock.Unlock with the revoked token: <nil>
+    v3lock_auth_renew_test.go:65: Lock.Unlock accepted the revoked token
+    v3lock_auth_renew_test.go:70: Lock.Unlock with the revoked, expired token: <nil>
+    v3lock_auth_renew_test.go:72: Lock.Unlock accepted the revoked, expired token
+    v3lock_auth_renew_test.go:77: 
+--- FAIL: TestV3LockUnlockRejectsRevokedAndExpiredJWT (3.37s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	3.455s
+FAIL
+== base
+    v3lock_auth_renew_test.go:61: KV Delete with the revoked token: etcdserver: revision of auth store is old
+    v3lock_auth_renew_test.go:63: Lock.Unlock with the revoked token: rpc error: code = Unknown desc = etcdserver: revision of auth store is old
+    v3lock_auth_renew_test.go:70: Lock.Unlock with the revoked, expired token: rpc error: code = Unknown desc = etcdserver: invalid auth token
+--- PASS: TestV3LockUnlockRejectsRevokedAndExpiredJWT (3.27s)
+ok  	go.etcd.io/etcd/tests/v3/integration	3.405s

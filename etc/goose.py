@@ -169,6 +169,9 @@ PROJECTS = [
             # with bodies (etcdserver/api/v3rpc.toml): the gRPC KV service's handlers, the
             # request checks, the response header, togRPCError (the request path)
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc",
+            # pr-verify etcd#22560: the in-process client's token renewal
+            # (etcdserver/api/v3client.toml)
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3client",
             # names only, with the two features the request path reads
             "go.etcd.io/etcd/server/v3/features",
             # with bodies (storage/backend.toml): the backend over bbolt, its buffers and

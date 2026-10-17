@@ -20,8 +20,19 @@ translate = ["!*", "AuthInfo",
   "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
-  "ErrInvalidAuthToken"]
-imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic",
+  "ErrInvalidAuthToken",
+  # pr-verify etcd#22560: the token renewal (store.go's RenewToken, simple_token.go's table and
+  # TTL keeper, nop.go's renew), with bodies; the keeper's goroutine (`run`, a ticker) and
+  # `stop`, `info`/`assign`/`isValidSimpleToken`/`genTokenPrefix` names only; jwt.go names only
+  "authStore.RenewToken", "ErrAuthFailed",
+  "tokenSimple", "simpleTokenTTLKeeper",
+  "simpleTokenTTLKeeper.addSimpleToken", "simpleTokenTTLKeeper.resetSimpleToken",
+  "simpleTokenTTLKeeper.deleteSimpleToken",
+  "tokenSimple.assignSimpleTokenToUser", "tokenSimple.invalidateUser", "tokenSimple.enable",
+  "tokenSimple.disable", "tokenSimple.renew", "newTokenProviderSimple",
+  "simpleTokenTTLDefault", "simpleTokenTTLResolution",
+  "tokenNop", "tokenNop.renew"]
+imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic", "time",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
   "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]

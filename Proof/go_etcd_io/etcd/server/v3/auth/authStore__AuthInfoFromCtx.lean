@@ -45,7 +45,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
   · iPkgInit
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨#HeUE, #HeUNF, #HePD, #HeOR, #HeIT, ⟨%s1, #Hs1⟩, ⟨%s2, #Hs2⟩⟩
+  icases Hai with ⟨#HeUE, #HeUNF, #HePD, #HeOR, #HeIT, ⟨%s1, #Hs1⟩, ⟨%s2, #Hs2⟩, -⟩
   ihave #HeIT' := HeIT
   iunfold authErrVar at HeIT'
   icases HeIT' with ⟨%eIT, #HeITa, -⟩

@@ -142,13 +142,24 @@ instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) :
   unfold authBackendOk; infer_instance
 
 /-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract): `info(ctx, token,
-rev)` returns an auth info (`authInfoRO`) and a boolean. -/
+rev)` returns an auth info (`authInfoRO`) and a boolean; (pr-verify etcd#22560) `renew(ctx, token,
+rev)` returns a token and an error, the token `""` on an error; `invalidateUser(name)` is the
+admin's: it needs a resource `Adm` of the provider's own, which it keeps (the simple provider's is
+`tsAdmin`, `InvSimpleToken.lean`: `invalidateUser` reads `simpleTokenKeeper` without its lock,
+which only the apply goroutine may). -/
 def tokenProviderOk (tp : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
     □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
       {{ True }}
         (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx)) (Val #token)) (Val #rev))
-      {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a }}))
+      {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a }}) ∗
+    □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
+      {{ True }}
+        (App (App (App (Val #(methods ti.ty go!"renew" ti.v)) (Val #ctx)) (Val #token)) (Val #rev))
+      {{ (s : GoString) (err : GoInterface), RET (PairV #s #err);
+          ⌜err = GoInterface.nil⌝ ∨ ⌜s = go!""⌝ }}) ∗
+    ∃ Adm : IProp GF, □ (∀ name : GoString,
+      {{ Adm }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); Adm }}))
 
 instance tokenProviderOk_persistent (tp : GoInterface) :
     Persistent (tokenProviderOk (GF := GF) tp) := by

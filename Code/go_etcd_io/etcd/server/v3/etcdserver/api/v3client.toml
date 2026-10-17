@@ -1,0 +1,15 @@
+# pr-verify etcd#22560 (2026-10-16): the in-process client's token renewal, with bodies: the KV
+# wrapper's five methods (retry once with a renewed token), the watch wrapper's Watch, and the
+# helpers isInvalidAuthToken and renewContextToken; `New` (which builds the client over the
+# grpcproxy adapters) and blankContext names only.
+translate = ["!*", "kvServerWrapper", "watchWrapper", "blankContext",
+  "kvServerWrapper.Range", "kvServerWrapper.Put", "kvServerWrapper.DeleteRange",
+  "kvServerWrapper.Txn", "kvServerWrapper.Compact", "watchWrapper.Watch",
+  "isInvalidAuthToken", "renewContextToken"]
+imports = ["!*", "context", "errors", "strings", "google.golang.org/grpc/metadata",
+  "google.golang.org/grpc/status", "go.etcd.io/etcd/api/v3/etcdserverpb",
+  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/client/v3",
+  "go.etcd.io/etcd/server/v3/etcdserver"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

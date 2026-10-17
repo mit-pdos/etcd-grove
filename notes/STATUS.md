@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd#22560 verified (branch `pr-verify/etcd-22560`, 2026-10-16)
+
+This branch translates the etcd fork with etcd#22560 applied (`pr-etcd-22560-goose-lean`; `etc/goose.py --check`
+fails here by design). It adds two things to the translation: auth.toml now translates `simple_token.go`'s table,
+the keeper methods, `RenewToken` and `tokenNop.renew` with bodies, and the package `etcdserver/api/v3client` is
+translated (not specified). The simple token provider is proved against a lock invariant (`auth/InvSimpleToken.lean`:
+`stLockP`, the admin share `tsAdmin`, a ghost table of allowed tokens). The proved functions are `renew`, `assign`,
+`invalidateUser`, `enable` (with its `delf`), `disable` and `newTokenProviderSimple`. The keeper goroutine's `run`
+and `stop` are new postulates; `stop` is not derivable as stated (open). `tokenProviderOk` gains `renew` and an
+admin-only `invalidateUser`, and `authInit` gains `ErrAuthFailed` and `simpleTokenTTLDefault`. `RenewToken` has one
+`sorry`, its `invalidateUser` call from a request goroutine: a data race in the PR. The verdict is "do not merge":
+renewal defeats token expiry and revocation for the v3lock/v3election API. Report: `notes/pr-verify/etcd-22560.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

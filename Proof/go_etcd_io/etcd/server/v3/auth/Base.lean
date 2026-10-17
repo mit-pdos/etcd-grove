@@ -27,6 +27,7 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.strings
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
+public import Perennial.Proof.time
 
 @[expose] public section
 
@@ -64,14 +65,20 @@ instance authErrVar_persistent (g : GoString) : Persistent (authErrVar (GF := GF
   unfold authErrVar; infer_instance
 
 /-- The auth package's facts: its error variables the request side returns (`authErrVar`), and
-`rpctypes`' token keys (fixed read-only strings). -/
+`rpctypes`' token keys (fixed read-only strings); and (pr-verify etcd#22560) `ErrAuthFailed` and
+`simpleTokenTTLDefault`, which `simple_token.go` reads (a `var` "for testing purposes": only tests
+write it, so it is read-only after initialization here). -/
 abbrev authInit : IProp GF :=
   iprop(authErrVar ErrUserEmpty ∗ authErrVar ErrUserNotFound ∗ authErrVar ErrPermissionDenied ∗
     authErrVar ErrAuthOldRevision ∗ authErrVar ErrInvalidAuthToken ∗
     (∃ s : GoString,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ s) ∗
     (∃ s : GoString,
-      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s))
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s) ∗
+    -- pr-verify etcd#22560: the token renewal's error and the simple provider's default TTL
+    -- (a mutable `var` that only tests write: read-only here)
+    authErrVar ErrAuthFailed ∗
+    (∃ d : time.Duration, globalAddr simpleTokenTTLDefault ↦□ d))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
   define_is_pkg_init authInit

@@ -1,0 +1,14 @@
+# pr-verify etcd#22560 (2026-10-16): the token renewal of the auth store and the simple token
+# provider (Spec/go_etcd_io/etcd/server/v3/auth/: tokenSimple__*, simpleTokenTTLKeeper__*,
+# newTokenProviderSimple, tokenNop__renew, authStore__RenewToken).
+roots tokenSimple__
+roots simpleTokenTTLKeeper__
+roots newTokenProviderSimple
+roots tokenNop__renew
+roots authStore__RenewToken
+axiom auth.simpleTokenTTLKeeper.run.wp_proof
+axiom auth.simpleTokenTTLKeeper.stop.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.NewNop.wp_proof
+axiom zap.String.wp_proof
+sorry auth.authStore.RenewToken.wp_proof

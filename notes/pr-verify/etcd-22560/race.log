@@ -1,0 +1,17 @@
+2:--- PASS: TestRenewTokenResurrectsExpiredSimpleToken (3.08s)
+4:--- PASS: TestRenewTokenJWTIgnoresExpiry (2.11s)
+6:--- PASS: TestRenewTokenJWTSurvivesPasswordChange (0.23s)
+8:--- PASS: TestRenewTokenJWTDeletedUserRecreated (0.18s)
+11:WARNING: DATA RACE
+12:Read at 0x00c0004332d0 by goroutine 54:
+13:  go.etcd.io/etcd/server/v3/auth.(*tokenSimple).invalidateUser()
+15:  go.etcd.io/etcd/server/v3/auth.(*authStore).RenewToken()
+17:  go.etcd.io/etcd/server/v3/auth.(*authStore).RenewToken()
+19:  go.etcd.io/etcd/server/v3/auth.(*authStore).RenewToken()
+52:Previous write at 0x00c0004332d0 by goroutine 56:
+53:  go.etcd.io/etcd/server/v3/auth.(*tokenSimple).disable()
+55:  go.etcd.io/etcd/server/v3/auth.(*authStore).AuthDisable()
+297:--- FAIL: TestRenewTokenInvalidateUserRacesDisable (0.30s)
+298:FAIL
+299:FAIL	go.etcd.io/etcd/server/v3/auth	6.010s
+300:FAIL

@@ -32,6 +32,8 @@ axiom attribute.String.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.hasRootRole.wp_proof
 axiom auth.redactToken.wp_proof
+axiom auth.simpleTokenTTLKeeper.run.wp_proof
+axiom auth.simpleTokenTTLKeeper.stop.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledInsideUnittest.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
@@ -240,3 +242,4 @@ sorry Perennial.math.initialize'.wp_proof
 sorry Perennial.os.wp_initialize'
 sorry Perennial.strconv.wp_initialize'
 sorry Perennial.time.initialize'.wp_proof
+sorry auth.authStore.RenewToken.wp_proof
