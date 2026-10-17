@@ -1,0 +1,4 @@
+# Names only (pr-verify etcd#21714): `clientv3.Config`'s `TLS *tls.Config`; the type's definition
+# is not translated (`tls.Config` holds certificates, callbacks, x509 pools: axiomatized).
+translate = ["!*"]
+imports = ["!*"]

@@ -220,8 +220,16 @@ translate = [
   "blockLogger.recordWait",
   "isHaltErr",
   "isUnavailableErr",
+  # etcd-io/etcd#21714 (pr-verify): the constructor `newClient` (with `New`), whose dial and
+  # token errors the PR wraps with the endpoints (`fmt.Errorf("... [%s] ...: %w", strings.Join(...),
+  # err)`); its callees stay names only: hence the imports of `strings`, of `crypto/tls` (the type of
+# `Config.TLS`, so that `Config` is translated: names only, `Code/crypto/tls.toml`), of `logutil`
+# (`CreateDefaultZapLogger`) and of `io` (`io.ReadCloser`, in the `Maintenance` interface, the type
+# of a `Client` field `newClient` writes: without it `Maintenance` is an axiomatized type)
+  "New",
+  "newClient",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "strings", "crypto/tls", "go.etcd.io/etcd/client/pkg/v3/logutil", "io"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

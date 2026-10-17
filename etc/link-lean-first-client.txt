@@ -159,3 +159,37 @@ watcher__Watch: OpWatch streamKeyFromCtx watcher__newWatcherGRPCStream
 NewWatchFromWatchClient: Client__GetLogger
 NewWatcher: NewWatchClient NewWatchFromWatchClient
 watcher__Close: watchGRPCStream__close errors_IsStatusErr
+# pr-verify etcd#21714: the constructor `newClient` (behind `New`), whose dial and token errors the
+# PR wraps (`fmt.Errorf("... [%s] ...: %w", strings.Join(cfg.Endpoints, ";"), err)`, the wrapping
+# `fmt.ErrorfWrap`, an axiom); its names-only callees are axioms (the dial, `SetEndpoints`, the
+# service constructors but `NewKV`/`NewWatcher`, `Close`, `checkVersion`, `autoSync`, zap's,
+# grpc's and the client's `credentials`/`resolver`/`logutil` functions), `NewKV` and `NewWatcher`
+# are used through specs of their own for any connection (`NewKVAny`, `NewWatcherAny`), proved.
+fmt_Errorf: @
+fmt_ErrorfWrap:
+context_TODO:
+context_WithCancelTODO:
+credentials_NewTransportCredential:
+credentials_NewPerRPCCredentialBundle:
+zap_Config__Build:
+zap_Logger__Named:
+logutil_CreateDefaultZapLogger:
+ClientLogLevel:
+grpc_MaxCallSendMsgSize:
+grpc_MaxCallRecvMsgSize:
+resolver_New:
+resolver_EtcdManualResolver__Close:
+Client__SetEndpoints:
+Client__dialWithBalancer:
+NewCluster:
+v3_NewLease:
+NewAuth:
+NewMaintenance:
+NewKVAny: RetryKVClient
+NewWatchFromWatchClientAny: Client__GetLogger
+NewWatcherAny: NewWatchClient NewWatchFromWatchClientAny
+Client__Close:
+Client__checkVersion:
+Client__autoSync:
+newClient: credentials_NewTransportCredential context_TODO context_WithCancelTODO zap_Config__Build ClientLogLevel logutil_CreateDefaultZapLogger zap_Logger__Named credentials_NewPerRPCCredentialBundle grpc_MaxCallSendMsgSize grpc_MaxCallRecvMsgSize fmt_Errorf resolver_New Client__SetEndpoints Client__dialWithBalancer resolver_EtcdManualResolver__Close fmt_ErrorfWrap NewCluster NewKVAny v3_NewLease NewWatcherAny NewAuth NewMaintenance Client__getToken Client__Close Client__checkVersion Client__autoSync
+client_v3_New: newClient

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.context
+public import Code.net
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -107,8 +108,6 @@ def TLSChannelzSecurityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] TLSChannelzSecurityValue.ty
 
-axiom TransportCredentials.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom ClientHandshakeInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom OtherChannelzSecurityValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -176,7 +175,7 @@ noncomputable def NewServerTLSFromFile [FfiSyntax] [GoGlobalContext] : GoString 
   go!"google.golang.org/grpc/credentials.NewServerTLSFromFile"
 
 instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials where
-  pkgImportedPkgs := [pkg_id.context]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.net]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -187,6 +186,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val tls12ForbiddenCipherSuites.init) (Val #())))))
   (App (Val doExecute)
@@ -194,7 +194,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrConnDispatched.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.context.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.net.initialize') (Val #()))))))))
 
 abbrev PerRPCCredentials [FfiSyntax] : Type := GoInterface
 
@@ -316,18 +318,15 @@ class AuthorityValidator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
 
 attribute [instance] AuthorityValidator.TypeAssumptions.underlying
 
-axiom TransportCredentials : Type
-axiom TransportCredentials.zero_val : ZeroVal TransportCredentials
-attribute [instance] TransportCredentials.zero_val
+abbrev TransportCredentials [FfiSyntax] : Type := GoInterface
+
+@[reducible] def TransportCredentials.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClientHandshake" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error])), (go.InterfaceElem.MethodElem go!"Clone" (go.signature.Signature [] false [TransportCredentials.ty])), (go.InterfaceElem.MethodElem go!"Info" (go.signature.Signature [] false [ProtocolInfo.ty])), (go.InterfaceElem.MethodElem go!"OverrideServerName" (go.signature.Signature [go.string] false [go.error])), (go.InterfaceElem.MethodElem go!"ServerHandshake" (go.signature.Signature [_root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error]))])
 
 class TransportCredentials.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying TransportCredentials.underlying TransportCredentials
   underlying : go.UnderlyingDirectedEq TransportCredentials.ty TransportCredentials.underlying
-  isUnderlying : go.IsUnderlying TransportCredentials.underlying TransportCredentials.underlying
 
-attribute [instance] TransportCredentials.TypeAssumptions.type_repr
-  TransportCredentials.TypeAssumptions.underlying
-  TransportCredentials.TypeAssumptions.isUnderlying
+attribute [instance] TransportCredentials.TypeAssumptions.underlying
 
 abbrev Bundle [FfiSyntax] : Type := GoInterface
 
@@ -542,6 +541,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   tlsCreds_instance : tlsCreds.TypeAssumptions
   TLSChannelzSecurityValue_instance : TLSChannelzSecurityValue.TypeAssumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_net_Assumption : _root_.Perennial.net.Assumptions
 
 attribute [instance] Assumptions.PerRPCCredentials_instance
   Assumptions.SecurityLevel_instance
@@ -561,6 +561,7 @@ attribute [instance] Assumptions.PerRPCCredentials_instance
   Assumptions.tlsCreds_instance
   Assumptions.TLSChannelzSecurityValue_instance
   Assumptions.import_context_Assumption
+  Assumptions.import_net_Assumption
 
 end google_golang_org.grpc.credentials
 

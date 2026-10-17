@@ -142,7 +142,9 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "net=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
-                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
+                    # pr-verify etcd#21714: `clientv3.Config`'s `TLS *tls.Config` (names only)
+                    "crypto/tls="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -251,6 +253,9 @@ PROJECTS = [
             # (unicode/utf8: the server's unary interceptor checks the client's API version,
             # unit P3b)
             "unicode/utf8",
+            # (crypto/tls: the type of `clientv3.Config`'s `TLS`, so that `Config` is translated
+            # and `newClient` can read its fields; pr-verify etcd#21714)
+            "crypto/tls",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
@@ -285,6 +290,7 @@ PROJECTS = [
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                "net", os.path.join("encoding", "hex"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
+               os.path.join("crypto", "tls"),
                os.path.join("github_com", "dustin")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[

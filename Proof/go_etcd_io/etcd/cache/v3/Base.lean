@@ -28,6 +28,7 @@ public import Perennial.Proof.fmt
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.io
+public import Perennial.Proof.strings
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 
 @[expose] public section
@@ -235,17 +236,35 @@ instance rpctypes_get_is_pkg_init_wf_inst :
 
 -- The names-only packages of `clientv3.Client`'s field types.
 
+-- `net` (names only: the interface `net.Addr`, the type of grpc's `peer.Peer`'s fields, unit
+-- P3a; `net.Conn`, in grpc's `credentials.TransportCredentials`).
+instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
+  define_is_pkg_init iprop(True)
+instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
+  build_get_is_pkg_init_wf
+
 instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   define_is_pkg_init iprop(True)
 instance grpc_credentials_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   build_get_is_pkg_init_wf
 
--- grpc's `peer` and `net` (names only; unit P3a: the retry interceptor's `peer.Peer`).
-instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
+-- `crypto/tls` (names only: the type of `clientv3.Config`'s `TLS`) and the client's `logutil`
+-- (names only: `newClient`'s default logger), for the translation of `clientv3.newClient`
+-- (pr-verify etcd#21714; `logutil`'s instances were in `etcdserver/BaseApply.lean`).
+instance crypto_tls_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
   define_is_pkg_init iprop(True)
-instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
+instance crypto_tls_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
   build_get_is_pkg_init_wf
+instance logutil_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
+  define_is_pkg_init iprop(True)
+instance logutil_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
+  build_get_is_pkg_init_wf
+
+-- grpc's `peer` (names only; unit P3a: the retry interceptor's `peer.Peer`); `net`'s instances are
+-- above grpc's `credentials`' (which imports it: pr-verify etcd#21714).
 
 instance grpc_peer_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.peer :=
   define_is_pkg_init iprop(True)

@@ -93,10 +93,8 @@ end go_etcd_io.etcd.pkg.v3.featuregate
 -- wraps).
 namespace go_etcd_io.etcd.client.pkg.v3.logutil
 
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
-  build_get_is_pkg_init_wf
+-- `logutil`'s `IsPkgInit` instances: `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (pr-verify etcd#21714:
+-- `clientv3.newClient` names it).
 
 end go_etcd_io.etcd.client.pkg.v3.logutil
 

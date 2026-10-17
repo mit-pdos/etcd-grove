@@ -282,12 +282,25 @@ for mroot in (mode[4] if cache else [""]):
                     # later root's spec is the one this mode links
                     prefix[qual] = prefix[stem] = mroot + "."
                     continue
-                assert qual not in where, f"two specs for {qual}"
-                where[qual] = ".".join(pkg + [stem])
-                prefix[qual] = mroot + "." if mroot else ""
+                # `<last two components of pkg>_<fn>` too (`client_v3_New`), for a function whose
+                # `<last component>_<fn>` two packages share (`cache/v3`'s and `client/v3`'s `New`:
+                # `v3_New` is then ambiguous; pr-verify etcd#21714)
+                qual2 = "_".join(pkg[-2:] + [stem])
+                if qual2 != qual:
+                    assert qual2 not in where, f"two specs for {qual2}"
+                    where[qual2] = ".".join(pkg + [stem])
+                    prefix[qual2] = mroot + "." if mroot else ""
+                    if qual in where:
+                        ambiguous.add(qual)
+                    else:
+                        where[qual], prefix[qual] = where[qual2], prefix[qual2]
+                else:
+                    assert qual not in where, f"two specs for {qual}"
+                    where[qual] = ".".join(pkg + [stem])
+                    prefix[qual] = mroot + "." if mroot else ""
                 if stem in where:
                     ambiguous.add(stem)
-                where[stem], prefix[stem] = where[qual], prefix[qual]
+                where[stem], prefix[stem] = where[qual2], prefix[qual2]
 for name in ambiguous:
     del where[name]
 
