@@ -1,0 +1,6 @@
+# Names only (pr-verify etcd#21621): v3rpc's connStatsHandler reads a client certificate's
+# `NotAfter`. The type `Certificate` stays axiomatized: its fields name types of `pkix`, `asn1`,
+# `math/big`, `net/url` and `net` (`IP`, `IPNet`), and translating `net`'s would rebuild most of
+# this repository. The field read is a trust-boundary axiom (`x509.Certificate.NotAfter`).
+translate = ["!*"]
+imports = ["!*"]

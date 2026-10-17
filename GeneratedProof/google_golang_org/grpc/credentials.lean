@@ -3,6 +3,8 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.crypto.tls
+public import GeneratedProof.net.url
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.credentials
 
@@ -295,12 +297,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
 instance TLSInfo_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.TLSInfo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.TLSInfo where
+  typedPointstoDef l v dq := iprop(
+    "State" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"State" l) v.State' dq ∗
+    "CommonAuthInfo" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"CommonAuthInfo" l) v.CommonAuthInfo' dq ∗
+    "SPIFFEID" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"SPIFFEID" l) v.SPIFFEID' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance TLSInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.TLSInfo google_golang_org.grpc.credentials.TLSInfo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.TLSInfo google_golang_org.grpc.credentials.TLSInfo.underlying := by
+  solve_into_val_typed_struct
+
+instance TLSInfo_access_load_State (l : Loc) (v : google_golang_org.grpc.credentials.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"State" l) v.State' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"State" l) v.State' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_State (l : Loc) (v : google_golang_org.grpc.credentials.TLSInfo) (State' : crypto.tls.ConnectionState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"State" l) v.State' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"State" l) State' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with State' := State' } : google_golang_org.grpc.credentials.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"CommonAuthInfo" l) v.CommonAuthInfo' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"CommonAuthInfo" l) v.CommonAuthInfo' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.TLSInfo) (CommonAuthInfo' : google_golang_org.grpc.credentials.CommonAuthInfo) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"CommonAuthInfo" l) v.CommonAuthInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"CommonAuthInfo" l) CommonAuthInfo' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonAuthInfo' := CommonAuthInfo' } : google_golang_org.grpc.credentials.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_load_SPIFFEID (l : Loc) (v : google_golang_org.grpc.credentials.TLSInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"SPIFFEID" l) v.SPIFFEID' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"SPIFFEID" l) v.SPIFFEID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TLSInfo_access_store_SPIFFEID (l : Loc) (v : google_golang_org.grpc.credentials.TLSInfo) (SPIFFEID' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"SPIFFEID" l) v.SPIFFEID' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSInfo go!"SPIFFEID" l) SPIFFEID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SPIFFEID' := SPIFFEID' } : google_golang_org.grpc.credentials.TLSInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end TLSInfo
@@ -314,12 +371,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
 
 instance tlsCreds_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.tlsCreds :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.tlsCreds where
+  typedPointstoDef l v dq := iprop(
+    "config" ∷ typedPointsto (structFieldRef google_golang_org.grpc.credentials.tlsCreds go!"config" l) v.config' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance tlsCreds_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.tlsCreds google_golang_org.grpc.credentials.tlsCreds.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.tlsCreds google_golang_org.grpc.credentials.tlsCreds.underlying := by
+  solve_into_val_typed_struct
+
+instance tlsCreds_access_load_config (l : Loc) (v : google_golang_org.grpc.credentials.tlsCreds) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.tlsCreds go!"config" l) v.config' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.tlsCreds go!"config" l) v.config' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tlsCreds_access_store_config (l : Loc) (v : google_golang_org.grpc.credentials.tlsCreds) (config' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.tlsCreds go!"config" l) v.config' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.credentials.tlsCreds go!"config" l) config' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with config' := config' } : google_golang_org.grpc.credentials.tlsCreds) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end tlsCreds

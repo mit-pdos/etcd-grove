@@ -17,6 +17,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.IsCreateEvent
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewQuotaKVServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewWatchServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecordClientCertExpiration
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SetProgressReportInterval
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
@@ -35,6 +36,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeStr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestOp
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestBytesWithOverhead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler__HandleConn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler__HandleRPC
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler__TagConn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler__TagRPC
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsDeadlineExceeded
@@ -61,6 +66,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInterceptor
+public import Proof.google_golang_org.grpc.peer.FromContext
 public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
@@ -145,6 +151,10 @@ theorem config.ServerConfig.wp_MaxRequestBytesWithOverhead :
     EtcdGrove.config.ServerConfig.MaxRequestBytesWithOverhead.spec (GF := GF) (hG := hG) :=
   EtcdGrove.config.ServerConfig.MaxRequestBytesWithOverhead.wp_proof
 
+theorem wp_RecordClientCertExpiration :
+    EtcdGrove.v3rpc.RecordClientCertExpiration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.RecordClientCertExpiration.wp_proof
+
 theorem api.wp_IsCapabilityEnabled :
     EtcdGrove.api.IsCapabilityEnabled.spec (GF := GF) (hG := hG) :=
   EtcdGrove.api.IsCapabilityEnabled.wp_proof
@@ -192,6 +202,30 @@ theorem wp_checkTxnRequest :
 theorem wp_checkRequestOp :
     EtcdGrove.v3rpc.checkRequestOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.checkRequestOp.wp_proof wp_checkRangeRequest wp_checkPutRequest wp_checkDeleteRequest wp_checkTxnRequest
+
+theorem peer.wp_FromContext :
+    EtcdGrove.peer.FromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.peer.FromContext.wp_proof
+
+theorem time.Duration.wp_Seconds :
+    EtcdGrove.time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.time.Duration.Seconds.wp_proof
+
+theorem connStatsHandler.wp_HandleConn :
+    EtcdGrove.v3rpc.connStatsHandler.HandleConn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.connStatsHandler.HandleConn.wp_proof peer.wp_FromContext time.Duration.wp_Seconds wp_RecordClientCertExpiration
+
+theorem connStatsHandler.wp_HandleRPC :
+    EtcdGrove.v3rpc.connStatsHandler.HandleRPC.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.connStatsHandler.HandleRPC.wp_proof
+
+theorem connStatsHandler.wp_TagConn :
+    EtcdGrove.v3rpc.connStatsHandler.TagConn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.connStatsHandler.TagConn.wp_proof
+
+theorem connStatsHandler.wp_TagRPC :
+    EtcdGrove.v3rpc.connStatsHandler.TagRPC.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.connStatsHandler.TagRPC.wp_proof
 
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
@@ -268,10 +302,6 @@ theorem zap.wp_Error :
 theorem verify.wp_Assert :
     EtcdGrove.verify.Assert.spec (GF := GF) (hG := hG) :=
   EtcdGrove.verify.Assert.wp_proof
-
-theorem time.Duration.wp_Seconds :
-    EtcdGrove.time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.time.Duration.Seconds.wp_proof
 
 theorem time.Duration.wp_Seconds_ptr :
     EtcdGrove.time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=

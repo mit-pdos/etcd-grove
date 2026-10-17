@@ -1,0 +1,4 @@
+# Names only (pr-verify etcd#21621): the type `URL` of grpc's `credentials.TLSInfo.SPIFFEID`
+# (a pointer to it), axiomatized.
+translate = ["!*"]
+imports = ["!*"]

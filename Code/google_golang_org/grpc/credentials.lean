@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Code.context
+public import Code.crypto.tls
+public import Code.net.url
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -113,10 +115,6 @@ axiom ClientHandshakeInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom OtherChannelzSecurityValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom TLSInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom tlsCreds.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom InvalidSecurityLevel [FfiSyntax] [GoGlobalContext] : val
 
 axiom NoSecurity [FfiSyntax] [GoGlobalContext] : val
@@ -176,7 +174,7 @@ noncomputable def NewServerTLSFromFile [FfiSyntax] [GoGlobalContext] : GoString 
   go!"google.golang.org/grpc/credentials.NewServerTLSFromFile"
 
 instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials where
-  pkgImportedPkgs := [pkg_id.context]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.crypto.tls, pkg_id.net.url]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -187,6 +185,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val tls12ForbiddenCipherSuites.init) (Val #())))))
   (App (Val doExecute)
@@ -194,7 +194,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrConnDispatched.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.context.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.crypto.tls.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))))
 
 abbrev PerRPCCredentials [FfiSyntax] : Type := GoInterface
 
@@ -448,31 +452,79 @@ attribute [instance] OtherChannelzSecurityValue.TypeAssumptions.type_repr
   OtherChannelzSecurityValue.TypeAssumptions.underlying
   OtherChannelzSecurityValue.TypeAssumptions.isUnderlying
 
-axiom TLSInfo : Type
-axiom TLSInfo.zero_val : ZeroVal TLSInfo
-attribute [instance] TLSInfo.zero_val
+structure TLSInfo [FfiSyntax] where
+  mk ::
+  State' : _root_.Perennial.crypto.tls.ConnectionState
+  CommonAuthInfo' : CommonAuthInfo
+  SPIFFEID' : Loc
+
+instance TLSInfo.zero_val [FfiSyntax] : ZeroVal TLSInfo :=
+  ⟨TLSInfo.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def TLSInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"State" _root_.Perennial.crypto.tls.ConnectionState.ty),
+(go.field_decl.EmbeddedField go!"CommonAuthInfo" CommonAuthInfo.ty),
+(go.field_decl.FieldDecl go!"SPIFFEID" (go.GoType.PointerType _root_.Perennial.net.url.URL.ty))]
+
+@[irreducible] def TLSInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  TLSInfo.fieldsUnsealed
+
+instance equals_unfold_TLSInfo [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold TLSInfo.fields TLSInfo.fieldsUnsealed :=
+  ⟨by unfold TLSInfo.fields; rfl⟩
+
+@[reducible] def TLSInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType TLSInfo.fields)
 
 class TLSInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TLSInfo.underlying TLSInfo
   underlying : go.UnderlyingDirectedEq TLSInfo.ty TLSInfo.underlying
-  isUnderlying : go.IsUnderlying TLSInfo.underlying TLSInfo.underlying
+  get_State : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"State") #x (Val #(x.State'))
+  set_State : ∀ (x : TLSInfo) (y : _root_.Perennial.crypto.tls.ConnectionState), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"State") (PairV #x #y) (Val #(({ x with State' := y } : TLSInfo)))
+  get_CommonAuthInfo : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"CommonAuthInfo") #x (Val #(x.CommonAuthInfo'))
+  set_CommonAuthInfo : ∀ (x : TLSInfo) (y : CommonAuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"CommonAuthInfo") (PairV #x #y) (Val #(({ x with CommonAuthInfo' := y } : TLSInfo)))
+  get_SPIFFEID : ∀ (x : TLSInfo), go.IsGoStepPureDetTagged under (StructFieldGet TLSInfo.underlying go!"SPIFFEID") #x (Val #(x.SPIFFEID'))
+  set_SPIFFEID : ∀ (x : TLSInfo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TLSInfo.underlying go!"SPIFFEID") (PairV #x #y) (Val #(({ x with SPIFFEID' := y } : TLSInfo)))
 
 attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.underlying
-  TLSInfo.TypeAssumptions.isUnderlying
+  TLSInfo.TypeAssumptions.get_State
+  TLSInfo.TypeAssumptions.set_State
+  TLSInfo.TypeAssumptions.get_CommonAuthInfo
+  TLSInfo.TypeAssumptions.set_CommonAuthInfo
+  TLSInfo.TypeAssumptions.get_SPIFFEID
+  TLSInfo.TypeAssumptions.set_SPIFFEID
 
-axiom tlsCreds : Type
-axiom tlsCreds.zero_val : ZeroVal tlsCreds
-attribute [instance] tlsCreds.zero_val
+structure tlsCreds [FfiSyntax] where
+  mk ::
+  config' : Loc
+
+instance tlsCreds.zero_val [FfiSyntax] : ZeroVal tlsCreds :=
+  ⟨tlsCreds.mk zeroValDef⟩
+
+@[reducible] def tlsCreds.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"config" (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty))]
+
+@[irreducible] def tlsCreds.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  tlsCreds.fieldsUnsealed
+
+instance equals_unfold_tlsCreds [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold tlsCreds.fields tlsCreds.fieldsUnsealed :=
+  ⟨by unfold tlsCreds.fields; rfl⟩
+
+@[reducible] def tlsCreds.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType tlsCreds.fields)
 
 class tlsCreds.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tlsCreds.underlying tlsCreds
   underlying : go.UnderlyingDirectedEq tlsCreds.ty tlsCreds.underlying
-  isUnderlying : go.IsUnderlying tlsCreds.underlying tlsCreds.underlying
+  get_config : ∀ (x : tlsCreds), go.IsGoStepPureDetTagged under (StructFieldGet tlsCreds.underlying go!"config") #x (Val #(x.config'))
+  set_config : ∀ (x : tlsCreds) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet tlsCreds.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : tlsCreds)))
 
 attribute [instance] tlsCreds.TypeAssumptions.type_repr
   tlsCreds.TypeAssumptions.underlying
-  tlsCreds.TypeAssumptions.isUnderlying
+  tlsCreds.TypeAssumptions.get_config
+  tlsCreds.TypeAssumptions.set_config
 
 structure TLSChannelzSecurityValue [FfiSyntax] where
   mk ::
@@ -542,6 +594,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   tlsCreds_instance : tlsCreds.TypeAssumptions
   TLSChannelzSecurityValue_instance : TLSChannelzSecurityValue.TypeAssumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
+  import_url_Assumption : _root_.Perennial.net.url.Assumptions
 
 attribute [instance] Assumptions.PerRPCCredentials_instance
   Assumptions.SecurityLevel_instance
@@ -561,6 +615,8 @@ attribute [instance] Assumptions.PerRPCCredentials_instance
   Assumptions.tlsCreds_instance
   Assumptions.TLSChannelzSecurityValue_instance
   Assumptions.import_context_Assumption
+  Assumptions.import_tls_Assumption
+  Assumptions.import_url_Assumption
 
 end google_golang_org.grpc.credentials
 

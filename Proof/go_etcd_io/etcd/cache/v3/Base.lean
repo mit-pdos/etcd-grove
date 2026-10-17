@@ -235,6 +235,21 @@ instance rpctypes_get_is_pkg_init_wf_inst :
 
 -- The names-only packages of `clientv3.Client`'s field types.
 
+-- (pr-verify etcd#21621) what grpc's `credentials` now imports for `TLSInfo`'s fields: `crypto/tls`
+-- (whose `ConnectionState` names `crypto/x509`) and `net/url`, names and types only.
+instance crypto_x509_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.x509 :=
+  define_is_pkg_init iprop(True)
+instance crypto_x509_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.x509 :=
+  build_get_is_pkg_init_wf
+instance crypto_tls_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
+  define_is_pkg_init iprop(True)
+instance crypto_tls_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
+  build_get_is_pkg_init_wf
+instance net_url_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net.url :=
+  define_is_pkg_init iprop(True)
+instance net_url_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.url :=
+  build_get_is_pkg_init_wf
+
 instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   define_is_pkg_init iprop(True)
 instance grpc_credentials_get_is_pkg_init_wf_inst :

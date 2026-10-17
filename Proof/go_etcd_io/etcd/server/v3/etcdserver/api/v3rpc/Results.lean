@@ -752,6 +752,26 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
 
 end watch_wire
 
+
+/-! pr-verify etcd#21621: the connection stats handler (`connstats.go`). -/
+section connStats
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **The client certificate expiry metric** (`connStatsHandler.HandleConn`, linked): on a
+connection event, it observes exactly one value in `clientCertExpirationSecs` when the event is
+a `ConnBegin`, the context's peer is a TLS peer, the server asks for client certificates and the
+peer sent at least one, and nothing otherwise; it does not panic. Premises: the context's peer
+(`peer.inCtx`, grpc's), read-only, and its TLS state (`connTLSOk`). -/
+theorem conn_stats_handle_conn :
+    EtcdGrove.v3rpc.connStatsHandler.HandleConn.spec (GF := GF) (hG := hG) :=
+  connStatsHandler.wp_HandleConn
+
+end connStats
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -792,6 +812,9 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served_chain
 #print axioms Perennial.EtcdGrove.v3rpc.new_stream_interceptor
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served_etcd_chain
+
+
+#print axioms Perennial.EtcdGrove.v3rpc.conn_stats_handle_conn
 
 end EtcdGrove
 end Perennial

@@ -140,7 +140,7 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
-                    "net=",
+                    "net=", "crypto/tls=", "crypto/x509=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
         packages=[
@@ -277,6 +277,13 @@ PROJECTS = [
             "google.golang.org/grpc/metadata",
             "go.etcd.io/etcd/client/v3/credentials",
             "go.etcd.io/etcd/client/v3/internal/resolver",
+            # pr-verify etcd#21621: what v3rpc's connStatsHandler.HandleConn names (grpc's stats
+            # handler interface and connection events; tls.ClientAuthType, tls.ConnectionState,
+            # x509.Certificate's NotAfter), types and names only
+            "google.golang.org/grpc/stats",
+            "crypto/tls",
+            "crypto/x509",
+            "net/url",
             # (and go.uber.org/zap, above)
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
@@ -285,7 +292,8 @@ PROJECTS = [
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                "net", os.path.join("encoding", "hex"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
-               os.path.join("github_com", "dustin")],
+               os.path.join("github_com", "dustin"),
+               os.path.join("crypto", "tls"), os.path.join("crypto", "x509")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",

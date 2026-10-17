@@ -138,6 +138,14 @@ instance ctxCanceledPtr_persistent : Persistent (ctxCanceledPtr (GF := GF)) := b
 abbrev v3rpcInit : IProp GF :=
   iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr ∗ interceptorVars)
 
+-- (pr-verify etcd#21621) grpc's `stats` (names and types only: connstats.go's handler interface
+-- and connection events).
+instance grpc_stats_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  define_is_pkg_init iprop(True)
+instance grpc_stats_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  build_get_is_pkg_init_wf
+
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
   define_is_pkg_init v3rpcInit

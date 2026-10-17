@@ -160,3 +160,14 @@ EtcdServer__GoAttach: @
 EtcdServer__StoppingNotify: @
 monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader
 newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues
+#
+# pr-verify etcd#21621: connstats.go's grpc stats handler and metrics.go's
+# RecordClientCertExpiration (the client certificate expiry histogram). Trust boundary (axiom):
+# grpc's `peer.FromContext` (names only; the context's peer, `peer.inCtx`, opaque). The
+# histogram's `Observe` is the package fact `certExpHist` (a premise), `time.Until` Perennial's.
+peer_FromContext:
+RecordClientCertExpiration:
+connStatsHandler__HandleConn: peer_FromContext time_Duration__Seconds RecordClientCertExpiration
+connStatsHandler__HandleRPC:
+connStatsHandler__TagConn:
+connStatsHandler__TagRPC:

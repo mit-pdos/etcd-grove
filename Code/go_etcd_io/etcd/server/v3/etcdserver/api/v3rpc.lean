@@ -5,12 +5,16 @@ public import Perennial.Code.context
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.server.v3.auth
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
+public import Code.crypto.tls
+public import Perennial.Code.time
+public import Code.google_golang_org.grpc.credentials
+public import Code.google_golang_org.grpc.peer
+public import Code.google_golang_org.grpc.stats
 public import Perennial.Code.sync
 public import Code.github_com.prometheus.client_golang.prometheus
 public import Code.go_uber_org.zap
 public import Code.google_golang_org.grpc
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
-public import Perennial.Code.time
 public import Code.unicode.utf8
 public import Code.google_golang_org.grpc.metadata
 public import Code.google_golang_org.protobuf.proto
@@ -72,6 +76,11 @@ def codec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.codec" [])
 
 attribute [irreducible] codec.ty
+
+def connStatsHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.connStatsHandler" [])
+
+attribute [irreducible] connStatsHandler.ty
 
 def header.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.header" [])
@@ -270,6 +279,11 @@ noncomputable def watchSendLoopProgressDuration [FfiSyntax] [GoGlobalContext] : 
 
 axiom watchSendLoopProgressDuration.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def clientCertExpirationSecs [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.clientCertExpirationSecs"
+
+axiom clientCertExpirationSecs.init [FfiSyntax] [GoGlobalContext] : val
+
 noncomputable def toGRPCErrorMap [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.toGRPCErrorMap"
 
@@ -356,6 +370,9 @@ noncomputable def NewClusterServer [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def membersToProtoMembers [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.membersToProtoMembers"
 
+noncomputable def RecordClientCertExpiration [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.RecordClientCertExpiration"
+
 noncomputable def NewQuotaKVServer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.NewQuotaKVServer"
 
@@ -397,6 +414,120 @@ noncomputable def filterNoPut [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def FiltersFromRequest [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.FiltersFromRequest"
+
+/-- go: connstats.go:30:28 -/
+noncomputable def connStatsHandler.HandleConn.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "ctx"
+  (Lam "s"
+  (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType connStatsHandler.ty)))) (Var "h"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.stats.ConnStats.ty))) (Var "s"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.peer.FromContext []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer.ty go!"AuthInfo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "p")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty))) (Val UntypedNil))))) (Val #false))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.google_golang_org.grpc.credentials.TLSInfo.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer.ty go!"AuthInfo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "p")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "isTLS" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "tlsInfo" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.credentials.TLSInfo.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.credentials.TLSInfo.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isTLS"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.crypto.tls.ClientAuthType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.crypto.tls.ClientAuthType.ty))) (App (Val (GoInstruction (StructFieldRef connStatsHandler.ty go!"clientAuth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType connStatsHandler.ty)))) (Var "h")))) (Val _root_.Perennial.crypto.tls.NoClientCert))))
+  (Let "serverRequestedCert" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "serverRequestedCert")) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.crypto.x509.Certificate.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.crypto.tls.ConnectionState.ty go!"PeerCertificates"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.google_golang_org.grpc.credentials.TLSInfo.ty go!"State"))) (Var "tlsInfo"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.crypto.x509.Certificate.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Duration.ty go!"Seconds"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.crypto.x509.Certificate.ty go!"NotAfter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.crypto.x509.Certificate.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.crypto.x509.Certificate.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.crypto.x509.Certificate.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.crypto.tls.ConnectionState.ty go!"PeerCertificates"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.google_golang_org.grpc.credentials.TLSInfo.ty go!"State"))) (Var "tlsInfo")))) (Val #(W64 0)))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Until []))) (Val #())) (Var "$a0")))) (Val #()))
+  (Let "secsUntilExpiry" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "secsUntilExpiry"))
+  (App (App (Val (GoInstruction (FuncResolve RecordClientCertExpiration []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "secsUntilExpiry") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "serverRequestedCert") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isTLS") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.credentials.TLSInfo.ty))) (Pair (Var "tlsInfo") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Pair (Var "p") (Var "$r0"))))))))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.stats.ConnBegin.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.stats.ConnStats.ty))) (Var "s")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))))))))
+
+/-- go: connstats.go:47:28 -/
+noncomputable def connStatsHandler.HandleRPC.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam BAnon
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType connStatsHandler.ty)))) (Var "h"))
+  (App (Val doReturn)
+  (Val #())))))))
+
+/-- go: connstats.go:48:28 -/
+noncomputable def connStatsHandler.TagConn.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "ctx"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType connStatsHandler.ty)))) (Var "h"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx")))))))))
+
+/-- go: connstats.go:51:28 -/
+noncomputable def connStatsHandler.TagRPC.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "ctx"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType connStatsHandler.ty)))) (Var "h"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx")))))))))
 
 /-- go: header.go:30:6 -/
 noncomputable def newHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -1956,6 +2087,20 @@ noncomputable def checkRequestOp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve checkTxnRequest []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound))) (Val #()))))))))))))))))))))))))))
+
+/-- RecordClientCertExpiration observes the remaining lifetime (in seconds) of a client certificate.
+
+    go: metrics.go:141:6 -/
+noncomputable def RecordClientCertExpiration.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "secsUntilExpiry"
+  (App (Val exceptionDo)
+  (Let "secsUntilExpiry" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "secsUntilExpiry"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "secsUntilExpiry"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty go!"Observe"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr clientCertExpirationSecs))) (Val #())))) (Var "$a0"))))))))
 
 /-- check whether request satisfies the quota. If there is not enough space,
     ignore request and raise the free space alarm.
@@ -3557,7 +3702,7 @@ noncomputable def FiltersFromRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.FilterFunc.ty)))) (Pair (Var "filters") (Var "$r0"))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.crypto.tls, pkg_id.time, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.stats, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -3608,11 +3753,18 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Minute)))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr progressReportInterval))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val toGRPCErrorMap.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val clientCertExpirationSecs.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val watchSendLoopProgressDuration.init) (Val #()))))))
   (App (Val doExecute)
@@ -3638,6 +3790,16 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.crypto.tls.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.credentials.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.stats.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
@@ -3647,8 +3809,6 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.unicode.utf8.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3801,6 +3961,45 @@ class codec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 
 attribute [instance] codec.TypeAssumptions.type_repr
   codec.TypeAssumptions.underlying
+
+structure connStatsHandler [FfiSyntax] where
+  mk ::
+  clientAuth' : _root_.Perennial.crypto.tls.ClientAuthType
+
+instance connStatsHandler.zero_val [FfiSyntax] : ZeroVal connStatsHandler :=
+  ⟨connStatsHandler.mk zeroValDef⟩
+
+@[reducible] def connStatsHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"clientAuth" _root_.Perennial.crypto.tls.ClientAuthType.ty)]
+
+@[irreducible] def connStatsHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  connStatsHandler.fieldsUnsealed
+
+instance equals_unfold_connStatsHandler [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold connStatsHandler.fields connStatsHandler.fieldsUnsealed :=
+  ⟨by unfold connStatsHandler.fields; rfl⟩
+
+@[reducible] def connStatsHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType connStatsHandler.fields)
+
+class connStatsHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying connStatsHandler.underlying connStatsHandler
+  underlying : go.UnderlyingDirectedEq connStatsHandler.ty connStatsHandler.underlying
+  get_clientAuth : ∀ (x : connStatsHandler), go.IsGoStepPureDetTagged under (StructFieldGet connStatsHandler.underlying go!"clientAuth") #x (Val #(x.clientAuth'))
+  set_clientAuth : ∀ (x : connStatsHandler) (y : _root_.Perennial.crypto.tls.ClientAuthType), go.IsGoStepPureDetTagged under (StructFieldSet connStatsHandler.underlying go!"clientAuth") (PairV #x #y) (Val #(({ x with clientAuth' := y } : connStatsHandler)))
+  ptr_HandleConn_unfold : MethodUnfold (go.GoType.PointerType connStatsHandler.ty) go!"HandleConn" connStatsHandler.HandleConn.impl
+  ptr_HandleRPC_unfold : MethodUnfold (go.GoType.PointerType connStatsHandler.ty) go!"HandleRPC" connStatsHandler.HandleRPC.impl
+  ptr_TagConn_unfold : MethodUnfold (go.GoType.PointerType connStatsHandler.ty) go!"TagConn" connStatsHandler.TagConn.impl
+  ptr_TagRPC_unfold : MethodUnfold (go.GoType.PointerType connStatsHandler.ty) go!"TagRPC" connStatsHandler.TagRPC.impl
+
+attribute [instance] connStatsHandler.TypeAssumptions.type_repr
+  connStatsHandler.TypeAssumptions.underlying
+  connStatsHandler.TypeAssumptions.get_clientAuth
+  connStatsHandler.TypeAssumptions.set_clientAuth
+  connStatsHandler.TypeAssumptions.ptr_HandleConn_unfold
+  connStatsHandler.TypeAssumptions.ptr_HandleRPC_unfold
+  connStatsHandler.TypeAssumptions.ptr_TagConn_unfold
+  connStatsHandler.TypeAssumptions.ptr_TagRPC_unfold
 
 structure header [FfiSyntax] where
   mk ::
@@ -4690,6 +4889,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   AuthGetter_instance : AuthGetter.TypeAssumptions
   AuthAdmin_instance : AuthAdmin.TypeAssumptions
   codec_instance : codec.TypeAssumptions
+  connStatsHandler_instance : connStatsHandler.TypeAssumptions
   header_instance : header.TypeAssumptions
   notifier_instance : notifier.TypeAssumptions
   healthNotifier_instance : healthNotifier.TypeAssumptions
@@ -4729,6 +4929,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   checkTxnRequest_unfold : FuncUnfold checkTxnRequest [] checkTxnRequest.impl
   checkIntervals_unfold : FuncUnfold checkIntervals [] checkIntervals.impl
   checkRequestOp_unfold : FuncUnfold checkRequestOp [] checkRequestOp.impl
+  RecordClientCertExpiration_unfold : FuncUnfold RecordClientCertExpiration [] RecordClientCertExpiration.impl
   NewQuotaKVServer_unfold : FuncUnfold NewQuotaKVServer [] NewQuotaKVServer.impl
   newBackendQuota_unfold : FuncUnfold newBackendQuota [] newBackendQuota.impl
   togRPCError_unfold : FuncUnfold togRPCError [] togRPCError.impl
@@ -4745,12 +4946,16 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
+  import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
+  import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
   import_apply_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_utf8_Assumption : _root_.Perennial.unicode.utf8.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
@@ -4778,6 +4983,7 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.AuthGetter_instance
   Assumptions.AuthAdmin_instance
   Assumptions.codec_instance
+  Assumptions.connStatsHandler_instance
   Assumptions.header_instance
   Assumptions.notifier_instance
   Assumptions.healthNotifier_instance
@@ -4817,6 +5023,7 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.checkTxnRequest_unfold
   Assumptions.checkIntervals_unfold
   Assumptions.checkRequestOp_unfold
+  Assumptions.RecordClientCertExpiration_unfold
   Assumptions.NewQuotaKVServer_unfold
   Assumptions.newBackendQuota_unfold
   Assumptions.togRPCError_unfold
@@ -4833,12 +5040,16 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_auth_Assumption
   Assumptions.import_etcdserver_Assumption
+  Assumptions.import_tls_Assumption
+  Assumptions.import_time_Assumption
+  Assumptions.import_credentials_Assumption
+  Assumptions.import_peer_Assumption
+  Assumptions.import_stats_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_prometheus_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_grpc_Assumption
   Assumptions.import_apply_Assumption
-  Assumptions.import_time_Assumption
   Assumptions.import_utf8_Assumption
   Assumptions.import_metadata_Assumption
   Assumptions.import_proto_Assumption

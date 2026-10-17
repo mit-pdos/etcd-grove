@@ -1,0 +1,8 @@
+# Types and names only (pr-verify etcd#21621): what v3rpc's connStatsHandler reads, the server's
+# client-auth policy `ClientAuthType` (and `NoClientCert`) and the handshake's `ConnectionState`
+# (its `PeerCertificates`), the type of grpc's `credentials.TLSInfo.State`.
+translate = ["!*", "NoClientCert"]
+imports = ["!*", "crypto/x509"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

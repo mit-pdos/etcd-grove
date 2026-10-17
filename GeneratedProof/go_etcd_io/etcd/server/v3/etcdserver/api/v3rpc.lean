@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.crypto.tls
 public import Perennial.GeneratedProof.errors
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
@@ -26,7 +27,10 @@ public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.codes
+public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.metadata
+public import GeneratedProof.google_golang_org.grpc.peer
+public import GeneratedProof.google_golang_org.grpc.stats
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
@@ -168,6 +172,46 @@ instance codec_into_val_typed :
 
 end def_
 end codec
+
+namespace connStatsHandler
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+instance connStatsHandler_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler where
+  typedPointstoDef l v dq := iprop(
+    "clientAuth" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler go!"clientAuth" l) v.clientAuth' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance connStatsHandler_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler.underlying := by
+  solve_into_val_typed_struct
+
+instance connStatsHandler_access_load_clientAuth (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler go!"clientAuth" l) v.clientAuth' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler go!"clientAuth" l) v.clientAuth' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance connStatsHandler_access_store_clientAuth (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler) (clientAuth' : crypto.tls.ClientAuthType) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler go!"clientAuth" l) v.clientAuth' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler go!"clientAuth" l) clientAuth' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientAuth' := clientAuth' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.connStatsHandler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end connStatsHandler
 
 namespace header
 section def_

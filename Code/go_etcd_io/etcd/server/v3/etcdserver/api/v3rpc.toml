@@ -30,7 +30,11 @@ translate = ["!*",
   # the watch slice's unit W-W: interceptor.go's stream interceptor
   "newStreamInterceptor", "monitorLeader", "streamsMap", "cancellableContext",
   "newCancellableContext", "cancellableContext.Cancel", "cancellableContext.Err",
-  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod"]
+  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod",
+  # pr-verify etcd#21621: connstats.go's stats handler and metrics.go's RecordClientCertExpiration
+  # (the histogram clientCertExpirationSecs names only, as the other metrics)
+  "connStatsHandler", "connStatsHandler.HandleConn", "connStatsHandler.HandleRPC",
+  "connStatsHandler.TagConn", "connStatsHandler.TagRPC", "RecordClientCertExpiration"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",
@@ -45,7 +49,10 @@ imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "io", "math/rand", "sync", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace",
   "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/mvccpb",
   "go.etcd.io/etcd/client/pkg/v3/verify", "go.etcd.io/etcd/client/v3",
-  "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/server/v3/storage/mvcc"]
+  "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/server/v3/storage/mvcc",
+  # connstats.go (pr-verify etcd#21621)
+  "crypto/tls", "google.golang.org/grpc/credentials", "google.golang.org/grpc/peer",
+  "google.golang.org/grpc/stats"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

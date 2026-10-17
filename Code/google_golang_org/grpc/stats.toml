@@ -1,0 +1,7 @@
+# Types and names only (pr-verify etcd#21621): the `Handler` interface v3rpc's connStatsHandler
+# implements, the connection events `ConnStats`, `ConnBegin` it receives, and the tag infos.
+translate = ["!*"]
+imports = ["!*", "context", "net"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
