@@ -1,0 +1,6 @@
+=== RUN   TestPR453BatchWithRejectedConfChange
+--- PASS: TestPR453BatchWithRejectedConfChange (0.00s)
+=== RUN   TestPR453NodeProposeConfChangeRejectedReturnsNil
+--- PASS: TestPR453NodeProposeConfChangeRejectedReturnsNil (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.024s

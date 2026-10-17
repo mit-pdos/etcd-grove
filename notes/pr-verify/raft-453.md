@@ -103,10 +103,8 @@ so the counts are the same before and after.
 
 ## Findings
 
-Bugs in the PR (Go tests against the PR's head, in a scratch upstream worktree
-`~/etcd-pr/raft-453-upstream`, file `pr453_findings_test.go`; a copy is at
-`/tmp/claude-0/-shared-etcd-grove/6101526d-6539-4872-a190-a0b4b0fe455b/scratchpad/raft-453/pr453_findings_test.go`;
-both tests pass, i.e. they confirm the behavior):
+Bugs in the PR (Go tests against the PR's head, `notes/pr-verify/raft-453/pr453_findings_test.go`,
+how to run it in `notes/pr-verify/raft-453/README.md`; both tests pass, which confirms the behavior):
 
 1. **(High: the PR's purpose) `Node` users never see the error.** `node.ProposeConfChange` →
    `node.Step` → `stepWithWaitOption(ctx, m, false)`: no result channel, and `run` discards
