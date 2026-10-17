@@ -6183,6 +6183,15 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     is free), a progress response's notified log. (3) The client's `Watch` takes
     `etcdReached (rev - 1)` and the watch request carries it through the stream to `v3rpc`'s
     `recvLoop` and mvcc's `Watch`. (4) The client's second cursor starts at `rev - 1`.
+  - **K2e-6 (done, option 1: the premise optional, the user's choice 2026-10-17)**: a watch can
+    be registered with its start revision read from the store (`sr`): mvcc's `watch` takes
+    `startRead` (a committed log reaching the start), the watcher's names record it, and the lock
+    keeps such a watcher's first revision within the notified log (`srBelow`, beside `settled`);
+    so a progress response covering it has `lo ≤ p + 1` (`covFact`). The flag rides the create
+    request's model as ghost data (`CreateReqM.sr`, not on the wire), the fact as its content
+    (`watchUp`); the client's `Watch` takes both (`sr`), the cache supplies them from its `Get`
+    (`etcdReadAt`/`etcdRead`, new in the clients' model; `startRead_of_etcdRead` converts at the
+    server's model). Election, leasing, `waitDelete` and the recipes pass `false`. No Go change.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
