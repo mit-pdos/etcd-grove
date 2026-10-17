@@ -7675,3 +7675,22 @@ and `PreVote` settings stay premises.
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
   parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
   `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.
+
+## `errors.Is` of a client error: the `errors.IsAnyErr` trust boundary (2026-10-17, etcd#22387)
+
+etcd#22387's `Mutex.Lock` and `Election.Campaign` call `errors.Is(err, errWaitKeyDeleted)` on
+whatever `waitDeletes` returned: a context's error, the client's `Get` or watch error, or the
+package's own errors. Perennial's `errors.wp_Is` needs `err`'s error tree, that is, specs of its
+`Is` and `Unwrap` methods. The client's contract (`isEtcdKV`, `isEtcdRangeWatcher`) gives no such
+facts about its errors, and the standard contexts' `Err` gives only `isTypedErr`.
+
+The branch therefore adds a local axiom, `Spec/errors/IsAnyErr.lean`: for a pointer target, `Is`
+returns *some* boolean. The proofs do not depend on which. `Lock`'s spec is unchanged, because its
+early `ErrSessionExpired` falls under "some error" unless `waitDeletes` returned the sentinel.
+
+A stronger statement, `Is(err, sentinel)` true only for the sentinel itself, would also need the
+client contract to say that its errors are not this package's unexported variable. The model cannot
+express that encapsulation, so it was not attempted.
+
+The general fix belongs in the client contract: error trees for the errors it returns, as the
+recipes' `clientErrIs` does at `context.TODO()`. It does not belong in Perennial.

@@ -45,6 +45,18 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22387, concurrency waits end when the waiter's key goes (2026-10-17, branch `pr-verify/etcd-22387`)
+
+`waitDelete`, `waitDeletes`, `Mutex.Lock` and `Election.Campaign` re-proved over the PR's code (no
+`sorry`). `waitDelete`/`waitDeletes` have new specs, with an `errWaitKeyDeleted` case that means the
+waiter's key is absent. `Lock`'s spec is unchanged. `Campaign`'s spec is stronger (`nil` only with
+its key present), and the old spec follows from it (`spec_implies_old`). New trust: the axiom
+`errors.IsAnyErr` (`errors.Is` of any error against a pointer target returns), and two entries of
+the concurrency package-init assumption. A Perennial limitation, recorded here and not worked
+around: `errors.wp_Is` needs an error tree, which the client's errors lack. Findings and the report
+are in `notes/pr-verify/etcd-22387.md` (a phantom leader on `Campaign`'s new error path). The
+branch translates unmerged code: not for `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

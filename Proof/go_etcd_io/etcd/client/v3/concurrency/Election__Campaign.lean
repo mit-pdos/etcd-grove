@@ -6,8 +6,11 @@ The transaction (`campaignTxn`) is `tryAcquire`'s without the owner get: it crea
 the value at `r`, or finds it (`Responses[0]`), its create revision becoming `leaderRev`, and its
 value either the proposal's or replaced by `Proclaim` (whose `ProclaimStep` gives the value,
 `proclaimStep_guard`). `waitDeletes(leaderRev - 1)` then gives a state at `R` with no key created
-before `leaderRev`: the key is there with that create revision (`leaderAt`) or not
-(`campaignLost`); `Campaign` does not look.
+before `leaderRev`. etcd#22387: `waitDeletes` also takes the key (its `errWaitKeyDeleted`, through
+`errors.IsAnyErr`, gives `ErrElectionNotLeader`), and a final `Get(leaderKey)` at `R2 ≥ R` returns
+`ErrElectionNotLeader` if the key is gone; if it is there, `lock_final` makes it the leader at `R2`
+(`leaderAt`) or re-created (`keyRecreated`, hence `campaignLost`: `recreated_lost`). Each of the three
+paths (created, found with the value, proclaimed) has the same tail.
 -/
 module
 

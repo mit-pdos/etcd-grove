@@ -1,0 +1,16 @@
+=== RUN   TestMutexLockRecreatedAfterWait
+    mutex_recreated_after_wait_test.go:123: D: <nil>, B: <nil>
+    mutex_recreated_after_wait_test.go:125: 
+        	Error:      	An error is expected but got nil.
+        	Messages:   	B's Lock returned nil while D (another session) holds the lock
+--- FAIL: TestMutexLockRecreatedAfterWait (0.70s)
+=== RUN   TestMutexLockSiblingCanceledSessionAlive
+    mutex_sibling_cancel_test.go:53: A: context canceled
+    mutex_sibling_cancel_test.go:58: B returned mutex: session is expired while C holds the lock; session S TTL 59 (alive: true)
+    mutex_sibling_cancel_test.go:59: 
+        	Error:      	Target error should not be in err chain:
+        	Messages:   	ErrSessionExpired while the session is alive
+--- FAIL: TestMutexLockSiblingCanceledSessionAlive (0.51s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	1.260s
+FAIL

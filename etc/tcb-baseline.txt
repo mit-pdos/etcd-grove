@@ -90,6 +90,7 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom errors.IsAnyErr.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof

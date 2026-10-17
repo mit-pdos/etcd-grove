@@ -1,0 +1,14 @@
+# etcd-io/etcd#22387 (client/v3/concurrency: stop waits when the waiter's key is deleted): the
+# linked results of the functions it changes, waitDelete, waitDeletes, Mutex.Lock and
+# Election.Campaign (notes/pr-verify/etcd-22387.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22387.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/client/v3/concurrency/(waitDelete|waitDeletes|Mutex__Lock|Election__Campaign)\.lean$
+axiom errors.IsAnyErr.wp_proof
+axiom fmt.SprintfNamed.wp_proof
+axiom proto.Clone.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof

@@ -1,0 +1,14 @@
+=== RUN   TestElectionCampaignCanceledAfterWait
+    election_campaign_getfail_test.go:80: Campaign: context canceled
+    election_campaign_getfail_test.go:91: 
+        	Error:      	"[key:\"/campaign-canceled-after-wait/29d4a148a2bb6303\"  create_revision:2  mod_revision:2  version:1  value:\"candidate1\"  lease:3014211383957611267]" should have 0 item(s), but has 1
+        	Messages:   	Campaign failed and Resign succeeded, but its key ["/campaign-canceled-after-wait/29d4a148a2bb6303"] is still there (the leader)
+--- FAIL: TestElectionCampaignCanceledAfterWait (0.20s)
+=== RUN   TestElectionCampaignCanceledAfterWaitBlocksOthers
+    election_campaign_getfail_test.go:125: 
+        	Error:      	Received unexpected error:
+        	Messages:   	the second candidate is blocked by the first's key, which nobody holds
+--- FAIL: TestElectionCampaignCanceledAfterWaitBlocksOthers (3.03s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	3.358s
+FAIL

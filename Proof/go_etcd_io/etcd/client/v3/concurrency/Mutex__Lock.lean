@@ -8,6 +8,12 @@ before `myRev` (and after `0`: `etcdState_revs`), so `waitDeletes(myRev - 1)` is
 positive bound; its state at `R0` has no key created before `myRev`, and the final `Get(myKey)` at
 `R ≥ R0` either misses the key (`ErrSessionExpired`, `etcdAbsent`) or finds it (`lock_final`:
 locked, or re-created). On the error paths `Unlock(client.Ctx())`'s result is dropped.
+
+etcd#22387: `waitDeletes` also takes `myKey` and may return `errWaitKeyDeleted` (with `myKey`
+absent at a revision `≥ r`); `errors.Is(werr, errWaitKeyDeleted)` (`errors.IsAnyErr`, which says
+nothing of its result) returning `true` gives `ErrSessionExpired` without `Unlock`: with the absence
+when the wait returned the sentinel, otherwise as some error. `false` continues as before. The spec
+is unchanged.
 -/
 module
 

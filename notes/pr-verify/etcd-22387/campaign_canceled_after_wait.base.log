@@ -1,0 +1,8 @@
+=== RUN   TestElectionCampaignCanceledAfterWait
+    election_campaign_getfail_test.go:80: Campaign: <nil>
+    election_campaign_getfail_test.go:82: Campaign returned nil: no existence check after the wait (code before the PR)
+--- SKIP: TestElectionCampaignCanceledAfterWait (0.20s)
+=== RUN   TestElectionCampaignCanceledAfterWaitBlocksOthers
+    election_campaign_getfail_test.go:115: Campaign returned nil: no existence check after the wait (code before the PR)
+--- SKIP: TestElectionCampaignCanceledAfterWaitBlocksOthers (0.02s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.339s

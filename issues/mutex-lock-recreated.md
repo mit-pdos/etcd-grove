@@ -74,3 +74,20 @@ D's key is now the first-created key, and D's `Lock` returns nil. B's `waitDelet
 ## Proposed fix
 
 Branch `mutex-lock-recreated`: after the final `Get`, if the key's create revision differs from `m.myRev`, set `m.myRev` to the new revision and wait again for the keys created before it, looping until the key found is the one waited for. This is how `tryAcquire` already treats an existing key of the same session, as that session's place in the queue. I considered returning an error instead (a new error, or `ErrSessionExpired`), but that would make `Lock` fail for a caller whose context was not canceled and whose session is alive, only because another `Mutex` on the same session was canceled, and would leave retrying to every caller. `TryLock` does not wait and is unchanged.
+
+## Another schedule: re-creation after the wait (2026-10-17)
+
+The key can also be deleted and re-created between `waitDeletes` returning nil and `Lock`'s final
+`Get`:
+1. B (session S) waits behind C, and D (session U) queues after B.
+2. C unlocks. B's wait returns.
+3. Before B's `Get`, a sibling `Mutex` A on S is canceled and unlocks (deleting the shared key),
+   then locks again, re-creating it after D's key.
+4. D gets the lock. B's `Get` finds the key, and B's `Lock` returns nil too.
+
+This holds at upstream `e9e56564d` and with etcd-io/etcd#22387 applied. #22387 makes a waiting
+`Lock` return `ErrSessionExpired` when its key is deleted during the wait, which covers the
+schedule above, but not this window or one before the wait's first `Get`. The test
+`TestMutexLockRecreatedAfterWait` is on branch `pr-verify/etcd-22387`
+(`notes/pr-verify/etcd-22387/mutex_recreated_after_wait_test.go`). The proposed fix (check the
+create revision after the final `Get` and wait again) also closes this window.
