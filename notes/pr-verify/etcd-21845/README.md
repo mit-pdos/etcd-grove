@@ -3,7 +3,7 @@
 Revisions: upstream base = etcd-io/etcd `6640131cb64c6927ee94ba806de15c9c0471f110` (the PR's merge
 base with `main`); PR head = `7b8af956ee27f2a911cc38f664ef9cb0d32ce436`; pinned fork =
 `upamanyus/etcd` `goose-lean` `09669450f` (its `server/auth/store.go` is upstream's: the bug is
-there too); fork branch = `mit-pdos/etcd-grove` branch `pr-etcd-21845-goose-lean` (`f9ae6c437`:
+there too); fork branch = `mit-pdos/etcd-grove` branch `pr-etcd-21845-goose-lean` (`e45698e8c`:
 `09669450f` plus the PR, its test included). Go toolchains: `go1.27.1` for the fork, `go1.26.4` for
 the PR head (its `go.mod` names go 1.26).
 
