@@ -146,7 +146,7 @@ func (s *EtcdServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeRe
 		return s.authStore.IsRangePermitted(ai, r.Key, r.RangeEnd)
 	}
 
-	get := func() { resp, _, err = txn.Range(ctx, s.Logger(), s.KV(), r, true) }
+	get := func() error { resp, _, err = txn.Range(ctx, s.Logger(), s.KV(), r, true); return err }
 	if serr := s.doSerialize(ctx, chk, get); serr != nil {
 		err = serr
 		return nil, err
@@ -184,8 +184,9 @@ func (s *EtcdServer) RangeStream(r *pb.RangeRequest, rs pb.KV_RangeStreamServer)
 	}
 
 	var err error
-	get := func() {
+	get := func() error {
 		err = s.rangeStream(ctx, r, rs)
+		return err
 	}
 	if serr := s.doSerialize(ctx, chk, get); serr != nil {
 		err = serr
@@ -362,8 +363,9 @@ func (s *EtcdServer) Txn(ctx context.Context, r *pb.TxnRequest) (*pb.TxnResponse
 			requestDurationSec.WithLabelValues("ReadonlyTxn", strconv.FormatBool(success)).Observe(time.Since(start).Seconds())
 		}(time.Now())
 
-		get := func() {
+		get := func() error {
 			resp, _, err = txn.Txn(ctx, s.Logger(), r, s.Cfg.ServerFeatureGate.Enabled(features.TxnModeWriteWithSharedBuffer), s.KV(), s.lessor, false)
+			return err
 		}
 		if serr := s.doSerialize(ctx, chk, get); serr != nil {
 			return nil, serr
@@ -1031,8 +1033,8 @@ func (s *EtcdServer) raftRequest(ctx context.Context, r *pb.InternalRaftRequest)
 	return result.Resp, nil
 }
 
-// doSerialize handles the auth logic, with permissions checked by "chk", for a serialized request "get". Returns a non-nil error on authentication failure.
-func (s *EtcdServer) doSerialize(ctx context.Context, chk func(*auth.AuthInfo) error, get func()) error {
+// doSerialize handles the auth logic, with permissions checked by "chk", for a serialized request "get". Returns a non-nil error on authentication failure or if get returns an error.
+func (s *EtcdServer) doSerialize(ctx context.Context, chk func(*auth.AuthInfo) error, get func() error) error {
 	trace := traceutil.Get(ctx)
 	ai, err := s.AuthInfoFromCtx(ctx)
 	if err != nil {
@@ -1047,7 +1049,9 @@ func (s *EtcdServer) doSerialize(ctx context.Context, chk func(*auth.AuthInfo) e
 	}
 	trace.Step("get authentication metadata")
 	// fetch response for serialized request
-	get()
+	if err = get(); err != nil {
+		return err
+	}
 	// check for stale token revision in case the auth store was updated while
 	// the request has been handled.
 	if ai.Revision != 0 && ai.Revision != s.authStore.Revision() {
