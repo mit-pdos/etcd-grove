@@ -1,0 +1,4 @@
+=== RUN   TestMaintenanceDefragmentLearner
+--- PASS: TestMaintenanceDefragmentLearner (0.30s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3	0.365s

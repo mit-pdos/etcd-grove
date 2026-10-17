@@ -2121,7 +2121,7 @@ noncomputable def togRPCError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- in v3.4, learner is allowed to serve serializable read and endpoint status
+/-- in v3.4, learner is allowed to serve local maintenance, serializable read, and endpoint status
 
     go: util.go:143:6 -/
 noncomputable def isRPCSupportedForLearner.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -2129,6 +2129,13 @@ noncomputable def isRPCSupportedForLearner.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val exceptionDo)
   (Let "req" (App (Val (GoInstruction (GoAlloc go.any))) (Var "req"))
   (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty)))) (Var "$x"))
+  (App (Val doReturn)
+  (Val #true)))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty)))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
   (Let "$ok" (Snd (Var "__p"))
@@ -2144,7 +2151,7 @@ noncomputable def isRPCSupportedForLearner.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"Serializable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))))
   (App (Val doReturn)
-  (Val #false))))))))))))))
+  (Val #false))))))))))))))))))
 
 /-- NewWatchServer returns a new watch server.
 

@@ -1,0 +1,17 @@
+error: Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/isRPCSupportedForLearner.lean:86:10: unsolved goals
+case pos
+ext : FfiSyntax
+ffi : FfiModel
+inst✝¹ : FfiInterp ffi
+inst✝ : FfiSemantics ext ffi
+go_gctx : GoGlobalContext
+GF : BundledGFunctors
+hG : HeapGS HasLC.hasLC GF
+sem : go.Semantics
+package_sem : v3rpc.Assumptions
+Φ : val → IProp GF
+l : Loc
+Hif ht : True
+⊢ ∀ (x : Loc), ¬#l = #x
+Some required targets logged failures:
+error: build failed

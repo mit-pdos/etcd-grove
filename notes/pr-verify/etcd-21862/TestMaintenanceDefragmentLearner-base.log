@@ -1,0 +1,8 @@
+--- FAIL: TestMaintenanceDefragmentLearner (0.30s)
+        	Error Trace:	tests/integration/clientv3/maintenance_test.go:141
+        	Error:      	Received unexpected error:
+        	            	etcdserver: rpc not supported for learner
+        	Test:       	TestMaintenanceDefragmentLearner
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3	0.367s
+FAIL

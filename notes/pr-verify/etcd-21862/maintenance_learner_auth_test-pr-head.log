@@ -1,0 +1,9 @@
+=== RUN   TestMaintenanceDefragmentLearnerAuthLearnerOnly
+    maintenance_learner_auth_test.go:47: learner-only client with auth: etcdserver: rpc not supported for learner
+--- PASS: TestMaintenanceDefragmentLearnerAuthLearnerOnly (0.29s)
+=== RUN   TestMaintenanceDefragmentLearnerAuthViaVoter
+--- PASS: TestMaintenanceDefragmentLearnerAuthViaVoter (0.30s)
+=== RUN   TestMaintenanceDefragmentLearner
+--- PASS: TestMaintenanceDefragmentLearner (0.27s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3	0.896s

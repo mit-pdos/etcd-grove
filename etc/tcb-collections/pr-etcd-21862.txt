@@ -1,0 +1,19 @@
+# etcd-io/etcd#21862 (learners serve Defragment): the learner allowlist
+# (`v3rpc.isRPCSupportedForLearner`, spec changed) and its one caller, the unary interceptor
+# (`v3rpc.newUnaryInterceptor`, spec unchanged). notes/pr-verify/etcd-21862.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21862.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots isRPCSupportedForLearner
+roots newUnaryInterceptor
+axiom EtcdServer.IsLearner.wp_proof
+axiom EtcdServer.IsMemberExist.wp_proof
+axiom api.IsCapabilityEnabled.wp_proof
+axiom membership.localKept
+axiom membership.localKept_persistent
+axiom metadata.FromIncomingContext.wp_proof
+axiom metadata.MD.Get.wp_proof
+axiom prometheus.CounterVec.WithLabelValues.wp_proof
+axiom utf8.ValidString.wp_proof

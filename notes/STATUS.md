@@ -13434,3 +13434,11 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## Branch `pr-verify/etcd-21862` (etcd-io/etcd#21862, learners serve Defragment)
+
+Not for `lean` (the translation is of unmerged code: fork `pr-etcd-21862-goose-lean` `b77dcd1c0`).
+`v3rpc.isRPCSupportedForLearner` gets a functional spec (`learnerServes`: `*StatusRequest`,
+`*DefragmentRequest`, a serializable `*RangeRequest`), proved with no `sorry`; the old spec (any
+boolean) is kept as `spec_old`, implied (`spec_implies_old`); `newUnaryInterceptor` unchanged.
+Report: `notes/pr-verify/etcd-21862.md`.
