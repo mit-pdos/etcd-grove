@@ -414,7 +414,7 @@ func TestRawNodeJointAutoLeave(t *testing.T) {
 	require.Zero(t, rawNode.raft.pendingConfIndex)
 
 	// Move the RawNode along. It should not leave joint because it's follower.
-	rd := rawNode.readyWithoutAccept()
+	rd := rawNode.readyWithoutAccept(ReadyOpts{})
 	// Check that the right ConfChange comes out.
 	require.Empty(t, rd.Entries)
 
@@ -944,7 +944,7 @@ func TestRawNodeConsumeReady(t *testing.T) {
 
 	// Inject first message, make sure it's visible via readyWithoutAccept.
 	rn.raft.msgs = append(rn.raft.msgs, m1)
-	rd := rn.readyWithoutAccept()
+	rd := rn.readyWithoutAccept(ReadyOpts{})
 	require.Len(t, rd.Messages, 1)
 	require.Equal(t, m1, rd.Messages[0])
 	require.Len(t, rn.raft.msgs, 1)
