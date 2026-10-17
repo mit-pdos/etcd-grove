@@ -38,6 +38,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
@@ -115,7 +116,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
       (ctxs : List (List w8)) (rms : List Loc) (cid : w64) (cil : Loc) (γA : ApplyNames)
-      (d : mvcc.KBReal) (bh lgh : Loc),
+      (d : mvcc.KBReal) (D : backend.Data),
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
     "Hbw" ∷ sto.wal' ↦ bw ∗ "Hbc" ∷ bs.cluster' ↦ bc ∗ "Hbv" ∷ bs.raft' ↦ bv ∗
@@ -169,21 +170,19 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "%Hbe" ∷ ⌜bk.be' = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be ∧
       mvcc.bridgeParams d.P ∧ ciKeys d.P ∧ storage.hooksParams d.P⌝ ∗
-    "#HbeNH" ∷ backend.isBackendNH d.γB d.P (mvcc.lateW d.gx)
-      (batchLockInv γA (metaTM d.γB d.P)) d.be (storage.hooksIface bh) ∗
-    "#Hhooks" ∷ storage.isBackendHooks bh
-      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
-      lgh ∗
-    "Hhook" ∷ backend.plHook d.γB func.nil ∗ "Hopen" ∷ (∃ qo : Qp, backend.bOpen d.γB qo) ∗
-    "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗
-    "Hview" ∷ mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
-    "Hwb" ∷ ownToks d.γB.wb (N + 7) ∗
-    -- within the backend's budget (`backend.New`'s `wbInit = 2 ^ 40 - 1` write-back tokens;
-    -- unit N4, 2026-10-17)
-    "%HN" ∷ ⌜N + 7 ≤ 2 ^ 40 - 1⌝ ∗
+    -- (the integration with `construct`, 2026-10-17) what `backend.New` gives (item 6's
+    -- `newPost`, at the server's batch-lock resources: its hooks the server's, so its
+    -- `isBackend` names the apply protocol's batch lock), over bbolt's data `D` with an empty
+    -- key bucket (a new cluster's), the budget within its `wbInit` write-backs (`N` for the
+    -- entries, seven for the construction); and what `bootstrap` adds: the store's registration
+    -- right, `keySized`, the fresh buckets' tokens (`bootBackend_of_newPost` turns `newPost` into
+    -- the resources `NewServer` uses)
+    "Hnew" ∷ backend.newPost d.γB d.P (fun _ => mvcc.lateW d.gx)
+      (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
+    "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
+    "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
+    "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
     "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
-    "Hrts" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-      mvcc.bkRTx d.γB d.P d.be) ∗
     -- the error paths' close
     "#Hclose" ∷ □ ({{ True }}
       (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))

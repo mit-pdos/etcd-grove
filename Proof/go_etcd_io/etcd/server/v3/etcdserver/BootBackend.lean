@@ -1,0 +1,109 @@
+/-
+**The backend `bootstrap` returns, from the backend's constructor** (the integration of the
+server construction with branch `construct`'s item 6, 2026-10-17). Lean-first (no Rocq
+counterpart).
+
+`bootOk`'s backend part (`InvBoot.lean`) is `backend.New`'s postcondition `backend.newPost`
+(item 6) at the server's batch-lock resources (`W` the store's late registration, `Pk` the apply
+protocol's batch lock), plus what `bootstrap` adds: bbolt's data `D` with an empty key bucket
+(a new cluster's data directory), the store's registration right, `keySized`, the fresh buckets'
+tokens, and the budget `N + 7 ≤ wbInit`. `bootBackend_of_newPost` turns `newPost` into the
+resources `NewServer` uses: the backend, the post-lock hook nil, an open share, the key view, the
+budget's `N + 7` write-backs and a read token with an open share per reader slot (`mvcc.bkRTx`).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode
+
+section boot
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- An open share splits in halves. -/
+theorem bOpen_halves (γ : backend.BNames) (q : Qp) :
+    backend.bOpen (GF := GF) γ q ⊢ backend.bOpen γ q.half ∗ backend.bOpen γ q.half := by
+  unfold backend.bOpen
+  iintro ⟨Ho, Hc⟩
+  have h1 : (DFrac.own q.half : DFrac) = DFrac.own q.half.half • DFrac.own q.half.half := by
+    show DFrac.own q.half = DFrac.own (q.half.half + q.half.half)
+    rw [Qp.half_add_half]
+  have h2 : ghostVar (GF := GF) γ.cls q () = ghostVar γ.cls (q.half + q.half) () := by
+    rw [Qp.half_add_half]
+  rw [h1, h2]
+  icases dghostVar_split (GF := GF) γ.opn false _ _ $$ Ho with ⟨Ho1, Ho2⟩
+  icases ghostVar_split (GF := GF) γ.cls () q.half q.half $$ Hc with ⟨Hc1, Hc2⟩
+  iframe Ho1 Ho2 Hc1 Hc2
+
+/-- Each reader slot's token with a share of the open token (`mvcc.bkRTx`), and a share left. -/
+theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) (n : Nat) :
+    ∀ q : Qp, ([∗list] _x ∈ List.replicate n (), backend.rdTok (GF := GF) γ P b) ∗
+      backend.bOpen γ q ⊢
+      ([∗list] _x ∈ List.replicate n (), mvcc.bkRTx γ P b) ∗ ∃ q' : Qp, backend.bOpen γ q' := by
+  induction n with
+  | zero =>
+    intro q
+    simp only [List.replicate]
+    iintro ⟨-, Ho⟩
+    isplitr
+    · iapply BigSepL.bigSepL_nil.2; itrivial
+    · iexists q; iexact Ho
+  | succ n ih =>
+    intro q
+    simp only [List.replicate]
+    iintro ⟨Hr, Ho⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hr1, Hr⟩
+    icases bOpen_halves γ q $$ Ho with ⟨Ho1, Ho⟩
+    icases ih q.half $$ [$Hr $Ho] with ⟨Hrs, Ho⟩
+    iframe Ho
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hrs
+    unfold mvcc.bkRTx
+    iframe Hr1
+    iexists q.half; iexact Ho1
+
+/-- **The backend `NewServer` uses, from `backend.New`'s postcondition** (see the file header):
+bbolt's data with an empty key bucket gives the store's key view `∅`, and `N + 7` of the
+`wbInit` write-backs. -/
+theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
+    (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
+    (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit) :
+    backend.newPost γ P W Pk b D ⊢
+      backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.plHook γ func.nil ∗
+      (∃ qo : Qp, backend.bOpen γ qo) ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
+      ownToks γ.wb (N + 7) ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        mvcc.bkRTx γ P b) := by
+  unfold backend.newPost
+  iintro ⟨#Hb, -, Ho, Hv, Hh, Hw, Hrd⟩
+  iframe Hb Hh
+  icases bkRTx_of_rdToks γ P b _ 1 $$ [$Hrd $Ho] with ⟨Hrts, Ho⟩
+  iframe Hrts Ho
+  isplitl [Hv]
+  · unfold mvcc.bkView
+    iexists _
+    iframe Hv
+    ipureintro; exact hD
+  obtain ⟨k, hk⟩ : ∃ k, backend.wbInit = k + (N + 7) :=
+    ⟨backend.wbInit - (N + 7), (Nat.sub_add_cancel hN).symm⟩
+  rw [hk]
+  icases (ownToks_add (N + 7) k γ.wb).1 $$ Hw with ⟨-, Hw⟩
+  iexact Hw
+
+end boot
+
+end EtcdGrove
+end Perennial

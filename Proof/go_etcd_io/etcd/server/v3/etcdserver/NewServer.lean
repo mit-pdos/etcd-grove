@@ -189,9 +189,6 @@ theorem NewServer.wp_proof
     (h40 : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
     (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
-    (h43 : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
-    (h44 : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
-    (h45 : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (h48 : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
@@ -384,7 +381,7 @@ theorem NewServer.wp_proof
   wp_apply h20 $$ [] as %reqto -
   · iframe #
   (try wp_auto)
-  -- the backend, over the server's hooks (`backend_server_hooks_of`)
+  -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
   obtain ⟨Hbe0, HbP, Hci0, HhP⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
@@ -396,8 +393,8 @@ theorem NewServer.wp_proof
   · iPkgInit
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  ihave #HB := backend_server_hooks_of h43 h44 h45 h76 h46 h47 h48 γA cil d.γB d.P (mvcc.lateW d.gx)
-    d.be bh lgh Hci0 HhP $$ [$Hstpkg $Hbkpkg $Hscpkg $Hcipkg $Hhooks $HbeNH $HisCI $Hcons]
+  ihave ⟨#HB, Hhook, Hopen, Hview, Hwb, Hrts⟩ := bootBackend_of_newPost d.γB d.P
+    (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN $$ Hnew
   icases Hopen with ⟨%qo, Hopen⟩
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
