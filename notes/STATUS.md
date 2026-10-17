@@ -4903,13 +4903,20 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
   fix is impossible (a progress request has no id and the server may not answer it, so the client
   cannot tell which request a broadcast answers); the server-side fix `c267e0ffe` (branch
   `watch-progress-before-created`), cherry-picked as `goose-lean` `09669450f`: `sendLoop` sends the
-  responses queued on the watch channel before a `Created` response. **In progress** (working tree
-  of `slice-wk`, not committed): the pin `09669450f` and the regenerated `v3rpc` translation;
-  `serverWatchStream.sendLoop`'s proof breaks at the drain (the watch case's proof must become a
-  spec of the `sendWatch` closure, proved where the closure is made and used by both cases); then
-  the ordering fact K1b needs (a `Created` at down position `j` follows every watch-channel
+  responses queued on the watch channel before a `Created` response. **Done** (the pin `09669450f`, not
+  pushed yet: `etc/goose.py --check` needs `--src etcd=<a checkout at 09669450f>` until it is):
+  `serverWatchStream.sendLoop`'s proof over the fix, with no statement changed. The closure is
+  inlined (`wp_auto`); the watch case's proof is the local macro `watch_resp k` (its four exits
+  re-establish the loop invariant through the caller's `k`: the main loop's `rcv, cs, D`, the
+  drain's `rcv, D, drained`), used by the `watchStream.Chan()` case and by the drain, whose
+  receive is a non-blocking `select` (`blocking_rcv_implies_nonblocking` of `mvcc.watch_recv_au`);
+  the control case's tail is the macro `ctrl_rest`, used with and without the drain. Gates:
+  `lake build` 5,104 jobs; trust base and every collection unchanged; every `Link.lean`
+  reproduced. **Next**: the ordering fact K1b needs (a `Created` at down position `j` follows every watch-channel
   response queued before it: the control response carries a lower bound of the watch channel's
-  sent list, and the drain's empty receive gives received = sent). Perennial limitation noted:
+  sent list, and the drain's empty receive gives received = sent: Perennial's
+  `wp_select_nonblocking_alt`/`nonblockingRecvAuAlt` give the not-ready branch inside the
+  channel's atomic update, so the empty buffer is observable). Perennial limitation noted:
   `wp_Len` relates a channel's length to nothing (`ChanAuSend.lean`), so a bounded drain is not
   provable; the fix drains until empty instead.
 - **K1 (mvcc: progress means synced).** `progressIfSync` sends at the store's revision `rev` under

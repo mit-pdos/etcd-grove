@@ -582,6 +582,423 @@ local macro "ctrl_assert" : tactic => `(tactic| (
   wp_apply hAssert))
 
 set_option hygiene false in
+/-- **A received mvcc watch response, sent or buffered** (the `sendWatch` closure, inlined: the
+loop's `watchStream.Chan()` case and the drain before a `Created` response, unit W-K), from the
+receive (`Hres`) to the invariant of the loop it ends in: the main loop's (`rcv`, `cs`, `D`) or the
+drain's (`rcv`, `D`, `drained`): `k` gives the loop's witnesses for the responses sent `Dn`. -/
+local macro "watch_resp" k:tactic : tactic => `(tactic| (
+  icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP⟩
+  -- what the response says of the stream (unit W-M2)
+  imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x Hγoc $$ [Haux Hsp HrO HrF HrP]
+    with #HrX
+  · iframe Haux Hsp HrO HrF HrP
+  iunfold v3rpc.sendSt at HS
+  icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
+  obtain ⟨hI, hD, hPM, hL⟩ := HSI
+  ihave #Hrok2 := v3rpc.rcvOk_snoc _ _ _ _ $$ [Hrok HrO HrW HrX]
+  · iframe Hrok HrO HrW HrX
+  ihave #HrI' := HrI
+  iunfold mvcc.respIs at HrI'
+  icases HrI' with ⟨%HwvI, %ps, #Hps, %Hpsl, #Hevs⟩
+  ihave %Hpsn := ownSlice_len _ _ _ $$ Hps
+  wp_auto
+  wp_apply time.wp_Now as %tm -
+  wp_apply (wp_slice_make2 (V := Loc) wv.Events'.len) as %esl ⟨Hesl, Hecap⟩
+  · ipureintro; exact Hpsn.2
+  wp_apply sync.RWMutex.wp_RLock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ [Hmu]
+    as ⟨Hrl, HP⟩
+  · iframe Hmu
+  iunfold v3rpc.swsMu at HP
+  icases HP with ⟨%PM2, %VM, %FM, HPm, HVm, HFm, %HVF⟩
+  (try wp_auto)
+  wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.vm VM
+    wv.WatchID' _) $$ HVm as HVm
+  rw [(HVF wv.WatchID').1]
+  simp only [Option.getD_none]
+  wp_apply sync.RWMutex.wp_RUnlock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+    $$ [Hrl HPm HVm HFm] as Hmu
+  · iframe Hrl; iframe #
+    inext
+    iunfold v3rpc.swsMu
+    iexists PM2, VM, FM
+    iframe
+    ipureintro; exact HVF
+  rename_i iu_ptr
+  irename : (iu_ptr ↦ zero_val w64 : IProp GF) => iu
+  have Hpsl' : ps.length = sint.nat wv.Events'.len := Hpsn.1
+  ihave HC : iprop(∃ (n k : w64), "i" ∷ i_ptr ↦ n ∗ "iu" ∷ iu_ptr ↦ k ∗
+      "Hesl" ∷ esl ↦* (ps.take (sint.Z n).toNat ++
+        List.replicate (ps.length - (sint.Z n).toNat) (zero_val Loc)) ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ps.length⌝) $$ [i iu Hesl]
+  · iexists W64 0, _
+    iframe i iu
+    simp only [show sint.Z (W64 0) = 0 from rfl, Int.toNat_zero, List.take_zero, List.nil_append,
+      Nat.sub_zero, Hpsl']
+    iframe Hesl
+    ipureintro; omega
+  wp_for HC
+  wp_if_destruct
+  · have Hif' : sint.Z n < sint.Z wv.Events'.len := by
+      first
+      | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+      | exact Hif
+    have hkP : (sint.Z n).toNat < ps.length := by rw [Hpsl']; word
+    obtain ⟨pe, hpe⟩ : ∃ pe, ps[(sint.Z n).toNat]? = some pe := ⟨_, List.getElem?_eq_getElem hkP⟩
+    have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z wv.Events'.len := ⟨Hn.1, Hif'⟩
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index wv.Events' (sint.Z n) ps DFrac.discard pe Hn.1 $$ [] as -
+    · iframe Hps; ipureintro; exact hpe
+    (try wp_auto)
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index wv.Events' (sint.Z n) ps DFrac.discard pe Hn.1 $$ [] as -
+    · iframe Hps; ipureintro; exact hpe
+    (try wp_auto)
+    ihave %Hel := ownSlice_len _ _ _ $$ Hesl
+    have HlenL : (ps.take (sint.Z n).toNat ++
+        List.replicate (ps.length - (sint.Z n).toNat) (zero_val Loc)).length = ps.length := by
+      simp; omega
+    have Hbnd2 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z esl.len := by
+      refine ⟨Hn.1, ?_⟩
+      have h1 := Hel.1
+      rw [HlenL] at h1
+      word
+    simp only [Hbnd2, _root_.and_self, ↓reduceIte]
+    wp_apply wp_store_slice_index esl (sint.Z n) _ pe $$ [Hesl] as Hesl
+    · iframe Hesl; ipureintro; rw [HlenL]; omega
+    (try wp_auto)
+    rw [show (zero_val Bool) = false from rfl]
+    wp_auto
+    wp_for_post
+    iframe
+    have hj1 : sint.Z (n + W64 1) = sint.Z n + 1 := by word
+    iexists (n + W64 1), _
+    iframe
+    have hpe' : ps[(sint.Z n).toNat] = pe := (List.getElem?_eq_some_iff.1 hpe).2
+    rw [hj1, show (sint.Z n + 1).toNat = (sint.Z n).toNat + 1 by omega, ← hpe',
+      v3rpc.take_replicate_set ps (zero_val Loc) hkP]
+    iframe Hesl
+    ipureintro; omega
+  have hnl : ¬ sint.Z n < sint.Z wv.Events'.len := by
+    first
+    | exact Hif
+    | (intro h; apply Hif; rw [decide_eq_true h])
+  have hnE : (sint.Z n).toNat = ps.length := by rw [Hpsl'] at Hn ⊢; word
+  rw [hnE, List.take_length, Nat.sub_self, List.replicate_zero, List.append_nil]
+  imod ownSlice_persist $$ Hesl with #Hesl
+  wp_apply hHdr sws r wv.Revision' as %hh ⟨%tt, %ll, #Hhdr⟩
+  · iframe #
+  (try wp_auto)
+  irename «$r0» => Hwr
+  ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
+  ipersist Hwr
+  have hCR : wv.CompactRevision' = W64 0 := HwvI.2.2
+  ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr»
+      (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
+  · iapply (v3rpc.watchRespMsg_intro «$r0_ptr»
+      (etcdserverpb.WatchResponse.mk _ hh wv.WatchID' false (!decide (wv.CompactRevision' = W64 0))
+        wv.CompactRevision' [] false esl slice.nil 0)
+      (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) ps
+      (by simp [v3rpc.mvccResp, HwvI.1]) rfl (by simp [v3rpc.mvccResp, hCR])
+      (by simp [v3rpc.mvccResp, hCR]) rfl rfl (by simp [v3rpc.mvccResp, Hpsl]))
+    simp only [v3rpc.mvccResp]
+    iframe Hwr Hhdr Hesl
+    isplitr
+    · ipureintro; exact Hwrn
+    iexact Hevs
+  rw [HwvI.1]
+  by_cases hd : ((IM !! x.id).isSome = true ∨ x.id = W64 (-1))
+  · by_cases h1 : x.id = W64 (-1)
+    all_goals (
+      simp only [h1, _root_.decide_true, decide_false, Bool.not_true, Bool.not_false, ↓reduceIte]
+      (try wp_auto)
+      first
+      | (have hIMs : (IM !! wv.WatchID').isSome = true := (by rw [HwvI.1]; exact hd.resolve_right h1); wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.StructType []) idsL IM wv.WatchID' (DFrac.own 1)) $$ HIM as HIM; simp only [hIMs, _root_.decide_true, Bool.not_true, ↓reduceIte]; (try wp_auto))
+      | skip
+      wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) _)
+      iapply Hrep
+      · itrivial
+      iintro !> -
+      (try wp_auto)
+      wp_apply sync.RWMutex.wp_RLock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ [Hmu]
+        as ⟨Hrl, HP⟩
+      · iframe Hmu
+      iunfold v3rpc.swsMu at HP
+      icases HP with ⟨%PM2, %VM, %FM, HPm, HVm, HFm, %HVF⟩
+      (try wp_auto)
+      wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.fm FM
+        wv.WatchID' _) $$ HFm as HFm
+      simp only [(HVF wv.WatchID').2, Option.getD_none, Option.isSome_none, decide_false]
+      wp_apply sync.RWMutex.wp_RUnlock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+        $$ [Hrl HPm HVm HFm] as Hmu
+      · iframe Hrl; iframe #
+        inext
+        iunfold v3rpc.swsMu
+        iexists PM2, VM, FM
+        iframe
+        ipureintro; exact HVF
+      (try wp_auto)
+      rw [show (zero_val Bool) = false from rfl]
+      (try wp_auto)
+      (try rw [Hsi])
+      (try wp_auto)
+      ihave ⟨Hst, #Hlb⟩ := v3rpc.srvSendTok_lb _ _ $$ Hst
+      ihave %Hsame := v3rpc.rcvOk_same _ _ _ $$ Hrok2
+      ihave HDn : r.Dn D.length (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
+      · iunfold v3rpc.watchStreamSpec at Hspec
+        icases Hspec $$ %D.length %(v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩)
+          with ⟨-, Hb⟩
+        iapply Hb
+        iunfold v3rpc.watchDn
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl⟩
+        iright
+        iunfold v3rpc.mvccOk
+        iexists x, ((rcv ++ [x]).filter (fun y => decide (y.w = x.w))), D
+        isplitr
+        · ipureintro
+          refine ⟨rfl, HwvI.2.1, rfl, ?_, fun hn => (hL _ hn).1 (hd.resolve_right hn)⟩
+          simp [List.filter_append]
+        isplitr
+        · iunfold v3rpc.downLbW
+          ihave #Hlb' := Hlb
+          iunfold v3rpc.downLb at Hlb'
+          iexact Hlb'
+        isplitr
+        · iexact HrW
+        isplitr
+        rotate_left
+        · iexact HrX
+        ipureintro
+        intro hev
+        have hc := v3rpc.send_claim_direct hI hd hev Hsame
+        rw [v3rpc.filterMap_snoc_bound _ _ _ hI.bound] at hc
+        unfold v3rpc.sentEvsOf
+        rw [hD]
+        exact hc
+      wp_bind (App (Val #(methods si.ty go!"Send" si.v)) (Val #«$r0_ptr»))
+      iapply HSend $$ [Hst HDn]
+      · iframe Hst HDn Hmsg
+      iintro !> %serr Hsr
+      icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
+      rotate_left
+      · send_fail
+      subst Hserr
+      (try wp_auto)
+      wp_apply sync.RWMutex.wp_Lock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
+        as ⟨Hlk, HP⟩
+      · iframe #
+      iunfold v3rpc.swsMu at HP
+      icases HP with ⟨%PM3, %VM3, %FM3, HPm, HVm, HFm, %HVF3⟩
+      (try wp_auto)
+      by_cases hl : sint.Z (W64 0) < sint.Z wv.Events'.len
+      · simp only [hl, _root_.decide_true, ↓reduceIte]
+        (try wp_auto)
+        wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.pm PM3
+          wv.WatchID' _) $$ HPm as HPm
+        cases hb : (PM3 !! wv.WatchID').getD false
+        · (try wp_auto)
+          wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+            $$ [Hlk HPm HVm HFm]
+          · iframe #
+            iframe Hlk
+            inext
+            iunfold v3rpc.swsMu
+            iexists _, VM3, FM3
+            iframe HPm HVm HFm
+            ipureintro; exact HVF3
+          wp_apply time.wp_Since as %du -
+          wp_apply hSecP _ du $$ [totalDur] as %fs totalDur
+          · iframe totalDur; try iframe #
+          observe hs1 Ho1
+          (try wp_auto)
+          wp_apply hSecP _ du $$ [totalDur] as %fs2 totalDur
+          · iframe totalDur; try iframe #
+          (try wp_auto)
+          observe hs2 Ho2
+          (try wp_auto)
+          wp_for_post
+          iframe
+          obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩] := ⟨_, rfl⟩
+          $k
+          subst hDn
+          iframe
+          iunfold v3rpc.sendSt
+          iexists S ++ [rcv.length], pend, IM, PM
+          ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
+          iframe HIM HPM Hcaps Hpsl2 Hrok2
+          ipureintro
+          refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
+            v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
+          rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
+          simp [v3rpc.mvccResp]
+        · (try wp_auto)
+          wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty r.pm PM3
+            wv.WatchID' false) $$ HPm as HPm
+          (try wp_auto)
+          wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+            $$ [Hlk HPm HVm HFm]
+          · iframe #
+            iframe Hlk
+            inext
+            iunfold v3rpc.swsMu
+            iexists _, VM3, FM3
+            iframe HPm HVm HFm
+            ipureintro; exact HVF3
+          wp_apply time.wp_Since as %du -
+          wp_apply hSecP _ du $$ [totalDur] as %fs totalDur
+          · iframe totalDur; try iframe #
+          observe hs1 Ho1
+          (try wp_auto)
+          wp_apply hSecP _ du $$ [totalDur] as %fs2 totalDur
+          · iframe totalDur; try iframe #
+          (try wp_auto)
+          observe hs2 Ho2
+          (try wp_auto)
+          wp_for_post
+          iframe
+          obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩] := ⟨_, rfl⟩
+          $k
+          subst hDn
+          iframe
+          iunfold v3rpc.sendSt
+          iexists S ++ [rcv.length], pend, IM, PM
+          ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
+          iframe HIM HPM Hcaps Hpsl2 Hrok2
+          ipureintro
+          refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
+            v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
+          rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
+          simp [v3rpc.mvccResp]
+      · simp only [hl, decide_false, ↓reduceIte]
+        (try wp_auto)
+        wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+          $$ [Hlk HPm HVm HFm]
+        · iframe #
+          iframe Hlk
+          inext
+          iunfold v3rpc.swsMu
+          iexists _, VM3, FM3
+          iframe HPm HVm HFm
+          ipureintro; exact HVF3
+        wp_apply time.wp_Since as %du -
+        wp_apply hSecP _ du $$ [totalDur] as %fs totalDur
+        · iframe totalDur; try iframe #
+        observe hs1 Ho1
+        (try wp_auto)
+        wp_apply hSecP _ du $$ [totalDur] as %fs2 totalDur
+        · iframe totalDur; try iframe #
+        (try wp_auto)
+        observe hs2 Ho2
+        (try wp_auto)
+        wp_for_post
+        iframe
+        obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩] := ⟨_, rfl⟩
+        $k
+        subst hDn
+        iframe
+        iunfold v3rpc.sendSt
+        iexists S ++ [rcv.length], pend, IM, PM
+        ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
+        iframe HIM HPM Hcaps Hpsl2 Hrok2
+        ipureintro
+        refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
+            v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
+        rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
+        simp [v3rpc.mvccResp])
+  · have hX1 : x.id ≠ W64 (-1) := fun h => hd (Or.inr h)
+    have hIMn : (IM !! x.id) = none := by
+      cases h : IM !! x.id with
+      | none => rfl
+      | some _ => exact absurd (Or.inl (by simp [h])) hd
+    simp only [hX1, decide_false, Bool.not_false, ↓reduceIte]
+    have hIMn' : IM !! wv.WatchID' = none := by rw [HwvI.1]; exact hIMn
+    (try wp_auto)
+    wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.StructType [])
+      idsL IM wv.WatchID' (DFrac.own 1)) $$ HIM as HIM
+    simp only [hIMn', Option.isSome_none, decide_false]
+    (try wp_auto)
+    wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
+      (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty)) pendL PM wv.WatchID'
+      (DFrac.own 1)) $$ HPM as HPM
+    rw [HwvI.1]
+    ihave ⟨Hcap0, Hcaps⟩ := v3rpc.pendCaps_take PM x.id $$ Hcaps
+    ihave #Hsl0 : v3rpc.pendSl r rcv (pend x.id) ((PM !! x.id).getD (zero_val GoSlice)) $$ []
+    · cases hX : PM !! x.id with
+      | some sl =>
+        simp only [Option.getD_some]
+        iapply BigSepM.bigSepM_lookup (Φ := fun Y sl => v3rpc.pendSl (GF := GF) r rcv (pend Y) sl) hX
+          $$ Hpsl
+      | none =>
+        rw [hPM _ hX]
+        simp only [Option.getD_none]
+        iunfold v3rpc.pendSl
+        iexists [], []
+        isplitr
+        · iapply ownSlice_nil
+        isplitr
+        · ipureintro; simp
+        simp
+        iempintro
+    iunfold v3rpc.pendSl at Hsl0
+    icases Hsl0 with ⟨%ls, %xs, #Hls, %Hxs, #Hmsgs⟩
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := Loc) [«$r0_ptr»]
+    isplitr
+    · ipureintro; rfl
+    iintro %sl2 ⟨Hsl2, -⟩
+    (try wp_auto)
+    wp_apply (wp_slice_append_persistent _ ls _ [«$r0_ptr»] (DFrac.own 1)) $$ [Hcap0 Hsl2]
+      as %sl' ⟨#Hsl', Hcap', -⟩
+    · iframe Hls Hcap0 Hsl2
+    wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty pendL PM wv.WatchID' sl')
+      $$ HPM as HPM
+    rw [HwvI.1]
+    (try wp_auto)
+    wp_for_post
+    iframe
+    obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D := ⟨_, rfl⟩
+    $k
+    subst hDn
+    iframe
+    iunfold v3rpc.sendSt
+    iexists S, v3rpc.upd pend x.id (pend x.id ++ [rcv.length]), IM, (<[x.id := sl']> PM)
+    ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
+    ihave #Hnew : v3rpc.pendSl r (rcv ++ [x]) (pend x.id ++ [rcv.length]) sl' $$ []
+    · iunfold v3rpc.pendSl
+      iexists ls ++ [«$r0_ptr»], xs ++ [(x, ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩)]
+      iframe Hsl'
+      isplitr
+      · ipureintro
+        refine ⟨by simp [Hxs.1], ?_, ?_⟩
+        · rw [List.map_append, v3rpc.map_snoc_some rcv x _ xs Prod.fst Hxs.2.1]
+          simp
+        · intro p hp
+          rw [List.mem_append, List.mem_singleton] at hp
+          rcases hp with hp | rfl
+          · exact Hxs.2.2 p hp
+          · exact ⟨rfl, rfl, HwvI.2.1⟩
+      rw [List.zip_append Hxs.1]
+      iapply BigSepL.bigSepL_append.2
+      iframe Hmsgs
+      simp only [List.zip_cons_cons, List.zip_nil_left]
+      iapply BigSepL.bigSepL_singleton.2
+      iexact Hmsg
+    ihave ⟨Hcaps, Hpsl3⟩ := v3rpc.pendMaps_insert r (rcv ++ [x]) pend PM x.id sl'
+      (pend x.id ++ [rcv.length]) $$ [Hcaps Hcap']
+    · iframe Hcaps Hcap' Hpsl2 Hnew
+    iframe HIM HPM Hcaps Hpsl3 Hrok2
+    ipureintro
+    refine ⟨v3rpc.sendInv_recv_pend hI (by simpa using hd), ?_, ?_, hL⟩
+    · rw [v3rpc.filterMap_snoc_bound _ _ _ hI.bound]; exact hD
+    · intro Y hY
+      by_cases h : Y = x.id
+      · subst h; rw [GMap.lookup_insert] at hY; cases hY
+      · rw [v3rpc.upd_ne _ _ h]
+        apply hPM
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at hY
+        exact hY))
+
+set_option hygiene false in
 /-- **A created response for `X` sent**: `X` announced (`ids[X]`), its buffered responses
 flushed in order (`send_claim_flush`), `pending[X]` deleted. -/
 local macro "ctrl_created" X:term : tactic => `(tactic| (
@@ -781,6 +1198,118 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
         rw [GMap.lookup_delete_ne _ (Ne.symm h)] at hY
         exact hY))
 
+set_option hygiene false in
+/-- **The rest of the control case** (from `start := time.Now()`), after the drain of a `Created`
+response or without it (unit W-K). -/
+local macro "ctrl_rest" : tactic => `(tactic| (
+  wp_apply time.wp_Now as %tm -
+  rw [Hsi]
+  wp_auto
+  ihave HDn : r.Dn D.length m $$ [Hcw Hat]
+  · iunfold v3rpc.watchStreamSpec at Hspec
+    icases Hspec $$ %D.length %m with ⟨-, Hb⟩
+    iapply Hb
+    iunfold v3rpc.watchDn
+    isplitr
+    · ipureintro; exact ⟨Hm.1, Hm.2.1⟩
+    ileft
+    isplitr
+    · ipureintro; exact Hm.2.2
+    iunfold v3rpc.ctrlOk
+    iexists ireq, req, γo, γa
+    iframe Hauxc Hupat Hcw Hat
+    ipureintro; exact Hans
+  wp_bind (App (Val #(methods si.ty go!"Send" si.v)) (Val #cl))
+  iapply HSend $$ [Hst HDn]
+  · iframe Hst HDn Hmsg
+  iintro !> %serr Hsr
+  icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
+  · subst Hserr
+    ihave #Hmsg' := Hmsg
+    iunfold v3rpc.watchRespMsg at Hmsg'
+    icases Hmsg' with ⟨%Hln, %hh, %esl, %eps, #HfH, #Hhdr, #HfId, #HfCr, #HfCa, #HfCR, #HfRe, #HfFr,
+      #HfEv, #Heps, %Hepsl, #Hevs⟩
+    have Hcc : m.canceled = true → m.created = true → m.watchId = W64 (-1) := by
+      intro h1 h2
+      unfold v3rpc.ctrlAnswers at Hans
+      rcases req with c | id | _ | _
+      · rcases Hans.2.2.2.2 with ⟨-, (⟨-, h⟩ | ⟨h, -⟩)⟩
+        · exact h
+        · rw [h1] at h; cases h
+      · rw [h2] at Hans; exact absurd Hans.2.2.2.2.1 (by decide)
+      · exact Hans.2.2.2.2.elim
+      · exact Hans.2.2.2.2.elim
+    wp_auto
+    cases hca : m.canceled <;> cases hcr : m.created
+    · exfalso
+      unfold v3rpc.ctrlAnswers at Hans
+      rcases req with c | id | _ | _
+      · rw [hcr] at Hans; exact absurd Hans.2.2.2.2.1 (by decide)
+      · rw [hca] at Hans; exact absurd Hans.2.2.2.2.2.1 (by decide)
+      · exact Hans.2.2.2.2.elim
+      · exact Hans.2.2.2.2.elim
+    case false.true =>
+      wp_auto
+      ctrl_assert
+      have hX : m.watchId = m.watchId := rfl
+      have hok : m.watchId ≠ W64 (-1) → (m.created && !m.canceled) = true :=
+        fun _ => by simp [hca, hcr]
+      ctrl_created m.watchId
+    case true.false =>
+      wp_auto
+      ctrl_assert
+      iunfold v3rpc.sendSt at HS
+      icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
+      obtain ⟨hI, hD, hPM, hL⟩ := HSI
+      have hD' : (D ++ [m]).filterMap v3rpc.WatchRespM.src = S.filterMap (fun n => rcv[n]?) := by
+        rw [List.filterMap_append, hD]; simp [Hm.2.2]
+      by_cases hw : m.watchId = W64 (-1)
+      · simp only [hw, _root_.decide_true, Bool.not_true, ↓reduceIte]
+        wp_auto
+        wp_apply time.wp_Since as %du -
+        wp_apply hSec du as %fs -
+        observe hs3 Ho3
+        wp_auto
+        wp_for_post
+        iframe
+        iexists rcv, cs ++ [cl], D ++ [m]
+        iframe
+        iunfold v3rpc.sendSt
+        iexists S, pend, IM, PM
+        iframe HIM HPM Hcaps Hpsl Hrok
+        ipureintro
+        exact ⟨hI, hD', hPM, v3rpc.idsLive_neg1 _ _ _ Hm.2.2 hw hL⟩
+      · simp only [hw, decide_false, Bool.not_false, ↓reduceIte]
+        wp_auto
+        wp_apply (wp_mapDelete idsL IM m.watchId go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
+          (go.StructType [])) $$ HIM as HIM
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists rcv, cs ++ [cl], D ++ [m]
+        iframe
+        iunfold v3rpc.sendSt
+        iexists S, pend, (GMap.delete m.watchId IM), PM
+        iframe HIM HPM Hcaps Hpsl Hrok
+        ipureintro
+        refine ⟨?_, hD', hPM, v3rpc.idsLive_canceled _ _ _ _ Hm.2.2 rfl hca hL⟩
+        have hids : (fun Y => ((GMap.delete m.watchId IM) !! Y).isSome) =
+            v3rpc.upd (fun Y => (IM !! Y).isSome) m.watchId false := by
+          funext Y; unfold v3rpc.upd; by_cases h : Y = m.watchId
+          · subst h; simp [GMap.lookup_delete]
+          · simp [h, Ne.symm h]
+        rw [hids]
+        exact v3rpc.sendInv_cancel m.watchId hI
+    case true.true =>
+      have hX : m.watchId = W64 (-1) := Hcc hca hcr
+      have hok : W64 (-1) ≠ W64 (-1) → (m.created && !m.canceled) = true :=
+        fun h => absurd rfl h
+      rw [Hcc hca hcr]
+      wp_auto
+      ctrl_assert
+      ctrl_created (W64 (-1))
+  send_fail))
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -912,398 +1441,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       wp_auto
       send_return
     simp only [mvcc.watchRecvResult, ↓reduceIte]
-    icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP⟩
-    -- what the response says of the stream (unit W-M2)
-    imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x Hγoc $$ [$Haux $Hsp $HrO $HrF $HrP]
-      with #HrX
-    iunfold v3rpc.sendSt at HS
-    icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
-    obtain ⟨hI, hD, hPM, hL⟩ := HSI
-    ihave #Hrok2 := v3rpc.rcvOk_snoc _ _ _ _ $$ [$Hrok $HrO $HrW $HrX]
-    ihave #HrI' := HrI
-    iunfold mvcc.respIs at HrI'
-    icases HrI' with ⟨%HwvI, %ps, #Hps, %Hpsl, #Hevs⟩
-    ihave %Hpsn := ownSlice_len _ _ _ $$ Hps
-    wp_auto
-    wp_apply time.wp_Now as %tm -
-    wp_apply (wp_slice_make2 (V := Loc) wv.Events'.len) as %esl ⟨Hesl, Hecap⟩
-    · ipureintro; exact Hpsn.2
-    wp_apply sync.RWMutex.wp_RLock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ [$Hmu]
-      as ⟨Hrl, HP⟩
-    iunfold v3rpc.swsMu at HP
-    icases HP with ⟨%PM2, %VM, %FM, HPm, HVm, HFm, %HVF⟩
-    (try wp_auto)
-    wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.vm VM
-      wv.WatchID' _) $$ HVm as HVm
-    rw [(HVF wv.WatchID').1]
-    simp only [Option.getD_none]
-    wp_apply sync.RWMutex.wp_RUnlock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
-      $$ [$Hrl HPm HVm HFm] as Hmu
-    · iframe #
-      inext
-      iunfold v3rpc.swsMu
-      iexists PM2, VM, FM
-      iframe
-      ipureintro; exact HVF
-    rename_i iu_ptr
-    irename : (iu_ptr ↦ zero_val w64 : IProp GF) => iu
-    have Hpsl' : ps.length = sint.nat wv.Events'.len := Hpsn.1
-    ihave HC : iprop(∃ (n k : w64), "i" ∷ i_ptr ↦ n ∗ "iu" ∷ iu_ptr ↦ k ∗
-        "Hesl" ∷ esl ↦* (ps.take (sint.Z n).toNat ++
-          List.replicate (ps.length - (sint.Z n).toNat) (zero_val Loc)) ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ps.length⌝) $$ [i iu Hesl]
-    · iexists W64 0, _
-      iframe i iu
-      simp only [show sint.Z (W64 0) = 0 from rfl, Int.toNat_zero, List.take_zero, List.nil_append,
-        Nat.sub_zero, Hpsl']
-      iframe Hesl
-      ipureintro; omega
-    wp_for HC
-    wp_if_destruct
-    · have Hif' : sint.Z n < sint.Z wv.Events'.len := by
-        first
-        | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
-        | exact Hif
-      have hkP : (sint.Z n).toNat < ps.length := by rw [Hpsl']; word
-      obtain ⟨pe, hpe⟩ : ∃ pe, ps[(sint.Z n).toNat]? = some pe := ⟨_, List.getElem?_eq_getElem hkP⟩
-      have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z wv.Events'.len := ⟨Hn.1, Hif'⟩
-      simp only [Hbnd, _root_.and_self, ↓reduceIte]
-      wp_apply wp_load_slice_index wv.Events' (sint.Z n) ps DFrac.discard pe Hn.1 $$ [] as -
-      · iframe Hps; ipureintro; exact hpe
-      (try wp_auto)
-      simp only [Hbnd, _root_.and_self, ↓reduceIte]
-      wp_apply wp_load_slice_index wv.Events' (sint.Z n) ps DFrac.discard pe Hn.1 $$ [] as -
-      · iframe Hps; ipureintro; exact hpe
-      (try wp_auto)
-      ihave %Hel := ownSlice_len _ _ _ $$ Hesl
-      have HlenL : (ps.take (sint.Z n).toNat ++
-          List.replicate (ps.length - (sint.Z n).toNat) (zero_val Loc)).length = ps.length := by
-        simp; omega
-      have Hbnd2 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z esl.len := by
-        refine ⟨Hn.1, ?_⟩
-        have h1 := Hel.1
-        rw [HlenL] at h1
-        word
-      simp only [Hbnd2, _root_.and_self, ↓reduceIte]
-      wp_apply wp_store_slice_index esl (sint.Z n) _ pe $$ [Hesl] as Hesl
-      · iframe Hesl; ipureintro; rw [HlenL]; omega
-      (try wp_auto)
-      rw [show (zero_val Bool) = false from rfl]
-      wp_auto
-      wp_for_post
-      iframe
-      have hj1 : sint.Z (n + W64 1) = sint.Z n + 1 := by word
-      iexists (n + W64 1), _
-      iframe
-      have hpe' : ps[(sint.Z n).toNat] = pe := (List.getElem?_eq_some_iff.1 hpe).2
-      rw [hj1, show (sint.Z n + 1).toNat = (sint.Z n).toNat + 1 by omega, ← hpe',
-        v3rpc.take_replicate_set ps (zero_val Loc) hkP]
-      iframe Hesl
-      ipureintro; omega
-    have hnl : ¬ sint.Z n < sint.Z wv.Events'.len := by
-      first
-      | exact Hif
-      | (intro h; apply Hif; rw [decide_eq_true h])
-    have hnE : (sint.Z n).toNat = ps.length := by rw [Hpsl'] at Hn ⊢; word
-    rw [hnE, List.take_length, Nat.sub_self, List.replicate_zero, List.append_nil]
-    imod ownSlice_persist $$ Hesl with #Hesl
-    wp_apply hHdr sws r wv.Revision' as %hh ⟨%tt, %ll, #Hhdr⟩
-    · iframe #
-    (try wp_auto)
-    irename «$r0» => Hwr
-    ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
-    ipersist Hwr
-    have hCR : wv.CompactRevision' = W64 0 := HwvI.2.2
-    ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr»
-        (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
-    · iapply (v3rpc.watchRespMsg_intro «$r0_ptr»
-        (etcdserverpb.WatchResponse.mk _ hh wv.WatchID' false (!decide (wv.CompactRevision' = W64 0))
-          wv.CompactRevision' [] false esl slice.nil 0)
-        (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) ps
-        (by simp [v3rpc.mvccResp, HwvI.1]) rfl (by simp [v3rpc.mvccResp, hCR])
-        (by simp [v3rpc.mvccResp, hCR]) rfl rfl (by simp [v3rpc.mvccResp, Hpsl]))
-      simp only [v3rpc.mvccResp]
-      iframe Hwr Hhdr Hesl
-      isplitr
-      · ipureintro; exact Hwrn
-      iexact Hevs
-    rw [HwvI.1]
-    by_cases hd : ((IM !! x.id).isSome = true ∨ x.id = W64 (-1))
-    · by_cases h1 : x.id = W64 (-1)
-      all_goals (
-        simp only [h1, _root_.decide_true, decide_false, Bool.not_true, Bool.not_false, ↓reduceIte]
-        (try wp_auto)
-        first
-        | (have hIMs : (IM !! wv.WatchID').isSome = true := (by rw [HwvI.1]; exact hd.resolve_right h1); wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.StructType []) idsL IM wv.WatchID' (DFrac.own 1)) $$ HIM as HIM; simp only [hIMs, _root_.decide_true, Bool.not_true, ↓reduceIte]; (try wp_auto))
-        | skip
-        wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) _)
-        iapply Hrep
-        · itrivial
-        iintro !> -
-        (try wp_auto)
-        wp_apply sync.RWMutex.wp_RLock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ [$Hmu]
-          as ⟨Hrl, HP⟩
-        iunfold v3rpc.swsMu at HP
-        icases HP with ⟨%PM2, %VM, %FM, HPm, HVm, HFm, %HVF⟩
-        (try wp_auto)
-        wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.fm FM
-          wv.WatchID' _) $$ HFm as HFm
-        simp only [(HVF wv.WatchID').2, Option.getD_none, Option.isSome_none, decide_false]
-        wp_apply sync.RWMutex.wp_RUnlock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
-          $$ [$Hrl HPm HVm HFm] as Hmu
-        · iframe #
-          inext
-          iunfold v3rpc.swsMu
-          iexists PM2, VM, FM
-          iframe
-          ipureintro; exact HVF
-        (try wp_auto)
-        rw [show (zero_val Bool) = false from rfl]
-        (try wp_auto)
-        (try rw [Hsi])
-        (try wp_auto)
-        ihave ⟨Hst, #Hlb⟩ := v3rpc.srvSendTok_lb _ _ $$ Hst
-        ihave %Hsame := v3rpc.rcvOk_same _ _ _ $$ Hrok2
-        ihave HDn : r.Dn D.length (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
-        · iunfold v3rpc.watchStreamSpec at Hspec
-          icases Hspec $$ %D.length %(v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩)
-            with ⟨-, Hb⟩
-          iapply Hb
-          iunfold v3rpc.watchDn
-          isplitr
-          · ipureintro; exact ⟨rfl, rfl⟩
-          iright
-          iunfold v3rpc.mvccOk
-          iexists x, ((rcv ++ [x]).filter (fun y => decide (y.w = x.w))), D
-          isplitr
-          · ipureintro
-            refine ⟨rfl, HwvI.2.1, rfl, ?_, fun hn => (hL _ hn).1 (hd.resolve_right hn)⟩
-            simp [List.filter_append]
-          isplitr
-          · iunfold v3rpc.downLbW
-            ihave #Hlb' := Hlb
-            iunfold v3rpc.downLb at Hlb'
-            iexact Hlb'
-          isplitr
-          · iexact HrW
-          isplitr
-          rotate_left
-          · iexact HrX
-          ipureintro
-          intro hev
-          have hc := v3rpc.send_claim_direct hI hd hev Hsame
-          rw [v3rpc.filterMap_snoc_bound _ _ _ hI.bound] at hc
-          unfold v3rpc.sentEvsOf
-          rw [hD]
-          exact hc
-        wp_bind (App (Val #(methods si.ty go!"Send" si.v)) (Val #«$r0_ptr»))
-        iapply HSend $$ [Hst HDn]
-        · iframe Hst HDn Hmsg
-        iintro !> %serr Hsr
-        icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
-        rotate_left
-        · send_fail
-        subst Hserr
-        (try wp_auto)
-        wp_apply sync.RWMutex.wp_Lock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
-          as ⟨Hlk, HP⟩
-        · iframe #
-        iunfold v3rpc.swsMu at HP
-        icases HP with ⟨%PM3, %VM3, %FM3, HPm, HVm, HFm, %HVF3⟩
-        (try wp_auto)
-        by_cases hl : sint.Z (W64 0) < sint.Z wv.Events'.len
-        · simp only [hl, _root_.decide_true, ↓reduceIte]
-          (try wp_auto)
-          wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.pm PM3
-            wv.WatchID' _) $$ HPm as HPm
-          cases hb : (PM3 !! wv.WatchID').getD false
-          · (try wp_auto)
-            wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
-              $$ [Hlk HPm HVm HFm]
-            · iframe #
-              iframe Hlk
-              inext
-              iunfold v3rpc.swsMu
-              iexists _, VM3, FM3
-              iframe HPm HVm HFm
-              ipureintro; exact HVF3
-            wp_apply time.wp_Since as %du -
-            wp_apply hSecP _ du $$ [$totalDur] as %fs totalDur
-            observe hs1 Ho1
-            (try wp_auto)
-            wp_apply hSecP _ du $$ [$totalDur] as %fs2 totalDur
-            (try wp_auto)
-            observe hs2 Ho2
-            (try wp_auto)
-            wp_for_post
-            iframe
-            iexists rcv ++ [x], cs, D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩]
-            iframe
-            iunfold v3rpc.sendSt
-            iexists S ++ [rcv.length], pend, IM, PM
-            ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
-            iframe HIM HPM Hcaps Hpsl2 Hrok2
-            ipureintro
-            refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
-              v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
-            rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
-            simp [v3rpc.mvccResp]
-          · (try wp_auto)
-            wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty r.pm PM3
-              wv.WatchID' false) $$ HPm as HPm
-            (try wp_auto)
-            wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
-              $$ [Hlk HPm HVm HFm]
-            · iframe #
-              iframe Hlk
-              inext
-              iunfold v3rpc.swsMu
-              iexists _, VM3, FM3
-              iframe HPm HVm HFm
-              ipureintro; exact HVF3
-            wp_apply time.wp_Since as %du -
-            wp_apply hSecP _ du $$ [$totalDur] as %fs totalDur
-            observe hs1 Ho1
-            (try wp_auto)
-            wp_apply hSecP _ du $$ [$totalDur] as %fs2 totalDur
-            (try wp_auto)
-            observe hs2 Ho2
-            (try wp_auto)
-            wp_for_post
-            iframe
-            iexists rcv ++ [x], cs, D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩]
-            iframe
-            iunfold v3rpc.sendSt
-            iexists S ++ [rcv.length], pend, IM, PM
-            ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
-            iframe HIM HPM Hcaps Hpsl2 Hrok2
-            ipureintro
-            refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
-              v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
-            rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
-            simp [v3rpc.mvccResp]
-        · simp only [hl, decide_false, ↓reduceIte]
-          (try wp_auto)
-          wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
-            $$ [Hlk HPm HVm HFm]
-          · iframe #
-            iframe Hlk
-            inext
-            iunfold v3rpc.swsMu
-            iexists _, VM3, FM3
-            iframe HPm HVm HFm
-            ipureintro; exact HVF3
-          wp_apply time.wp_Since as %du -
-          wp_apply hSecP _ du $$ [$totalDur] as %fs totalDur
-          observe hs1 Ho1
-          (try wp_auto)
-          wp_apply hSecP _ du $$ [$totalDur] as %fs2 totalDur
-          (try wp_auto)
-          observe hs2 Ho2
-          (try wp_auto)
-          wp_for_post
-          iframe
-          iexists rcv ++ [x], cs, D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩]
-          iframe
-          iunfold v3rpc.sendSt
-          iexists S ++ [rcv.length], pend, IM, PM
-          ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
-          iframe HIM HPM Hcaps Hpsl2 Hrok2
-          ipureintro
-          refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
-              v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
-          rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
-          simp [v3rpc.mvccResp])
-    · have hX1 : x.id ≠ W64 (-1) := fun h => hd (Or.inr h)
-      have hIMn : (IM !! x.id) = none := by
-        cases h : IM !! x.id with
-        | none => rfl
-        | some _ => exact absurd (Or.inl (by simp [h])) hd
-      simp only [hX1, decide_false, Bool.not_false, ↓reduceIte]
-      have hIMn' : IM !! wv.WatchID' = none := by rw [HwvI.1]; exact hIMn
-      (try wp_auto)
-      wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.StructType [])
-        idsL IM wv.WatchID' (DFrac.own 1)) $$ HIM as HIM
-      simp only [hIMn', Option.isSome_none, decide_false]
-      (try wp_auto)
-      wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
-        (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty)) pendL PM wv.WatchID'
-        (DFrac.own 1)) $$ HPM as HPM
-      rw [HwvI.1]
-      ihave ⟨Hcap0, Hcaps⟩ := v3rpc.pendCaps_take PM x.id $$ Hcaps
-      ihave #Hsl0 : v3rpc.pendSl r rcv (pend x.id) ((PM !! x.id).getD (zero_val GoSlice)) $$ []
-      · cases hX : PM !! x.id with
-        | some sl =>
-          simp only [Option.getD_some]
-          iapply BigSepM.bigSepM_lookup (Φ := fun Y sl => v3rpc.pendSl (GF := GF) r rcv (pend Y) sl) hX
-            $$ Hpsl
-        | none =>
-          rw [hPM _ hX]
-          simp only [Option.getD_none]
-          iunfold v3rpc.pendSl
-          iexists [], []
-          isplitr
-          · iapply ownSlice_nil
-          isplitr
-          · ipureintro; simp
-          simp
-          iempintro
-      iunfold v3rpc.pendSl at Hsl0
-      icases Hsl0 with ⟨%ls, %xs, #Hls, %Hxs, #Hmsgs⟩
-      (try wp_auto)
-      wp_apply wp_slice_literal (V := Loc) [«$r0_ptr»]
-      isplitr
-      · ipureintro; rfl
-      iintro %sl2 ⟨Hsl2, -⟩
-      (try wp_auto)
-      wp_apply (wp_slice_append_persistent _ ls _ [«$r0_ptr»] (DFrac.own 1)) $$ [Hcap0 Hsl2]
-        as %sl' ⟨#Hsl', Hcap', -⟩
-      · iframe Hls Hcap0 Hsl2
-      wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty pendL PM wv.WatchID' sl')
-        $$ HPM as HPM
-      rw [HwvI.1]
-      (try wp_auto)
-      wp_for_post
-      iframe
-      iexists rcv ++ [x], cs, D
-      iframe
-      iunfold v3rpc.sendSt
-      iexists S, v3rpc.upd pend x.id (pend x.id ++ [rcv.length]), IM, (<[x.id := sl']> PM)
-      ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
-      ihave #Hnew : v3rpc.pendSl r (rcv ++ [x]) (pend x.id ++ [rcv.length]) sl' $$ []
-      · iunfold v3rpc.pendSl
-        iexists ls ++ [«$r0_ptr»], xs ++ [(x, ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩)]
-        iframe Hsl'
-        isplitr
-        · ipureintro
-          refine ⟨by simp [Hxs.1], ?_, ?_⟩
-          · rw [List.map_append, v3rpc.map_snoc_some rcv x _ xs Prod.fst Hxs.2.1]
-            simp
-          · intro p hp
-            rw [List.mem_append, List.mem_singleton] at hp
-            rcases hp with hp | rfl
-            · exact Hxs.2.2 p hp
-            · exact ⟨rfl, rfl, HwvI.2.1⟩
-        rw [List.zip_append Hxs.1]
-        iapply BigSepL.bigSepL_append.2
-        iframe Hmsgs
-        simp only [List.zip_cons_cons, List.zip_nil_left]
-        iapply BigSepL.bigSepL_singleton.2
-        iexact Hmsg
-      ihave ⟨Hcaps, Hpsl3⟩ := v3rpc.pendMaps_insert r (rcv ++ [x]) pend PM x.id sl'
-        (pend x.id ++ [rcv.length]) $$ [Hcaps Hcap']
-      · iframe Hcaps Hcap' Hpsl2 Hnew
-      iframe HIM HPM Hcaps Hpsl3 Hrok2
-      ipureintro
-      refine ⟨v3rpc.sendInv_recv_pend hI (by simpa using hd), ?_, ?_, hL⟩
-      · rw [v3rpc.filterMap_snoc_bound _ _ _ hI.bound]; exact hD
-      · intro Y hY
-        by_cases h : Y = x.id
-        · subst h; rw [GMap.lookup_insert] at hY; cases hY
-        · rw [v3rpc.upd_ne _ _ h]
-          apply hPM
-          rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at hY
-          exact hY
+    watch_resp (iexists rcv ++ [x], cs, Dn)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `c, ok := <-sws.ctrlStream`
@@ -1329,113 +1467,59 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     iunfold v3rpc.ctrlOk at Hco
     icases Hco with ⟨%ireq, %req, %γo, %γa, #Hauxc, #Hupat, %Hans, Hcw, Hat⟩
     wp_auto
-    wp_apply time.wp_Now as %tm -
-    rw [Hsi]
+    -- `if c.Created`: the watch responses queued before it go first (unit W-K)
+    ihave #Hmsg0 := Hmsg
+    iunfold v3rpc.watchRespMsg at Hmsg0
+    icases Hmsg0 with ⟨%Hln0, %hh0, %esl0, %eps0, -, -, -, #HfCr0, -, -, -, -, -, -, -, -⟩
     wp_auto
-    ihave HDn : r.Dn D.length m $$ [Hcw Hat]
-    · iunfold v3rpc.watchStreamSpec at Hspec
-      icases Hspec $$ %D.length %m with ⟨-, Hb⟩
-      iapply Hb
-      iunfold v3rpc.watchDn
-      isplitr
-      · ipureintro; exact ⟨Hm.1, Hm.2.1⟩
-      ileft
-      isplitr
-      · ipureintro; exact Hm.2.2
-      iunfold v3rpc.ctrlOk
-      iexists ireq, req, γo, γa
-      iframe Hauxc Hupat Hcw Hat
-      ipureintro; exact Hans
-    wp_bind (App (Val #(methods si.ty go!"Send" si.v)) (Val #cl))
-    iapply HSend $$ [Hst HDn]
-    · iframe Hst HDn Hmsg
-    iintro !> %serr Hsr
-    icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
-    · subst Hserr
-      ihave #Hmsg' := Hmsg
-      iunfold v3rpc.watchRespMsg at Hmsg'
-      icases Hmsg' with ⟨%Hln, %hh, %esl, %eps, #HfH, #Hhdr, #HfId, #HfCr, #HfCa, #HfCR, #HfRe, #HfFr,
-        #HfEv, #Heps, %Hepsl, #Hevs⟩
-      have Hcc : m.canceled = true → m.created = true → m.watchId = W64 (-1) := by
-        intro h1 h2
-        unfold v3rpc.ctrlAnswers at Hans
-        rcases req with c | id | _ | _
-        · rcases Hans.2.2.2.2 with ⟨-, (⟨-, h⟩ | ⟨h, -⟩)⟩
-          · exact h
-          · rw [h1] at h; cases h
-        · rw [h2] at Hans; exact absurd Hans.2.2.2.2.1 (by decide)
-        · exact Hans.2.2.2.2.elim
-        · exact Hans.2.2.2.2.elim
-      wp_auto
-      cases hca : m.canceled <;> cases hcr : m.created
-      · exfalso
-        unfold v3rpc.ctrlAnswers at Hans
-        rcases req with c | id | _ | _
-        · rw [hcr] at Hans; exact absurd Hans.2.2.2.2.1 (by decide)
-        · rw [hca] at Hans; exact absurd Hans.2.2.2.2.2.1 (by decide)
-        · exact Hans.2.2.2.2.elim
-        · exact Hans.2.2.2.2.elim
-      case false.true =>
+    cases hcr0 : m.created
+    · try simp only [hcr0, Bool.false_eq_true, ↓reduceIte]
+      (try wp_auto)
+      ctrl_rest
+    · try simp only [hcr0, ↓reduceIte]
+      (try wp_auto)
+      ihave HId : iprop(∃ (rcv : List mvcc.RespM) (D : List v3rpc.WatchRespM) (dr : Bool),
+          "Hst" ∷ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗
+          "Hwc" ∷ mvcc.watchConsumer r.γc rcv ∗ "HS" ∷ v3rpc.sendSt r idsL pendL rcv D ∗
+          "drained" ∷ drained_ptr ↦ dr) $$ [Hst Hwc HS drained]
+      · iexists rcv, D, false; iframe
+      wp_for HId
+      wp_if_destruct
+      · wp_apply +noauto hChan r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo
+          as %ch' ⟨-, #Hch'⟩
+        · iframe #
+        icombine Hwch Hch' gives %Hcheq
+        subst Hcheq
         wp_auto
-        ctrl_assert
-        have hX : m.watchId = m.watchId := rfl
-        have hok : m.watchId ≠ W64 (-1) → (m.created && !m.canceled) = true :=
-          fun _ => by simp [hca, hcr]
-        ctrl_created m.watchId
-      case true.false =>
-        wp_auto
-        ctrl_assert
-        iunfold v3rpc.sendSt at HS
-        icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
-        obtain ⟨hI, hD, hPM, hL⟩ := HSI
-        have hD' : (D ++ [m]).filterMap v3rpc.WatchRespM.src = S.filterMap (fun n => rcv[n]?) := by
-          rw [List.filterMap_append, hD]; simp [Hm.2.2]
-        by_cases hw : m.watchId = W64 (-1)
-        · simp only [hw, _root_.decide_true, Bool.not_true, ↓reduceIte]
-          wp_auto
-          wp_apply time.wp_Since as %du -
-          wp_apply hSec du as %fs -
-          observe hs3 Ho3
-          wp_auto
+        wp_apply_core chan.wp_select_nonblocking
+        isplit
+        · iapply BigAndL.bigAndL_cons.2
+          isplit
+          · simp only [chan.nonblockingClausePre]
+            iexists go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse, inferInstance, inferInstance,
+              inferInstance, inferInstance, r.ch, r.γc.ch
+            isplitr
+            · ipureintro; rfl
+            isplitr
+            · iexact Hch
+            iapply blocking_rcv_implies_nonblocking
+            iapply mvcc.watch_recv_au r.srv.γ r.ch r.γc rcv _ $$ Hchinv Hwc
+            iintro %wv %okw Hres
+            cases okw
+            · simp only [mvcc.watchRecvResult, Bool.false_eq_true, ↓reduceIte]
+              irename Hres => Hwc
+              wp_auto
+              send_return
+            simp only [mvcc.watchRecvResult, ↓reduceIte]
+            watch_resp (iexists rcv ++ [x], Dn, dr)
+          · iapply BigAndL.bigAndL_nil.2; itrivial
+        · wp_auto
           wp_for_post
           iframe
-          iexists rcv, cs ++ [cl], D ++ [m]
+          iexists rcv, D, true
           iframe
-          iunfold v3rpc.sendSt
-          iexists S, pend, IM, PM
-          iframe HIM HPM Hcaps Hpsl Hrok
-          ipureintro
-          exact ⟨hI, hD', hPM, v3rpc.idsLive_neg1 _ _ _ Hm.2.2 hw hL⟩
-        · simp only [hw, decide_false, Bool.not_false, ↓reduceIte]
-          wp_auto
-          wp_apply (wp_mapDelete idsL IM m.watchId go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
-            (go.StructType [])) $$ HIM as HIM
-          (try wp_auto)
-          wp_for_post
-          iframe
-          iexists rcv, cs ++ [cl], D ++ [m]
-          iframe
-          iunfold v3rpc.sendSt
-          iexists S, pend, (GMap.delete m.watchId IM), PM
-          iframe HIM HPM Hcaps Hpsl Hrok
-          ipureintro
-          refine ⟨?_, hD', hPM, v3rpc.idsLive_canceled _ _ _ _ Hm.2.2 rfl hca hL⟩
-          have hids : (fun Y => ((GMap.delete m.watchId IM) !! Y).isSome) =
-              v3rpc.upd (fun Y => (IM !! Y).isSome) m.watchId false := by
-            funext Y; unfold v3rpc.upd; by_cases h : Y = m.watchId
-            · subst h; simp [GMap.lookup_delete]
-            · simp [h, Ne.symm h]
-          rw [hids]
-          exact v3rpc.sendInv_cancel m.watchId hI
-      case true.true =>
-        have hX : m.watchId = W64 (-1) := Hcc hca hcr
-        have hok : W64 (-1) ≠ W64 (-1) → (m.created && !m.canceled) = true :=
-          fun h => absurd rfl h
-        rw [Hcc hca hcr]
-        wp_auto
-        ctrl_assert
-        ctrl_created (W64 (-1))
-    send_fail
+      wp_if_destruct
+      all_goals first | ctrl_rest | (exfalso; cases dr <;> simp_all)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-progressTicker.C`
