@@ -45,28 +45,30 @@ abbrev raft.campaign.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
   s.role ≠ .leader →
   id ∈ c.voters →
-  -- Every request and the self-addressed response carry `Term + 1`: for an election
-  -- `becomeCandidate` has raised `r.Term` to it, for a pre-election it is computed.
+  -- Every request and the self-addressed response carry `r.nextTerm()`, `nextTermOf s.term x`
+  -- for a draw `x` (PR raft#86; until then `Term + 1`): for an election `becomeCandidate` has
+  -- raised `r.Term` to it, for a pre-election it is computed (its own draw).
   -- `send` *panics* on a vote message whose `Term` is zero (`Panicf "term should be set
   -- when sending %s"` in `raft.send.impl`), which is why `raft.wp_send` requires
   -- `Term ≠ 0`. Without this premise the triple is **false** at `s.term = 2^64 - 1`:
   -- the term wraps to zero and the real code panics. Added 2026-09-16; see
-  -- notes/STATUS.md.
-  uint.Z s.term + 1 < 2 ^ 64 →
+  -- notes/STATUS.md. (PR raft#86) `nextTerm` wraps in the last epoch, `s.term ≥ 2^64 - 2^16`
+  -- (`nextTermOf_wraps`): to the draw, below `s.term`, zero for a zero draw.
+  uint.Z s.term + 2 ^ 16 < 2 ^ 64 →
   -- a pre-election only with pre-vote on (2026-10-10): its pre-vote messages are of the
   -- next term, which `ownRaftPhys` allows only then (`OutTermOk`); `hup` is called with
   -- `campaignPreElection` exactly when `r.preVote`
   (t = campaignPreElection → s.prevote = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
-  {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();
+  {{ (peers : List w64) (pvs : GMap w64 Progress) (x : w64), RET #();
       ⌜peers ≡ₚ elements (c.voters \ {[id]})⌝ ∗
       -- each request carries the `lastEntryID()` read just before it was built
       -- (`Index: last.index, LogTerm: last.term`) -- the log's last entry id, the same
       -- for every peer: nothing in the loop changes the log -- and (2026-10-13) for a
       -- leader transfer's campaign the marker as its `Context` (`transferCtx`)
       ownRaftPhysCV c c.voters r id
-        { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t)
+        { campaignState id s (decide (t = campaignPreElection)) peers (nextTermOf s.term x) (transferCtx t)
             with prvals := pvs } }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
@@ -75,14 +77,14 @@ abbrev raft.campaign.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
   s.role ≠ .leader →
   id ∈ cfg →
-  uint.Z s.term + 1 < 2 ^ 64 →
+  uint.Z s.term + 2 ^ 16 < 2 ^ 64 →
   (t = campaignPreElection → s.prevote = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
-  {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();
+  {{ (peers : List w64) (pvs : GMap w64 Progress) (x : w64), RET #();
       ⌜peers ≡ₚ elements (cfg \ {[id]})⌝ ∗
       ownRaftPhys cfg r id
-        { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t)
+        { campaignState id s (decide (t = campaignPreElection)) peers (nextTermOf s.term x) (transferCtx t)
             with prvals := pvs } }}
 
 open Iris.ProofMode in
@@ -94,9 +96,9 @@ theorem raft.campaign.spec_simple
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   iapply H _ r id s t Hl (by rw [CfgM.voters_simple]; exact Hid) Ht Hpv $$ [$Hpkg $Hphys]
   inext
-  iintro %peers %pvs ⟨%Hp, Hphys⟩
+  iintro %peers %pvs %x ⟨%Hp, Hphys⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
+  iapply HΦ $$ %peers %pvs %x
   iframe Hphys
   ipureintro; rw [CfgM.voters_simple] at Hp; exact Hp
 

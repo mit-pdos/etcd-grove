@@ -752,33 +752,33 @@ theorem rOf_nonleader (s s' : NState) (g : RGh) (ha : s'.logst.applied = s.logst
 sends), or an election, which is `StepR.campaign` with the guard `hup` checked
 (`HupGuard`). The log facts are `ownRaftLog`'s. -/
 theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
-    (Hok : HupOkC c id s s') (Hnw : uint.Z s.term + 1 < 2 ^ 64)
+    (Hok : HupOkC c id s s')
     (Hlog : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
       uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :
     StepCD c id m s [] s' := by
   refine ⟨Hok.2.1, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
   change StepR Adm dec id (rOf s g) [] (rOf s' g)
   obtain ⟨-, -, ⟨Hl, -⟩, -, Hg⟩ := Hok
-  rcases Hg with rfl | ⟨Hnl, Hin, Hsn, Hno, pre, peers, pvs, cl, Hperm, rfl⟩
+  rcases Hg with rfl | ⟨Hnl, Hin, Hsn, Hno, pre, peers, pvs, cl, T, Hperm, Hnw, rfl⟩
   · exact .refl _
-  have Hrole : (campaignState id s pre peers cl).role ≠ .leader := by
+  have Hrole : (campaignState id s pre peers T cl).role ≠ .leader := by
     cases pre <;> simp [campaignState, sendMsgs, becomePrecandidate, becomeCandidate]
-  have Hl' : (campaignState id s pre peers cl).logst = s.logst := by
+  have Hl' : (campaignState id s pre peers T cl).logst = s.logst := by
     cases pre <;> simp [campaignState, sendMsgs, becomePrecandidate, becomeCandidate, resetTo,
       resetTo0]
-  rw [rOf_nonleader s ({ campaignState id s pre peers cl with prvals := pvs } : NState) g
-    (by show (campaignState id s pre peers cl).logst.applied = _; rw [Hl'])
-    (by show (campaignState id s pre peers cl).logst.snap = _; rw [Hl']) (by exact Hrole)]
-  rw [toPState_prvals_nl (campaignState id s pre peers cl) pvs Hrole]
+  rw [rOf_nonleader s ({ campaignState id s pre peers T cl with prvals := pvs } : NState) g
+    (by show (campaignState id s pre peers T cl).logst.applied = _; rw [Hl'])
+    (by show (campaignState id s pre peers T cl).logst.snap = _; rw [Hl']) (by exact Hrole)]
+  rw [toPState_prvals_nl (campaignState id s pre peers T cl) pvs Hrole]
   have Hnl' : (rOf s g).p.role ≠ .leader := by
     simp only [rOf, toPState_role]; exact proleRole_not_leader _ Hnl
   cases pre
   · -- an election: `StepR.campaign`, with the guard
     show StepR Adm dec id (rOf s g) []
-      { rOf s g with p := toPState (sendMsgs (becomeCandidate id s) _), pci := W64 0 }
+      { rOf s g with p := toPState (sendMsgs (becomeCandidate id s T) _), pci := W64 0 }
     rw [toPState_sendMsgs, toPState_becomeCandidate]
     have Hgc : (rOf s g).cfg.cfg = c := hc
-    refine StepR.campaign (rOf s g) peers cl Hnl' (by rw [Hgc]; exact Hin)
+    refine StepR.campaign (rOf s g) peers cl T Hnl' (by rw [Hgc]; exact Hin)
       (by simp [rOf, Hsn]) ?_ Hnw (by rw [Hgc]; exact Hperm)
     exact noConfIn_of_unapplied s.logst g.fp hd.2.2.1.1 (Hlog.1 Hsn) Hlog.2.1 Hlog.2.2 Hno
   · -- a pre-election: `abandon`, then the free sends
@@ -786,8 +786,8 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
       { rOf s g with p := toPState (sendMsgs (becomePrecandidate s) _), pci := W64 0 }
     rw [toPState_sendMsgs, toPState_becomePrecandidate]
     have Hcf : StepCF c id (rOf s g).p [] (psendMsgs (pbecomeFollower (rOf s g).p s.term (W64 0))
-        ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
-         peers.map fun dst => prevoteReq id dst (s.term + W64 1)
+        ([Msg.plain .preVoteResp id id T false] ++
+         peers.map fun dst => prevoteReq id dst T
            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))) := by
       refine StepCF.trans _ [] _ [] _ (StepCF.abandon (c := c) (id := id) _ Hnl')
         (stepCF_send_frees c id _ _ ?_)
@@ -799,8 +799,8 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
         exact ⟨Or.inl rfl, rfl⟩
     have H := Hcf.toR (Adm := Adm) (dec := dec) (rOf s g) rfl hc (rOf_pci_zero s g)
     have e : pciKeep (psendMsgs (pbecomeFollower (rOf s g).p s.term (W64 0))
-        ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
-         peers.map fun dst => prevoteReq id dst (s.term + W64 1)
+        ([Msg.plain .preVoteResp id id T false] ++
+         peers.map fun dst => prevoteReq id dst T
            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))) (rOf s g).pci = W64 0 := by
       simp [pciKeep, psendMsgs, pbecomeFollower]
     rw [e] at H

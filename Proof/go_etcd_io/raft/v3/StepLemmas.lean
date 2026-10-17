@@ -43,9 +43,9 @@ def voteRespResult (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
 `becomeFollower(r.Term, None)`, and otherwise nothing. The pre-vote tally is invisible
 to the protocol (`toPState`). -/
 def prevoteRespResult (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
-    (peers : List w64) : NState :=
+    (peers : List w64) (T : w64) : NState :=
   let s1 := { s with votes := recordVote s.votes src (!reject) }
-  if won then campaignState id s1 false peers
+  if won then campaignState id s1 false peers T
   else if lost then becomeFollower s1 s1.term (W64 0)
   else s1
 
@@ -98,19 +98,19 @@ theorem nstateWf_voteRespResult (id : w64) (s : NState) (src : w64) (reject won 
     | exact nstateWf_sendMsgs _ _ (nstateWf_becomeLeader _ _)
 
 theorem nstateWf_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
-    (cl : List w8 := []) :
-    NStateWf (campaignState id s pre peers cl) := by
+    (T : w64) (cl : List w8 := []) :
+    NStateWf (campaignState id s pre peers T cl) := by
   unfold campaignState; cases pre <;> exact ⟨rfl, rfl⟩
 
 theorem nstateWf_prevoteRespResult (id : w64) (s : NState) (src : w64)
-    (reject won lost : Bool) (peers : List w64) (Hsf : NStateWf s) :
-    NStateWf (prevoteRespResult id s src reject won lost peers) := by
+    (reject won lost : Bool) (peers : List w64) (T : w64) (Hsf : NStateWf s) :
+    NStateWf (prevoteRespResult id s src reject won lost peers T) := by
   unfold prevoteRespResult
   cases won <;> cases lost <;> simp only [Bool.false_eq_true, ↓reduceIte]
   all_goals first
     | exact Hsf
     | exact nstateWf_becomeFollower _ _ _
-    | exact nstateWf_campaignState _ _ _ _ _
+    | exact nstateWf_campaignState _ _ _ _ _ _
 
 /-! ## Branch lemmas
 
@@ -143,17 +143,17 @@ theorem step_send_frees (id : w64) (ps : PState) (ms : List Msg)
 `Step.abandon` (`becomePreCandidate`) followed by its `MsgPreVote`s and the
 self-addressed `MsgPreVoteResp`, all free. -/
 theorem step_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
-    (pvs : GMap w64 Progress) (Hnl : s.role ≠ .leader) (Hin : id ∈ cfg)
-    (Hnw : uint.Z s.term + 1 < 2 ^ 64) (Hperm : peers ≡ₚ elements (cfg \ {[id]}))
+    (pvs : GMap w64 Progress) (T : w64) (Hnl : s.role ≠ .leader) (Hin : id ∈ cfg)
+    (Hnw : uint.Z s.term < uint.Z T) (Hperm : peers ≡ₚ elements (cfg \ {[id]}))
     (cl : List w8 := []) :
-    Step cfg id (toPState s) [] (toPState { campaignState id s pre peers cl with prvals := pvs }) := by
-  have Hrole : (campaignState id s pre peers cl).role ≠ .leader := by
+    Step cfg id (toPState s) [] (toPState { campaignState id s pre peers T cl with prvals := pvs }) := by
+  have Hrole : (campaignState id s pre peers T cl).role ≠ .leader := by
     cases pre <;> simp [campaignState, sendMsgs, becomePrecandidate, becomeCandidate]
-  rw [toPState_prvals_nl (campaignState id s pre peers cl) pvs Hrole]
+  rw [toPState_prvals_nl (campaignState id s pre peers T cl) pvs Hrole]
   cases pre
-  · show Step cfg id (toPState s) [] (toPState (sendMsgs (becomeCandidate id s) _))
+  · show Step cfg id (toPState s) [] (toPState (sendMsgs (becomeCandidate id s T) _))
     rw [toPState_sendMsgs, toPState_becomeCandidate]
-    exact Step.campaign (toPState s) peers cl (by rw [toPState_role]; exact proleRole_not_leader _ Hnl)
+    exact Step.campaign (toPState s) peers cl T (by rw [toPState_role]; exact proleRole_not_leader _ Hnl)
       Hin Hnw Hperm
   · show Step cfg id (toPState s) [] (toPState (sendMsgs (becomePrecandidate s) _))
     rw [toPState_sendMsgs, toPState_becomePrecandidate]
@@ -171,11 +171,11 @@ theorem step_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w6
 /-- A pre-candidate's `MsgPreVoteResp`: pending is nothing, a loss is `Step.abandon`, a
 win is `Step.campaign`. -/
 theorem step_prevoteRespResult (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
-    (peers : List w64) (pvs : GMap w64 Progress) (Hpre : s.role = .preCandidate)
-    (Hin : id ∈ cfg) (Hnw : uint.Z s.term + 1 < 2 ^ 64)
+    (peers : List w64) (pvs : GMap w64 Progress) (T : w64) (Hpre : s.role = .preCandidate)
+    (Hin : id ∈ cfg) (Hnw : uint.Z s.term < uint.Z T)
     (Hperm : won = true → peers ≡ₚ elements (cfg \ {[id]})) :
     Step cfg id (toPState s) []
-      (toPState { prevoteRespResult id s src reject won lost peers with prvals := pvs }) := by
+      (toPState { prevoteRespResult id s src reject won lost peers T with prvals := pvs }) := by
   have Hs1 : toPState { s with votes := recordVote s.votes src (!reject) } = toPState s :=
     toPState_votes_pre _ _ Hpre
   have Hnl : s.role ≠ .leader := by rw [Hpre]; decide
@@ -192,11 +192,11 @@ theorem step_prevoteRespResult (id : w64) (s : NState) (src : w64) (reject won l
     exact Step.abandon _ (by rw [toPState_role, Hpre]; decide)
   all_goals
     show Step cfg id (toPState s) []
-      (toPState { campaignState id { s with votes := recordVote s.votes src (!reject) } false peers
+      (toPState { campaignState id { s with votes := recordVote s.votes src (!reject) } false peers T
         with prvals := pvs })
     rw [← Hs1]
     exact step_campaignState cfg id { s with votes := recordVote s.votes src (!reject) } false
-      peers pvs Hnl Hin Hnw (Hperm rfl)
+      peers pvs T Hnl Hin Hnw (Hperm rfl)
 
 omit [GoGlobalContext] [GoSemanticsFunctions] in
 /-- Stepping down and then answering a vote request, in one protocol step. -/

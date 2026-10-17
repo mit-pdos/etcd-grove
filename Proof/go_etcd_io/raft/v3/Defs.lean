@@ -1048,11 +1048,15 @@ def becomeFollower (s : NState) (term lead : w64) : NState :=
 `globalRand.Intn(65536)`: the term's upper 48 bits (the *epoch*) plus one, and the draw in
 the lower 16 bits: `((t & 0xffff_ffff_ffff_0000) >> 16 + 1) << 16 | (x & 0xffff)`. -/
 def nextTermOf (t x : w64) : w64 :=
-  (((t &&& 0xffffffffffff0000#64) >>> 16) + 1) <<< 16 ||| (x &&& 0xffff#64)
+  ((t &&& W64 18446744073709486080) >>> W64 16 + W64 1) <<< W64 16 ||| x &&& W64 65535
+
+theorem nextTermOf_eq (t x : w64) : nextTermOf t x =
+    (((t &&& 0xffffffffffff0000#64) >>> 16) + 1) <<< 16 ||| (x &&& 0xffff#64) := by
+  unfold nextTermOf; simp only [W64]; bv_decide
 
 theorem nextTermOf_bv (t x : w64) (H : t < 0xffffffffffff0000#64) :
     t < nextTermOf t x ∧ nextTermOf t x - t < 0x20000#64 := by
-  unfold nextTermOf; bv_decide
+  rw [nextTermOf_eq]; bv_decide
 
 /-- Below the last epoch, `nextTerm` moves the term forward, by less than `2^17`. -/
 theorem nextTermOf_bounds (t x : w64) (H : uint.Z t + 2 ^ 16 < 2 ^ 64) :
@@ -1071,7 +1075,7 @@ term is the draw alone, **below** `t` (PR raft#86's term overflow; the old `r.Te
 wrapped only at `t = 2^64 - 1`). -/
 theorem nextTermOf_wraps (t x : w64) (H : 0xffffffffffff0000#64 ≤ t) :
     nextTermOf t x = (x &&& 0xffff#64) ∧ nextTermOf t x < t := by
-  unfold nextTermOf; bv_decide
+  rw [nextTermOf_eq]; bv_decide
 
 /-- (PR raft#86) `becomeCandidate` at the term `T` it moves to: `r.nextTerm()`'s, which
 `raft.becomeCandidate.spec` gives as `nextTermOf s.term x` for some draw `x`. -/

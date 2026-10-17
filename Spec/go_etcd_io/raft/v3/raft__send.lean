@@ -111,7 +111,7 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
      (m.Type' = MsgVote ∨ m.Type' = MsgPreVote → m.To' ≠ id) ∧
      (m.To' = id →
         ents = [] ∧ ctx = [] ∧
-        uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 1 else 0)) ∧
+        uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 2 ^ 17 else 0)) ∧
      (s.prevote = false → uint.Z m.Term' ≤ uint.Z s.term ∧ m.Type' ≠ MsgPreVoteResp) ∧
      out = [absMsgFrom ty m id m.Term' ents ctx])
   ∨

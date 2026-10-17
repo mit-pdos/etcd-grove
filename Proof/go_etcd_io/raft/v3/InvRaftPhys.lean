@@ -215,8 +215,8 @@ queues only responses there (`MsgAppResp`, `MsgVoteResp`, `MsgPreVoteResp`), and
 stamps them `From: id`. A self-addressed one is what `acceptReady` queues for
 `RawNode.Advance` to step, so it carries what `Step`'s spec asks of it: a nonzero
 `Term`, no `Entries` and no `Context` (`nil`), a `MsgAppResp` that does not reject; and
-a term no later than the node's -- one later for a `MsgPreVoteResp`, which a
-pre-campaign sends at the next term -- which bounds how far stepping it can move the
+a term no later than the node's -- less than `2^17` later for a `MsgPreVoteResp`, which a
+pre-campaign sends at `nextTerm()` (PR raft#86; one later before) -- which bounds how far stepping it can move the
 node's term. The term bound holds at every later term too (`AAMsgOk.mono`): the node's
 term never moves back (`raft.wp_store_Term`). (Stage R4: on the message's state; "no
 `Entries` and no `Context`" is `st.ents = []`, `st.ctx = []`.) -/
@@ -226,7 +226,7 @@ def AAMsgOk (id t : w64) (st : MsgSt) : Prop :=
   (st.msg.To' = id →
     st.msg.Term' ≠ W64 0 ∧ st.ents = [] ∧ st.ctx = [] ∧
     (st.msg.Type' = MsgAppResp → st.msg.Reject' = false) ∧
-    uint.Z st.msg.Term' ≤ uint.Z t + (if st.msg.Type' = MsgPreVoteResp then 1 else 0))
+    uint.Z st.msg.Term' ≤ uint.Z t + (if st.msg.Type' = MsgPreVoteResp then 2 ^ 17 else 0))
 
 theorem AAMsgOk.mono {id t t' : w64} {st : MsgSt} (Ht : uint.Z t ≤ uint.Z t')
     (H : AAMsgOk id t st) : AAMsgOk id t' st := by

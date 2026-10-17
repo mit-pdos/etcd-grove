@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
 public import Spec.go_etcd_io.raft.v3.raft__reset
+public import Spec.go_etcd_io.raft.v3.raft__nextTerm
 public import Spec.go_etcd_io.raft.v3.traceBecomeCandidate
 
 @[expose] public section
@@ -24,6 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem raft.becomeCandidate.wp_proof
+    (wp_raft_nextTerm : raft.nextTerm.spec (GF := GF) (hG := hG))
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeCandidate : traceBecomeCandidate.spec (GF := GF) (hG := hG)) :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) := by
@@ -36,13 +38,14 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   wp_if_destruct
   · exact absurd Hif Hnl
-  -- `r.step := stepCandidate`, then `reset` at `r.Term + 1`
+  -- `r.step := stepCandidate`, then `reset` at `r.nextTerm()` (PR raft#86)
   wp_apply raft.wp_store_stepC $$ Hphys as Hphys
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_apply wp_raft_nextTerm $$ [$Hphys] as %x Hphys
+  have Hx := nextTermOf_bounds s.term x Hnw
   -- `reset`'s state is left to the frame (in Rocq, giving it explicitly ran for 24
   -- minutes before failing, 2026-09-22)
   wp_apply wp_raft_reset c r id { s with stepfn := functions stepCandidate [] }
-    (s.term + W64 1) (by word) $$ [$Hphys] as %pvs ⟨Hphys, -⟩
+    (nextTermOf s.term x) (by exact Int.le_of_lt Hx.1) $$ [$Hphys] as %pvs ⟨Hphys, -⟩
   -- `Match` is irrelevant for a non-leader (`toPState`)
   -- `r.tick`, `r.Vote := r.id`, `r.state := StateCandidate`
   wp_apply raft.wp_store_tickC (Hf := .inl rfl) $$ Hphys as Hphys
@@ -54,7 +57,7 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
   wp_apply wp_traceBecomeCandidate
-  iapply HΦ $$ %pvs
+  iapply HΦ $$ %x %pvs
   -- the stores above give `becomeCandidate` up to the order of the record updates
   iapply ownRaftPhysC_eq $$ Hphys
   cases s; rfl

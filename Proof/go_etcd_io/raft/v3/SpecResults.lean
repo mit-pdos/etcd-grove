@@ -59,7 +59,7 @@ the log untouched, the term up by at most one, `r.preVote` and the ghost bounds 
 def HupOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
   NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
-   uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh)
+   uint.Z s'.term < uint.Z s.term + 2 ^ 17 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh)
 
 /-- What `hup` checked before it campaigned (2026-10-14, reconfiguration stage B7: the dynamic
 model's `StepR.campaign` guard): nothing done, or a campaign (`campaignState`) by a non-leader
@@ -69,9 +69,9 @@ def HupGuard (c : CfgM) (id : w64) (s s' : NState) : Prop :=
   s' = s ∨
   (s.role ≠ .leader ∧ id ∈ c.voters ∧ s.logst.snap = none ∧
    (¬ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e) ∧
-   ∃ (pre : Bool) (peers : List w64) (pvs : GMap w64 Progress) (cl : List w8),
-     peers ≡ₚ elements (c.voters \ {[id]}) ∧
-     s' = { campaignState id s pre peers cl with prvals := pvs })
+   ∃ (pre : Bool) (peers : List w64) (pvs : GMap w64 Progress) (cl : List w8) (T : w64),
+     peers ≡ₚ elements (c.voters \ {[id]}) ∧ uint.Z s.term < uint.Z T ∧
+     s' = { campaignState id s pre peers T cl with prvals := pvs })
 
 /-- `HupOk` at a joint configuration (2026-10-13, reconfiguration stage A2): the step is
 `StepC c`, and a node that is not a voter of either half does nothing (it is not
@@ -81,7 +81,7 @@ B7) And what `hup` checked (`HupGuard`). -/
 def HupOkC (c : CfgM) (id : w64) (s s' : NState) : Prop :=
   NStateWf s' ∧ StepC c id (toPState s) [] (toPState s') ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
-   uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh) ∧
+   uint.Z s'.term < uint.Z s.term + 2 ^ 17 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh) ∧
   (id ∉ c.voters → s' = s) ∧ HupGuard c id s s'
 
 /-- At a simple configuration, `HupOkC` is `HupOk`. -/
