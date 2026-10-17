@@ -1163,7 +1163,7 @@ writer holds the other half) and `s.mu`'s quarter of the committed log's authori
 outer quarter, `logQ`; unit W-K: the commit happens under `s.mu` after the notify, so a reader
 under `s.mu` finds every certified log a prefix of the notified one, `wlogQ_cert_prefix`). -/
 def wlogQ (γ : WsNames) (q : Qp) (L : Log) : IProp GF :=
-  iprop(ghostVar γ.wlog q.half L ∗ idxLogAuth γ.st.idx q.half.half L)
+  iprop(monoListAuthOwn γ.wlog q.half L ∗ idxLogAuth γ.st.idx q.half.half L)
 
 /-- **Every certified log is a prefix of the notified one** (unit W-K): under `s.mu`, from the
 lock's quarter of the committed log's authority. -/
@@ -1172,6 +1172,46 @@ theorem wlogQ_cert_prefix (γ : WsNames) (q : Qp) (L C : Log) :
   unfold wlogQ
   iintro ⟨⟨-, Ha⟩, Hc⟩
   iapply idxLogAuth_cert_prefix $$ [$Ha $Hc]
+
+/-- **The store had notified `L` (at least)** (persistent; unit W-K): a lower bound of the
+notified log (`γ.wlog` is a monotone list, half the lock's, half the sole writer's). -/
+def notifiedLb (γ : WsNames) (L : Log) : IProp GF := monoListLbOwn γ.wlog L
+
+instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb (GF := GF) γ L) := by
+  unfold notifiedLb; infer_instance
+
+theorem wlogQ_lb (γ : WsNames) (q : Qp) (L : Log) :
+    wlogQ (GF := GF) γ q L ⊢ wlogQ γ q L ∗ notifiedLb γ L := by
+  unfold wlogQ notifiedLb
+  iintro ⟨Ha, Hb⟩
+  ihave #Hlb := monoListLbOwn_get γ.wlog _ L $$ Ha
+  iframe Ha Hb Hlb
+
+/-- Every lower bound of the notified log is a prefix of the lock's. -/
+theorem wlogQ_lb_valid (γ : WsNames) (q : Qp) (L L' : Log) :
+    wlogQ (GF := GF) γ q L ∗ notifiedLb γ L' ⊢ ⌜L' <+: L⌝ := by
+  unfold wlogQ notifiedLb
+  iintro ⟨⟨Ha, -⟩, Hl⟩
+  ihave %H := mono_list_auth_lb_valid _ _ _ _ $$ Ha Hl
+  ipureintro; exact H.2
+
+/-- A mono list's authority, as two halves. -/
+theorem monoList_halves (g : GName) (L : Log) :
+    monoListAuthOwn (GF := GF) g 1 L ⊣⊢ monoListAuthOwn g (1 : Qp).half L ∗ monoListAuthOwn g (1 : Qp).half L := by
+  have h := (monoListAuthOwn_fractional (GF := GF) g L).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  exact h
+
+/-- The two halves of the notified log, updated to a longer log. -/
+theorem wlog_update_halves (γ : WsNames) (L L' : Log) (h : L <+: L') :
+    ⊢ monoListAuthOwn (GF := GF) γ.wlog (1 : Qp).half L -∗ monoListAuthOwn γ.wlog (1 : Qp).half L ==∗
+      monoListAuthOwn γ.wlog (1 : Qp).half L' ∗ monoListAuthOwn γ.wlog (1 : Qp).half L' := by
+  iintro H1 H2
+  ihave Hf : monoListAuthOwn (GF := GF) γ.wlog 1 L $$ [H1 H2]
+  · iapply (monoList_halves γ.wlog L).2
+    iframe H1 H2
+  imod monoListAuthOwn_update L' h $$ Hf with ⟨Hf, -⟩
+  iapply (monoList_halves γ.wlog L').1 $$ Hf
 
 /-- **Under `s.mu`, the committed log is the notified one** (unit W-K): another fraction of the
 committed log's authority agrees with the lock's. -/
@@ -1286,7 +1326,7 @@ def wBudget (L : Log) : Nat := 2 ^ 63 - 3 - L.length
 /-- **The sole writer** of the watchable store at the committed (and notified) log `L`: its
 certificate, every revision token not spent, and its half of the notified log. -/
 def watchWriter (γ : WsNames) (L : Log) : IProp GF :=
-  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ ghostVar γ.wlog (1 : Qp).half L)
+  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ monoListAuthOwn γ.wlog (1 : Qp).half L)
 
 /-- The write transaction `s.Write` returns (`tw`, a `watchableStoreTxnWrite`): its fields, the
 inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and the
@@ -1300,7 +1340,7 @@ def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (p
     "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize ∗
     "#Hcert" ∷ idxCert γ.st.idx ilog ∗
     "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
-    "Hwlog" ∷ ghostVar γ.wlog (1 : Qp).half ilog)
+    "Hwlog" ∷ monoListAuthOwn γ.wlog (1 : Qp).half ilog)
 
 end reprs
 

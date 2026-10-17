@@ -379,7 +379,7 @@ theorem watchBudget_fractional (γ : WsNames) (M : GMap Loc WatcherNames) :
 theorem wlogQ_fractional (γ : WsNames) (L : Log) :
     Fractional (fun q => wlogQ (GF := GF) γ q L) := by
   unfold wlogQ
-  exact wFractional_sep (wFractional_half (ghostVar_fractional _ _))
+  exact wFractional_sep (wFractional_half (monoListAuthOwn_fractional _ _))
     (wFractional_half (wFractional_half (monoListAuthOwn_fractional _ _)))
 
 theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))

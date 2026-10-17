@@ -78,8 +78,10 @@ theorem mvcc.newWatchableStore.wp_proof
   ipersist HRV
   -- the ghost state
   imod ghost_map_alloc_empty (K := Loc) (V := mvcc.WatcherNames) (GF := GF) with ⟨%γm, Hmeta⟩
-  imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl⟩
-  icases (mvcc.ghostVar_halves_nw γwl _).1 $$ Hwl with ⟨Hwl1, Hwl2⟩
+  imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl, -⟩
+  ihave ⟨Hwl1, Hwl2⟩ : iprop(monoListAuthOwn (GF := GF) γwl (1 : Qp).half ([[], []] : mvcc.Log) ∗
+      monoListAuthOwn γwl (1 : Qp).half ([[], []] : mvcc.Log)) $$ [Hwl]
+  · iapply (mvcc.monoList_halves γwl ([[], []] : mvcc.Log)).1 $$ Hwl
   imod ghostVar_alloc (GF := GF) mvcc.wsInit with ⟨%γwst, Hwst⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
   imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
