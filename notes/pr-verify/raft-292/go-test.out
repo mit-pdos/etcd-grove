@@ -1,0 +1,4 @@
+ok  	go.etcd.io/raft/v3	2.022s
+ok  	go.etcd.io/raft/v3/tracker	0.032s
+ok  	go.etcd.io/raft/v3/quorum	1.801s
+ok  	go.etcd.io/raft/v3/confchange	0.740s

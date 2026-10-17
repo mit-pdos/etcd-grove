@@ -9,7 +9,9 @@
   `509271dac` (`raft37-goose-lean`) with `git apply -3`. It applied cleanly: there were no
   conflicts and no rewrites, so the verified Go code is exactly the PR's.
   `go build ./...` and `go test` pass for `.`, `tracker`, `quorum` and `confchange` (go1.27.1).
-- This repository: branch `pr-verify/raft-292`, worktree `/shared/etcd-grove-pr/raft-292`.
+- This repository: branch `pr-verify/raft-292`, worktree `/shared/etcd-grove-pr/raft-292`. The
+  supporting files (the changed-translation listing, the test and trust-base outputs) are in
+  `notes/pr-verify/raft-292/` (`README.md` there).
 
 ## Verdict
 
