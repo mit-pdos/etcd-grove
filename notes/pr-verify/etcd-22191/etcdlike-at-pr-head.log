@@ -1,0 +1,5 @@
+    watch_stale_id_etcdlike_test.go:165: trials 300, reconnect reached 300: B got event 292, B channel closed silently 2, B event lost (open) 6; Close hung 6
+--- FAIL: TestWatchStaleIDEtcdLike (37.69s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	37.708s
+FAIL

@@ -1,0 +1,5 @@
+panic: send on closed channel
+	/shared/etcd-grove-pr/etcd-22191-scratch/up-base/client/v3/watch.go:761
+	/shared/etcd-grove-pr/etcd-22191-scratch/up-base/client/v3/watch.go:741 +0x1ee
+    watch_cancel_reconnect_test.go:175: of 200 trials: watch B lost its event in 1, Close() hung in 0
+    watch_cancel_reconnect_test.go:175: of 200 trials: watch B lost its event in 1, Close() hung in 0

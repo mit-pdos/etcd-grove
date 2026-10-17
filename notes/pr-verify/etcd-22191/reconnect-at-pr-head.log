@@ -1,0 +1,4 @@
+    watch_cancel_reconnect_test.go:175: of 200 trials: watch B lost its event in 23, Close() hung in 23
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	141.615s
+FAIL

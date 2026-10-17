@@ -1,0 +1,14 @@
+diff --git a/client/v3/watch.go b/client/v3/watch.go
+index f9bea5336..9a3bd9c57 100644
+--- a/client/v3/watch.go
++++ b/client/v3/watch.go
+@@ -626,6 +626,9 @@ func (w *watchGRPCStream) run() {
+ 					// Remove immediately so broadcastResponse cannot send on
+ 					// the closed recvc before donec is closed (#21969).
+ 					delete(w.substreams, pbresp.WatchId)
++					// the server has dropped the id, and a later stream may reuse it:
++					// closeSubstream and the closingc case must not act on it
++					ws.id = InvalidWatchID
+ 				}
+ 
+ 				// reset for next iteration

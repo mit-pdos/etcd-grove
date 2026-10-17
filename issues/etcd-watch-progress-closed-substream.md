@@ -17,6 +17,9 @@ links:
   `TestWatchProgressBroadcastAfterServerCancel` (`client/v3/watch_progress_cancel_test.go`), which
   panics on every run without the fix. The reproduction below (3000 trials) no longer panics with it
   (731 trials reached the broadcast).
+  The fix leaves the removed substream's `id` set, which after a reconnect can delete another
+  watch that reuses that id: `etcd-watch-canceled-substream-stale-id.md` (found 2026-10-17; the
+  further fix is to set `ws.id = InvalidWatchID` there too).
 - **Where**: `client/v3/watch.go` at `upamanyus/etcd` `bc8b52a50` (the same code as upstream
   `main`; the pinned `457b8d1b6` adds one line at 868, shifting the later lines by one):
   `watchGRPCStream.run` (the `Canceled` case, lines 620–629: `close(ws.recvc)` for a substream

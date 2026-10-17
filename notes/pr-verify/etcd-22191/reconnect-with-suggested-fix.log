@@ -1,0 +1,4 @@
+--- PASS: TestWatchServerCancelThenReconnectKeepsOtherWatch (2.80s)
+--- PASS: TestWatchProgressBroadcastAfterServerCancel (0.01s)
+--- PASS: TestBroadcastResponseSkipsRemovedSubstream (0.00s)
+ok  	go.etcd.io/etcd/client/v3	2.847s

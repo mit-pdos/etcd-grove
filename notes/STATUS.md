@@ -4556,6 +4556,11 @@ baseline gains `context.WithCancelValCtx` and `streamKeyFromCtx` (234 axioms, 11
   premises: the server's construction facts and `runsNoRequireLeader`).
 - **Not covered**: `RequestProgress` (translated, not specified: its calls can make `run` panic,
   `etcd-watch-progress-closed-substream`; the verified watcher never sends a progress request).
+- **A second reason for `noRetryableStreamErr`** (2026-10-17, verifying etcd-io/etcd#22191, branch
+  `pr-verify/etcd-22191`): the K0 fix leaves a server-canceled substream's `id` set, and after a
+  reconnect `closeSubstream` deletes another watch the new stream gave the same id
+  (`issues/etcd-watch-canceled-substream-stale-id.md`; fix: also `ws.id = InvalidWatchID`).
+  Dropping the premise needs that fix as well.
 - **The Open variant** (`isEtcdRangeWatcherOpen`, close predicate `False`, the recipes' premise) is
   false of etcd's client: `watch.go` closes the channel when the watch's context is done, when
   `run` stops (its context done by `Close()`, a halting stream error), when the server cancels the
