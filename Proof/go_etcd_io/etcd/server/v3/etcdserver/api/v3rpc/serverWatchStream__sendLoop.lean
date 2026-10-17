@@ -618,7 +618,7 @@ loop's `watchStream.Chan()` case and the drain before a `Created` response, unit
 receive (`Hres`) to the invariant of the loop it ends in: the main loop's (`rcv`, `cs`, `D`) or the
 drain's (`rcv`, `D`, `drained`): `k` gives the loop's witnesses for the responses sent `Dn`. -/
 local macro "watch_resp" k:tactic : tactic => `(tactic| (
-  icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP⟩
+  icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP, #HrC, #HrR⟩
   -- what the response says of the stream (unit W-M2)
   imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x ⟨Hγoc.1, Hγoc.2.1⟩ $$ [Haux Hsp HrO HrF HrP]
     with #HrX
@@ -1461,7 +1461,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmug, %Hγoc, #Hsp, -⟩
+    #Hmug, %Hγoc, #Hsp, -, %Hγoc2⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
   icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars⟩
@@ -1617,7 +1617,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           all_goals (unfold v3rpc.ctrlAnswers at Hans; simp_all)
         obtain ⟨c, hreq⟩ := hreq
         irevert Hcw; rw [hreq]; iintro Hcw
-        icases v3rpc.ctrlWatcher_snap r.srv.γ γo c m hca0 $$ Hcw with ⟨Hcw, %w0, %l0, #Hia0, #Hl0s⟩
+        icases v3rpc.ctrlWatcher_snap r.srv.γ γo c m hca0 $$ Hcw
+          with ⟨Hcw, %w0, %l0, %n0, #Hia0, #Hl0s, #Hn0, %Hn0l⟩
         irevert Hcw; rw [← hreq]; iintro Hcw
         ihave #Hl0 : mvcc.chanSentLb r.γc l0 $$ []
         · iapply (mvcc.chanSentLb_stream γo r.γc l0 (by rw [hγo]; exact Hγoc.2.2.1)).2 $$ Hl0s
@@ -1629,8 +1630,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
         · unfold v3rpc.createdAfter
           rw [hcr0, hca0]
           simp only [Bool.not_false, Bool.and_self, ↓reduceIte]
-          iexists γo, γa, w0, l0, rcv, D
-          iframe Hauxc Hia0 Hl0s
+          iexists γo, γa, w0, l0, rcv, D, n0
+          iframe Hauxc Hia0 Hl0s Hn0
           isplitr
           · iapply (mvcc.chanSentLb_stream γo r.γc rcv (by rw [hγo]; exact Hγoc.2.2.1)).1 $$ Hrs
           isplitr
@@ -1638,6 +1639,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
             ihave #Hlb' := HlbD
             iunfold v3rpc.downLb at Hlb'
             iexact Hlb'
+          isplitr
+          · ipureintro; exact Hn0l
           ipureintro; exact ⟨Hl0rcv, rfl, Hneg⟩
         ctrl_rest
       · -- a refused create: nothing to say (`createdAfter` is `True`), the drain all the same

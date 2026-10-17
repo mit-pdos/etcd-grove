@@ -42,7 +42,7 @@ abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
         inv mvcc.watchN (mvcc.watchChanInv γ ch γc) ∗
         mvcc.watchStreamOpen γo ∗ mvcc.watchConsumer γc [] ∗
         ⌜γo.ids = γc.ids ∧ γo.prog = γc.prog ∧ γo.sentl = γc.sentl ∧ γo.rsn = γc.rsn ∧
-          0 < sint.Z γc.ch.chanCap⌝ ∗ savedPropOwn γo.prog DFrac.discard Q ∗
+          γo.regi = γc.regi ∧ 0 < sint.Z γc.ch.chanCap⌝ ∗ savedPropOwn γo.prog DFrac.discard Q ∗
         savedPredOwn γo.rsn DFrac.discard Ψ }}
 
 end spec

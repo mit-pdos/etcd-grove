@@ -282,6 +282,9 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       · ipureintro; exact hne
       iexists w, lo
       iframe HIW HIWF Hia Hit
+      iexists γc
+      iframe HOC
+      ipureintro; exact Hγc.2.2.2.2
 
 end proof
 

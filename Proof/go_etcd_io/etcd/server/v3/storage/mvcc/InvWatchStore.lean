@@ -994,6 +994,19 @@ theorem sentAuth_cov (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (
   iframe Hr Hc
   ipureintro; exact HRI
 
+/-- **A watcher's registration index, named through the stream** (persistent; K1b): the
+channel's `chanRegAt`, by the stream's `regi` (`γo.regi = γc.regi`). -/
+def streamRegAt (γo : WsStreamNames) (w : Loc) (n : Nat) : IProp GF :=
+  ghostMapElem γo.regi w DFrac.discard n
+
+instance streamRegAt_persistent (γo : WsStreamNames) (w : Loc) (n : Nat) :
+    Persistent (streamRegAt (GF := GF) γo w n) := by
+  unfold streamRegAt; infer_instance
+
+theorem chanRegAt_stream (γo : WsStreamNames) (γc : WatchChanNames) (w : Loc) (n : Nat)
+    (h : γo.regi = γc.regi) : chanRegAt (GF := GF) γc w n ⊣⊢ streamRegAt γo w n := by
+  unfold chanRegAt streamRegAt; rw [h]; exact .rfl
+
 theorem chanSentLb_stream (γo : WsStreamNames) (γc : WatchChanNames) (l : List RespM)
     (h : γo.sentl = γc.sentl) : chanSentLb (GF := GF) γc l ⊣⊢ streamSentLb γo l := by
   unfold chanSentLb streamSentLb; rw [h]; exact .rfl

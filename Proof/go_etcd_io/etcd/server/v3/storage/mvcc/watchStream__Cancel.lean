@@ -163,7 +163,7 @@ theorem mvcc.watchStream.Cancel.wp_proof :
                   icases Hws' $$ %id %w' %hw' with ⟨-, -, %r0, %fcs0, %lo0, #Hiwf, %hrid⟩
                   iexists r0, fcs0, lo0
                   iframe Hiwf
-                  rw [hrid, ← Hγc.2.2.2]
+                  rw [hrid, ← Hγc.2.2.2.1]
                   iexact Hrsn
                 · ileft
                   iexists i

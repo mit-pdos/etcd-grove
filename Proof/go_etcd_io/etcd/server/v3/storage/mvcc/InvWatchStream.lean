@@ -337,6 +337,9 @@ structure WsStreamNames where
   sentl : GName
   /-- the cancellation reason's name (K1b: `γ.rsn = γc.rsn`, `isWatchStream`) -/
   rsn : GName
+  /-- the channel's registration indices' name (K1b: `γ.regi = γc.regi`, `isWatchStream`), so that
+  what names the stream names its watchers' registration points (`streamRegAt`) -/
+  regi : GName
 
 /-- The token of an open stream: `NewWatchStream` returns it, `Close` consumes it. -/
 def watchStreamOpen (γ : WsStreamNames) : IProp GF := token γ.tok
@@ -476,7 +479,8 @@ def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γc : WatchCha
 def isWatchStream (ws : Loc) (wa : GoInterface) (P : WatchParams GF) (γ : WsStreamNames) :
     IProp GF :=
   iprop(∃ (ch : GoChan) (γc : WatchChanNames),
-    "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog ∧ γ.sentl = γc.sentl ∧ γ.rsn = γc.rsn⌝ ∗
+    "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog ∧ γ.sentl = γc.sentl ∧ γ.rsn = γc.rsn ∧
+      γ.regi = γc.regi⌝ ∗
     "#Hwa" ∷ ws.[watchStream, go!"watchable"] ↦□ wa ∗
     "#Hch" ∷ ws.[watchStream, go!"ch"] ↦□ ch ∗
     "#HC" ∷ P.C ch ∗

@@ -34,7 +34,8 @@ of it (`P.IWF`: its range `watchRangeOf k e endk startRev id'`, the filters, its
 `lo`), and that the stream assigned the id to `w` (`idAssigned`: such an id names one watcher of
 the stream for good, `idAssigned_agree`; the channel's invariant knows it from the registration
 on, `chanRegFact`), with its token (`idTok`: one per id, `idTok_excl`; the watch slice's unit
-W-C). -/
+W-C), and (K1b) the channel it registered `w` on (`P.OC`), whose registration indices the stream
+names (`γ.regi = γc.regi`). -/
 abbrev mvcc.watchStream.Watch.spec : Prop :=
   ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (key endk fcs : GoSlice) (k e : List w8)
@@ -49,7 +50,8 @@ abbrev mvcc.watchStream.Watch.spec : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ⌜e = [] ∨ go.GoStringLt k e⌝ ∗
         ∃ (w : Loc) (lo : Nat), P.IW w ∗
           P.IWF w (mvcc.watchRangeOf k e endk startRev id') fcs lo ∗
-          mvcc.idAssigned γ id' w ∗ mvcc.idTok γ id') ∨
+          mvcc.idAssigned γ id' w ∗ mvcc.idTok γ id' ∗
+          ∃ γc : mvcc.WatchChanNames, P.OC w γc ∗ ⌜γ.regi = γc.regi⌝) ∨
        (⌜id' = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err)) ∗ P.R }}
 
 end spec

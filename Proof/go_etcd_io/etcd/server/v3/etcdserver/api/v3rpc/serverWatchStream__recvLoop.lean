@@ -133,7 +133,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hwch, #Hch, #Hchinv, #Hspsc, #Hcc,
-    #Hmu, %Hγoc, #Hsp, #Hcq⟩
+    #Hmu, %Hγoc, #Hsp, #Hcq, %Hγoc2⟩
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
   icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
@@ -455,7 +455,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           isplitl
           · iapply BigSepL.bigSepL_nil.2; iempintro
           ipureintro; exact ⟨hsr0, Hwid0⟩
-        icases Hwres with (⟨%Hwe, %Hrng, %w, %lo, -, #HIWF, #Hia, Hit⟩ | ⟨%Hid, Hwe⟩)
+        icases Hwres with (⟨%Hwe, %Hrng, %w, %lo, -, #HIWF, #Hia, Hit, %γc', #HOC, %Hrg⟩ | ⟨%Hid, Hwe⟩)
         have Hid : c.watchId ≠ W64 0 → id' = c.watchId := fun h => absurd Hwid0 h
         · -- registered
           subst Hwe
@@ -494,7 +494,21 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           · iframe #
           wp_auto_lc 4
           -- the channel's sent list, after the registration (unit W-K)
-          imod mvcc.chan_sent_snapshot r.srv.γ r.ch r.γc $$ Hlc4 Hchinv with ⟨%l0, #Hl0⟩
+          -- the watcher's registration index on the channel (K1b), and a snapshot after it
+          ihave #HIWF' := HIWF
+          simp only [v3rpc.wParams, mvcc.storeWatchParams] at *
+          iunfold mvcc.watcherIs at HIWF'
+          icases HIWF' with ⟨%γw1, %C1, #Hm1, -, -, ⟨%nr, #Hra1⟩, -⟩
+          icases HOC with ⟨%γw2, #Hm2, %Hwc2⟩
+          ihave %Hag := mvcc.watcherMeta_agree _ _ _ _ $$ Hm1 Hm2
+          subst Hag
+          ihave #Hra : mvcc.chanRegAt r.γc w nr $$ []
+          · iunfold mvcc.chanRegAt at Hra1
+            iunfold mvcc.chanRegAt
+            rw [← Hγoc2.1, Hrg, ← Hwc2]
+            iexact Hra1
+          imod mvcc.chan_sent_snapshot_reg r.srv.γ r.ch r.γc w nr $$ Hlc4 Hchinv Hra
+            with ⟨%l0, #Hl0, %Hnl⟩
           irename «$r0» => Hwr
           ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
           ipersist Hwr
@@ -546,8 +560,12 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                   · simp only [h1, h2, ↓reduceIte, Hes2.2 h1 h2]
               iframe HIWF
               iframe Hia Hit Hfl
-              iexists l0
-              iapply (mvcc.chanSentLb_stream r.γo r.γc l0 Hγoc.2.2.1).1 $$ Hl0
+              iexists l0, nr
+              isplitr
+              · iapply (mvcc.chanSentLb_stream r.γo r.γc l0 Hγoc.2.2.1).1 $$ Hl0
+              isplitr
+              · iapply (mvcc.chanRegAt_stream r.γo r.γc w nr Hγoc2.1).1 $$ Hra
+              ipureintro; exact Hnl
             iintro !> Hprod
             wp_auto
             recv_next

@@ -275,13 +275,13 @@ theorem ansPool_mint (γa : GName) (n : Nat) :
 /-- The ghost names a watch run publishes in its stream's auxiliary name (`streamAuxIs`): its
 mvcc watch stream's (`γo`) and its answers' (`γa`). -/
 def auxOf (γo : mvcc.WsStreamNames) (γa : GName) : List GName :=
-  [γo.tok, γo.ids, γo.fresh, γo.prog, γo.sentl, γo.rsn, γa]
+  [γo.tok, γo.ids, γo.fresh, γo.prog, γo.sentl, γo.rsn, γo.regi, γa]
 
 theorem auxOf_inj {γo γo' : mvcc.WsStreamNames} {γa γa' : GName}
     (h : auxOf γo γa = auxOf γo' γa') : γo = γo' ∧ γa = γa' := by
   unfold auxOf at h
   simp only [List.cons.injEq, and_true] at h
-  obtain ⟨h1, h2, h3, h5, h6, h7, h4⟩ := h
+  obtain ⟨h1, h2, h3, h5, h6, h7, h8, h4⟩ := h
   cases γo; cases γo'
   simp_all
 
@@ -467,7 +467,8 @@ registration; no filter: `fcs` holds none, as `watchReqOk` asks), the stream `γ
 the id's token (`mvcc.idTok`, exclusive: a stream announces an id once), and (unit W-K) a
 snapshot of the stream's channel's sent list taken after the registration (`streamSentLb`: the
 point of the channel's order the response is sent after, so `sendLoop` sends every response of
-id `-1` queued before it first); nothing for any other answer. -/
+id `-1` queued before it first), at least as long as the watcher's registration index
+(`streamRegAt`, K1b); nothing for any other answer. -/
 def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM) (m : WatchRespM) :
     IProp GF :=
   match req with
@@ -476,7 +477,8 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         fcs ↦*□ ([] : List GoFunc) ∗
         mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗
-        ∃ l : List mvcc.RespM, mvcc.streamSentLb γo l)
+        ∃ (l : List mvcc.RespM) (n : Nat), mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗
+          ⌜n ≤ l.length⌝)
   | _ => iprop(True)
 
 /-- **A control response** `m`: it answers the request `req` the client sent at some position `i`
@@ -548,14 +550,15 @@ a registered (created, not canceled) control response `m`, its watcher `w` (`idA
 carries (taken after the registration), a later snapshot `l` (`l0 <+: l`: the send loop drained
 the channel before sending `m`), and the down list `L` of the `j` responses sent before it: every
 response of id `-1` in `l` is among `L`'s mvcc responses. Nothing for any other control response.
-(K1b adds that `w` was registered before `l0`; with it, a progress response sent after `m` was
-queued after `w`'s registration.) -/
+(K1b) `w` was registered on the channel at an index `n` at most `l0`'s length (`streamRegAt`), so a
+progress response sent after `m` was queued after `w`'s registration. -/
 def createdAfter (γs : StreamNames) (j : Nat) (m : WatchRespM) : IProp GF :=
   if m.created && !m.canceled then
     iprop(∃ (γo : mvcc.WsStreamNames) (γa : GName) (w : Loc) (l0 l : List mvcc.RespM)
-        (L : List WatchRespM),
+        (L : List WatchRespM) (n : Nat),
       streamAuxIs γs (auxOf γo γa) ∗ mvcc.idAssigned γo m.watchId w ∗
       mvcc.streamSentLb γo l0 ∗ mvcc.streamSentLb γo l ∗ downLbW γs L ∗
+      mvcc.streamRegAt γo w n ∗ ⌜n ≤ l0.length⌝ ∗
       ⌜l0 <+: l ∧ L.length = j ∧ ∀ x ∈ l, x.id = W64 (-1) → ∃ m' ∈ L, m'.src = some x⌝)
   else iprop(True)
 
@@ -578,17 +581,18 @@ theorem ctrlWatcher_snap (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (c : Cre
     (m : WatchRespM) (h : m.canceled = false) :
     ctrlWatcher (GF := GF) γ γo (.create c) m ⊢
       ctrlWatcher γ γo (.create c) m ∗
-        ∃ (w : Loc) (l : List mvcc.RespM), mvcc.idAssigned γo m.watchId w ∗ mvcc.streamSentLb γo l := by
+        ∃ (w : Loc) (l : List mvcc.RespM) (n : Nat), mvcc.idAssigned γo m.watchId w ∗
+          mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗ ⌜n ≤ l.length⌝ := by
   unfold ctrlWatcher
   rw [h]
   simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, #Hfcs, #Hia, Hit, %l, #Hl⟩
+  iintro ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, #Hfcs, #Hia, Hit, %l, %n, #Hl, #Hn, %Hnl⟩
   isplitl [Hit]
   · iexists w, rg, fcs, lo
     iframe Hit
     iframe #
-    ipureintro; exact Hrg
-  iexists w, l; iframe #
+    ipureintro; exact ⟨Hrg, Hnl⟩
+  iexists w, l, n; iframe #; ipureintro; exact Hnl
 
 
 /-- **The watch stream's specification** (the note's §4; persistent): the handler's content of

@@ -145,6 +145,57 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
 
 /-! ## The receive -/
 
+/-- **A response of id `-1` lists the watchers registered before it** (persistent; K1b): for a
+watcher registered on the channel at an index at most `k` (the response's), with a later credit,
+the response's `regs` has it (the channel's invariant: `sentAuth_reg_regs`). -/
+def regsAt (γc : WatchChanNames) (k : Nat) (x : RespM) : IProp GF :=
+  iprop(□ ∀ (w : Loc) (n : Nat), chanRegAt γc w n -∗ ⌜n ≤ k⌝ -∗ ⌜x.id = W64 (-1)⌝ -∗ £ 1 ={⊤}=∗
+    ⌜w ∈ x.regs⌝)
+
+instance regsAt_persistent (γc : WatchChanNames) (k : Nat) (x : RespM) :
+    Persistent (regsAt (GF := GF) γc k x) := by
+  unfold regsAt; infer_instance
+
+/-- **What a received response covers** (K1b): the next response `r` after `received`, its
+coverage (`respCov`, against the responses before it) and `regsAt` at its index. -/
+theorem recv_cov (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (received : List RespM) (r : RespM) (hp : received ++ [r] <+: sent) :
+    inv watchN (watchChanInv (GF := GF) γ ch γc) ∗ sentAuth γ γc sent L ⊢
+      sentAuth γ γc sent L ∗ respCov γ γc received r ∗ regsAt γc received.length r := by
+  iintro ⟨#Hinv, Hs⟩
+  have hk : sent[received.length]? = some r := by
+    obtain ⟨t, rfl⟩ := hp; simp
+  have ht : sent.take received.length = received := by
+    obtain ⟨t, rfl⟩ := hp; simp
+  icases sentAuth_cov γ γc sent L _ r hk $$ Hs with ⟨Hs, #Hc⟩
+  irevert Hc; rw [ht]; iintro #Hc
+  icases sentAuth_lb γ γc sent L $$ Hs with ⟨Hs, #Hlb⟩
+  iframe Hs Hc
+  iunfold regsAt
+  iintro !> %w %n #Hra %hn %hid Hlc
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  iunfold watchChanInv at Hi
+  icases Hi with ⟨%s, %sent', %recv', %vs, %L', Hi⟩
+  iNamed Hi
+  icases sentAuth_lb_valid γ γc sent' L' sent $$ [$Hsentl $Hlb] with ⟨Hsentl, %Hpp⟩
+  icases (persistent_entails_right (sentAuth_reg_regs (GF := GF) γ γc sent' L' w n))
+    $$ [$Hsentl $Hra] with ⟨%Hrr, ⟨Hsentl, -⟩⟩
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+  · inext
+    iunfold watchChanInv
+    iexists s, sent', recv', vs, L'
+    simp only [named]
+    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+    iframe #
+    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
+  imodintro
+  ipureintro
+  have hk' : sent'[received.length]? = some r := by
+    obtain ⟨t, ht2⟩ := Hpp
+    rw [← ht2, List.getElem?_append_left (List.getElem?_eq_some_iff.1 hk).1]; exact hk
+  exact Hrr _ r hn hk' hid
+
 /-- What the consumer gets from `v, ok := <-ch` with `received` received so far: on `ok`, the
 next response sent (`respIs v r`, `respOk r`), its consumer's view grown, and what it knows of
 `r`'s watcher from the responses received for it, with (unit W-M2) what the channel knows of the
@@ -155,7 +206,8 @@ def watchRecvResult (γ : WsNames) (γc : WatchChanNames) (received : List RespM
     (v : WatchResponse) (ok : Bool) : IProp GF :=
   if ok then iprop(∃ r : RespM, watchConsumer γc (received ++ [r]) ∗ respIs v r ∗ respOk r ∗
     watchRecvOk γ r.w ((received ++ [r]).filter (fun x => decide (x.w = r.w))) ∗
-    chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → progFact γc.prog))
+    chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
+    respCov γ γc received r ∗ regsAt γc received.length r)
   else watchConsumer γc received
 
 theorem respsIs_cons (v : WatchResponse) (rest : List WatchResponse) (rs : List RespM) :
@@ -245,6 +297,7 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     subst Hinfl
     imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
       with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl] with ⟨Hsentl, #Hcv, #Hra⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
@@ -270,6 +323,7 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     subst Hinfl
     imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
       with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl] with ⟨Hsentl, #Hcv, #Hra⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
@@ -342,6 +396,7 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
       subst Hinfl
       imod watch_take γ γc _ received sent L v' [] Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
         with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+      icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl] with ⟨Hsentl, #Hcv, #Hra⟩
       imod Hmask with -
       imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
       · inext
@@ -597,6 +652,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     subst Hinfl
     imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
       with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl] with ⟨Hsentl, #Hcv, #Hra⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
@@ -623,6 +679,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     subst Hinfl
     imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
       with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl] with ⟨Hsentl, #Hcv, #Hra⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
@@ -682,6 +739,33 @@ theorem chan_sent_snapshot (γ : WsNames) (ch : Loc) (γc : WatchChanNames) :
   imodintro
   iexists sent
   iexact Hlb
+
+/-- **A snapshot after a registration** (K1b): the channel's sent list, at least as long as a
+registered watcher's registration index. -/
+theorem chan_sent_snapshot_reg (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (w : Loc) (n : Nat) :
+    ⊢ £ 1 -∗ inv watchN (watchChanInv (GF := GF) γ ch γc) -∗ chanRegAt γc w n ={⊤}=∗
+      ∃ l, chanSentLb γc l ∗ ⌜n ≤ l.length⌝ := by
+  iintro Hlc #Hinv #Hra
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  iunfold watchChanInv at Hi
+  icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
+  iNamed Hi
+  icases (persistent_entails_right (mvcc.sentAuth_reg_le (GF := GF) γ γc sent L w n))
+    $$ [$Hsentl $Hra] with ⟨%Hn, ⟨Hsentl, -⟩⟩
+  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+  · inext
+    iunfold watchChanInv
+    iexists s, sent, recv, vs, L
+    simp only [named]
+    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+    iframe #
+    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
+  imodintro
+  iexists sent
+  iframe Hlb
+  ipureintro; exact Hn
 
 /-- **What the consumer received was sent** (unit W-K): its received list is a snapshot of the
 channel's sent list, with a later credit. -/
