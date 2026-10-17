@@ -1,0 +1,10 @@
+lean tools/PrintAxioms.lean (pr-verify/raft-168 at de7774eed): per theorem, number of axioms and whether sorryAx or a *.wp_proof axiom occurs
+Perennial.EtcdGrove.quorum.MajorityConfig.VoteResultWithDifference.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.quorum.JointConfig.VoteResultWithDifference.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.quorum.MajorityConfig.OneLessThanQuorum.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.tracker.ProgressTracker.TallyVotesWithDifference.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.confchange.Restore.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.confchange.Changer.LeaveJoint.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.confchange.checkInvariants.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.tracker.ProgressTracker.ConfState.wp_proof 294 axioms; sorryAx/wp_proof axioms: none
+Perennial.EtcdGrove.tracker.Config.Clone.wp_proof 294 axioms; sorryAx/wp_proof axioms: none

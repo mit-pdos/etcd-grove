@@ -172,7 +172,7 @@ has. The callees enter as `wp_proof` hypotheses and are linked in the regenerate
 ## Findings in the PR
 
 All reproductions are Go tests against the PR head (gogoproto `raftpb`; worktree
-`/tmp/claude-0/-shared-etcd-grove/6101526d-6539-4872-a190-a0b4b0fe455b/scratchpad/raft-168/head`, detached at `43f19c68a`). Each test fails there.
+`43f19c68a`). The files, how to run them and their outputs are in `raft-168/` (`raft-168/README.md`). Each test fails there.
 
 1. **`confchange.Restore` drops a witness that is in both halves of a joint configuration; a
    node then panics on restart or on installing a snapshot.** Severity: high, for any cluster
@@ -281,7 +281,7 @@ func TestWitnessRestartInJointConfig(t *testing.T) {
      behind the leader's compaction.
    - It also loads the whole log tail on every `MsgAppResp`.
 ```go
-// raft_test-style reproductions of 2 and 3 (reviewer)
+// review_witness_test.go: reproductions of 2 and 3 (reviewer)
 package raft
 
 import (

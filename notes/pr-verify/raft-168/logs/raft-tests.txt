@@ -1,0 +1,29 @@
+=== RUN   TestReviewLastEntryAfterSnapshot
+    review_witness_test.go:18: lastEntry panicked: requested index is unavailable due to compaction
+--- FAIL: TestReviewLastEntryAfterSnapshot (0.00s)
+=== RUN   TestReviewCandidateAfterSnapshotWitness
+    review_witness_test.go:38: state StateCandidate term 1
+    review_witness_test.go:34: candidate panicked: requested index is unavailable due to compaction
+--- FAIL: TestReviewCandidateAfterSnapshotWitness (0.00s)
+=== RUN   TestReviewLeaderMaybeCommitCompacted
+    review_witness_test.go:53: leader StateLeader last 11 first 11
+    review_witness_test.go:57: changed true epoch {Subterm:1 ReplicationSet:[{Witness:4 Excluded:3 NonWitnessVoters:map[1:{} 2:{}]} {Witness:0 Excluded:0 NonWitnessVoters:map[]}]}
+    review_witness_test.go:61: maybeCommit panicked: requested index is unavailable due to compaction
+--- FAIL: TestReviewLeaderMaybeCommitCompacted (0.00s)
+=== RUN   TestWitnessRestartInJointConfig
+raft2026/10/16 21:16:42 ConfStates not equivalent after sorting:
+raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x3, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x3, WitnessOutgoing:0x3}
+raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x0, WitnessOutgoing:0x3}
+Inputs were:
+raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x3, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x3, WitnessOutgoing:0x3}
+raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x0, WitnessOutgoing:0x3}
+    witness_restart_test.go:22: newRaft panicked on restart: ConfStates not equivalent after sorting:
+        raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x3, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x3, WitnessOutgoing:0x3}
+        raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x0, WitnessOutgoing:0x3}
+        Inputs were:
+        raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x3, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x3, WitnessOutgoing:0x3}
+        raftpb.ConfState{Voters:[]uint64{0x1, 0x2, 0x4}, Learners:[]uint64(nil), VotersOutgoing:[]uint64{0x1, 0x2, 0x3}, LearnersNext:[]uint64(nil), AutoLeave:false, Witness:0x0, WitnessOutgoing:0x3}
+--- FAIL: TestWitnessRestartInJointConfig (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.027s
+FAIL

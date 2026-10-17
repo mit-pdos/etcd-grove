@@ -1,0 +1,6 @@
+=== RUN   TestOneLessThanQuorumSingleVoter
+    witness_olq_test.go:8: OneLessThanQuorum of a one-voter config panicked: runtime error: index out of range [1] with length 1
+--- FAIL: TestOneLessThanQuorumSingleVoter (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3/quorum	0.025s
+FAIL

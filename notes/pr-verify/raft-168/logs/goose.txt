@@ -1,0 +1,6 @@
+goose.py: raft: USING THE LOCAL CHECKOUT /root/etcd-pr/raft-168 (HEAD 9dbcc6487e276a0a2b97244698df6f4c3101eaef) instead of cloning https://github.com/upamanyus/etcd at 509271dac8a49e670fd434444fa26eacdb1aa7b7
+goose.py: raft: the local checkout is not the pinned revision 509271dac8a49e670fd434444fa26eacdb1aa7b7; the output is not what the pin produces
++ go build -o /shared/etcd-grove-pr/raft-168/.lake/goose/bin/ ./goose/cmd/goose ./goose/cmd/proofgen
++ /shared/etcd-grove-pr/raft-168/.lake/goose/bin/goose -lean-root go.etcd.io/raft/v3= -lean-root google.golang.org= -out /shared/etcd-grove-pr/raft-168/.lake/goose/goose-fpgr858y/0/Code -configdir /shared/etcd-grove-pr/raft-168/Code -dir /root/etcd-pr/raft-168 . go.etcd.io/raft/v3/confchange go.etcd.io/raft/v3/quorum go.etcd.io/raft/v3/raftpb go.etcd.io/raft/v3/tracker
++ /shared/etcd-grove-pr/raft-168/.lake/goose/bin/proofgen -lean-root go.etcd.io/raft/v3= -lean-root google.golang.org= -out /shared/etcd-grove-pr/raft-168/.lake/goose/goose-fpgr858y/0/GeneratedProof -configdir /shared/etcd-grove-pr/raft-168/Code -dir /root/etcd-pr/raft-168 . go.etcd.io/raft/v3/confchange go.etcd.io/raft/v3/quorum go.etcd.io/raft/v3/raftpb go.etcd.io/raft/v3/tracker
+goose.py: raft: 13 file(s) updated (Perennial a54e1999fac64cac1b6f3d6533626fc39b359ff8, raft 509271dac8a4 (local checkout /root/etcd-pr/raft-168))

@@ -1,0 +1,10 @@
+=== RUN   TestWitnessRestoreJoint
+    witness_restore_test.go:27: live:     voters=(1 2 3 4)&&(1 2 3) witness={3,3}  ConfState {Voters:[1 2 3 4] Learners:[] VotersOutgoing:[1 2 3] LearnersNext:[] AutoLeave:false Witness:3 WitnessOutgoing:3}
+    witness_restore_test.go:31: restored: voters=(1 2 4)&&(1 2 3) witness=3
+    witness_restore_test.go:33: Restore(ConfState()) differs from the live config:
+         live     voters=(1 2 3 4)&&(1 2 3) witness={3,3}
+         restored voters=(1 2 4)&&(1 2 3) witness=3
+--- FAIL: TestWitnessRestoreJoint (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3/confchange	0.016s
+FAIL
