@@ -27,15 +27,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- The visitor's invariant: after the first `i` entries in range, the four slices and
-`totalCount`. -/
-def mvcc.rangeInv (keys_ptr modifies_ptr creates_ptr versions_ptr totalCount_ptr : Loc)
+/-- The visitor's invariant: after the first `i` entries in range, the five slices and
+`totalCount` (the leases the key indexes' `lf`). -/
+def mvcc.rangeInv (keys_ptr leases_ptr modifies_ptr creates_ptr versions_ptr totalCount_ptr : Loc)
+    (lf : mvcc.Rev → w64)
     (vis : List mvcc.IdxEntry) (atRev limit : w64) (withTotal : Bool) (i : Nat) : IProp GF :=
-  iprop(∃ (keys modifies creates versions : GoSlice) (total : w64),
-    keys_ptr ↦ keys ∗ modifies_ptr ↦ modifies ∗ creates_ptr ↦ creates ∗ versions_ptr ↦ versions ∗
-    totalCount_ptr ↦ total ∗
+  iprop(∃ (keys leases modifies creates versions : GoSlice) (total : w64),
+    keys_ptr ↦ keys ∗ leases_ptr ↦ leases ∗ modifies_ptr ↦ modifies ∗ creates_ptr ↦ creates ∗
+    versions_ptr ↦ versions ∗ totalCount_ptr ↦ total ∗
     mvcc.ownKeys keys ((mvcc.takeLimit (mvcc.limitOf limit) (mvcc.entryAnswers (vis.take i) atRev)).map
       Prod.fst) ∗
+    leases ↦* ((mvcc.takeLimit (mvcc.limitOf limit) (mvcc.entryAnswers (vis.take i) atRev)).map
+      fun x => lf x.2.1) ∗
+    ownSliceCap w64 leases (DFrac.own 1) ∗
     modifies ↦* ((mvcc.takeLimit (mvcc.limitOf limit) (mvcc.entryAnswers (vis.take i) atRev)).map
       fun x => mvcc.revVal x.2.1) ∗
     ownSliceCap Revision modifies (DFrac.own 1) ∗
@@ -65,6 +69,7 @@ theorem mvcc.ownKeys_snoc (keys' : GoSlice) (kss : List GoSlice) (ks : List GoSt
   iapply BigSepL.bigSepL_singleton.2
   iexact Hs
 
+set_option maxRecDepth 8192 in
 theorem mvcc.treeIndex.Range.wp_proof
     (hUnsafe : mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG))
     (hVisit : mvcc.treeIndex.unsafeVisit.spec (GF := GF) (hG := hG))
@@ -105,17 +110,21 @@ theorem mvcc.treeIndex.Range.wp_proof
       exact BitVec.ofInt_toInt.symm, (Int.toNat_of_nonneg Hrev.1).symm⟩
   have hrlt : r < log.length := by omega
   have hne := entries_not_emptyC L _ cmax HLL.1
+  -- the answers' leases: the tree's are the reader's log's
+  rw [← mvcc.rangeTaken_leases log ilog pend (mvcc.reader_prefix log ilog pend Hcmp Hcnt' (by omega))]
   subst hr
   wp_if_destruct
   · -- `end == nil`: the one key, `ti.unsafeGet(key, atRev)`
-    wp_apply (hUnsafe ti t lg L sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as ⟨HtreeL, -⟩
+    wp_apply (hUnsafe ti t lg L _ sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as ⟨HtreeL, -⟩
     · iframe #
       ipureintro
       exact ⟨Hlgnn, hne⟩
     have hstab := mvcc.reader_answerC log ilog pend L cmax Hcmp Hcnt' ⟨HwfL, HlenL, HpendL, HcsL⟩
       Hwf0 Hcs0 HLL.1 k r hrlt Hlen0 (by omega)
-    have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) (W64 r)
-        (GoInterface.ok e0) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) (W64 r) (GoInterface.ok e0) := by
+    have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty)
+        (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) (W64 r) (GoInterface.ok e0) =
+        mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) (mvcc.evLease (mvcc.evsOf (ilog ++ [pend])))
+          (W64 r) (GoInterface.ok e0) := by
       unfold mvcc.kiGetVal; rw [hstab]
     rw [hval, mvcc.rangeTaken_true, mvcc.rangeTotal_true, mvcc.rangeAnswers_nil]
     unfold mvcc.kiGetVal
@@ -168,6 +177,10 @@ theorem mvcc.treeIndex.Range.wp_proof
       · iapply (ownSlice_nil (DFrac.own 1))
       isplitl []
       · iapply ownSliceCap_nil
+      isplitl []
+      · iapply (ownSlice_nil (DFrac.own 1))
+      isplitl []
+      · iapply ownSliceCap_nil
       ipureintro; rfl
     | some rr =>
       obtain ⟨m, c, v⟩ := rr
@@ -177,6 +190,11 @@ theorem mvcc.treeIndex.Range.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %ksl ⟨Hksl, Hkcap⟩
+      wp_auto
+      wp_apply wp_slice_literal (l := [mvcc.evLease (mvcc.evsOf (ilog ++ [pend])) m])
+      isplitr
+      · ipureintro; rfl
+      iintro %lsl ⟨Hlsl, Hlcap⟩
       wp_auto
       wp_apply wp_slice_literal (l := [mvcc.revVal m])
       isplitr
@@ -209,7 +227,7 @@ theorem mvcc.treeIndex.Range.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Hkn Hcu
-      iframe Hvsl Hvcap Hcsl Hccap Hmsl Hmcap
+      iframe Hvsl Hvcap Hcsl Hccap Hmsl Hmcap Hlsl Hlcap
       isplitl [Hrd]
       · iunfold mvcc.idxReader
         iexists t
@@ -234,18 +252,19 @@ theorem mvcc.treeIndex.Range.wp_proof
     ipersist atRev
     ipersist ti
     rw [show (zero_val GoSlice) = slice.nil from rfl]
-    wp_apply (hVisit ti t L sync.rfrac key endk k e _
-      (mvcc.rangeInv keys_ptr modifies_ptr creates_ptr versions_ptr totalCount_ptr
-        (mvcc.rangeEntries L k e) (W64 r) limit withTotal)
-      (mvcc.rangeInv keys_ptr modifies_ptr creates_ptr versions_ptr totalCount_ptr
-        (mvcc.rangeEntries L k e) (W64 r) limit withTotal (mvcc.rangeEntries L k e).length))
-      $$ [$HtreeL keys modifies creates versions totalCount] as ⟨HtreeL, Hdone⟩
+    wp_apply (hVisit ti t L _ sync.rfrac key endk k e _
+      (mvcc.rangeInv keys_ptr leases_ptr modifies_ptr creates_ptr versions_ptr totalCount_ptr
+        (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) (mvcc.rangeEntries L k e) (W64 r) limit withTotal)
+      (mvcc.rangeInv keys_ptr leases_ptr modifies_ptr creates_ptr versions_ptr totalCount_ptr
+        (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) (mvcc.rangeEntries L k e) (W64 r) limit
+        withTotal (mvcc.rangeEntries L k e).length))
+      $$ [$HtreeL keys leases modifies creates versions totalCount] as ⟨HtreeL, Hdone⟩
     · iframe #
-      isplitl [keys modifies creates versions totalCount]
+      isplitl [keys leases modifies creates versions totalCount]
       · -- the invariant at the start
         iunfold mvcc.rangeInv
-        iexists slice.nil, slice.nil, slice.nil, slice.nil, zero_val w64
-        iframe keys modifies creates versions totalCount
+        iexists slice.nil, slice.nil, slice.nil, slice.nil, slice.nil, zero_val w64
+        iframe keys leases modifies creates versions totalCount
         simp only [List.take_zero, mvcc.entryAnswers_nil, mvcc.takeLimit_nil, List.map_nil,
           List.length_nil, mvcc.totalOf_zero]
         isplitl []
@@ -272,14 +291,18 @@ theorem mvcc.treeIndex.Range.wp_proof
         · iapply (ownSlice_nil (DFrac.own 1))
         isplitl []
         · iapply ownSliceCap_nil
+        isplitl []
+        · iapply (ownSlice_nil (DFrac.own 1))
+        isplitl []
+        · iapply ownSliceCap_nil
         ipureintro; rfl
       · -- the visitor
         iunfold mvcc.visitSpec
         iintro %i %z %Hz
         wp_start_folded as ⟨HP, Hz, #Hzi⟩
         iunfold mvcc.rangeInv at HP
-        icases HP with ⟨%keys, %modifies, %creates, %versions, %total, Hkeys, Hmod, Hcre, Hver, Htot,
-          Hks, Hmsl, Hmcap, Hcsl, Hccap, Hvsl, Hvcap, %Htot⟩
+        icases HP with ⟨%keys, %leases, %modifies, %creates, %versions, %total, Hkeys, Hlea, Hmod,
+          Hcre, Hver, Htot, Hks, Hlsl, Hlcap, Hmsl, Hmcap, Hcsl, Hccap, Hvsl, Hvcap, %Htot⟩
         iunfold mvcc.ownKeys at Hks
         icases Hks with ⟨%kss, Hksl, Hkcap, %Hkslen, #Hzip⟩
         ihave %Hslen := ownSlice_len _ _ _ $$ Hksl
@@ -317,11 +340,11 @@ theorem mvcc.treeIndex.Range.wp_proof
             iexists gs; iexact Hki
           simp only [Bool.false_eq_true, ↓reduceIte]
           iunfold mvcc.rangeInv
-          iexists keys, modifies, creates, versions, total
+          iexists keys, leases, modifies, creates, versions, total
           rw [List.take_length,
             mvcc.takeLimit_of_prefix _ (mvcc.entryAnswers_prefix (mvcc.rangeEntries L k e) (W64 r) i) hre,
             mvcc.totalOf_reached _ _ _ (mvcc.entryAnswers_prefix (mvcc.rangeEntries L k e) (W64 r) i).length_le hre]
-          iframe Hkeys Hmod Hcre Hver Htot Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
+          iframe Hkeys Hlea Hmod Hcre Hver Htot Hlsl Hlcap Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
           isplitl [Hksl Hkcap]
           · iunfold mvcc.ownKeys
             iexists kss
@@ -338,7 +361,7 @@ theorem mvcc.treeIndex.Range.wp_proof
             · exact Or.inr h
             · exact Or.inl (by simpa using h)
           wp_auto
-          wp_apply (hget z.1 gs z.2.2 z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
+          wp_apply (hget z.1 gs z.2.2 _ z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
             as %res Hres
           · ipureintro; exact Hlgnn
           simp only [hne z hzL, Bool.false_eq_true, ↓reduceIte]
@@ -356,10 +379,10 @@ theorem mvcc.treeIndex.Range.wp_proof
               iexists gs; iexact Hki
             simp only [↓reduceIte]
             iunfold mvcc.rangeInv
-            iexists keys, modifies, creates, versions, total
+            iexists keys, leases, modifies, creates, versions, total
             rw [mvcc.entryAnswers_take_succ _ _ i z Hz, hg]
             simp only [Option.map_none, Option.toList_none, List.append_nil]
-            iframe Hkeys Hmod Hcre Hver Htot Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
+            iframe Hkeys Hlea Hmod Hcre Hver Htot Hlsl Hlcap Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
             isplitl [Hksl Hkcap]
             · iunfold mvcc.ownKeys
               iexists kss
@@ -374,7 +397,14 @@ theorem mvcc.treeIndex.Range.wp_proof
             cases hre : mvcc.reached (mvcc.limitOf limit)
                 (mvcc.entryAnswers ((mvcc.rangeEntries L k e).take i) (W64 r)).length with
             | false =>
-              -- `!reachedLimit`: the four appends
+              -- `!reachedLimit`: the five appends
+              (try wp_auto)
+              wp_apply wp_slice_literal (l := [mvcc.evLease (mvcc.evsOf (ilog ++ [pend])) m])
+              isplitr
+              · ipureintro; rfl
+              iintro %sl1 ⟨Hsl1, -⟩
+              wp_auto
+              wp_apply wp_slice_append $$ [$Hlsl $Hlcap $Hsl1] as %leases' ⟨Hlsl, Hlcap, -⟩
               (try wp_auto)
               wp_apply wp_slice_literal (l := [mvcc.revVal m])
               isplitr
@@ -412,14 +442,14 @@ theorem mvcc.treeIndex.Range.wp_proof
                 iexists gs; iexact Hki
               simp only [↓reduceIte]
               iunfold mvcc.rangeInv
-              iexists keys', modifies', creates', versions', (total + W64 1)
+              iexists keys', leases', modifies', creates', versions', (total + W64 1)
               rw [mvcc.entryAnswers_take_succ _ _ i z Hz, hg]
               simp only [Option.map_some, Option.toList_some]
               rw [mvcc.takeLimit_append_not _ _ _ hre, List.map_append, List.map_append,
-                List.map_append, List.map_append, List.length_append,
+                List.map_append, List.map_append, List.map_append, List.length_append,
                 List.length_singleton, mvcc.totalOf_succ _ _ _ (Or.inr hre)]
               simp only [List.map_cons, List.map_nil]
-              iframe Hkeys Hmod Hcre Hver Htot Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
+              iframe Hkeys Hlea Hmod Hcre Hver Htot Hlsl Hlcap Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
               isplitl [Hksl Hkcap]
               · iapply (mvcc.ownKeys_snoc keys' kss _ Hkslen zks z.2.1) $$ Hzip Hksl Hkcap Hzks
               ipureintro
@@ -440,12 +470,12 @@ theorem mvcc.treeIndex.Range.wp_proof
                 iexists gs; iexact Hki
               simp only [↓reduceIte]
               iunfold mvcc.rangeInv
-              iexists keys, modifies, creates, versions, (total + W64 1)
+              iexists keys, leases, modifies, creates, versions, (total + W64 1)
               rw [mvcc.entryAnswers_take_succ _ _ i z Hz, hg]
               simp only [Option.map_some, Option.toList_some]
               rw [mvcc.takeLimit_append_reached _ _ _ hre, List.length_append,
                 List.length_singleton, mvcc.totalOf_succ _ _ _ (Or.inl hwt)]
-              iframe Hkeys Hmod Hcre Hver Htot Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
+              iframe Hkeys Hlea Hmod Hcre Hver Htot Hlsl Hlcap Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
               isplitl [Hksl Hkcap]
               · iunfold mvcc.ownKeys
                 iexists kss
@@ -457,12 +487,13 @@ theorem mvcc.treeIndex.Range.wp_proof
               subst Htot
               word
     -- after the visit: the answers of all the entries in range
-    ihave HQ : mvcc.rangeInv (GF := GF) keys_ptr modifies_ptr creates_ptr versions_ptr totalCount_ptr
-        (mvcc.rangeEntries L k e) (W64 r) limit withTotal (mvcc.rangeEntries L k e).length $$ [Hdone]
+    ihave HQ : mvcc.rangeInv (GF := GF) keys_ptr leases_ptr modifies_ptr creates_ptr versions_ptr
+        totalCount_ptr (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) (mvcc.rangeEntries L k e) (W64 r)
+        limit withTotal (mvcc.rangeEntries L k e).length $$ [Hdone]
     · icases Hdone with (H | H) <;> iexact H
     iunfold mvcc.rangeInv at HQ
-    icases HQ with ⟨%keys, %modifies, %creates, %versions, %total, Hkeys, Hmod, Hcre, Hver, Htot,
-      Hks, Hmsl, Hmcap, Hcsl, Hccap, Hvsl, Hvcap, %Htot⟩
+    icases HQ with ⟨%keys, %leases, %modifies, %creates, %versions, %total, Hkeys, Hlea, Hmod, Hcre,
+      Hver, Htot, Hks, Hlsl, Hlcap, Hmsl, Hmcap, Hcsl, Hccap, Hvsl, Hvcap, %Htot⟩
     wp_auto
     -- the deferred `ti.RUnlock()`
     rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
@@ -481,7 +512,7 @@ theorem mvcc.treeIndex.Range.wp_proof
     iapply HΦ
     iframe Hkn Hcu
     rw [List.take_length]
-    iframe Hks Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
+    iframe Hks Hlsl Hlcap Hmsl Hmcap Hcsl Hccap Hvsl Hvcap
     isplitl [Hrd]
     · iunfold mvcc.idxReader
       iexists t

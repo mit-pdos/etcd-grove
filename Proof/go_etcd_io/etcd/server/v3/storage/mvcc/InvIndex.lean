@@ -880,6 +880,66 @@ theorem IdxCRep.evLease_next {cmax : Int} {ilog : Log} {pend : List Change} {L :
       evLease (evsOf (ilog ++ [pend])) r = evLease (evsOf (ilog ++ [pend ++ [c]])) r := by
   rw [evsOf_append_change]; exact h.evLease_append _
 
+/-- The revision of an answer of the index (of a key's last change at or before the revision
+read) is an event's. -/
+theorem rangeAnswers_rev_mem (log : Log) (endNil : Bool) (k e : GoString) (atRev : w64) :
+    ∀ a ∈ rangeAnswers log endNil k e atRev, ∃ ev ∈ evsOf log, ev.rev = a.2.1 := by
+  intro a ha
+  unfold rangeAnswers at ha
+  cases endNil with
+  | true =>
+    simp only [↓reduceIte] at ha
+    split at ha
+    · rename_i r hr
+      simp only [List.mem_singleton] at ha
+      subst ha
+      obtain ⟨m, c, v⟩ := r
+      obtain ⟨ev, hev, h1, -⟩ := kiRevs_kiOfKey (kiGet_mem hr)
+      exact ⟨ev, hev, h1⟩
+    · simp at ha
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte] at ha
+    unfold rangeAt at ha
+    obtain ⟨z, hz, hza⟩ := List.mem_filterMap.1 ha
+    have hzI := (List.mem_filter.1 hz).1
+    have hki : z.2 = kiOfKey (evsOf log) z.1 := by
+      rw [← kiAt_of_mem (indexOf_sorted _) hzI, kiAt_indexOf]
+    cases hg : kiGet z.2 atRev with
+    | none => rw [hg] at hza; simp at hza
+    | some r =>
+      rw [hg] at hza
+      simp only [Option.map_some, Option.some.injEq] at hza
+      subst hza
+      obtain ⟨m, c, v⟩ := r
+      rw [hki] at hg
+      obtain ⟨ev, hev, h1, -⟩ := kiRevs_kiOfKey (kiGet_mem hg)
+      exact ⟨ev, hev, h1⟩
+
+theorem rangeTaken_rev_mem (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64) :
+    ∀ a ∈ rangeTaken log endNil k e atRev limit, ∃ ev ∈ evsOf log, ev.rev = a.2.1 := by
+  intro a ha
+  apply rangeAnswers_rev_mem log endNil k e atRev a
+  unfold rangeTaken at ha
+  split at ha
+  · exact ha
+  · unfold takeLimit at ha
+    split at ha
+    · exact List.mem_of_mem_take ha
+    · exact ha
+
+/-- A reader's answers' leases, read from the index (the events of `ilog ++ [pend]`, of which the
+reader's log's are a prefix), are the reader's log's. -/
+theorem rangeTaken_leases (log ilog : Log) (pend : List Change)
+    (hpre : ∃ rest, evsOf (ilog ++ [pend]) = evsOf log ++ rest)
+    (endNil : Bool) (k e : GoString) (atRev limit : w64) :
+    (rangeTaken log endNil k e atRev limit).map (fun x => evLease (evsOf (ilog ++ [pend])) x.2.1) =
+      (rangeTaken log endNil k e atRev limit).map (fun x => evLease (evsOf log) x.2.1) := by
+  obtain ⟨rest, hrest⟩ := hpre
+  apply List.map_congr_left
+  intro a ha
+  rw [hrest]
+  exact evLease_append_of_mem (rangeTaken_rev_mem log endNil k e atRev limit a ha) rest
+
 /-- A key's index of any events is well formed (its fold from `kiEmpty`). -/
 theorem kiOfKey_KiWf_inv (evs : List Ev) (k : GoString) : KiWf (kiOfKey evs k) := by
   unfold kiOfKey

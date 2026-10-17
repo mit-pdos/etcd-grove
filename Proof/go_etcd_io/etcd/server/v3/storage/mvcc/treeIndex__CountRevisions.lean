@@ -75,14 +75,16 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
   subst hr
   wp_if_destruct
   · -- `end == nil`: the one key, `ti.unsafeGet(key, atRev)`
-    wp_apply (hUnsafe ti t lg L sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as ⟨HtreeL, -⟩
+    wp_apply (hUnsafe ti t lg L _ sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as ⟨HtreeL, -⟩
     · iframe #
       ipureintro
       exact ⟨Hlgnn, hne⟩
     have hstab := mvcc.reader_answerC log ilog pend L cmax Hcmp Hcnt' ⟨HwfL, HlenL, HpendL, HcsL⟩
       Hwf0 Hcs0 HLL.1 k r hrlt Hlen0 (by omega)
-    have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) (W64 r)
-        (GoInterface.ok e0) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) (W64 r) (GoInterface.ok e0) := by
+    have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty)
+        (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) (W64 r) (GoInterface.ok e0) =
+        mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) (mvcc.evLease (mvcc.evsOf (ilog ++ [pend])))
+          (W64 r) (GoInterface.ok e0) := by
       unfold mvcc.kiGetVal; rw [hstab]
     rw [hval, mvcc.rangeAnswers_nil]
     unfold mvcc.kiGetVal
@@ -139,7 +141,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
         HLL.1 k e r hrlt Hlen0 (by omega)]
     ipersist atRev
     ipersist ti
-    wp_apply (hVisit ti t L sync.rfrac key endk k e _
+    wp_apply (hVisit ti t L _ sync.rfrac key endk k e _
       (mvcc.countInv total_ptr (mvcc.rangeEntries L k e) (W64 r))
       (mvcc.countInv total_ptr (mvcc.rangeEntries L k e) (W64 r) (mvcc.rangeEntries L k e).length))
       $$ [$HtreeL total] as ⟨HtreeL, Hdone⟩
@@ -168,7 +170,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
         ihave #HzKey := Hzi
         iunfold mvcc.kiItemIs at HzKey
         icases HzKey with ⟨-, #HzKey⟩
-        wp_apply (hget z.1 gs z.2.2 z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
+        wp_apply (hget z.1 gs z.2.2 _ z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
           as %res Hres
         · ipureintro; exact Hlgnn
         simp only [hne z hzL, Bool.false_eq_true, ↓reduceIte]
