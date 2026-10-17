@@ -5076,6 +5076,12 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     delivered-events authority (`covAuth`), so in `cov_one` the channel's events are the sender's;
     `progressIfSync` lends them from the lock's shares (`members_lend`, the map's watchers
     deduplicated). Item (b) below is done; (c) remains.
+  - **K2e-5 (done)**: a pending victim batch has events (so only `progressIfSync` sends an
+    event-less response), and each sent response's `respCov` has `respRev`: an event-less one's
+    revision is a notified log's last and at least every earlier event-less response's on the
+    channel (`send` lent the lock's fraction of the notified log, `notifiedLent`). Item (c) below:
+    the earlier progress revisions are done; the start revision remains (the cache's watch starts
+    at a revision etcd had reached).
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
