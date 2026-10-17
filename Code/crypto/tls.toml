@@ -1,5 +1,6 @@
-# Types and names only (unit N4, 2026-10-17: the types `transport.TLSInfo`'s function-typed
-# fields name, `*tls.Conn` and `tls.Certificate`).
+# Types and names only: the types `transport.TLSInfo`'s function-typed fields name, `*tls.Conn`
+# and `tls.Certificate` (unit N4, 2026-10-17), and the type of `clientv3.Config`'s field `TLS`,
+# `*tls.Config` (item 5, client construction).
 translate = ["!*"]
 imports = ["!*"]
 

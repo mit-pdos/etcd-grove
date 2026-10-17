@@ -167,16 +167,23 @@ instance EvM.countable : Pos.Countable EvM :=
     (by rintro ⟨a, b, c⟩ ⟨a', b', c'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 /-- A response the store sent on a stream's channel: the watcher it was sent for (ghost), its
-`WatchID`, events and `Revision`. -/
+`WatchID`, events and `Revision`; and (ghost, unit W-K) the watchers a progress response covers
+(`cov`: `respCov`; empty for any other response) and, for one of id `-1`, the watchers registered
+on the channel when it was sent (`regs`); and its position in the sent list (`idx`). -/
 structure RespM where
   w : Loc
   id : w64
   evs : List EvM
   rev : w64
+  cov : List Loc
+  regs : List Loc
+  /-- its position in the channel's sent list (ghost, K1b): so the responses sent are distinct -/
+  idx : Nat
 
 instance RespM.countable : Pos.Countable RespM :=
-  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev))
-    (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
+  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx))
+    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
+        simp_all)
 
 instance watchResponseCountable [FfiSyntax] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
@@ -194,10 +201,11 @@ structure WatcherNames where
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
-      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.lo))
+      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.wc.regi,
+      g.wc.rsn, g.lo))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j⟩, g⟩
-        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j'⟩, g'⟩ h
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3⟩, g⟩
+        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3'⟩, g'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -551,6 +559,64 @@ instance chanRegFact_persistent (γc : WatchChanNames) (w : Loc) :
     Persistent (chanRegFact (GF := GF) γc w) := by
   unfold chanRegFact; infer_instance
 
+/-- **What a response covers** (persistent; unit W-K, K1b): for every watcher `w'` it covers
+(`x.cov`), on this channel, the responses sent for `w'` before it (`pre`, the sent list before
+`x`) are its deliveries `D`'s sent ones, and `D`'s events are the range's of the revisions
+`[lo, d)` of a watched log, with `d` past `x`'s revision: `w'` has received every event of its
+range up to `x.rev`. -/
+def covFact (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) (rev : w64) :
+    IProp GF :=
+  iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (D : List Deliv) (L : Log) (d : Nat),
+    watcherMeta γ w' γw ∗ ⌜γw.wc = γc⌝ ∗ watcherFixed w' r fcs ∗ evLog γ.st L ∗
+    □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+    ⌜(pre.filter (fun y => decide (y.w = w'))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
+      (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
+      sint.Z rev + 1 ≤ (d : Int)⌝)
+
+instance covFact_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc)
+    (rev : w64) : Persistent (covFact (GF := GF) γ γc pre w' rev) := by
+  unfold covFact; infer_instance
+
+/-- **A watcher cancelled for its reason** (persistent; K1b): its fixed range's id has the
+channel's cancellation reason (`rsnFor`). -/
+def rsnW (γc : WatchChanNames) (w : Loc) : IProp GF :=
+  iprop(∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs ∗ rsnFor γc.rsn r.id)
+
+instance rsnW_persistent (γc : WatchChanNames) (w : Loc) : Persistent (rsnW (GF := GF) γc w) := by
+  unfold rsnW; infer_instance
+
+/-- The completeness of a response of id `-1` (K1b): every watcher registered on the channel when
+it was sent (`x.regs`) is covered, or cancelled for its reason. -/
+def respCompl (γc : WatchChanNames) (x : RespM) : IProp GF :=
+  iprop(⌜x.id ≠ W64 (-1)⌝ ∨ □ ∀ w : Loc, ⌜w ∈ x.regs⌝ -∗ ⌜w ∈ x.cov⌝ ∨ rsnW γc w)
+
+instance respCompl_persistent (γc : WatchChanNames) (x : RespM) :
+    Persistent (respCompl (GF := GF) γc x) := by
+  unfold respCompl; infer_instance
+
+def respCov (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) : IProp GF :=
+  iprop((□ ∀ w' : Loc, ⌜w' ∈ x.cov⌝ -∗ covFact γ γc pre w' x.rev) ∗ respCompl γc x)
+
+instance respCov_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
+    Persistent (respCov (GF := GF) γ γc pre x) := by
+  unfold respCov; infer_instance
+
+/-- **The channel's sent list and registration indices** (unit W-K): the sent list's authority
+(`sentl`), the registration indices' (`regi`: the registered watchers `L`'s, each at most the
+sent list's length; a response of id `-1` sent at or after a watcher's registration lists it
+in its `regs`), and what each response sent covers (`respCov`, K1b). -/
+def regsOk (RI : GMap Loc Nat) (sent : List RespM) : Prop :=
+  ∀ w n k x, RI !! w = some n → n ≤ k → sent[k]? = some x → x.id = W64 (-1) → w ∈ x.regs
+
+/-- Each response sent is at its own position (K1b). -/
+def idxOk (sent : List RespM) : Prop := ∀ (k : Nat) (x : RespM), sent[k]? = some x → x.idx = k
+
+def sentAuth (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) : IProp GF :=
+  iprop(monoListAuthOwn γc.sentl 1 sent ∗ ∃ RI : GMap Loc Nat, ghostMapAuth γc.regi 1 RI ∗
+    ⌜(∀ w, (RI !! w).isSome → w ∈ L) ∧ (∀ w n, RI !! w = some n → n ≤ sent.length) ∧
+      regsOk RI sent ∧ idxOk sent⌝ ∗
+    □ ([∗list] k ↦ x ∈ sent, respCov γ γc (sent.take k) x))
+
 /-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
 registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
 progress fact. -/
@@ -569,7 +635,407 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
     "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
     "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
+    "Hsentl" ∷ sentAuth γ γc sent L ∗
     "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
+
+/-- **The channel had sent `l` (at least)** (persistent; unit W-K): a snapshot of the channel's
+sent list (`sentl`). -/
+def chanSentLb (γc : WatchChanNames) (l : List RespM) : IProp GF := monoListLbOwn γc.sentl l
+
+instance chanSentLb_persistent (γc : WatchChanNames) (l : List RespM) :
+    Persistent (chanSentLb (GF := GF) γc l) := by
+  unfold chanSentLb; infer_instance
+
+/-- **The stream's channel had sent `l` (at least)** (persistent; unit W-K): `chanSentLb`, named
+through the stream's names (`γo.sentl = γc.sentl`, `isWatchStream`). -/
+def streamSentLb (γo : WsStreamNames) (l : List RespM) : IProp GF := monoListLbOwn γo.sentl l
+
+instance streamSentLb_persistent (γo : WsStreamNames) (l : List RespM) :
+    Persistent (streamSentLb (GF := GF) γo l) := by
+  unfold streamSentLb; infer_instance
+
+/-- **`w` was registered on the channel when its sent list had length `n`** (persistent; K1b). -/
+def chanRegAt (γc : WatchChanNames) (w : Loc) (n : Nat) : IProp GF :=
+  ghostMapElem γc.regi w DFrac.discard n
+
+instance chanRegAt_persistent (γc : WatchChanNames) (w : Loc) (n : Nat) :
+    Persistent (chanRegAt (GF := GF) γc w n) := by
+  unfold chanRegAt; infer_instance
+
+open Iris.ProofMode in
+theorem sentAuth_lb (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
+    sentAuth (GF := GF) γ γc sent L ⊢ sentAuth γ γc sent L ∗ chanSentLb γc sent := by
+  unfold sentAuth chanSentLb
+  iintro ⟨Ha, Hr⟩
+  ihave #Hlb := monoListLbOwn_get γc.sentl 1 sent $$ Ha
+  iframe Ha Hr Hlb
+
+open Iris.ProofMode in
+theorem sentAuth_lb_valid (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (l : List RespM) :
+    sentAuth (GF := GF) γ γc sent L ∗ chanSentLb γc l ⊢ sentAuth γ γc sent L ∗ ⌜l <+: sent⌝ := by
+  unfold sentAuth chanSentLb
+  iintro ⟨⟨Ha, Hr⟩, #Hl⟩
+  ihave %H := mono_list_auth_lb_valid _ _ _ _ $$ Ha Hl
+  iframe Ha Hr
+  ipureintro; exact H.2
+
+open Iris.ProofMode in
+theorem sentAuth_snoc (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (x : RespM) (hx : x.id = W64 (-1) → ∀ w ∈ L, w ∈ x.regs) (hxi : x.idx = sent.length) :
+    ⊢ sentAuth (GF := GF) γ γc sent L -∗ respCov γ γc sent x ==∗ sentAuth γ γc (sent ++ [x]) L := by
+  unfold sentAuth
+  iintro ⟨Ha, %RI, Hr, %HRI, #Hc⟩ #Hx
+  imod monoListAuthOwn_update_app [x] $$ Ha with ⟨Ha, -⟩
+  imodintro
+  iframe Ha
+  iexists RI
+  iframe Hr
+  isplitr
+  · ipureintro
+    refine ⟨HRI.1, fun w n h => ?_, fun w n k y h hk hy hid => ?_, fun k y => ?_⟩
+    · have := HRI.2.1 w n h
+      simp only [List.length_append, List.length_singleton]; omega
+    · by_cases hks : k < sent.length
+      · rw [List.getElem?_append_left hks] at hy
+        exact HRI.2.2.1 w n k y h hk hy hid
+      · have hk' : k = sent.length := by
+          have := (List.getElem?_eq_some_iff.1 hy).1
+          simp only [List.length_append, List.length_singleton] at this; omega
+        subst hk'
+        rw [List.getElem?_append_right (Nat.le_refl _)] at hy
+        simp at hy; subst hy
+        exact hx hid w (HRI.1 w (by rw [h]; rfl))
+    · show (sent ++ [x])[k]? = some y → y.idx = k
+      intro hy
+      by_cases hks : k < sent.length
+      · rw [List.getElem?_append_left hks] at hy
+        exact HRI.2.2.2 k y hy
+      · have hk' : k = sent.length := by
+          have := (List.getElem?_eq_some_iff.1 hy).1
+          simp only [List.length_append, List.length_singleton] at this; omega
+        subst hk'
+        rw [List.getElem?_append_right (Nat.le_refl _)] at hy
+        simp at hy; subst hy
+        exact hxi
+  imodintro
+  iapply BigSepL.bigSepL_snoc.2
+  isplitl
+  · iapply (BigSepL.bigSepL_mono (fun {k y} hk => by
+      have hk' : k < sent.length := (List.getElem?_eq_some_iff.1 hk).1
+      rw [List.take_append_of_le_length (by omega)])) $$ Hc
+  rw [List.take_left]; iexact Hx
+
+open Iris.ProofMode in
+theorem sentAuth_register (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (w : Loc) (hw : w ∉ L) :
+    ⊢ sentAuth (GF := GF) γ γc sent L ==∗ sentAuth γ γc sent (w :: L) ∗ chanRegAt γc w sent.length := by
+  unfold sentAuth chanRegAt
+  iintro ⟨Ha, %RI, Hr, %HRI, #Hc⟩
+  have hn : RI.lookup w = none := by
+    cases h : RI.lookup w with
+    | none => rfl
+    | some _ => exact absurd (HRI.1 w (by rw [show RI !! w = RI.lookup w from rfl, h]; rfl)) hw
+  imod ghost_map_insert_persist w sent.length hn $$ Hr with ⟨Hr, #He⟩
+  imodintro
+  iframe Ha He
+  iexists RI.insert w sent.length
+  iframe Hr Hc
+  ipureintro
+  refine ⟨fun x hx => ?_, fun x n h => ?_, fun x n k y h hk hy hid => ?_, HRI.2.2.2⟩
+  · by_cases e : w = x
+    · subst e; exact List.mem_cons_self
+    · rw [show (RI.insert w sent.length) !! x = (<[w := sent.length]> RI) !! x from rfl,
+        GMap.lookup_insert_ne _ _ e] at hx
+      exact List.mem_cons_of_mem _ (HRI.1 x hx)
+  · by_cases e : w = x
+    · subst e
+      rw [show (RI.insert w sent.length) !! w = (<[w := sent.length]> RI) !! w from rfl,
+        GMap.lookup_insert] at h
+      cases h; exact Nat.le_refl _
+    · rw [show (RI.insert w sent.length) !! x = (<[w := sent.length]> RI) !! x from rfl,
+        GMap.lookup_insert_ne _ _ e] at h
+      exact HRI.2.1 x n h
+  · by_cases e : w = x
+    · subst e
+      rw [show (RI.insert w sent.length) !! w = (<[w := sent.length]> RI) !! w from rfl,
+        GMap.lookup_insert] at h
+      cases h
+      have := (List.getElem?_eq_some_iff.1 hy).1; omega
+    · rw [show (RI.insert w sent.length) !! x = (<[w := sent.length]> RI) !! x from rfl,
+        GMap.lookup_insert_ne _ _ e] at h
+      exact HRI.2.2.1 x n k y h hk hy hid
+
+open Iris.ProofMode in
+theorem sentAuth_reg_le (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (w : Loc) (n : Nat) : sentAuth (GF := GF) γ γc sent L ∗ chanRegAt γc w n ⊢ ⌜n ≤ sent.length⌝ := by
+  unfold sentAuth chanRegAt
+  iintro ⟨⟨-, %RI, Hr, %HRI, -⟩, He⟩
+  ihave %Hl := ghost_map_lookup $$ Hr He
+  ipureintro; exact HRI.2.1 w n Hl
+
+open Iris.ProofMode in
+/-- **A response of id `-1` sent after a watcher's registration lists it** (K1b). -/
+theorem sentAuth_reg_regs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (w : Loc) (n : Nat) : sentAuth (GF := GF) γ γc sent L ∗ chanRegAt γc w n ⊢
+      ⌜∀ k x, n ≤ k → sent[k]? = some x → x.id = W64 (-1) → w ∈ x.regs⌝ := by
+  unfold sentAuth chanRegAt
+  iintro ⟨⟨-, %RI, Hr, %HRI, -⟩, He⟩
+  ihave %Hl := ghost_map_lookup $$ Hr He
+  ipureintro; exact fun k x hk hx hid => HRI.2.2.1 w n k x Hl hk hx hid
+
+open Iris.ProofMode in
+/-- **Each response sent is at its own position** (K1b). -/
+theorem sentAuth_idx (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
+    sentAuth (GF := GF) γ γc sent L ⊢ ⌜idxOk sent⌝ := by
+  unfold sentAuth
+  iintro ⟨-, %RI, -, %HRI, -⟩
+  ipureintro; exact HRI.2.2.2
+
+/-- Delivered up to `d'` at most `d`: a prefix of the events up to `d` (comparable logs). -/
+theorem watchEvents_mono_cmp {L L' : Log} (hc : L <+: L' ∨ L' <+: L) (r : WatchRange) {lo d d' : Nat}
+    (h : d ≤ L.length ∨ d ≤ lo) (h' : d' ≤ L'.length ∨ d' ≤ lo) (hd : d' ≤ d) :
+    watchEvents L' r lo d' <+: watchEvents L r lo d := by
+  by_cases hlo : d' ≤ lo
+  · rw [watchEvents_empty _ _ hlo]; exact List.nil_prefix
+  · have h1 : d' ≤ L.length := by omega
+    rw [← watchEvents_cmp hc r (Or.inl h1) h', watchEvents_append L r (by omega) hd]
+    exact List.prefix_append _ _
+
+/-- **A later delivery is past an earlier one's revision** (comparable logs): if the events up to
+`d` are a prefix of those up to `d'`, the latter are those of the revisions up to some `d''` at
+least `d` (`d'`, or `d` when the two are the same events). -/
+theorem watchEvents_cover {L L' : Log} (hc : L <+: L' ∨ L' <+: L) (r : WatchRange) {lo d d' : Nat}
+    (h : d ≤ L.length ∨ d ≤ lo) (h' : d' ≤ L'.length ∨ d' ≤ lo)
+    (hp : watchEvents L r lo d <+: watchEvents L' r lo d') :
+    ∃ (L'' : Log) (d'' : Nat), watchEvents L' r lo d' = watchEvents L'' r lo d'' ∧
+      (d'' ≤ L''.length ∨ d'' ≤ lo) ∧ d ≤ d'' ∧ (L'' = L ∨ L'' = L') := by
+  by_cases hd : d ≤ d'
+  · exact ⟨L', d', rfl, h', hd, Or.inr rfl⟩
+  · have hq := watchEvents_mono_cmp hc r h h' (by omega)
+    have he := hp.eq_of_length (Nat.le_antisymm hp.length_le hq.length_le)
+    exact ⟨L, d, he.symm, h, Nat.le_refl _, Or.inl rfl⟩
+
+/-- **What a sender of a response of id `-1` says of the channel** (persistent; K1b;
+`watcher.send`): from its resource `CS` (lent), the channel's record of the registered watchers
+(`regl`, at `L`) and the target watcher `γw` live, the progress fact, and every watcher of `L`
+covered (`covl`) or cancelled for its reason. -/
+def complW (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (covl : List Loc) (id : w64) :
+    IProp GF :=
+  iprop(□ ∀ L : List Loc, ⌜id = W64 (-1)⌝ -∗ CS -∗ ghostVar γw.wc.regl (1 : Qp).half L -∗
+    dghostVar γw.live (DFrac.own ql) true -∗
+    CS ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ∗
+      progFact γw.wc.prog ∗ □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ ⌜w ∈ covl⌝ ∨ rsnW γw.wc w))
+
+instance complW_persistent (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (covl : List Loc)
+    (id : w64) : Persistent (complW γw ql CS covl id) := by
+  unfold complW; infer_instance
+
+open Iris.ProofMode in
+/-- What a send learns of a response's id (K1b): `w`'s own (not `-1`), or with `complW`: for id
+`-1`, the progress fact and every registered watcher (`L`) covered or cancelled for its
+reason. -/
+theorem complW_facts (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (L covl : List Loc)
+    (id rid : w64) (hrid : rid ≠ W64 (-1)) :
+    CS ∗ (⌜id = rid⌝ ∨ complW γw ql CS covl id) ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗
+      dghostVar γw.live (DFrac.own ql) true ⊢
+    CS ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ∗
+      (⌜id = W64 (-1)⌝ → progFact γw.wc.prog) ∗
+      (⌜id ≠ W64 (-1)⌝ ∨ □ ∀ w : Loc, ⌜w ∈ L⌝ -∗ ⌜w ∈ covl⌝ ∨ rsnW γw.wc w) := by
+  iintro ⟨HCS, #Hid, Hregl, Hlv⟩
+  by_cases hm : id = W64 (-1)
+  · icases Hid with (%Heq | #Hw)
+    · exact absurd (Heq ▸ hm) hrid
+    iunfold complW at Hw
+    icases Hw $$ %L %hm HCS Hregl Hlv with ⟨HCS, Hregl, Hlv, #Hp, #Hcm⟩
+    iframe HCS Hregl Hlv
+    isplitr
+    · iintro %_; iexact Hp
+    iright; iexact Hcm
+  · iframe HCS Hregl Hlv
+    isplitr
+    · iintro %h; exact absurd h hm
+    ileft; ipureintro; exact hm
+
+/-- **What `progressIfSync`'s caller says for a response of id `-1`** (persistent; K1b): from its
+resource `CS` (lent), the channel's record of the registered watchers (`regl`, at `L`) and a
+watcher `u` of the map `M` live, every watcher of `L` is one of `M` or cancelled for its
+reason. -/
+def complWS (γ : WsNames) (γc : WatchChanNames) (M : GMap w64 Loc) (CS : IProp GF) : IProp GF :=
+  iprop(□ ∀ (L : List Loc) (u : Loc) (γw : WatcherNames) (ql : Qp),
+    ⌜∃ id : w64, M !! id = some u⌝ -∗ watcherMeta γ u γw -∗ CS -∗
+    ghostVar γc.regl (1 : Qp).half L -∗ dghostVar γw.live (DFrac.own ql) true -∗
+    CS ∗ ghostVar γc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ∗
+      □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ (∃ id : w64, ⌜M !! id = some w⌝) ∨ rsnW γc w))
+
+instance complWS_persistent (γ : WsNames) (γc : WatchChanNames) (M : GMap w64 Loc)
+    (CS : IProp GF) : Persistent (complWS γ γc M CS) := by
+  unfold complWS; infer_instance
+
+/-- **What a sender says of a watcher a progress response covers** (persistent; K1b;
+`watcher.send`'s `covPre`): the watcher `c.w` of names `c.γw` on the channel, its fixed fields, a
+lower bound of its delivered events (`c.evsw`), those the range's of `[lo, c.d)` (`evsWf`), `c.d`
+past the response's revision, and it registered on the channel. -/
+structure CovArg where
+  w : Loc
+  γw : WatcherNames
+  r : WatchRange
+  fcs : GoSlice
+  evsw : List EvM
+  d : Nat
+
+def covEntry (γ : WsNames) (γc : WatchChanNames) (rev : w64) (c : CovArg) : IProp GF :=
+  iprop(watcherMeta γ c.w c.γw ∗ ⌜c.γw.wc = γc⌝ ∗ watcherFixed c.w c.r c.fcs ∗
+    monoListLbOwn c.γw.evs c.evsw ∗ evsWf γ c.r c.γw.lo c.evsw c.d ∗
+    ⌜sint.Z rev + 1 ≤ (c.d : Int)⌝ ∗ ghostMapElem γc.reg c.w DFrac.discard ())
+
+instance covEntry_persistent (γ : WsNames) (γc : WatchChanNames) (rev : w64) (c : CovArg) :
+    Persistent (covEntry (GF := GF) γ γc rev c) := by
+  unfold covEntry; infer_instance
+
+def covPre (γ : WsNames) (γc : WatchChanNames) (rev : w64) (cs : List CovArg) : IProp GF :=
+  [∗list] c ∈ cs, covEntry γ γc rev c
+
+theorem covPre_nil (γ : WsNames) (γc : WatchChanNames) (rev : w64) :
+    ⊢ covPre (GF := GF) γ γc rev [] := by
+  unfold covPre; iapply BigSepL.bigSepL_nil.2; iempintro
+
+instance covPre_persistent (γ : WsNames) (γc : WatchChanNames) (rev : w64) (cs : List CovArg) :
+    Persistent (covPre (GF := GF) γ γc rev cs) := by
+  unfold covPre; infer_instance
+
+open Iris.ProofMode in
+/-- **One covered watcher** (K1b): from the sender's `covEntry` and the channel's entry for the
+watcher, its coverage of the responses `sent` so far. -/
+theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : List RespM)
+    (L : List Loc) (rev : w64) (c : CovArg) :
+    covEntry (GF := GF) γ γc rev c ∗ ghostMapAuth γc.reg 1 (regMap L) ∗
+      ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ⊢
+    ghostMapAuth γc.reg 1 (regMap L) ∗
+      ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ∗ covFact γ γc sent c.w rev := by
+  iintro ⟨Hce, Hreg, Hws⟩
+  iunfold covEntry at Hce
+  icases Hce with ⟨#Hm, %Hwc, #Hf, #Hlb, #Hwf, %Hrev, #Hreg1⟩
+  ihave %Hl := ghost_map_lookup $$ Hreg Hreg1
+  have hmem : c.w ∈ L := (regMap_lookup L c.w).1 (by
+    rw [show (regMap L !! c.w) = (regMap L).lookup c.w from rfl, Hl]; rfl)
+  icases BigSepL.bigSepL_mem_acc hmem $$ Hws with ⟨Hcw, Hback⟩
+  iunfold chanWatcher at Hcw
+  icases Hcw with ⟨%γw', %r', %fcs', %evsw', %D, %d', #Hm', %Hwc', %Hslo, #Hf', Ha', %HD, #HDf,
+    #Hwf', Hlc⟩
+  ihave %Hγ := watcherMeta_agree _ _ _ _ $$ Hm Hm'
+  subst Hγ
+  ihave %Hfx : ⌜c.r = r' ∧ c.fcs = fcs'⌝ $$ []
+  · iapply watcherFixed_agree
+    isplit
+    · iexact Hf
+    · iexact Hf'
+  obtain ⟨hr, hfcs⟩ := Hfx
+  subst hr; subst hfcs
+  ihave %Hpre := mono_list_auth_lb_valid _ _ _ _ $$ Ha' Hlb
+  ihave #Hcov : covFact γ γc sent c.w rev $$ []
+  · iunfold evsWf at Hwf Hwf'
+    icases Hwf with ⟨%L0, #HL0, %Hev0⟩
+    icases Hwf' with ⟨%L1, #HL1, %Hev1⟩
+    ihave %Hc := evLog_cmp _ _ _ $$ HL0 HL1
+    obtain ⟨L2, d2, hE, hb, hdd, hL⟩ := watchEvents_cover Hc c.r Hev0.2 Hev1.2
+      (by rw [← Hev0.1, ← Hev1.1]; exact Hpre.2)
+    ihave #HL2 : evLog γ.st L2 $$ []
+    · rcases hL with rfl | rfl
+      · iexact HL0
+      · iexact HL1
+    iunfold covFact
+    iexists c.γw, c.r, c.fcs, D, L2, d2
+    iframe Hm Hf HL2
+    isplitr
+    · ipureintro; exact Hwc
+    isplitr
+    · icases HDf with ⟨#HDs, -⟩
+      iintro !> %dl %hdl
+      icases BigSepL.bigSepL_mem_acc hdl $$ HDs with ⟨H, -⟩
+      iexact H
+    ipureintro
+    refine ⟨HD.2, HD.1.trans (Hev1.1.trans hE), hb, ?_⟩
+    have : (c.d : Int) ≤ (d2 : Int) := by exact_mod_cast hdd
+    omega
+  iframe Hreg Hcov
+  iapply Hback
+  iunfold chanWatcher
+  iexists c.γw, c.r, c.fcs, evsw', D, d'
+  iframe Hm' Hf' Ha' Hwf' Hlc
+  iframe #
+  ipureintro; exact ⟨Hwc', Hslo, HD⟩
+
+open Iris.ProofMode in
+/-- **Every covered watcher** (K1b): `cov_one` for each. -/
+theorem cov_list (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : List RespM)
+    (L : List Loc) (rev : w64) :
+    ∀ cs : List CovArg, covPre (GF := GF) γ γc rev cs ∗ ghostMapAuth γc.reg 1 (regMap L) ∗
+      ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ⊢
+    ghostMapAuth γc.reg 1 (regMap L) ∗
+      ([∗list] w ∈ L, chanWatcher γ γc closed sent w) ∗
+      □ ([∗list] c ∈ cs, covFact γ γc sent c.w rev)
+  | [] => by
+    unfold covPre
+    iintro ⟨-, Hreg, Hws⟩
+    iframe Hreg Hws
+    iintro !>; iapply BigSepL.bigSepL_nil.2; iempintro
+  | c :: cs => by
+    unfold covPre
+    iintro ⟨#Hp, Hreg, Hws⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hp with ⟨Hc, Hp'⟩
+    icases cov_one γ γc closed sent L rev c $$ [$Hc $Hreg $Hws] with ⟨Hreg, Hws, #Hcf⟩
+    icases cov_list γ γc closed sent L rev cs $$ [Hreg Hws] with ⟨Hreg, Hws, #Hcfs⟩
+    · unfold covPre; iframe Hp' Hreg Hws
+    iframe Hreg Hws
+    iintro !>
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hcf Hcfs
+
+open Iris.ProofMode in
+/-- The coverage of a response whose covered watchers are `cs`'s. -/
+theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM)
+    (cs : List CovArg) (hcov : x.cov = cs.map CovArg.w) :
+    □ ([∗list] c ∈ cs, covFact (GF := GF) γ γc pre c.w x.rev) ∗ respCompl γc x ⊢
+      respCov γ γc pre x := by
+  iintro ⟨#H, #Hc⟩
+  iunfold respCov
+  iframe Hc
+  iintro !> %w' %hw'
+  rw [hcov] at hw'
+  obtain ⟨c, hc, rfl⟩ := List.mem_map.1 hw'
+  icases BigSepL.bigSepL_mem_acc hc $$ H with ⟨Hc, -⟩
+  iexact Hc
+
+/-- **What a sent response covers** (persistent; K1b): the coverage of the response at index `k`. -/
+theorem sentAuth_cov (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (k : Nat) (x : RespM) (hk : sent[k]? = some x) :
+    sentAuth (GF := GF) γ γc sent L ⊢ sentAuth γ γc sent L ∗ respCov γ γc (sent.take k) x := by
+  unfold sentAuth
+  iintro ⟨Ha, %RI, Hr, %HRI, #Hc⟩
+  ihave #Hx := BigSepL.bigSepL_lookup (Φ := fun k x => respCov (GF := GF) γ γc (sent.take k) x) hk
+    $$ Hc
+  iframe Ha Hx
+  iexists RI
+  iframe Hr Hc
+  ipureintro; exact HRI
+
+/-- **A watcher's registration index, named through the stream** (persistent; K1b): the
+channel's `chanRegAt`, by the stream's `regi` (`γo.regi = γc.regi`). -/
+def streamRegAt (γo : WsStreamNames) (w : Loc) (n : Nat) : IProp GF :=
+  ghostMapElem γo.regi w DFrac.discard n
+
+instance streamRegAt_persistent (γo : WsStreamNames) (w : Loc) (n : Nat) :
+    Persistent (streamRegAt (GF := GF) γo w n) := by
+  unfold streamRegAt; infer_instance
+
+theorem chanRegAt_stream (γo : WsStreamNames) (γc : WatchChanNames) (w : Loc) (n : Nat)
+    (h : γo.regi = γc.regi) : chanRegAt (GF := GF) γc w n ⊣⊢ streamRegAt γo w n := by
+  unfold chanRegAt streamRegAt; rw [h]; exact .rfl
+
+theorem chanSentLb_stream (γo : WsStreamNames) (γc : WatchChanNames) (l : List RespM)
+    (h : γo.sentl = γc.sentl) : chanSentLb (GF := GF) γc l ⊣⊢ streamSentLb γo l := by
+  unfold chanSentLb streamSentLb; rw [h]; exact .rfl
 
 /-- The consumer's view: it has received `received`. -/
 def watchConsumer (γc : WatchChanNames) (received : List RespM) : IProp GF :=
@@ -759,10 +1225,11 @@ instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
 /-- **What a registration says of the watcher `w`** (persistent; the store's `IWF`): its
 names (`watcherMeta`), its fixed fields (range `r`, filters `fcs`), and its first revision `lo`:
 the start revision, or, for a start revision `0`, the length of a committed log `C` at the
-registration (`idxCert`: the next revision the store will commit). -/
+registration (`idxCert`: the next revision the store will commit); and (unit W-K) its
+registration index on its channel (`chanRegAt`). -/
 def watcherIs (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : GoSlice) (lo : Nat) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (C : Log), watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-    idxCert γ.st.idx C ∗
+    idxCert γ.st.idx C ∗ (∃ n : Nat, chanRegAt γw.wc w n) ∗
     ⌜γw.lo = lo ∧ lo = if r.startRev = W64 0 then C.length else (sint.Z r.startRev).toNat⌝)
 
 instance watcherIs_persistent (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : GoSlice)
@@ -777,7 +1244,7 @@ registration's cost, `watchTok`), and what a registration says of its watcher (`
 `watcherIs`). -/
 def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   IW w := iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜0 ≤ sint.Z r.startRev⌝)
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜0 ≤ sint.Z r.startRev ∧ r.id ≠ W64 (-1)⌝)
   WC w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ cancelled γw)
   C _ := iprop(True)
   F f := iprop(∃ p : EvM → Bool, filterSpec f p)

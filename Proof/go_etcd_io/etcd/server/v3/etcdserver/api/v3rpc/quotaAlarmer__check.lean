@@ -34,7 +34,7 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
   wp_start as ⟨#Hqa, #Hsrv, #HNR, Hlt, Hard, #Hctx⟩
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, -, #Hiv⟩
+  icases Hinit with ⟨-, -, -, -, #Hiv, -, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorVars at Hiv
   icases Hiv with ⟨#HeNS, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeNS

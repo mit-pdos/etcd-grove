@@ -62,7 +62,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []

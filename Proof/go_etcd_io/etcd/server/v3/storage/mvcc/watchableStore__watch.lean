@@ -432,7 +432,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
       mvcc.watcherFixed w r fcs ∗ mvcc.watcherChan γ w γw ch ∗
       ghostVar γw.wc.regl (1 : Qp).half (w :: L) ∗
       monoListAuthOwn γw.evs (1 : Qp).half ([] : List mvcc.EvM) ∗
-      dghostVar γw.live (DFrac.own (1 : Qp).half) true := by
+      dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗ (∃ n : Nat, mvcc.chanRegAt γc w n) := by
   iintro ⟨Hlc, Hmeta, #Hmfix, ⟨#Hch, #Hinv, Hregl0⟩, #Hcert, Hkey, #Hfix, Hcb⟩
   -- freshness of the names
   have hM : M !! w = none ∨ ∃ γw', M !! w = some γw' := by
@@ -519,14 +519,16 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   imod ghostVar_update_halves (w :: L) γc.regl _ _ $$ Hregl0 Hregl with ⟨Hregl0, Hregl⟩
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
-  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2] with -
+  -- the registration index (unit W-K)
+  imod mvcc.sentAuth_register _ γc sent L w HwL $$ Hsentl with ⟨Hsentl, #Hrega⟩
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2 Hsentl] with -
   · inext
     iunfold mvcc.watchChanInv
     iexists s0, sent, recv, vs, (w :: L)
     simp only [named]
     rw [Hopen]
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe Hch Hrecv Hregl Hrf' Hpf
+    iframe Hch Hrecv Hregl Hrf' Hpf Hsentl
     iframe #
     isplitr
     · ipureintro; exact Hpre
@@ -584,6 +586,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   · iunfold mvcc.watcherMeta; iexact Hmw
   iunfold mvcc.watcherChan
   iframe Hch Hinv Hrw
+  iexists sent.length; iexact Hrega
 
 theorem mvcc.watchableStore.watch.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG))
@@ -681,7 +684,8 @@ theorem mvcc.watchableStore.watch.wp_proof
     intro h0; rw [hloC]; simp only [h0, ↓reduceIte]
   imod mvcc.watch_register γ σ.M w ch key r fcs lo C L γc Back Hwnn Hidm hslo
       $$ [$Hlc2 $Hmeta $Hmfix $HCR $HcertQ $key $Hfix $Hcb]
-    with ⟨%γw, ⟨%hM, %hlo, %hwc⟩, HBack, %Hreg, Hmeta, #Hmw, #Hfixed, #Hwc, HCR, He, Hl⟩
+    with ⟨%γw, ⟨%hM, %hlo, %hwc⟩, HBack, %Hreg, Hmeta, #Hmw, #Hfixed, #Hwc, HCR, He, Hl,
+      %nreg, #Hrega0⟩
   -- the registration's token spent
   imod mvcc.watchBudget_spend γ σ.M w γw hM $$ [$Hwt $Htok] with Hwt
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb'⟩
@@ -762,7 +766,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitr
       · iexists γw, r, fcs
         iframe Hmw Hfixed
-        ipureintro; exact Hsr
+        ipureintro; exact ⟨Hsr, Hidm⟩
       isplitr
       · iexists γw
         iframe Hmw
@@ -778,7 +782,7 @@ theorem mvcc.watchableStore.watch.wp_proof
           simp only [mvcc.storeWatchParams]
           iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         (try wp_auto)
         iapply HΦ'
         simp only [mvcc.storeWatchParams] at *
@@ -802,6 +806,8 @@ theorem mvcc.watchableStore.watch.wp_proof
         iexists γw, C
         rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
         iframe Hmw Hfixed HcertQ
+        isplitr
+        · iexists nreg; rw [hwc]; iexact Hrega0
         ipureintro; exact ⟨hlo, hloC⟩
       iframe HBack
       ipureintro; exact hbnd
@@ -863,7 +869,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitr
       · iexists γw, r, fcs
         iframe Hmw Hfixed
-        ipureintro; exact Hsr
+        ipureintro; exact ⟨Hsr, Hidm⟩
       isplitr
       · iexists γw
         iframe Hmw
@@ -879,7 +885,7 @@ theorem mvcc.watchableStore.watch.wp_proof
           simp only [mvcc.storeWatchParams]
           iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         (try wp_auto)
         iapply HΦ'
         simp only [mvcc.storeWatchParams] at *
@@ -903,6 +909,8 @@ theorem mvcc.watchableStore.watch.wp_proof
         iexists γw, C
         rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
         iframe Hmw Hfixed HcertQ
+        isplitr
+        · iexists nreg; rw [hwc]; iexact Hrega0
         ipureintro; exact ⟨hlo, hloC⟩
       iframe HBack
       ipureintro; exact hbnd
@@ -974,7 +982,7 @@ theorem mvcc.watchableStore.watch.wp_proof
         isplitr
         · iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         isplitr
         · iexists γw
           iframe Hmw
@@ -990,7 +998,7 @@ theorem mvcc.watchableStore.watch.wp_proof
             simp only [mvcc.storeWatchParams]
             iexists γw, r, fcs
             iframe Hmw Hfixed
-            ipureintro; exact Hsr
+            ipureintro; exact ⟨Hsr, Hidm⟩
           (try wp_auto)
           iapply HΦ'
           simp only [mvcc.storeWatchParams] at *
@@ -1014,6 +1022,8 @@ theorem mvcc.watchableStore.watch.wp_proof
           iexists γw, C
           rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
           iframe Hmw Hfixed HcertQ
+          isplitr
+          · iexists nreg; rw [hwc]; iexact Hrega0
           ipureintro; exact ⟨hlo, hloC⟩
         iframe HBack
         ipureintro; exact hbnd
@@ -1076,7 +1086,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitr
       · iexists γw, r, fcs
         iframe Hmw Hfixed
-        ipureintro; exact Hsr
+        ipureintro; exact ⟨Hsr, Hidm⟩
       isplitr
       · iexists γw
         iframe Hmw
@@ -1092,7 +1102,7 @@ theorem mvcc.watchableStore.watch.wp_proof
           simp only [mvcc.storeWatchParams]
           iexists γw, r, fcs
           iframe Hmw Hfixed
-          ipureintro; exact Hsr
+          ipureintro; exact ⟨Hsr, Hidm⟩
         (try wp_auto)
         iapply HΦ'
         simp only [mvcc.storeWatchParams] at *
@@ -1116,6 +1126,8 @@ theorem mvcc.watchableStore.watch.wp_proof
         iexists γw, C
         rw [show mvcc.watchRangeOf k e endk startRev id = r from rfl]
         iframe Hmw Hfixed HcertQ
+        isplitr
+        · iexists nreg; rw [hwc]; iexact Hrega0
         ipureintro; exact ⟨hlo, hloC⟩
       iframe HBack
       ipureintro; exact hbnd

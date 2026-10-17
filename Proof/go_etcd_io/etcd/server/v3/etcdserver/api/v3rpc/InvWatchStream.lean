@@ -275,13 +275,13 @@ theorem ansPool_mint (γa : GName) (n : Nat) :
 /-- The ghost names a watch run publishes in its stream's auxiliary name (`streamAuxIs`): its
 mvcc watch stream's (`γo`) and its answers' (`γa`). -/
 def auxOf (γo : mvcc.WsStreamNames) (γa : GName) : List GName :=
-  [γo.tok, γo.ids, γo.fresh, γo.prog, γa]
+  [γo.tok, γo.ids, γo.fresh, γo.prog, γo.sentl, γo.rsn, γo.regi, γa]
 
 theorem auxOf_inj {γo γo' : mvcc.WsStreamNames} {γa γa' : GName}
     (h : auxOf γo γa = auxOf γo' γa') : γo = γo' ∧ γa = γa' := by
   unfold auxOf at h
   simp only [List.cons.injEq, and_true] at h
-  obtain ⟨h1, h2, h3, h5, h4⟩ := h
+  obtain ⟨h1, h2, h3, h5, h6, h7, h8, h4⟩ := h
   cases γo; cases γo'
   simp_all
 
@@ -464,8 +464,11 @@ the store registered for it (`mvcc.watcherIs`: its names, its fixed range `r`, t
 key, range and start revision with the response's id, `createRangeOk c m.watchId r`, its
 filters, its first revision `lo`: `c.startRev`, or for `0` the length of a committed log at the
 registration; no filter: `fcs` holds none, as `watchReqOk` asks), the stream `γo` having assigned the id to it (`mvcc.idAssigned`, persistent) and
-the id's token (`mvcc.idTok`, exclusive: a stream announces an id once); nothing for any other
-answer. -/
+the id's token (`mvcc.idTok`, exclusive: a stream announces an id once), and (unit W-K) a
+snapshot of the stream's channel's sent list taken after the registration (`streamSentLb`: the
+point of the channel's order the response is sent after, so `sendLoop` sends every response of
+id `-1` queued before it first), at least as long as the watcher's registration index
+(`streamRegAt`, K1b); nothing for any other answer. -/
 def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM) (m : WatchRespM) :
     IProp GF :=
   match req with
@@ -473,7 +476,9 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
       iprop(∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         fcs ↦*□ ([] : List GoFunc) ∗
-        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId)
+        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗
+        ∃ (l : List mvcc.RespM) (n : Nat), mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗
+          ⌜n ≤ l.length⌝)
   | _ => iprop(True)
 
 /-- **A control response** `m`: it answers the request `req` the client sent at some position `i`
@@ -494,6 +499,16 @@ def progQ (γs : StreamNames) : IProp GF := iprop(∃ i : Nat, upAtW γs i .prog
 instance progQ_persistent (γs : StreamNames) : Persistent (progQ (GF := GF) γs) := by
   unfold progQ; infer_instance
 
+/-- **The stream's cancellation reason** (unit W-K, K1b): the client sent a cancel request for
+`id`. The handler saves it as the mvcc stream's (`NewWatchStream`'s `Ψ`); `recvLoop` has it when it
+calls `Cancel id`, so a progress response of id `-1` covers every watcher of the stream registered
+before it whose id the client did not ask to cancel. -/
+def cancelQ (γs : StreamNames) (id : w64) : IProp GF := iprop(∃ i : Nat, upAtW γs i (.cancel id))
+
+instance cancelQ_persistent (γs : StreamNames) (id : w64) :
+    Persistent (cancelQ (GF := GF) γs id) := by
+  unfold cancelQ; infer_instance
+
 instance progQ_timeless (γs : StreamNames) : Timeless (progQ (GF := GF) γs) := by
   unfold progQ upAtW; infer_instance
 
@@ -509,32 +524,91 @@ instance mvccExtra_persistent (γs : StreamNames) (r : mvcc.RespM) :
     Persistent (mvccExtra (GF := GF) γs r) := by
   unfold mvccExtra; infer_instance
 
+/-- **Where an mvcc response is on the stream's channel** (persistent; unit W-K, K1b): the
+channel `γc` (its registration indices, cancellation reason and sent list named by the stream's
+`γo`, the run's auxiliary name), the responses `pre` sent before it (`r.idx` its position, the
+snapshot `pre ++ [r]`), what it covers (`respCov`) and, for id `-1`, the watchers registered
+before it (`regsAt`). -/
+def mvccCov (γs : StreamNames) (γ : mvcc.WsNames) (r : mvcc.RespM) : IProp GF :=
+  iprop(∃ (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName),
+    streamAuxIs γs (auxOf γo γa) ∗
+    ⌜γo.regi = γc.regi ∧ γo.rsn = γc.rsn ∧ γo.sentl = γc.sentl ∧ r.idx = pre.length⌝ ∗
+    mvcc.chanSentLb γc (pre ++ [r]) ∗ mvcc.respCov γ γc pre r ∗ mvcc.regsAt γc pre.length r)
+
+instance mvccCov_persistent (γs : StreamNames) (γ : mvcc.WsNames) (r : mvcc.RespM) :
+    Persistent (mvccCov (GF := GF) γs γ r) := by
+  unfold mvccCov; infer_instance
+
 /-- **A response of the mvcc watch stream** sent at position `j` (persistent): the response of
 the mvcc response `r` (`mvccResp`), whose header's revision is `r`'s, `r` the last of the
 responses `rs` received for its watcher (`mvcc.watchRecvOk`: their events are the watcher's
 deliveries), its id, unless `-1`, live after the responses before it (`idLive`; the watch
 slice's unit W-C); if `r` has events, the watcher's responses with events sent before `j` (the down
 queue's first `j` responses, `downLbW`), then `r`, are its responses with events received; and
-what it says of the stream (`mvccExtra`, unit W-M2). -/
+what it says of the stream (`mvccExtra`, unit W-M2); where it is on the channel (`mvccCov`, K1b),
+and no response before it came from it (each is sent once). -/
 def mvccOk (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) : IProp GF :=
   iprop(∃ (r : mvcc.RespM) (rs : List mvcc.RespM) (L : List WatchRespM),
     ⌜m = mvccResp r m.hdr ∧ m.hdr.revision = r.rev ∧ L.length = j ∧ rs.getLast? = some r ∧
       (r.id ≠ W64 (-1) → idLive L r.id)⌝ ∗
     downLbW γs L ∗ mvcc.watchRecvOk γ r.w rs ∗
     ⌜r.evs ≠ [] → sentEvsOf L r.w ++ [r] = rs.filter (fun x => decide (x.evs ≠ []))⌝ ∗
-    mvccExtra γs r)
+    mvccExtra γs r ∗ mvccCov γs γ r ∗ ⌜∀ m' ∈ L, m'.src ≠ some r⌝)
 
 instance mvccOk_persistent (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) :
     Persistent (mvccOk (GF := GF) γs γ j m) := by
   unfold mvccOk; infer_instance
 
+/-- **A created response sent at down position `j` follows the responses of id `-1` queued before
+it** (persistent; the watch slice's unit W-K, `issues/etcd-watch-progress-before-created.md`): for
+a registered (created, not canceled) control response `m`, its watcher `w` (`idAssigned`, as its
+`ctrlWatcher` names it), the snapshot `l0` of the stream's channel's sent list its `ctrlWatcher`
+carries (taken after the registration), a later snapshot `l` (`l0 <+: l`: the send loop drained
+the channel before sending `m`), and the down list `L` of the `j` responses sent before it: every
+response of id `-1` in `l` is among `L`'s mvcc responses. Nothing for any other control response.
+(K1b) `w` was registered on the channel at an index `n` at most `l0`'s length (`streamRegAt`), so a
+progress response sent after `m` was queued after `w`'s registration. -/
+def createdAfter (γs : StreamNames) (j : Nat) (m : WatchRespM) : IProp GF :=
+  if m.created && !m.canceled then
+    iprop(∃ (γo : mvcc.WsStreamNames) (γa : GName) (w : Loc) (l0 l : List mvcc.RespM)
+        (L : List WatchRespM) (n : Nat),
+      streamAuxIs γs (auxOf γo γa) ∗ mvcc.idAssigned γo m.watchId w ∗
+      mvcc.streamSentLb γo l0 ∗ mvcc.streamSentLb γo l ∗ downLbW γs L ∗
+      mvcc.streamRegAt γo w n ∗ ⌜n ≤ l0.length⌝ ∗
+      ⌜l0 <+: l ∧ L.length = j ∧ ∀ x ∈ l, x.id = W64 (-1) → ∃ m' ∈ L, m'.src = some x⌝)
+  else iprop(True)
+
+instance createdAfter_persistent (γs : StreamNames) (j : Nat) (m : WatchRespM) :
+    Persistent (createdAfter (GF := GF) γs j m) := by
+  unfold createdAfter; split <;> infer_instance
+
 /-- **What the watch server says of its `j`th response** `m`: its header is the
-server's (cluster `cid`, member `mid`), and it is a control response (`ctrlOk`) or one of the
-mvcc watch stream's (`mvccOk`, over the store's names `γ`). -/
+server's (cluster `cid`, member `mid`), and it is a control response (`ctrlOk`; a created one
+follows the progress responses queued before it, `createdAfter`, unit W-K) or one of the mvcc
+watch stream's (`mvccOk`, over the store's names `γ`). -/
 def watchDn (γs : StreamNames) (γ : mvcc.WsNames) (cid mid : w64) (j : Nat) (m : WatchRespM) :
     IProp GF :=
   iprop(⌜m.hdr.clusterId = cid ∧ m.hdr.memberId = mid⌝ ∗
-    ((⌜m.src = none⌝ ∗ ctrlOk γs γ m) ∨ mvccOk γs γ j m))
+    ((⌜m.src = none⌝ ∗ ctrlOk γs γ m ∗ createdAfter γs j m) ∨ mvccOk γs γ j m))
+
+open Iris.ProofMode in
+/-- The created response's snapshot (`ctrlWatcher`'s), kept. -/
+theorem ctrlWatcher_snap (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (c : CreateReqM)
+    (m : WatchRespM) (h : m.canceled = false) :
+    ctrlWatcher (GF := GF) γ γo (.create c) m ⊢
+      ctrlWatcher γ γo (.create c) m ∗
+        ∃ (w : Loc) (l : List mvcc.RespM) (n : Nat), mvcc.idAssigned γo m.watchId w ∗
+          mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗ ⌜n ≤ l.length⌝ := by
+  unfold ctrlWatcher
+  rw [h]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iintro ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, #Hfcs, #Hia, Hit, %l, %n, #Hl, #Hn, %Hnl⟩
+  isplitl [Hit]
+  · iexists w, rg, fcs, lo
+    iframe Hit
+    iframe #
+    ipureintro; exact ⟨Hrg, Hnl⟩
+  iexists w, l, n; iframe #; ipureintro; exact Hnl
 
 
 /-- **The watch stream's specification** (the note's §4; persistent): the handler's content of

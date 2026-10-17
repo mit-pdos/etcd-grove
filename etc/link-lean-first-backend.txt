@@ -5,8 +5,12 @@
 # `sort.Sort`); `verify.Assert`/`Verify` and verify.go's lock checks `ValidateCalled*` (names-only:
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
 # constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
-# `New`/`NewDefaultBackend`/`newBackend` are not listed: bbolt's `Options` is an axiomatized type
-# (Perennial's `os.FileMode`), so the constructor is unproved.
+# The constructor (2026-10-17, branch `construct`): `New`, `newBackend`, `newBatchTxBuffered`,
+# `BackendConfig.mmapSize`; bbolt's `Open` and the backend's names-only `newBoltLoggerZap` are the
+# trust boundary, as are zap's `NewNop`, `String` and `Logger.Panic` (bbolt's `Options` through
+# `BboltOptions.lean`'s axioms, `sync.Mutex{}` through `MutexLit.lean`'s: lemmas, not linked).
+# `NewDefaultBackend` and `DefaultBackendConfig` are not proved (the server builds its
+# configuration itself).
 ValidateCalledInsideApply:
 ValidateCalledInsideUnittest:
 ValidateCalledOutSideApply:
@@ -20,6 +24,7 @@ bbolt_DB__Begin_kv:
 bbolt_DB__Close_kv:
 bbolt_DB__Info_kv:
 bbolt_DB__Stats_kv:
+bbolt_Open_kv:
 bbolt_Tx__Bucket_kvr:
 bbolt_Tx__Bucket_kvw:
 bbolt_Tx__Commit_kv:
@@ -36,8 +41,13 @@ verify_Assert:
 verify_Verify:
 zap_Error:
 zap_Logger__Fatal:
+zap_Logger__Panic:
+zap_NewNop:
+zap_String:
 zap_Stack:
 zap_Stringer:
+BackendConfig__mmapSize: 
+backend_New: backend_newBackend
 NewHooks: hooks__OnPreCommitUnsafe
 backend__BatchTx: 
 backend__Close: bbolt_DB__Close_kv
@@ -116,3 +126,6 @@ txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
 txWriteBuffer__reset: txBuffer__reset
 txWriteBuffer__writeback: bucketBuffer__dedupe sort_Sort bucketBuffer__Len bucketBuffer__Less bucketBuffer__Swap bucketBuffer__merge txWriteBuffer__reset
 unsafeRange: bbolt_Cursor__Seek_kv bbolt_Cursor__Next_kv
+backend_newBackend: bbolt_Open_kv newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run
+newBatchTxBuffered: backend__begin
+newBoltLoggerZap:

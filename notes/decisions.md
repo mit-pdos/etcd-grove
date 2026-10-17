@@ -6932,6 +6932,58 @@ proved).
   (`kvLeasedCommitTodo`) is now stated in the clients' model (`txnCommitResultTok` from
   `etcdReached lo`), as `kvLeasedPutTodo` was.
 
+## What a progress response covers (unit W-K, K1b, 2026-10-17 · in progress: K1b-1, K1b-2 built)
+
+**The claim the client needs.** A progress response at revision `p` on a watch means: the watch
+has received every event of its range up to `p` (the cache's `EtcdStep c p pfx []`). A per-watcher
+progress response (`WithProgressNotify`, `progress(w)`) is for one watcher; a broadcast (id `-1`,
+`RequestProgressAll`) is for every watcher in the stream's map `ws.watchers` when it is sent, and
+the client applies it to every substream it has (`broadcastResponse`).
+
+**Where the knowledge is.** mvcc knows the map `M` given to `progressIfSync` (its watchers all
+synced, so delivered up to the store's revision: `synced_d` and K1a's `wlogQ_cert_prefix`); which ids
+the stream assigned (`idsInv`) and which it cancelled (`Cancel` removes from `ws.watchers`); the
+order of the channel (O1's sent list). Only v3rpc knows why a watcher was cancelled (a client
+cancel request, `recvLoop`), and only the client knows its substream is live.
+
+**The design (mvcc-centric).**
+- *Registration index* (M1): a watcher registered on a channel records the channel's sent length
+  then (`chanRegAt γc w n`, a persistent element of a ghost map whose authority is with the sent
+  list's, keys among the registered watchers, values at most the sent length).
+- *Cancellation record* (M2): `watchStream.Cancel X` records `cancelAt γo X n` (`n` the sent length
+  then) with the caller's reason, a saved predicate fixed at the stream's creation (v3rpc: "the
+  client sent a cancel request for `X`", `∃ i, upAtW γs i (.cancel X)`, which `recvLoop` has when it
+  calls `Cancel`).
+- *Coverage* (M3): every progress response at channel index `k` with covered set `C` (the map's
+  watchers) carries, persistently in the channel invariant: (a) every `w ∈ C` has its deliveries
+  before index `k` cover the revisions `[lo, rev + 1)`; (b) for id `-1`, every id `X` the stream
+  assigned to a watcher `w` registered at an index `≤ k` has `w ∈ C` or was cancelled at an index
+  `≤ k` (the stream's lock invariant: an assigned id is in `ws.watchers` until `Cancel`); (c) for a
+  watcher's own id, its watcher is in `C`.
+- *v3rpc*: `createdAfter` adds that the created watcher was registered before its snapshot `l0`
+  (`recvLoop` takes `l0` after the registration); `mvccOk` exports a response's channel index and
+  coverage.
+- *Client* (K2): a broadcast at down position `j` after a substream's `Created` at `jc < j` has
+  channel index at least the snapshot's length (O3: every id `-1` response before the snapshot was
+  sent before `jc`, each response is sent once), so after the registration; the substream is live
+  and never sent a cancel request for its id, so not cancelled (the reason predicate); so its
+  watcher is in `C` and the response covers it.
+
+*As built (K1b-2, 2026-10-17).* The registered watchers at the send are the channel's own
+(`RespM.regs`, read in its invariant), so no caller names them. The cancellation reason is per
+watcher through its range id (`rsnW`: `rsnFor γc.rsn r.id`), the stream's invariant keeping each
+map entry's id, so `Cancel id` needs only `rsnFor γ.rsn id`. *Why the callers lend a resource
+`CS` with a persistent extraction (`complW`, `complWS`) instead of a disjunction:* the stream must
+get its close right back, and a disjunction returned as is loses which branch held it (a closed
+stream has no close right, only "every watcher of the map cancelled"); with `CS` lent and
+returned unchanged, and the branch of `progCompl` a Boolean parameter, nothing is lost.
+*Rejected:* a cancellation record with a sent index (`cancelAt γo X n`): the reason is enough, a
+watcher cancelled for its reason being one the client asked to cancel, so the client's live
+substream is never one.
+
+*Rejected:* the claim attached by `recvLoop` (its live set) after `progressAll` returns: `sendLoop`
+may forward the response first. *Rejected:* a client-side fix (`issues/etcd-watch-progress-before-created.md`).
+
 ## The recipes are verified against the closed-watch fix (unit W-Q, 2026-10-16 · adopted)
 
 **The rule and the precedent.** The verified etcd is upstream main plus the commits that make it
@@ -7932,3 +7984,87 @@ constructor contracts false. D14 settles the three.
   axiom (a statement about the Go code, whatever the workload); under D14h it is never exercised.
   `NewUberApplier.spec` names the raft status and the snapshot server (the server itself) in its
   premise, which was undischargeable.
+
+## The client's construction: grpc's dial as descriptors, a trusted body (item 5, 2026-10-17)
+
+**Dial options as descriptors.** A `grpc.DialOption` is an opaque closure; the axioms of its
+constructors say what it does (`grpcDialOptIs o d`, `InvDial.lean`), and `NewClient`'s axiom
+composes the connection from the descriptors as grpc does (the last `WithUnaryInterceptor`'s
+interceptor, no chain, no default call options). An option no axiom describes has no descriptor,
+so a dial holding one is simply not covered: no catch-all "harmless option" is assumed. The
+caller's `Config.DialOptions` are excluded by a premise (empty) rather than modelled
+(`issues/etcd-client-dialoptions-unary-interceptor.md`).
+
+**Why `NewClient` asks for etcd's stream interceptor.** `grpcConn` (item 4's `InvGrpc.lean`,
+not ours to change) records the unary chain only, and `ClientConn.NewStream`'s axiom assumes the
+connection's stream interceptor is etcd's. `NewClient` therefore produces `grpcConn` only for a
+dial whose stream interceptors satisfy `etcdStreamInterceptor`, a property only
+`streamClientInterceptor`'s axiom introduces: a plain grpc client could not reach `NewStream`'s
+axiom with an interceptor it does not describe.
+
+**Why a trusted body for `dialWithBalancer`.** The pinned translator misnames grpc's
+`resolver.Builder` there (`pkgRef`'s same-name fallback) and its output does not elaborate. The
+alternatives were an axiom stating `dialWithBalancer`'s result directly (which would hide the
+dial: `dial`, `dialSetupOpts`, the interceptors, all unused), or a fork change (not pushable
+here). The translator's own output with the one type corrected keeps the proof over the real
+body; the axiom is that this text is the method's body, `MethodUnfold`'s shape, with grpc
+`resolver`'s `Builder.TypeAssumptions` (which `clientv3`'s assumptions lack, as `clientv3` does not
+import the package). Both go when Goose is fixed.
+
+**The resolver's state handed to grpc.** `etcdResolverOwn r eps` is exclusive: `SetEndpoints`
+needs it, and `NewClient` consumes its grpc form (`grpcResolverAt`), so `grpcConn`'s address is
+stable for good; after `New` nobody can call `SetEndpoints` (not in `New`'s postcondition), and
+`autoSync` (which would) is turned off by a premise.
+
+## Item 8: package initialization (2026-10-17, branch `construct`)
+
+**How a package's initialization is proved.** `etc/gen-init.py` writes `Proof/<pkg>/Init.lean`:
+`<pkg>.wp_initialize'` follows the translation's `initialize'` statement by statement (the
+`GlobalAlloc`s of translated variables, the imports' `initialize'` in Goose's order, the
+variables' initializers in Go's init order, the translated `init()` bodies). An untranslated
+initializer `X.init` is an axiom of the translation, so what it does is a trust-boundary axiom of
+the package: `opaqueInitsOk` (the listed ones run without panicking), `errorsNewVarsInit`
+(`X = errors.New(msg)`, messages from the Go source) or `<X>_init` (what a fact reads of `X`).
+Each is a triple about an uninterpreted constant, so a diverging `X.init` satisfies all of them:
+they cannot make the logic inconsistent. Translating the initializers instead (Goose config)
+would turn the `errors.New` ones into proofs; not done, to keep the translation unchanged under
+three concurrent agents.
+
+**A package fact states only its own variables.** A fact about another package's variable
+cannot be proved by the package's initializer (`package.init` gives back only the import's
+`isPkgInit` when it is already initialized). So the facts moved to their owners (`errorsInit`,
+raft's `isInitialized`, `traceutilInit`, `schemaInit`, `mvccInit`, `rpctypesInit`,
+`etcdserverpbInit`, `clientv3Init`, `backendInit`); the consumers' facts keep their copies, now
+derived. A fact that names a predicate defined above the owner's `Base.lean` is restated below it
+(`pbDescIs` for grpc's `grpcDescIs`; `OptsM`/`optsAt` moved to `BboltOptsDefs.lean`).
+
+**Method sets are premises** (`EtcdGrove.ErrorStringLeaf`, `EtcdGrove.RpctypesEtcdErrorMethods`),
+as Perennial's `context.ErrorStringIsError`: the semantics leaves method sets uninterpreted.
+
+**Item 8: context's facts (a Perennial proposal).** Perennial's `context` fact (`isInit`) keeps
+only that `Canceled` and `DeadlineExceeded` are typed errors, though its initializer stores
+`errors.New("context canceled")` (`wp_New_errorString`, the exact `*errorString`) and
+`deadlineExceededError{}`. `v3rpc` needs `Canceled` to be a pointer error (`togRPCError`'s
+`errors.Is`) and `read` needs both as leaf errors with their messages. A package fact cannot be
+strengthened after the fact (above), and an axiom `isPkgInit context ⊢ …` would be unsound
+(`isPkgInit` is not sealed: a proof that allocates the variables' cells can assemble it), so the
+fact is a premise here, `EtcdGrove.ContextCanceledPtr` (`v3rpc/Init.lean`). The general fix, to
+propose to Perennial on its own: `context.isInit` records the values, `Canceled ↦□
+interface.mkOk (ptr errorString) #x` with its message and `DeadlineExceeded ↦□
+interface.mkOk deadlineExceededError.ty #()`. It unblocks `v3rpc`'s premise and, with a registry
+model, `read`.
+
+**`read` stays assumed.** Its translated `init()` calls `prometheus.MustRegister`, which panics
+on a duplicate name. A true spec needs the default registry's registered names, a resource the
+whole program's initializers share; `wp_initialize'`'s shape (`ownInitializing` only) has no
+place for it, so adding one means changing every importer's theorem. `etcdserver`'s and `v3rpc`'s
+theorems take `read.initialize'.spec` as a hypothesis (`gen-init`'s `ASSUMED`).
+
+**mvcc's counter contract.** `mvcc.counterSpec` said `Add(x)` returns for every `x`; Go's
+`counter.Add` panics on a negative value. The contract now covers the arguments the code passes:
+`float64(n)` of an unsigned `n`, and of a signed `n ≥ 0`. `scheduleCompaction`'s compacted-keys
+count (an `int`) is shown non-negative by counting: the keys it deletes are distinct bucket keys
+of the job's log up to the compaction revision (a cursor orders the batches), so no more than
+that log's changes, fewer than `2 ^ 62` by the premise `mvcc.CompactSmall` (a physical bound,
+as `storeSmall`), carried by `compactJobPre` and taken by `updateCompactRev`, `Compact` and
+`compactLockfree`.

@@ -34,12 +34,12 @@ theorem backend.backend.unsafeBegin.wp_proof
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
     backend.backend.unsafeBegin.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b db q D w
+  intro γd b db q D w
   wp_start as ⟨#Hb, Hdb, Hown, Hwr⟩
-  icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db0, %lg, #-, #-, #Hlg, %Hlgn, #-⟩
+  unfold beginCtx
+  icases Hb with ⟨%lg, #Hlg, %Hlgn, #-⟩
   wp_auto
-  wp_apply (hBegin db γ.db D w) $$ [$Hown $Hwr] as %tx %err ⟨Hown, #Hisdb, Hr⟩
+  wp_apply (hBegin db γd D w) $$ [$Hown $Hwr] as %tx %err ⟨Hown, #Hisdb, Hr⟩
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, #Htxdb, Htx⟩)
   · rcases err with ei | _
     · wp_auto

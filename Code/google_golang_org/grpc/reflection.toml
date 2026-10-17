@@ -1,0 +1,5 @@
+# Types and names only (item 4, the server start): the interface `ServiceInfoProvider`, the type
+# of the parameter of grpc-prometheus's `ServerMetrics.InitializeMetrics`, to which
+# `v3rpc.Server` converts its `*grpc.Server`.
+translate = ["!*", "ServiceInfoProvider"]
+imports = ["!*", "google.golang.org/grpc"]

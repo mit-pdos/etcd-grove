@@ -1323,7 +1323,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Hm1 with ⟨%Hpn, %h, %sl, %ps, Hhdr, Hho, Hwid, Hcr, Hca, Hcomp, Hcrs, Hfr, Hev, #Hps,
         %Hpslen, #Hevs⟩
       wp_auto
-      icases Hcase with (⟨%Hsrc, Hctrl⟩ | #Hmvcc)
+      icases Hcase with (⟨%Hsrc, Hctrl, -⟩ | #Hmvcc)
       · iunfold v3rpc.ctrlOk at Hctrl
         icases Hctrl with ⟨%i, %req, %γo, %γa, #Haux, #Hup, %Hcans, Hcw, Hat⟩
         cases req with
@@ -1371,7 +1371,7 @@ theorem watchGRPCStream.run.wp_proof
           · cases hcan : m.canceled
             · irevert Hcw
               simp only [v3rpc.ctrlWatcher, hcan, Bool.false_eq_true, ↓reduceIte]
-              iintro ⟨%w, %rg, %fcs, %lo, %Hcrg, #Hwi, #Hfcs, #Hias, Hidt⟩
+              iintro ⟨%w, %rg, %fcs, %lo, %Hcrg, #Hwi, #Hfcs, #Hias, Hidt, -⟩
               ihave ⟨%HXr, Hids, Hidt⟩ := client.id_fresh γs S.regs m.watchId γo γa $$ [Hids Hidt]
               · iframe; iframe #
               isplitr

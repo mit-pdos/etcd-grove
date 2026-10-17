@@ -28,6 +28,7 @@ public import Perennial.Proof.fmt
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.io
+public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 
 @[expose] public section
@@ -112,9 +113,74 @@ instance grpc_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc :=
   build_get_is_pkg_init_wf
 
+/-- **A generated `ServiceDesc`** at `sd` (persistent, read-only): its service name `sn`, its
+handler type `ht`, its methods `mds` and its streams `sds` (grpc's `grpcDescIs`, stated here below
+grpc's server-side proofs). -/
+def pbDescIs (sd : Loc) (sn : GoString) (ht : GoInterface) (mds : List google_golang_org.grpc.MethodDesc)
+    (sds : List google_golang_org.grpc.StreamDesc) : IProp GF :=
+  iprop(∃ msl ssl : GoSlice,
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" sd ↦□ sn ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" sd ↦□ ht ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" sd ↦□ msl ∗ msl ↦*□ mds ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" sd ↦□ ssl ∗ ssl ↦*□ sds)
+
+instance pbDescIs_persistent (sd : Loc) (sn : GoString) (ht : GoInterface)
+    (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc) :
+    Persistent (pbDescIs (GF := GF) sd sn ht mds sds) := by
+  unfold pbDescIs; infer_instance
+
+/-- A generated `ServiceDesc` of service `sn` for the interface `T`, with distinct method and
+stream names. -/
+def pbDescOk (sd : Loc) (sn : GoString) (T : go.GoType) : IProp GF :=
+  iprop(∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+    pbDescIs sd sn (interface.mkOk (go.GoType.PointerType T) #(null : Loc)) mds sds ∗
+    ⌜(mds.map (·.MethodName') ++ sds.map (·.StreamName')).Nodup⌝)
+
+instance pbDescOk_persistent (sd : Loc) (sn : GoString) (T : go.GoType) :
+    Persistent (pbDescOk (GF := GF) sd sn T) := by
+  unfold pbDescOk; infer_instance
+
+/-- **`etcdserverpb`'s six `ServiceDesc`s** (`rpc_grpc.pb.go`: generated literals, never written;
+item 8, 2026-10-17: until then an assumption of `v3rpc.Server`, `svcDescsOk`): their service names,
+handler types and distinct method and stream names; the KV service's methods and the Watch
+service's stream exactly. -/
+abbrev etcdserverpbDescs : IProp GF :=
+  iprop((∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+      pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty) #(null : Loc)) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) =
+          [(go!"Range", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler), (go!"Put", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler),
+           (go!"DeleteRange", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler),
+           (go!"Txn", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler), (go!"Compact", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Compact_Handler)] ∧
+        sds.map (·.StreamName') = [go!"RangeStream"]⌝) ∗
+    (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+      pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty) #(null : Loc)) mds sds ∗
+      ⌜mds = [] ∧ sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+        [(go!"Watch", @! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler)]⌝) ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease" go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster" go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth" go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer.ty ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
+      go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.ty)
+
+/-- **`etcdserverpb`'s fact** (item 8, 2026-10-17: moved here from `v3rpc`'s `sortNameMaps`): the
+enumerations' name maps `checkRangeRequest` looks the sort order and target up in
+(`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: generated `map[int32]string`
+literals), fixed maps whose keys are the enumerations' values, `0` to `2` and `0` to `4`; and its
+six `ServiceDesc`s (`etcdserverpbDescs`). -/
+abbrev etcdserverpbInit : IProp GF :=
+  iprop((∃ (mp : Loc) (M : GMap w32 GoString),
+      globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name ↦□ mp ∗
+      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝) ∗
+    (∃ (mp : Loc) (M : GMap w32 GoString),
+      globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget_name ↦□ mp ∗
+      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝) ∗
+    etcdserverpbDescs)
+
 instance etcdserverpb_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init etcdserverpbInit
 instance etcdserverpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
   build_get_is_pkg_init_wf
@@ -199,7 +265,9 @@ returns their description); and (unit P3a: `rpctypes.Error` is translated) the m
 `*status.Error`s) grpc's `status.FromError` accepts (`statusErrOk`), `EtcdError`'s method set
 (`rpctypesEtcdErrorTy`), the `EtcdError` values the client's retry interceptor compares with
 (`ErrUserEmpty`, `ErrInvalidAuthToken`, `ErrAuthOldRevision`: `Error` of an `ErrGRPC*`) and its
-`ErrGRPCNotSupportedForLearner` (a `*status.Error`, a pointer). -/
+`ErrGRPCNotSupportedForLearner` (a `*status.Error`, a pointer); and (item 8, 2026-10-17: moved here
+from `auth`'s facts, so that `rpctypes`' initializer proves them) the token keys
+`TokenFieldNameGRPC`, `TokenFieldNameSwagger` (fixed strings). -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e) ∗
@@ -224,7 +292,25 @@ abbrev rpctypesInit : IProp GF :=
         interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner ↦□
-        GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝))
+        GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝) ∗
+    (∃ s : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ s) ∗
+    (∃ s : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s) ∗
+    -- (item 8, 2026-10-17: moved here from `v3rpc`'s facts) the `ErrGRPC*` errors the gRPC
+    -- service's checks and interceptors return, fixed non-nil errors, and the metadata keys
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCValueProvided ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseProvided ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyOps ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□ GoInterface.ok e) ∗
+    (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataClientAPIVersionKey ↦□ k) ∗
+    (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ k) ∗
+    (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ k))
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
@@ -235,18 +321,20 @@ instance rpctypes_get_is_pkg_init_wf_inst :
 
 -- The names-only packages of `clientv3.Client`'s field types.
 
+-- `net` (names only; unit P3a: the type of grpc's `peer.Peer`'s fields; item 5: grpc's
+-- `credentials` imports it, for `TransportCredentials`'s handshakes).
+instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
+  define_is_pkg_init iprop(True)
+instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
+  build_get_is_pkg_init_wf
+
 instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   define_is_pkg_init iprop(True)
 instance grpc_credentials_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   build_get_is_pkg_init_wf
 
--- grpc's `peer` and `net` (names only; unit P3a: the retry interceptor's `peer.Peer`).
-instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
-  define_is_pkg_init iprop(True)
-instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
-  build_get_is_pkg_init_wf
-
+-- grpc's `peer` (names only; unit P3a: the retry interceptor's `peer.Peer`).
 instance grpc_peer_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.peer :=
   define_is_pkg_init iprop(True)
 instance grpc_peer_get_is_pkg_init_wf_inst :
@@ -263,6 +351,36 @@ instance clientv3_resolver_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etc
   define_is_pkg_init iprop(True)
 instance clientv3_resolver_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver :=
+  build_get_is_pkg_init_wf
+
+-- Names only (item 5, client construction, branch `construct`): what `clientv3.New`'s dial
+-- names (the type of `Config.TLS`, grpc's keepalive parameters and insecure credentials, an
+-- endpoint's credentials requirement, the default logger); `logutil`'s instance moved here from
+-- `etcdserver/BaseApply.lean` (stage R8b), now that `clientv3` imports it.
+instance tls_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
+  define_is_pkg_init iprop(True)
+instance tls_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
+  build_get_is_pkg_init_wf
+instance grpc_keepalive_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
+  define_is_pkg_init iprop(True)
+instance grpc_keepalive_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
+  build_get_is_pkg_init_wf
+instance grpc_insecure_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure :=
+  define_is_pkg_init iprop(True)
+instance grpc_insecure_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure :=
+  build_get_is_pkg_init_wf
+instance clientv3_endpoint_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint :=
+  define_is_pkg_init iprop(True)
+instance clientv3_endpoint_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint :=
+  build_get_is_pkg_init_wf
+instance logutil_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
+  define_is_pkg_init iprop(True)
+instance logutil_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
   build_get_is_pkg_init_wf
 
 -- zap imports zapcore (translated since the merge with the server's names-only zap).
@@ -311,7 +429,18 @@ abbrev clientv3Init : IProp GF :=
     sl ↦*□ [W8 0]) ∗
     (∃ (dp : Loc) (ov : go_etcd_io.etcd.client.v3.options),
       globalAddr go_etcd_io.etcd.client.v3.defaultOptions ↦□ dp ∗ dp ↦□ ov ∗
-      backoffOk ov.backoffFunc'))
+      backoffOk ov.backoffFunc') ∗
+    -- (item 8, 2026-10-17: `client/v3`'s `clientNewVars`, which `New` took as a premise)
+    -- `defaultCallOpts` (`options.go`: `WaitForReady(true)`, `MaxCallSendMsgSize`,
+    -- `MaxCallRecvMsgSize`: options holding only scalars) and the retry defaults
+    (∃ (sl : GoSlice) (vs : List GoInterface), globalAddr go_etcd_io.etcd.client.v3.defaultCallOpts ↦□ sl ∗ sl ↦*□ vs ∗
+      ⌜sl.len = sl.cap ∧ ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧
+        t ∈ [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty,
+          google_golang_org.grpc.MaxSendMsgSizeCallOption.ty,
+          google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝) ∗
+    (∃ n : w64, globalAddr go_etcd_io.etcd.client.v3.defaultUnaryMaxRetries ↦□ n) ∗
+    (∃ d : time.Duration, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffWaitBetween ↦□ d) ∗
+    (∃ f : w64, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffJitterFraction ↦□ f))
 
 instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   define_is_pkg_init clientv3Init

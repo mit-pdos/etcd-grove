@@ -1030,11 +1030,15 @@ theorem mvcc.watchableStore.notify.wp_proof
     have hmod : ∀ ev ∈ mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1), ev.kv.modRev = W64 N := by
       rw [← hN]; exact mvcc.watchEvents_next_modRev ilog pend hne r'
     wp_apply (hSend γ key γw r' fcs stw.ch 1 (Qp.half 1) evsw (N + 1) _ ps
-        (mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1)) (DFrac.own 1))
-      $$ [Hchf Hl Ha Hsl] as %b ⟨Hchf, Hl, Hsl, Ha⟩
+        (mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1)) (DFrac.own 1) [] iprop(True))
+      $$ [Hchf Hl Ha Hsl] as %b ⟨Hchf, Hl, Hsl, Ha, -⟩
     · rw [if_neg hwEne]
       simp only at Hlen
       iframe Hmeta Hfx Hfo Hch Hchf Hl Ha Hwf' Hsl HevB
+      isplitr
+      · iapply mvcc.covPre_nil
+      isplitr
+      · itrivial
       isplitr
       · ileft; ipureintro; rfl
       ipureintro

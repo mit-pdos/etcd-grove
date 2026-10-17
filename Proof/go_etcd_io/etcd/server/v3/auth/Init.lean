@@ -1,0 +1,195 @@
+/-
+Package initialization of `go_etcd_io.etcd.server.v3.auth`
+(item 8, 2026-10-17): its `wp_initialize'`.
+
+Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
+`ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken` (translated `errors.New`
+calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()`
+returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables' initializers
+are untranslated (`opaqueInitsOk`).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.errors.Link
+public import Perennial.Proof.strings.Link
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.sync.atomic.Link
+public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Init
+public import Proof.go_uber_org.zap.Init
+public import Proof.google_golang_org.grpc.metadata.Init
+public import Proof.errors.NewVar
+public import Perennial.Proof.context.NewErrorString
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
+
+noncomputable section
+
+namespace Perennial
+
+/-- `x ∈ [a, ..., x, ...]`, linear in the list (`simp` overflows on the long ones). -/
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+section opaqueInits
+namespace go_etcd_io.etcd.server.v3.auth
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The trust boundary: `go_etcd_io.etcd.server.v3.auth`'s untranslated variable initializers run.**
+Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
+runs them at program start, and etcd starts, so each returns without panicking.
+Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
+axiom opaqueInitsOk :
+    ∀ v ∈ ([reportCurrentAuthRev.init,
+        currentAuthRevision.init,
+        knownOptions.init,
+        DefaultTTL.init,
+        simpleTokenTTLDefault.init,
+        simpleTokenTTLResolution.init,
+        «_».init,
+        rootPerm.init,
+        ErrRootUserNotExist.init,
+        ErrRootRoleNotExist.init,
+        ErrUserAlreadyExist.init,
+        ErrRoleAlreadyExist.init,
+        ErrRoleNotFound.init,
+        ErrRoleEmpty.init,
+        ErrPermissionNotGiven.init,
+        ErrAuthFailed.init,
+        ErrNoPasswordUser.init,
+        ErrRoleNotGranted.init,
+        ErrPermissionNotGranted.init,
+        ErrAuthNotEnabled.init,
+        ErrInvalidAuthOpts.init,
+        ErrInvalidAuthMgmt.init,
+        ErrInvalidAuthMethod.init,
+        ErrMissingKey.init,
+        ErrKeyMismatch.init,
+        ErrVerifyOnly.init] : List val),
+    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+end go_etcd_io.etcd.server.v3.auth
+end opaqueInits
+
+section init
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions]
+variable [EtcdGrove.ErrorStringLeaf]
+variable [EtcdGrove.RpctypesEtcdErrorMethods]
+variable [_root_.Perennial.context.ErrorStringIsError]
+  [_root_.Perennial.context.DeadlineExceededIsError]
+
+namespace go_etcd_io.etcd.server.v3.auth
+
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.auth get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }} := by
+  wp_start as Hown
+  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthToken _ as HErrInvalidAuthToken
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrAuthOldRevision _ as HErrAuthOldRevision
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrPermissionDenied _ as HErrPermissionDenied
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrUserNotFound _ as HErrUserNotFound
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrUserEmpty _ as HErrUserEmpty
+  wp_apply _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply _root_.Perennial.google_golang_org.grpc.metadata.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply _root_.Perennial.go_uber_org.zap.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply _root_.Perennial.context.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (opaqueInitsOk reportCurrentAuthRev.init (by mem_tac))
+  wp_apply (opaqueInitsOk currentAuthRevision.init (by mem_tac))
+  wp_apply (opaqueInitsOk knownOptions.init (by mem_tac))
+  wp_apply (opaqueInitsOk DefaultTTL.init (by mem_tac))
+  wp_apply (opaqueInitsOk simpleTokenTTLDefault.init (by mem_tac))
+  wp_apply (opaqueInitsOk simpleTokenTTLResolution.init (by mem_tac))
+  wp_apply (opaqueInitsOk «_».init (by mem_tac))
+  wp_apply (opaqueInitsOk rootPerm.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrRootUserNotExist.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrRootRoleNotExist.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrUserAlreadyExist.init (by mem_tac))
+  -- translated initializer of ErrUserEmpty))
+  -- translated initializer of ErrUserNotFound))
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xUE #MUE
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xUNF #MUNF
+  wp_apply (opaqueInitsOk ErrRoleAlreadyExist.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrRoleNotFound.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrRoleEmpty.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrPermissionNotGiven.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrAuthFailed.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrNoPasswordUser.init (by mem_tac))
+  -- translated initializer of ErrPermissionDenied))
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xPD #MPD
+  wp_apply (opaqueInitsOk ErrRoleNotGranted.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrPermissionNotGranted.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrAuthNotEnabled.init (by mem_tac))
+  -- translated initializer of ErrAuthOldRevision))
+  -- translated initializer of ErrInvalidAuthToken))
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xAO #MAO
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xIA #MIA
+  wp_apply (opaqueInitsOk ErrInvalidAuthOpts.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrInvalidAuthMgmt.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrInvalidAuthMethod.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrMissingKey.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrKeyMismatch.init (by mem_tac))
+  wp_apply (opaqueInitsOk ErrVerifyOnly.init (by mem_tac))
+  ipersist HErrUserEmpty
+  ipersist HErrUserNotFound
+  ipersist HErrPermissionDenied
+  ipersist HErrAuthOldRevision
+  ipersist HErrInvalidAuthToken
+  ihave #TUE := EtcdGrove.errorMsg_triple _ _ _ $$ MUE
+  ihave #TUNF := EtcdGrove.errorMsg_triple _ _ _ $$ MUNF
+  ihave #TPD := EtcdGrove.errorMsg_triple _ _ _ $$ MPD
+  ihave #TAO := EtcdGrove.errorMsg_triple _ _ _ $$ MAO
+  ihave #TIA := EtcdGrove.errorMsg_triple _ _ _ $$ MIA
+  ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd11
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩
+  iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
+  is_pkg_init_finish
+  imodintro
+  unfold authInit authErrVar
+  iframe #
+  dsimp only
+  iframe #
+  repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))
+
+
+end go_etcd_io.etcd.server.v3.auth
+
+end init
+
+end Perennial

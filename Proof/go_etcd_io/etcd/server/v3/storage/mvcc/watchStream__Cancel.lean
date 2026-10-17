@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.Cancel.wp_proof :
     mvcc.watchStream.Cancel.spec (GF := GF) (hG := hG) := by
   intro ws wa P γ id
-  wp_start as Hws
+  wp_start as ⟨Hws, #Hrsn⟩
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -137,7 +137,13 @@ theorem mvcc.watchStream.Cancel.wp_proof :
           cases closed' with
           | true =>
             simp only [↓reduceIte]
-            iexact Hcl
+            icases Hcl with ⟨Hop, #Hall⟩
+            iframe Hop
+            iintro !> %i %w0 %h
+            simp only [GMap.lookup_delete_iff] at h
+            split at h
+            · simp at h
+            · iapply Hall $$ %i %w0 %h
           | false =>
             simp only [Bool.false_eq_true, ↓reduceIte] at ⊢
             icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
@@ -152,7 +158,13 @@ theorem mvcc.watchStream.Cancel.wp_proof :
                   rw [hw'] at hi
                   cases hi
                   iright
-                  iexact Hwc
+                  iunfold mvcc.cancelledFor
+                  iframe Hwc
+                  icases Hws' $$ %id %w' %hw' with ⟨-, -, %r0, %fcs0, %lo0, #Hiwf, %hrid⟩
+                  iexists r0, fcs0, lo0
+                  iframe Hiwf
+                  rw [hrid, ← Hγc.2.2.2.1]
+                  iexact Hrsn
                 · ileft
                   iexists i
                   ipureintro

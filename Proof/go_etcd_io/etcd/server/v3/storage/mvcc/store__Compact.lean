@@ -40,7 +40,8 @@ theorem mvcc.store.Compact.wp_of_le
     (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev) ∧
+        mvcc.CompactSmall log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))

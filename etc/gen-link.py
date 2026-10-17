@@ -265,7 +265,9 @@ root = os.path.normpath(os.path.join(here, ".."))
 
 # function name -> the module path below Spec/ and Proof/ (`go_etcd_io.raft.v3.tracker.NewInflights`)
 # (a bare `<fn>` shared by two packages, as `Error` of `rpctypes` and `status`, is
-# ambiguous: such a function is named `<last component of pkg>_<fn>` only)
+# ambiguous: such a function is named `<last component of pkg>_<fn>` only; and if two packages
+# share their last component too, as `cache/v3` and `client/v3` for `New`,
+# `<last two components>_<fn>`)
 # (`prefix`: the module root of a spec outside `Spec/`, a part's; none now)
 where, prefix, ambiguous = {}, {}, set()
 for mroot in (mode[4] if cache else [""]):
@@ -281,6 +283,18 @@ for mroot in (mode[4] if cache else [""]):
                     # `EtcdDeps` was, etcd's raft v3.7 under the verified raft's Go path): the
                     # later root's spec is the one this mode links
                     prefix[qual] = prefix[stem] = mroot + "."
+                    continue
+                if qual in where and where[qual] != ".".join(pkg + [stem]):
+                    # two packages with the same last component (`cache/v3` and `client/v3`
+                    # both have a `New`): each is named `<last two components>_<fn>`
+                    # (`cache_v3_New`, `client_v3_New`), and `<last component>_<fn>` by neither
+                    other = where[qual].split(".")
+                    for opkg, ostem, oprefix in ((other[:-1], other[-1], prefix[qual]),
+                                                 (pkg, stem, mroot + "." if mroot else "")):
+                        q2 = opkg[-2] + "_" + opkg[-1] + "_" + ostem
+                        where[q2], prefix[q2] = ".".join(opkg + [ostem]), oprefix
+                    ambiguous.add(qual)
+                    ambiguous.add(stem)
                     continue
                 assert qual not in where, f"two specs for {qual}"
                 where[qual] = ".".join(pkg + [stem])

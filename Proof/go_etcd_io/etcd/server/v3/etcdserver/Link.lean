@@ -90,7 +90,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersB
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Swap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.NewNotifier
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
@@ -146,6 +145,7 @@ public import Proof.context.ValueStartTime
 public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
@@ -602,6 +602,98 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
+theorem auth.authStore.wp_IsAuthEnabled :
+    auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsAuthEnabled.wp_proof
+
+theorem metadata.wp_FromIncomingContext :
+    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  metadata.FromIncomingContext.wp_proof
+
+theorem auth.authStore.wp_Revision :
+    auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
+  auth.authStore.Revision.wp_proof
+
+theorem auth.authStore.wp_authInfoFromToken :
+    auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) :=
+  auth.authStore.authInfoFromToken.wp_proof auth.authStore.wp_Revision
+
+theorem auth.wp_redactToken :
+    auth.redactToken.spec (GF := GF) (hG := hG) :=
+  auth.redactToken.wp_proof
+
+theorem auth.authStore.wp_AuthInfoFromCtx :
+    auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
+
+theorem auth.authStore.wp_AuthInfoFromTLS :
+    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromTLS.wp_proof
+
+theorem auth.wp_hasRootRole :
+    auth.hasRootRole.spec (GF := GF) (hG := hG) :=
+  auth.hasRootRole.wp_proof
+
+theorem auth.authStore.wp_IsAdminPermitted :
+    auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsAdminPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.wp_hasRootRole
+
+theorem zap.wp_ByteString :
+    zap.ByteString.spec (GF := GF) (hG := hG) :=
+  zap.ByteString.wp_proof
+
+theorem auth.wp_isOpenEnded :
+    auth.isOpenEnded.spec (GF := GF) (hG := hG) :=
+  auth.isOpenEnded.wp_proof
+
+theorem auth.wp_checkKeyInterval :
+    auth.checkKeyInterval.spec (GF := GF) (hG := hG) :=
+  auth.checkKeyInterval.wp_proof auth.wp_isOpenEnded adt.wp_NewBytesAffineInterval
+
+theorem auth.wp_checkKeyPoint :
+    auth.checkKeyPoint.spec (GF := GF) (hG := hG) :=
+  auth.checkKeyPoint.wp_proof adt.wp_NewBytesAffinePoint
+
+theorem auth.authStore.wp_isRangeOpPermitted :
+    auth.authStore.isRangeOpPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.isRangeOpPermitted.wp_proof zap.wp_String zap.Logger.wp_Error auth.wp_checkKeyInterval auth.wp_checkKeyPoint
+
+theorem auth.authStore.wp_isOpPermitted :
+    auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.isOpPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision zap.wp_Uint64 zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error auth.wp_hasRootRole auth.authStore.wp_isRangeOpPermitted
+
+theorem auth.authStore.wp_IsDeleteRangePermitted :
+    auth.authStore.IsDeleteRangePermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsDeleteRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.authStore.wp_IsPutPermitted :
+    auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsPutPermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.authStore.wp_IsRangePermitted :
+    auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem config.ServerConfig.wp_PeerDialTimeout :
+    config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.PeerDialTimeout.wp_proof
+
+theorem consistentIndex.wp_SetBackend :
+    consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
+  consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
+
+theorem schema.wp_unsafeUpdateConsistentIndex :
+    schema.unsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
+  schema.unsafeUpdateConsistentIndex.wp_proof binary.bigEndian.wp_PutUint64 verify.wp_Verify schema.wp_UnsafeReadConsistentIndex
+
+theorem schema.wp_UnsafeUpdateConsistentIndex :
+    schema.UnsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
+  schema.UnsafeUpdateConsistentIndex.wp_proof schema.wp_unsafeUpdateConsistentIndex
+
+theorem consistentIndex.wp_UnsafeSave :
+    consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
+  consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
+
 theorem v2stats.wp_NewServerStats :
     v2stats.NewServerStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewServerStats.wp_proof
@@ -634,10 +726,6 @@ theorem schema.wp_NewAuthBackend :
     schema.NewAuthBackend.spec (GF := GF) (hG := hG) :=
   schema.NewAuthBackend.wp_proof
 
-theorem config.ServerConfig.wp_PeerDialTimeout :
-    config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
-  config.ServerConfig.PeerDialTimeout.wp_proof
-
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafeSaveConfStateToBackend.wp_proof
@@ -645,18 +733,6 @@ theorem schema.wp_MustUnsafeSaveConfStateToBackend :
 theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
     storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) :=
   storage.BackendHooks.OnPreCommitUnsafe.wp_proof schema.wp_MustUnsafeSaveConfStateToBackend backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
-
-theorem schema.wp_unsafeUpdateConsistentIndex :
-    schema.unsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
-  schema.unsafeUpdateConsistentIndex.wp_proof binary.bigEndian.wp_PutUint64 verify.wp_Verify schema.wp_UnsafeReadConsistentIndex
-
-theorem schema.wp_UnsafeUpdateConsistentIndex :
-    schema.UnsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
-  schema.UnsafeUpdateConsistentIndex.wp_proof schema.wp_unsafeUpdateConsistentIndex
-
-theorem consistentIndex.wp_UnsafeSave :
-    consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
-  consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
 
 theorem lease.lessor.wp_GetLease :
     lease.lessor.GetLease.spec (GF := GF) (hG := hG) :=
@@ -753,82 +829,6 @@ theorem lease.lessor.wp_Promote :
 theorem lease.lessor.wp_Demote :
     lease.lessor.Demote.spec (GF := GF) (hG := hG) :=
   lease.lessor.Demote.wp_proof
-
-theorem auth.authStore.wp_IsAuthEnabled :
-    auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
-  auth.authStore.IsAuthEnabled.wp_proof
-
-theorem metadata.wp_FromIncomingContext :
-    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
-  metadata.FromIncomingContext.wp_proof
-
-theorem auth.authStore.wp_Revision :
-    auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
-  auth.authStore.Revision.wp_proof
-
-theorem auth.authStore.wp_authInfoFromToken :
-    auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) :=
-  auth.authStore.authInfoFromToken.wp_proof auth.authStore.wp_Revision
-
-theorem auth.wp_redactToken :
-    auth.redactToken.spec (GF := GF) (hG := hG) :=
-  auth.redactToken.wp_proof
-
-theorem auth.authStore.wp_AuthInfoFromCtx :
-    auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
-
-theorem auth.authStore.wp_AuthInfoFromTLS :
-    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromTLS.wp_proof
-
-theorem auth.wp_hasRootRole :
-    auth.hasRootRole.spec (GF := GF) (hG := hG) :=
-  auth.hasRootRole.wp_proof
-
-theorem auth.authStore.wp_IsAdminPermitted :
-    auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.IsAdminPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.wp_hasRootRole
-
-theorem zap.wp_ByteString :
-    zap.ByteString.spec (GF := GF) (hG := hG) :=
-  zap.ByteString.wp_proof
-
-theorem auth.wp_isOpenEnded :
-    auth.isOpenEnded.spec (GF := GF) (hG := hG) :=
-  auth.isOpenEnded.wp_proof
-
-theorem auth.wp_checkKeyInterval :
-    auth.checkKeyInterval.spec (GF := GF) (hG := hG) :=
-  auth.checkKeyInterval.wp_proof auth.wp_isOpenEnded adt.wp_NewBytesAffineInterval
-
-theorem auth.wp_checkKeyPoint :
-    auth.checkKeyPoint.spec (GF := GF) (hG := hG) :=
-  auth.checkKeyPoint.wp_proof adt.wp_NewBytesAffinePoint
-
-theorem auth.authStore.wp_isRangeOpPermitted :
-    auth.authStore.isRangeOpPermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.isRangeOpPermitted.wp_proof zap.wp_String zap.Logger.wp_Error auth.wp_checkKeyInterval auth.wp_checkKeyPoint
-
-theorem auth.authStore.wp_isOpPermitted :
-    auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.isOpPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision zap.wp_Uint64 zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error auth.wp_hasRootRole auth.authStore.wp_isRangeOpPermitted
-
-theorem auth.authStore.wp_IsDeleteRangePermitted :
-    auth.authStore.IsDeleteRangePermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.IsDeleteRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
-
-theorem auth.authStore.wp_IsPutPermitted :
-    auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.IsPutPermitted.wp_proof auth.authStore.wp_isOpPermitted
-
-theorem auth.authStore.wp_IsRangePermitted :
-    auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
-
-theorem consistentIndex.wp_SetBackend :
-    consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
-  consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
 
 theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
@@ -1269,9 +1269,17 @@ theorem EtcdServer.wp_restoreAlarms :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) :=
   EtcdServer.restoreAlarms.wp_proof schema.wp_NewAlarmBackend v3alarm.wp_NewAlarmStore
 
-theorem membership.RaftCluster.wp_String :
-    membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
-  membership.RaftCluster.String.wp_proof
+theorem wp_addFeatureGateMetrics :
+    addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=
+  addFeatureGateMetrics.wp_proof
+
+theorem auth.wp_NewAuthStore :
+    auth.NewAuthStore.spec (GF := GF) (hG := hG) :=
+  auth.NewAuthStore.wp_proof
+
+theorem auth.wp_NewTokenProvider :
+    auth.NewTokenProvider.spec (GF := GF) (hG := hG) :=
+  auth.NewTokenProvider.wp_proof
 
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=
@@ -1281,9 +1289,9 @@ theorem bootstrappedRaft.wp_newRaftNode [StorageModel GF] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
   bootstrappedRaft.newRaftNode.wp_proof wp_StartNode EtcdGrove.wp_newRaftNode
 
-theorem wp_addFeatureGateMetrics :
-    addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=
-  addFeatureGateMetrics.wp_proof
+theorem membership.RaftCluster.wp_String :
+    membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.String.wp_proof
 
 theorem membership.RaftCluster.wp_SetVersionChangedNotifier :
     membership.RaftCluster.SetVersionChangedNotifier.spec (GF := GF) (hG := hG) :=
@@ -1293,10 +1301,6 @@ theorem lease.wp_NewLessor :
     lease.NewLessor.spec (GF := GF) (hG := hG) :=
   lease.NewLessor.wp_proof
 
-theorem auth.wp_NewTokenProvider :
-    auth.NewTokenProvider.spec (GF := GF) (hG := hG) :=
-  auth.NewTokenProvider.wp_proof
-
 theorem wp_newCorruptionChecker :
     newCorruptionChecker.spec (GF := GF) (hG := hG) :=
   newCorruptionChecker.wp_proof
@@ -1304,10 +1308,6 @@ theorem wp_newCorruptionChecker :
 theorem mvcc.store.wp_HashStorage :
     mvcc.store.HashStorage.spec (GF := GF) (hG := hG) :=
   mvcc.store.HashStorage.wp_proof
-
-theorem auth.wp_NewAuthStore :
-    auth.NewAuthStore.spec (GF := GF) (hG := hG) :=
-  auth.NewAuthStore.wp_proof
 
 theorem v3compactor.wp_New :
     v3compactor.New.spec (GF := GF) (hG := hG) :=

@@ -145,6 +145,67 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
 
 /-! ## The receive -/
 
+/-- **A response of id `-1` lists the watchers registered before it** (persistent; K1b): for a
+watcher registered on the channel at an index at most `k` (the response's), with a later credit,
+the response's `regs` has it (the channel's invariant: `sentAuth_reg_regs`). -/
+def regsAt (γc : WatchChanNames) (k : Nat) (x : RespM) : IProp GF :=
+  iprop(□ ∀ (w : Loc) (n : Nat), chanRegAt γc w n -∗ ⌜n ≤ k⌝ -∗ ⌜x.id = W64 (-1)⌝ -∗ £ 1 ={⊤}=∗
+    ⌜w ∈ x.regs⌝)
+
+instance regsAt_persistent (γc : WatchChanNames) (k : Nat) (x : RespM) :
+    Persistent (regsAt (GF := GF) γc k x) := by
+  unfold regsAt; infer_instance
+
+/-- **What a received response covers** (K1b): the next response `r` after `received`, its
+coverage (`respCov`, against the responses before it) and `regsAt` at its index, a snapshot of
+the sent list up to it, and its position. -/
+theorem recv_cov (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (received : List RespM) (r : RespM) (hp : received ++ [r] <+: sent) :
+    inv watchN (watchChanInv (GF := GF) γ ch γc) ∗ sentAuth γ γc sent L ⊢
+      sentAuth γ γc sent L ∗ respCov γ γc received r ∗ regsAt γc received.length r ∗
+        chanSentLb γc (received ++ [r]) ∗ ⌜r.idx = received.length⌝ := by
+  iintro ⟨#Hinv, Hs⟩
+  have hk : sent[received.length]? = some r := by
+    obtain ⟨t, rfl⟩ := hp; simp
+  have ht : sent.take received.length = received := by
+    obtain ⟨t, rfl⟩ := hp; simp
+  icases sentAuth_cov γ γc sent L _ r hk $$ Hs with ⟨Hs, #Hc⟩
+  irevert Hc; rw [ht]; iintro #Hc
+  icases sentAuth_lb γ γc sent L $$ Hs with ⟨Hs, #Hlb⟩
+  icases (persistent_entails_right (sentAuth_idx (GF := GF) γ γc sent L)) $$ Hs with ⟨%Hidx, Hs⟩
+  ihave #Hlb' : chanSentLb γc (received ++ [r]) $$ []
+  · unfold chanSentLb
+    iapply monoListLbOwn_le _ hp
+    iexact Hlb
+  iframe Hs Hc Hlb'
+  isplitr
+  rotate_left
+  · ipureintro; exact Hidx _ r hk
+  iunfold regsAt
+  iintro !> %w %n #Hra %hn %hid Hlc
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  iunfold watchChanInv at Hi
+  icases Hi with ⟨%s, %sent', %recv', %vs, %L', Hi⟩
+  iNamed Hi
+  icases sentAuth_lb_valid γ γc sent' L' sent $$ [$Hsentl $Hlb] with ⟨Hsentl, %Hpp⟩
+  icases (persistent_entails_right (sentAuth_reg_regs (GF := GF) γ γc sent' L' w n))
+    $$ [$Hsentl $Hra] with ⟨%Hrr, ⟨Hsentl, -⟩⟩
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+  · inext
+    iunfold watchChanInv
+    iexists s, sent', recv', vs, L'
+    simp only [named]
+    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+    iframe #
+    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
+  imodintro
+  ipureintro
+  have hk' : sent'[received.length]? = some r := by
+    obtain ⟨t, ht2⟩ := Hpp
+    rw [← ht2, List.getElem?_append_left (List.getElem?_eq_some_iff.1 hk).1]; exact hk
+  exact Hrr _ r hn hk' hid
+
 /-- What the consumer gets from `v, ok := <-ch` with `received` received so far: on `ok`, the
 next response sent (`respIs v r`, `respOk r`), its consumer's view grown, and what it knows of
 `r`'s watcher from the responses received for it, with (unit W-M2) what the channel knows of the
@@ -155,7 +216,9 @@ def watchRecvResult (γ : WsNames) (γc : WatchChanNames) (received : List RespM
     (v : WatchResponse) (ok : Bool) : IProp GF :=
   if ok then iprop(∃ r : RespM, watchConsumer γc (received ++ [r]) ∗ respIs v r ∗ respOk r ∗
     watchRecvOk γ r.w ((received ++ [r]).filter (fun x => decide (x.w = r.w))) ∗
-    chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → progFact γc.prog))
+    chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
+    respCov γ γc received r ∗ regsAt γc received.length r ∗ chanSentLb γc (received ++ [r]) ∗
+    ⌜r.idx = received.length⌝)
   else watchConsumer γc received
 
 theorem respsIs_cons (v : WatchResponse) (rest : List WatchResponse) (rs : List RespM) :
@@ -245,13 +308,15 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     subst Hinfl
     imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
       with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl]
+      with ⟨Hsentl, #Hcv, #Hra, #Hsl, %Hix⟩
     imod Hmask with -
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
       iunfold watchChanInv
       iexists ChanState.Buffered rest, sent, received ++ [r], rest, L
       simp only [named, chanIsClosed, Bool.false_eq_true, ↓reduceIte]
-      iframe Hch Hrecv Hregl Hcl Hreg Hws
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
       iframe #
       ipureintro
       exact ⟨Hpre', rfl, Hnd⟩
@@ -263,6 +328,7 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     unfold watchConsumer
     iframe Hcons
     iframe #
+    try (ipureintro; exact Hix)
   case Closed.cons =>
     iintro Hch
     irevert Hcl Hws; simp only [chanIsClosed, ↓reduceIte]; iintro Hcl Hws
@@ -270,13 +336,15 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     subst Hinfl
     imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
       with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl]
+      with ⟨Hsentl, #Hcv, #Hra, #Hsl, %Hix⟩
     imod Hmask with -
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
       iunfold watchChanInv
       iexists ChanState.Closed rest, sent, received ++ [r], rest, L
       simp only [named, chanIsClosed, ↓reduceIte]
-      iframe Hch Hrecv Hregl Hcl Hreg Hws
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
       iframe #
       ipureintro
       exact ⟨Hpre', rfl, Hnd⟩
@@ -288,15 +356,16 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     unfold watchConsumer
     iframe Hcons
     iframe #
+    try (ipureintro; exact Hix)
   case Closed.nil =>
     iintro Hch
     imod Hmask with -
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
       iunfold watchChanInv
       iexists ChanState.Closed [], sent, received, vs, L
       simp only [named, chanIsClosed, ↓reduceIte]
-      iframe Hch Hrecv Hregl Hcl Hreg Hws
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
       iframe #
       ipureintro
       exact ⟨Hpre, Hinfl, Hnd⟩
@@ -310,12 +379,12 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
     iintro Hch
     irevert Hcl Hws; simp only [chanIsClosed, Bool.false_eq_true, ↓reduceIte]; iintro Hcl Hws
     imod Hmask with -
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
       iunfold watchChanInv
       iexists ChanState.RcvPending, sent, received, vs, L
       simp only [named, chanIsClosed, Bool.false_eq_true, ↓reduceIte]
-      iframe Hch Hrecv Hregl Hcl Hreg Hws
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
       iframe #
       ipureintro
       exact ⟨Hpre, by simpa [chanInflight] using Hinfl, Hnd⟩
@@ -342,13 +411,15 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
       subst Hinfl
       imod watch_take γ γc _ received sent L v' [] Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
         with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+      icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl]
+      with ⟨Hsentl, #Hcv, #Hra, #Hsl, %Hix⟩
       imod Hmask with -
-      imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
+      imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
       · inext
         iunfold watchChanInv
         iexists ChanState.Idle, sent, received ++ [r], [], L
         simp only [named, chanIsClosed, Bool.false_eq_true, ↓reduceIte]
-        iframe Hch Hrecv Hregl Hcl Hreg Hws
+        iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
         iframe #
         ipureintro
         exact ⟨Hpre', rfl, Hnd⟩
@@ -360,15 +431,16 @@ theorem watch_recv_au (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received
       unfold watchConsumer
       iframe Hcons
       iframe #
+      try (ipureintro; exact Hix)
     case Closed.nil =>
       iintro Hch
       imod Hmask with -
-      imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws] with -
+      imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
       · inext
         iunfold watchChanInv
         iexists ChanState.Closed [], sent, received, vs, L
         simp only [named, chanIsClosed, ↓reduceIte]
-        iframe Hch Hrecv Hregl Hcl Hreg Hws
+        iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
         iframe #
         ipureintro
         exact ⟨Hpre, Hinfl, Hnd⟩
@@ -528,6 +600,222 @@ theorem watchRecvOk_startRev (γ : WsNames) (w : Loc) (rs : List RespM) (r : Wat
     exact List.mem_flatten.2 ⟨dl.1, List.mem_map_of_mem hdl', hev1⟩
   obtain ⟨j, h1, -, -, hm⟩ := watchEvents_rev_ge L r γw.lo d ev hev2
   exact ⟨j, h1, hm⟩
+
+/-- **A non-blocking receive on the stream's channel** (unit W-K), as Perennial's
+`nonblockingRecvAuAlt` (`wp_select_nonblocking_alt`): the next response, or the end of a closed
+channel, as `watch_recv_au`; or nothing ready, which happens only when every response sent has
+been received, so that the consumer's `received` extends any earlier snapshot `l0` of the sent
+list and is a snapshot itself. For a buffered channel (capacity positive). -/
+theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (received : List RespM)
+    (l0 : List RespM) (Φ : WatchResponse → Bool → IProp GF) (Ψ : IProp GF)
+    (hcap : 0 < sint.Z γc.ch.chanCap) :
+    ⊢ inv watchN (watchChanInv γ ch γc) -∗ watchConsumer γc received -∗ chanSentLb γc l0 -∗
+      ((∀ (v : WatchResponse) (ok : Bool), watchRecvResult γ γc received v ok -∗ Φ v ok) ∧
+        (watchConsumer γc received -∗ ⌜l0 <+: received⌝ -∗ chanSentLb γc received -∗ Ψ)) -∗
+      nonblockingRecvAuAlt γc.ch WatchResponse Φ Ψ := by
+  iintro #Hinv Hcons #Hl0 HK
+  unfold nonblockingRecvAuAlt
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold watchChanInv at Hi
+  iNamed Hi
+  unfold watchConsumer
+  ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hcons Hrecv
+  subst Heq
+  ihave %Hcv := ownChan_cap_valid _ _ _ $$ Hch
+  iexists s
+  iframe Hch
+  rcases s with (_ | ⟨v, rest⟩) | _ | _ | _ | _ | _ | (_ | ⟨v, rest⟩)
+  all_goals dsimp only
+  case Idle => simp [ChanCapValid] at Hcv; omega
+  case SndPending => simp [chanInflight] at Hinfl
+  case RcvPending => simp [ChanCapValid] at Hcv; omega
+  case SndCommit => simp [ChanCapValid] at Hcv; omega
+  case RcvCommit => simp [ChanCapValid] at Hcv; omega
+  case Buffered.nil =>
+    icases HK with ⟨-, HΨ⟩
+    iintro Hch
+    simp only [chanInflight, Option.some.injEq] at Hinfl
+    subst Hinfl
+    ihave #Hvs' := Hvs
+    iunfold respsIs at Hvs'
+    icases Hvs' with ⟨%Hvl, -⟩
+    have hd : sent.drop received.length = [] := List.drop_eq_nil_of_le (by simp at Hvl; omega)
+    have hrs : sent = received := (prefix_drop_nil' Hpre hd).symm
+    icases mvcc.sentAuth_lb_valid _ γc sent L l0 $$ [$Hsentl $Hl0] with ⟨Hsentl, %Hlb⟩
+    icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hsnap⟩
+    imod Hmask with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    · inext
+      iunfold watchChanInv
+      iexists ChanState.Buffered [], sent, received, [], L
+      simp only [named, chanIsClosed, Bool.false_eq_true, ↓reduceIte]
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+      iframe #
+      ipureintro
+      exact ⟨Hpre, rfl, Hnd⟩
+    imodintro
+    iapply HΨ $$ Hcons
+    · ipureintro
+      rw [← hrs]; exact Hlb
+    rw [← hrs]; iexact Hsnap
+  case Buffered.cons =>
+    icases HK with ⟨HΦ, -⟩
+    iintro Hch
+    irevert Hcl Hws; simp only [chanIsClosed, Bool.false_eq_true, ↓reduceIte]; iintro Hcl Hws
+    simp only [chanInflight, Option.some.injEq] at Hinfl
+    subst Hinfl
+    imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
+      with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl]
+      with ⟨Hsentl, #Hcv, #Hra, #Hsl, %Hix⟩
+    imod Hmask with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    · inext
+      iunfold watchChanInv
+      iexists ChanState.Buffered rest, sent, received ++ [r], rest, L
+      simp only [named, chanIsClosed, Bool.false_eq_true, ↓reduceIte]
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+      iframe #
+      ipureintro
+      exact ⟨Hpre', rfl, Hnd⟩
+    imodintro
+    iapply HΦ
+    unfold watchRecvResult
+    simp only [↓reduceIte]
+    iexists r
+    unfold watchConsumer
+    iframe Hcons
+    iframe #
+    try (ipureintro; exact Hix)
+  case Closed.cons =>
+    icases HK with ⟨HΦ, -⟩
+    iintro Hch
+    irevert Hcl Hws; simp only [chanIsClosed, ↓reduceIte]; iintro Hcl Hws
+    simp only [chanInflight, Option.some.injEq] at Hinfl
+    subst Hinfl
+    imod watch_take γ γc _ received sent L v rest Hpre Hnd.2 $$ [$Hcons $Hrecv $Hvs $Hok $Hrf $Hpf $Hws]
+      with ⟨%r, Hcons, Hrecv, #Hrest, %Hpre', Hws, #Hr, #Hro, #Hrok, #Hrrf, #Hrpf⟩
+    icases recv_cov γ ch γc sent L received r Hpre' $$ [$Hinv $Hsentl]
+      with ⟨Hsentl, #Hcv, #Hra, #Hsl, %Hix⟩
+    imod Hmask with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    · inext
+      iunfold watchChanInv
+      iexists ChanState.Closed rest, sent, received ++ [r], rest, L
+      simp only [named, chanIsClosed, ↓reduceIte]
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+      iframe #
+      ipureintro
+      exact ⟨Hpre', rfl, Hnd⟩
+    imodintro
+    iapply HΦ
+    unfold watchRecvResult
+    simp only [↓reduceIte]
+    iexists r
+    unfold watchConsumer
+    iframe Hcons
+    iframe #
+    try (ipureintro; exact Hix)
+  case Closed.nil =>
+    icases HK with ⟨HΦ, -⟩
+    iintro Hch
+    imod Hmask with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    · inext
+      iunfold watchChanInv
+      iexists ChanState.Closed [], sent, received, vs, L
+      simp only [named, chanIsClosed, ↓reduceIte]
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+      iframe #
+      ipureintro
+      exact ⟨Hpre, Hinfl, Hnd⟩
+    imodintro
+    iapply HΦ
+    unfold watchRecvResult watchConsumer
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexact Hcons
+
+/-- **A snapshot of the channel's sent list** (unit W-K), from its invariant, with a later
+credit. -/
+theorem chan_sent_snapshot (γ : WsNames) (ch : Loc) (γc : WatchChanNames) :
+    ⊢ £ 1 -∗ inv watchN (watchChanInv (GF := GF) γ ch γc) ={⊤}=∗ ∃ l, chanSentLb γc l := by
+  iintro Hlc #Hinv
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  iunfold watchChanInv at Hi
+  icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
+  iNamed Hi
+  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+  · inext
+    iunfold watchChanInv
+    iexists s, sent, recv, vs, L
+    simp only [named]
+    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+    iframe #
+    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
+  imodintro
+  iexists sent
+  iexact Hlb
+
+/-- **A snapshot after a registration** (K1b): the channel's sent list, at least as long as a
+registered watcher's registration index. -/
+theorem chan_sent_snapshot_reg (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (w : Loc) (n : Nat) :
+    ⊢ £ 1 -∗ inv watchN (watchChanInv (GF := GF) γ ch γc) -∗ chanRegAt γc w n ={⊤}=∗
+      ∃ l, chanSentLb γc l ∗ ⌜n ≤ l.length⌝ := by
+  iintro Hlc #Hinv #Hra
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  iunfold watchChanInv at Hi
+  icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
+  iNamed Hi
+  icases (persistent_entails_right (mvcc.sentAuth_reg_le (GF := GF) γ γc sent L w n))
+    $$ [$Hsentl $Hra] with ⟨%Hn, ⟨Hsentl, -⟩⟩
+  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+  · inext
+    iunfold watchChanInv
+    iexists s, sent, recv, vs, L
+    simp only [named]
+    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+    iframe #
+    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
+  imodintro
+  iexists sent
+  iframe Hlb
+  ipureintro; exact Hn
+
+/-- **What the consumer received was sent** (unit W-K): its received list is a snapshot of the
+channel's sent list, with a later credit. -/
+theorem watch_sent_received (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rcv : List RespM) :
+    ⊢ £ 1 -∗ inv watchN (watchChanInv (GF := GF) γ ch γc) -∗ watchConsumer γc rcv ={⊤}=∗
+      watchConsumer γc rcv ∗ chanSentLb γc rcv := by
+  iintro Hlc #Hinv Hcons
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  iunfold watchChanInv at Hi
+  icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
+  iNamed Hi
+  unfold watchConsumer
+  ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hcons Hrecv
+  subst Heq
+  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
+  iunfold chanSentLb at Hlb
+  ihave #Hlb' := monoListLbOwn_le (γ := γc.sentl) rcv Hpre $$ Hlb
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+  · inext
+    iunfold watchChanInv
+    iexists s, sent, rcv, vs, L
+    simp only [named]
+    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+    iframe #
+    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
+  imodintro
+  iframe Hcons
+  unfold chanSentLb; iexact Hlb'
 
 end proof
 

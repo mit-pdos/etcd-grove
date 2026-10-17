@@ -22,6 +22,8 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseStart
 
 @[expose] public section
 
@@ -134,9 +136,12 @@ instance ctxCanceledPtr_persistent : Persistent (ctxCanceledPtr (GF := GF)) := b
   unfold ctxCanceledPtr; infer_instance
 
 /-- The package's facts: the error map, the checks' errors, the sort-name maps,
-`context.Canceled`, and (unit P3b) what the quota wrapper and the interceptors read. -/
+`context.Canceled`, (unit P3b) what the quota wrapper and the interceptors read, and (item 8,
+2026-10-17: until then premises of `getServerMetrics` and `Server`) `metricsServerLock` and what it
+guards (`metricsVars`) and `etcdserverpb`'s six `ServiceDesc`s (`svcDescsOk`). -/
 abbrev v3rpcInit : IProp GF :=
-  iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr ∗ interceptorVars)
+  iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr ∗ interceptorVars ∗
+    EtcdGrove.v3rpc.metricsVars ∗ EtcdGrove.v3rpc.svcDescsOk)
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
@@ -148,5 +153,6 @@ instance get_isPkgInit_wf_inst :
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
 end init
+
 
 end Perennial

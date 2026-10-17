@@ -61,12 +61,12 @@ theorem mvcc.isWatchable_store
     · iframe Hpkg Hws HIW HR
     inext; iintro HR; iapply HΦ; iexact HR
   isplitr
-  · iintro !> %m %dq %M %γc !> %Φ ⟨Hm, #HIW, #Hpf, HR⟩ HΦ
+  · iintro !> %m %dq %M %γc %o %ch %L !> %Φ ⟨Hm, #HIW, #Hpf, HPC, HR⟩ HΦ
     have hR : (mvcc.storeWatchParams (GF := GF) s st γ).R = mvcc.watchReader (GF := GF) s st γ := rfl
     rw [hR]
-    iapply (hProgAll s st γ m dq M γc) $$ [Hm HR] [HΦ]
-    · iframe Hpkg Hws HIW Hpf Hm HR
-    inext; iintro %b ⟨Hm, HR⟩; iapply HΦ; iframe Hm; iexact HR
+    iapply (hProgAll s st γ m dq M γc o ch L) $$ [Hm HPC HR] [HΦ]
+    · iframe Hpkg Hws HIW Hpf Hm HPC HR
+    inext; iintro %b ⟨Hm, HPC, HR⟩; iapply HΦ; iframe Hm HPC; iexact HR
   · iintro !> !> %Φ HR HΦ
     simp only [mvcc.storeWatchParams]
     iunfold mvcc.watchReader at HR
@@ -85,7 +85,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     (hProgAll : mvcc.watchableStore.progressAll.spec (GF := GF) (hG := hG))
     (hRev : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) := by
-  intro s st γ Q
+  intro s st γ Q Ψ
   wp_start as #Hws
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -110,8 +110,11 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   -- the stream's id map (the channel's) and the progress fact `Q`
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
   imod (saved_prop_alloc (GF := GF) Q DFrac.discard DFrac.valid_discard) with ⟨%γp, #Hsp⟩
-  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp⟩
-  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg] with #Hinv
+  imod mono_list_own_alloc (GF := GF) ([] : List mvcc.RespM) with ⟨%γsl, Hsl, -⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Nat) with ⟨%γri, Hri⟩
+  imod (saved_pred_alloc (GF := GF) Ψ DFrac.discard DFrac.valid_discard) with ⟨%γrs, #Hrs⟩
+  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl, γri, γrs⟩
+  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg Hsl Hri] with #Hinv
   · inext
     iunfold mvcc.watchChanInv
     iexists ChanState.Buffered [], [], [], [], []
@@ -140,11 +143,21 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     isplitr
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitl [Hsl Hri]
+    · iunfold mvcc.sentAuth
+      iframe Hsl
+      iexists ∅
+      iframe Hri
+      isplitr
+      · ipureintro
+        exact ⟨fun w h => by simp [GMap.lookup_empty] at h, fun w n h => by simp [GMap.lookup_empty] at h,
+          fun w n k x h => by simp [GMap.lookup_empty] at h, fun k x h => by simp at h⟩
+      iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γf, Hidf⟩
-  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf, γp⟩
+  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf, γp, γsl, γrs, γri⟩
   imod sync.init_Mutex (mvcc.watchStreamInv wsl (mvcc.storeWatchParams s st γ) ch γc γo) ⊤
     (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids Hidf]
     with #Hmu
@@ -187,16 +200,16 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   iexists γo, ch, γc
   iunfold mvcc.watchStreamOpen
   iunfold mvcc.watchConsumer
-  iframe Htok Hrecv2 Hch Hinv ch Hsp
+  iframe Htok Hrecv2 Hch Hinv ch Hsp Hrs
   isplitr
   rotate_left
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, by rw [Hcap]; decide⟩
   iunfold mvcc.isWatchStream
   iexists ch, γc
   simp only [named]
   iframe watchable ch Hwable Hmu
   isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · simp only [mvcc.storeWatchParams]; itrivial
   iintro !> %L !> %Φ' H HΦ'

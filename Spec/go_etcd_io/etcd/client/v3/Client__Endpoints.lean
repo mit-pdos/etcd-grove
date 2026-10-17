@@ -1,7 +1,8 @@
 /-
 `c.Endpoints()` (`client/v3/client.go`, names only; unit P3a): a copy of the endpoints, read
 under `c.epMu`'s read lock (whose bounded reader slots a persistent interceptor cannot hold: the
-reason it is not proved).
+reason it is not proved). (Item 5, client construction, 2026-10-17: the copy is a new slice,
+of the endpoints `c.endpoints` holds when they are fixed: `dialWithBalancer` reads its first.)
 -/
 module
 
@@ -30,7 +31,11 @@ abbrev Client.Endpoints.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Endpoints"))
       (Val #()))
-  {{ (sl : GoSlice), RET #sl; True }}
+  {{ (sl : GoSlice), RET #sl; ∃ eps : List GoString, sl ↦* eps ∗
+      -- (item 5) the endpoints, when the field and its slice are read-only
+      (∀ (esl : GoSlice) (eps0 : List GoString),
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"endpoints" c ↦□ esl -∗
+        esl ↦*□ eps0 -∗ ⌜eps = eps0⌝) }}
 
 end spec
 

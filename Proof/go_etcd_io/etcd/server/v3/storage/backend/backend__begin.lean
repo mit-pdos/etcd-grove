@@ -39,17 +39,19 @@ theorem backend.backend.begin.wp_proof
     (hStats : bbolt.DB.Stats_kv.spec (GF := GF) (hG := hG))
     (hInfo : bbolt.DB.Info_kv.spec (GF := GF) (hG := hG)) :
     backend.backend.begin.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b db D w
+  intro γd b db D w
   wp_start as ⟨#Hb, Hmu, Hown, Hwr⟩
-  icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db0, %lg, #-, #-, #Hlg, %Hlgn, #Hmi, #-⟩
+  ihave #Hc : beginCtx b $$ [Hb]
+  · iexact Hb
+  iunfold beginCtx at Hc
+  icases Hc with ⟨%lg, #Hlg, %Hlgn, #Hmi⟩
   wp_auto
   wp_apply sync.RWMutex.wp_RLock $$ [$Hmu] as ⟨Hrl, >Hdbp⟩
-  wp_apply (hUB γ P W Pk b db sync.rfrac D w) $$ [$Hdbp $Hown $Hwr] as %tx ⟨Hdbp, Hown, #Hisdb, #Htxdb, Htx⟩
+  wp_apply (hUB γd b db sync.rfrac D w) $$ [$Hdbp $Hown $Hwr] as %tx ⟨Hdbp, Hown, #Hisdb, #Htxdb, Htx⟩
   · iframe #
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hdbp] as Hmu
   · inext; iexact Hdbp
-  ihave Hl : (txLive tx 1 ∗ (txLive tx 1 -∗ (if w then ownWTx tx γ.db D D else
+  ihave Hl : (txLive tx 1 ∗ (txLive tx 1 -∗ (if w then ownWTx tx γd D D else
       iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)))) $$ [Htx]
   · cases w
     · simp only [Bool.false_eq_true, ↓reduceIte]

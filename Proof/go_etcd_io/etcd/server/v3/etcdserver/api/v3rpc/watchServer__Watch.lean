@@ -81,8 +81,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply hNWS R.wsl R.E.s R.γ (v3rpc.progQ γs) $$ [] as %wsp ⟨%γo, %ch, %γc, #Hwstream, #Hwch,
-    #Hch, #Hchinv, Hopen, Hcons, %Hγoc, #Hsp⟩
+  wp_apply hNWS R.wsl R.E.s R.γ (v3rpc.progQ γs) (v3rpc.cancelQ γs) $$ [] as %wsp
+    ⟨%γo, %ch, %γc, #Hwstream, #Hwch, #Hch, #Hchinv, Hopen, Hcons, %Hγoc5, #Hsp, #Hcq⟩
   · iframe #
   -- the run's answer tokens, and the stream's auxiliary name (the watch slice's unit W-C)
   imod v3rpc.ansPool_alloc (GF := GF) with ⟨%γa, HPool⟩
@@ -138,6 +138,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") (v3rpc.swsF sws_ptr go!"wg") $$ wg
     with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   imod sync.join.init (v3rpc.swsF sws_ptr go!"wg") γwg $$ [$HisWg $Hctr $Hwaiters] with Hadd
+  have Hγoc : γo.ids = γc.ids ∧ γo.prog = γc.prog ∧ γo.sentl = γc.sentl ∧
+      0 < sint.Z γc.ch.chanCap := ⟨Hγoc5.1, Hγoc5.2.1, Hγoc5.2.2.1, Hγoc5.2.2.2.2.2⟩
   let r : v3rpc.WRun GF := ⟨R, st, γs, Up, Dn, ci, cd, wsp, γo, γa, ch, γc, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
   ihave #Hsws : v3rpc.swsIs sws_ptr r $$ []
   · iunfold v3rpc.swsIs
@@ -147,7 +149,9 @@ theorem v3rpc.watchServer.Watch.wp_proof
     have hP : v3rpc.ctrlP r = P' := by funext k l; rfl
     rw [hP]
     iframe Hspsc
-    ipureintro; exact Hγoc
+    isplitr
+    · ipureintro; exact Hγoc
+    ipureintro; exact ⟨Hγoc5.2.2.2.2.1, Hγoc5.2.2.2.1⟩
   iunfold v3rpc.watchRunSlot at Hslot
   icases Hslot with ⟨Hrres, Hsres⟩
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)

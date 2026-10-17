@@ -1,6 +1,7 @@
 # Types and names only: the type of `clientv3.Client`'s field `resolver`
-# (`*EtcdManualResolver`).
-translate = ["!*"]
+# (`*EtcdManualResolver`); (item 5, client construction) the scheme `Schema`, which
+# `clientv3`'s `dial` puts in the target.
+translate = ["!*", "Schema"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

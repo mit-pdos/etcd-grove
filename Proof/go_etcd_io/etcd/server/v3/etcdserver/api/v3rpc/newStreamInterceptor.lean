@@ -74,7 +74,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   wp_start as ⟨#Hmid, #Hlead, #Hcl, #Hrc', #Hkept, Hgr, Hlg, #Hst, #Hstc, #Htm, #Het, #Hnrl⟩
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, -, #Hiv⟩
+  icases Hinit with ⟨-, -, -, -, #Hiv, -, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorVars at Hiv
   icases Hiv with ⟨#HeNS, #HeNC, #HeNL, #HeIV, #HeNoL, ⟨%kv, #Hkv⟩, ⟨%kl, #Hkl⟩,
     ⟨%hl, #Hhl⟩, ⟨%cv, #Hcv⟩⟩

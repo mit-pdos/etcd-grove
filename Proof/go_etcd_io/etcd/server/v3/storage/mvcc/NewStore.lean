@@ -121,7 +121,7 @@ theorem mvcc.NewStore.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hsched : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []

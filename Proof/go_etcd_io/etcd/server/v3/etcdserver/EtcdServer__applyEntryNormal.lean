@@ -542,7 +542,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       have Har0 : ar ≠ null := Hif
       ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Perrs
-      icases Hei with ⟨%ens, #Hens, %Hensp⟩
+      icases Hei with ⟨⟨%ens, #Hens, %Hensp⟩, -⟩
       (try wp_auto)
       ihave #HerrT := applyErrIs_tree err $$ HerrIs
       ihave ⟨%S, %M, #Htree, %HS⟩ := HerrT $$ %(GoInterface.ok ens)

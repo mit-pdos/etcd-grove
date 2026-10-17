@@ -307,7 +307,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         rw [hrw]
         iframe
         isplitr
-        · iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HndC
+        · iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact ⟨HndC.1, HndC.2.1⟩
         ipureintro; omega
       isplitl [Hcr Hq]
       · iunfold mvcc.compactRight
@@ -318,12 +318,17 @@ theorem mvcc.store.updateCompactRev.wp_proof
       ihave %Hnd' : ⌜mvcc.NoDelPutAt log (sint.Z rev)⌝ $$ []
       · iapply mvcc.crevSafe_cert γ (sint.Z rev) log hrl $$ [Hcert]
         iframe Hcert
-        iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HndC
+        iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact ⟨HndC.1, HndC.2.1⟩
       iunfold mvcc.compactJobPre
       iframe #
       isplitr
       · ipureintro; exact hcmp
-      ipureintro; exact ⟨by omega, hrl, Hnd'⟩
+      -- the caller's `CompactSmall`, for the committed log (both certified: prefix order)
+      ihave %Hpre : ⌜log <+: logc ∨ logc <+: log⌝ $$ []
+      · iapply mvcc.idxCert_prefix $$ [Hcert HcertC]
+        iframe Hcert HcertC
+      ipureintro
+      exact ⟨by omega, hrl, Hnd', mvcc.CompactSmall_of_prefix (by omega) (Or.symm Hpre) HndC.1 hrl HndC.2.2⟩
 
 end proof
 

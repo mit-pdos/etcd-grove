@@ -22,17 +22,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.progressAll(m)`: the `watchable` contract's `progressAll` (`progressIfSync` with
-`InvalidWatchID`). -/
+`InvalidWatchID`), lent the stream's `progCompl` (K1b). -/
 abbrev mvcc.watchableStore.progressAll.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (m : Loc) (dq : DFrac) (M : GMap w64 Loc)
-    (γc : mvcc.WatchChanNames),
+    (γc : mvcc.WatchChanNames) (o : Bool) (ch : GoChan) (L : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ m ↦${dq} M ∗
       □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ (mvcc.storeWatchParams s st γ).IW w ∗
         (mvcc.storeWatchParams s st γ).OC w γc) ∗
-      mvcc.progFact γc.prog ∗ mvcc.watchReader s st γ }}
+      mvcc.progFact γc.prog ∗ mvcc.progCompl (mvcc.storeWatchParams s st γ) γc M o ch L ∗
+      mvcc.watchReader s st γ }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"progressAll")) (Val #m))
-  {{ (b : Bool), RET #b; m ↦${dq} M ∗ mvcc.watchReader s st γ }}
+  {{ (b : Bool), RET #b; m ↦${dq} M ∗ mvcc.progCompl (mvcc.storeWatchParams s st γ) γc M o ch L ∗
+      mvcc.watchReader s st γ }}
 
 end spec
 
