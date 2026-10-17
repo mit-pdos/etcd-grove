@@ -239,21 +239,28 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     have hc0d : c0 ∈ L.drop (sint.nat n) := by rw [hdrop]; exact List.mem_cons_self
     have hdisj := List.pairwise_cons.1 (HL.disj.sublist (hdrop ▸ List.drop_sublist _ _))
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
-    wp_if_destruct
-    all_goals (try wp_auto)
     have hsub : sint.Z (W64 ((C.length : Int) - 1) - c0.minRev) =
         (C.length : Int) - 1 - sint.Z c0.minRev := by rw [← hcur]; word
+    wp_if_destruct
+    all_goals (try wp_auto)
     all_goals first
-      | (generalize hm : c0.minRev + W64 1000 + W64 1 = m at *
+      | (have _hbig : sint.Z (W64 1000 : w64) <
+            sint.Z (W64 ((C.length : Int) - 1) - c0.minRev) := Hif
+         generalize hm : c0.minRev + W64 1000 + W64 1 = m at *
          have hmF : sint.Z c0.minRev < sint.Z m ∧ sint.Z m ≤ C.length ∧
-             (sint.Z m = C.length ∨ sint.Z m = sint.Z c0.minRev + 1001) := by
+             (sint.Z m = C.length ∨ sint.Z m = sint.Z c0.minRev + 1001) ∧
+             sint.Z m ≤ sint.Z c0.minRev + 1001 := by
            rw [hsub, h1000] at Hif
-           rw [← hm]; refine ⟨by word, by word, Or.inr (by word)⟩
+           rw [← hm]; refine ⟨by word, by word, Or.inr (by word), by word⟩
          clear hm)
-      | (generalize hm : W64 ((C.length : Int) - 1) + W64 1 = m at *
+      | (have _hsmall : ¬ sint.Z (W64 1000 : w64) <
+            sint.Z (W64 ((C.length : Int) - 1) - c0.minRev) := Hif
+         generalize hm : W64 ((C.length : Int) - 1) + W64 1 = m at *
          have hmF : sint.Z c0.minRev < sint.Z m ∧ sint.Z m ≤ C.length ∧
-             (sint.Z m = C.length ∨ sint.Z m = sint.Z c0.minRev + 1001) := by
-           rw [← hm]; refine ⟨by word, by word, Or.inl (by word)⟩
+             (sint.Z m = C.length ∨ sint.Z m = sint.Z c0.minRev + 1001) ∧
+             sint.Z m ≤ sint.Z c0.minRev + 1001 := by
+           rw [hsub, h1000] at Hif
+           rw [← hm]; refine ⟨by word, by word, Or.inl (by word), by word⟩
          clear hm)
     all_goals
       rw [hdrop]
@@ -262,7 +269,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         $$ [$HrtR $HbucketQ $HlogQ $HP $Hc0g] as ⟨%σ', HrtR, HbucketQ, HlogQ, HP, %Hfr⟩
       · iframe #
         ipureintro
-        refine ⟨HneQ, hClt, hc0lo, by omega, hmF.2.1, ?_, fun w r hw => ?_, fun w st hw hs => ?_⟩
+        refine ⟨HneQ, hClt, hc0lo, by omega, hmF.2.1, ?_, fun w r hw => ?_, fun w st hw hs => ?_, ?_⟩
         · obtain ⟨w, st, hw, -, -⟩ := HL.anchor c0 hc0mem; exact ⟨w, hw⟩
         · rw [(Hn.2.2.2 c0 hc0d w (by rw [hw]; rfl)).1]
           exact hW'Wu w r (HL.sub c0 hc0mem w r hw)
@@ -274,7 +281,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           have hwin := HL.window c0 hc0mem w st' hw h1
           have hb := Hbd w st' h2 (by rw [hW'Wu w r hwW']; rfl)
           refine ⟨hwin.1, ?_⟩
-          rcases hmF.2.2 with h | h <;> omega
+          rcases hmF.2.2.1 with h | h <;> omega
+        · -- the scan's bound: `watchBatchMaxRevs + 1` revisions
+          exact hmF.2.2.2
       wp_for_post
       iframe
       iexists n + W64 1, _, σ'

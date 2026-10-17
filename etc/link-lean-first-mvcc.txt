@@ -197,7 +197,12 @@ time_Time__Unix:
 store__Close:
 kvsToEvents: proto_Unmarshal isTombstone BytesToRev watcherGroup__contains
 rangeEvents: NewRevBytes RevToBytes kvsToEvents
-watchableStore__syncWatchers: watcherGroup__size watcherGroup__choose rangeEvents newWatcherBatch watcher__send watcherGroup__add watcherGroup__delete watchableStore__addVictim
+# etcd-io/etcd#22304 (pr-verify/etcd-22304): syncWatchers scans per cohort of watchers;
+# `sort.Slice` (cohortsByRevision's sort) is the trust boundary (Spec/sort/Slice.lean).
+sort_Slice:
+cohortsByRevision: sort_Slice newWatcherGroup watcherGroup__add
+watchableStore__syncWatcherCohort: rangeEvents newWatcherBatch watcher__send watcherGroup__add watcherGroup__delete watchableStore__addVictim
+watchableStore__syncWatchers: watcherGroup__size watcherGroup__choose cohortsByRevision watchableStore__syncWatcherCohort
 watchableStore__moveVictims: watcher__send watcherGroup__add
 watchableStore__syncWatchersLoop: time_NewTicker time_Ticker__Stop watcherGroup__size watchableStore__syncWatchers time_Since time_Ticker__Reset
 watchableStore__syncVictimsLoop: watchableStore__moveVictims

@@ -77,7 +77,7 @@ theorem mvcc.watchableStore.syncWatcherCohort.wp_proof
   have hDelG := mvcc.watcherGroup.delete.spec_group hDel
   intro s st γ σ C g W' minRev maxScanRev
   wp_start as ⟨#Hws, HrtR, #HfrzR, HbucketQ, #HcertQ, #HokQ, HlogQ, HP, Hg, %Hpre⟩
-  obtain ⟨HneQ, hClt, hmin0, hminmax, hmaxC, hW'ne, hW'Wu, hW'b⟩ := Hpre
+  obtain ⟨HneQ, hClt, hmin0, hminmax, hmaxC, hW'ne, hW'Wu, hW'b, -⟩ := Hpre
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   iunfold mvcc.isWatchableStore at Hws

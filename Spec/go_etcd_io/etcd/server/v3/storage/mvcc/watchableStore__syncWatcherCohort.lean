@@ -28,7 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 watchable store's inner store is never compacted, `crevFrozen`), and the read side's parts the
 scan needs (the backend's read token `storeRT`, the bucket's view of `C`, the index's log). The
 cohort `wg` holds unsynced watchers `Wc`, each at or above `minRev` and below `maxScanRev`
-(`maxScanRev ≤ len(C)`).
+(`maxScanRev ≤ len(C)`). **The scan is bounded**: `maxScanRev - minRev ≤ watchBatchMaxRevs + 1`
+(`1001`), the PR's purpose; the proof of this function does not need it, `syncWatchers`' proof
+establishes it at each call.
 
 It scans `[minRev, maxScanRev)` (`rangeEvents`) and hands each member its events from its own
 `minRev`: a member with none becomes synced if the scan reached the current revision
@@ -53,7 +55,8 @@ abbrev mvcc.watchableStore.syncWatcherCohort.spec : Prop :=
         (∃ w, (Wc !! w).isSome) ∧
         (∀ w r, Wc !! w = some r → σ.Wu !! w = some r) ∧
         (∀ w st, (Wc !! w).isSome → σ.ST !! w = some st →
-          sint.Z minRev ≤ sint.Z st.minRev ∧ sint.Z st.minRev < sint.Z maxScanRev)⌝ }}
+          sint.Z minRev ≤ sint.Z st.minRev ∧ sint.Z st.minRev < sint.Z maxScanRev) ∧
+        sint.Z maxScanRev ≤ sint.Z minRev + 1001⌝ }}
     (App (App (App (App (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!!
         go!"syncWatcherCohort")) (Val #wg)) (Val #minRev)) (Val #maxScanRev))
         (Val #(W64 ((C.length : Int) - 1)))) (Val #(W64 (-1))))

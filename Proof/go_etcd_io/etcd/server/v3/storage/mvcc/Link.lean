@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedComp
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.cohortsByRevision
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
@@ -79,6 +80,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__IsSafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__Name
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__String
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit
+public import Proof.sort.Slice
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev
@@ -154,6 +156,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progr
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncVictimsLoop
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatcherCohort
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch
@@ -300,6 +303,30 @@ theorem mvcc.wp_UnsafeReadScheduledCompact :
     mvcc.UnsafeReadScheduledCompact.spec (GF := GF) (hG := hG) :=
   mvcc.UnsafeReadScheduledCompact.wp_proof mvcc.wp_BytesToRev
 
+theorem sort.wp_Slice :
+    sort.Slice.spec (GF := GF) (hG := hG) :=
+  sort.Slice.wp_proof
+
+theorem mvcc.wp_newWatcherGroup :
+    mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) :=
+  mvcc.newWatcherGroup.wp_proof adt.wp_NewIntervalTree
+
+theorem mvcc.watcherSet.wp_add :
+    mvcc.watcherSet.add.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSet.add.wp_proof
+
+theorem mvcc.watcherSetByKey.wp_add :
+    mvcc.watcherSetByKey.add.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSetByKey.add.wp_proof mvcc.watcherSet.wp_add
+
+theorem mvcc.watcherGroup.wp_add :
+    mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Insert
+
+theorem mvcc.wp_cohortsByRevision :
+    mvcc.cohortsByRevision.spec (GF := GF) (hG := hG) :=
+  mvcc.cohortsByRevision.wp_proof sort.wp_Slice mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add
+
 theorem mvcc.eventBatch.wp_add :
     mvcc.eventBatch.add.spec (GF := GF) (hG := hG) :=
   mvcc.eventBatch.add.wp_proof
@@ -420,25 +447,9 @@ theorem mvcc.wp_sliceCapWithLimit :
     mvcc.sliceCapWithLimit.spec (GF := GF) (hG := hG) :=
   mvcc.sliceCapWithLimit.wp_proof
 
-theorem mvcc.wp_newWatcherGroup :
-    mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) :=
-  mvcc.newWatcherGroup.wp_proof adt.wp_NewIntervalTree
-
 theorem mvcc.watcherGroup.wp_size :
     mvcc.watcherGroup.size.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.size.wp_proof
-
-theorem mvcc.watcherSet.wp_add :
-    mvcc.watcherSet.add.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSet.add.wp_proof
-
-theorem mvcc.watcherSetByKey.wp_add :
-    mvcc.watcherSetByKey.add.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSetByKey.add.wp_proof mvcc.watcherSet.wp_add
-
-theorem mvcc.watcherGroup.wp_add :
-    mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Insert
 
 theorem mvcc.watcherGroup.wp_chooseAll :
     mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
@@ -691,9 +702,13 @@ theorem mvcc.watchableStore.wp_addVictim :
     mvcc.watchableStore.addVictim.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.addVictim.wp_proof
 
+theorem mvcc.watchableStore.wp_syncWatcherCohort :
+    mvcc.watchableStore.syncWatcherCohort.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.syncWatcherCohort.wp_proof mvcc.wp_rangeEvents mvcc.wp_newWatcherBatch mvcc.watcher.wp_send mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_delete mvcc.watchableStore.wp_addVictim
+
 theorem mvcc.watchableStore.wp_syncWatchers :
     mvcc.watchableStore.syncWatchers.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchers.wp_proof mvcc.watcherGroup.wp_size mvcc.watcherGroup.wp_choose mvcc.wp_rangeEvents mvcc.wp_newWatcherBatch mvcc.watcher.wp_send mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_delete mvcc.watchableStore.wp_addVictim
+  mvcc.watchableStore.syncWatchers.wp_proof mvcc.watcherGroup.wp_size mvcc.watcherGroup.wp_choose mvcc.wp_cohortsByRevision mvcc.watchableStore.wp_syncWatcherCohort
 
 theorem time.wp_Since :
     time.Since.spec (GF := GF) (hG := hG) :=
