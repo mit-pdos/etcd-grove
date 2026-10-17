@@ -111,6 +111,7 @@ instance watcherStream_typed_pointsto :
     "donec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"donec" l) v.donec' dq ∗
     "closing" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"closing" l) v.closing' dq ∗
     "id" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) v.id' dq ∗
+    "key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"key" l) v.key' dq ∗
     "buf" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) v.buf' dq ∗
     "bufLogger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) v.bufLogger' dq ∗
     "bufWaitStartTime" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' dq ∗
@@ -216,6 +217,22 @@ instance watcherStream_access_store_id (l : Loc) (v : go_etcd_io.etcd.client.v3.
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) id' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : go_etcd_io.etcd.client.v3.watcherStream) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"key" l) v.key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (key' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"key" l) v.key' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"key" l) key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : go_etcd_io.etcd.client.v3.watcherStream) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

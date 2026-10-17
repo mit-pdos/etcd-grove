@@ -968,10 +968,13 @@ instance watchGRPCStream_typed_pointsto :
     "resuming" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"resuming" l) v.resuming' dq ∗
     "reqc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"reqc" l) v.reqc' dq ∗
     "respc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"respc" l) v.respc' dq ∗
+    "sendCreatec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendCreatec" l) v.sendCreatec' dq ∗
+    "sendBestEffortc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendBestEffortc" l) v.sendBestEffortc' dq ∗
     "donec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"donec" l) v.donec' dq ∗
     "errc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"errc" l) v.errc' dq ∗
     "closingc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"closingc" l) v.closingc' dq ∗
     "wg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"wg" l) v.wg' dq ∗
+    "sendWg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendWg" l) v.sendWg' dq ∗
     "resumec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"resumec" l) v.resumec' dq ∗
     "closeErr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"closeErr" l) v.closeErr' dq ∗
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"lg" l) v.lg' dq ∗
@@ -1144,6 +1147,38 @@ instance watchGRPCStream_access_store_respc (l : Loc) (v : go_etcd_io.etcd.clien
  by
   solve_pointsto_access_struct
 
+instance watchGRPCStream_access_load_sendCreatec (l : Loc) (v : go_etcd_io.etcd.client.v3.watchGRPCStream) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendCreatec" l) v.sendCreatec' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendCreatec" l) v.sendCreatec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watchGRPCStream_access_store_sendCreatec (l : Loc) (v : go_etcd_io.etcd.client.v3.watchGRPCStream) (sendCreatec' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendCreatec" l) v.sendCreatec' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendCreatec" l) sendCreatec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendCreatec' := sendCreatec' } : go_etcd_io.etcd.client.v3.watchGRPCStream) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watchGRPCStream_access_load_sendBestEffortc (l : Loc) (v : go_etcd_io.etcd.client.v3.watchGRPCStream) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendBestEffortc" l) v.sendBestEffortc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendBestEffortc" l) v.sendBestEffortc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watchGRPCStream_access_store_sendBestEffortc (l : Loc) (v : go_etcd_io.etcd.client.v3.watchGRPCStream) (sendBestEffortc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendBestEffortc" l) v.sendBestEffortc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendBestEffortc" l) sendBestEffortc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendBestEffortc' := sendBestEffortc' } : go_etcd_io.etcd.client.v3.watchGRPCStream) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 instance watchGRPCStream_access_load_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.watchGRPCStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"donec" l) v.donec' dq)
@@ -1205,6 +1240,22 @@ instance watchGRPCStream_access_store_wg (l : Loc) (v : go_etcd_io.etcd.client.v
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"wg" l) wg' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wg' := wg' } : go_etcd_io.etcd.client.v3.watchGRPCStream) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watchGRPCStream_access_load_sendWg (l : Loc) (v : go_etcd_io.etcd.client.v3.watchGRPCStream) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendWg" l) v.sendWg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendWg" l) v.sendWg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watchGRPCStream_access_store_sendWg (l : Loc) (v : go_etcd_io.etcd.client.v3.watchGRPCStream) (sendWg' : sync.WaitGroup) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendWg" l) v.sendWg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watchGRPCStream go!"sendWg" l) sendWg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendWg' := sendWg' } : go_etcd_io.etcd.client.v3.watchGRPCStream) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

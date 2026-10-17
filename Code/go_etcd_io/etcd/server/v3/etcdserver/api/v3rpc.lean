@@ -222,7 +222,7 @@ axiom snapshotSendBufferSize [FfiSyntax] [GoGlobalContext] : val
   #(W64 100000000)
 
 @[reducible] noncomputable def ctrlStreamBufLen [FfiSyntax] [GoGlobalContext] : val :=
-  #(16 : Int)
+  #(128 : Int)
 
 noncomputable def metricsServerLock [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.metricsServerLock"
@@ -2243,7 +2243,7 @@ noncomputable def SetProgressReportInterval.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GlobalVarAddr progressReportIntervalMu))) (Val #()))) (Val #()))))))))
 
-/-- go: watch.go:163:24 -/
+/-- go: watch.go:160:24 -/
 noncomputable def watchServer.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam "stream"
@@ -2375,7 +2375,7 @@ noncomputable def watchServer.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore serverWatchStream.ty))) (Pair (Var "sws") (Var "$r0")))))))))))))
 
-/-- go: watch.go:237:31 -/
+/-- go: watch.go:234:31 -/
 noncomputable def serverWatchStream.isWatchPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam "wcr"
@@ -2415,7 +2415,7 @@ noncomputable def serverWatchStream.isWatchPermitted.impl [FfiSyntax] [GoGlobalC
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Pair (Var "authInfo") (Var "$r0")))))))))))))))))
 
-/-- go: watch.go:249:31 -/
+/-- go: watch.go:246:31 -/
 noncomputable def serverWatchStream.recvLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam BAnon
@@ -2778,7 +2778,7 @@ noncomputable def serverWatchStream.recvLoop.impl [FfiSyntax] [GoGlobalContext] 
   (Lam BAnon
   (Val #())))))))
 
-/-- go: watch.go:411:31 -/
+/-- go: watch.go:408:31 -/
 noncomputable def serverWatchStream.sendLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam BAnon
@@ -3354,7 +3354,7 @@ noncomputable def serverWatchStream.sendLoop.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.GoType.StructType []))))) (Pair (Var "ids") (Var "$r0")))))))))))))
 
-/-- go: watch.go:605:6 -/
+/-- go: watch.go:602:6 -/
 noncomputable def IsCreateEvent.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (App (Val exceptionDo)
@@ -3362,7 +3362,7 @@ noncomputable def IsCreateEvent.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_PUT))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e")))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e")))))))) (Val #false))))))
 
-/-- go: watch.go:609:6 -/
+/-- go: watch.go:606:6 -/
 noncomputable def sendFragments.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wr"
   (Lam "maxRequestBytes"
@@ -3461,7 +3461,7 @@ noncomputable def sendFragments.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: watch.go:665:31 -/
+/-- go: watch.go:662:31 -/
 noncomputable def serverWatchStream.close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam BAnon
@@ -3480,7 +3480,7 @@ noncomputable def serverWatchStream.close.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchStream.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchStream.ty))) (App (Val (GoInstruction (StructFieldRef serverWatchStream.ty go!"watchStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverWatchStream.ty)))) (Var "sws"))))) (Val #())))))))))
 
-/-- go: watch.go:671:31 -/
+/-- go: watch.go:668:31 -/
 noncomputable def serverWatchStream.newResponseHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam "rev"
@@ -3495,7 +3495,7 @@ noncomputable def serverWatchStream.newResponseHeader.impl [FfiSyntax] [GoGlobal
   (Let "$v4" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter.ty go!"Leader"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter.ty))) (App (Val (GoInstruction (StructFieldRef serverWatchStream.ty go!"sg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverWatchStream.ty)))) (Var "sws"))))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ClusterId")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"MemberId")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Revision")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"RaftTerm")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"LeaderId")) (ElementExpression go.uint64 (Var "$v4")))]))))))))))))))
 
-/-- go: watch.go:681:6 -/
+/-- go: watch.go:678:6 -/
 noncomputable def filterNoDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (App (Val exceptionDo)
@@ -3503,7 +3503,7 @@ noncomputable def filterNoDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_DELETE)))))))
 
-/-- go: watch.go:685:6 -/
+/-- go: watch.go:682:6 -/
 noncomputable def filterNoPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (App (Val exceptionDo)
@@ -3513,7 +3513,7 @@ noncomputable def filterNoPut.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- FiltersFromRequest returns "mvcc.FilterFunc" from a given watch create request.
 
-    go: watch.go:690:6 -/
+    go: watch.go:687:6 -/
 noncomputable def FiltersFromRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "creq"
   (App (Val exceptionDo)
