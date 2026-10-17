@@ -1,0 +1,14 @@
+# etcd-io/etcd#22585 (leasing: clear the cached Count on delete): the changed function
+# `leaseCache.delete`, its callers (`leaseCache.Delete`, `txnLeasing.commitToCache`,
+# `leasingKV.delete`, `leasingKV.deleteRangeRPC`), and the functions whose specs carry the new
+# Count invariant (`leaseCache.Add`, `leaseCache.Get`, `leaseCache.Update`, `leasingKV.acquire`,
+# `leasingKV.get`, `leasingKV.Get`), and the leasing results (`Results.lean`).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22585.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/client/v3/leasing/(leaseCache__(delete|Delete|Add|Get|Update)|txnLeasing__commitToCache|leasingKV__(delete|deleteRangeRPC|acquire|get|Get))\.lean$
+roots ^Proof/go_etcd_io/etcd/client/v3/leasing/Results\.lean$
+axiom proto.Clone.wp_proof
+axiom status.FromError.wp_proof

@@ -192,7 +192,11 @@ theorem leasingKV.get.wp_proof
         let e0 : LeaseEntry := LeaseEntry.mk null hm.revision null rr hdr hm sl cs1 more
           (W64 (n : Int)) id (kvOf s o.key)
         have he0 : e0.rev = e0.hm.revision ∧ e0.acq = e0.kv ∧ e0.countOk := by
-          refine ⟨rfl, (keyGet_head o.key s cs1 Hwf Hok).symm, ?_⟩
+          refine ⟨rfl, (keyGet_head o.key s cs1 Hwf Hok).symm, ?_, ?_⟩
+          · show cs1.length ≤ 1
+            have hk := congrArg List.length (keyGet_kvs o.key s _ Hwf Hok)
+            rw [List.length_map] at hk
+            rw [hk]; cases kvOf s o.key <;> simp
           show W64 (n : Int) = W64 (cs1.length : Int)
           have hc := keyGet_count o.key s _ Hok
           rw [List.length_map] at hc

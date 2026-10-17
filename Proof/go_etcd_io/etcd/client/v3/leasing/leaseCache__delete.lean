@@ -81,7 +81,7 @@ theorem leaseCache.delete.wp_proof (hcopy : copyHeader.spec (GF := GF) (hG := hG
         · iapply ownSliceCap_nil
         iapply BigSepL.bigSepL_nil.2
         iempintro
-      ipureintro; rfl
+      ipureintro; exact ⟨by simp, rfl⟩
     · iapply HΦ
       iexists null
       have hdel : ∀ h', e.del h' hm = e := fun h' => by unfold LeaseEntry.del; rw [ite_eq_right Hif]
