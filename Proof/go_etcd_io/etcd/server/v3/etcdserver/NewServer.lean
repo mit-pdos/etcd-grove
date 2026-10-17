@@ -234,7 +234,7 @@ theorem NewServer.wp_proof
     (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hdcq Hpv0 Hbnd Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hpv0 Hbnd Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer

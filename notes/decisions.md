@@ -8136,7 +8136,15 @@ expands it by eye.
 
 ## The verified configuration turns `CheckQuorum` and `PreVote` off: a patched `bootstrap` (D15, temporary)
 
-**2026-10-17 · adopted (branch `raft-retarget`; the user's choice (b), a stopgap until (a) lands)**
+**2026-10-17 · adopted, then **reverted** the same day (branch `raft-retarget`; the user's choice (b), a stopgap until (a) lands)**
+
+**Reverted (2026-10-17, the user's decision once (a)'s `CheckQuorum` half was merged):** the patch
+only ever changed `CheckQuorum`, which the raft proof now covers (merge of `raft-checkquorum`,
+"`CheckQuorum` on"); `PreVote` comes from `cfg.PreVote` with no patch. So the etcd pin is back at
+`goose-lean` (`09669450f`; the translation identical to before D15), `ServerConfig.DisableCheckQuorum`
+is gone, `bootOk` states no `CheckQuorum` clause (the raft start result no longer reads it), and
+`NewServer.spec` keeps only `cfg.PreVote' = false`, a configuration etcd's code allows (embed's
+default is on). The fork branch `goose-lean-raft-cq-off` is no longer referenced.
 
 The raft start result (`NewRawNode.spec`, `bootstrappedRaft.newRaftNode.spec`) requires
 `CheckQuorum = false` and `PreVote = false`; etcd's `raftConfig` (`bootstrap.go:572`) sets

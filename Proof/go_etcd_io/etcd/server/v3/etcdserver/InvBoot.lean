@@ -6,10 +6,9 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
 
 * **`bootstrap`'s contract** (`bootstrapContract`, D13b) is a premise of `NewServer.spec`, a triple
   in its precondition, not an axiom. Its raft configuration is `raftConfig`'s (`bootstrap.go:572`)
-  of the patched fork (D15, temporary): `CheckQuorum` is `!cfg.DisableCheckQuorum` (etcd's own code
-  sets it `true`; the field, added by the patch, is off by default) and `PreVote` is `cfg.PreVote`;
-  `NewServer.spec` requires the configuration that turns both off, the only one the raft start
-  result (`NodeStartSpec`) covers. On success the bootstrapped record carries `bootOk`:
+  (`CheckQuorum: true`, covered by the raft start result since 2026-10-17; `PreVote` is
+  `cfg.PreVote`, which `NewServer.spec` requires off: the raft start result (`NodeStartSpec`) does
+  not cover pre-vote yet). On success the bootstrapped record carries `bootOk`:
   - the records `NewServer` reads (`b`, `b.storage`, `b.storage.backend`, `b.storage.wal`,
     `b.cluster`, `b.raft`);
   - `b.raft` with `NodeStartSpec`'s premises on it (the raft config valid, `CheckQuorum`/
@@ -114,7 +113,7 @@ and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` (its
-`DisableCheckQuorum` and `PreVote`, D15) for this node `id` of the cluster with
+`PreVote`) for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
 2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
