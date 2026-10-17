@@ -45,6 +45,23 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd-io/etcd#22562 verified: the hasher's filter (2026-10-16, branch `pr-verify/etcd-22562`, not for `lean`)
+
+The PR drops `kvHasher.WriteKeyValue`'s `len(h.keep) > 0` guard. `WriteKeyValue` stays at the
+trust boundary (`kvHasher` holds a crc32 `hash.Hash32`: no `hash` package in Perennial, so the
+type is axiomatized and the method's body cannot be loaded); the fork branch
+`pr-etcd-22562-goose-lean` splits the filter into `kvHashIncludes` (behavior unchanged), which is
+translated (`mvcc.toml`) and proved (`Spec/.../mvcc/kvHashIncludes.lean`). `HashFilter.lean`: the
+PR's filter makes `HashKV`'s and the compaction job's hashes agree (`hashIncl_keep_compact`) and
+not depend on the compaction's progress (`hashIncl_not_del`, under `NoDelPutAt`); the old filter
+does not (`hashInclOld_keep_compact_differ`); the PR changes the finished-compaction hash when
+nothing is kept (`hashInclOld_empty_ne`). Bug at the pin: `issues/etcd-hash-empty-keep.md`.
+Report: `notes/pr-verify/etcd-22562.md`. Perennial limitation: no model of `hash`/`hash/crc32`
+(a names-only `hash.Hash32` would let `kvHasher` be a real struct and the method's body be
+specified with an abstract hasher state); `wp_auto` did not step the first allocation of
+`kvHashIncludes` (`wp_bind` + `wp_alloc` by hand; not investigated).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -539,3 +539,4 @@ end Perennial
 #print axioms Perennial.EtcdGrove.mvcc.hash_filter_del
 #print axioms Perennial.EtcdGrove.mvcc.hashInclOld_keep_compact_differ
 #print axioms Perennial.EtcdGrove.mvcc.hashInclOld_empty_ne
+#print axioms Perennial.EtcdGrove.mvcc.hashIncl_keep_compact_logs

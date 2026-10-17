@@ -136,6 +136,48 @@ theorem hashIncl_keep_compact (log : Log) (c : Int) (rev : w64) (hc : c < sint.Z
   rw [hA r', hB r']
   exact keepOf_iff_keepAt log rev r' (by omega)
 
+
+/-- What `keep` at `c` keeps depends only on the log up to `c` (`kiAvail_prefix`'s twin). -/
+theorem kiKeep_prefix (log log' : Log) (hpre : log <+: log') (hb' : LogB log') (c : Int)
+    (hc0 : -1 ≤ c) (hc : c < log.length) (k : GoString) :
+    kiKeep (W64 c) (kiOfKey (evsOf log') k) = kiKeep (W64 c) (kiOfKey (evsOf log) k) := by
+  obtain ⟨t, rfl⟩ := hpre
+  revert hb'
+  refine snoc_induction (P := fun t => LogB (log ++ t) →
+    kiKeep (W64 c) (kiOfKey (evsOf (log ++ t)) k) = kiKeep (W64 c) (kiOfKey (evsOf log) k)) ?_ ?_ t
+  · intro _; rw [List.append_nil]
+  intro t cs ih hb
+  rw [← List.append_assoc] at hb ⊢
+  rw [evsOf_append, kiOfKey_eq_kiFold, kiFold_append, ← kiOfKey_eq_kiFold]
+  have hlen : (log ++ t).length + 1 < 2 ^ 63 := by have := hb.1; simp at this ⊢; omega
+  rw [kiKeep_fold _ k _ _ (kiOfKey_struct k _).1]
+  · exact ih hb.prefix
+  · intro e he
+    rw [evsOfRev_main _ cs e he]
+    have hcb : c < 2 ^ 63 := by simp at hlen; omega
+    have : sint.Z (W64 c) = c := by word
+    have h2 : sint.Z (W64 ((log ++ t).length : Int)) = (log ++ t).length := by word
+    rw [this, h2]; simp; omega
+
+/-- **`hashIncl_keep_compact` for the real situation**: `HashKV`'s `Keep(rev)` read of one log
+(the reader's), the compaction job's `Compact(rev)` of another (the job's, later or earlier), one
+a prefix of the other, both past `rev`. -/
+theorem hashIncl_keep_compact_logs (log₁ log₂ : Log) (hpre : log₁ <+: log₂ ∨ log₂ <+: log₁)
+    (hb₁ : LogB log₁) (hb₂ : LogB log₂) (c : Int) (rev : w64) (h0 : 0 ≤ sint.Z rev)
+    (hc : c < sint.Z rev) (h₁ : sint.Z rev < log₁.length) (h₂ : sint.Z rev < log₂.length)
+    (A B : GMap Revision Unit) (hA : keepOfIs A log₁ rev) (hB : keepSetIs B log₂ (sint.Z rev))
+    (r : Rev) (t : Bool) :
+    hashIncl c (sint.Z rev) (keptBy A) r t ↔ hashIncl c (sint.Z rev) (keptBy B) r t := by
+  have hw : W64 (sint.Z rev) = rev := by word
+  have hB' : keepSetIs B log₁ (sint.Z rev) := by
+    intro r'
+    rw [hB r']
+    unfold keepAt
+    rcases hpre with hp | hp
+    · simp only [kiAvail_prefix log₁ log₂ hp hb₂ (sint.Z rev) (by omega) h₁]
+    · simp only [kiAvail_prefix log₂ log₁ hp hb₁ (sint.Z rev) (by omega) h₂]
+  exact hashIncl_keep_compact log₁ c rev hc A B hA hB' r t
+
 /-! ### What compaction may delete is not hashed -/
 
 /-- What `keep` at `rev` keeps of a key at or below `c ≤ rev`, compaction at `c` keeps, when

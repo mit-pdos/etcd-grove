@@ -54,9 +54,14 @@ links:
 - **Possible fixes**: #22562 (drop the `len(h.keep) > 0` guard) fixes both, but changes the hash
   that versions before it return after a finished compaction whenever `Keep(rev)` is empty and a
   revision at or below the compaction revision is stored (a key live at the compaction revision,
-  deleted after it): a mixed-version cluster would then raise false `CORRUPT` alarms (#22515's
-  case "every key deleted after the compact revision" fails on #22562). #22515 keeps that hash but
+  deleted after it, i.e. a nearly empty keyspace): in a mixed-version cluster `HashKV` then
+  differs on identical data (#22515's case "every key deleted after the compact revision" fails
+  on #22562), which the opt-in corruption checks report: `PeriodicCheck` (`--corrupt-check-time`,
+  default off) raises `CORRUPT`, `InitialCheck` (gate `InitialCorruptCheck`, default off) keeps a
+  restarted member from starting, `CompactHashCheck` (gate `CompactHashCheck`, alpha) only when
+  `Compact(rev)` is empty too. #22515 keeps that hash but
   leaves symptom 1. Symptom 1 cannot be fixed without changing some value older versions compute
   (at the pin, `HashKV` and the stored hash already disagree there); which one to change is the
-  maintainers' call.
+  maintainers' call. One option (untested): change only the compaction job's stored hash to
+  `HashKV`'s, with #22515's progress fix, which confines the change to `CompactHashCheck`.
 - **Found**: 2026-10-16, verifying etcd-io/etcd#22562 (`notes/pr-verify/etcd-22562.md`).

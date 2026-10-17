@@ -1,0 +1,21 @@
+== up-22562
+    hash_review_test.go:86: delPut=false: 0 of 3000 trials fail
+    hash_review_test.go:82: delPut=true seed 47: HashKV during c0 (c0=4 c1=6) 72080434, after c1 74186f65
+    hash_review_test.go:82: delPut=true seed 57: HashKV(c1=9) at c0=7 changed during compaction c0: 18491a73 vs ffbd6e24
+    hash_review_test.go:82: delPut=true seed 74: stored hash of c1=6 ({Hash:2740802389 CompactRevision:5 Revision:6}) != HashKV(c1) at c0 ({Hash:1325015034 CompactRevision:5 Revision:6})
+    hash_review_test.go:86: delPut=true: 69 of 3000 trials fail
+--- PASS: TestReviewHashProgressAndRestart (22.86s)
+    hash_review_test.go:174: 0 of 3000 trials fail
+--- PASS: TestReviewHashRestartMidCompaction (13.39s)
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	36.261s
+== up-22515
+    hash_review_test.go:82: delPut=false seed 12: stored hash of c1=9 ({Hash:1811961309 CompactRevision:4 Revision:9}) != HashKV(c1) at c0 ({Hash:1318242309 CompactRevision:4 Revision:9})
+    hash_review_test.go:82: delPut=false seed 34: stored hash of c1=6 ({Hash:681342307 CompactRevision:4 Revision:6}) != HashKV(c1) at c0 ({Hash:3177298694 CompactRevision:4 Revision:6})
+    hash_review_test.go:82: delPut=false seed 47: stored hash of c1=6 ({Hash:1003259543 CompactRevision:4 Revision:6}) != HashKV(c1) at c0 ({Hash:2087534795 CompactRevision:4 Revision:6})
+    hash_review_test.go:86: delPut=false: 164 of 3000 trials fail
+    hash_review_test.go:82: delPut=true seed 12: stored hash of c1=9 ({Hash:1811961309 CompactRevision:4 Revision:9}) != HashKV(c1) at c0 ({Hash:1318242309 CompactRevision:4 Revision:9})
+    hash_review_test.go:82: delPut=true seed 47: stored hash of c1=6 ({Hash:3946290456 CompactRevision:4 Revision:6}) != HashKV(c1) at c0 ({Hash:2719250627 CompactRevision:4 Revision:6})
+    hash_review_test.go:82: delPut=true seed 57: HashKV(c1=9) at c0=7 changed during compaction c0: 18491a73 vs ffbd6e24
+    hash_review_test.go:86: delPut=true: 200 of 3000 trials fail
+--- FAIL: TestReviewHashProgressAndRestart (23.36s)
+    hash_review_test.go:174: 0 of 3000 trials fail
