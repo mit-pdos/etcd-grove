@@ -34,6 +34,17 @@ class ErrorStringLeaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Pro
   noIs : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Is" ≠
     some (go.Signature [go.error] false [go.bool])
 
+/-- An `errors.New` error (a `*errorString`) is a leaf pointer error without an `Is` method. -/
+theorem errorString_leaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
+    (x : Loc) :
+    _root_.Perennial.errors.IsPointerError
+        ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
+      _root_.Perennial.errors.isLeafError
+        ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
+      methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Is" ≠
+        some (go.Signature [go.error] false [go.bool]) :=
+  ⟨⟨_, _, rfl, rfl⟩, ErrorStringLeaf.leaf _, ErrorStringLeaf.noIs⟩
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -49,6 +60,20 @@ abbrev errorsNewVarInit (init : val) (X msg : GoString) : Prop :=
       □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
         WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
           go!"Error" #x)) (Val #())) {{ Φ }} }}
+
+/-- The `Error()` of an error whose message is known (`errors.New`'s, `context.wp_New_errorString`)
+returns some string, as a triple (the form of the server's `errMsgOk`, the lease's and auth's
+error-variable facts). -/
+theorem errorMsg_triple (ty : go.GoType) (v : val) (msg : GoString) :
+    iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods ty go!"Error" v)) (Val #())) {{ Φ }}) ⊢
+    {{ (True : IProp GF) }} (App (Val #(methods ty go!"Error" v)) (Val #()))
+      {{ (m : GoString), RET #m; True }} := by
+  iintro #H %Φ !> - HΦ
+  iapply H
+  inext
+  iapply HΦ
+  itrivial
 
 end defs
 
