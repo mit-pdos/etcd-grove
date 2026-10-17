@@ -1,0 +1,12 @@
+== up-head
+=== RUN   TestTxnRangeRequestConsistency
+--- PASS: TestTxnRangeRequestConsistency (0.17s)
+ok  	go.etcd.io/etcd/tests/v3/integration	0.195s
+== up-base
+=== RUN   TestTxnRangeRequestConsistency
+        	Error:      	Not equal: 
+        	Messages:   	member 1 should not have the key
+--- FAIL: TestTxnRangeRequestConsistency (0.17s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	0.196s
+FAIL

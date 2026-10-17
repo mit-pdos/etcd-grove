@@ -1,0 +1,17 @@
+=== RUN   TestTxnFollowerAuthRangeRewritten
+    txn_follower_auth_test.go:91: txn through member 0: err=<nil>
+    txn_follower_auth_test.go:106: k2 on members 0..2: ["foo" "v2" "v2"]
+        	Error:      	Not equal: 
+        	            	expected: "foo"
+        	            	actual  : "v2"
+        	Error:      	Not equal: 
+        	            	expected: "foo"
+        	            	actual  : "v2"
+--- FAIL: TestTxnFollowerAuthRangeRewritten (0.27s)
+=== RUN   TestTxnFollowerAuthRangeRemoved
+    txn_follower_auth_test.go:91: txn through member 0: err=etcdserver: permission denied
+    txn_follower_auth_test.go:106: k2 on members 0..2: ["v2" "v2" "v2"]
+--- PASS: TestTxnFollowerAuthRangeRemoved (0.26s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	0.560s
+FAIL
