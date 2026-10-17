@@ -1,5 +1,8 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+# Types and names only: function and method bodies are axiomatized. The constants the
+# peer hashKV handler responds with (PR etcd#22243) are translated, so that its spec can
+# name the status codes.
+translate = ["!*", "MethodGet", "StatusBadRequest", "StatusMethodNotAllowed",
+  "StatusPreconditionFailed", "StatusRequestEntityTooLarge", "StatusInternalServerError"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

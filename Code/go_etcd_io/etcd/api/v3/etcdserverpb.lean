@@ -863,10 +863,6 @@ axiom EmptyResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom HashRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom HashKVRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom HashKVResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom HashResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom SnapshotRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -4944,31 +4940,121 @@ attribute [instance] HashRequest.TypeAssumptions.type_repr
   HashRequest.TypeAssumptions.underlying
   HashRequest.TypeAssumptions.isUnderlying
 
-axiom HashKVRequest : Type
-axiom HashKVRequest.zero_val : ZeroVal HashKVRequest
-attribute [instance] HashKVRequest.zero_val
+structure HashKVRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Revision' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance HashKVRequest.zero_val [FfiSyntax] : ZeroVal HashKVRequest :=
+  ⟨HashKVRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def HashKVRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Revision" go.int64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def HashKVRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  HashKVRequest.fieldsUnsealed
+
+instance equals_unfold_HashKVRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold HashKVRequest.fields HashKVRequest.fieldsUnsealed :=
+  ⟨by unfold HashKVRequest.fields; rfl⟩
+
+@[reducible] def HashKVRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType HashKVRequest.fields)
 
 class HashKVRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashKVRequest.underlying HashKVRequest
   underlying : go.UnderlyingDirectedEq HashKVRequest.ty HashKVRequest.underlying
-  isUnderlying : go.IsUnderlying HashKVRequest.underlying HashKVRequest.underlying
+  get_state : ∀ (x : HashKVRequest), go.IsGoStepPureDetTagged under (StructFieldGet HashKVRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : HashKVRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet HashKVRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : HashKVRequest)))
+  get_Revision : ∀ (x : HashKVRequest), go.IsGoStepPureDetTagged under (StructFieldGet HashKVRequest.underlying go!"Revision") #x (Val #(x.Revision'))
+  set_Revision : ∀ (x : HashKVRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet HashKVRequest.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : HashKVRequest)))
+  get_unknownFields : ∀ (x : HashKVRequest), go.IsGoStepPureDetTagged under (StructFieldGet HashKVRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : HashKVRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HashKVRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : HashKVRequest)))
+  get_sizeCache : ∀ (x : HashKVRequest), go.IsGoStepPureDetTagged under (StructFieldGet HashKVRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : HashKVRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet HashKVRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : HashKVRequest)))
 
 attribute [instance] HashKVRequest.TypeAssumptions.type_repr
   HashKVRequest.TypeAssumptions.underlying
-  HashKVRequest.TypeAssumptions.isUnderlying
+  HashKVRequest.TypeAssumptions.get_state
+  HashKVRequest.TypeAssumptions.set_state
+  HashKVRequest.TypeAssumptions.get_Revision
+  HashKVRequest.TypeAssumptions.set_Revision
+  HashKVRequest.TypeAssumptions.get_unknownFields
+  HashKVRequest.TypeAssumptions.set_unknownFields
+  HashKVRequest.TypeAssumptions.get_sizeCache
+  HashKVRequest.TypeAssumptions.set_sizeCache
 
-axiom HashKVResponse : Type
-axiom HashKVResponse.zero_val : ZeroVal HashKVResponse
-attribute [instance] HashKVResponse.zero_val
+structure HashKVResponse [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Hash' : w32
+  CompactRevision' : w64
+  HashRevision' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance HashKVResponse.zero_val [FfiSyntax] : ZeroVal HashKVResponse :=
+  ⟨HashKVResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def HashKVResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Hash" go.uint32),
+(go.field_decl.FieldDecl go!"CompactRevision" go.int64),
+(go.field_decl.FieldDecl go!"HashRevision" go.int64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def HashKVResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  HashKVResponse.fieldsUnsealed
+
+instance equals_unfold_HashKVResponse [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold HashKVResponse.fields HashKVResponse.fieldsUnsealed :=
+  ⟨by unfold HashKVResponse.fields; rfl⟩
+
+@[reducible] def HashKVResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType HashKVResponse.fields)
 
 class HashKVResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashKVResponse.underlying HashKVResponse
   underlying : go.UnderlyingDirectedEq HashKVResponse.ty HashKVResponse.underlying
-  isUnderlying : go.IsUnderlying HashKVResponse.underlying HashKVResponse.underlying
+  get_state : ∀ (x : HashKVResponse), go.IsGoStepPureDetTagged under (StructFieldGet HashKVResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : HashKVResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet HashKVResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : HashKVResponse)))
+  get_Header : ∀ (x : HashKVResponse), go.IsGoStepPureDetTagged under (StructFieldGet HashKVResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : HashKVResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HashKVResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : HashKVResponse)))
+  get_Hash : ∀ (x : HashKVResponse), go.IsGoStepPureDetTagged under (StructFieldGet HashKVResponse.underlying go!"Hash") #x (Val #(x.Hash'))
+  set_Hash : ∀ (x : HashKVResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet HashKVResponse.underlying go!"Hash") (PairV #x #y) (Val #(({ x with Hash' := y } : HashKVResponse)))
+  get_CompactRevision : ∀ (x : HashKVResponse), go.IsGoStepPureDetTagged under (StructFieldGet HashKVResponse.underlying go!"CompactRevision") #x (Val #(x.CompactRevision'))
+  set_CompactRevision : ∀ (x : HashKVResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet HashKVResponse.underlying go!"CompactRevision") (PairV #x #y) (Val #(({ x with CompactRevision' := y } : HashKVResponse)))
+  get_HashRevision : ∀ (x : HashKVResponse), go.IsGoStepPureDetTagged under (StructFieldGet HashKVResponse.underlying go!"HashRevision") #x (Val #(x.HashRevision'))
+  set_HashRevision : ∀ (x : HashKVResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet HashKVResponse.underlying go!"HashRevision") (PairV #x #y) (Val #(({ x with HashRevision' := y } : HashKVResponse)))
+  get_unknownFields : ∀ (x : HashKVResponse), go.IsGoStepPureDetTagged under (StructFieldGet HashKVResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : HashKVResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HashKVResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : HashKVResponse)))
+  get_sizeCache : ∀ (x : HashKVResponse), go.IsGoStepPureDetTagged under (StructFieldGet HashKVResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : HashKVResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet HashKVResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : HashKVResponse)))
 
 attribute [instance] HashKVResponse.TypeAssumptions.type_repr
   HashKVResponse.TypeAssumptions.underlying
-  HashKVResponse.TypeAssumptions.isUnderlying
+  HashKVResponse.TypeAssumptions.get_state
+  HashKVResponse.TypeAssumptions.set_state
+  HashKVResponse.TypeAssumptions.get_Header
+  HashKVResponse.TypeAssumptions.set_Header
+  HashKVResponse.TypeAssumptions.get_Hash
+  HashKVResponse.TypeAssumptions.set_Hash
+  HashKVResponse.TypeAssumptions.get_CompactRevision
+  HashKVResponse.TypeAssumptions.set_CompactRevision
+  HashKVResponse.TypeAssumptions.get_HashRevision
+  HashKVResponse.TypeAssumptions.set_HashRevision
+  HashKVResponse.TypeAssumptions.get_unknownFields
+  HashKVResponse.TypeAssumptions.set_unknownFields
+  HashKVResponse.TypeAssumptions.get_sizeCache
+  HashKVResponse.TypeAssumptions.set_sizeCache
 
 axiom HashResponse : Type
 axiom HashResponse.zero_val : ZeroVal HashResponse

@@ -864,7 +864,8 @@ axiom protoHTTP3 [FfiSyntax] [GoGlobalContext] : val
 
 axiom maxInt64 [FfiSyntax] [GoGlobalContext] : val
 
-axiom MethodGet [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodGet [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"GET")
 
 axiom MethodHead [FfiSyntax] [GoGlobalContext] : val
 
@@ -998,7 +999,9 @@ axiom StatusTemporaryRedirect [FfiSyntax] [GoGlobalContext] : val
 
 axiom StatusPermanentRedirect [FfiSyntax] [GoGlobalContext] : val
 
-axiom StatusBadRequest [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.1 -/
+@[reducible] noncomputable def StatusBadRequest [FfiSyntax] [GoGlobalContext] : val :=
+  #(400 : Int)
 
 axiom StatusUnauthorized [FfiSyntax] [GoGlobalContext] : val
 
@@ -1008,7 +1011,9 @@ axiom StatusForbidden [FfiSyntax] [GoGlobalContext] : val
 
 axiom StatusNotFound [FfiSyntax] [GoGlobalContext] : val
 
-axiom StatusMethodNotAllowed [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.6 -/
+@[reducible] noncomputable def StatusMethodNotAllowed [FfiSyntax] [GoGlobalContext] : val :=
+  #(405 : Int)
 
 axiom StatusNotAcceptable [FfiSyntax] [GoGlobalContext] : val
 
@@ -1022,9 +1027,13 @@ axiom StatusGone [FfiSyntax] [GoGlobalContext] : val
 
 axiom StatusLengthRequired [FfiSyntax] [GoGlobalContext] : val
 
-axiom StatusPreconditionFailed [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.13 -/
+@[reducible] noncomputable def StatusPreconditionFailed [FfiSyntax] [GoGlobalContext] : val :=
+  #(412 : Int)
 
-axiom StatusRequestEntityTooLarge [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.14 -/
+@[reducible] noncomputable def StatusRequestEntityTooLarge [FfiSyntax] [GoGlobalContext] : val :=
+  #(413 : Int)
 
 axiom StatusRequestURITooLong [FfiSyntax] [GoGlobalContext] : val
 
@@ -1056,7 +1065,9 @@ axiom StatusRequestHeaderFieldsTooLarge [FfiSyntax] [GoGlobalContext] : val
 
 axiom StatusUnavailableForLegalReasons [FfiSyntax] [GoGlobalContext] : val
 
-axiom StatusInternalServerError [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.6.1 -/
+@[reducible] noncomputable def StatusInternalServerError [FfiSyntax] [GoGlobalContext] : val :=
+  #(500 : Int)
 
 axiom StatusNotImplemented [FfiSyntax] [GoGlobalContext] : val
 

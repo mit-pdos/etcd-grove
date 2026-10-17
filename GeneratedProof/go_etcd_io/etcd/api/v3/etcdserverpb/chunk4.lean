@@ -23,6 +23,296 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+namespace LeaseRevokeRequest
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance LeaseRevokeRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"state" l) v.state' dq ∗
+    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"ID" l) v.ID' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance LeaseRevokeRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.underlying := by
+  solve_into_val_typed_struct
+
+instance LeaseRevokeRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeRequest_access_load_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"ID" l) v.ID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeRequest_access_store_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (ID' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"ID" l) ID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end LeaseRevokeRequest
+
+namespace LeaseRevokeResponse
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance LeaseRevokeResponse_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' dq ∗
+    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance LeaseRevokeResponse_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.underlying := by
+  solve_into_val_typed_struct
+
+instance LeaseRevokeResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (Header' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) Header' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseRevokeResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end LeaseRevokeResponse
+
+namespace LeaseCheckpoint
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance LeaseCheckpoint_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' dq ∗
+    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' dq ∗
+    "Remaining_TTL" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance LeaseCheckpoint_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint.underlying := by
+  solve_into_val_typed_struct
+
+instance LeaseCheckpoint_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_load_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_store_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (ID' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) ID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_load_Remaining_TTL (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_store_Remaining_TTL (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (Remaining_TTL' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) Remaining_TTL' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Remaining_TTL' := Remaining_TTL' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaseCheckpoint_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end LeaseCheckpoint
+
 namespace LeaseCheckpointRequest
 section def_
 
@@ -1125,374 +1415,6 @@ instance AuthRoleAddRequest_into_val_typed :
 
 end def_
 end AuthRoleAddRequest
-
-namespace AuthRoleGetRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthRoleGetRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest where
-  typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"state" l) v.state' dq ∗
-    "Role" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"Role" l) v.Role' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"sizeCache" l) v.sizeCache' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance AuthRoleGetRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.underlying := by
-  solve_into_val_typed_struct
-
-instance AuthRoleGetRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthRoleGetRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthRoleGetRequest_access_load_Role (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"Role" l) v.Role' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"Role" l) v.Role' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthRoleGetRequest_access_store_Role (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (Role' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"Role" l) v.Role' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"Role" l) Role' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := Role' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthRoleGetRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthRoleGetRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (unknownFields' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthRoleGetRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthRoleGetRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (sizeCache' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end AuthRoleGetRequest
-
-namespace AuthUserListRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthUserListRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest :=
-  sorry -- axiomatized type
-
-instance AuthUserListRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthUserListRequest
-
-namespace AuthRoleListRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthRoleListRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest :=
-  sorry -- axiomatized type
-
-instance AuthRoleListRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthRoleListRequest
-
-namespace AuthRoleDeleteRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthRoleDeleteRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest :=
-  sorry -- axiomatized type
-
-instance AuthRoleDeleteRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthRoleDeleteRequest
-
-namespace AuthRoleGrantPermissionRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthRoleGrantPermissionRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest :=
-  sorry -- axiomatized type
-
-instance AuthRoleGrantPermissionRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthRoleGrantPermissionRequest
-
-namespace AuthRoleRevokePermissionRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthRoleRevokePermissionRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest :=
-  sorry -- axiomatized type
-
-instance AuthRoleRevokePermissionRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthRoleRevokePermissionRequest
-
-namespace AuthEnableResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthEnableResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse where
-  typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"Header" l) v.Header' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"sizeCache" l) v.sizeCache' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance AuthEnableResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.underlying := by
-  solve_into_val_typed_struct
-
-instance AuthEnableResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthEnableResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthEnableResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"Header" l) v.Header' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthEnableResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (Header' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"Header" l) Header' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthEnableResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthEnableResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (unknownFields' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthEnableResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthEnableResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (sizeCache' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end AuthEnableResponse
-
-namespace AuthDisableResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthDisableResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse where
-  typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"Header" l) v.Header' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"sizeCache" l) v.sizeCache' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance AuthDisableResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.underlying := by
-  solve_into_val_typed_struct
-
-instance AuthDisableResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthDisableResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthDisableResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"Header" l) v.Header' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthDisableResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (Header' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"Header" l) Header' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthDisableResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthDisableResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (unknownFields' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthDisableResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance AuthDisableResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (sizeCache' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end AuthDisableResponse
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end
