@@ -1,0 +1,22 @@
+=== RUN   TestLeasingDeleteCount
+        	Error Trace:	<checkout>/tests/integration/clientv3/lease/leasing_count_test.go:37
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+--- FAIL: TestLeasingDeleteCount (0.12s)
+=== RUN   TestLeasingTxnDeleteCount
+        	Error Trace:	<checkout>/tests/integration/clientv3/lease/leasing_count_test.go:37
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+--- FAIL: TestLeasingTxnDeleteCount (0.17s)
+=== RUN   TestLeasingDeleteCachedCount
+        	Error Trace:	<checkout>/tests/integration/clientv3/lease/leasing_test.go:653
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Messages:   	expected Count to be reset after delete
+--- FAIL: TestLeasingDeleteCachedCount (0.13s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	0.475s
+FAIL

@@ -1,0 +1,7 @@
+=== RUN   TestLeasingDeleteCount
+--- PASS: TestLeasingDeleteCount (0.13s)
+=== RUN   TestLeasingTxnDeleteCount
+--- PASS: TestLeasingTxnDeleteCount (0.15s)
+=== RUN   TestLeasingDeleteCachedCount
+--- PASS: TestLeasingDeleteCachedCount (0.18s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	0.528s

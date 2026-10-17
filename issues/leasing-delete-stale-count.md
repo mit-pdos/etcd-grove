@@ -4,6 +4,7 @@ checked: 2026-10-16
 links:
   - etcd-io/etcd#22417 issue open: this bug (reported by someone else), with the same reproduction and fix
   - etcd-io/etcd#22585 pr open: the fix (`li.response.Count = 0` in `leaseCache.delete`), verified on branch `pr-verify/etcd-22585` (`notes/pr-verify/etcd-22585.md`)
+  - etcd-io/etcd#22507 pr open: the same one-line fix (byte-identical `cache.go`), with an integration test `TestLeasingDeleteCachedCount`; verified on branch `pr-verify/etcd-22507` (`notes/pr-verify/etcd-22507.md`)
 ---
 
 # clientv3/leasing: a cached Get after a delete returns `Count == 1` with no key-values
@@ -52,7 +53,7 @@ count, so the bug is outside the verified results.
 
 ## Possible fixes
 
-etcd-io/etcd#22585.
+etcd-io/etcd#22585, or etcd-io/etcd#22507 (the same change to `cache.go`).
 
 ## Found
 
