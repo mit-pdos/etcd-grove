@@ -45,6 +45,31 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21909: verify-only JWT providers use the store's revision (2026-10-17, branch `pr-verify/etcd-21909`)
+
+Verification of an open PR, not for merging into `lean`: the translation is of the fork branch
+`pr-etcd-21909-goose-lean` (`etc/goose.py --check` fails here by design). Report:
+`notes/pr-verify/etcd-21909.md`.
+- `github.com/golang-jwt/jwt/v5` is newly translated, names only (`Code/github_com/golang_jwt/jwt/v5.toml`,
+  `etc/goose.py`). `auth.toml` translates `tokenJWT` and `tokenJWT.info` with bodies (and `time`,
+  which makes `tokenSimple`'s and the keeper's types translatable too). The fork moves `info`'s key
+  function closure to a method `tokenJWT.keyFunc` (names only), so that `info` does not name the
+  crypto key types: a translatable-style rewrite, behavior-preserving.
+- `client/v3.toml` translates `Client.UpdateAuthToken`.
+- `tokenJWT.info` is proved (`InvJWT.lean`): `(nil, false)` or a read-only auth info, whose
+  `Revision` is the store's revision for a verify-only provider; `tokenJWT.tokenProviderOk_of`:
+  a `*tokenJWT` meets the store's provider contract. New trust-boundary axioms: `jwt.Parse`
+  (with a contract on its key function), `tokenJWT.keyFunc`, and `wp_convert_float64_uint64`.
+- **Perennial limitation**: the model has no step for a float-to-integer conversion
+  (`uint64(f)` of a `float64`: `FloatOps` has only integer-to-float conversions), so the proof of
+  `info` assumes one locally (`wp_convert_float64_uint64`, `InvJWT.lean`). The general fix, a
+  conversion in `FloatOps` (uninterpreted, like `int64ToFloat64`) with its step in
+  `Float64Semantics`, is a Perennial change to propose on its own (`notes/decisions.md`).
+- `Client.UpdateAuthToken` is proved, under an owned `Token` field and a non-nil bundle; the
+  lemma `retryClientOk_excl_token` shows the owned field cannot coexist with the retry
+  interceptor's read-only share (`retryClientOk`): the data race the PR's doc comment denies.
+- No `sorry`. The `server` collection and `etc/tcb-baseline.txt` gain the three axioms.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

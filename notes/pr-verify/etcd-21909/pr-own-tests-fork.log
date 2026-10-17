@@ -1,0 +1,9 @@
+--- PASS: TestAuthJWTOnly (0.15s)
+--- PASS: TestAuthJWTOnlyUpdateExpired (6.14s)
+--- PASS: TestAuthJWTOnlySkipRevision (0.21s)
+ok  	go.etcd.io/etcd/tests/v3/common	6.563s
+--- PASS: TestJWTInfo (0.03s)
+--- PASS: TestJWTTokenWithMissingFields (0.01s)
+--- PASS: TestJWTBad (0.00s)
+--- PASS: TestAuthInfoFromCtxWithRootJWT (0.00s)
+ok  	go.etcd.io/etcd/server/v3/auth	0.055s

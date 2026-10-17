@@ -20,11 +20,16 @@ translate = ["!*", "AuthInfo",
   "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
-  "ErrInvalidAuthToken"]
+  "ErrInvalidAuthToken",
+  "tokenJWT", "tokenJWT.info"]
 imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
-  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]
+  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt",
+  "github.com/golang-jwt/jwt/v5", "time"]
 
+# PR etcd#21909: the JWT provider's `tokenJWT` and its `info` with bodies (the fork moves `info`'s
+# key function to the method `tokenJWT.keyFunc`, names only, so that `info` does not name the
+# crypto key types); `golang-jwt` names only, `time` for `tokenJWT.ttl`.
 # translate the definitions of all type declarations goose supports
 translate_types = true

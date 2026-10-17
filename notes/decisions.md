@@ -7675,3 +7675,14 @@ and `PreVote` settings stay premises.
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
   parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
   `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.
+
+## Float-to-integer conversions: a local assumption (PR etcd#21909, 2026-10-17)
+
+The JWT provider's `info` converts the token's `revision` claim, a `float64`, with `uint64(f)`.
+Perennial's floats are opaque bit patterns (`FloatOps`) with integer-to-float conversions only;
+there is no step for `Convert go.float64 go.uint64`, so a proof stops there. Go's spec makes the
+conversion total (an implementation-defined value when out of range, never a panic). The proof
+assumes exactly that, as a WP axiom (`auth.wp_convert_float64_uint64`, `InvJWT.lean`: some
+`uint64` comes back), rather than as a pure-step instance: a step instance would also fix the
+result as one function across every model. The general fix belongs in Perennial: the
+float-to-integer conversions in `FloatOps`, uninterpreted, and their steps in `Float64Semantics`.

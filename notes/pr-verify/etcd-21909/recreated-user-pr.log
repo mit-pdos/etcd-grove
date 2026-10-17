@@ -1,0 +1,2 @@
+--- PASS: TestAuthJWTOnlyRecreatedUserOldToken (0.14s)
+ok  	go.etcd.io/etcd/tests/v3/common	0.178s

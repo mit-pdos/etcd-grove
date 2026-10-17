@@ -1,0 +1,8 @@
+# Types and names only: function and method bodies are axiomatized. (The JWT token provider's
+# `info`, `server/v3/auth/jwt.go`, calls `jwt.Parse` and reads the `*jwt.Token` it returns and its
+# `jwt.MapClaims`; PR etcd#21909. `time` for the claims' `NumericDate`.)
+translate = ["!*"]
+imports = ["!*", "time"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

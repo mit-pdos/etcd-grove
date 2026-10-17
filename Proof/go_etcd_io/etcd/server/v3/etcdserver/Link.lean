@@ -125,6 +125,8 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.tokenJWT__info
+public import Proof.go_etcd_io.etcd.server.v3.auth.tokenJWT__keyFunc
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -231,6 +233,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
+public import Proof.github_com.golang_jwt.jwt.v5.Parse
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
 public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
@@ -644,6 +647,18 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem jwt.wp_Parse :
+    jwt.Parse.spec (GF := GF) (hG := hG) :=
+  jwt.Parse.wp_proof
+
+theorem auth.tokenJWT.wp_keyFunc :
+    auth.tokenJWT.keyFunc.spec (GF := GF) (hG := hG) :=
+  auth.tokenJWT.keyFunc.wp_proof
+
+theorem auth.tokenJWT.wp_info :
+    auth.tokenJWT.info.spec (GF := GF) (hG := hG) :=
+  auth.tokenJWT.info.wp_proof jwt.wp_Parse auth.tokenJWT.wp_keyFunc zap.wp_Error zap.Logger.wp_Warn
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=

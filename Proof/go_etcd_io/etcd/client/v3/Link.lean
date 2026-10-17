@@ -10,6 +10,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
+public import Proof.go_etcd_io.etcd.client.v3.Client__UpdateAuthToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__getToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__refreshToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__shouldRefreshToken
@@ -311,6 +312,10 @@ theorem v3.Client.wp_Endpoints :
 theorem v3.Client.wp_GetLogger :
     EtcdGrove.Client.GetLogger.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.GetLogger.wp_proof
+
+theorem v3.Client.wp_UpdateAuthToken :
+    EtcdGrove.Client.UpdateAuthToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.UpdateAuthToken.wp_proof
 
 theorem v3.Client.wp_getToken :
     EtcdGrove.Client.getToken.spec (GF := GF) (hG := hG) :=

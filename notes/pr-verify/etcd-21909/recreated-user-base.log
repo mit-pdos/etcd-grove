@@ -1,0 +1,9 @@
+    logger.go:146: 2026-10-17T08:52:21.291-0400	WARN	m0	request auth revision is less than current node auth revision	{"member": "m0", "current node auth revision": 10, "request auth revision": 7, "request key": "outside-foo", "error": "auth: revision in header is old"}
+        	Error Trace:	tests/common/auth_jwt_recreated_user_test.go:79
+        	Error:      	Received unexpected error:
+        	            	etcdserver: revision of auth store is old
+        	Messages:   	the deleted user's old token: accepted after #21909, rejected before
+--- FAIL: TestAuthJWTOnlyRecreatedUserOldToken (0.22s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/common	0.244s
+FAIL

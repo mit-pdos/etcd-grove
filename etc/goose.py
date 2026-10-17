@@ -142,7 +142,8 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "net=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
-                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
+                    "github.com/golang-jwt/jwt="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -200,6 +201,9 @@ PROJECTS = [
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
+            # names only: what the JWT token provider's `info` calls (`jwt.Parse`, `jwt.Token`,
+            # `jwt.MapClaims`; PR etcd#21909)
+            "github.com/golang-jwt/jwt/v5",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
             "go.etcd.io/etcd/pkg/v3/notify",
@@ -285,7 +289,7 @@ PROJECTS = [
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                "net", os.path.join("encoding", "hex"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
-               os.path.join("github_com", "dustin")],
+               os.path.join("github_com", "dustin"), os.path.join("github_com", "golang_jwt")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",

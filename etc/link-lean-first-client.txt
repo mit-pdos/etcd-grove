@@ -100,6 +100,8 @@ isSafeRetryImmutableRPC: rpctypes_Error rpctypes_EtcdError__Code status_FromErro
 isSafeRetryMutableRPC: status_FromError rpctypes_ErrorDesc
 isSafeRetry: isContextError errors_IsStatusErr Client__Endpoints isSafeRetryImmutableRPC isSafeRetryMutableRPC Client__GetLogger retryPolicy__String zap_String zap_Logger__Warn
 Client__shouldRefreshToken: rpctypes_Error errors_IsStatusErr
+# PR etcd#21909: `Client.UpdateAuthToken` (InvAuthToken.lean; the bundle a contract)
+Client__UpdateAuthToken:
 Client__refreshToken: Client__getToken
 filterCallOptions:
 reuseOrNewWithCallOptions:

@@ -14,6 +14,9 @@ As in those, the package facts are assumptions about package initialization, not
 returns, `authErrVar`, the shape of the apply package's `errVarLeaf`), and the two token keys of
 `rpctypes` that `AuthInfoFromCtx` looks up (`TokenFieldNameGRPC`, `TokenFieldNameSwagger`:
 fixed read-only strings), stated here as the txn package states its foreign errors.
+
+PR etcd#21909: the package imports `github.com/golang-jwt/jwt/v5` (names only; its instance is in
+`Proof/github_com/golang_jwt/jwt/v5/Base.lean`) and `time`, for the JWT provider's `info`.
 -/
 module
 
@@ -27,6 +30,8 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.strings
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
+public import Perennial.Proof.time.Base
+public import Proof.github_com.golang_jwt.jwt.v5.Base
 
 @[expose] public section
 

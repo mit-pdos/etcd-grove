@@ -4,6 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.errors
+public import GeneratedProof.github_com.golang_jwt.jwt.v5
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
@@ -13,6 +14,7 @@ public import GeneratedProof.google_golang_org.grpc.metadata
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.auth
 
@@ -37,12 +39,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 instance tokenJWT_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenJWT :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenJWT where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"lg" l) v.lg' dq ∗
+    "signMethod" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"signMethod" l) v.signMethod' dq ∗
+    "key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"key" l) v.key' dq ∗
+    "ttl" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"ttl" l) v.ttl' dq ∗
+    "verifyOnly" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"verifyOnly" l) v.verifyOnly' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance tokenJWT_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenJWT go_etcd_io.etcd.server.v3.auth.tokenJWT.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenJWT go_etcd_io.etcd.server.v3.auth.tokenJWT.underlying := by
+  solve_into_val_typed_struct
+
+instance tokenJWT_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.auth.tokenJWT) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_load_signMethod (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"signMethod" l) v.signMethod' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"signMethod" l) v.signMethod' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_store_signMethod (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (signMethod' : github_com.golang_jwt.jwt.v5.SigningMethod) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"signMethod" l) v.signMethod' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"signMethod" l) signMethod' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with signMethod' := signMethod' } : go_etcd_io.etcd.server.v3.auth.tokenJWT) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_load_key (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"key" l) v.key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_store_key (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (key' : GoInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"key" l) v.key' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"key" l) key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : go_etcd_io.etcd.server.v3.auth.tokenJWT) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_load_ttl (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"ttl" l) v.ttl' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"ttl" l) v.ttl' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_store_ttl (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (ttl' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"ttl" l) v.ttl' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"ttl" l) ttl' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ttl' := ttl' } : go_etcd_io.etcd.server.v3.auth.tokenJWT) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_load_verifyOnly (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"verifyOnly" l) v.verifyOnly' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"verifyOnly" l) v.verifyOnly' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenJWT_access_store_verifyOnly (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenJWT) (verifyOnly' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"verifyOnly" l) v.verifyOnly' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenJWT go!"verifyOnly" l) verifyOnly' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verifyOnly' := verifyOnly' } : go_etcd_io.etcd.server.v3.auth.tokenJWT) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end tokenJWT
@@ -79,12 +170,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 instance jwtOptions_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.jwtOptions :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.jwtOptions where
+  typedPointstoDef l v dq := iprop(
+    "SignMethod" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"SignMethod" l) v.SignMethod' dq ∗
+    "PublicKey" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PublicKey" l) v.PublicKey' dq ∗
+    "PrivateKey" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PrivateKey" l) v.PrivateKey' dq ∗
+    "TTL" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"TTL" l) v.TTL' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance jwtOptions_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.jwtOptions go_etcd_io.etcd.server.v3.auth.jwtOptions.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.jwtOptions go_etcd_io.etcd.server.v3.auth.jwtOptions.underlying := by
+  solve_into_val_typed_struct
+
+instance jwtOptions_access_load_SignMethod (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"SignMethod" l) v.SignMethod' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"SignMethod" l) v.SignMethod' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance jwtOptions_access_store_SignMethod (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (SignMethod' : github_com.golang_jwt.jwt.v5.SigningMethod) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"SignMethod" l) v.SignMethod' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"SignMethod" l) SignMethod' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SignMethod' := SignMethod' } : go_etcd_io.etcd.server.v3.auth.jwtOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance jwtOptions_access_load_PublicKey (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PublicKey" l) v.PublicKey' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PublicKey" l) v.PublicKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance jwtOptions_access_store_PublicKey (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (PublicKey' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PublicKey" l) v.PublicKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PublicKey" l) PublicKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PublicKey' := PublicKey' } : go_etcd_io.etcd.server.v3.auth.jwtOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance jwtOptions_access_load_PrivateKey (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PrivateKey" l) v.PrivateKey' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PrivateKey" l) v.PrivateKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance jwtOptions_access_store_PrivateKey (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (PrivateKey' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PrivateKey" l) v.PrivateKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"PrivateKey" l) PrivateKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PrivateKey' := PrivateKey' } : go_etcd_io.etcd.server.v3.auth.jwtOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance jwtOptions_access_load_TTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"TTL" l) v.TTL' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"TTL" l) v.TTL' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance jwtOptions_access_store_TTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.jwtOptions) (TTL' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"TTL" l) v.TTL' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.jwtOptions go!"TTL" l) TTL' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TTL' := TTL' } : go_etcd_io.etcd.server.v3.auth.jwtOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end jwtOptions
@@ -155,12 +318,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 instance simpleTokenTTLKeeper_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper where
+  typedPointstoDef l v dq := iprop(
+    "tokens" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' dq ∗
+    "donec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) v.donec' dq ∗
+    "stopc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) v.stopc' dq ∗
+    "deleteTokenFunc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) v.deleteTokenFunc' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) v.mu' dq ∗
+    "simpleTokenTTL" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) v.simpleTokenTTL' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance simpleTokenTTLKeeper_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper.underlying := by
+  solve_into_val_typed_struct
+
+instance simpleTokenTTLKeeper_access_load_tokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_store_tokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (tokens' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) v.tokens' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"tokens" l) tokens' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tokens' := tokens' } : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_load_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) v.donec' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) v.donec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_store_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (donec' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) v.donec' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"donec" l) donec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := donec' } : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_load_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) v.stopc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) v.stopc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_store_stopc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (stopc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) v.stopc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"stopc" l) stopc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopc' := stopc' } : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_load_deleteTokenFunc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) v.deleteTokenFunc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) v.deleteTokenFunc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_store_deleteTokenFunc (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (deleteTokenFunc' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) v.deleteTokenFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"deleteTokenFunc" l) deleteTokenFunc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with deleteTokenFunc' := deleteTokenFunc' } : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (mu' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_load_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance simpleTokenTTLKeeper_access_store_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (simpleTokenTTL' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) v.simpleTokenTTL' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper go!"simpleTokenTTL" l) simpleTokenTTL' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with simpleTokenTTL' := simpleTokenTTL' } : go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end simpleTokenTTLKeeper
@@ -174,12 +443,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 instance tokenSimple_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenSimple :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenSimple where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' dq ∗
+    "indexWaiter" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) v.indexWaiter' dq ∗
+    "simpleTokenKeeper" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) v.simpleTokenKeeper' dq ∗
+    "simpleTokensMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) v.simpleTokensMu' dq ∗
+    "simpleTokens" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) v.simpleTokens' dq ∗
+    "simpleTokenTTL" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) v.simpleTokenTTL' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance tokenSimple_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenSimple go_etcd_io.etcd.server.v3.auth.tokenSimple.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.tokenSimple go_etcd_io.etcd.server.v3.auth.tokenSimple.underlying := by
+  solve_into_val_typed_struct
+
+instance tokenSimple_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.auth.tokenSimple) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_load_indexWaiter (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) v.indexWaiter' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) v.indexWaiter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_store_indexWaiter (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (indexWaiter' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) v.indexWaiter' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"indexWaiter" l) indexWaiter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexWaiter' := indexWaiter' } : go_etcd_io.etcd.server.v3.auth.tokenSimple) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_load_simpleTokenKeeper (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) v.simpleTokenKeeper' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) v.simpleTokenKeeper' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_store_simpleTokenKeeper (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (simpleTokenKeeper' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) v.simpleTokenKeeper' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenKeeper" l) simpleTokenKeeper' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with simpleTokenKeeper' := simpleTokenKeeper' } : go_etcd_io.etcd.server.v3.auth.tokenSimple) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_load_simpleTokensMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) v.simpleTokensMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) v.simpleTokensMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_store_simpleTokensMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (simpleTokensMu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) v.simpleTokensMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokensMu" l) simpleTokensMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with simpleTokensMu' := simpleTokensMu' } : go_etcd_io.etcd.server.v3.auth.tokenSimple) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_load_simpleTokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) v.simpleTokens' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) v.simpleTokens' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_store_simpleTokens (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (simpleTokens' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) v.simpleTokens' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokens" l) simpleTokens' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with simpleTokens' := simpleTokens' } : go_etcd_io.etcd.server.v3.auth.tokenSimple) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_load_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) v.simpleTokenTTL' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance tokenSimple_access_store_simpleTokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.tokenSimple) (simpleTokenTTL' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) v.simpleTokenTTL' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.tokenSimple go!"simpleTokenTTL" l) simpleTokenTTL' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with simpleTokenTTL' := simpleTokenTTL' } : go_etcd_io.etcd.server.v3.auth.tokenSimple) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end tokenSimple

@@ -1,0 +1,43 @@
+WARNING: DATA RACE
+Read at 0x00c0002123b8 by goroutine 57:
+  go.etcd.io/etcd/client/v3.(*Client).shouldRefreshToken()
+      client/v3/retry_interceptor.go:153 +0x44
+  go.etcd.io/etcd/client/v3.TestUpdateAuthTokenRacesWithRetry.func2()
+      client/v3/client_update_token_test.go:55 +0x12a
+
+Previous write at 0x00c0002123b8 by goroutine 56:
+  go.etcd.io/etcd/client/v3.(*Client).UpdateAuthToken()
+      client/v3/client.go:289 +0xf4
+  go.etcd.io/etcd/client/v3.TestUpdateAuthTokenRacesWithRetry.func1()
+      client/v3/client_update_token_test.go:48 +0xef
+
+Goroutine 57 (running) created at:
+  go.etcd.io/etcd/client/v3.TestUpdateAuthTokenRacesWithRetry()
+      client/v3/client_update_token_test.go:51 +0x3ac
+  go.etcd.io/etcd/client/v3.New()
+      client/v3/client.go:91 +0x16b
+  go.etcd.io/etcd/client/v3.TestUpdateAuthTokenRacesWithRetry()
+      client/v3/client_update_token_test.go:39 +0x32
+  testing.tRunner()
+      golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:2036 +0x21c
+  testing.(*T).Run.gowrap1()
+      golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:2101 +0x38
+
+Goroutine 56 (finished) created at:
+  go.etcd.io/etcd/client/v3.TestUpdateAuthTokenRacesWithRetry()
+      client/v3/client_update_token_test.go:45 +0x2ec
+  go.etcd.io/etcd/client/v3.New()
+      client/v3/client.go:91 +0x16b
+  go.etcd.io/etcd/client/v3.TestUpdateAuthTokenRacesWithRetry()
+      client/v3/client_update_token_test.go:39 +0x32
+  testing.tRunner()
+      golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:2036 +0x21c
+  testing.(*T).Run.gowrap1()
+      golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:2101 +0x38
+==================
+--- PASS: TestUpdateAuthTokenNoCredentialsPanics (0.01s)
+--- FAIL: TestUpdateAuthTokenRacesWithRetry (0.01s)
+--- PASS: TestUpdateAuthTokenDisablesPasswordRefresh (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.096s
+FAIL
