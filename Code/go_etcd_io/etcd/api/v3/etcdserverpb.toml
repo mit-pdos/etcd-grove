@@ -81,7 +81,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # first `StreamDesc`)
   "NewWatchClient", "watchClient.Watch", "Watch_Watch_FullMethodName", "WatchClient",
   "watchClient", "Watch_WatchClient", "Watch_WatchServer", "RegisterWatchServer",
-  "Watch_ServiceDesc"]
+  "Watch_ServiceDesc",
+  # PR etcd#21845 (pr-verify/etcd-21845): the request of the auth store's `RoleGrantPermission`
+  "AuthRoleGrantPermissionRequest"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

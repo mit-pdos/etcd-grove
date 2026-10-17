@@ -955,8 +955,6 @@ axiom AuthRoleListRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthRoleDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom AuthRoleGrantPermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom AuthRoleRevokePermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] def KV_RangeStreamClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
@@ -6610,18 +6608,60 @@ attribute [instance] AuthRoleDeleteRequest.TypeAssumptions.type_repr
   AuthRoleDeleteRequest.TypeAssumptions.underlying
   AuthRoleDeleteRequest.TypeAssumptions.isUnderlying
 
-axiom AuthRoleGrantPermissionRequest : Type
-axiom AuthRoleGrantPermissionRequest.zero_val : ZeroVal AuthRoleGrantPermissionRequest
-attribute [instance] AuthRoleGrantPermissionRequest.zero_val
+structure AuthRoleGrantPermissionRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Perm' : Loc
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance AuthRoleGrantPermissionRequest.zero_val [FfiSyntax] : ZeroVal AuthRoleGrantPermissionRequest :=
+  ⟨AuthRoleGrantPermissionRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def AuthRoleGrantPermissionRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Perm" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def AuthRoleGrantPermissionRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthRoleGrantPermissionRequest.fieldsUnsealed
+
+instance equals_unfold_AuthRoleGrantPermissionRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthRoleGrantPermissionRequest.fields AuthRoleGrantPermissionRequest.fieldsUnsealed :=
+  ⟨by unfold AuthRoleGrantPermissionRequest.fields; rfl⟩
+
+@[reducible] def AuthRoleGrantPermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthRoleGrantPermissionRequest.fields)
 
 class AuthRoleGrantPermissionRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleGrantPermissionRequest.underlying AuthRoleGrantPermissionRequest
   underlying : go.UnderlyingDirectedEq AuthRoleGrantPermissionRequest.ty AuthRoleGrantPermissionRequest.underlying
-  isUnderlying : go.IsUnderlying AuthRoleGrantPermissionRequest.underlying AuthRoleGrantPermissionRequest.underlying
+  get_state : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthRoleGrantPermissionRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleGrantPermissionRequest)))
+  get_Name : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthRoleGrantPermissionRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthRoleGrantPermissionRequest)))
+  get_Perm : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"Perm") #x (Val #(x.Perm'))
+  set_Perm : ∀ (x : AuthRoleGrantPermissionRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"Perm") (PairV #x #y) (Val #(({ x with Perm' := y } : AuthRoleGrantPermissionRequest)))
+  get_unknownFields : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthRoleGrantPermissionRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleGrantPermissionRequest)))
+  get_sizeCache : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthRoleGrantPermissionRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleGrantPermissionRequest)))
 
 attribute [instance] AuthRoleGrantPermissionRequest.TypeAssumptions.type_repr
   AuthRoleGrantPermissionRequest.TypeAssumptions.underlying
-  AuthRoleGrantPermissionRequest.TypeAssumptions.isUnderlying
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_state
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_state
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_Name
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_Name
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_Perm
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_Perm
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_unknownFields
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_unknownFields
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_sizeCache
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_sizeCache
 
 axiom AuthRoleRevokePermissionRequest : Type
 axiom AuthRoleRevokePermissionRequest.zero_val : ZeroVal AuthRoleRevokePermissionRequest

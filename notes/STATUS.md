@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#21845, `RoleGrantPermission` matches the `(key, range_end)` pair (2026-10-17, branch `pr-verify/etcd-21845`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-21845-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `authpb.Permission`/`Role` and
+`AuthRoleGrantPermissionRequest` translated (no longer axiomatized types);
+`authStore.RoleGrantPermission` and `permSlice` proved (`auth/RolePerms.lean`: `GrantSpec`;
+`auth/InvRole.lean`: the batch transaction's contract for roles), three new trust-boundary axioms
+(`isValidPermissionRange`, `commitRevision`, `refreshRangePermCache`), no `sorry`. The bug the PR
+fixes, in the pinned code: `issues/etcd-auth-grant-permission-same-key.md`; the PR does not repair
+duplicates already stored. Report: `notes/pr-verify/etcd-21845.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

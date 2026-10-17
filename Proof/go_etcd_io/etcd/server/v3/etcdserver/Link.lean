@@ -117,13 +117,20 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsDeleteRangePermi
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsPutPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsRangePermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleGrantPermission
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
+public import Proof.go_etcd_io.etcd.server.v3.auth.isValidPermissionRange
+public import Proof.go_etcd_io.etcd.server.v3.auth.permSlice__Len
+public import Proof.go_etcd_io.etcd.server.v3.auth.permSlice__Less
+public import Proof.go_etcd_io.etcd.server.v3.auth.permSlice__Swap
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
@@ -644,6 +651,34 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.wp_isValidPermissionRange :
+    auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
+  auth.isValidPermissionRange.wp_proof
+
+theorem auth.authStore.wp_commitRevision :
+    auth.authStore.commitRevision.spec (GF := GF) (hG := hG) :=
+  auth.authStore.commitRevision.wp_proof
+
+theorem auth.authStore.wp_refreshRangePermCache :
+    auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) :=
+  auth.authStore.refreshRangePermCache.wp_proof
+
+theorem auth.permSlice.wp_Len :
+    auth.permSlice.Len.spec (GF := GF) (hG := hG) :=
+  auth.permSlice.Len.wp_proof
+
+theorem auth.permSlice.wp_Less :
+    auth.permSlice.Less.spec (GF := GF) (hG := hG) :=
+  auth.permSlice.Less.wp_proof
+
+theorem auth.permSlice.wp_Swap :
+    auth.permSlice.Swap.spec (GF := GF) (hG := hG) :=
+  auth.permSlice.Swap.wp_proof
+
+theorem auth.authStore.wp_RoleGrantPermission :
+    auth.authStore.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  auth.authStore.RoleGrantPermission.wp_proof auth.wp_isValidPermissionRange auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_ByteString zap.Logger.wp_Info sort.wp_Sort auth.permSlice.wp_Len auth.permSlice.wp_Less auth.permSlice.wp_Swap
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=

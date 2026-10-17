@@ -178,6 +178,10 @@ metadata has the key with no value (only an in-process caller can build one; rep
 `AuthInfo` is a `credentials.TLSInfo` (one-result form): a panic for a peer with other
 credentials, an unstated precondition (unreachable in etcd's servers; reproduced; found
 2026-10-14, unit P2; not filed).
+[etcd-auth-grant-permission-same-key](etcd-auth-grant-permission-same-key.md): `RoleGrantPermission`
+finds only the first permission with the request's key, so a grant on a range whose key another
+permission shares appends a duplicate and a downgrade (write to read) has no effect (reproduced;
+found 2026-10-17 verifying etcd-io/etcd#21845, which fixes it for new grants; known).
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
 "main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's

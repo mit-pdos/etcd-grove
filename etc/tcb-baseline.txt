@@ -30,7 +30,10 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
+axiom auth.authStore.commitRevision.wp_proof
+axiom auth.authStore.refreshRangePermCache.wp_proof
 axiom auth.hasRootRole.wp_proof
+axiom auth.isValidPermissionRange.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledInsideUnittest.wp_proof

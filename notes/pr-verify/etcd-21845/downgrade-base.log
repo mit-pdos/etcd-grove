@@ -1,0 +1,9 @@
+--- FAIL: TestRoleGrantPermissionDowngradeSameKey (0.01s)
+    store_grant_downgrade_test.go:54: 
+        	Error Trace:	/root/etcd-pr/etcd-21845/server/auth/store_grant_downgrade_test.go:54
+        	Error:      	Expected error with "auth: permission denied" in chain but got nil.
+        	Test:       	TestRoleGrantPermissionDowngradeSameKey
+        	Messages:   	write on fop still permitted after downgrading [foo, foq) to read
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/auth	0.019s
+FAIL

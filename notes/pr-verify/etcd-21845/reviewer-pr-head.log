@@ -1,0 +1,16 @@
+=== RUN   TestReviewerGrantRandomVsModel
+    store_grant_reviewer_test.go:74: final role size 46
+--- PASS: TestReviewerGrantRandomVsModel (1.35s)
+=== RUN   TestReviewerGrantNilVsEmptyRangeEnd
+    store_grant_reviewer_test.go:89: perms: [key:"a"]
+--- PASS: TestReviewerGrantNilVsEmptyRangeEnd (0.00s)
+=== RUN   TestReviewerGrantSemanticDuplicate
+    store_grant_reviewer_test.go:106: perms: [permType:WRITE key:"a" key:"a" range_end:"a\x00"]
+    store_grant_reviewer_test.go:107: write on a after 'downgrade': <nil>
+--- PASS: TestReviewerGrantSemanticDuplicate (0.00s)
+=== RUN   TestReviewerGrantUnsortedStored
+    store_grant_reviewer_test.go:128: perms: [permType:WRITE key:"a" range_end:"c" key:"a" range_end:"c" key:"b"]
+    store_grant_reviewer_test.go:129: write on a after downgrade: <nil>
+--- PASS: TestReviewerGrantUnsortedStored (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/auth	1.387s
