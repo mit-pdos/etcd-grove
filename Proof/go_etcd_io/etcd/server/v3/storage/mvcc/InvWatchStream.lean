@@ -159,7 +159,9 @@ the channel's progress fact (`prog`, a saved proposition fixed at the stream's c
 response of id `-1` says, `progFact`). Moved from `InvWatchStore.lean` (unit W-M2): the stream's
 contract names it. And (unit W-K) the responses sent on the channel, a monotone list
 (`sentl`, its authority the channel invariant's), so that a response sent has a position in the
-channel's order and a snapshot of the list is a point in it (`chanSentLb`). -/
+channel's order and a snapshot of the list is a point in it (`chanSentLb`); and (K1b) the
+registration index of each watcher registered on it (`regi`, a ghost map from a watcher to the
+sent list's length at its registration, persistent elements: `chanRegAt`). -/
 structure WatchChanNames where
   ch : ChanNames
   recv : GName
@@ -168,6 +170,7 @@ structure WatchChanNames where
   ids : GName
   prog : GName
   sentl : GName
+  regi : GName
 
 /-- **The progress fact of the saved proposition `g`** (persistent; unit W-M2): some `Q` saved at
 `g`, and `Q`. A stream's creator fixes `Q` (`NewWatchStream`); a response of id `-1` on the

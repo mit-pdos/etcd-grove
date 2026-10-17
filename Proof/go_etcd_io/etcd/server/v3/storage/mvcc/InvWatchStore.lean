@@ -194,10 +194,11 @@ structure WatcherNames where
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
-      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.lo))
+      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.wc.regi,
+      g.lo))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k⟩, g⟩
-        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k'⟩, g'⟩ h
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2⟩, g⟩
+        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2'⟩, g'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -551,6 +552,13 @@ instance chanRegFact_persistent (γc : WatchChanNames) (w : Loc) :
     Persistent (chanRegFact (GF := GF) γc w) := by
   unfold chanRegFact; infer_instance
 
+/-- **The channel's sent list and registration indices** (unit W-K): the sent list's authority
+(`sentl`), and the registration indices' (`regi`: the registered watchers `L`'s, each at most the
+sent list's length). -/
+def sentAuth (γc : WatchChanNames) (sent : List RespM) (L : List Loc) : IProp GF :=
+  iprop(monoListAuthOwn γc.sentl 1 sent ∗ ∃ RI : GMap Loc Nat, ghostMapAuth γc.regi 1 RI ∗
+    ⌜(∀ w, (RI !! w).isSome → w ∈ L) ∧ ∀ w n, RI !! w = some n → n ≤ sent.length⌝)
+
 /-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
 registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
 progress fact. -/
@@ -569,7 +577,7 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
     "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
     "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
-    "Hsentl" ∷ monoListAuthOwn γc.sentl 1 sent ∗
+    "Hsentl" ∷ sentAuth γc sent L ∗
     "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
 
 /-- **The channel had sent `l` (at least)** (persistent; unit W-K): a snapshot of the channel's
@@ -587,6 +595,86 @@ def streamSentLb (γo : WsStreamNames) (l : List RespM) : IProp GF := monoListLb
 instance streamSentLb_persistent (γo : WsStreamNames) (l : List RespM) :
     Persistent (streamSentLb (GF := GF) γo l) := by
   unfold streamSentLb; infer_instance
+
+/-- **`w` was registered on the channel when its sent list had length `n`** (persistent; K1b). -/
+def chanRegAt (γc : WatchChanNames) (w : Loc) (n : Nat) : IProp GF :=
+  ghostMapElem γc.regi w DFrac.discard n
+
+instance chanRegAt_persistent (γc : WatchChanNames) (w : Loc) (n : Nat) :
+    Persistent (chanRegAt (GF := GF) γc w n) := by
+  unfold chanRegAt; infer_instance
+
+open Iris.ProofMode in
+theorem sentAuth_lb (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
+    sentAuth (GF := GF) γc sent L ⊢ sentAuth γc sent L ∗ chanSentLb γc sent := by
+  unfold sentAuth chanSentLb
+  iintro ⟨Ha, Hr⟩
+  ihave #Hlb := monoListLbOwn_get γc.sentl 1 sent $$ Ha
+  iframe Ha Hr Hlb
+
+open Iris.ProofMode in
+theorem sentAuth_lb_valid (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (l : List RespM) :
+    sentAuth (GF := GF) γc sent L ∗ chanSentLb γc l ⊢ sentAuth γc sent L ∗ ⌜l <+: sent⌝ := by
+  unfold sentAuth chanSentLb
+  iintro ⟨⟨Ha, Hr⟩, #Hl⟩
+  ihave %H := mono_list_auth_lb_valid _ _ _ _ $$ Ha Hl
+  iframe Ha Hr
+  ipureintro; exact H.2
+
+open Iris.ProofMode in
+theorem sentAuth_snoc (γc : WatchChanNames) (sent : List RespM) (L : List Loc) (x : RespM) :
+    ⊢ sentAuth (GF := GF) γc sent L ==∗ sentAuth γc (sent ++ [x]) L := by
+  unfold sentAuth
+  iintro ⟨Ha, %RI, Hr, %HRI⟩
+  imod monoListAuthOwn_update_app [x] $$ Ha with ⟨Ha, -⟩
+  imodintro
+  iframe Ha
+  iexists RI
+  iframe Hr
+  ipureintro
+  refine ⟨HRI.1, fun w n h => ?_⟩
+  have := HRI.2 w n h
+  simp only [List.length_append, List.length_singleton]; omega
+
+open Iris.ProofMode in
+theorem sentAuth_register (γc : WatchChanNames) (sent : List RespM) (L : List Loc) (w : Loc)
+    (hw : w ∉ L) :
+    ⊢ sentAuth (GF := GF) γc sent L ==∗ sentAuth γc sent (w :: L) ∗ chanRegAt γc w sent.length := by
+  unfold sentAuth chanRegAt
+  iintro ⟨Ha, %RI, Hr, %HRI⟩
+  have hn : RI.lookup w = none := by
+    cases h : RI.lookup w with
+    | none => rfl
+    | some _ => exact absurd (HRI.1 w (by rw [show RI !! w = RI.lookup w from rfl, h]; rfl)) hw
+  imod ghost_map_insert_persist w sent.length hn $$ Hr with ⟨Hr, #He⟩
+  imodintro
+  iframe Ha He
+  iexists RI.insert w sent.length
+  iframe Hr
+  ipureintro
+  refine ⟨fun x hx => ?_, fun x n h => ?_⟩
+  · by_cases e : w = x
+    · subst e; exact List.mem_cons_self
+    · rw [show (RI.insert w sent.length) !! x = (<[w := sent.length]> RI) !! x from rfl,
+        GMap.lookup_insert_ne _ _ e] at hx
+      exact List.mem_cons_of_mem _ (HRI.1 x hx)
+  · by_cases e : w = x
+    · subst e
+      rw [show (RI.insert w sent.length) !! w = (<[w := sent.length]> RI) !! w from rfl,
+        GMap.lookup_insert] at h
+      cases h; exact Nat.le_refl _
+    · rw [show (RI.insert w sent.length) !! x = (<[w := sent.length]> RI) !! x from rfl,
+        GMap.lookup_insert_ne _ _ e] at h
+      exact HRI.2 x n h
+
+open Iris.ProofMode in
+theorem sentAuth_reg_le (γc : WatchChanNames) (sent : List RespM) (L : List Loc) (w : Loc)
+    (n : Nat) : sentAuth (GF := GF) γc sent L ∗ chanRegAt γc w n ⊢ ⌜n ≤ sent.length⌝ := by
+  unfold sentAuth chanRegAt
+  iintro ⟨⟨-, %RI, Hr, %HRI⟩, He⟩
+  ihave %Hl := ghost_map_lookup $$ Hr He
+  ipureintro; exact HRI.2 w n Hl
 
 theorem chanSentLb_stream (γo : WsStreamNames) (γc : WatchChanNames) (l : List RespM)
     (h : γo.sentl = γc.sentl) : chanSentLb (GF := GF) γc l ⊣⊢ streamSentLb γo l := by
@@ -780,10 +868,11 @@ instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
 /-- **What a registration says of the watcher `w`** (persistent; the store's `IWF`): its
 names (`watcherMeta`), its fixed fields (range `r`, filters `fcs`), and its first revision `lo`:
 the start revision, or, for a start revision `0`, the length of a committed log `C` at the
-registration (`idxCert`: the next revision the store will commit). -/
+registration (`idxCert`: the next revision the store will commit); and (unit W-K) its
+registration index on its channel (`chanRegAt`). -/
 def watcherIs (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : GoSlice) (lo : Nat) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (C : Log), watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-    idxCert γ.st.idx C ∗
+    idxCert γ.st.idx C ∗ (∃ n : Nat, chanRegAt γw.wc w n) ∗
     ⌜γw.lo = lo ∧ lo = if r.startRev = W64 0 then C.length else (sint.Z r.startRev).toNat⌝)
 
 instance watcherIs_persistent (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : GoSlice)

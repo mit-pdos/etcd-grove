@@ -572,9 +572,8 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     icases Hvs' with ⟨%Hvl, -⟩
     have hd : sent.drop received.length = [] := List.drop_eq_nil_of_le (by simp at Hvl; omega)
     have hrs : sent = received := (prefix_drop_nil' Hpre hd).symm
-    iunfold chanSentLb at Hl0
-    ihave %Hlb := mono_list_auth_lb_valid _ _ _ _ $$ Hsentl Hl0
-    ihave #Hsnap := monoListLbOwn_get γc.sentl 1 sent $$ Hsentl
+    icases mvcc.sentAuth_lb_valid γc sent L l0 $$ [$Hsentl $Hl0] with ⟨Hsentl, %Hlb⟩
+    icases mvcc.sentAuth_lb γc sent L $$ Hsentl with ⟨Hsentl, #Hsnap⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
@@ -588,8 +587,8 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     imodintro
     iapply HΨ $$ Hcons
     · ipureintro
-      rw [← hrs]; exact Hlb.2
-    unfold chanSentLb; rw [← hrs]; iexact Hsnap
+      rw [← hrs]; exact Hlb
+    rw [← hrs]; iexact Hsnap
   case Buffered.cons =>
     icases HK with ⟨HΦ, -⟩
     iintro Hch
@@ -671,7 +670,7 @@ theorem chan_sent_snapshot (γ : WsNames) (ch : Loc) (γc : WatchChanNames) :
   iunfold watchChanInv at Hi
   icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
   iNamed Hi
-  ihave #Hlb := monoListLbOwn_get γc.sentl 1 sent $$ Hsentl
+  icases mvcc.sentAuth_lb γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
   · inext
     iunfold watchChanInv
@@ -682,7 +681,7 @@ theorem chan_sent_snapshot (γ : WsNames) (ch : Loc) (γc : WatchChanNames) :
     ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
   imodintro
   iexists sent
-  unfold chanSentLb; iexact Hlb
+  iexact Hlb
 
 /-- **What the consumer received was sent** (unit W-K): its received list is a snapshot of the
 channel's sent list, with a later credit. -/
@@ -698,7 +697,8 @@ theorem watch_sent_received (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rc
   unfold watchConsumer
   ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hcons Hrecv
   subst Heq
-  ihave #Hlb := monoListLbOwn_get γc.sentl 1 sent $$ Hsentl
+  icases mvcc.sentAuth_lb γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
+  iunfold chanSentLb at Hlb
   ihave #Hlb' := monoListLbOwn_le (γ := γc.sentl) rcv Hpre $$ Hlb
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
   · inext

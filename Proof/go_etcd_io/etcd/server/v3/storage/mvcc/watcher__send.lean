@@ -713,8 +713,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               ihave #Hvs' := mvcc.respsIs_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hresp]
               icases Hback with ⟨-, Hb⟩
               imod Hb $$ Hsl2p with #Hsl
-              imod monoListAuthOwn_update_app [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ :
-                mvcc.RespM)] $$ Hsentl with ⟨Hsentl, -⟩
+              imod mvcc.sentAuth_snoc γw.wc sent L (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ :
+                mvcc.RespM) $$ Hsentl with Hsentl
               imod Hmask with -
               imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl] with -
               · inext

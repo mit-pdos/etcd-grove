@@ -529,7 +529,7 @@ theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg
   unfold mvcc.watchRecvOk
   icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, %HD, #HDf, -⟩
   unfold mvcc.watcherIs
-  icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, %Hlo⟩
+  icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, -, %Hlo⟩
   ihave %Hag : iprop(⌜rg = r ∧ fcs = fcs'⌝) $$ []
   · iapply mvcc.watcherFixed_agree
     isplit
@@ -664,7 +664,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
   -- the start revision
   ihave %Hlo : ⌜sint.Z P.rev ≤ (lo : Int)⌝ $$ []
   · unfold mvcc.watcherIs
-    icases Hwi with ⟨%γw0, %C, -, -, -, %Hlo⟩
+    icases Hwi with ⟨%γw0, %C, -, -, -, -, %Hlo⟩
     ipureintro
     obtain ⟨-, hsr, -, -⟩ := hcr
     have h0 : 0 ≤ sint.Z P.rev := hok.2.2.1

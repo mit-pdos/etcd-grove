@@ -111,8 +111,9 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
   imod (saved_prop_alloc (GF := GF) Q DFrac.discard DFrac.valid_discard) with ⟨%γp, #Hsp⟩
   imod mono_list_own_alloc (GF := GF) ([] : List mvcc.RespM) with ⟨%γsl, Hsl, -⟩
-  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl⟩
-  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg Hsl] with #Hinv
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Nat) with ⟨%γri, Hri⟩
+  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl, γri⟩
+  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg Hsl Hri] with #Hinv
   · inext
     iunfold mvcc.watchChanInv
     iexists ChanState.Buffered [], [], [], [], []
@@ -141,8 +142,13 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     isplitr
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
-    isplitl [Hsl]
-    · iexact Hsl
+    isplitl [Hsl Hri]
+    · iunfold mvcc.sentAuth
+      iframe Hsl
+      iexists ∅
+      iframe Hri
+      ipureintro
+      exact ⟨fun w h => by simp [GMap.lookup_empty] at h, fun w n h => by simp [GMap.lookup_empty] at h⟩
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
