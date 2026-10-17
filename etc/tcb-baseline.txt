@@ -15,7 +15,6 @@ axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
 axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
-axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
 axiom EtcdServer.raftRequestAlarm.wp_proof
 axiom EtcdServer.revokeExpiredLeases.wp_proof
@@ -96,6 +95,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
+axiom fmt.SprintfAttrs.wp_proof
 axiom fmt.SprintfNamed.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -128,6 +128,7 @@ axiom heap.Push.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom membership.RaftCluster.Member.wp_proof
 axiom membership.localKept
 axiom membership.localKept_persistent
 axiom metadata.FromIncomingContext.wp_proof
@@ -170,6 +171,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
+axiom slices.EqualString.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
