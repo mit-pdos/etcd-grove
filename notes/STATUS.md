@@ -4903,8 +4903,8 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
   fix is impossible (a progress request has no id and the server may not answer it, so the client
   cannot tell which request a broadcast answers); the server-side fix `c267e0ffe` (branch
   `watch-progress-before-created`), cherry-picked as `goose-lean` `09669450f`: `sendLoop` sends the
-  responses queued on the watch channel before a `Created` response. **Done** (the pin `09669450f`, not
-  pushed yet: `etc/goose.py --check` needs `--src etcd=<a checkout at 09669450f>` until it is):
+  responses queued on the watch channel before a `Created` response. **Done** (the pin `09669450f`,
+  pushed):
   `serverWatchStream.sendLoop`'s proof over the fix, with no statement changed. The closure is
   inlined (`wp_auto`); the watch case's proof is the local macro `watch_resp k` (its four exits
   re-establish the loop invariant through the caller's `k`: the main loop's `rcv, cs, D`, the
