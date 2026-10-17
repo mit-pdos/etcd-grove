@@ -78,13 +78,14 @@ def gOk (S : RunSt) (U : GMap Loc Unit) : Prop :=
   (S.l.filter (fun x => decide (x ≠ null))).Nodup ∧
   (∀ ws, S.CL !! ws = some () → U !! ws = some ()) ∧
   U !! null = none ∧
-  (∀ x ∈ S.L, (∃ c, x = WatchReqM.create c) ∨ (∃ id, x = WatchReqM.cancel id)) ∧
+  (∀ x ∈ S.L, (∃ c, x = WatchReqM.create c) ∨ (∃ id, x = WatchReqM.cancel id) ∨
+    x = WatchReqM.progress) ∧
   (∀ (i : Nat) c, S.L[i]? = some (WatchReqM.create c) → i ∈ S.ansd ∨ S.pend = some i) ∧
   (∀ (i : Nat) (id : w64), S.L[i]? = some (WatchReqM.cancel id) → id ∈ S.regs) ∧
   (∀ i, S.pend = some i → i ∉ S.ansd ∧ (∃ c, S.L[i]? = some (WatchReqM.create c)) ∧ S.l ≠ []) ∧
   (∀ i ∈ S.ansd, i < S.L.length) ∧
   (∀ j m ρ, S.Dm[j]? = some m → m.src = some ρ →
-    ρ.id ≠ W64 (-1) ∧ idLive (S.Dm.take j) ρ.id) ∧
+    ρ.id ≠ W64 (-1) → idLive (S.Dm.take j) ρ.id) ∧
   (∀ m ∈ S.Dm, m.src = none → m.created = true → m.canceled = false → m.watchId ∈ S.regs)
 
 /-- The model at `run`'s start: nothing sent, received or made. -/
@@ -522,7 +523,7 @@ theorem cancel_ok {S : RunSt} {U : GMap Loc Unit} {X : w64} {L' : List v3rpc.Wat
     · exact g7 x hx
     · rcases List.mem_append.1 hx with h | h
       · exact g7 x h
-      · simp at h; subst h; right; exact ⟨X, rfl⟩
+      · simp at h; subst h; right; left; exact ⟨X, rfl⟩
   · intro i c h
     rcases hpos i _ h with ⟨-, h⟩ | ⟨-, h, -⟩
     · exact g8 i c h
@@ -570,6 +571,72 @@ theorem cancel_ok {S : RunSt} {U : GMap Loc Unit} {X : w64} {L' : List v3rpc.Wat
       · cases h; exact absurd rfl (hcr X rfl)
 
 
+
+/-- The model after a progress request (`L'`: sent, or not). -/
+def RunSt.sentProgress (S : RunSt) (L' : List v3rpc.WatchReqM) : RunSt := { S with L := L' }
+
+theorem progress_ok {S : RunSt} {U : GMap Loc Unit} {L' : List v3rpc.WatchReqM}
+    (hg : gOk S U) (hL : L' = S.L ∨ L' = S.L ++ [.progress]) :
+    gOk (S.sentProgress L') U ∧ ∀ ws ph, phOk S ws ph → phOk (S.sentProgress L') ws ph := by
+  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
+  have hpos : ∀ i r, L'[i]? = some r → (i < S.L.length ∧ S.L[i]? = some r) ∨
+      (i = S.L.length ∧ r = .progress) := by
+    intro i r h
+    rcases hL with rfl | rfl
+    · left; exact ⟨(List.getElem?_eq_some_iff.1 h).1, h⟩
+    · rcases getElem?_snoc_cases h with h | h
+      · left; exact h
+      · right; exact h
+  have hold : ∀ i, i < S.L.length → L'[i]? = S.L[i]? := by
+    intro i hi; rcases hL with rfl | rfl
+    · rfl
+    · rw [List.getElem?_append_left hi]
+  have hlen : S.L.length ≤ L'.length := by rcases hL with rfl | rfl <;> simp
+  refine ⟨⟨g1, g2, g3, g4, g5, g6, ?_, ?_, ?_, ?_, ?_, g12, g13⟩, ?_⟩
+  · intro x hx
+    rcases hL with rfl | rfl
+    · exact g7 x hx
+    · rcases List.mem_append.1 hx with h | h
+      · exact g7 x h
+      · simp at h; subst h; right; right; rfl
+  · intro i c h
+    rcases hpos i _ h with ⟨-, h⟩ | ⟨-, h⟩
+    · exact g8 i c h
+    · cases h
+  · intro i id h
+    rcases hpos i _ h with ⟨-, h⟩ | ⟨-, h⟩
+    · exact g9 i id h
+    · cases h
+  · intro i hi
+    obtain ⟨h1, ⟨c, h2⟩, h3⟩ := g10 i hi
+    refine ⟨h1, ⟨c, ?_⟩, h3⟩
+    show L'[i]? = _
+    rw [hold i (List.getElem?_eq_some_iff.1 h2).1]; exact h2
+  · intro i hi; exact Nat.lt_of_lt_of_le (g11 i hi) hlen
+  · intro ws ph hph
+    cases ph with
+    | queued si => exact hph
+    | orphan => exact hph
+    | reg X' =>
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
+      refine ⟨r1, r2, r3, r4, r5, ?_, ?_⟩
+      · intro hCS i hi
+        rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, h⟩
+        · exact r6 hCS i h
+        · cases h
+      · intro i i' hi hi' hn hn'
+        rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, h⟩
+        · rcases hpos i' _ hi' with ⟨-, h'⟩ | ⟨-, h'⟩
+          · exact r7 i i' h h' hn hn'
+          · cases h'
+        · cases h
+    | closedRun X' =>
+      obtain ⟨c1, c2, c3, c4, c5, c6, c7⟩ := hph
+      refine ⟨c1, c2, c3, c4, c5, c6, ?_⟩
+      intro i hi
+      rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, h⟩
+      · exact c7 i h
+      · cases h
 
 /-- The model after a new substream `ws` is appended to `resuming` (and its create sent if it is
 the only one: `L'`, `pend'`). -/
@@ -888,7 +955,7 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
     · exact g11 j h1
     · simp at h1; subst h1; exact hilen
   · intro j m' ρ hj hs
-    show ρ.id ≠ W64 (-1) ∧ idLive ((S.Dm ++ [m]).take j) ρ.id
+    show ρ.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.id
     rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
     · rw [hsrc] at hs; cases hs
@@ -1166,7 +1233,7 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
     · exact g11 j h
     · simp at h; subst h; exact (List.getElem?_eq_some_iff.1 hi).1
   · intro j m' ρ hj hs
-    show ρ.id ≠ W64 (-1) ∧ idLive ((S.Dm ++ [m]).take j) ρ.id
+    show ρ.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.id
     rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
     · rw [hsrc] at hs; cases hs
@@ -1229,11 +1296,11 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
         · subst e; exact List.mem_append_right _ (by simp)
         · exact hans j (Classical.byContradiction fun hn => e (r7 j i hj hi hn hia))
 
-/-- The model after an mvcc response `m` of a live id. -/
+/-- The model after an mvcc response `m` (of a live id, or of id `-1`). -/
 def RunSt.recvMvcc (S : RunSt) (m : WatchRespM) : RunSt := { S with Dm := S.Dm ++ [m] }
 
 theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.RespM}
-    (hg : gOk S U) (hsrc : m.src = some ρ) (hid : ρ.id ≠ W64 (-1)) (hl : idLive S.Dm ρ.id) :
+    (hg : gOk S U) (hsrc : m.src = some ρ) (hl : ρ.id ≠ W64 (-1) → idLive S.Dm ρ.id) :
     gOk (S.recvMvcc m) U ∧ ∀ ws ph, phOk S ws ph → phOk (S.recvMvcc m) ws ph := by
   obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
   have hlive : ∀ Y, (idLive (S.recvMvcc m).Dm Y ↔ idLive S.Dm Y) := by
@@ -1242,13 +1309,13 @@ theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.
     rw [idLive_snoc, if_neg (fun h => by rw [hsrc] at h; cases h.1)]
   refine ⟨⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, ?_, ?_⟩, ?_⟩
   · intro j m' ρ' hj hs
-    show ρ'.id ≠ W64 (-1) ∧ idLive ((S.Dm ++ [m]).take j) ρ'.id
+    show ρ'.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ'.id
     rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨hj2, hm'⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ' hj' hs
     · subst hm'
       rw [hsrc] at hs; cases hs
       subst hj2
-      rw [List.take_left]; exact ⟨hid, hl⟩
+      rw [List.take_left]; exact hl
   · intro m' hm hs hc hca
     rcases List.mem_append.1 hm with h | h
     · exact g13 m' h hs hc hca

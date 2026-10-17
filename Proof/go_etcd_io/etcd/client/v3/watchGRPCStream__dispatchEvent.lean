@@ -135,6 +135,7 @@ theorem watchGRPCStream.dispatchEvent.wp_proof
         isplitl [Hh Hid Hcr Hca Hcomp Hrs Hfr Hev]
         · iunfold respFields; iframe; ipureintro; exact Hhn
         iframe
+        ipureintro; rfl
       · have Hnb : ¬ isBroadcast mm := fun h => by simp_all
         simp only [decide_eq_false Hnb, Bool.false_eq_true, ↓reduceIte]
         (try wp_auto)

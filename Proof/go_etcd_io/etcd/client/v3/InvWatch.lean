@@ -475,15 +475,17 @@ instance closeErrPub_persistent (wgs : Loc) : Persistent (closeErrPub (GF := GF)
   unfold closeErrPub; infer_instance
 
 /-- **What `reqc` carries** (a bag): a `*watchRequest`, read-only, of a watch of the contract, its
-`retc` a bag carrying its channel (`retcP`). (No `progressRequest`: `RequestProgress` is not
-covered, the file header.) -/
+`retc` a bag carrying its channel (`retcP`); or (unit W-K) a `*progressRequest`
+(`RequestProgress`'s). -/
 def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
-  iprop(∃ (wr : Loc) (P : WsPrm GF),
+  iprop((∃ (wr : Loc) (P : WsPrm GF),
     ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty) #wr ∧
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
     context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
-    ⌜wsReqOk V.pfx P⌝)
+    ⌜wsReqOk V.pfx P⌝) ∨
+    ∃ pr : Loc,
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)
 
 instance reqP_persistent (V : WEnv GF) (v : GoInterface) : Persistent (reqP V v) := by
   unfold reqP; infer_instance

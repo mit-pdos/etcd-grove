@@ -586,11 +586,11 @@ instance rsnW_persistent (γc : WatchChanNames) (w : Loc) : Persistent (rsnW (GF
   unfold rsnW; infer_instance
 
 /-- The completeness of a response of id `-1` (K1b): every watcher registered on the channel when
-it was sent (`x.regs`) is covered, or cancelled for its reason; and its revision is at least `1`
-(so the client broadcasts it: `IsProgressNotify`). -/
+it was sent (`x.regs`) is covered, or cancelled for its reason; and it has no events and its
+revision is at least `1` (so the client broadcasts it: `IsProgressNotify`). -/
 def respCompl (γc : WatchChanNames) (x : RespM) : IProp GF :=
   iprop(⌜x.id ≠ W64 (-1)⌝ ∨
-    ((□ ∀ w : Loc, ⌜w ∈ x.regs⌝ -∗ ⌜w ∈ x.cov⌝ ∨ rsnW γc w) ∗ ⌜1 ≤ sint.Z x.rev⌝))
+    ((□ ∀ w : Loc, ⌜w ∈ x.regs⌝ -∗ ⌜w ∈ x.cov⌝ ∨ rsnW γc w) ∗ ⌜1 ≤ sint.Z x.rev ∧ x.evs = []⌝))
 
 instance respCompl_persistent (γc : WatchChanNames) (x : RespM) :
     Persistent (respCompl (GF := GF) γc x) := by
@@ -823,16 +823,16 @@ theorem watchEvents_cover {L L' : Log} (hc : L <+: L' ∨ L' <+: L) (r : WatchRa
 `watcher.send`): from its resource `CS` (lent), the channel's record of the registered watchers
 (`regl`, at `L`) and the target watcher `γw` live, the progress fact, and every watcher of `L`
 covered (`covl`) or cancelled for its reason. -/
-def complW (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (covl : List Loc) (id rev : w64) :
-    IProp GF :=
+def complW (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (covl : List Loc) (id rev : w64)
+    (evm : List EvM) : IProp GF :=
   iprop(□ ∀ L : List Loc, ⌜id = W64 (-1)⌝ -∗ CS -∗ ghostVar γw.wc.regl (1 : Qp).half L -∗
     dghostVar γw.live (DFrac.own ql) true -∗
     CS ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ∗
       progFact γw.wc.prog ∗ □ (∀ w : Loc, ⌜w ∈ L⌝ -∗ ⌜w ∈ covl⌝ ∨ rsnW γw.wc w) ∗
-      ⌜1 ≤ sint.Z rev⌝)
+      ⌜1 ≤ sint.Z rev ∧ evm = []⌝)
 
 instance complW_persistent (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (covl : List Loc)
-    (id rev : w64) : Persistent (complW γw ql CS covl id rev) := by
+    (id rev : w64) (evm : List EvM) : Persistent (complW γw ql CS covl id rev evm) := by
   unfold complW; infer_instance
 
 open Iris.ProofMode in
@@ -840,13 +840,13 @@ open Iris.ProofMode in
 `-1`, the progress fact and every registered watcher (`L`) covered or cancelled for its
 reason. -/
 theorem complW_facts (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (L covl : List Loc)
-    (id rid rev : w64) (hrid : rid ≠ W64 (-1)) :
-    CS ∗ (⌜id = rid⌝ ∨ complW γw ql CS covl id rev) ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗
+    (id rid rev : w64) (evm : List EvM) (hrid : rid ≠ W64 (-1)) :
+    CS ∗ (⌜id = rid⌝ ∨ complW γw ql CS covl id rev evm) ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗
       dghostVar γw.live (DFrac.own ql) true ⊢
     CS ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ∗
       (⌜id = W64 (-1)⌝ → progFact γw.wc.prog) ∗
       (⌜id ≠ W64 (-1)⌝ ∨ ((□ ∀ w : Loc, ⌜w ∈ L⌝ -∗ ⌜w ∈ covl⌝ ∨ rsnW γw.wc w) ∗
-        ⌜1 ≤ sint.Z rev⌝)) := by
+        ⌜1 ≤ sint.Z rev ∧ evm = []⌝)) := by
   iintro ⟨HCS, #Hid, Hregl, Hlv⟩
   by_cases hm : id = W64 (-1)
   · icases Hid with (%Heq | #Hw)

@@ -366,7 +366,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     subst Hag1
     -- the response's id, and (K1b) for `-1`, the registered watchers: the map's, or cancelled
     ihave #Hidc : iprop(⌜rid = rr.id⌝ ∨
-        mvcc.complW γw sync.rfrac.half CS (cs.map mvcc.CovArg.w) rid r) $$ []
+        mvcc.complW γw sync.rfrac.half CS (cs.map mvcc.CovArg.w) rid r []) $$ []
     · icases Hrid with (%h | #Hp)
       · ileft; ipureintro; exact h
       icases Hcw with (%hne | #Hcw')
@@ -381,7 +381,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       iframe HCS Hregl Hlv Hp
       isplitl
       rotate_left
-      · ipureintro; exact hr1
+      · ipureintro; exact ⟨hr1, rfl⟩
       iintro !> %w0 %hw0
       icases Hcm $$ %w0 %hw0 with (⟨%id0, %hid0⟩ | #Hr)
       · ileft; ipureintro

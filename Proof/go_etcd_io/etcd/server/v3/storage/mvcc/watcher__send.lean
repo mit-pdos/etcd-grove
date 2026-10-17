@@ -672,7 +672,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               icases Hrw with ⟨%rr, %fcs', #Hf', -, %Hrr⟩
               ihave %Hag := mvcc.watcherFixed_agree w r rr fcs fcs' $$ [$Hfix $Hf']
               ipureintro; rw [Hag.1]; exact Hrr
-            icases mvcc.complW_facts γw ql CS L (cs.map mvcc.CovArg.w) wr.WatchID' r.id wr.Revision' Hrid
+            icases mvcc.complW_facts γw ql CS L (cs.map mvcc.CovArg.w) wr.WatchID' r.id wr.Revision' evm Hrid
               $$ [$Hidp $Hidc $Hregl $Hlive] with ⟨Hidp, Hregl, Hlive, #Hpnew, #Hcompl⟩
             ihave #Hcx : mvcc.respCompl γw.wc
                 (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length⟩ : mvcc.RespM)
@@ -680,7 +680,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
             · iunfold mvcc.respCompl
               icases Hcompl with (%h | ⟨#h, %h1⟩)
               · ileft; ipureintro; exact h
-              · iright; iframe h; ipureintro; exact h1
+              · iright; iframe h; ipureintro
+                exact ⟨h1.1, by show mvcc.filtered fs evm = []; rw [h1.2]; rfl⟩
             ihave #Hrc := mvcc.respCov_of_list γ γw.wc sent
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length⟩ : mvcc.RespM)
               cs rfl (fun h => Hown (Classical.byContradiction fun hne => hA ⟨hne, h⟩))

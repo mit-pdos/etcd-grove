@@ -31,7 +31,7 @@ read only if it has no events; its events `es`): makes the `WatchResponse` `wrOf
 fresh location, read-only) and broadcasts it (a progress notification of id `-1`,
 `isBroadcast`) or sends it to the substream registered under its id (`unicastResponse`), each
 target's content of it given (`sendCap`, the target's values `Pf ws`, its `recvc` producer's
-history `Sf ws`); returns whether it was delivered (unicast). -/
+history `Sf ws`); returns whether it was delivered (unicast; `true` for a broadcast). -/
 abbrev watchGRPCStream.dispatchEvent.spec : Prop :=
   ∀ (V : WEnv GF) (wgs p : Loc) (dq : DFrac) (mm : v3rpc.WatchRespM) (h : Loc) (sl : GoSlice)
     (es : List EvModel) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac)
@@ -50,7 +50,7 @@ abbrev watchGRPCStream.dispatchEvent.spec : Prop :=
   {{ (b : Bool), RET #b; respFields p dq mm h sl ∗
       wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
       (if decide (isBroadcast mm) then
-        iprop(∃ wr : Loc, [∗map] _k ↦ ws ∈ M,
+        iprop(⌜b = true⌝ ∗ ∃ wr : Loc, [∗map] _k ↦ ws ∈ M,
           sendDone (Pf ws) (Sf ws) wr ∨ sendFail V (Pf ws) (Sf ws) wr)
        else match M !! mm.watchId with
          | some ws => iprop(∃ wr : Loc, (⌜b = true⌝ ∗ sendDone (Pf ws) (Sf ws) wr) ∨
