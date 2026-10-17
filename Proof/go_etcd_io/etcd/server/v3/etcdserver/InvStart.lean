@@ -56,6 +56,9 @@ section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 abbrev srvSnapCountAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCount"
 abbrev srvSnapCatchUpAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCatchUpEntries"
+/-- The address of `s.snapshotApplied` (etcd-io/etcd#22525: `start` sets it, `applySnapshot`
+notifies it, `publishV3`'s snapshot check receives from it). -/
+abbrev srvSnapAppliedAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"snapshotApplied" s
 end addrs
 
 section defs
@@ -216,6 +219,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hcancel" ∷ (∃ c : GoFunc, srvCancelAddr s ↦ c) ∗
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
+    "Hsnapa" ∷ (∃ n : Loc, srvSnapAppliedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
     "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
@@ -249,7 +253,11 @@ def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 →
     "Hwgs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
       srvWgReader s) ∗
     "Hlcs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
-      ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n))
+      ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) ∗
+    -- etcd-io/etcd#22525: the snapshot notifier, its writer guard (for the apply thread's
+    -- `applySnapshot`) and all its reader slots (for `publishV3`)
+    "Hsas" ∷ (∃ n : Loc, srvSnapAppliedAddr s ↦□ n ∗ isNotifier n ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), notifyReader n))
 
 end defs
 

@@ -9,6 +9,7 @@ public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.github_com.dustin.go_humanize
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.version
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.logutil
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
@@ -48,6 +49,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.log
 public import GeneratedProof.net.http
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic

@@ -9,6 +9,7 @@ public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.github_com.dustin.go_humanize
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.version
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.logutil
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
@@ -48,6 +49,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.log
 public import GeneratedProof.net.http
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
@@ -124,6 +126,7 @@ instance EtcdServer_typed_pointsto :
     "leadElectedTime" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"leadElectedTime" l) v.leadElectedTime' dq ∗
     "firstCommitInTerm" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"firstCommitInTerm" l) v.firstCommitInTerm' dq ∗
     "clusterVersionChanged" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"clusterVersionChanged" l) v.clusterVersionChanged' dq ∗
+    "snapshotApplied" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"snapshotApplied" l) v.snapshotApplied' dq ∗
     "AccessController" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"AccessController" l) v.AccessController' dq ∗
     "forceDiskSnapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"forceDiskSnapshot" l) v.forceDiskSnapshot' dq ∗
     "corruptionChecker" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"corruptionChecker" l) v.corruptionChecker' dq ∗
@@ -837,6 +840,22 @@ instance EtcdServer_access_store_clusterVersionChanged (l : Loc) (v : go_etcd_io
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"clusterVersionChanged" l) v.clusterVersionChanged' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"clusterVersionChanged" l) clusterVersionChanged' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clusterVersionChanged' := clusterVersionChanged' } : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdServer_access_load_snapshotApplied (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"snapshotApplied" l) v.snapshotApplied' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"snapshotApplied" l) v.snapshotApplied' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdServer_access_store_snapshotApplied (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (snapshotApplied' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"snapshotApplied" l) v.snapshotApplied' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"snapshotApplied" l) snapshotApplied' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshotApplied' := snapshotApplied' } : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

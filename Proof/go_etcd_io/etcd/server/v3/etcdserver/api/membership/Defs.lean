@@ -96,6 +96,16 @@ instance membership.isRaftCluster_persistent (c : Loc) :
 
 end defs
 
+/-- **The cluster `c`'s applied membership held the attributes `(name, urls)` for the member
+`id`** (an uninterpreted predicate, the trust boundary; etcd-io/etcd#22525, `hasPublishedAttributes`):
+at some point `c.members[id]` had the name `name` and the client URLs `urls`. `c`'s members map
+is written only by the apply thread, from committed entries and from applied snapshots (the
+leader's applied state), so its content is committed membership: an `attrsHeld` fact means the
+cluster committed those attributes for `id` (`ClusterMemberAttrSet` is the only writer of a
+member's `Attributes`, and only that member proposes it). Only the postulate of
+`RaftCluster.Member` (`Spec/.../membership/RaftCluster__Member.lean`) introduces it. -/
+opaque membership.attrsHeld (c : Loc) (id : w64) (name : GoString) (urls : List GoString) : Prop
+
 /-- **The cluster `c`'s local member stays in its members map** (persistent; an axiomatized
 predicate, unit P3b: an assumption about the server's run, introduced by nothing):
 `RaftCluster.IsLocalMemberLearner` panics (`c.lg.Panic`) when `c.members` has no entry for

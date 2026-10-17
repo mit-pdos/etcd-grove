@@ -218,6 +218,11 @@ theorem EtcdServer.start.wp_proof
   icases Hlc with ⟨%lc0, Hlc⟩
   wp_auto
   ipersist Hlc
+  -- `s.snapshotApplied = notify.NewNotifier()` (etcd-io/etcd#22525)
+  wp_apply hNN as %san ⟨#Hsan, Hsaslots⟩
+  icases Hsnapa with ⟨%sa0, Hsnapa⟩
+  wp_auto
+  ipersist Hsnapa
   -- the start's log line (and the cluster version gauge, if the version is known)
   ihave #Hcv' := Hcv
   iunfold clusterVersionOk at Hcv'
@@ -495,10 +500,13 @@ theorem EtcdServer.start.wp_proof
     iunfold srvReadReader
     iexists rd
     iframe Hr Hslot
-  iapply replicate_map _ _ (srvLeaderChangedAddr s ↦□ lcn) $$ [$Hlc $Hlcslots]
-  iintro ⟨#Hl, Hslot⟩
-  iexists lcn
-  iframe Hl Hslot
+  isplitl [Hlcslots]
+  · iapply replicate_map _ _ (srvLeaderChangedAddr s ↦□ lcn) $$ [$Hlc $Hlcslots]
+    iintro ⟨#Hl, Hslot⟩
+    iexists lcn
+    iframe Hl Hslot
+  iexists san
+  iframe Hsnapa Hsan Hsaslots
 
 end proof
 
