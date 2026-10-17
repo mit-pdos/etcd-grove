@@ -503,6 +503,63 @@ instance generation_access_store_revs (l : Loc) (v : go_etcd_io.etcd.server.v3.s
 end def_
 end generation
 
+namespace revisionLease
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+instance revisionLease_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease where
+  typedPointstoDef l v dq := iprop(
+    "revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"revision" l) v.revision' dq ∗
+    "leaseID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"leaseID" l) v.leaseID' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance revisionLease_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease.underlying := by
+  solve_into_val_typed_struct
+
+instance revisionLease_access_load_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"revision" l) v.revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"revision" l) v.revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance revisionLease_access_store_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease) (revision' : go_etcd_io.etcd.server.v3.storage.mvcc.Revision) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"revision" l) v.revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"revision" l) revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with revision' := revision' } : go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance revisionLease_access_load_leaseID (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"leaseID" l) v.leaseID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"leaseID" l) v.leaseID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance revisionLease_access_store_leaseID (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease) (leaseID' : go_etcd_io.etcd.server.v3.lease.LeaseID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"leaseID" l) v.leaseID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease go!"leaseID" l) leaseID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaseID' := leaseID' } : go_etcd_io.etcd.server.v3.storage.mvcc.revisionLease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end revisionLease
+
 namespace RangeOptions
 section def_
 
