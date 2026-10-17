@@ -140,7 +140,7 @@ theorem v3rpc.Server.wp_proof
     (hNewM : v3rpc.NewMaintenanceServer.spec (GF := GF) (hG := hG))
     (hRegM : etcdserverpb.RegisterMaintenanceServer.spec (GF := GF) (hG := hG))
     (hInit : grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG)) :
-    [v3rpc.ServerMethodSets] → v3rpc.Server.spec (GF := GF) (hG := hG) := by
+    v3rpc.Server.spec (GF := GF) (hG := hG) := by
   intro _
   intro s C d gsl gvs
   wp_start as ⟨#Hc, Hlr, Hbr, Hgo, Hd, %Hdb, #Hgvs, %Hgn⟩

@@ -34,10 +34,11 @@ read-only) returns a `*grpc.Server` being built (`grpcSrvNew`) with etcd's unary
 stream chain `[ims, is]` (grpc-prometheus's, `newStreamInterceptor(s)`'s), all transparent, and
 etcd's services registered: among them the KV service's `Put`, `Range`, `DeleteRange`, `Txn` on
 the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` stream on the
-`*watchServer` `pw` (`watchSReg`). The server's resources come back (the progress interval
+`*watchServer` `pw` (`watchSReg`), given the service values' method sets (`ServerMethodSets`, Go's
+type checker's facts). The server's resources come back (the progress interval
 written by `NewWatchServer`). -/
 abbrev v3rpc.Server.spec : Prop :=
-  ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
+  v3rpc.ServerMethodSets → ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.grpcCfgOk s C ∗ srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ ∗
