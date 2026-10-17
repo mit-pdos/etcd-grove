@@ -30,7 +30,7 @@ post goes in the report as a draft (step 9); the user posts it.
 |---|---|
 | The Goose fork | `~/etcd`: clone of `https://github.com/upamanyus/etcd` (`origin`), remotes `upstream` = etcd-io/etcd, `raft-upstream` = etcd-io/raft (add them on first use) |
 | The pinned bases | `etc/goose.py`: project `etcd` (branch `goose-lean`) and project `raft` (branch `raft37-goose-lean`), each a `rev=` |
-| PR worktree of the fork | `~/etcd-pr/<repo>-<n>`, branch `pr-<repo>-<n>-goose-lean` off the pinned `rev` |
+| PR worktree of the fork | `~/etcd-pr/<repo>-<n>`, branch `pr-<repo>-<n>-goose-lean` off the pinned `rev`; when the user asks, it is pushed to `github.com/mit-pdos/etcd-grove` under the same name, beside `pr-verify/<repo>-<n>` (the gh token needs the `workflow` scope: the branch carries etcd's `.github/workflows/`) |
 | PR worktree of this repo | `../etcd-grove-pr/<repo>-<n>`, branch `pr-verify/<repo>-<n>` off `lean` |
 | Specs / proofs of the current code | `Spec/<pkg>/<fn>.lean`, `Proof/<pkg>/<fn>.lean`, the shared `Proof/<pkg>/{Base,Defs,Inv*}.lean`, the links `etc/link-lean-first-<mode>.txt` (callees per function) |
 | What is verified now | `etc/verified-code.py --functions --package <import path>` (on `lean`, before any change) |
