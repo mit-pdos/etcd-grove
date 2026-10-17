@@ -1,0 +1,20 @@
+--- FAIL: TestProbeCompactRandomRecreate (3.99s)
+    --- FAIL: TestProbeCompactRandomRecreate/7 (0.02s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 2 (current 2): read panicked: range failed to find revision pair
+    --- FAIL: TestProbeCompactRandomRecreate/90 (0.01s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 4 (current 6): read panicked: range failed to find revision pair
+    --- FAIL: TestProbeCompactRandomRecreate/177 (0.01s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 4 (current 4): read panicked: range failed to find revision pair
+    --- FAIL: TestProbeCompactRandomRecreate/203 (0.00s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 3 (current 3): read panicked: range failed to find revision pair
+    --- FAIL: TestProbeCompactRandomRecreate/224 (0.02s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 5 (current 5): read panicked: range failed to find revision pair
+    --- FAIL: TestProbeCompactRandomRecreate/259 (0.01s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 3 (current 4): read panicked: range failed to find revision pair
+    --- FAIL: TestProbeCompactRandomRecreate/276 (0.00s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 3 (current 4): read panicked: range failed to find revision pair
+    --- FAIL: TestProbeCompactRandomRecreate/294 (0.00s)
+        kvstore_compact_recreate_probe_test.go:87: compacted: compaction at 3 (current 4): read panicked: range failed to find revision pair
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	4.065s
+FAIL

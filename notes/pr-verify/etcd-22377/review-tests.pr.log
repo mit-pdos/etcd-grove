@@ -1,0 +1,10 @@
+    key_index_review_test.go:302: histories 1131, cases 6786; keep diffs vs pre-#18274 0, vs main 510; available diffs vs pre 910, vs main 575; failures 0
+--- PASS: TestReviewCompactRecreate (0.22s)
+    kvstore_hash_review_test.go:40: compaction at 3: compaction hash 493118507 (compactRev -1, prev 3)
+    kvstore_hash_review_test.go:42: after compaction at 3: HashByRev(cur=5) = 292945832 (compactRev 3), err <nil>
+    kvstore_hash_review_test.go:40: compaction at 5: compaction hash 292945832 (compactRev 3, prev 5)
+    kvstore_hash_review_test.go:42: after compaction at 5: HashByRev(cur=5) = 292945832 (compactRev 5), err <nil>
+    kvstore_hash_review_test.go:47: range foo: &{[key:"foo"  create_revision:3  mod_revision:3  version:1  value:"v2"] 5 1} <nil>
+--- PASS: TestReviewHashesRecreate (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.242s

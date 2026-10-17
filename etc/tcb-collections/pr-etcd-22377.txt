@@ -1,0 +1,38 @@
+# etcd-io/etcd#22377 (keyIndex.doCompact walks past a tombstone at the compaction revision when
+# the key was put again in that revision): the changed functions' linked results and the
+# compaction callers their model change reaches (notes/pr-verify/etcd-22377.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22377.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^mvcc\.generation\.wp_isRecreatedAt$
+roots ^mvcc\.keyIndex\.wp_(compact|keep|doCompact)$
+roots ^mvcc\.treeIndex\.wp_(Compact|Keep)$
+roots ^mvcc\.store\.wp_(Compact|compact|compactLockfree|updateCompactRev|scheduleCompaction)$
+roots ^mvcc\.storeTxnCommon\.wp_rangeKeys$
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom context.Err.wp_proof
+axiom go_humanize.Bytes.wp_proof
+axiom mvcc.hashStorage.Store.wp_proof
+axiom mvcc.kvHasher.Hash.wp_proof
+axiom mvcc.kvHasher.WriteKeyValue.wp_proof
+axiom mvcc.newKVHasher.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom schedule.Scheduler.Schedule.wp_proof
+axiom time.Since.wp_proof
+axiom time.Time.Unix.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Uint32.wp_proof
+sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_into_val_typed
+sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_typed_pointsto

@@ -1,0 +1,14 @@
+    key_index_review_test.go:302: histories 1131, cases 6786; keep diffs vs pre-#18274 510, vs main 0; available diffs vs pre 1420, vs main 0; failures 3234
+--- FAIL: TestReviewCompactRecreate (0.20s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.221s
+FAIL
+    kvstore_hash_review_test.go:40: compaction at 3: compaction hash 493118507 (compactRev -1, prev 3)
+    kvstore_hash_review_test.go:42: after compaction at 3: HashByRev(cur=5) = 1346811925 (compactRev 3), err <nil>
+    kvstore_hash_review_test.go:40: compaction at 5: compaction hash 1346811925 (compactRev 3, prev 5)
+    kvstore_hash_review_test.go:42: after compaction at 5: HashByRev(cur=5) = 1346811925 (compactRev 5), err <nil>
+panic: test timed out after 1m0s
+	/shared/etcd-grove-pr/etcd-22377-scratch/base/server/storage/mvcc/kvstore_hash_review_test.go:22 +0x5e
+	/shared/etcd-grove-pr/etcd-22377-scratch/base/server/storage/mvcc/kvstore_hash_review_test.go:45 +0x903
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	60.022s
+FAIL

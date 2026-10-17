@@ -29,6 +29,7 @@ public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
 public import Proof.github_com.dustin.go_humanize.Bytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store
@@ -308,6 +309,10 @@ theorem mvcc.generation.wp_isEmpty :
     mvcc.generation.isEmpty.spec (GF := GF) (hG := hG) :=
   mvcc.generation.isEmpty.wp_proof
 
+theorem mvcc.generation.wp_isRecreatedAt :
+    mvcc.generation.isRecreatedAt.spec (GF := GF) (hG := hG) :=
+  mvcc.generation.isRecreatedAt.wp_proof mvcc.generation.wp_isEmpty
+
 theorem mvcc.generation.wp_walk :
     mvcc.generation.walk.spec (GF := GF) (hG := hG) :=
   mvcc.generation.walk.wp_proof
@@ -334,7 +339,7 @@ theorem zap.Logger.wp_Panic :
 
 theorem mvcc.keyIndex.wp_doCompact :
     mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.doCompact.wp_proof mvcc.generation.wp_walk
+  mvcc.keyIndex.doCompact.wp_proof mvcc.generation.wp_walk mvcc.generation.wp_isRecreatedAt
 
 theorem mvcc.keyIndex.wp_compact :
     mvcc.keyIndex.compact.spec (GF := GF) (hG := hG) :=

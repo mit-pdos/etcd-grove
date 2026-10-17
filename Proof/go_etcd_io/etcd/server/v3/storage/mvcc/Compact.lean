@@ -5,7 +5,8 @@ revisions compaction keeps in the bucket. Lean-first; `notes/decisions.md`, "mvc
 
 **The key index** (`kiCompact c ki`, mirroring `keyIndex.compact`): `doCompact` walks the
 generations from the oldest while the generation is not the last and its tombstone's main is
-below `c` (`compactGenIdx`), then, in that generation, finds the last revision with main at or
+below `c`, or at `c` with the next generation created at `c` (`SkipGen`, `compactGenIdx`: the
+loop of etcd-io/etcd#22377), then, in that generation, finds the last revision with main at or
 below `c` (`genWalk … (pAbove c)`, the walk `get` uses): the revision is *available* (kept in the
 bucket, `kiAvail`), the generation is cut to start at it, and the earlier generations are
 dropped. `keep` (the hash's) makes the same choice but does not keep a tombstone that ends a
@@ -25,11 +26,11 @@ the index answers what the uncompacted index does (`IdxCRep.kiAt`, `IdxCRep.rang
 
 **The bucket** (`KeyDel log c key`): the bucket keys compaction at `c` may delete: a revision
 with main at or below `c` that compaction does not keep. A read at or above `c` never names one
-(`named_not_del`), provided revision `c` does not delete a key and put it again
-(`NoDelPutAt`): when it does, `doCompact` keeps the tombstone and drops the put that follows it
-in the same revision, the key's live revision (`issues/etcd-compaction-delete-then-put.md`); the
-premise is asserted by the one who compacts (`store.Compact`'s, since unit 6a) and carried by the
-keys compaction deletes, so the compacted store's readers have it (`rangeAnswers_not_del`).
+(`named_not_del`, `rangeAnswers_not_del` for the compacted store's readers). Before
+etcd-io/etcd#22377 this needed revision `c` not to delete a key and put it again (`NoDelPutAt`):
+when it did, `doCompact` kept the tombstone and dropped the put that follows it in the same
+revision, the key's live revision (`issues/etcd-compaction-delete-then-put.md`); with the PR's
+`SkipGen` it walks past that tombstone to the generation the put created.
 -/
 module
 
@@ -63,13 +64,36 @@ theorem crevN_neg : crevN (-1) = 0 := rfl
 
 /-! ### The key index (`key_index.go`) -/
 
-/-- `doCompact`'s generation: from the oldest, the first that is the last one or whose
-tombstone (last revision) has a main at or above `atRev`. -/
+/-- The main of a generation's last revision (its tombstone, for one that is not the last). -/
+def tombZ (g : Gen) : Int := sint.Z (g.revs.getLastD Rev.zero).main
+
+/-- The main of a generation's first revision (the put that created it). -/
+def headZ (g : Gen) : Int := sint.Z (g.revs.headD Rev.zero).main
+
+/-- `generation.isRecreatedAt(atRev)` (etcd-io/etcd#22377): the generation has a revision and
+its first one has main `atRev`. -/
+def RecreatedAt (atRev : w64) (g : Gen) : Prop := g.revs ≠ [] ∧ headZ g = sint.Z atRev
+
+instance (atRev : w64) (g : Gen) : Decidable (RecreatedAt atRev g) := by
+  unfold RecreatedAt; infer_instance
+
+/-- `doCompact` walks past generation `g`, followed by `g'` (etcd-io/etcd#22377): its tombstone
+is below `atRev`, or at `atRev` and `g'` was created in revision `atRev` (the key deleted and
+put again in that revision: the tombstone is superseded). -/
+def SkipGen (atRev : w64) (g g' : Gen) : Prop :=
+  tombZ g < sint.Z atRev ∨ (tombZ g = sint.Z atRev ∧ RecreatedAt atRev g')
+
+instance (atRev : w64) (g g' : Gen) : Decidable (SkipGen atRev g g') := by
+  unfold SkipGen; infer_instance
+
+/-- `doCompact`'s generation: from the oldest, the first that is the last one or that it does not
+walk past (`SkipGen`: since etcd-io/etcd#22377, a tombstone at `atRev` is walked past when the next
+generation was created at `atRev`). -/
 def compactGenIdx (atRev : w64) : List Gen → Nat
   | [] => 0
   | [_] => 0
   | g :: g' :: gs =>
-    if sint.Z (g.revs.getLastD Rev.zero).main < sint.Z atRev then compactGenIdx atRev (g' :: gs) + 1
+    if SkipGen atRev g g' then compactGenIdx atRev (g' :: gs) + 1
     else 0
 
 /-- `doCompact`'s revision index in its generation: the last revision with main at or below
@@ -115,9 +139,6 @@ theorem kiCompact_modified (c : w64) (ki : KeyIndex) : (kiCompact c ki).modified
 
 /-! ### Helpers -/
 
-/-- The main of a generation's last revision (its tombstone, for one that is not the last). -/
-def tombZ (g : Gen) : Int := sint.Z (g.revs.getLastD Rev.zero).main
-
 theorem compactGenIdx_lt (atRev : w64) : ∀ (G : List Gen), G ≠ [] → compactGenIdx atRev G < G.length
   | [], h => absurd rfl h
   | [_], _ => by simp [compactGenIdx]
@@ -128,7 +149,7 @@ theorem compactGenIdx_lt (atRev : w64) : ∀ (G : List Gen), G ≠ [] → compac
     · simp
 
 theorem compactGenIdx_before (atRev : w64) : ∀ (G : List Gen) (j : Nat), j < compactGenIdx atRev G →
-    tombZ (G.getD j Gen.empty) < sint.Z atRev
+    SkipGen atRev (G.getD j Gen.empty) (G.getD (j + 1) Gen.empty)
   | [], j, h => by simp [compactGenIdx] at h
   | [_], j, h => by simp [compactGenIdx] at h
   | g :: g' :: gs, j, h => by
@@ -136,14 +157,23 @@ theorem compactGenIdx_before (atRev : w64) : ∀ (G : List Gen) (j : Nat), j < c
     split at h
     · rename_i hlt
       cases j with
-      | zero => simp only [List.getD_cons_zero]; exact hlt
+      | zero => simp only [List.getD_cons_zero, List.getD_cons_succ]; exact hlt
       | succ j =>
         have := compactGenIdx_before atRev (g' :: gs) j (by omega)
-        simp only [List.getD_cons_succ]; exact this
+        simp only [List.getD_cons_succ] at this ⊢; exact this
     · simp at h
 
+/-- The generations `doCompact` walks past end at or below `atRev`. -/
+theorem SkipGen.tomb_le {atRev : w64} {g g' : Gen} (h : SkipGen atRev g g') : tombZ g ≤ sint.Z atRev := by
+  rcases h with h | ⟨h, -⟩ <;> omega
+
+theorem compactGenIdx_before_le (atRev : w64) (G : List Gen) (j : Nat) (h : j < compactGenIdx atRev G) :
+    tombZ (G.getD j Gen.empty) ≤ sint.Z atRev :=
+  (compactGenIdx_before atRev G j h).tomb_le
+
 theorem compactGenIdx_stop (atRev : w64) : ∀ (G : List Gen), G ≠ [] →
-    compactGenIdx atRev G + 1 = G.length ∨ ¬ tombZ (G.getD (compactGenIdx atRev G) Gen.empty) < sint.Z atRev
+    compactGenIdx atRev G + 1 = G.length ∨
+      ¬ SkipGen atRev (G.getD (compactGenIdx atRev G) Gen.empty) (G.getD (compactGenIdx atRev G + 1) Gen.empty)
   | [], h => absurd rfl h
   | [_], _ => by simp [compactGenIdx]
   | g :: g' :: gs, _ => by
@@ -151,12 +181,12 @@ theorem compactGenIdx_stop (atRev : w64) : ∀ (G : List Gen), G ≠ [] →
     split
     · rcases compactGenIdx_stop atRev (g' :: gs) (by simp) with h | h
       · left; simp at h ⊢; omega
-      · right; simp only [List.getD_cons_succ]; exact h
-    · rename_i hlt; right; simp only [List.getD_cons_zero]; exact hlt
+      · right; simp only [List.getD_cons_succ] at h ⊢; exact h
+    · rename_i hlt; right; simp only [List.getD_cons_zero, List.getD_cons_succ]; exact hlt
 
 theorem compactGenIdx_eq (atRev : w64) : ∀ (G : List Gen) (gi : Nat), gi < G.length →
-    (∀ j, j < gi → tombZ (G.getD j Gen.empty) < sint.Z atRev) →
-    (gi + 1 = G.length ∨ ¬ tombZ (G.getD gi Gen.empty) < sint.Z atRev) →
+    (∀ j, j < gi → SkipGen atRev (G.getD j Gen.empty) (G.getD (j + 1) Gen.empty)) →
+    (gi + 1 = G.length ∨ ¬ SkipGen atRev (G.getD gi Gen.empty) (G.getD (gi + 1) Gen.empty)) →
     compactGenIdx atRev G = gi
   | [], gi, h, _, _ => by simp at h
   | [_], gi, h, _, _ => by simp at h; simp [compactGenIdx]; omega
@@ -166,16 +196,16 @@ theorem compactGenIdx_eq (atRev : w64) : ∀ (G : List Gen) (gi : Nat), gi < G.l
     | zero =>
       rcases hs with hs | hs
       · simp at hs
-      · simp only [List.getD_cons_zero] at hs; simp only [tombZ] at hs; simp only [hs, ↓reduceIte]
+      · simp only [List.getD_cons_zero, List.getD_cons_succ] at hs; simp only [hs, ↓reduceIte]
     | succ gi =>
       have h0 := hb 0 (by omega)
-      simp only [List.getD_cons_zero, tombZ] at h0
+      simp only [List.getD_cons_zero, List.getD_cons_succ] at h0
       simp only [h0, ↓reduceIte, Nat.add_right_cancel_iff]
       apply compactGenIdx_eq atRev (g' :: gs) gi (by simp at h ⊢; omega)
-      · intro j hj; have := hb (j + 1) (by omega); simp only [List.getD_cons_succ] at this; exact this
+      · intro j hj; have := hb (j + 1) (by omega); simp only [List.getD_cons_succ] at this ⊢; exact this
       · rcases hs with hs | hs
         · left; simp at hs ⊢; omega
-        · right; simp only [List.getD_cons_succ] at hs; exact hs
+        · right; simp only [List.getD_cons_succ] at hs ⊢; exact hs
 
 /-- `genWalk`, characterized. -/
 theorem genWalk_spec (revs : List Rev) (p : Rev → Bool) :
@@ -603,6 +633,18 @@ theorem cutGen_last (c : w64) (g : Gen) :
 theorem cutGen_tombZ (c : w64) (g : Gen) : tombZ (cutGen c g) = tombZ g := by
   unfold tombZ; rw [cutGen_last]
 
+theorem SkipGen_cutGen (atRev c : w64) (g g' : Gen) : SkipGen atRev (cutGen c g) g' ↔ SkipGen atRev g g' := by
+  unfold SkipGen; rw [cutGen_tombZ]
+
+theorem SkipGen.mono {c c' : w64} {g g' : Gen} (h : SkipGen c g g') (hcc : sint.Z c ≤ sint.Z c') :
+    SkipGen c' g g' := by
+  rcases h with h | ⟨h, h2⟩
+  · left; omega
+  · rcases Int.lt_or_eq_of_le hcc with h3 | h3
+    · left; omega
+    · right; have : c = c' := by word
+      subst this; exact ⟨h, h2⟩
+
 /-- The cut generation answers as the generation, at or above `c`. -/
 theorem genGet_cutGen (c a : w64) (hca : sint.Z c ≤ sint.Z a) (g : Gen) :
     genGet (cutGen c g) a = genGet g a := by
@@ -639,7 +681,7 @@ theorem findAux_below_none {ki : KeyIndex} (hwf : KiWf ki) (c a : w64) (hca : si
   cases h : compactGenIdx c ki.gens with
   | zero => rfl
   | succ m =>
-    have hb := compactGenIdx_before c ki.gens m (by omega)
+    have hb := compactGenIdx_before_le c ki.gens m (by omega)
     apply kiFindGenAux_tomb
     · exact hwf.nonlast m (by omega)
     · omega
@@ -771,11 +813,13 @@ theorem compactGenIdx_neg {ki : KeyIndex} (hs : KiS ki) : compactGenIdx (W64 (-1
   have hpos := List.length_pos_iff.2 hs.wf.ne
   apply compactGenIdx_eq _ _ 0 hpos (fun j hj => absurd hj (Nat.not_lt_zero _))
   right
-  unfold tombZ
+  intro hsk
+  have ht := hsk.tomb_le
+  unfold tombZ at ht
   have hm1 : sint.Z (W64 (-1)) = -1 := by decide
-  rw [hm1]
+  rw [hm1] at ht
   by_cases he : (ki.gens.getD 0 Gen.empty).revs = []
-  · rw [he]; simp [Rev.zero]
+  · rw [he] at ht; simp [Rev.zero] at ht
   · have := hs.mem_nonneg hpos (getLastD_mem _ Rev.zero he)
     omega
 
@@ -817,7 +861,7 @@ theorem compactGenIdx_compact_ge {ki : KeyIndex} (hwf : KiWf ki) (c c' : w64)
     intro hcon
     rcases compactGenIdx_stop c' ki.gens hne with h | h
     · omega
-    · exact h (by have := compactGenIdx_before c ki.gens (compactGenIdx c' ki.gens) (by omega); omega)
+    · exact h ((compactGenIdx_before c ki.gens (compactGenIdx c' ki.gens) (by omega)).mono hcc)
   refine ⟨hge, ?_⟩
   generalize hgi : compactGenIdx c ki.gens = gi at *
   generalize hm : compactGenIdx c' ki.gens = m at *
@@ -829,19 +873,19 @@ theorem compactGenIdx_compact_ge {ki : KeyIndex} (hwf : KiWf ki) (c c' : w64)
   · intro j hj
     cases j with
     | zero =>
-      rw [dropSet_getD0 _ _ _ _ hlt, cutGen_tombZ]
+      rw [dropSet_getD0 _ _ _ _ hlt, SkipGen_cutGen, dropSet_getDs, Nat.add_zero]
       exact compactGenIdx_before c' ki.gens gi (by omega)
     | succ j =>
-      rw [dropSet_getDs]
+      rw [dropSet_getDs, dropSet_getDs, show gi + (j + 1) + 1 = gi + j + 1 + 1 by omega]
       exact compactGenIdx_before c' ki.gens (gi + j + 1) (by omega)
   · rcases compactGenIdx_stop c' ki.gens hne with h | h
     · left; rw [dropSet_length]; omega
     · right
       rw [hm] at h
       rcases Nat.lt_or_eq_of_le hge with hgt | heq
-      · rw [show m - gi = (m - gi - 1) + 1 by omega, dropSet_getDs,
-          show gi + (m - gi - 1) + 1 = m by omega]; exact h
-      · subst heq; rw [Nat.sub_self, dropSet_getD0 _ _ _ _ hlt, cutGen_tombZ]; exact h
+      · rw [show m - gi = (m - gi - 1) + 1 by omega, dropSet_getDs, dropSet_getDs,
+          show gi + (m - gi - 1) + 1 = m by omega, show gi + (m - gi - 1 + 1) + 1 = m + 1 by omega]; exact h
+      · subst heq; rw [Nat.sub_self, dropSet_getD0 _ _ _ _ hlt, SkipGen_cutGen, dropSet_getDs, Nat.add_zero]; exact h
 
 theorem cutGen_cutGen (c c' : w64) (hcc : sint.Z c ≤ sint.Z c') (g : Gen) :
     cutGen c' (cutGen c g) = cutGen c' g := by
@@ -938,7 +982,14 @@ theorem kiCompact_kiCompact_le_S {ki : KeyIndex} (hwf : KiWf ki) (c c' : w64) (h
     · intro j hj; omega
     · rcases compactGenIdx_stop c ki.gens hne with h | h
       · left; rw [hG, dropSet_length]; rw [hgi] at h; omega
-      · right; rw [hgi] at h; rw [hG, dropSet_getD0 _ _ _ _ hlt, cutGen_tombZ]; omega
+      · right; rw [hgi] at h; rw [hG, dropSet_getD0 _ _ _ _ hlt, SkipGen_cutGen, dropSet_getDs, Nat.add_zero]
+        intro hsk; apply h
+        rcases Int.lt_or_eq_of_le hcc with h3 | h3
+        · rcases hsk with h4 | ⟨h4, -⟩
+          · left; omega
+          · left; omega
+        · have : c' = c := by word
+          subst this; exact hsk
   refine KeyIndex.ext' rfl ?_
   rw [kiCompact_gens c' (kiCompact c ki), h0, List.drop_zero]
   apply set_same
@@ -1008,7 +1059,55 @@ theorem cutGen_genPut (c : w64) (g : Gen) (rev : Rev) (hc : sint.Z c < sint.Z re
       intro h; have := congrArg List.length h; simp at this; omega
     simp only [hne, hd, ↓reduceIte, List.drop_append_of_le_length (Nat.le_of_lt hj)]
 
-theorem compactGenIdx_put {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev) :
+/-- A put above `c` does not make a generation created at `c`. -/
+theorem RecreatedAt_genPut (c : w64) (g : Gen) (rev : Rev) (hc : sint.Z c < sint.Z rev.main) :
+    RecreatedAt c (genPut g rev) ↔ RecreatedAt c g := by
+  unfold RecreatedAt headZ
+  rw [genPut_revs]
+  by_cases he : g.revs = []
+  · rw [he]; simp; omega
+  · have : (g.revs ++ [rev]).headD Rev.zero = g.revs.headD Rev.zero := by
+      cases h : g.revs with
+      | nil => exact absurd h he
+      | cons a t => rfl
+    rw [this]; simp [he]
+
+/-- The generation after `j` of the generations with a put above `c` on the last. -/
+theorem SkipGen_put_next {G : List Gen} (hne : G ≠ []) (c : w64) (rev : Rev)
+    (hc : sint.Z c < sint.Z rev.main) (j : Nat) (hj : j + 1 < G.length) :
+    SkipGen c ((G.dropLast ++ [genPut (G.getLastD Gen.empty) rev]).getD j Gen.empty)
+        ((G.dropLast ++ [genPut (G.getLastD Gen.empty) rev]).getD (j + 1) Gen.empty) ↔
+      SkipGen c (G.getD j Gen.empty) (G.getD (j + 1) Gen.empty) := by
+  rw [getD_dropLast_append_lt _ _ _ _ (by omega)]
+  by_cases hl : j + 1 + 1 = G.length
+  · rw [show j + 1 = G.length - 1 by omega, getD_dropLast_append_last _ _ _ hne, getLastD_eq_getD _ _ hne]
+    unfold SkipGen; rw [RecreatedAt_genPut c _ rev hc]
+  · rw [getD_dropLast_append_lt _ _ _ _ (by omega)]
+
+/-- The generation after `j` of the generations with an empty one appended, the last one's
+tombstone not below `c`. -/
+theorem SkipGen_appendEmpty_next {G : List Gen} (hne : G ≠ []) (c : w64)
+    (hlast : ¬ tombZ (G.getLastD Gen.empty) < sint.Z c) (j : Nat) (hj : j < G.length) :
+    SkipGen c ((G ++ [Gen.empty]).getD j Gen.empty) ((G ++ [Gen.empty]).getD (j + 1) Gen.empty) ↔
+      (j + 1 < G.length ∧ SkipGen c (G.getD j Gen.empty) (G.getD (j + 1) Gen.empty)) := by
+  rw [getD_append_lt _ _ _ _ hj]
+  by_cases hl : j + 1 = G.length
+  · rw [List.getD_eq_getElem?_getD (l := G ++ [Gen.empty]), List.getElem?_append_right (by omega),
+      show j + 1 - G.length = 0 by omega]
+    rw [getLastD_eq_getD _ _ hne, show G.length - 1 = j by omega] at hlast
+    simp only [List.getElem?_cons_zero, Option.getD_some]
+    constructor
+    · rintro (h' | ⟨-, h', -⟩)
+      · exact absurd h' hlast
+      · exact absurd rfl h'
+    · rintro ⟨h', -⟩; omega
+  · rw [getD_append_lt _ _ _ _ (by omega)]
+    constructor
+    · intro h; exact ⟨by omega, h⟩
+    · intro h; exact h.2
+
+theorem compactGenIdx_put {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
+    (hc : sint.Z c < sint.Z rev.main) :
     compactGenIdx c (ki.gens.dropLast ++ [genPut (ki.gens.getLastD Gen.empty) rev]) =
       compactGenIdx c ki.gens := by
   have hne := hwf.ne
@@ -1017,12 +1116,12 @@ theorem compactGenIdx_put {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev) 
   apply compactGenIdx_eq
   · omega
   · intro j hj
-    rw [getD_dropLast_append_lt _ _ _ _ (by omega)]
+    rw [SkipGen_put_next hne c rev hc j (by omega)]
     exact compactGenIdx_before c ki.gens j hj
   · by_cases hl : compactGenIdx c ki.gens + 1 = ki.gens.length
     · left; omega
     · right
-      rw [getD_dropLast_append_lt _ _ _ _ (by omega)]
+      rw [SkipGen_put_next hne c rev hc _ (by omega)]
       rcases compactGenIdx_stop c ki.gens hne with h | h
       · omega
       · exact h
@@ -1049,7 +1148,7 @@ theorem kiCompact_kiPut {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
   have hne' : (kiCompact c ki).gens ≠ [] := by
     intro h; have := congrArg List.length h; rw [hG, dropSet_length] at this; simp at this; omega
   refine KeyIndex.ext' rfl ?_
-  rw [kiCompact_gens c (kiPut ki rev), kiPut_gens_of_ne hne, compactGenIdx_put hwf, kiPut_gens_of_ne hne',
+  rw [kiCompact_gens c (kiPut ki rev), kiPut_gens_of_ne hne, compactGenIdx_put hwf c rev hc, kiPut_gens_of_ne hne',
     kiCompact_getLastD hwf, hG]
   generalize hgi : compactGenIdx c ki.gens = gi at *
   split
@@ -1075,14 +1174,14 @@ theorem kiCompact_appendEmpty {ki : KeyIndex} (hne : ki.gens ≠ []) (c : w64)
     apply compactGenIdx_eq
     · simp; omega
     · intro j hj
-      rw [getD_append_lt _ _ _ _ (by omega)]
-      exact compactGenIdx_before c ki.gens j hj
+      rw [SkipGen_appendEmpty_next hne c hlast j (by omega)]
+      exact ⟨by have := compactGenIdx_lt c ki.gens hne; omega, compactGenIdx_before c ki.gens j hj⟩
     · right
-      rw [getD_append_lt _ _ _ _ hlt]
+      rw [SkipGen_appendEmpty_next hne c hlast _ hlt]
+      rintro ⟨h1, h2⟩
       rcases compactGenIdx_stop c ki.gens hne with h | h
-      · rw [getLastD_eq_getD _ _ hne, show ki.gens.length - 1 = compactGenIdx c ki.gens by omega] at hlast
-        exact hlast
-      · exact h
+      · omega
+      · exact h h2
   refine KeyIndex.ext' rfl ?_
   show (kiCompact c { ki with gens := ki.gens ++ [Gen.empty] }).gens = (kiCompact c ki).gens ++ [Gen.empty]
   rw [kiCompact_gens, kiCompact_gens]
@@ -1217,14 +1316,14 @@ theorem compactGenIdx_appendEmpty {G : List Gen} (hne : G ≠ []) (c : w64)
   apply compactGenIdx_eq
   · simp; omega
   · intro j hj
-    rw [getD_append_lt _ _ _ _ (by omega)]
-    exact compactGenIdx_before c G j hj
+    rw [SkipGen_appendEmpty_next hne c hlast j (by omega)]
+    exact ⟨by have := compactGenIdx_lt c G hne; omega, compactGenIdx_before c G j hj⟩
   · right
-    rw [getD_append_lt _ _ _ _ hlt]
+    rw [SkipGen_appendEmpty_next hne c hlast _ hlt]
+    rintro ⟨h1, h2⟩
     rcases compactGenIdx_stop c G hne with h | h
-    · rw [getLastD_eq_getD _ _ hne, show G.length - 1 = compactGenIdx c G by omega] at hlast
-      exact hlast
-    · exact h
+    · omega
+    · exact h h2
 
 theorem kiAvail_kiPut {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
     (hc : sint.Z c < sint.Z rev.main) : kiAvail c (kiPut ki rev) = kiAvail c ki := by
@@ -1232,7 +1331,7 @@ theorem kiAvail_kiPut {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
   have hlt := compactGenIdx_lt c ki.gens hne
   unfold kiAvail
   simp only []
-  rw [kiPut_gens_of_ne hne, compactGenIdx_put hwf]
+  rw [kiPut_gens_of_ne hne, compactGenIdx_put hwf c rev hc]
   by_cases hl : compactGenIdx c ki.gens + 1 = ki.gens.length
   · rw [show compactGenIdx c ki.gens = ki.gens.length - 1 by omega, getD_dropLast_append_last _ _ _ hne,
       genPut_revs, genWalk_append_true _ _ _ (by simp [pAbove]; omega), getLastD_eq_getD _ _ hne]
@@ -1615,8 +1714,9 @@ theorem IdxCRep.rangeAt (log : Log) (hb : LogB log) {cmax : Int} {idx : IndexM}
 /-! ### The bucket: what compaction keeps, what it may delete -/
 
 /-- Revision `c` does not delete a key and then put it again (`issues/
-etcd-compaction-delete-then-put.md`: compaction at `c` would drop the put, the key's live
-revision). The server's transaction checks (`checkIntervals`) ensure it. -/
+etcd-compaction-delete-then-put.md`: before etcd-io/etcd#22377, compaction at `c` dropped the put,
+the key's live revision). No longer a premise of anything here; kept for `store.Compact`'s old spec
+(`store.Compact.spec_old`). -/
 def NoDelPutAt (log : Log) (c : Int) : Prop :=
   ∀ (cs : List Change) (i j : Nat) (k v : GoString) (l : w64), 0 ≤ c → log[c.toNat]? = some cs →
     i < j → cs[i]? = some (.del k) → cs[j]? = some (.put k v l) → False
@@ -1628,9 +1728,9 @@ def keepAt (log : Log) (c : Int) (r : Rev) : Prop :=
 /-- **A bucket key compaction at `c` may delete** (of a log with revision `c`): a revision's
 bytes, with a main at or below `c`, that compaction does not keep (what the job deletes: the
 keys of the range `[_, c + 1)` not in `treeIndex.Compact`'s `available`). A read at or above
-`c` never names one when revision `c` does not delete and put a key again (`named_not_del`'s
-premise `NoDelPutAt`); when it does, the read can name one: the bug of
-`issues/etcd-compaction-delete-then-put.md`. -/
+`c` never names one (`named_not_del`; before etcd-io/etcd#22377 only when revision `c` did not
+delete and put a key again, `NoDelPutAt`: else the read could name one, the bug of
+`issues/etcd-compaction-delete-then-put.md`). -/
 def KeyDel (log : Log) (c : Int) (key : GoString) : Prop :=
   c < log.length ∧
     ∃ (r : Rev) (t : Bool), key = revBytes r t ∧ 0 ≤ sint.Z r.main ∧ sint.Z r.main ≤ c ∧
@@ -1644,13 +1744,11 @@ theorem KeyDel_neg {log : Log} {c : Int} {key : GoString} (h : c < 0) : ¬ KeyDe
 /-- **What a read names is kept**: the revision a read at or above `c` answers, if its main is at
 or below `c`, is the one compaction keeps for the key. -/
 theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc : c < log.length)
-    (hnd : NoDelPutAt log c) (k : GoString) (atRev : w64) (hca : c ≤ sint.Z atRev)
+    (k : GoString) (atRev : w64) (hca : c ≤ sint.Z atRev)
     (r cr : Rev) (v : w64) (hget : kiGet (kiOfKey (evsOf log) k) atRev = some (r, cr, v))
     (hr : sint.Z r.main ≤ c) :
     kiAvail (W64 c) (kiOfKey (evsOf log) k) = some r := by
   have hs := kiOfKey_KiS log hb k
-  have hev := (kiOfKey_struct k (evsOf log)).2.2
-  have hord := evsOf_ord log hb
   have hcw : sint.Z (W64 c) = c := by have := hb.1; word
   generalize hki : kiOfKey (evsOf log) k = ki at *
   unfold kiGet at hget
@@ -1671,74 +1769,53 @@ theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc :
   rw [getD_lt _ hj] at hrj
   subst hrj
   have hrmem : g.revs[j] ∈ (ki.gens.getD gx Gen.empty).revs := by rw [hg]; exact List.getElem_mem hj
-  -- `r` is not a tombstone
-  have hnottomb : ¬ (gx + 1 < ki.gens.length ∧ j + 1 = g.revs.length) := by
-    rintro ⟨h1, h2⟩
-    apply hnot
-    refine ⟨by omega, ?_⟩
-    have hl : g.revs.getLastD Rev.zero = g.revs[j] := by
-      rw [List.getLastD_eq_getLast?, List.getLast?_eq_getElem?, List.getElem?_eq_getElem (by omega)]
-      simp only [show g.revs.length - 1 = j by omega]; rfl
-    rw [hl]; exact hjm
   have hidx : compactGenIdx (W64 c) ki.gens = gx := by
     apply compactGenIdx_eq _ _ _ hgxlt
     · intro j' hj'
       have hne' : (ki.gens.getD j' Gen.empty).revs ≠ [] := hs.wf.nonlast j' (by omega)
       have htm := getLastD_mem _ Rev.zero hne'
-      have hlt := hs.cross hj' hgxlt htm hrmem
-      unfold tombZ
+      have hle := Rev.lt_main_le (hs.cross hj' hgxlt htm hrmem)
+      unfold SkipGen tombZ
       rw [hcw]
-      have hle := Rev.lt_main_le hlt
       rcases Int.lt_or_eq_of_le (Int.le_trans hle hr) with h1 | h1
-      · exact h1
-      exfalso
-      -- a delete and a put of the key in revision `c`
-      generalize ht : (ki.gens.getD j' Gen.empty).revs.getLastD Rev.zero = tomb at *
-      have hlenj := List.length_pos_iff.2 hne'
-      have hgj : ki.gens[j']? = some (ki.gens.getD j' Gen.empty) := by
-        rw [List.getElem?_eq_getElem (by omega), getD_lt _ (by omega)]
-      have htp : (ki.gens.getD j' Gen.empty).revs[(ki.gens.getD j' Gen.empty).revs.length - 1]? = some tomb := by
-        rw [← ht, List.getLastD_eq_getLast?, List.getLast?_eq_getElem?]
-        rw [List.getElem?_eq_getElem (by omega)]; rfl
-      obtain ⟨e1, he1, he1r, he1k, he1t⟩ := hev j' _ _ tomb hgj htp
-      have he1t' : e1.tomb = true := he1t.2 ⟨by omega, by omega⟩
-      have hgx : ki.gens[gx]? = some g := by rw [← hg, List.getElem?_eq_getElem hgxlt, getD_lt _ hgxlt]
-      obtain ⟨e2, he2, he2r, he2k, he2t⟩ := hev gx j g _ hgx (List.getElem?_eq_getElem hj)
-      have he2t' : e2.tomb = false := by
-        cases h' : e2.tomb
-        · rfl
-        · exact absurd (he2t.1 h') hnottomb
-      have hc1 := change_of_tomb he1k he1t'
-      obtain ⟨v2, l2, hc2⟩ := change_of_not_tomb he2k he2t'
-      obtain ⟨-, -, hs1, cs1, hl1, hcs1⟩ := hord.2 e1 he1
-      obtain ⟨-, -, hs2, cs2, hl2, hcs2⟩ := hord.2 e2 he2
-      rw [he1r] at hl1 hcs1 hs1
-      rw [he2r] at hl2 hcs2 hs2
-      have hmeq : tomb.main = g.revs[j].main := by
-        have : sint.Z tomb.main = sint.Z g.revs[j].main := by omega
-        word
-      rw [hmeq] at hl1
-      rw [hl1] at hl2; cases hl2
-      have hsub : sint.Z tomb.sub < sint.Z g.revs[j].sub := by
-        rcases hlt with h3 | ⟨-, h3⟩
-        · omega
-        · exact h3
-      have hcn : c.toNat = g.revs[j].main.toNat := by
-        have : sint.Z g.revs[j].main = c := by omega
-        have h0 : 0 ≤ c := by have := hs.mem_nonneg hgxlt hrmem; omega
-        word
-      rw [hc1] at hcs1
-      rw [hc2] at hcs2
-      exact hnd cs1 tomb.sub.toNat g.revs[j].sub.toNat k v2 l2
-        (by have := hs.mem_nonneg hgxlt hrmem; omega) (by rw [hcn]; exact hl1) (by word) hcs1 hcs2
+      · exact Or.inl h1
+      right
+      refine ⟨h1, ?_, ?_⟩
+      · -- the next generation has a revision
+        by_cases hn : j' + 1 = gx
+        · rw [hn, hg]; exact hne
+        · exact hs.wf.nonlast (j' + 1) (by omega)
+      · -- and it starts at `c`: between the tombstone (at `c`) and `r` (at or below `c`)
+        obtain ⟨h, t, hht⟩ : ∃ h t, (ki.gens.getD (j' + 1) Gen.empty).revs = h :: t := by
+          cases hq : (ki.gens.getD (j' + 1) Gen.empty).revs with
+          | nil =>
+            exfalso
+            by_cases hn : j' + 1 = gx
+            · rw [hn, hg] at hq; exact hne hq
+            · exact hs.wf.nonlast (j' + 1) (by omega) hq
+          | cons h t => exact ⟨h, t, rfl⟩
+        have hhm : h ∈ (ki.gens.getD (j' + 1) Gen.empty).revs := by rw [hht]; exact List.mem_cons_self
+        unfold headZ
+        rw [hht, hcw]
+        simp only [List.headD_cons]
+        have hlo := Rev.lt_main_le (hs.cross (Nat.lt_succ_self j') (by omega) htm hhm)
+        have hhi : sint.Z h.main ≤ sint.Z g.revs[j].main := by
+          by_cases hn : j' + 1 = gx
+          · rw [hn, hg] at hht
+            have h0 : g.revs[0]'(by rw [hht]; simp) = h := by simp only [hht, List.getElem_cons_zero]
+            rw [← h0]
+            exact sorted_main_le (by rw [← hg]; exact hs.gen_sorted hgxlt) (Nat.zero_le j) hj
+          · exact Rev.lt_main_le (hs.cross (show j' + 1 < gx by omega) hgxlt hhm hrmem)
+        omega
     · by_cases hl : gx + 1 = ki.gens.length
       · exact Or.inl hl
       · right
         rw [hg]
-        unfold tombZ
-        rw [hcw]
-        have : ¬ sint.Z (g.revs.getLastD Rev.zero).main ≤ sint.Z atRev := fun h' => hnot ⟨by omega, h'⟩
-        omega
+        intro hsk
+        have ht := hsk.tomb_le
+        unfold tombZ at ht
+        rw [hcw] at ht
+        exact hnot ⟨by omega, by omega⟩
   unfold kiAvail
   simp only []
   rw [hidx, hg]
@@ -1752,18 +1829,91 @@ theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc :
   simp only [Int.toNat_natCast]
   rw [getD_lt _ hj]
 
-/-- **A read at or above the compaction revision never names a key compaction may delete**, when
-the compaction revision does not delete a key and put it again (`NoDelPutAt`: else it can,
-`issues/etcd-compaction-delete-then-put.md`). -/
-theorem named_not_del (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c)
-    (hnd : NoDelPutAt log c) (k : GoString)
+/-- **A tombstone that is the key's last word at `c` is kept** (etcd-io/etcd#18274's behaviour,
+which etcd-io/etcd#22377 keeps): a generation that is not the last, whose tombstone has main `c`,
+followed by one not created in revision `c` (the key not put again after the delete in that
+revision): compaction at `c` keeps that tombstone. -/
+theorem kiAvail_tomb_S {ki : KeyIndex} (hs : KiS ki) (c : w64) (j : Nat) (hj : j + 1 < ki.gens.length)
+    (ht : tombZ (ki.gens.getD j Gen.empty) = sint.Z c)
+    (hnr : ¬ RecreatedAt c (ki.gens.getD (j + 1) Gen.empty)) :
+    kiAvail c ki = some ((ki.gens.getD j Gen.empty).revs.getLastD Rev.zero) := by
+  have hne_j := hs.wf.nonlast j hj
+  have htj := getLastD_mem _ Rev.zero hne_j
+  have hidx : compactGenIdx c ki.gens = j := by
+    apply compactGenIdx_eq _ _ _ (by omega)
+    · intro i hi
+      have hne_i := hs.wf.nonlast i (by omega)
+      have hti := getLastD_mem _ Rev.zero hne_i
+      have hle := Rev.lt_main_le (hs.cross hi (by omega) hti htj)
+      unfold SkipGen
+      unfold tombZ at ht ⊢
+      rcases Int.lt_or_eq_of_le (Int.le_trans hle (Int.le_of_eq ht)) with h1 | h1
+      · exact Or.inl h1
+      right
+      refine ⟨h1, hs.wf.nonlast (i + 1) (by omega), ?_⟩
+      obtain ⟨h, t, hht⟩ : ∃ h t, (ki.gens.getD (i + 1) Gen.empty).revs = h :: t := by
+        cases hq : (ki.gens.getD (i + 1) Gen.empty).revs with
+        | nil => exact absurd hq (hs.wf.nonlast (i + 1) (by omega))
+        | cons h t => exact ⟨h, t, rfl⟩
+      have hhm : h ∈ (ki.gens.getD (i + 1) Gen.empty).revs := by rw [hht]; exact List.mem_cons_self
+      unfold headZ
+      rw [hht]
+      simp only [List.headD_cons]
+      have hlo := Rev.lt_main_le (hs.cross (Nat.lt_succ_self i) (by omega) hti hhm)
+      have hhi : sint.Z h.main ≤ sint.Z ((ki.gens.getD j Gen.empty).revs.getLastD Rev.zero).main := by
+        by_cases hn : i + 1 = j
+        · rw [hn] at hht
+          have hsort := hs.gen_sorted (i := j) (by omega)
+          generalize hgj : ki.gens.getD j Gen.empty = gj at *
+          have hl0 : 0 < gj.revs.length := by rw [hht]; simp
+          have h0 : gj.revs[0]'hl0 = h := by simp only [hht, List.getElem_cons_zero]
+          have hL : gj.revs.getLastD Rev.zero = gj.revs[gj.revs.length - 1]'(by omega) := by
+            rw [List.getLastD_eq_getLast?, List.getLast?_eq_getElem?, List.getElem?_eq_getElem (by omega)]; rfl
+          rw [hL, ← h0]
+          exact sorted_main_le hsort (Nat.zero_le _) (by omega)
+        · exact Rev.lt_main_le (hs.cross (show i + 1 < j by omega) (by omega) hhm htj)
+      omega
+    · right
+      rintro (h1 | ⟨-, h2⟩)
+      · omega
+      · exact hnr h2
+  unfold kiAvail
+  simp only []
+  rw [hidx]
+  generalize hg : ki.gens.getD j Gen.empty = g at *
+  have hlen := List.length_pos_iff.2 hne_j
+  have hL : g.revs.getLastD Rev.zero = g.revs[g.revs.length - 1]'(by omega) := by
+    rw [List.getLastD_eq_getLast?, List.getLast?_eq_getElem?, List.getElem?_eq_getElem (by omega)]; rfl
+  have hwc : genWalk g.revs (pAbove c) = ((g.revs.length - 1 : Nat) : Int) := by
+    apply genWalk_eq_some _ (by omega)
+    · unfold tombZ at ht
+      rw [hL] at ht
+      simp only [pAbove, decide_eq_false_iff_not, Int.not_lt]; omega
+    · intro k hk hk2; omega
+  rw [hwc, ite_eq_right (by omega)]
+  simp only [Int.toNat_natCast]
+  rw [getD_lt _ (by omega), hL]
+
+/-- **A tombstone that is the key's last word at `c` is kept**, for a log's key index. -/
+theorem kiAvail_tomb (log : Log) (hb : LogB log) (k : GoString) (c : w64) (j : Nat)
+    (hj : j + 1 < (kiOfKey (evsOf log) k).gens.length)
+    (ht : tombZ ((kiOfKey (evsOf log) k).gens.getD j Gen.empty) = sint.Z c)
+    (hnr : ¬ RecreatedAt c ((kiOfKey (evsOf log) k).gens.getD (j + 1) Gen.empty)) :
+    kiAvail c (kiOfKey (evsOf log) k) =
+      some (((kiOfKey (evsOf log) k).gens.getD j Gen.empty).revs.getLastD Rev.zero) :=
+  kiAvail_tomb_S (kiOfKey_KiS log hb k) c j hj ht hnr
+
+/-- **A read at or above the compaction revision never names a key compaction may delete**
+(since etcd-io/etcd#22377 with no premise; before, the compaction revision had not to delete a
+key and put it again, `NoDelPutAt`, `issues/etcd-compaction-delete-then-put.md`). -/
+theorem named_not_del (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (k : GoString)
     (atRev : w64) (hca : c ≤ sint.Z atRev) (r cr : Rev) (v : w64)
     (hget : kiGet (kiOfKey (evsOf log) k) atRev = some (r, cr, v)) (t : Bool) :
     ¬ KeyDel log c (revBytes r t) := by
   rintro ⟨hc, r', t', hk, h0, h1, hkeep⟩
   have := revBytes_rev_inj hk
   subst this
-  exact hkeep ⟨k, kiGet_avail log hb c hc0 hc hnd k atRev hca r cr v hget h1⟩
+  exact hkeep ⟨k, kiGet_avail log hb c hc0 hc k atRev hca r cr v hget h1⟩
 
 /-- What compaction at `c` keeps depends only on the log up to `c` (later revisions, above it,
 do not change any key's choice). -/
@@ -1810,8 +1960,8 @@ theorem kiAvail_kiCompact (log : Log) (hb : LogB log) (k : GoString) (c c' : Int
 
 /-! ### Compaction-aware readers (2026-10-13, unit 6a)
 
-`NoDelPutAt log c` depends only on revision `c` of the log (`NoDelPutAt_prefix`); a read at or
-above a compaction revision `c'` names no key compaction at `c'` deletes, of any certified log
+`NoDelPutAt log c` depends only on revision `c` of the log (`NoDelPutAt_prefix`; no longer
+used since etcd-io/etcd#22377); a read at or above a compaction revision `c'` names no key compaction at `c'` deletes, of any certified log
 agreeing with the reader's up to `c'` (`rangeAnswers_not_del`: `named_not_del` through the
 prefix order). -/
 
@@ -1870,12 +2020,12 @@ theorem rangeAnswers_get (log : Log) (endNil : Bool) (k e : GoString) (atRev : w
 
 /-- **A read at or above a compaction revision names no key that compaction deletes** (unit 6a):
 the reader's log `log` extends a log `lc` with revision `c'`, the deleter's certified log `log'`
-is in prefix order with `lc`, and revision `c'` of it does not delete then put a key
-(`NoDelPutAt`, what the compactor asserted): an answer of a read of `log` at `atRev ≥ c'`, at
+is in prefix order with `lc` (until etcd-io/etcd#22377 also: revision `c'` of it does not delete
+then put a key, `NoDelPutAt`): an answer of a read of `log` at `atRev ≥ c'`, at
 revision bytes of its modification, is not a key compaction at `c'` deletes (`KeyDel log' c'`). -/
 theorem rangeAnswers_not_del (lc log log' : Log) (hpre : lc <+: log) (hb : LogB log)
     (hb' : LogB log') (hcmp : lc <+: log' ∨ log' <+: lc) (c' : Int) (hc0 : -1 ≤ c')
-    (hc' : c' < lc.length) (hnd : NoDelPutAt log' c') (endNil : Bool) (k e : GoString)
+    (hc' : c' < lc.length) (endNil : Bool) (k e : GoString)
     (atRev : w64) (hca : c' ≤ sint.Z atRev) (a : GoString × Rev × Rev × w64)
     (ha : a ∈ rangeAnswers log endNil k e atRev) (t : Bool) :
     ¬ KeyDel log' c' (revBytes a.2.1 t) := by
@@ -1886,14 +2036,9 @@ theorem rangeAnswers_not_del (lc log log' : Log) (hpre : lc <+: log) (hb : LogB 
     rcases hcmp with h | h
     · exact (KeyDel_prefix lc log' h hb' c' hc0 hc' _).1 hdel
     · exact (KeyDel_prefix log' lc h hblc c' hc0 hdel.1 _).2 hdel
-  have hnd_lc : NoDelPutAt lc c' := by
-    rcases hcmp with h | h
-    · exact (NoDelPutAt_prefix h hc').1 hnd
-    · exact (NoDelPutAt_prefix h hdel.1).2 hnd
   have hdel_log : KeyDel log c' (revBytes a.2.1 t) :=
     (KeyDel_prefix lc log hpre hb c' hc0 hc' _).2 hdel_lc
-  have hnd_log : NoDelPutAt log c' := (NoDelPutAt_prefix hpre hc').2 hnd_lc
-  exact named_not_del log hb c' hc0 hnd_log a.1 atRev hca a.2.1 a.2.2.1 a.2.2.2
+  exact named_not_del log hb c' hc0 a.1 atRev hca a.2.1 a.2.2.1 a.2.2.2
     (rangeAnswers_get log endNil k e atRev a ha) t hdel_log
 
 end mvcc

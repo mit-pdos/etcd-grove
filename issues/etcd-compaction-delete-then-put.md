@@ -167,6 +167,10 @@ links:
   carries it (`delKey`), which is what lets the readers of a compacted store prove a read at or
   above the compaction revision unaffected (`rangeAnswers_not_del`). In the server it is the
   transaction checks' guarantee (`checkIntervals`, the txn package's `NoDupKeysPerRev`).
+- **With etcd-io/etcd#22377** (branch `pr-verify/etcd-22377`, report
+  `notes/pr-verify/etcd-22377.md`, 2026-10-17): over the PR's `doCompact`, `kiGet_avail` and
+  `named_not_del` hold without `NoDelPutAt`, and the premise is gone from `store.Compact`'s spec and
+  the store's invariants (`crevSafe`, `delKey`): the proof confirms the fix.
 - **Possible fixes**: in `doCompact`, skip a generation whose tombstone is at `atRev` when a later
   generation has a revision at `atRev` (compare the next generation's first revision, not the
   tombstone, with `atRev`); or reject a put of a key the same write transaction deleted.

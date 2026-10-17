@@ -1264,14 +1264,13 @@ instance crevFrozen_persistent (γ : StoreNames) : Persistent (crevFrozen (GF :=
   unfold crevFrozen; infer_instance
 
 /-- **A compaction revision safe for readers** (persistent; 2026-10-13, unit 6a): a certified
-log with revision `c` that does not delete a key and put it again (`NoDelPutAt`, `Compact.lean`:
-else compaction at `c` deletes the key's live value, `issues/etcd-compaction-delete-then-put.md`).
-`NoDelPutAt` depends on revision `c` alone (`NoDelPutAt_prefix`), so it holds of every certified log
-with that revision (`crevSafe_cert`). The one who compacts asserts it (`store.Compact`'s premise);
-`s.mu`'s resource keeps it for the current compaction revision (`muInvAt`), the keys compaction
-may delete for theirs (`delKey`). Trivial at `c < 0` (`crevSafe_neg`). -/
+log with revision `c`. (Until etcd-io/etcd#22377 also one whose revision `c` does not delete a key
+and put it again, `NoDelPutAt`, `issues/etcd-compaction-delete-then-put.md`; the PR's `doCompact`
+keeps the live value then, `kiGet_avail`.) The one who compacts provides it (`store.Compact`'s
+premise); `s.mu`'s resource keeps it for the current compaction revision (`muInvAt`). Trivial at
+`c < 0` (`crevSafe_neg`). -/
 def crevSafe (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(∃ log : Log, idxCert γ.idx log ∗ ⌜c < log.length ∧ NoDelPutAt log c⌝)
+  iprop(∃ log : Log, idxCert γ.idx log ∗ ⌜c < log.length⌝)
 
 instance crevSafe_persistent (γ : StoreNames) (c : Int) : Persistent (crevSafe (GF := GF) γ c) := by
   unfold crevSafe; infer_instance
@@ -1283,28 +1282,15 @@ theorem crevSafe_neg (γ : StoreNames) (c : Int) (log : Log) (hc : c < 0) (hl : 
   iunfold crevSafe
   iexists log
   iframe H
-  ipureintro; exact ⟨hl, NoDelPutAt_neg hc⟩
-
-/-- **Every certified log with revision `c` is safe at `c`** if one is. -/
-theorem crevSafe_cert (γ : StoreNames) (c : Int) (log : Log) (hl : c < log.length) :
-    crevSafe (GF := GF) γ c ∗ idxCert γ.idx log ⊢ ⌜NoDelPutAt log c⌝ := by
-  iintro ⟨Hs, #Hc⟩
-  iunfold crevSafe at Hs
-  icases Hs with ⟨%log', #Hc', %Hl'⟩
-  ihave %Hp := idxCert_prefix γ.idx log log' $$ [$Hc $Hc']
-  ipureintro
-  rcases Hp with h | h
-  · exact (NoDelPutAt_prefix h hl).1 Hl'.2
-  · exact (NoDelPutAt_prefix h Hl'.1).2 Hl'.2
+  ipureintro; exact hl
 
 /-- **A key compaction may delete** (persistent, the store's choice of the backend contract's
 `Del`): of a certified log, a revision's bytes compaction at a lower bound `c` of the
-compaction revision may delete (`KeyDel`, `Compact.lean`), revision `c` of the log not deleting
-then putting a key (`NoDelPutAt`: the compactor's assertion, `compactJobPre`; 2026-10-13, unit 6a):
-so a read at or above the compaction revision never names one (`rangeAnswers_not_del`). -/
+compaction revision may delete (`KeyDel`, `Compact.lean`): a read at or above the compaction
+revision never names one (`rangeAnswers_not_del`; without a premise since etcd-io/etcd#22377). -/
 def delKey (γ : StoreNames) (k : GoString) : IProp GF :=
   iprop(∃ (c : Int) (log : Log), crevLb γ.idx c ∗ idxCert γ.idx log ∗
-    ⌜-1 ≤ c ∧ KeyDel log c k ∧ NoDelPutAt log c⌝)
+    ⌜-1 ≤ c ∧ KeyDel log c k⌝)
 
 instance delKey_persistent (γ : StoreNames) (k : GoString) : Persistent (delKey (GF := GF) γ k) := by
   unfold delKey; infer_instance
@@ -1354,7 +1340,7 @@ theorem crevUB_noDel (γ : StoreNames) (q : Qp) (k : GoString) :
   iunfold delKey at Hd
   icases Hd with ⟨%c, %log, #Hlb, -, %Hk⟩
   ihave %Hle := crevUB_lb γ.idx q (-1) c (by decide) Hk.1 $$ Hc Hlb
-  exact (KeyDel_neg (show c < 0 by omega) Hk.2.1).elim
+  exact (KeyDel_neg (show c < 0 by omega) Hk.2).elim
 
 /-- **A snapshot of a store not compacted is the bucket**: with a part of the compaction
 revision's authority at `-1` (kept), a thinned snapshot misses no key. -/
@@ -1935,7 +1921,7 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) :
   icases Hc0 with ⟨-, -, %Hwf, -⟩
   iframe HcmpM HcrevM
   isplitl []
-  · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
+  · ipureintro; exact ⟨HcM, by have := Hlt; omega⟩
   iintro Hm Hc
   iunfold muHeld
   iframe Hl

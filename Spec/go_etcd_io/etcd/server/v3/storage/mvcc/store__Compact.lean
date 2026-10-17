@@ -44,20 +44,22 @@ then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configurat
 is positive (`isStore`: `NewStore` excludes a negative one,
 `issues/etcd-compaction-negative-batch-limit.md`).
 
-**The delete-then-put premise** (2026-10-13, unit 6a): the caller holds a certificate of a log
-`log` with revision `rev` (so `rev` is not above the committed log: the `ErrFutureRev` case does
-not arise from such a caller) whose revision `rev` does not delete a key and put it again
-(`NoDelPutAt`): else the compaction deletes the key's live value and a later read `Fatal`s
-(`issues/etcd-compaction-delete-then-put.md`). The store records it for the new compaction
-revision (`crevSafe`, in `s.mu`'s resource) and the keys the job deletes carry it (`delKey`), which
-is what makes the readers' specs hold of a compacted store (`rangeAnswers_not_del`). -/
+**The certified log** (2026-10-13, unit 6a): the caller holds a certificate of a log `log` with
+revision `rev` (so `rev` is not above the committed log: the `ErrFutureRev` case does not arise
+from such a caller). The store records it for the new compaction revision (`crevSafe`, in `s.mu`'s
+resource) and the keys the job deletes carry it (`delKey`), which is what makes the readers' specs
+hold of a compacted store (`rangeAnswers_not_del`). Until etcd-io/etcd#22377 the caller also had
+to assert that revision `rev` does not delete a key and put it again (`NoDelPutAt`): else the
+compaction deleted the key's live value and a later read `Fatal`ed
+(`issues/etcd-compaction-delete-then-put.md`); the PR's `doCompact` keeps that value, and the
+premise is gone (`store.Compact.spec_implies_old`: the old spec follows). -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
   trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))

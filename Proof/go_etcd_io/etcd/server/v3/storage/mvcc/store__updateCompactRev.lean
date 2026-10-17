@@ -312,16 +312,11 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe Hcr
         iapply mvcc.compactQueue_mono γ c' (sint.Z rev) (by omega) $$ Hq
       iframe HPost
-      -- the caller's `NoDelPutAt`, for the committed log (`crevSafe_cert`)
-      ihave %Hnd' : ⌜mvcc.NoDelPutAt log (sint.Z rev)⌝ $$ []
-      · iapply mvcc.crevSafe_cert γ (sint.Z rev) log hrl $$ [Hcert]
-        iframe Hcert
-        iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HndC
       iunfold mvcc.compactJobPre
       iframe #
       isplitr
       · ipureintro; exact hcmp
-      ipureintro; exact ⟨by omega, hrl, Hnd'⟩
+      ipureintro; exact ⟨by omega, hrl⟩
 
 end proof
 

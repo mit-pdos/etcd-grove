@@ -119,8 +119,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   wp_start as ⟨#Hjob, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
   icases Hjob with ⟨#Hs, #Hstop, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
-  have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
-  have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
+  have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := Hrev'
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
@@ -290,7 +289,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
         iexists (sint.Z rev), log
         iframe Hlb Hcert
         ipureintro
-        refine ⟨by omega, mvcc.sc_keyDel log rev A HA Hrev.2 r t e.1 Hk Hr0 Hrm ?_, Hnd⟩
+        refine ⟨by omega, mvcc.sc_keyDel log rev A HA Hrev.2 r t e.1 Hk Hr0 Hrm ?_⟩
         revert Hif; cases (A !! mvcc.revVal r).isSome <;> simp
       (try wp_auto)
       wp_bind (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #ksl))

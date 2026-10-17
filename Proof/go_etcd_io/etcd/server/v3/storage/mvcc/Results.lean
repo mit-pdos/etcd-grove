@@ -148,7 +148,7 @@ compactions compose (`kiCompact_kiCompact`, `kiCompact_kiCompact_le`), compactio
 changes nothing (`kiCompact_neg`), compaction commutes with the writer's next event
 (`kiCompactO_step`, `IdxCRep.step`), the compacted index answers as the uncompacted one
 (`IdxCRep.kiAt`, `IdxCRep.rangeAt`), and what a read at or above the compaction revision names is
-kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
+kept (`kiGet_avail`, `named_not_del`; until etcd-io/etcd#22377 only under `NoDelPutAt`,
 `issues/etcd-compaction-delete-then-put.md`). -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
@@ -161,6 +161,7 @@ kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
 #print axioms Perennial.EtcdGrove.mvcc.IdxCRep.rangeAt
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_avail
 #print axioms Perennial.EtcdGrove.mvcc.named_not_del
+#print axioms Perennial.EtcdGrove.mvcc.kiAvail_tomb
 #print axioms Perennial.EtcdGrove.mvcc.KeyDel_prefix
 #print axioms Perennial.EtcdGrove.mvcc.kiAvail_kiCompact
 
@@ -177,6 +178,8 @@ hasher is axiomatized (`kvHasher`'s generated instance, `sorry -- axiomatized ty
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeReadFinishedCompact
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeReadScheduledCompact
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_doCompact
+#print axioms Perennial.EtcdGrove.mvcc.generation.wp_isRecreatedAt
+#print axioms Perennial.EtcdGrove.mvcc.store.Compact.spec_implies_old
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_compact
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_keep
 #print axioms Perennial.EtcdGrove.mvcc.store.wp_checkPrevCompactionCompleted
@@ -342,7 +345,8 @@ read at a revision at or above `c` answers as the uncompacted store (`mvcc_range
 read path's `rangeOutcomeC` is `rangeOutcome`, the answer from the certified log; below `c`,
 `ErrCompacted`), with the pure model's `IdxCRep.kiAt`/`IdxCRep.rangeAt` (the compacted index
 answers as the uncompacted one there) and `named_not_del` (what such a read names is not deleted
-from the bucket, under `NoDelPutAt`, which `store.Compact`'s caller asserts since unit 6a). -/
+from the bucket; until etcd-io/etcd#22377 only under `NoDelPutAt`, which `store.Compact`'s caller
+asserted). -/
 
 noncomputable section
 
@@ -395,9 +399,9 @@ The store's readers hold of a store whose compaction revision moves: a reader is
 `crevLb γ rev` makes every transaction opened afterwards observe `crev ≥ rev`:
 `mvcc_store_Read_after_Compact`). Its range reads answer `rangeOutcomeC` at `crev`:
 `ErrCompacted` below it (`mvcc_rangeOutcomeC_lt`), the uncompacted outcome at or above it
-(`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted, because the
-one who compacts asserts `NoDelPutAt` at its revision (`store.Compact`'s premise, carried by the
-keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The statements of
+(`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted
+(`rangeAnswers_not_del`, through the keys the job deletes, `delKey`; until etcd-io/etcd#22377 the
+one who compacts had to assert `NoDelPutAt` at its revision). `FirstRev` is `crev`. The statements of
 a store never compacted (the readers of the packages above mvcc, `storeReader`, `rangeOutcome`)
 are corollaries (`spec_frozen`), printed here linked. -/
 

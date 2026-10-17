@@ -45,6 +45,19 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#22377 verified (2026-10-17, branch `pr-verify/etcd-22377`, not merged)
+
+The PR (`keyIndex.doCompact` walks past a tombstone at the compaction revision when the next
+generation was created in that revision, `generation.isRecreatedAt`) verified over the fork's
+`pr-etcd-22377-goose-lean`: the compaction model's `compactGenIdx` follows the new loop
+(`SkipGen`, `Compact.lean`), `doCompact` and `isRecreatedAt` are proved against it, and the
+coverage theorem `kiGet_avail` holds without `NoDelPutAt`; the premise is removed from
+`store.Compact`/`compactLockfree`/`updateCompactRev` and from `crevSafe`, `delKey`,
+`compactJobPre` (`store.Compact.spec_implies_old`: the old spec follows). No axiom or `sorry` added.
+Report: `notes/pr-verify/etcd-22377.md`. When a pin includes the fix, this branch is the starting
+point and `issues/etcd-compaction-delete-then-put.md` closes (its gRPC route, "The compaction premise
+`NoDelPutAt` is not met by the gRPC checks" below, stops mattering for compaction).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

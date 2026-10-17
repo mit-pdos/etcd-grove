@@ -40,7 +40,7 @@ theorem mvcc.store.Compact.wp_of_le
     (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
@@ -143,6 +143,41 @@ theorem mvcc.store.Compact.wp_proof
     mvcc.store.Compact.spec (GF := GF) (hG := hG) := by
   intro s γ trace rev c P f Pre Q Post log te htr hcmp hc
   exact mvcc.store.Compact.wp_of_le h0 h1 h2 h3 s γ trace rev c P f Pre Q Post log te htr hcmp hc
+
+/-- `store.Compact`'s spec before etcd-io/etcd#22377 (`lean`'s): the same, but the caller also
+asserted that revision `rev` does not delete a key and put it again (`NoDelPutAt`,
+`issues/etcd-compaction-delete-then-put.md`). With the PR's `doCompact` the premise is not needed. -/
+abbrev mvcc.store.Compact.spec_old : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
+    (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
+  trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.hookIs γ P f ∗
+      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
+    (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
+      ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
+        mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
+      (⌜sint.Z rev ≤ c⌝ ∗
+        (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
+        mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
+      (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
+        (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
+        (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
+        mvcc.compactRight γ c ∗ Pre)) }}
+
+
+/-- **The PR's spec is compatible**: it has a weaker precondition and the same postcondition, so it
+implies the old one; `store.Compact`'s callers' proofs are unaffected. -/
+theorem mvcc.store.Compact.spec_implies_old (h : mvcc.store.Compact.spec (GF := GF) (hG := hG)) :
+    mvcc.store.Compact.spec_old (GF := GF) (hG := hG) := by
+  intro s γ trace rev c P f Pre Q Post log te htr hcmp hc
+  iintro %Φ ⟨#Hpkg, #Hs, #Hstop, Hright, #HcertC, %HndC, #Hhook, Hcs, Htrc⟩ HΦ
+  iapply h s γ trace rev c P f Pre Q Post log te htr hcmp hc $$ [Hright Hcs Htrc]
+  · iframe #; iframe Hright Hcs Htrc; ipureintro; exact HndC.1
+  iexact HΦ
 
 end proof
 
