@@ -27,6 +27,7 @@ type RangeOptions struct {
 	Limit          int64
 	Rev            int64
 	CountOnly      bool
+	Key            bool
 	FastKeysOnly   bool
 	WithTotalCount bool
 }
