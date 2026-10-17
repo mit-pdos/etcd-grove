@@ -45,6 +45,21 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR verification: etcd-io/raft#168, share witness (2026-10-16, branch `pr-verify/raft-168`, not for `lean`)
+
+- What it is: a translation of the PR (fork branch `pr-raft-168-goose-lean`) with:
+  - the new quorum/tracker vote-count and commit-index functions proved;
+  - `confchange`, `tracker` and the `raftpb` predicates re-proved on witness-free configurations.
+- How witness-freedom is stated:
+  - `ownCfgCC`/`ownTracker`/`ownConfigV` carry `Witnesses = [0, 0]`;
+  - `ownNewPr` carries `IsWitness = false`;
+  - `csPts` holds the witness cells as 0;
+  - `entPts` owns `Subterm` with its value unmodelled.
+- What does not build: the raft package's proofs (21 modules fail). See
+  `notes/pr-verify/raft-168.md`.
+- Findings: four crashes in the PR's witness paths. No bug in the pinned code.
+- No Perennial limitation was hit.
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
