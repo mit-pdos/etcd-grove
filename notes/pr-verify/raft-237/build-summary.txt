@@ -1,0 +1,4 @@
+# summary of /tmp/claude-0/-shared-etcd-grove/6101526d-6539-4872-a190-a0b4b0fe455b/scratchpad/raft-237/build.log (5.8 MB, not kept)
+error lines: 0
+failed jobs: 0
+Build completed successfully (1907 jobs).

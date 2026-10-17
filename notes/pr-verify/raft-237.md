@@ -66,9 +66,9 @@ write a Lean proof of the old method; the argument above rests on those existing
 
 `lake build Proof.go_etcd_io.raft.v3.Link Proof.go_etcd_io.raft.v3.Results
 Proof.github_com.mit_pdos.etcd_grove.examples.register.Results` against the new translation:
-succeeds (1907 jobs, no errors). The raft proofs are unchanged and every one goes through.
+succeeds (1907 jobs, no errors; `raft-237/build-summary.txt`). The raft proofs are unchanged and every one goes through.
 
-1582 modules depend on `Code.go_etcd_io.raft.v3`, including etcd's server proofs. I rebuilt only
+1582 modules depend on `Code.go_etcd_io.raft.v3` (`raft-237/rdeps.py`), including etcd's server proofs. I rebuilt only
 the raft roots and the register example (the users of raft's `Node`/`RawNode`), not the server's
 `Link`/`Results`. Those reach raft only through `Node` and other specs, and none of them names
 the removed field. I did not run `etc/tcb-report.py`, because it needs every root up to date;
@@ -79,7 +79,7 @@ the axiom comparison is under "Trust base" below.
 - New axioms or `sorry`s: none. No Spec or Proof file was added or changed.
 - Removed assumption: `RawNode.TypeAssumptions.ptr_TickQuiesced_unfold`, a field of the package
   assumption `go_etcd_io.raft.v3.Assumptions`.
-- `#print axioms` of `RawNode.Tick.wp_proof` / the raft `Results` roots: the 331 `#print axioms` outputs of `Proof/go_etcd_io/raft/v3/Results.lean` (including `RawNode.wp_Tick`) are identical, line for line, to those on `lean` (compared from the two builds' `Results.trace` logs); no result reaches `sorryAx`.
+- `#print axioms` of `RawNode.Tick.wp_proof` / the raft `Results` roots: the 330 `#print axioms` outputs of `Proof/go_etcd_io/raft/v3/Results.lean` (including `RawNode.wp_Tick`) are identical, result for result, to those on `lean` (`raft-237/compare-axioms.py` over `raft-237/results-axioms-pr.txt.gz` and `lean`'s `Results.trace`; `raft-237/README.md`); no result reaches `sorryAx`.
 - `etc/verified-code.py`: raft's root package loses one function (3 Go lines) in the
   "translated" (unverified) state. Every remaining `RawNode` method has a spec. I did not run the
   script, since it needs a full build.
