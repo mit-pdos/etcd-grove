@@ -7,8 +7,8 @@ toolchain go1.27.1
 require (
 	github.com/google/go-cmp v0.7.0
 	github.com/stretchr/testify v1.12.1
-	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
-	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
+	go.etcd.io/etcd/api/v3 v3.0.0
+	go.etcd.io/etcd/client/v3 v3.0.0
 	google.golang.org/protobuf v1.36.12
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570
 )
