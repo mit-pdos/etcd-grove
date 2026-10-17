@@ -1,0 +1,2 @@
+abandoned time.After x1e6: heap grew 96 KiB
+referenced time.After x1e6: heap grew 260664 KiB (len 1000000, slice itself ~7812 KiB)
