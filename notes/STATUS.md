@@ -170,12 +170,14 @@ that default.
 sorries) and every collection unchanged (`raft` 13/0, `server` 182/0, `server-raft` 7/0,
 `register` 13/10, ...). No baseline update.
 
-**Observation, not filed:** a pre-candidate counts a *stale* granted `MsgPreVoteResp` of its own
-term (`m.Term = r.Term`: a grant from its previous pre-campaign, at `r.Term` as request term,
-delivered late): `Step` lets equal terms through and `stepCandidate` polls any `MsgPreVoteResp`
-at a pre-candidate. Safety is unaffected (the real election still needs votes at the new term), but
-a delayed grant can make a pre-vote "win" that the current majority did not grant -- the
-disruption pre-vote is meant to prevent. Not reproduced; to look at with stage P.
+**A raft bug found (pre-vote's guarantee, not safety): `issues/raft-prevote-stale-grant.md`.** A
+pre-candidate counts a delayed granted `MsgPreVoteResp` from an earlier pre-campaign: across a term
+(the grant's `Term` equals the node's after it moved up one, so `Step` passes it to `stepCandidate`,
+which polls every `MsgPreVoteResp` at a pre-candidate) and at one term (both rounds request the
+same term). The node then campaigns at a term no peer pre-voted for. `becomePreCandidate` does reset
+the tally; the stale response arrives after. Two Go tests reproduce it (in the issue; run in a copy
+of the pinned raft, not in the translated tree). For the proof, the across-a-term shape is why a
+won pre-vote can raise the term one past the message's (stage P, item 3).
 
 ## D14i: the uber-applier's rows built (2026-10-17, branch `raft-retarget`)
 
