@@ -89,8 +89,11 @@ on (branch `raft-checkquorum`): `notes/decisions.md`, D15.
   `cv.CheckQuorum' = !cfg.DisableCheckQuorum'`, `cv.PreVote' = cfg.PreVote'` (was `= false`
   for both, whatever `cfg`). `NewServer.spec` gains `cfg.DisableCheckQuorum' = true` and
   `cfg.PreVote' = false`; `NewServer.wp_proof` rewrites with them (no other change).
-- **Gates:** `lake build`, `etc/goose.py --check --src etcd=…`, every `gen-link` mode,
-  `gen-btree-link`, `gen-init --check`, `tcb-report --check` and its collections: see the commit.
+- **Gates** (2026-10-17, on the shared tree with other agents' work in progress): `lake build`
+  passes but for another agent's unfinished `client/v3/PutThenGet.lean`; `etc/goose.py --check
+  --src etcd=/shared/etcd-goose-lean-cqoff` up to date (the pin is not pushed, so `--check`
+  needs the checkout); every `gen-link` mode, `gen-btree-link` and `gen-init --check` unchanged;
+  `tcb-report --check` and all 20 collections match their baselines (no axiom or `sorry` change).
 - **Reverted once the raft proof covers both on:** the pin back to `goose-lean`, the two premises,
   `bootOk` stating `CheckQuorum' = true` and `PreVote' = cfg.PreVote'`.
 
