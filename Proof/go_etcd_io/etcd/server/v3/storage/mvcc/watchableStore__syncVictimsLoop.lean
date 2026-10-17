@@ -80,105 +80,129 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_for
-  wp_for
-  wp_apply hMove $$ [$Hws $HR] as %moved HR
-  split
-  · wp_auto
-    wp_for_post
-    iframe
-  split
+  wp_apply time.wp_NewTimer (W64 0) as %t %tch %γt #Ht
+  ihave #Ht' := Ht
+  iunfold time.isTimer at Ht'
+  icases Ht' with ⟨#HC, #Htbag, -⟩
+  wp_apply time.Timer.wp_Stop_timer t tch γt $$ [$Ht] as %b0 -
+  -- `if !retryTimer.Stop() { <-retryTimer.C }`: either way on to the loop
+  cases b0
+  wp_auto
+  wp_apply chan.wp_receive (V := time.Time) tch γt $$ [] as ⟨Hl1, Hl2, -, -⟩
+  · iapply is_bag_is_chan $$ Htbag
+  iapply bag_recv_au $$ [$Hl1 $Hl2] Htbag
+  inext
+  iintro %tm0 -
+  wp_auto
   rotate_left
-  · exfalso
-    rename_i h1 h2
-    revert h1 h2
-    generalize (!decide (moved = W64 0)) = b
-    cases b <;> simp
   wp_auto
-  iunfold mvcc.watchReader at HR
-  icases HR with ⟨Hsr0, Hmur⟩
-  wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hmur] as ⟨Hrl, HP⟩
-  wp_auto_lc 1
-  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
-  iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP⟩
-  iunfold mvcc.watchStoreBody at HP
-  iNamed HP
-  wp_auto
-  ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
-      [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
-  · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
-  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmur
-  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
-  wp_auto_lc 2
-  wp_join iprop(∃ tc : Loc, tickc_ptr ↦ tc ∗ (⌜tc = chan.nil⌝ ∨
-      ∃ γt : ChanNames, isChanBag γt tc (V := time.Time) (fun _ => iprop(True)))) with [tickc]
-    as ⟨%tc, tickc, Htc⟩
-  · iexists _; iframe; ileft; ipureintro; rfl
-  · wp_apply time.wp_After as %ch %γt #Hbag
-    wp_join_done
-    iexists ch; iframe; iright; iexists γt; iexact Hbag
-  ihave #Hstop := HstopW
-  iunfold mvcc.isStopChan at Hstop
-  icases Hstop with ⟨%γs, #Hstop⟩
-  wp_apply_core chan.wp_select_blocking_nil
-  iapply BigAndL.bigAndL_cons.2
-  isplit
-  · icases Htc with (%Hnil | ⟨%γt, #Hbag⟩)
-    · iright
-      iapply chan.nilClausePre_recv time.Time _ _ Hnil
-    ileft
-    simp only [chan.blockingClausePre]
-    iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, tc, γt
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iapply is_bag_is_chan $$ Hbag
-    iapply bag_recv_au $$ [$Hlc1 $Hlc2] Hbag
-    inext
-    iintro %tm -
+  all_goals
+    wp_for
+    -- (in one of the two cases the outer loop's condition `true` is still to decide)
+    try (split
+         rotate_left
+         · exfalso; rename_i h; exact h (decide_eq_true rfl)
+         wp_auto)
+    wp_for
+    wp_apply hMove $$ [$Hws $HR] as %moved HR
+    split
+    · wp_auto
+      wp_for_post
+      iframe
+    split
+    rotate_left
+    · exfalso
+      rename_i h1 h2
+      revert h1 h2
+      generalize (!decide (moved = W64 0)) = b
+      cases b <;> simp
     wp_auto
-    wp_for_post
-    iframe
-    simp only [named]
-    iunfold mvcc.watchReader
-    iframe
-  iapply BigAndL.bigAndL_cons.2
-  isplit
-  · ileft
-    simp only [chan.blockingClausePre]
-    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, vc, γv
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iapply is_bag_is_chan $$ HvcbW
-    iapply bag_recv_au $$ [$Hlc1 $Hlc2] HvcbW
-    inext
-    iintro %u -
+    iunfold mvcc.watchReader at HR
+    icases HR with ⟨Hsr0, Hmur⟩
+    wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hmur] as ⟨Hrl, HP⟩
+    wp_auto_lc 1
+    imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
+    iunfold mvcc.watchStoreInv at HP
+    icases HP with ⟨%σ, HP⟩
+    iunfold mvcc.watchStoreBody at HP
+    iNamed HP
     wp_auto
-    wp_for_post
-    iframe
-    simp only [named]
-    iunfold mvcc.watchReader
-    iframe
-  iapply BigAndL.bigAndL_cons.2
-  isplit
-  · ileft
-    simp only [chan.blockingClausePre]
-    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stc, γs
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iapply ownBroadcastChan_is_chan $$ Hstop
-    iapply broadcast_chan_receive _ _ _ _ _ $$ Hstop
-    iintro -
-    wp_auto
-    wp_for_post
-    wp_apply mvcc.wp_wsDone_victims s $$ [$Hsync $Hdone]
-    iapply HΦ
+    ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
+        [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
+    · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmur
+    · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
+    wp_auto_lc 2
+    wp_join iprop(retryTimer_ptr ↦ t ∗ ∃ tc : Loc, tickc_ptr ↦ tc ∗ (⌜tc = chan.nil⌝ ∨
+        ∃ γt : ChanNames, isChanBag γt tc (V := time.Time) (fun _ => iprop(True)))) with [tickc retryTimer]
+      as ⟨retryTimer, %tc, tickc, Htc⟩
+    · iframe; ileft; ipureintro; rfl
+    · wp_apply time.Timer.wp_Reset t tch γt _ $$ [$Ht] as %br -
+      isplitr
+      · ipureintro; rfl
+      iframe; iright; iexists γt; iexact Htbag
+    ihave #Hstop := HstopW
+    iunfold mvcc.isStopChan at Hstop
+    icases Hstop with ⟨%γs, #Hstop⟩
+    wp_apply_core chan.wp_select_blocking_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · icases Htc with (%Hnil | ⟨%γt, #Hbag⟩)
+      · iright
+        iapply chan.nilClausePre_recv time.Time _ _ Hnil
+      ileft
+      simp only [chan.blockingClausePre]
+      iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, tc, γt
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply is_bag_is_chan $$ Hbag
+      iapply bag_recv_au $$ [$Hlc1 $Hlc2] Hbag
+      inext
+      iintro %tm -
+      wp_auto
+      wp_for_post
+      iframe
+      simp only [named]
+      iunfold mvcc.watchReader
+      iframe
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, vc, γv
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply is_bag_is_chan $$ HvcbW
+      iapply bag_recv_au $$ [$Hlc1 $Hlc2] HvcbW
+      inext
+      iintro %u -
+      wp_auto
+      wp_for_post
+      iframe
+      simp only [named]
+      iunfold mvcc.watchReader
+      iframe
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stc, γs
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply ownBroadcastChan_is_chan $$ Hstop
+      iapply broadcast_chan_receive _ _ _ _ _ $$ Hstop
+      iintro -
+      wp_auto
+      wp_for_post
+      wp_apply time.Timer.wp_Stop_timer t tch γt $$ [$Ht] as %bs -
+      wp_apply mvcc.wp_wsDone_victims s $$ [$Hsync $Hdone]
+      iapply HΦ
+      itrivial
+    iapply BigAndL.bigAndL_nil.2
     itrivial
-  iapply BigAndL.bigAndL_nil.2
-  itrivial
 
 end proof
 

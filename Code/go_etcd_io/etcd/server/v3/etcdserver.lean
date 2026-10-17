@@ -3063,7 +3063,7 @@ noncomputable def EtcdServer.applyEntryNormal.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: server.go:2352:22 -/
+/-- go: server.go:2356:22 -/
 noncomputable def EtcdServer.parseProposeCtxErr.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "err"
@@ -3139,7 +3139,7 @@ noncomputable def EtcdServer.parseProposeCtxErr.impl [FfiSyntax] [GoGlobalContex
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))))))))))
 
-/-- go: server.go:2385:22 -/
+/-- go: server.go:2389:22 -/
 noncomputable def EtcdServer.KV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3148,7 +3148,7 @@ noncomputable def EtcdServer.KV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))))
 
-/-- go: server.go:2386:22 -/
+/-- go: server.go:2390:22 -/
 noncomputable def EtcdServer.Backend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3168,7 +3168,7 @@ noncomputable def EtcdServer.Backend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"bemu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))))
 
-/-- go: server.go:2392:22 -/
+/-- go: server.go:2396:22 -/
 noncomputable def EtcdServer.AuthStore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3181,7 +3181,7 @@ noncomputable def EtcdServer.AuthStore.impl [FfiSyntax] [GoGlobalContext] : val 
     the etcdserver waitgroup.
     The passed function should interrupt on s.StoppingNotify().
 
-    go: server.go:2406:22 -/
+    go: server.go:2410:22 -/
 noncomputable def EtcdServer.GoAttach.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "f"
@@ -3241,7 +3241,7 @@ noncomputable def EtcdServer.GoAttach.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"wgMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))))))
 
-/-- go: server.go:2448:22 -/
+/-- go: server.go:2452:22 -/
 noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
