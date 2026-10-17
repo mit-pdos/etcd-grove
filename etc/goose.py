@@ -133,8 +133,12 @@ PROJECTS = [
         # `watch-progress-before-created` (c267e0ffe, cherry-picked as 09669450f). Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
+        # TEMPORARY (decision D15): the pin is branch `goose-lean-raft-cq-off`, `goose-lean`
+        # plus one commit (e1e0193c2) adding `ServerConfig.DisableCheckQuorum` (the verified
+        # raft start needs CheckQuorum off); back to `goose-lean` once the raft proof covers
+        # CheckQuorum and PreVote on.
         repo="https://github.com/upamanyus/etcd",
-        rev="09669450f0eec4dfaf92e044191412579322ade6",
+        rev="e1e0193c22324cd6464919966a5f0dd20b2a8931",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

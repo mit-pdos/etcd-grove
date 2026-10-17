@@ -104,20 +104,11 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   iframe Hsuf
   iintro Hsuf
   imod Hmask with -
-  -- spend the credit
+  -- count the id, under the lifetime bound
+  imod mono_nat_own_update (k + 1) (by omega) $$ Hcr with ⟨Hcr, #Hlb⟩
   iunfold idCred at Hc
-  icombine Hcr Hc gives %Hv
-  have Hc1 : 1 ≤ 2 ^ 48 - 1 - k := by
-    obtain ⟨z, hz⟩ := (Auth.auth_both_valid_discrete.mp Hv).1
-    have : 2 ^ 48 - 1 - k = 1 + z := hz
-    omega
-  icombine Hcr Hc as HCC
-  imod own_update γi.cred _ ((● (2 ^ 48 - 1 - (k + 1)) : Auth Nat) • ◯ (0 : Nat))
-    (Auth.auth_update (CommMonoidLike.leftCancelAdd_local_update
-      (by show 2 ^ 48 - 1 - k + 0 = (2 ^ 48 - 1 - (k + 1)) + 1; omega)))
-    $$ HCC with HCC
-  icases (own_op γi.cred _ _).1 $$ HCC with ⟨Hcr, -⟩
-  have Hk1 : k + 1 < 2 ^ 48 := by omega
+  iunfold idLifeBound at Hc
+  icases Hc $$ %(k + 1) Hlb with %Hk1
   have Hnew := idIssued_not_new pfx s0 k Hs0 Hpl Hk1
   generalize hid : pfx ||| ((s0 + W64 ((k + 1 : Nat) : Int)) &&& W64 (2 ^ 48 - 1)) = nid at Hnew
   have HIn : I !! nid = none := by
@@ -137,7 +128,6 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
       push_cast; word
     rw [hsuf]
     iframe Hsuf
-    rw [show 2 ^ 48 - 1 - (k + 1) = 2 ^ 48 - 1 - (k + 1) from rfl]
     iframe Hcr HI HS
     isplitr
     · ipureintro; omega

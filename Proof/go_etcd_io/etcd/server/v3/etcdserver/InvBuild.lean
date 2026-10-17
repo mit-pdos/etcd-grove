@@ -25,12 +25,10 @@ halves of the unit share, frozen once placed:
   committed log meets the apply premises (`entriesOk`) and its ids are claimed under this
   server's generator (`batchWaitOk`). For several members both are facts about the other members'
   requests (`issues/etcd-request-id-member-prefix.md`); discharging it for one server is unit N3.
-* **The built part** `srvBuilt` and **the residual** `srvBuildGap`. The residual's rows: the KV
-  rows (`txn.isKV`/`isReadView` of `srv.kv`, the uber-applier's `applierFor`/`applyKV`: true of
-  `mvcc.New`'s watchable store since unit N4, `server_kv_watchable`, but given by no `NewServer`
-  proof yet), the write budget `txn.storeWTs`, `storeSmall`, the raft storage's
-  snapshot contract `rnSnapOnce`, the id budget, `ClusterVersion()`'s contract, the logic's thread
-  bound.
+* **The built part** `srvBuilt` and **the residual** `srvBuildGap`. Since D17 (2026-10-17) the
+  residual has one row, the raft storage's snapshot contract `rnSnapOnce`; the others (the KV
+  rows, the write budget, the uber-applier's, `storeSmall`, the id budget, `ClusterVersion()`'s
+  contract, the thread bound) are `srvBuilt`'s.
 -/
 module
 
@@ -153,7 +151,8 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
 /-- **The built part** (`NewServer.spec`'s postcondition, on success): `isServerBuilt` but the
 rows of `srvBuildGap` (named as `isServerBuilt`'s; `#Hfb`, `#Hrdb`, `Happ` without their KV
 parts, which `#Hkv` and `HWB` give in part: `srv.kv` with its read view and the write budget,
-moved from the residual by unit N4's `NewServer` proof, 2026-10-17). -/
+moved from the residual by unit N4's `NewServer` proof, 2026-10-17; `#Hsmall`, `#HNR`, `#Hcv`,
+`%Hbound` since D17, from `NewServer.spec`'s lifetime premises and the cluster's contract). -/
 def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
@@ -198,22 +197,23 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
           #rv : GoInterface) ∗
       mvcc.isReadView rv E.s E.γ) ∗
     "HWB" ∷ txn.storeWTs E.γ N ∗
+    "#Hsmall" ∷ storeSmall E.γ ∗
+    "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
+    "#Hcv" ∷ clusterVersionOk s ∗
+    "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
     "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀))
 
-/-- **The residual** (see the file header): the rows of `isServerBuilt` no `NewServer` proof
-gives -- `storeSmall`, the raft storage's snapshot contract, the id budget, `ClusterVersion()`'s
-contract, the logic's thread bound. A premise of whoever composes `NewServer` with `start`.
-(`srv.kv` as `txn.isKV` with its read view and the write budget `txn.storeWTs` were rows here
-until unit N4's `NewServer` proof, 2026-10-17, and the uber-applier's `applierFor`/`applyKV`
-until D14i, the same day, which `NewServer` gives: `srvBuilt`.) -/
-def srvBuildGap (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ai₀ at₀ : w64)
-    (x₀ : apply.ApplyKV) : IProp GF :=
-  iprop("#Hsmall" ∷ storeSmall E.γ ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀) ∗
-    "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
-    "#Hcv" ∷ clusterVersionOk s ∗
-    "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝)
+/-- **The residual** (see the file header): the row of `isServerBuilt` no `NewServer` proof
+gives -- the raft storage's snapshot contract `rnSnapOnce` (`notes/STATUS.md`, "srvBuildGap's
+rows": the application cannot call `MemoryStorage.Snapshot` in the model while raft owns the
+storage). A premise of whoever composes `NewServer` with `start`. (`srv.kv` as `txn.isKV` with its
+read view and the write budget `txn.storeWTs` were rows here until unit N4's `NewServer` proof,
+2026-10-17; the uber-applier's `applierFor`/`applyKV` until D14i; `storeSmall`, the id budget,
+`clusterVersionOk` and the thread bound until D17, the same day: `srvBuilt`, from
+`NewServer.spec`'s workload premises and the cluster's `Version` contract.) -/
+def srvBuildGap (s : Loc) (ai₀ at₀ : w64) : IProp GF :=
+  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀))
 
 end defs
 

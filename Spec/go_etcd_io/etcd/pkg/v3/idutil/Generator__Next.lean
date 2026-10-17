@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `g.Next()` (any goroutine), with one id credit, returns an id nobody holds (`idFresh`), of
+/-- `g.Next()` (any goroutine), under the lifetime bound (`idCred`, D17), returns an id nobody holds (`idFresh`), of
 the generator's shape: its prefix `pfx` and the 48 low bits of its initial suffix `s0` plus the
 number `j` of ids issued so far, this one included. -/
 abbrev idutil.Generator.Next.spec : Prop :=

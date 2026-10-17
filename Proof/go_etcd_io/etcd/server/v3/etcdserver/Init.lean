@@ -5,8 +5,9 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver`
 Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`, untranslated: the
 trust-boundary axioms `<X>_init`), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
-errors by the premise `EtcdGrove.ErrorStringLeaf`). Its theorem takes the read package's
-initializer's spec (`wp_read`), not proved (`Spec/.../read/initialize.lean`).
+errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
+registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
+package's initializer.
 -/
 module
 
@@ -46,6 +47,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Init
 public import Proof.go_etcd_io.etcd.server.v3.features.Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.Init
@@ -58,7 +60,6 @@ public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.net.http.Init
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.initialize
 
 @[expose] public section
 
@@ -167,6 +168,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [EtcdGrove.ErrorStringLeaf]
 variable [EtcdGrove.RpctypesEtcdErrorMethods]
+variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [_root_.Perennial.context.ErrorStringIsError]
   [_root_.Perennial.context.DeadlineExceededIsError]
 variable [_root_.Perennial.log.NewModel]
@@ -174,16 +176,14 @@ variable [_root_.Perennial.log.NewModel]
 namespace go_etcd_io.etcd.server.v3.etcdserver
 
 set_option maxHeartbeats 8000000 in
-theorem wp_initialize'
-    (wp_read : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.initialize'.spec (GF := GF) (hG := hG))
-    (get_is_pkg_init : GoString → IProp GF)
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.read.readRegPerm (GF := GF) }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  wp_start as ⟨Hown, HR⟩
+  iapply wp_package_init (heq := Hinit.1) $$ [Hown HR] HΦ
   iframe Hown
   iintro Hown
   wp_auto
@@ -193,7 +193,8 @@ theorem wp_initialize'
   wp_apply _root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd49⟩
   wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.lease.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd48⟩
   wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.features.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd47⟩
-  wp_apply wp_read _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd46⟩
+  wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ [Hown HR] as ⟨Hown, #Hd46⟩
+  · iframe Hown HR
   wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd45⟩
   wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd44⟩
   wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd43⟩

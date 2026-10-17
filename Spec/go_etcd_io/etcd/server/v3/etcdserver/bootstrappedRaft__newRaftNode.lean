@@ -19,7 +19,9 @@ raft's `ownStorage (memStorIface ms)` under the `MemoryStorage` instance, which 
 holds with the registry; raft owns it from the call on). **Among them `CheckQuorum = false` and `PreVote = false`: etcd's
 `raftConfig` (`bootstrap.go`) sets `CheckQuorum: true` and `PreVote` on by default, so this
 theorem does not cover etcd's own configuration** (`MsgCheckQuorum` and pre-vote are out of the
-model's scope: the user's decision, D12). The `InitialState` closure premise is `StartNode.spec`'s
+model's scope: the user's decision, D12). Until the raft proof covers them, the verified
+configuration turns both off through the patched fork's `cfg.DisableCheckQuorum` (D15,
+temporary; `bootOk`, `InvBoot.lean`). The `InitialState` closure premise is `StartNode.spec`'s
 (D7's shape; a fresh `MemoryStorage`'s conf state is empty).
 
 **The ghost state** is the cluster's, allocated before (`ownRaftGhost_alloc_boot`): this node's
