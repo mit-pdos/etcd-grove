@@ -1,0 +1,40 @@
+        	            	 (mvcc.KeyValueHash) {
+        	            	- Hash: (uint32) 2962135447,
+        	            	+ Hash: (uint32) 1405952939,
+        	            	  CompactRevision: (int64) 2,
+        	Test:       	TestHashByRevEmptyKeepMatchesCompactionHash
+        	Messages:   	HashByRev(3) before compaction differs from the compaction's hash of revision 3
+--- FAIL: TestReviewHashProgressAndRestart (49.58s)
+    hash_review_test.go:82: delPut=false seed 12: stored hash of c1=9 ({Hash:1811961309 CompactRevision:4 Revision:9}) != HashKV(c1) at c0 ({Hash:1318242309 CompactRevision:4 Revision:9})
+    hash_review_test.go:82: delPut=false seed 34: stored hash of c1=6 ({Hash:681342307 CompactRevision:4 Revision:6}) != HashKV(c1) at c0 ({Hash:3177298694 CompactRevision:4 Revision:6})
+    hash_review_test.go:82: delPut=false seed 47: stored hash of c1=6 ({Hash:1003259543 CompactRevision:4 Revision:6}) != HashKV(c1) at c0 ({Hash:2087534795 CompactRevision:4 Revision:6})
+    hash_review_test.go:86: delPut=false: 164 of 3000 trials fail
+    hash_review_test.go:88: failures without delete-then-put
+    hash_review_test.go:82: delPut=true seed 12: stored hash of c1=9 ({Hash:1811961309 CompactRevision:4 Revision:9}) != HashKV(c1) at c0 ({Hash:1318242309 CompactRevision:4 Revision:9})
+    hash_review_test.go:82: delPut=true seed 47: stored hash of c1=6 ({Hash:3946290456 CompactRevision:4 Revision:6}) != HashKV(c1) at c0 ({Hash:2719250627 CompactRevision:4 Revision:6})
+    hash_review_test.go:82: delPut=true seed 57: HashKV(c1=9) at c0=7 changed during compaction c0: 18491a73 vs ffbd6e24
+    hash_review_test.go:86: delPut=true: 200 of 3000 trials fail
+--- FAIL: FuzzCompactionHash (0.17s)
+    --- FAIL: FuzzCompactionHash/seed#1 (0.08s)
+        hash_fuzz_22562_test.go:72: 
+            	Error Trace:	/root/etcd-pr/etcd-22515/server/storage/mvcc/hash_fuzz_22562_test.go:72
+            	            				/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/reflect/value.go:586
+            	            				/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/reflect/value.go:369
+            	            				/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/fuzz.go:341
+            	Error:      	Not equal: 
+            	            	expected: testutil.KeyValueHash{Hash:0xe6d73fb8, CompactRevision:6, Revision:7}
+            	            	actual  : testutil.KeyValueHash{Hash:0x1d308227, CompactRevision:6, Revision:7}
+            	            	
+            	            	Diff:
+            	            	--- Expected
+            	            	+++ Actual
+            	            	@@ -1,3 +1,3 @@
+            	            	 (testutil.KeyValueHash) {
+            	            	- Hash: (uint32) 3872866232,
+            	            	+ Hash: (uint32) 489718311,
+            	            	  CompactRevision: (int64) 6,
+            	Test:       	FuzzCompactionHash/seed#1
+            	Messages:   	hash changed at revision 7
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	77.215s
+FAIL

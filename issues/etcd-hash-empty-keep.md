@@ -50,7 +50,10 @@ links:
   properties: `hashIncl_keep_compact` (the two kept sets give the same filter, #22562's filter),
   `hashIncl_not_del` (nothing compaction may delete is hashed, under `NoDelPutAt`, the premise of
   `issues/etcd-compaction-delete-then-put.md`), and `hashInclOld_keep_compact_differ` (the filter
-  at the pin violates the first, the case above).
+  at the pin violates the first, the case above). On branch `pr-verify/etcd-22515` the same file
+  states #22515's filter (`kvHashIncludes` with `exactKeep`, `hashByRevKeep`, both proved):
+  `hashIncl22515_not_del` (symptom 2 fixed, same premise), `hashIncl22515_compat` (the hash after
+  a finished compaction is the pin's) and `hashIncl22515_keep_compact_differ` (symptom 1 remains).
 - **Possible fixes**: #22562 (drop the `len(h.keep) > 0` guard) fixes both, but changes the hash
   that versions before it return after a finished compaction whenever `Keep(rev)` is empty and a
   revision at or below the compaction revision is stored (a key live at the compaction revision,

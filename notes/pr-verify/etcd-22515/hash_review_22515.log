@@ -1,0 +1,17 @@
+Reviewer's results for hash_review_22515_test.go (2026-10-17), run at the fork pin 09669450f and at
+#22515's head de2627f9f (upstream worktrees), GOTOOLCHAIN=go1.27.1, go test -count=1 -run <Name> ./storage/mvcc/
+
+TestR22515Dump (3000 seeds, R22515_OUT=<file>): HashKV(r) for every r >= c after a finished
+  compaction, and the stored-hash comparison of a second compaction.
+  pin and PR dumps byte-identical (601347 bytes,
+  sha256 404500b9b163ea70e46a2a12df0d726523bbf82b3378c79efc7bef339a5ba5a0):
+  no finished-compaction hash changes; symptom 1 on the same 97 seeds at both.
+TestR22515Progress (3000 seeds): HashKV(r), r in [c1, cur], with a random subset or prefix of
+  c1's deletions done (index compacted at c1 or not) vs after the compaction finishes.
+  PR: 0 failures. pin: 1037/3000 fail.
+TestR22515Concurrent (300 seeds): a real Compact (CompactionBatchLimit 1, 200us pauses) with three
+  goroutines calling hashByRev and one writing.
+  PR: 0 failures. pin: 78/300 fail.
+TestR22515Symptom1: put k at 2, delete at 3, Compact(2): HashKV(3) = {Hash:1405952939 CompactRevision:2
+  Revision:3}, Compact(3)'s stored hash = {Hash:2962135447 CompactRevision:2 Revision:3}; same at pin
+  and PR (symptom 1 not fixed, not a regression).

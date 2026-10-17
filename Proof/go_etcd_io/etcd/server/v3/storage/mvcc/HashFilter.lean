@@ -1,7 +1,8 @@
 /-
 The hasher's filter (`kvHasher.WriteKeyValue`, `hash.go`; `kvHashIncludes` in the fork), as
-etcd-io/etcd#22562 changes it (pr-verify/etcd-22562): which pairs of the `Key` bucket the hash
-of a revision covers, and why the PR's filter makes the two ways etcd computes that hash agree.
+etcd-io/etcd#22562 changes it (pr-verify/etcd-22562) and as etcd-io/etcd#22515 changes it
+(pr-verify/etcd-22515, the last section): which pairs of the `Key` bucket the hash of a revision
+covers, and what each PR's filter guarantees.
 
 The hash of revision `rev` with compaction revision `c` is computed two ways: by
 `store.hashByRev` (`HashKV`), over the bucket with the kept set `treeIndex.Keep(rev)`
@@ -10,21 +11,29 @@ job at `rev` (`scheduleCompaction(rev, c)`), over the bucket it is compacting, w
 `treeIndex.Compact(rev)` (`keepSetIs`), whose result `hashStorage` stores and `HashByRev(rev)`
 then returns. etcd's corruption checks compare them across members (same `rev` and `c`).
 
-- `hashIncl_keep_compact`: with the PR's filter, the two kept sets give the same answer for
+- `hashIncl_keep_compact`: with #22562's filter, the two kept sets give the same answer for
   every pair (they differ only at revisions with main `rev`, above `c`, where the filter does
   not look at the set).
-- `hashIncl_not_del`: with the PR's filter, no pair compaction at `c` may delete is hashed,
+- `hashIncl_not_del`: with #22562's filter, no pair compaction at `c` may delete is hashed,
   with either kept set, so how far the deletion has gone does not change the hash; it needs
   `NoDelPutAt log c`, the premise of the existing finding
   `issues/etcd-compaction-delete-then-put.md` (without it compaction at `c` deletes a key's
   live revision, which `Keep(rev)` keeps).
-- `hashInclOld_empty_ne`: the price, which the PR states ("empty-keep-set hashes intentionally
+- `hashInclOld_empty_ne`: #22562's price, which it states ("empty-keep-set hashes intentionally
   change"): after a finished compaction, with nothing kept at `rev`, the stored revisions at or
   below `c` the old filter hashed are no longer hashed, so older members compute another hash.
-- `hashInclOld_keep_compact_differ`: the filter before the PR (`hashInclOld`: an empty kept set
+- `hashInclOld_keep_compact_differ`: the filter before the PRs (`hashInclOld`: an empty kept set
   filters nothing) does not have the first property: a key put at 2 and deleted at 3, `c = 2`,
   `rev = 3`: `Keep(3)` is empty, `Compact(3)` keeps the tombstone, and the put at 2 is hashed
-  by `hashByRev` but not by the compaction job (the mismatch the PR's fuzz seed found).
+  by `hashByRev` but not by the compaction job (the mismatch #22562's fuzz seed found).
+
+#22515 (the last section) keeps the guard and makes `hashByRev` fall back to `Keep(c)`, applied
+even when empty, when `Keep(rev)` is empty and `c > 0` (`hashIncl22515`, which the code computes:
+`hashByRevKeep_filter`). `hashIncl22515_not_del`: it hashes nothing compaction at `c` may delete
+(so `HashKV` does not depend on the compaction's progress); `hashIncl22515_compat`: after a
+finished compaction it is the filter before the PR (so mixed versions agree); but
+`hashIncl22515_keep_compact_differ`: `HashKV` and the compaction job's stored hash of a revision
+still differ in `hashInclOld_keep_compact_differ`'s case.
 -/
 module
 

@@ -1,0 +1,11 @@
+# etcd-io/etcd#22515 (pr-verify/etcd-22515): the hasher's filter `kvHashIncludes` (with the PR's
+# `exactKeep`) and `hashByRev`'s choice of the kept set `hashByRevKeep`, both split out in the
+# fork, and the results that call the hasher (the compaction job). HashFilter.lean's pure
+# theorems are not roots (Results.lean prints their axioms: propext, Classical.choice,
+# Quot.sound).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22515.txt [--check [--update]]
+roots kvHashIncludes
+roots hashByRevKeep
+roots kvHasher__WriteKeyValue
+roots store__scheduleCompaction

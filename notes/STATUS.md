@@ -45,6 +45,23 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#22515 verified: the hasher's filter and `hashByRev`'s kept set (2026-10-17, branch `pr-verify/etcd-22515`, not for `lean`)
+
+The PR keeps `kvHasher.WriteKeyValue`'s `len(h.keep) > 0` guard, adds a hasher flag `exactKeep`
+that applies the kept set even when empty, and makes `store.hashByRev` hash with
+`Keep(compactRev)` (flag set) when `Keep(rev)` is empty and `compactRev > 0`. As for #22562
+(`pr-verify/etcd-22562`, whose `HashFilter.lean` and `kvHashIncludes` this branch starts from),
+`WriteKeyValue` stays at the trust boundary (crc32: no `hash` package in Perennial); the fork
+branch `pr-etcd-22515-goose-lean` splits the filter into `kvHashIncludes` (now with `exactKeep`)
+and `hashByRev`'s choice into `hashByRevKeep` (behavior unchanged), both translated (`mvcc.toml`)
+and proved. `HashFilter.lean`, last section: the two specs compose to `hashIncl22515`
+(`hashByRevKeep_filter`), which hashes nothing compaction may delete (`hashIncl22515_not_del`,
+under `NoDelPutAt` and `0 < c`), equals the pin's filter on a finished compaction's bucket
+(`hashIncl22515_compat`), and still disagrees with the compaction job's stored hash
+(`hashIncl22515_keep_compact_differ`, `issues/etcd-hash-empty-keep.md` symptom 1). Report:
+`notes/pr-verify/etcd-22515.md`. `wp_auto` again did not step the first allocation of a function
+(`hashByRevKeep`, as `kvHashIncludes`: `wp_bind` + `wp_alloc` by hand; not investigated).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
