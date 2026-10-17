@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 otherwise `ok = true` and either `nil` (no entry for the key, or the context was done while
 waiting), or, after waiting for the entry's waiter channel, the cached get's answer of the entry
 `e` as it is in the state `st` of the second read (still the key's entry, or frozen since:
-evicted after it was found), with its facts. -/
+evicted after it was found), with its facts; its count is the number of its cached key-values
+(`LeaseEntry.countOk`). -/
 abbrev leaseCache.Get.spec : Prop :=
   ∀ (lc : Loc) (γ : LeaseCacheNames) (pfx : GoString) (X : LeaseCacheSt → Qp → IProp GF)
     (Qr : LeaseCacheSt → IProp GF) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
@@ -39,7 +40,7 @@ abbrev leaseCache.Get.spec : Prop :=
        (⌜isBadOpM o = false ∧ ok = true ∧ ret = null⌝) ∨
        (⌜isBadOpM o = false ∧ ok = true⌝ ∗ ∃ (st : LeaseCacheSt) (e : LeaseEntry),
           □ Qr st ∗ ⌜st.entries !! o.key = some e ∨ (o.key, e) ∈ st.frozen⌝ ∗
-          entryFacts pfx o.key e ∗ freshGetResp ret e.hm e.more e.count (getResult o e))) }}
+          ⌜e.countOk⌝ ∗ entryFacts pfx o.key e ∗ freshGetResp ret e.hm e.more e.count (getResult o e))) }}
 
 end spec
 

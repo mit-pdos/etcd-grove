@@ -327,7 +327,7 @@ theorem leasingKV.acquire.wp_proof
     icases txnStates_wrote $$ Hts with ⟨#Hs0, #Hs1⟩
     obtain ⟨Hwf', nv, Hnv, Hnvl⟩ := putKv_wf r (pfx ++ key) [] id s Hwf
     ihave %Hrevs := etcdState_revs r [] _ $$ Hs1
-    obtain ⟨Hsel, -⟩ := rangeSel_putKv r (pfx ++ key) [] id s o Ho.2.2 (by rw [Hko]; exact hlk)
+    obtain ⟨Hsel, Hlen⟩ := rangeSel_putKv r (pfx ++ key) [] id s o Ho.2.2 (by rw [Hko]; exact hlk)
     wp_auto
     wp_for_post
     iapply HΦ
@@ -345,7 +345,7 @@ theorem leasingKV.acquire.wp_proof
     isplitr
     · ipureintro; exact Hp0
     isplitr
-    · ipureintro; exact Hrr
+    · ipureintro; exact ⟨Hrr, Hlen.symm⟩
     simp only [↓reduceIte]
     iexists id, nv
     iframe #
@@ -398,7 +398,7 @@ theorem leasingKV.acquire.wp_proof
       iframe
       iframe #
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro; exact ⟨⟨Hrev, Hlo_r, Hr0, Hrmax, Hwf⟩, Hp0, Hrr, trivial⟩
+      ipureintro; exact ⟨⟨Hrev, Hlo_r, Hr0, Hrmax, Hwf⟩, Hp0, ⟨Hrr, trivial⟩, trivial⟩
     · have hl0 : 0 < sint.Z sl1.len := by
         have := len_eq_sint _ _ Hlen1
         simp only [List.map_cons, List.length_cons] at this; omega
@@ -429,7 +429,7 @@ theorem leasingKV.acquire.wp_proof
       isplitr
       · ipureintro; exact Hp0
       isplitr
-      · ipureintro; exact Hrr
+      · ipureintro; exact ⟨Hrr, rfl⟩
       by_cases hl : c.kv.lease = id2
       · simp only [hl, decide_True_any, ↓reduceIte]
         have hk := keyGet_kvs (pfx ++ key) s _ Hwf Hok1

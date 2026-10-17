@@ -410,18 +410,20 @@ def ownTxnLeasing (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : Go
 (still in the map, or evicted while the get waited), with its facts (`entryFacts`: etcd's record
 of `key` at `e.rev` is `e.acq`, the lease key present with `e.lease`), and a fresh response with
 the cached get's answer to `o` (`getResult o e`: of `e`'s cached key-value, which is `e.acq` unless
-this client's own writes changed it since, `LeaseEntry.update`/`del`). -/
+this client's own writes changed it since, `LeaseEntry.update`/`del`); the response's `Count` is
+`e.count`, the number of the entry's cached key-values (`LeaseEntry.countOk`: `0` after this
+client deleted the key, since etcd#22585). -/
 def getCached (γ : LeasingNames) (pfx key : GoString) (o : OpFull) (ret : Loc) : IProp GF :=
   iprop(∃ (st : LeaseCacheSt) (e : LeaseEntry), leasingSeen γ st ∗
-    ⌜st.entries !! key = some e ∨ (key, e) ∈ st.frozen⌝ ∗ entryFacts pfx key e ∗
+    ⌜(st.entries !! key = some e ∨ (key, e) ∈ st.frozen) ∧ e.countOk⌝ ∗ entryFacts pfx key e ∗
     freshGetResp ret e.hm e.more e.count (getResult o e))
 
 /-- **A get that acquired the key's lease**: the new entry `e`, its record etcd's at its revision
-(`e.kv = e.acq`), which is at least `lo` and reached, and a fresh response with the cached get's
-answer to `o`. -/
+(`e.kv = e.acq`), which is at least `lo` and reached, its count the number of its key-values
+(`LeaseEntry.countOk`), and a fresh response with the cached get's answer to `o`. -/
 def getAcquired (pfx key : GoString) (lo : w64) (o : OpFull) (ret : Loc) : IProp GF :=
   iprop(∃ e : LeaseEntry, entryFacts pfx key e ∗ etcdReached e.rev ∗
-    ⌜e.kv = e.acq ∧ e.rev = e.hm.revision ∧ sint.Z lo ≤ sint.Z e.rev⌝ ∗
+    ⌜e.kv = e.acq ∧ e.rev = e.hm.revision ∧ sint.Z lo ≤ sint.Z e.rev ∧ e.countOk⌝ ∗
     freshGetResp ret e.hm e.more e.count (getResult o e))
 
 /-- **A get answered by an acquisition that failed** (another client holds the key's lease): etcd's

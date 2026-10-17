@@ -89,7 +89,7 @@ theorem leaseCache.Get.wp_proof
           subst hli2
           icases (BigSepM.bigSepM_lookup_acc hk2).1 $$ Hents with ⟨He, Hents⟩
           unfold entryOwn
-          icases He with ⟨%Hnn, Hr, Hrev, Hwc, Hresp, #Hw2⟩
+          icases He with ⟨%Hnn, Hr, Hrev, Hwc, Hresp, #Hw2, %Hcnt⟩
           ihave Hlk := (leaseKey_struct e2.li e2.lk _ Hnn).1 $$ [Hr Hrev Hwc]
           · simp only [LeaseEntry.lk]; iframe
           wp_auto
@@ -105,7 +105,7 @@ theorem leaseCache.Get.wp_proof
             iapply Hents
             iframe
             iframe #
-            ipureintro; exact Hnn
+            ipureintro; exact ⟨Hnn, Hcnt⟩
           iapply HΦ
           iframe
           iright; iright
@@ -115,6 +115,8 @@ theorem leaseCache.Get.wp_proof
           iframe #
           isplitr
           · ipureintro; left; exact hk2
+          isplitr
+          · ipureintro; exact Hcnt
           isplitr [Hret]
           · iapply (BigSepM.bigSepM_lookup hk2) $$ Hf
           iexact Hret
@@ -124,7 +126,7 @@ theorem leaseCache.Get.wp_proof
           ihave He := (BigSepL.bigSepL_lookup (Φ := fun _ f => entryOwn f.2 DFrac.discard) hj) $$ Hfrozen
           ihave #Hfe := (BigSepL.bigSepL_lookup (Φ := fun _ f => entryFacts pfx f.1 f.2) hj) $$ Hff
           unfold entryOwn
-          icases He with ⟨%Hnn, #Hr, #Hrev, #Hwc, #Hresp, #Hw2⟩
+          icases He with ⟨%Hnn, #Hr, #Hrev, #Hwc, #Hresp, #Hw2, %Hcnt⟩
           ihave #Hlk := (leaseKey_struct e2.li e2.lk DFrac.discard Hnn).1 $$ [Hr Hrev Hwc]
           · simp only [LeaseEntry.lk]; iframe #
           wp_auto
@@ -144,6 +146,8 @@ theorem leaseCache.Get.wp_proof
           iframe #
           isplitr
           · ipureintro; right; exact hfr
+          isplitr
+          · ipureintro; exact Hcnt
           iexact Hret
       iapply BigAndL.bigAndL_cons.2
       isplit

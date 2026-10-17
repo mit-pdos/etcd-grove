@@ -188,11 +188,18 @@ def freshKv (p : Loc) (keySl : GoSlice) (key : GoString) (r : w64) : CachedKv :=
   { p := p, keySl := keySl, valSl := slice.nil, kv := v }
 
 /-- `delete`'s change of an entry, for a delete at the header `hm` (copied into `h`): if it is
-not older than the response, the cached key-values are dropped and the header becomes `h`. -/
+not older than the response, the cached key-values are dropped, the count becomes `0` (etcd#22585:
+before it, the count was left as it was), and the header becomes `h`. -/
 def LeaseEntry.del (e : LeaseEntry) (h : Loc) (hm : HdrM) : LeaseEntry :=
   if sint.Z e.hm.revision ≤ sint.Z hm.revision then
-    { e with kvsSl := slice.nil, kvs := [], hdr := h, hm := hm }
+    { e with kvsSl := slice.nil, kvs := [], count := W64 0, hdr := h, hm := hm }
   else e
+
+/-- **An entry's `Count` is the number of its cached key-values** (`0` or `1`: the leasing KV caches
+single keys), as etcd's `Count` of a single-key get is the number of keys it found. An acquisition's
+response has it; `Update` keeps it (count `1` with the fresh key-value); `delete` keeps it only
+since etcd#22585, which sets the count to `0` with the key-values dropped. -/
+def LeaseEntry.countOk (e : LeaseEntry) : Prop := e.count = W64 (e.kvs.length : Int)
 
 /-- Change `k`'s entry (if any) by `f`. -/
 def LeaseCacheSt.modify (k : GoString) (f : LeaseEntry → LeaseEntry) (st : LeaseCacheSt) :
@@ -329,13 +336,15 @@ instance respOwn_dfractional (e : LeaseEntry) :
   unfold respOwn; infer_instance
 
 /-- **An entry's resources**, with fraction `dq` (`DFrac.discard`: frozen): the `*leaseKey`'s
-fields (not nil), the response, and the waiter channel's receive right. (Field by field: the
+fields (not nil), the response, and the waiter channel's receive right; and the response's count
+is the number of its key-values (`LeaseEntry.countOk`). (Field by field: the
 proof mode does not find a struct field's points-to inside a struct's, `leaseKey_struct` turns
 them into the struct's for `Get`'s `*li`.) -/
 def entryOwn (e : LeaseEntry) (dq : DFrac) : IProp GF :=
   iprop(⌜e.li ≠ null⌝ ∗ structFieldRef leaseKey go!"response" e.li ↦{dq} e.resp ∗
     structFieldRef leaseKey go!"rev" e.li ↦{dq} e.rev ∗
-    structFieldRef leaseKey go!"waitc" e.li ↦{dq} e.waitc ∗ respOwn e dq ∗ waitcOk e.waitc)
+    structFieldRef leaseKey go!"waitc" e.li ↦{dq} e.waitc ∗ respOwn e dq ∗ waitcOk e.waitc ∗
+    ⌜e.countOk⌝)
 
 instance entryOwn_dfractional (e : LeaseEntry) :
     DFractional (fun dq => entryOwn (GF := GF) e dq) := by
