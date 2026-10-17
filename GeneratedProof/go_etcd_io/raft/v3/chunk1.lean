@@ -252,6 +252,46 @@ instance Ready_access_store_MustSync (l : Loc) (v : go_etcd_io.raft.v3.Ready) (M
 end def_
 end Ready
 
+namespace ReadyOpts
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
+
+instance ReadyOpts_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.ReadyOpts where
+  typedPointstoDef l v dq := iprop(
+    "DisableCommittedEntries" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadyOpts go!"DisableCommittedEntries" l) v.DisableCommittedEntries' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance ReadyOpts_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.ReadyOpts go_etcd_io.raft.v3.ReadyOpts.underlying := by
+  solve_into_val_typed_struct
+
+instance ReadyOpts_access_load_DisableCommittedEntries (l : Loc) (v : go_etcd_io.raft.v3.ReadyOpts) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadyOpts go!"DisableCommittedEntries" l) v.DisableCommittedEntries' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadyOpts go!"DisableCommittedEntries" l) v.DisableCommittedEntries' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ReadyOpts_access_store_DisableCommittedEntries (l : Loc) (v : go_etcd_io.raft.v3.ReadyOpts) (DisableCommittedEntries' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadyOpts go!"DisableCommittedEntries" l) v.DisableCommittedEntries' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.ReadyOpts go!"DisableCommittedEntries" l) DisableCommittedEntries' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableCommittedEntries' := DisableCommittedEntries' } : go_etcd_io.raft.v3.ReadyOpts) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end ReadyOpts
+
 namespace Peer
 section def_
 

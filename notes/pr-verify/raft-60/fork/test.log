@@ -1,0 +1,17 @@
+=== RUN   TestReadyOptsHasReadyIgnoresOpts
+    rawnode_readyopts_test.go:63: HasReady still true after 100 paused Readys (99 of them empty): it ignores DisableCommittedEntries
+--- PASS: TestReadyOptsHasReadyIgnoresOpts (0.00s)
+=== RUN   TestReadyOptsNoGapNoDup
+--- PASS: TestReadyOptsNoGapNoDup (0.00s)
+=== RUN   TestReview60Async
+    rawnode_review60_test.go:92: applied [1 2 3 4 5 6 7 8 9 10 11 12 13 14]
+--- PASS: TestReview60Async (0.00s)
+=== RUN   TestReview60UncommittedBackpressure
+    rawnode_review60_test.go:132: proposal 4 dropped; committed=5 applied=1 applying=1
+--- PASS: TestReview60UncommittedBackpressure (0.00s)
+=== RUN   TestReview60ConfChangeBlocked
+    rawnode_review60_test.go:170: committed=2 applied=1 pendingConf=2
+    rawnode_review60_test.go:175: appended entry 3 type EntryNormal
+--- PASS: TestReview60ConfChangeBlocked (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.027s

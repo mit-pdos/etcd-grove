@@ -1,0 +1,7 @@
+# etcd-io/raft#60 (notes/pr-verify/raft-60.md): the changed functions' linked results.
+# No baseline yet: etc/tcb-report.py needs a full build of the worktree, and only the raft proof
+# was rebuilt. Instead, `#print axioms` of these results matched `lean`'s
+# (notes/pr-verify/raft-60/print-axioms.log). After a full build:
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-60.txt --check --update
+roots RawNode\.wp_(ReadyWithOpts|Ready|readyWithoutAccept)$
+roots node\.wp_run$

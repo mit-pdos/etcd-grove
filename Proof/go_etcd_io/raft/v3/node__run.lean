@@ -116,7 +116,7 @@ theorem node.run.wp_proof
       wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs $$ [$Hrn] as %b Hb
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
       · wp_auto
-        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp $$ [$Hrn]
+        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs _ Hsteps Hunp $$ [$Hrn]
           as %rd' %ce %es %ms %sts %hrd H
         iNamed H
         wp_join_done

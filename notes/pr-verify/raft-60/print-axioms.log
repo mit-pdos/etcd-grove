@@ -1,0 +1,7 @@
+new Perennial.EtcdGrove.RawNode.wp_ReadyWithOpts: 296 axioms, sorryAx: False
+new Perennial.EtcdGrove.RawNode.wp_Ready: 296 axioms, sorryAx: False
+new Perennial.EtcdGrove.RawNode.wp_readyWithoutAccept: 296 axioms, sorryAx: False
+new Perennial.EtcdGrove.node.wp_run: 304 axioms, sorryAx: False
+old Perennial.EtcdGrove.RawNode.wp_Ready: 296 axioms, sorryAx: False
+old Perennial.EtcdGrove.RawNode.wp_readyWithoutAccept: 296 axioms, sorryAx: False
+old Perennial.EtcdGrove.node.wp_run: 304 axioms, sorryAx: False

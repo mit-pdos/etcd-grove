@@ -22,6 +22,10 @@ messages are read through `GetTo` (each one's ownership looked up in the queue's
 `[∗list]`); `r.hardState()` allocates a fresh read-only hard state (inlined, as
 `raft.hardState`'s proof builds it), handed out in `rd.HardState` unless equal to
 `prevHardSt`; `rd.Snapshot` stays `nil`; the read states are `readStatesPts`.
+
+etcd-io/raft#60 (`notes/pr-verify/raft-60.md`): the call of `nextCommittedEnts` is under
+`if !opts.DisableCommittedEntries`, joined (`wp_join`) at "some committed entries `ce`, a prefix
+of the next ones to apply, empty if disabled"; the rest of the proof is unchanged.
 -/
 module
 
@@ -104,7 +108,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0
+  intro γ rn id rs opts Hsteps0 Hunp0
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -133,13 +137,41 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_auto
   wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
   · iframe Hlog
-  -- `rn.applyUnstableEntries()` is `!asyncStorageWrites`
-  wp_method_call
-  wp_call
   wp_auto
-  rw [Hasync]
-  wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, -⟩
-  · iframe Hlog
+  -- (raft#60) `if !opts.DisableCommittedEntries { rd.CommittedEntries =
+  -- r.raftLog.nextCommittedEnts(rn.applyUnstableEntries()) }`: when disabled, `nil` and no
+  -- entries
+  wp_join iprop(∃ (sce : GoSlice) (ce : List EntryM),
+      rd_ptr ↦ readyVal null null slice.nil sents sce sl1 false ∗
+      rn_ptr ↦ rn ∗ rawNodeOwn rn rnv ∗ r_ptr ↦ rnv.raft' ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
+      ownRaftLog s.log s.logst ∗ entsRO sce ce ∗ ownSliceCap Loc sce (DFrac.own 1) ∗
+      ⌜ce <+: logCommittedEnts s.logst⌝ ∗ ⌜opts.DisableCommittedEntries' = true → ce = []⌝)
+    at next with [rd rn Hrn r Hf_raftLog Hlog] as ⟨%sce, %ce, rd, rn, Hrn, r, Hf_raftLog, Hlog, #Hce, Hce_cap, %Hcepre, %Hce_off⟩
+  · cases Hd : opts.DisableCommittedEntries'
+    · -- enabled; `rn.applyUnstableEntries()` is `!asyncStorageWrites`
+      wp_auto
+      wp_method_call
+      wp_call
+      wp_auto
+      rw [Hasync]
+      wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, -⟩
+      · iframe Hlog
+      wp_join_done
+      iexists sce, ce
+      iframe rd rn Hrn r Hf_raftLog Hlog Hce Hce_cap
+      ipureintro
+      exact ⟨Hcepre, fun h => by simp at h⟩
+    · -- disabled
+      wp_auto
+      wp_join_done
+      iexists slice.nil, []
+      iframe rd rn Hrn r Hf_raftLog Hlog
+      isplitr
+      · iapply entsPts_nil
+      isplitr
+      · iapply ownSliceCap_nil
+      ipureintro
+      exact ⟨List.nil_prefix, fun _ => rfl⟩
   have Hsoft_iff : (s.lead = sv.Lead' ∧ stateW64 s.role = sv.RaftState') ↔
       nodeSoftstate s = soft0 := by
     subst Hsoftv
@@ -459,6 +491,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
       trivial, Hrdc⟩
   isplitr
   · iexact Hce
+  isplitr
+  · ipureintro; exact Hce_off
   isplitr
   · iexact Hdeliv'
   isplitr

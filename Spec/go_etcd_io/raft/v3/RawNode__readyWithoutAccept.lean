@@ -56,19 +56,26 @@ others) holds the pointers of `ms : List QMsg`, each message owned at `readyDq` 
 every other message whole); `Habandon` takes them back. `Entries`/`CommittedEntries` are
 `entsRO` (`[]*pb.Entry`, read-only), the read states `readStatesPts` (their contexts bytes, D6),
 `rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOpt rd.HardState' h` (new:
-the `Ready` hands out `hardState()`'s fresh pointer, or `nil`). -/
+the `Ready` hands out `hardState()`'s fresh pointer, or `nil`).
+
+etcd-io/raft#60 (`notes/pr-verify/raft-60.md`): `readyWithoutAccept(opts ReadyOpts)`. With
+`opts.DisableCommittedEntries` the `Ready` carries no committed entries (`Hce_off`: `ce = []`,
+so `ownRawNodeReady`'s `delivered ++ ce` is `delivered` and `acceptReady` leaves `applying`
+alone); otherwise the postcondition is the one before the PR. -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (opts : ReadyOpts),
   rs.steps = [] →
   rs.unpersisted = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
-      (Val #()))
+      (Val #opts))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
       (sts : List ReadStateM) (h : HardStateM), RET #rd;
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
+      -- (raft#60) `opts.DisableCommittedEntries`: no committed entries handed out
+      "%Hce_off" ∷ ⌜opts.DisableCommittedEntries' = true → ce = []⌝ ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ entsRO rd.Entries' es ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗

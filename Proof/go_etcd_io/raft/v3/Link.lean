@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Proof.go_etcd_io.raft.v3.RawNode__ReadIndex
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
+public import Proof.go_etcd_io.raft.v3.RawNode__ReadyWithOpts
 public import Proof.go_etcd_io.raft.v3.RawNode__ReportSnapshot
 public import Proof.go_etcd_io.raft.v3.RawNode__ReportUnreachable
 public import Proof.go_etcd_io.raft.v3.RawNode__Step
@@ -1527,9 +1528,13 @@ theorem RawNode.wp_acceptReady [AllG GF] [StorageModel GF] :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) :=
   RawNode.acceptReady.wp_proof wp_IsEmptyHardState wp_needStorageApplyRespMsg raftLog.wp_acceptUnstable wp_entsSize raftLog.wp_acceptApplying wp_traceReady wp_needStorageAppendRespMsg wp_newStorageAppendRespMsg wp_newStorageApplyRespMsg raftpb.Message.wp_GetTo raftpb.Entry.wp_GetIndex
 
+theorem RawNode.wp_ReadyWithOpts [AllG GF] [StorageModel GF] :
+    RawNode.ReadyWithOpts.spec (GF := GF) (hG := hG) :=
+  RawNode.ReadyWithOpts.wp_proof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady
+
 theorem RawNode.wp_Ready [AllG GF] [StorageModel GF] :
     RawNode.Ready.spec (GF := GF) (hG := hG) :=
-  RawNode.Ready.wp_proof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady
+  RawNode.Ready.wp_proof RawNode.wp_ReadyWithOpts
 
 theorem RawNode.wp_ReportSnapshot [StorageModel GF] :
     RawNode.ReportSnapshot.spec (GF := GF) (hG := hG) :=

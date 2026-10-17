@@ -13392,3 +13392,11 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification: etcd-io/raft#60 (branch `pr-verify/raft-60`, 2026-10-16)
+
+`RawNode.ReadyWithOpts`/`ReadyOpts.DisableCommittedEntries` of the unmerged etcd-io/raft#60, translated
+from the fork branch `pr-raft-60-goose-lean` (`a45e525db`, not pushed; `etc/goose.py --check` fails here
+by design): `readyWithoutAccept`'s spec takes `opts` and gains `Hce_off` (paused: no committed entries),
+`ReadyWithOpts` is new (Ready's spec plus `Hce_off`), `Ready`'s and `node.run`'s specs unchanged; no new
+axiom or `sorry`. Report: `notes/pr-verify/raft-60.md`. Not for `lean` (the translation is of unmerged code).

@@ -1,0 +1,7 @@
+=== RUN   TestReadyOptsHasReadyIgnoresOpts
+    rawnode_readyopts_test.go:63: HasReady still true after 100 paused Readys (99 of them empty): it ignores DisableCommittedEntries
+--- PASS: TestReadyOptsHasReadyIgnoresOpts (0.00s)
+=== RUN   TestReadyOptsNoGapNoDup
+--- PASS: TestReadyOptsNoGapNoDup (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	(cached)

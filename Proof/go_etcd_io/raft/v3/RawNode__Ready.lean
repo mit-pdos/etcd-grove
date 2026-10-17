@@ -15,12 +15,15 @@ composes their specs.
 
 Raft v3.7 (2026-10-16, stage R5): the same composition; the messages handed out at
 `readyDq` (D8) and the hard state (`hsOpt`) pass through.
+
+etcd-io/raft#60 (`notes/pr-verify/raft-60.md`): `Ready()` is now `ReadyWithOpts(ReadyOpts{})`;
+the composition moved to `RawNode__ReadyWithOpts.lean`, and this proof uses its spec at the
+zero options. The spec is unchanged.
 -/
 module
 
 public import Spec.go_etcd_io.raft.v3.RawNode__Ready
-public import Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
-public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
+public import Spec.go_etcd_io.raft.v3.RawNode__ReadyWithOpts
 
 @[expose] public section
 
@@ -40,21 +43,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem RawNode.Ready.wp_proof
-    (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
-    (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
+    (wp_RawNode_ReadyWithOpts : RawNode.ReadyWithOpts.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
   intro γ rn id rs Hsteps0 Hunp0
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
-    as %rd %ce %es %ms %sts %h H
-  iNamed H
-  imod ownRawNodeReady_handout γ rn id rs rd ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr⟩
-  wp_apply wp_RawNode_acceptReady γ rn id rs rd ce es ms $$ [$Hrn] as %steps H
+  wp_apply wp_RawNode_ReadyWithOpts γ rn id rs _ Hsteps0 Hunp0 $$ [$Hrn]
+    as %rd %ce %es %ms %sts %h %steps H
   iNamed H
   iapply HΦ $$ %rd %ce %es %ms %sts %h %steps
-  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hcr Happ Hrs Hrs_ok Hhard
+  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hmsgs_cred Happ Hrs Hrs_ok Hhard
   ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
 
 end proof
