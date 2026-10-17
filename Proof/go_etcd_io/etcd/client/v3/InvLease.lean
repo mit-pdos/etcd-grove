@@ -11,7 +11,10 @@ The lease client's lock invariant (`client/v3/lease.go`'s `lessor`, etcd#22291):
   nil, every context is stable (`metadata.outgoingStable`: its outgoing metadata does not change,
   the premise of grpc's `FromOutgoingContext` here), and the invariant holds `R ch ctx` for each
   subscription, the right to close `ch` (the caller's protocol of the channel), for the
-  subscription with context `ctx`.
+  subscription with context `ctx`: each channel stays paired with its own subscriber's context,
+  which `closeRequireLeader`'s compaction keeps only with etcd#22087's fix (`ka.ctxs[i]`;
+  etcd#22081: the pinned code copies `ka.ctxs[newIdx]`, and on `pr-verify/etcd-22291` the spec needed
+  the premise `R ch c -∗ R ch c'` for it).
 * `lessor.ctxRequiresLeader kl hl ctx`: whether `ctx`'s outgoing metadata (`metadata.outgoingMD`,
   the abstract result of grpc's `FromOutgoingContext` on a stable context) has, for the key `kl`
   (`rpctypes.MetadataRequireLeaderKey`), a first value `hl` (`rpctypes.MetadataHasLeader`):
@@ -172,53 +175,12 @@ theorem lessor.compact_chs {α β : Type} (A : List (α × β)) (p : α × β) (
   rw [List.length_map] at this
   rw [this, List.map_append]; rfl
 
-theorem lessor.compact_ctxs {β : Type} (cs : List β) (k : Nat) (hk : k < cs.length) (z : β) (r : Nat)
-    (h : 0 < r) :
-    (cs.take k ++ List.replicate r z).set k cs[k] = cs.take (k + 1) ++ List.replicate (r - 1) z := by
-  have hl : (cs.take k).length = k := by rw [List.length_take]; omega
-  have := lessor.set_append_replicate (cs.take k) cs[k] z r h
-  rw [hl] at this
-  rw [this, List.take_add_one, List.getElem?_eq_getElem hk]; rfl
-
-theorem lessor.zip_fst_snd {α β : Type} (A : List (α × β)) (cs : List β) (h : A.length = cs.length) :
-    (List.zipWith (fun p c => (p.1, c)) A cs).map Prod.fst = A.map Prod.fst ∧
-      (List.zipWith (fun p c => (p.1, c)) A cs).map Prod.snd = cs := by
-  induction A generalizing cs with
-  | nil => cases cs <;> simp_all
-  | cons a A ih =>
-    cases cs with
-    | nil => simp at h
-    | cons c cs =>
-      simp only [List.length_cons, Nat.add_right_cancel_iff] at h
-      obtain ⟨h1, h2⟩ := ih cs h
-      simp [h1, h2]
-
-theorem lessor.mem_zip_fst {α β : Type} (A : List (α × β)) (cs : List β) (q : α × β)
-    (hq : q ∈ List.zipWith (fun p c => (p.1, c)) A cs) : ∃ p ∈ A, p.1 = q.1 := by
-  induction A generalizing cs with
-  | nil => simp at hq
-  | cons a A ih =>
-    cases cs with
-    | nil => simp at hq
-    | cons c cs =>
-      simp only [List.zipWith_cons_cons, List.mem_cons] at hq
-      rcases hq with rfl | hq
-      · exact ⟨a, List.mem_cons_self, rfl⟩
-      · obtain ⟨p, hp, hpq⟩ := ih cs hq
-        exact ⟨p, List.mem_cons_of_mem _ hp, hpq⟩
-
-theorem lessor.mem_zip_snd {α β : Type} (A : List (α × β)) (cs : List β) (q : α × β)
-    (hq : q ∈ List.zipWith (fun p c => (p.1, c)) A cs) : q.2 ∈ cs := by
-  induction A generalizing cs with
-  | nil => simp at hq
-  | cons a A ih =>
-    cases cs with
-    | nil => simp at hq
-    | cons c cs =>
-      simp only [List.zipWith_cons_cons, List.mem_cons] at hq
-      rcases hq with rfl | hq
-      · exact List.mem_cons_self
-      · exact List.mem_cons_of_mem _ (ih cs hq)
+theorem lessor.compact_snd {α β : Type} (A : List (α × β)) (p : α × β) (z : β) (r : Nat) (h : 0 < r) :
+    (A.map Prod.snd ++ List.replicate r z).set A.length p.2 =
+      (A ++ [p]).map Prod.snd ++ List.replicate (r - 1) z := by
+  have := lessor.set_append_replicate (A.map Prod.snd) p.2 z r h
+  rw [List.length_map] at this
+  rw [this, List.map_append]; rfl
 
 end lists
 
@@ -261,37 +223,6 @@ def lessor.closeOk (R : GoChan → GoInterface → IProp GF) (kl hl : GoString) 
 instance lessor.closeOk_persistent (R : GoChan → GoInterface → IProp GF) (kl hl : GoString) :
     Persistent (lessor.closeOk R kl hl) := by
   unfold lessor.closeOk; infer_instance
-
-/-- Re-pairing: with `R ch c -∗ R ch c'` for all contexts, the rights of the subscriptions `A`
-give the rights of `A`'s channels paired with any contexts `cs` (`closeRequireLeader`'s
-compaction, which pairs a kept channel with another subscription's context:
-`issues/etcd-lease-closerequireleader-ctx-misaligned.md`). -/
-theorem lessor.repair (R : GoChan → GoInterface → IProp GF) (A : List (GoChan × GoInterface))
-    (cs : List GoInterface) (h : A.length = cs.length) :
-    (□ (∀ ch c c', R ch c -∗ R ch c') : IProp GF) ⊢
-      ([∗list] p ∈ A, R p.1 p.2) -∗
-      [∗list] p ∈ List.zipWith (fun p c => (p.1, c)) A cs, R p.1 p.2 := by
-  induction A generalizing cs with
-  | nil =>
-    cases cs with
-    | nil =>
-      simp only [List.zipWith_nil_left]
-      iintro #Hr -
-      iapply BigSepL.bigSepL_nil.2
-      itrivial
-    | cons c cs => simp at h
-  | cons p A ih =>
-    cases cs with
-    | nil => simp at h
-    | cons c cs =>
-      simp only [List.length_cons, Nat.add_right_cancel_iff] at h
-      simp only [List.zipWith_cons_cons]
-      iintro #Hr H
-      icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H2⟩
-      iapply BigSepL.bigSepL_cons.2
-      isplitl [H1]
-      · iapply Hr $$ H1
-      · iapply (ih cs h) $$ Hr H2
 
 end defs
 
