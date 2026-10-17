@@ -167,8 +167,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         (try wp_auto)
         wp_apply (hRange ti γ.idx kn key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
           ro.WithTotalCount' e0 qc c) $$ [$Hti $Hti0 $Hkn $Hkey $Hend $Herr $Hcu]
-          as %keys %modifies %creates %vers %total
-            ⟨Hti0, Hkn, Hcu, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
+          as %keys %leases %modifies %creates %vers %total
+            ⟨Hti0, Hkn, Hcu, Hkeys, Hlea, Hleacap, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap,
+              %Htotal⟩
         · ipureintro; rw [Hklog]; exact ⟨⟨Hc0.1, hcle⟩, hR0, hRlt⟩
         rw [Hklog]
         rw [Hklog] at Htotal
@@ -230,6 +231,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           ihave %Hkvlen := ownSlice_len _ _ _ $$ Hkvs
           simp only [List.length_replicate] at Hkvlen
           ipersist Hksl
+          ipersist Hlea
           ipersist Hmod
           ipersist Hcre
           ipersist Hvers
@@ -283,7 +285,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               rw [← hRW]
               exact mvcc.mem_rangeAnswers_of_taken _ _ _ _ _ _ a
                 (hT.symm ▸ List.mem_of_getElem? ha)
-            obtain ⟨kv, hfind, hmod, hcr, hver, -⟩ := mvcc.rangeAnswers_kv log
+            obtain ⟨kv, hfind, hmod, hcr, hver, -, hbh⟩ := mvcc.rangeAnswers_kv log
               (mvcc.LogWf.of_wf' Hwf' HneT) Hlen Hcs _ k e _ hRnat a hmem
             have hz : (ksi, a.1) ∈ kss.zip (taken.map Prod.fst) :=
               List.mem_iff_getElem?.2 ⟨i, List.getElem?_zip_eq_some.2
@@ -298,6 +300,21 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             wp_apply wp_load_slice_index keys (sint.Z (W64 (i : Int))) kss DFrac.discard ksi
               (by omega) $$ [$Hksl] as -
             · ipureintro; rw [hiN]; exact hksi
+            (try wp_auto)
+            -- `leases[i]`: the lease of the answer's change, the key-value's
+            ihave %Hllen := ownSlice_len _ _ _ $$ Hlea
+            simp only [List.length_map] at Hllen
+            have hll : (taken.length : Int) = sint.Z leases.len := by
+              have h1 := Hllen.1; have h2 := Hllen.2; unfold sint.nat at h1; unfold sint.Z at *; omega
+            have Hbl : 0 ≤ sint.Z (W64 (i : Int)) ∧ sint.Z (W64 (i : Int)) < sint.Z leases.len := by
+              rw [hi]; omega
+            simp only [Hbl, _root_.and_self, ite_true]
+            wp_apply wp_load_slice_index leases (sint.Z (W64 (i : Int))) _ DFrac.discard
+              (mvcc.evLease (mvcc.evsOf log) a.2.1) (by omega) $$ [$Hlea] as -
+            · ipureintro; rw [hiN, List.getElem?_map, ha]; rfl
+            have hlease : mvcc.evLease (mvcc.evsOf log) a.2.1 = kv.lease :=
+              mvcc.BucketHas_lease log (mvcc.LogWf.of_wf' Hwf' HneT) ⟨Hlen, Hcs⟩ _ kv hbh hmod
+            rw [hlease]
             (try wp_auto)
             -- `modifies[i].Main`, `creates[i].Main`, `versions[i]`
             ihave %Hmlen := ownSlice_len _ _ _ $$ Hmod
@@ -346,8 +363,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             wp_for_post
             (try wp_auto)
             (try simp only [named])
-            iframe HΦ tr ro curRev Hend0 key ctx Hrevp Hti0 Hmodcap Hcrecap Hverscap keys modifies
-              creates versions total Hkcap Hzip Hkvscap kvs HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+            iframe HΦ tr ro curRev Hend0 key ctx Hrevp Hti0 Hleacap Hmodcap Hcrecap Hverscap keys
+              leases modifies creates versions total Hkcap Hzip Hkvscap kvs HsT HtxcT HtraceT Hown
+              HRr Hkn Hcmp Hcu
             iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int))
             (try simp only [named])
             have hsucc : (W64 ((i + 1 : Nat) : Int)) = W64 (i : Int) + W64 1 := by
@@ -371,7 +389,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             isplitl []
             · rw [mvcc.findKey_key hfind]; iexact Hks
             simp only [Bool.false_eq_true, ↓reduceIte]
-            rw [hmod, hcr, hver, show (W64 0 : w64) = 0 from rfl]
+            rw [hmod, hcr, hver]
             iexact Hp
           · -- all the key-values built
             have hge : ¬ sint.Z (W64 (i : Int)) < sint.Z kvs.len := by
@@ -700,7 +718,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 rw [← hRW]
                 exact mvcc.mem_rangeAnswers_of_taken _ _ _ _ _ _ a
                   (hT.symm ▸ List.mem_of_getElem? ha)
-              obtain ⟨kv, hfind, hmod, hcr, hver, hlook⟩ := mvcc.rangeAnswers_kv log
+              obtain ⟨kv, hfind, hmod, hcr, hver, hlook, -⟩ := mvcc.rangeAnswers_kv log
                 (mvcc.LogWf.of_wf' Hwf' HneT) Hlen Hcs _ k e _ hRnat a hmem
               have hlookm : m.lookup (mvcc.revBytes a.2.1 false) = some (mvcc.kvEncode kv) :=
                 HsubT _ _ hlook

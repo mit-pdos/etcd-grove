@@ -940,6 +940,69 @@ theorem rangeTaken_leases (log ilog : Log) (pend : List Change)
   rw [hrest]
   exact evLease_append_of_mem (rangeTaken_rev_mem log endNil k e atRev limit a ha) rest
 
+/-- The change at a position of the log is an event of it. -/
+theorem mem_evsOf_of_get {log : Log} {m i : Nat} {cs : List Change} {c : Change}
+    (hm : log[m]? = some cs) (hi : cs[i]? = some c) :
+    ({ rev := ⟨W64 m, W64 i⟩, change := c } : Ev) ∈ evsOf log := by
+  unfold evsOf
+  rw [List.mem_flatten]
+  refine ⟨evsOfRev m cs, List.mem_map.2 ⟨(cs, m), ?_, rfl⟩, ?_⟩
+  · rw [List.mem_zipIdx_iff_getElem?]; simpa using hm
+  · unfold evsOfRev
+    exact List.mem_map.2 ⟨(c, i), by rw [List.mem_zipIdx_iff_getElem?]; simpa using hi, rfl⟩
+
+/-- The lease the bucket's key-value at a put's revision has is the event's (`evLease`): the key
+index's lease of a revision is the backend's. -/
+theorem BucketHas_lease (log : Log) (hwf : LogWf log) (hb : LogB log) (rev : Rev) (kv : EtcdKv)
+    (h : BucketHas log rev kv) (hmod : kv.modRev = rev.main) :
+    evLease (evsOf log) rev = kv.lease := by
+  obtain ⟨cs, hcs, hck⟩ := h
+  unfold changeKv at hck
+  cases hc : cs[rev.sub.toNat]? with
+  | none => rw [hc] at hck; cases hck
+  | some c =>
+    rw [hc] at hck
+    -- the event of the change
+    have hev := mem_evsOf_of_get hcs hc
+    have hrev : (⟨W64 (rev.main.toNat : Int), W64 (rev.sub.toNat : Int)⟩ : Rev) = rev := by
+      cases rev; simp only [Rev.mk.injEq]; constructor <;> word
+    rw [hrev] at hev
+    have hfind : (evsOf log).find? (fun e => decide (e.rev = rev)) =
+        some { rev := rev, change := c } := by
+      cases hf : (evsOf log).find? (fun e => decide (e.rev = rev)) with
+      | none => exact absurd (List.find?_eq_none.1 hf _ hev) (by simp)
+      | some e =>
+        have he := List.mem_of_find?_eq_some hf
+        have her : e.rev = rev := by simpa using List.find?_some hf
+        rw [evsOf_rev_inj log hb he hev her]
+    unfold evLease
+    rw [hfind]
+    simp only [Option.map_some, Option.getD_some]
+    cases c with
+    | del k =>
+      -- a tombstone's key-value has mod revision 0; revision 0 has no change
+      simp only [Option.some.injEq] at hck
+      subst hck
+      have h0 : rev.main.toNat = 0 := by
+        have : rev.main = W64 0 := by rw [← hmod]; rfl
+        rw [this]; rfl
+      rw [h0, hwf.1] at hcs
+      cases hcs
+      simp at hc
+    | put k v l =>
+      simp only at hck
+      have hs := applyChanges_sorted rev.main (cs.take rev.sub.toNat)
+        (stateAt_sorted log (rev.main.toNat - 1))
+      have htake : cs.take (rev.sub.toNat + 1) = cs.take rev.sub.toNat ++ [.put k v l] := by
+        rw [List.take_add_one, hc]; rfl
+      rw [htake, applyChanges_append_singleton] at hck
+      simp only [applyChange] at hck
+      rw [findKey_putKv_self_eq hs] at hck
+      simp only [Option.some.injEq] at hck
+      subst hck
+      simp only [Change.lease]
+      split <;> rfl
+
 /-- A key's index of any events is well formed (its fold from `kiEmpty`). -/
 theorem kiOfKey_KiWf_inv (evs : List Ev) (k : GoString) : KiWf (kiOfKey evs k) := by
   unfold kiOfKey
