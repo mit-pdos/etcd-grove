@@ -983,6 +983,10 @@ func (b *fakeBatchTx) UnsafeDelete(bucket backend.Bucket, key []byte) {
 	b.Recorder.Record(testutil.Action{Name: "delete", Params: []any{bucket, key}})
 }
 
+func (b *fakeBatchTx) UnsafeDeleteForCompaction(bucket backend.Bucket, key []byte) {
+	b.UnsafeDelete(bucket, key)
+}
+
 func (b *fakeBatchTx) UnsafeForEach(bucket backend.Bucket, visitor func(k, v []byte) error) error {
 	return nil
 }
