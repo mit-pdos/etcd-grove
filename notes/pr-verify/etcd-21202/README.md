@@ -2,7 +2,7 @@
 
 Go tests for the findings of the verification of etcd-io/etcd#21202. Revisions: the PR head
 `a9522b154` (an etcd-io/etcd checkout; `GOTOOLCHAIN=go1.25.5`, its `go.mod`'s), the fork branch
-`mit-pdos/etcd-grove` branch `pr-etcd-21202-goose-lean` (`8c2a55fc5`; `GOTOOLCHAIN=go1.27.1`), and the
+`mit-pdos/etcd-grove` branch `pr-etcd-21202-goose-lean` (`fcc40a570`; `GOTOOLCHAIN=go1.27.1`), and the
 pin `09669450f` (the fork's `goose-lean`). Each test is expected to FAIL where it shows a finding.
 
 ```
