@@ -382,11 +382,19 @@ auth_authStore__IsDeleteRangePermitted: auth_authStore__isOpPermitted
 auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_hasRootRole
 auth_authStore__authInfoFromToken: auth_authStore__Revision
 auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn
-# The simple-token provider's TTL keeper (server/auth/simple_token.go) as PR etcd#22338 changes it
-# (branch pr-verify/etcd-22338), see auth/InvSimpleToken.lean: adding and deleting a token set
-# the token-count gauge to the expiry map's size.
+# The simple-token provider (server/auth/simple_token.go) as PR etcd#22338 changes it (branch
+# pr-verify/etcd-22338), see auth/InvSimpleToken.lean (the lock invariant is
+# pr-verify/etcd-22560's, without its expiredTokens): adding and deleting a token set the
+# token-count gauge to the deadline map's size; the provider's admin methods over the lock; the
+# keeper's goroutine `run` and its `stop` are unfinished (`sorry`).
+auth_simpleTokenTTLKeeper__run:
+auth_simpleTokenTTLKeeper__stop:
 auth_simpleTokenTTLKeeper__addSimpleToken: zap_Int zap_Duration zap_Logger__Warn
 auth_simpleTokenTTLKeeper__deleteSimpleToken:
+auth_tokenSimple__assignSimpleTokenToUser: auth_simpleTokenTTLKeeper__addSimpleToken
+auth_tokenSimple__invalidateUser: auth_simpleTokenTTLKeeper__deleteSimpleToken
+auth_tokenSimple__disable: auth_simpleTokenTTLKeeper__stop
+auth_tokenSimple__enable: auth_simpleTokenTTLKeeper__run zap_String zap_Logger__Debug
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
 # 2026-10-16): `newRaftNode` (its callees are contracts in its spec and Perennial's `time.Now`),
 # and the new cluster's `bootstrappedRaft.newRaftNode` over raft's `StartNode` (`@`: proved and

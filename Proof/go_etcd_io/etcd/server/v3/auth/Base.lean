@@ -68,14 +68,23 @@ instance authErrVar_persistent (g : GoString) : Persistent (authErrVar (GF := GF
   unfold authErrVar; infer_instance
 
 /-- The auth package's facts: its error variables the request side returns (`authErrVar`), and
-`rpctypes`' token keys (fixed read-only strings). -/
+`rpctypes`' token keys (fixed read-only strings); and (PR etcd#22338) `simpleTokenTTLDefault`
+and the token-count gauge. -/
 abbrev authInit : IProp GF :=
   iprop(authErrVar ErrUserEmpty ∗ authErrVar ErrUserNotFound ∗ authErrVar ErrPermissionDenied ∗
     authErrVar ErrAuthOldRevision ∗ authErrVar ErrInvalidAuthToken ∗
     (∃ s : GoString,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ s) ∗
     (∃ s : GoString,
-      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s))
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s) ∗
+    -- PR etcd#22338 (pr-verify/etcd-22338): the simple provider's default TTL (a mutable `var`
+    -- that only tests write: read-only here, as pr-verify/etcd-22560 states it) and the gauge
+    -- `simpleTokenGauge` (`prometheus.NewGauge`, names only: some `Gauge` whose `Set` returns;
+    -- `metrics.go`'s `init` registers it)
+    (∃ d : time.Duration, globalAddr simpleTokenTTLDefault ↦□ d) ∗
+    (∃ g : GoInterfaceOk, globalAddr simpleTokenGauge ↦□ GoInterface.ok g ∗
+      □ (∀ x : w64, {{ True }} (App (Val #(methods g.ty go!"Set" g.v)) (Val #x))
+        {{ RET #(); True }})))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
   define_is_pkg_init authInit

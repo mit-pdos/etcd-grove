@@ -36,7 +36,7 @@ theorem auth.simpleTokenTTLKeeper.addSimpleToken.wp_proof
   wp_start as ⟨#Hro, Hm, #Hgm, HG⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
-  iunfold keeperRO at Hro
+  iunfold keeperFields at Hro
   icases Hro with ⟨#Htok, #Httl, #Hlg⟩
   iunfold gaugeModel at Hgm
   icases Hgm with ⟨%g, #Hgv, #Hset⟩

@@ -1,0 +1,11 @@
+=== RUN   TestSimpleTokenGaugeTracksCount
+--- PASS: TestSimpleTokenGaugeTracksCount (0.21s)
+=== RUN   TestSimpleTokenGaugeSharedAcrossProviders
+    simple_token_gauge_test.go:99: gauge values seen with a=3 and b=1 tokens: map[1:true 3:true]
+    simple_token_gauge_test.go:104: right after b.disable(): gauge 0, a's tokens 3
+--- PASS: TestSimpleTokenGaugeSharedAcrossProviders (0.26s)
+=== RUN   TestSimpleTokenWarnAtEveryCrossing
+    simple_token_gauge_test.go:122: warnings: 1 at the first crossing, 6 after 5 delete/add cycles at the threshold
+--- PASS: TestSimpleTokenWarnAtEveryCrossing (0.16s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/auth	(cached)

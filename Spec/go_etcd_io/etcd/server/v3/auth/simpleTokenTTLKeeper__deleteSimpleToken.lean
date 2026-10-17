@@ -29,7 +29,7 @@ abbrev auth.simpleTokenTTLKeeper.deleteSimpleToken.spec : Prop :=
   ∀ (tm : Loc) (tokens : GoMap) (ttl : time.Duration) (lg : Loc)
     (m : GMap GoString time.Time) (G : w64 → IProp GF) (x : w64) (token : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
-      keeperRO tm tokens ttl lg ∗ tokens ↦$ m ∗ gaugeModel G ∗ G x }}
+      keeperFields tm tokens ttl lg ∗ tokens ↦$ m ∗ gaugeModel G ∗ G x }}
     (App (Val (tm @!! go.GoType.PointerType simpleTokenTTLKeeper.ty @!! go!"deleteSimpleToken"))
       (Val #token))
   {{ RET #(); tokens ↦$ (GMap.delete token m) ∗ G (tokenCount (GMap.delete token m)) }}

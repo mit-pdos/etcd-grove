@@ -127,6 +127,12 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper__addSimpleToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper__deleteSimpleToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper__run
+public import Proof.go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper__stop
+public import Proof.go_etcd_io.etcd.server.v3.auth.tokenSimple__assignSimpleTokenToUser
+public import Proof.go_etcd_io.etcd.server.v3.auth.tokenSimple__disable
+public import Proof.go_etcd_io.etcd.server.v3.auth.tokenSimple__enable
+public import Proof.go_etcd_io.etcd.server.v3.auth.tokenSimple__invalidateUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -654,6 +660,26 @@ theorem auth.simpleTokenTTLKeeper.wp_addSimpleToken :
 theorem auth.simpleTokenTTLKeeper.wp_deleteSimpleToken :
     auth.simpleTokenTTLKeeper.deleteSimpleToken.spec (GF := GF) (hG := hG) :=
   auth.simpleTokenTTLKeeper.deleteSimpleToken.wp_proof
+
+theorem auth.simpleTokenTTLKeeper.wp_run :
+    auth.simpleTokenTTLKeeper.run.spec (GF := GF) (hG := hG) :=
+  auth.simpleTokenTTLKeeper.run.wp_proof
+
+theorem auth.simpleTokenTTLKeeper.wp_stop :
+    auth.simpleTokenTTLKeeper.stop.spec (GF := GF) (hG := hG) :=
+  auth.simpleTokenTTLKeeper.stop.wp_proof
+
+theorem auth.tokenSimple.wp_assignSimpleTokenToUser :
+    auth.tokenSimple.assignSimpleTokenToUser.spec (GF := GF) (hG := hG) :=
+  auth.tokenSimple.assignSimpleTokenToUser.wp_proof auth.simpleTokenTTLKeeper.wp_addSimpleToken
+
+theorem auth.tokenSimple.wp_disable :
+    auth.tokenSimple.disable.spec (GF := GF) (hG := hG) :=
+  auth.tokenSimple.disable.wp_proof auth.simpleTokenTTLKeeper.wp_stop
+
+theorem auth.tokenSimple.wp_invalidateUser :
+    auth.tokenSimple.invalidateUser.spec (GF := GF) (hG := hG) :=
+  auth.tokenSimple.invalidateUser.wp_proof auth.simpleTokenTTLKeeper.wp_deleteSimpleToken
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
@@ -1205,6 +1231,10 @@ theorem EtcdServer.wp_Watchable :
 theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
+
+theorem auth.tokenSimple.wp_enable :
+    auth.tokenSimple.enable.spec (GF := GF) (hG := hG) :=
+  auth.tokenSimple.enable.wp_proof auth.simpleTokenTTLKeeper.wp_run zap.wp_String zap.Logger.wp_Debug
 
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=

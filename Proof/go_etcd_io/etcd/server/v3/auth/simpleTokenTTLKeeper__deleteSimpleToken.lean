@@ -28,7 +28,7 @@ theorem auth.simpleTokenTTLKeeper.deleteSimpleToken.wp_proof :
     auth.simpleTokenTTLKeeper.deleteSimpleToken.spec (GF := GF) (hG := hG) := by
   intro tm tokens ttl lg m G x token
   wp_start as ⟨#Hro, Hm, #Hgm, HG⟩
-  iunfold keeperRO at Hro
+  iunfold keeperFields at Hro
   icases Hro with ⟨#Htok, #Httl, #Hlg⟩
   iunfold gaugeModel at Hgm
   icases Hgm with ⟨%g, #Hgv, #Hset⟩
