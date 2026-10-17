@@ -1,0 +1,9 @@
+# Types and names only: function and method bodies are axiomatized. `time` is imported so
+# that the interfaces `Clock`, `Ticker` and `Timer` (whose methods take and return times and
+# durations) are translated as interfaces (v3compactor's auto-periodic compactor, etcd#22095,
+# calls its clock's `Now` and `After`).
+translate = ["!*"]
+imports = ["!*", "time"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

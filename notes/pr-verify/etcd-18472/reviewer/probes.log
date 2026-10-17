@@ -1,0 +1,8 @@
+=== RUN   TestReviewerIntervalYAML
+    reviewer_interval_yaml_test.go:24: yaml "5m": field="5m" Validate=<nil> parse=5m0s,<nil>
+    reviewer_interval_yaml_test.go:24: yaml "-1s": field="-1s" Validate=<nil> parse=-1s,<nil>
+    reviewer_interval_yaml_test.go:24: yaml "1ns": field="1ns" Validate=<nil> parse=1ns,<nil>
+    reviewer_interval_yaml_test.go:19: yaml 5: ConfigFromFile error: error unmarshaling JSON: while decoding JSON: json: cannot unmarshal number into Go struct field configYAML.Config.auto-compaction-interval of type string
+--- PASS: TestReviewerIntervalYAML (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	0.031s

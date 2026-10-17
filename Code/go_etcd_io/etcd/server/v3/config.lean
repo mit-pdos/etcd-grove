@@ -42,7 +42,7 @@ noncomputable def CheckDuplicateURL [FfiSyntax] [GoGlobalContext] : GoString :=
 
 /-- ReqTimeout returns timeout for request to finish.
 
-    go: config.go:316:24 -/
+    go: config.go:317:24 -/
 noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -51,7 +51,7 @@ noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second))) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))))) (Val _root_.Perennial.time.Millisecond))))))))))
 
-/-- go: config.go:322:24 -/
+/-- go: config.go:323:24 -/
 noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -60,7 +60,7 @@ noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))) (Val _root_.Perennial.time.Millisecond))))))))
 
-/-- go: config.go:354:24 -/
+/-- go: config.go:355:24 -/
 noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -128,6 +128,7 @@ structure ServerConfig [FfiSyntax] where
   BootstrapTimeout' : _root_.Perennial.time.Duration
   AutoCompactionRetention' : _root_.Perennial.time.Duration
   AutoCompactionMode' : GoString
+  AutoCompactionInterval' : _root_.Perennial.time.Duration
   CompactionBatchLimit' : w64
   CompactionSleepInterval' : _root_.Perennial.time.Duration
   QuotaBackendBytes' : w64
@@ -163,7 +164,7 @@ structure ServerConfig [FfiSyntax] where
   Metrics' : GoString
 
 instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
-  ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def ServerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
@@ -190,6 +191,7 @@ instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
 (go.field_decl.FieldDecl go!"BootstrapTimeout" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"AutoCompactionRetention" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"AutoCompactionMode" go.string),
+(go.field_decl.FieldDecl go!"AutoCompactionInterval" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"CompactionBatchLimit" go.int),
 (go.field_decl.FieldDecl go!"CompactionSleepInterval" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"QuotaBackendBytes" go.int64),
@@ -285,6 +287,8 @@ class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_AutoCompactionRetention : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AutoCompactionRetention") (PairV #x #y) (Val #(({ x with AutoCompactionRetention' := y } : ServerConfig)))
   get_AutoCompactionMode : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AutoCompactionMode") #x (Val #(x.AutoCompactionMode'))
   set_AutoCompactionMode : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AutoCompactionMode") (PairV #x #y) (Val #(({ x with AutoCompactionMode' := y } : ServerConfig)))
+  get_AutoCompactionInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"AutoCompactionInterval") #x (Val #(x.AutoCompactionInterval'))
+  set_AutoCompactionInterval : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"AutoCompactionInterval") (PairV #x #y) (Val #(({ x with AutoCompactionInterval' := y } : ServerConfig)))
   get_CompactionBatchLimit : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactionBatchLimit") #x (Val #(x.CompactionBatchLimit'))
   set_CompactionBatchLimit : ∀ (x : ServerConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactionBatchLimit") (PairV #x #y) (Val #(({ x with CompactionBatchLimit' := y } : ServerConfig)))
   get_CompactionSleepInterval : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"CompactionSleepInterval") #x (Val #(x.CompactionSleepInterval'))
@@ -405,6 +409,8 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.set_AutoCompactionRetention
   ServerConfig.TypeAssumptions.get_AutoCompactionMode
   ServerConfig.TypeAssumptions.set_AutoCompactionMode
+  ServerConfig.TypeAssumptions.get_AutoCompactionInterval
+  ServerConfig.TypeAssumptions.set_AutoCompactionInterval
   ServerConfig.TypeAssumptions.get_CompactionBatchLimit
   ServerConfig.TypeAssumptions.set_CompactionBatchLimit
   ServerConfig.TypeAssumptions.get_CompactionSleepInterval

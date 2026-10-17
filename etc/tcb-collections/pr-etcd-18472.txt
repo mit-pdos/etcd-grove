@@ -1,0 +1,11 @@
+# etcd#18472 (branch pr-verify/etcd-18472): the periodic and revision compactors, New and the
+# compactorOk result (everything under Proof/.../v3compactor/).
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/
+axiom clockwork.NewRealClock.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.NewNop.wp_proof

@@ -63,6 +63,7 @@ instance ServerConfig_typed_pointsto :
     "BootstrapTimeout" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapTimeout" l) v.BootstrapTimeout' dq ∗
     "AutoCompactionRetention" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionRetention" l) v.AutoCompactionRetention' dq ∗
     "AutoCompactionMode" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionMode" l) v.AutoCompactionMode' dq ∗
+    "AutoCompactionInterval" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionInterval" l) v.AutoCompactionInterval' dq ∗
     "CompactionBatchLimit" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionBatchLimit" l) v.CompactionBatchLimit' dq ∗
     "CompactionSleepInterval" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionSleepInterval" l) v.CompactionSleepInterval' dq ∗
     "QuotaBackendBytes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"QuotaBackendBytes" l) v.QuotaBackendBytes' dq ∗
@@ -486,6 +487,22 @@ instance ServerConfig_access_store_AutoCompactionMode (l : Loc) (v : go_etcd_io.
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionMode" l) v.AutoCompactionMode' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionMode" l) AutoCompactionMode' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AutoCompactionMode' := AutoCompactionMode' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_load_AutoCompactionInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionInterval" l) v.AutoCompactionInterval' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionInterval" l) v.AutoCompactionInterval' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_store_AutoCompactionInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (AutoCompactionInterval' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionInterval" l) v.AutoCompactionInterval' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionInterval" l) AutoCompactionInterval' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AutoCompactionInterval' := AutoCompactionInterval' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -32,6 +32,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --fmt > Proof/fmt/Link.lean
        etc/gen-link.py --context > Proof/context/Link.lean
        etc/gen-link.py --read > Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Link.lean
+       etc/gen-link.py --v3compactor > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/Link.lean
        etc/gen-link.py --client > Proof/go_etcd_io/etcd/client/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
@@ -207,6 +208,14 @@ LEAN_FIRST = {
                "go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions",
                "The linearizable read loop's proofs (etcd's `server/v3/etcdserver/read`) and the "
                "functions they call", [""]),
+    # the periodic and revision compactors (etcd's server/v3/etcdserver/api/v3compactor,
+    # etcd#18472's verification: branch pr-verify/etcd-18472), over their contracts
+    "--v3compactor": ("link-lean-first-v3compactor.txt",
+                      "go_etcd_io.etcd.server.v3.etcdserver.api",
+                      "go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions",
+                      "The periodic and revision compactors' proofs (etcd's "
+                      "`server/v3/etcdserver/api/v3compactor`, etcd#18472) and the functions "
+                      "they call", [""]),
     # etcd-grove's trust boundary of `fmt` and `context`, shared by unrelated Links (`@`)
     "--fmt": ("link-lean-first-fmt.txt", "", "_root_.Perennial.fmt.Assumptions",
               "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
@@ -245,7 +254,8 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--v3compactor": "v3compactor"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}

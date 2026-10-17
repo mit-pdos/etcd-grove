@@ -1,0 +1,22 @@
+=== RUN   TestProbeRevisionNegativeIntervalSpins
+    interval_probe_test.go:48: revision mode, interval -1s: 4521 calls to Rev() and 4510 compactions in 100ms
+--- PASS: TestProbeRevisionNegativeIntervalSpins (0.10s)
+=== RUN   TestProbeRevisionTinyIntervalNearSpins
+    interval_probe_test.go:63: revision mode, interval 1ns: 4681 calls to Rev() and 4671 compactions in 100ms
+--- PASS: TestProbeRevisionTinyIntervalNearSpins (0.10s)
+=== RUN   TestProbePeriodicIntervalBelowSamplingIsIneffective
+    interval_probe_test.go:88: periodic mode, retention 1h, interval 1m: 20 compactions in 3h (retry interval 6m0s)
+--- PASS: TestProbePeriodicIntervalBelowSamplingIsIneffective (0.20s)
+=== RUN   TestProbePeriodicNegativeInterval
+    interval_probe_test.go:109: periodic mode, retention 1h, interval -1h: 20 compactions in 3h
+--- PASS: TestProbePeriodicNegativeInterval (0.20s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor	0.623s
+=== RUN   TestProbeParseCompactionIntervalAcceptsNegative
+    interval_parse_probe_test.go:13: parseCompactionInterval("-1s") = -1s, <nil>
+    interval_parse_probe_test.go:13: parseCompactionInterval("-5m") = -5m0s, <nil>
+    interval_parse_probe_test.go:13: parseCompactionInterval("1ns") = 1ns, <nil>
+    interval_parse_probe_test.go:13: parseCompactionInterval("0s") = 0s, <nil>
+--- PASS: TestProbeParseCompactionIntervalAcceptsNegative (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	0.018s

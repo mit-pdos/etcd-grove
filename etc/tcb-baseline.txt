@@ -84,6 +84,7 @@ axiom bbolt.Tx.DeleteBucket_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom clockwork.NewRealClock.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof

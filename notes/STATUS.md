@@ -45,6 +45,28 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#18472 verified (2026-10-17, branch `pr-verify/etcd-18472`, not merged)
+
+The PR (`--auto-compaction-interval`, passed to the periodic and revision compactors) is verified
+over the fork's `pr-etcd-18472-goose-lean`. `v3compactor` (names-only on `lean`) now translates
+`New` and the periodic and revision compactors with bodies; `github.com/jonboulle/clockwork` is a
+names-only package (its `time` imported, so `Clock` is an interface), as on `pr-verify/etcd-22095`,
+which this branch started from (its auto-periodic compactor is not on this branch). Proved, no
+`sorry`: `New`, `newPeriodic`, `newRevision`, `Periodic.{getRetryInterval, getRetentions,
+getCompactInterval, Run, Pause, Resume, Stop}`, `Revision.{Run, Pause, Resume, Stop}`, and
+`compactorOk_new` (whatever `New` returns meets the server's `compactorOk` contract). The two
+constructor postulates of etcd#22095's branch are now proofs. Link:
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/Link.lean` (`etc/gen-link.py
+--v3compactor`). Report: `notes/pr-verify/etcd-18472.md`.
+
+**What the specs cannot say (a Perennial limitation).** Perennial's `Time.Sub` (and `Now`)
+return some value, so the periodic compactor's gate `clock.Now().Sub(lastSuccess) <
+baseInterval`, where the configured interval takes effect, is not stated: `Periodic.Run`'s spec
+says which waits it does (`After(getRetryInterval())` only) and what it compacts, not when.
+The revision compactor's waits are stated exactly: its clock is taken at
+`clockwork.isClockFor clk (· = interval)`, a clock whose `After` is only called at that
+duration.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

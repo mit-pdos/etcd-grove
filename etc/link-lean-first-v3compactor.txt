@@ -1,0 +1,36 @@
+# etcd's periodic and revision compactors (server/etcdserver/api/v3compactor/{periodic,revision}.go
+# and `New`, compactor.go; etcd#18472's verification, branch pr-verify/etcd-18472, which started
+# from etcd#22095's, branch pr-verify/etcd-22095), read by `etc/gen-link.py --v3compactor`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# The trust boundary (axioms): clockwork's real clock, zap's fields and loggers, etcd-grove's
+# `errors.Is` and `fmt.Errorf`. Perennial-proved calls (`sync.Mutex`, `sync.RWMutex`,
+# `time.Now`/`Since`/`Time.Sub`, `context.Background`/`WithCancel`, slices, channels) and the
+# interface calls (the clock, the revision getter, the compactable: `Defs.lean`'s contracts,
+# premises of the `Run` specs) are not listed.
+errors_Is:
+fmt_Errorf: @
+zap_NewNop:
+zap_Int64:
+zap_Duration:
+zap_Error:
+zap_Logger__Info:
+zap_Logger__Warn:
+clockwork_NewRealClock:
+# The periodic compactor (periodic.go).
+v3compactor_Periodic__getRetryInterval:
+v3compactor_Periodic__getRetentions: v3compactor_Periodic__getRetryInterval
+v3compactor_Periodic__getCompactInterval:
+v3compactor_Periodic__Pause:
+v3compactor_Periodic__Resume:
+v3compactor_Periodic__Stop:
+v3compactor_newPeriodic: v3compactor_Periodic__getRetentions
+v3compactor_Periodic__Run: v3compactor_Periodic__getCompactInterval v3compactor_Periodic__getRetryInterval v3compactor_Periodic__getRetentions errors_Is zap_Int64 zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn
+# The revision compactor (revision.go).
+v3compactor_Revision__Pause:
+v3compactor_Revision__Resume:
+v3compactor_Revision__Stop:
+v3compactor_newRevision:
+v3compactor_Revision__Run: errors_Is zap_Int64 zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn
+# `New` (compactor.go).
+v3compactor_New: zap_NewNop clockwork_NewRealClock v3compactor_newPeriodic v3compactor_newRevision fmt_Errorf
