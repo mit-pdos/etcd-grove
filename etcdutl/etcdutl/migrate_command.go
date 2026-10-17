@@ -108,7 +108,7 @@ func (c *migrateConfig) finalize() error {
 	if err != nil {
 		return fmt.Errorf("failed to get the latest snapshot: %w", err)
 	}
-	w, err := wal.OpenForRead(c.lg, walPath, walSnap)
+	w, err := wal.OpenForRead(c.lg, walPath, wal.Position{Index: walSnap.GetIndex(), Term: walSnap.GetTerm()})
 	if err != nil {
 		return fmt.Errorf(`failed to open wal: %w`, err)
 	}

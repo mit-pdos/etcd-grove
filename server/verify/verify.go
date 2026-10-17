@@ -140,7 +140,7 @@ func validateWAL(cfg Config) (*walpb.Snapshot, *raftpb.HardState, error) {
 	}
 
 	snapshot := walSnaps[len(walSnaps)-1]
-	hardstate, err := wal2.Verify(cfg.Logger, walDir, snapshot)
+	hardstate, err := wal2.Verify(cfg.Logger, walDir, wal2.Position{Index: snapshot.GetIndex(), Term: snapshot.GetTerm()})
 	if err != nil {
 		return nil, nil, err
 	}

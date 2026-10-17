@@ -107,7 +107,8 @@ func (st *storage) MinimalEtcdVersion() *semver.Version {
 	if err != nil {
 		panic(err)
 	}
-	w, err := st.w.Reopen(st.lg, walsnap)
+	pos := wal.Position{Index: walsnap.GetIndex(), Term: walsnap.GetTerm()}
+	w, err := st.w.Reopen(st.lg, pos)
 	if err != nil {
 		panic(err)
 	}

@@ -139,7 +139,7 @@ func readUsingReadAll(lg *zap.Logger, startFromIndex bool, startIndex *uint64, e
 		fmt.Println("Start dumping log entries from snapshot.")
 	}
 
-	w, err := wal.OpenForRead(zap.NewExample(), wd, walsnap)
+	w, err := wal.OpenForRead(zap.NewExample(), wd, wal.Position{Index: walsnap.GetIndex(), Term: walsnap.GetTerm()})
 	if err != nil {
 		log.Fatalf("Failed opening WAL: %v", err)
 	}

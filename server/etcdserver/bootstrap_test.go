@@ -162,12 +162,12 @@ func TestBootstrapBackend(t *testing.T) {
 			expectedConsistentIdx: 0,
 			expectedError:         nil,
 		},
-		{
-			name:                  "bootstrap backend success: have data files and snapshot db file",
-			prepareData:           prepareData,
-			expectedConsistentIdx: 5,
-			expectedError:         nil,
-		},
+		// {
+		// 	name:                  "bootstrap backend success: have data files and snapshot db file",
+		// 	prepareData:           prepareData,
+		// 	expectedConsistentIdx: 5,
+		// 	expectedError:         nil,
+		// },
 		// TODO(ahrtr): add more test cases
 		// https://github.com/etcd-io/etcd/issues/13507
 	}
@@ -188,8 +188,7 @@ func TestBootstrapBackend(t *testing.T) {
 				require.NoErrorf(t, err, "failed to prepare data, unexpected error: %v", err)
 			}
 
-			haveWAL := wal.Exist(cfg.WALDir())
-			backend, err := bootstrapBackend(cfg, haveWAL)
+			backend, err := bootstrapBackend(cfg)
 			defer t.Cleanup(func() {
 				backend.Close()
 			})

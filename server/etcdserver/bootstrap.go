@@ -27,7 +27,6 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/dustin/go-humanize"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/fileutil"
@@ -45,7 +44,6 @@ import (
 	"go.etcd.io/etcd/server/v3/storage/backend"
 	"go.etcd.io/etcd/server/v3/storage/schema"
 	"go.etcd.io/etcd/server/v3/storage/wal"
-	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
 	"go.etcd.io/raft/v3"
 	"go.etcd.io/raft/v3/raftpb"
 )
@@ -75,7 +73,7 @@ func bootstrap(cfg config.ServerConfig) (b *bootstrappedServer, err error) {
 	}
 
 	haveWAL := wal.Exist(cfg.WALDir())
-	backend, err := bootstrapBackend(cfg, haveWAL)
+	backend, err := bootstrapBackend(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +84,7 @@ func bootstrap(cfg config.ServerConfig) (b *bootstrappedServer, err error) {
 			return nil, fmt.Errorf("cannot write to WAL directory: %w", err)
 		}
 		cfg.Logger.Info("Bootstrapping WAL from snapshot")
-		bwal = bootstrapWALFromSnapshot(cfg, backend.snapshot, backend.ci)
+		bwal = bootstrapWALFromBackend(cfg, backend.be)
 	}
 
 	cfg.Logger.Info("bootstrapping cluster")
@@ -105,17 +103,11 @@ func bootstrap(cfg config.ServerConfig) (b *bootstrappedServer, err error) {
 	}
 
 	if haveWAL {
-		sn := s.wal.snapshot
-		if sn == nil {
-			sn = &raftpb.Snapshot{}
-		}
 		cs := buildConfStateFromV3store(cfg.Logger, backend.be)
+		s.wal.confstate = &cs
 
-		sn.Metadata.ConfState = &cs
-		s.wal.snapshot = sn
-
-		cfg.Logger.Info("Constructed a new raft snapshot from v3 state", zap.Uint64("index", sn.Metadata.GetIndex()),
-			zap.Uint64("term", sn.Metadata.GetTerm()), zap.String("confState", sn.Metadata.ConfState.String()))
+		cfg.Logger.Info("Constructed a new raft snapshot from v3 state", zap.Uint64("index", s.wal.pos.Index),
+			zap.Uint64("term", s.wal.pos.Term), zap.String("confState", s.wal.confstate.String()))
 	}
 
 	cfg.Logger.Info("bootstrapping raft")
@@ -170,11 +162,10 @@ func (s *bootstrappedStorage) Close() {
 }
 
 type bootstrappedBackend struct {
-	beHooks  *serverstorage.BackendHooks
-	be       backend.Backend
-	ci       cindex.ConsistentIndexer
-	beExist  bool
-	snapshot *raftpb.Snapshot
+	beHooks *serverstorage.BackendHooks
+	be      backend.Backend
+	ci      cindex.ConsistentIndexer
+	beExist bool
 }
 
 func (s *bootstrappedBackend) Close() {
@@ -252,7 +243,7 @@ func bootstrapSnapshot(cfg config.ServerConfig) *snap.Snapshotter {
 	return snap.New(cfg.Logger, cfg.SnapDir())
 }
 
-func bootstrapBackend(cfg config.ServerConfig, haveWAL bool) (backend *bootstrappedBackend, err error) {
+func bootstrapBackend(cfg config.ServerConfig) (backend *bootstrappedBackend, err error) {
 	beExist := fileutil.Exist(cfg.BackendPath())
 	ci := cindex.NewConsistentIndex(nil)
 	beHooks := serverstorage.NewBackendHooks(cfg.Logger, ci)
@@ -273,13 +264,6 @@ func bootstrapBackend(cfg config.ServerConfig, haveWAL bool) (backend *bootstrap
 	cfg.Logger.Info("restore consistentIndex", zap.Uint64("index", ci.ConsistentIndex()))
 
 	// TODO(serathius): Implement schema setup in fresh storage
-	var snapshot *raftpb.Snapshot
-	if haveWAL {
-		snapshot, be, err = recoverSnapshot(cfg, be, beExist, beHooks, ci)
-		if err != nil {
-			return nil, err
-		}
-	}
 	if beExist {
 		s1, s2 := be.Size(), be.SizeInUse()
 		cfg.Logger.Info(
@@ -296,11 +280,10 @@ func bootstrapBackend(cfg config.ServerConfig, haveWAL bool) (backend *bootstrap
 	}
 
 	return &bootstrappedBackend{
-		beHooks:  beHooks,
-		be:       be,
-		ci:       ci,
-		beExist:  beExist,
-		snapshot: snapshot,
+		beHooks: beHooks,
+		be:      be,
+		ci:      ci,
+		beExist: beExist,
 	}, nil
 }
 
@@ -434,61 +417,6 @@ func bootstrapClusterWithWAL(cfg config.ServerConfig, meta *snapshotMetadata) (*
 	}, nil
 }
 
-func recoverSnapshot(cfg config.ServerConfig, be backend.Backend, beExist bool, beHooks *serverstorage.BackendHooks, ci cindex.ConsistentIndexer) (*raftpb.Snapshot, backend.Backend, error) {
-	// Find a snapshot to start/restart a raft node
-	walSnaps, err := wal.ValidSnapshotEntries(cfg.Logger, cfg.WALDir())
-	if err != nil {
-		return nil, be, err
-	}
-
-	var snapshot *raftpb.Snapshot
-	if len(walSnaps) > 0 {
-		idx := len(walSnaps) - 1
-		snapshot = &raftpb.Snapshot{
-			Metadata: &raftpb.SnapshotMetadata{
-				Term:  new(walSnaps[idx].GetTerm()),
-				Index: new(walSnaps[idx].GetIndex()),
-			},
-		}
-		if walSnaps[idx].ConfState != nil {
-			snapshot.Metadata.ConfState = proto.Clone(walSnaps[idx].ConfState).(*raftpb.ConfState)
-		}
-		cfg.Logger.Info("constructed a snapshot from WAL record",
-			zap.Uint64("snapshot-index", snapshot.Metadata.GetIndex()),
-			zap.Int("snapshot-size", proto.Size(snapshot)),
-			zap.String("confState", snapshot.Metadata.ConfState.String()),
-			zap.Int("walSnaps-count", len(walSnaps)),
-		)
-	}
-
-	if snapshot != nil {
-		if be, err = serverstorage.RecoverSnapshotBackend(cfg, be, snapshot, beExist, beHooks); err != nil {
-			cfg.Logger.Panic("failed to recover v3 backend from snapshot", zap.Error(err))
-		}
-		// A snapshot db may have already been recovered, and the old db should have
-		// already been closed in this case, so we should set the backend again.
-		ci.SetBackend(be)
-
-		if beExist {
-			// TODO: remove kvindex != 0 checking when we do not expect users to upgrade
-			// etcd from pre-3.0 release.
-			kvindex := ci.ConsistentIndex()
-			if kvindex < snapshot.Metadata.GetIndex() {
-				if kvindex != 0 {
-					return nil, be, fmt.Errorf("database file (%v index %d) does not match with snapshot (index %d)", cfg.BackendPath(), kvindex, snapshot.Metadata.GetIndex())
-				}
-				cfg.Logger.Warn(
-					"consistent index was never saved",
-					zap.Uint64("snapshot-index", snapshot.Metadata.GetIndex()),
-				)
-			}
-		}
-	} else {
-		cfg.Logger.Info("No snapshot found. Recovering WAL from scratch!")
-	}
-	return snapshot, be, nil
-}
-
 func (c *bootstrappedCluster) Finalize(cfg config.ServerConfig, s *bootstrappedStorage) error {
 	if !s.wal.haveWAL {
 		c.cl.SetID(c.nodeID, c.cl.ID())
@@ -597,20 +525,23 @@ func (b *bootstrappedRaft) newRaftNode(ss *snap.Snapshotter, wal *wal.WAL, cl *m
 	)
 }
 
-func bootstrapWALFromSnapshot(cfg config.ServerConfig, snapshot *raftpb.Snapshot, ci cindex.ConsistentIndexer) *bootstrappedWAL {
-	wal, st, ents, snap, meta := openWALFromSnapshot(cfg, snapshot)
+func bootstrapWALFromBackend(cfg config.ServerConfig, be backend.Backend) *bootstrappedWAL {
+	consistentIndex, term := schema.ReadConsistentIndex(be.ReadTx())
+	pos := wal.Position{Index: consistentIndex, Term: term}
+	confstate := schema.ReadConfStateFromBackend(cfg.Logger, be.ReadTx())
+	wal, st, ents, meta := openWALFromPosition(cfg, pos)
 	bwal := &bootstrappedWAL{
-		lg:       cfg.Logger,
-		w:        wal,
-		st:       st,
-		ents:     ents,
-		snapshot: snap,
-		meta:     meta,
-		haveWAL:  true,
+		lg:        cfg.Logger,
+		w:         wal,
+		pos:       pos,
+		st:        st,
+		ents:      ents,
+		meta:      meta,
+		haveWAL:   true,
+		confstate: confstate,
 	}
 
 	if cfg.ForceNewCluster {
-		consistentIndex := ci.ConsistentIndex()
 		oldCommitIndex := bwal.st.GetCommit()
 		// If only `HardState.Commit` increases, HardState won't be persisted
 		// to disk, even though the committed entries might have already been
@@ -646,17 +577,12 @@ func bootstrapWALFromSnapshot(cfg config.ServerConfig, snapshot *raftpb.Snapshot
 	return bwal
 }
 
-// openWALFromSnapshot reads the WAL at the given snap and returns the wal, its latest HardState and cluster ID, and all entries that appear
-// after the position of the given snap in the WAL.
-// The snap must have been previously saved to the WAL, or this call will panic.
-func openWALFromSnapshot(cfg config.ServerConfig, snapshot *raftpb.Snapshot) (*wal.WAL, *raftpb.HardState, []*raftpb.Entry, *raftpb.Snapshot, *snapshotMetadata) {
-	var walsnap walpb.Snapshot
-	if snapshot != nil {
-		walsnap.Index, walsnap.Term = new(snapshot.Metadata.GetIndex()), new(snapshot.Metadata.GetTerm())
-	}
+// openWALFromPosition reads the WAL at the given snap and returns the wal, its latest HardState and cluster ID, and all entries that appear
+// after the position in the WAL.
+func openWALFromPosition(cfg config.ServerConfig, pos wal.Position) (*wal.WAL, *raftpb.HardState, []*raftpb.Entry, *snapshotMetadata) {
 	repaired := false
 	for {
-		w, err := wal.Open(cfg.Logger, cfg.WALDir(), &walsnap)
+		w, err := wal.Open(cfg.Logger, cfg.WALDir(), pos)
 		if err != nil {
 			cfg.Logger.Fatal("failed to open WAL", zap.Error(err))
 		}
@@ -683,7 +609,7 @@ func openWALFromSnapshot(cfg config.ServerConfig, snapshot *raftpb.Snapshot) (*w
 		id := types.ID(metadata.GetNodeID())
 		cid := types.ID(metadata.GetClusterID())
 		meta := &snapshotMetadata{clusterID: cid, nodeID: id}
-		return w, st, ents, snapshot, meta
+		return w, st, ents, meta
 	}
 }
 
@@ -714,18 +640,25 @@ func bootstrapNewWAL(cfg config.ServerConfig, cl *bootstrappedCluster) *bootstra
 type bootstrappedWAL struct {
 	lg *zap.Logger
 
-	haveWAL  bool
-	w        *wal.WAL
-	st       *raftpb.HardState
-	ents     []*raftpb.Entry
-	snapshot *raftpb.Snapshot
-	meta     *snapshotMetadata
+	haveWAL   bool
+	pos       wal.Position
+	confstate *raftpb.ConfState
+	w         *wal.WAL
+	st        *raftpb.HardState
+	ents      []*raftpb.Entry
+	meta      *snapshotMetadata
 }
 
 func (wal *bootstrappedWAL) MemoryStorage() *raft.MemoryStorage {
 	s := raft.NewMemoryStorage()
-	if wal.snapshot != nil {
-		s.ApplySnapshot(wal.snapshot)
+	if wal.confstate != nil {
+		s.ApplySnapshot(&raftpb.Snapshot{
+			Metadata: &raftpb.SnapshotMetadata{
+				Index:     new(wal.pos.Index),
+				Term:      new(wal.pos.Term),
+				ConfState: wal.confstate,
+			},
+		})
 	}
 	if wal.st != nil {
 		s.SetHardState(wal.st)
@@ -754,7 +687,7 @@ func (wal *bootstrappedWAL) CommitedEntries() []*raftpb.Entry {
 func (wal *bootstrappedWAL) NewConfigChangeEntries() []*raftpb.Entry {
 	return serverstorage.CreateConfigChangeEnts(
 		wal.lg,
-		serverstorage.GetEffectiveNodeIDsFromWALEntries(wal.lg, wal.snapshot, wal.ents),
+		serverstorage.GetEffectiveNodeIDsFromWALEntries(wal.lg, wal.confstate, wal.ents),
 		uint64(wal.meta.nodeID),
 		wal.st.GetTerm(),
 		wal.st.GetCommit(),
