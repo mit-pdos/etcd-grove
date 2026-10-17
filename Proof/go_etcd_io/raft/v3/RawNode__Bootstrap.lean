@@ -27,6 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+set_option maxHeartbeats 800000 in
 theorem RawNode.Bootstrap.wp_proof
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG))
@@ -269,7 +270,10 @@ theorem RawNode.Bootstrap.wp_proof
   have Hcont := logTruncateAppend_cont s.logst bootLog Hfirst
   have Hlt0 : uint.Z s.logst.leaderTerm ≤ uint.Z s1.term := by
     have h := Hrel.2.2.2.1
-    rw [Ht0] at h; rw [Hs1t]; have : uint.Z (W64 1) = 1 := rfl; omega
+    rw [Ht0] at h; rw [Hs1t]
+    have h0 : uint.Z (W64 0) = 0 := rfl
+    have h1 : uint.Z (W64 1) = 1 := rfl
+    omega
   have Hlastt : ∀ e, bootLog.getLast? = some e → uint.Z s1.logst.leaderTerm ≤ uint.Z s1.term →
       uint.Z e.Term' ≤ uint.Z s1.term := by
     intro e He _
@@ -386,6 +390,7 @@ theorem RawNode.Bootstrap.wp_proof
         sk v _ (DFrac.own 1) (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅)
         (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
+        (by intro h; rw [Hskr] at h; cases h)
       $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
     obtain ⟨prs', pvs', Hsk'⟩ := applyCCOkC_nonleader _ _ _ _ Hok (by rw [Hskr]; decide)
     wp_for_post
@@ -428,11 +433,20 @@ theorem RawNode.Bootstrap.wp_proof
     · show s1.rd.states = []; rw [Hs1rs, Hrst]
     · show s1.rd.pend = []; rw [Hs1rp, Hrpd]
   obtain ⟨HNt, HNv, HNl, HNr, HNvs, HNo, HNls, HNgh, HNpv, HNrs, HNrp, HNsf, HNtk⟩ := HN
+  -- (raft#139) the log's leader term is the term `1` the boot entries were appended at
+  have HLt : LtInv sk := by
+    refine ⟨?_, fun h => by rw [HNr] at h; cases h⟩
+    rw [HNls, HNt]
+    show uint.Z (logAppendLT s.logst s1.term bootLog).leaderTerm ≤ _
+    rw [logAppendLT_leaderTerm, Hs1t] at *
+    split
+    · exact Hlt0
+    · exact Int.le_refl _
   have HNrel : NStateRel sk (bootPState bootLog) :=
-    boot_post_rel bootLog sk ⟨by rw [HNsf, HNr], HNtk⟩ HNt HNv HNl HNr HNvs HNo
-      (by rw [HNls]; simp only [logAppend]; exact Hp)
-      (by rw [HNls]; simp only [logAppend]; exact Hse)
-      (by rw [HNls]; simp only [logAppend, Hue, List.nil_append])
+    boot_post_rel bootLog sk ⟨by rw [HNsf, HNr], HNtk, HLt⟩ HNt HNv HNl HNr HNvs HNo
+      (by rw [HNls]; simp only [logAppendLT_prev]; exact Hp)
+      (by rw [HNls]; simp only [logAppendLT_sents]; exact Hse)
+      (by rw [HNls]; simp only [logAppendLT_uents, Hue, List.nil_append])
       (by rw [HNls]; exact Hlenw) HNrs HNrp
   ihave #Hcomm0 := isCommitted_mono γ [] bootLog List.nil_prefix $$ Hcommitted
   try wp_auto
@@ -447,14 +461,14 @@ theorem RawNode.Bootstrap.wp_proof
         sk (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
         (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] rfl HNrel
         (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6) Hasync
-        (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
-        (by rw [HNls]; simp only [logAppend, Hun])
-        (by rw [HNls]; simp only [logAppend, Hsn]) trivial
-        (by rw [HNt]) (by rw [HNls]; simp only [logAppend, Hsg]) HNpv
+        (by rw [HNls]; simp only [logAppendLT_applying, Hapg0]; rfl)
+        (by rw [HNls]; simp only [logAppendLT_unpersisted, Hun])
+        (by rw [HNls]; simp only [logAppendLT_snap, Hsn]) trivial
+        (by rw [HNt]) (by rw [HNls]; simp only [logAppendLT_storage, Hsg]) HNpv
         (by rw [HNgh]) (by rw [HNgh]) (uint_Z_nonneg _)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
     · iapply pendList_nil
-    · rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil
+    · rw [HNls]; simp only [logAppendLT_stored, Hsd]; iapply storedRecs_nil
   · iexact Hpeers
 
 end proof

@@ -40,7 +40,9 @@ theorem NewRawNode.wp_proof
   wp_start as ⟨Hc, #Hlg, #Hst, HSt, Hinit⟩
   wp_auto
   wp_apply wp_newRaft c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs
-    (by rw [Hents]; intro k e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
+    (by rw [Hents]; intro k e h; simp at h) Hss Hpe (fun h => absurd Hhs h)
+    (by rw [Hents, Hprev]; simp only [plogLast, List.getLast?_nil]; exact uint_Z_nonneg _)
+    (.inl Happ)
     Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
     $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨Hphys, Hc, %HAW, %Hpost⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»

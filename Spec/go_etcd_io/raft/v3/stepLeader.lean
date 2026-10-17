@@ -323,6 +323,9 @@ abbrev stepLeader.spec : Prop :=
    (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
     m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)) →
   s.role = .leader →
+  -- (raft#139) a leader's log is at its term (`NStateWf`'s `LtInv`): `appendEntry` appends and
+  -- `maybeCommit` commits
+  s.logst.leaderTerm = s.term →
   (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
   (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →
    m.From' ≠ id) →

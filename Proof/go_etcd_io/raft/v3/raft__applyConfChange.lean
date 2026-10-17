@@ -45,7 +45,7 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand
+  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand HltL
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
@@ -104,6 +104,7 @@ theorem raft.applyConfChange.wp_proof
         (fun hl => by
           simp only at Hpk; rw [Hli'] at Hpk
           exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
+        (fun hl => HltL hl)
       $$ [$Htrkf $Hback' $Hvotes $Hnew]
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
     · ipureintro; exact Hmi
@@ -168,6 +169,7 @@ theorem raft.applyConfChange.wp_proof
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
+            (fun hl => HltL hl)
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
@@ -219,6 +221,7 @@ theorem raft.applyConfChange.wp_proof
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
+            (fun hl => HltL hl)
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi

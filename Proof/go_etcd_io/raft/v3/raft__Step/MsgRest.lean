@@ -229,7 +229,7 @@ set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a leader: `leaderStepResult_rest`. -/
 local macro "local_leader" : tactic => `(tactic| (
   wp_gets
-  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (by simp [Hty]) Hrole
+  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (by simp [Hty]) Hrole (Hwf.2.2.2 Hrole)
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
     $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
@@ -486,7 +486,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := { becomeFollower s m.Term' (W64 0) with prvals := pvs })
       (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl
-    exact ⟨⟨rfl, rfl⟩, ⟨[stepdownMsg id m], by simp,
+    exact ⟨(nstateWf_becomeFollower s m.Term' (W64 0) Hwf.2.2 (Int.le_of_lt Hgt)), ⟨[stepdownMsg id m], by simp,
       StepCD.frame (stepdown_rest c id s m pvs Hgt) (by rframe)⟩, rfl,
       Hfr.1, Hfr.2⟩
   wp_gets
@@ -628,7 +628,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         ml m ents sn rs (zero_val _) ctx (by simp [Hty])
         (by ty_other) (by ty_other) (by ty_other) (by ty_other)
-        (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, ⟨rfl, rfl⟩⟩⟩)
+        (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, (nstateWf_becomeFollower s m.Term' (W64 0) Hwf.2.2 (Int.le_of_lt Hgt))⟩⟩)
         (by ty_other)
       $$ [Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iframe Hphys

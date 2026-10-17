@@ -1083,7 +1083,8 @@ theorem wp_stepLeader_appresp
     (wp_GetRejectHint : raftpb.Message.GetRejectHint.spec (GF := GF) (hG := hG))
     (wp_GetLogTerm : raftpb.Message.GetLogTerm.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader) (Hid : id ∈ c.voters)
+    (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader) (HltL : s.logst.leaderTerm = s.term)
+    (Hid : id ∈ c.voters)
     (Hfrom0 : m.From' ≠ W64 0) (Hself : m.Reject' = true → m.From' ≠ id) (Hnz : s.term ≠ W64 0)
     (Hrdp : ∀ p ∈ s.rd.pend, p.2 ≠ [])
     -- (stage R8a) an accepted acknowledgement is within the log (`MaybeUpdate` keeps `PrvalsOk`)
@@ -1323,7 +1324,7 @@ theorem wp_stepLeader_appresp
         "%Hmm4" ∷ ⌜prvalsMatch pvs4 = prvalsMatch pvs3⌝ ∗
         "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
       with [Hphys m Hm r pr] as HJ
-    · wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } Hlead $$ [$Hphys]
+    · wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } Hlead HltL $$ [$Hphys]
         as %b %N ⟨Hphys, %HN⟩
       cases b <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · -- not committed: `r.id != m.From && pr.CanBumpCommit(r.raftLog.committed)`

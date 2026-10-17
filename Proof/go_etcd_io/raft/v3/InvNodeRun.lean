@@ -836,7 +836,9 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
     rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState).role = .leader from Hl), ite_eq_right Hv] at Hsw
     obtain ⟨pvs', rfl⟩ := Hsw
-    refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    refine ⟨⟨?_, ?_, Hwf.2.2.follower (by simp [becomeFollower, resetTo0, resetTo])
+      (by simp [becomeFollower]) (by simp [becomeFollower, resetTo0, resetTo])⟩,
+      ?_, ?_, ?_, ?_, ?_⟩ <;>
       simp [becomeFollower, resetTo0, resetTo, stepFuncOf]
 
 /-- `ccStepB`'s answer is `ccApplyM`'s, of fewer than `2^62` tracked ids. -/

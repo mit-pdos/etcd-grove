@@ -182,7 +182,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ
     iframe Hphys
     ipureintro
-    refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .voteResp m ents], by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
+    refine ⟨(nstateWf_becomeFollower s m.Term' (W64 0) Hwf.2.2 (Int.le_of_lt Hgt)), ⟨[absMsg .voteResp m ents], by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
       RespStep.of_fresh Hnpv (Int.le_of_lt Hgt), stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
     wp_gets
     rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower]),
@@ -385,7 +385,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · -- Leader: `stepLeader`'s `MsgVoteResp` arm only reads.
         simp only [stepFuncOf]
         wp_gets
-        wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (.inl Hty) Hrole
+        wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (.inl Hty) Hrole (Hwf.2.2.2 Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by
               exfalso; rw [Hty] at Hc

@@ -251,6 +251,8 @@ abbrev raft.applyConfChange.spec : Prop :=
   (s.role = .leader → id ∉ c'.cfg.voters → s.sdr = true) →
   -- a candidate stays a voter (`switchToConfig`)
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
+  -- (raft#139) a leader's log is at its term (`switchToConfig`'s `maybeCommit`)
+  (s.role = .leader → s.logst.leaderTerm = s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -272,6 +274,7 @@ abbrev raft.applyConfChange.specS : Prop :=
   (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 →
   ccApplyM ccm.transition ccm.changes (cfgState cfg (domSet s.progress \ cfg)) =
     some (cfgState cfg lrn') →
+  (s.role = .leader → s.logst.leaderTerm = s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -288,7 +291,7 @@ open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
     (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ HltL
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
   icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -299,7 +302,7 @@ theorem raft.applyConfChange.spec_simple
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
       (fun hl hn => absurd (Hv (by rw [hl]; decide)) (by rw [Hv'] at hn; exact hn))
-      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide))
+      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide)) HltL
     $$ [$Hpkg $Hphys $Hccs]
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩

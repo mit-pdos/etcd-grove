@@ -795,6 +795,14 @@ theorem logAppendLT_committed (ls : LogState) (t : w64) (ents : List EntryM) :
     (logAppendLT ls t ents).committed = ls.committed := by cases ents <;> rfl
 theorem logAppendLT_applying (ls : LogState) (t : w64) (ents : List EntryM) :
     (logAppendLT ls t ents).applying = ls.applying := by cases ents <;> rfl
+theorem logAppendLT_unpersisted (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).unpersisted = ls.unpersisted := by cases ents <;> rfl
+theorem logAppendLT_snap (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).snap = ls.snap := by cases ents <;> rfl
+theorem logAppendLT_storage (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).storage = ls.storage := by cases ents <;> rfl
+theorem logAppendLT_stored (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).stored = ls.stored := by cases ents <;> rfl
 
 /-- A snapshot's id, `(Metadata.Term, Metadata.Index)` -- what `raft.restore` builds as
 `id := entryID{term, index}`. -/

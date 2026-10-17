@@ -127,7 +127,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := addReadState { becomeFollower s m.Term' (W64 0) with prvals := pvs } m.Index' e.Data')
       (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl
-    refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .readIndexResp m [e] ctx] ++ [absMsg .readIndexResp m [e] ctx],
+    refine ⟨(nstateWf_becomeFollower s m.Term' (W64 0) Hwf.2.2 (Int.le_of_lt Hgt)), ⟨[absMsg .readIndexResp m [e] ctx] ++ [absMsg .readIndexResp m [e] ctx],
       by simp, StepCD.frame ?_ (by rframe)⟩, rfl, Hfr.1, Hfr.2⟩
     rw [toPState_addReadState _ _ _ (by simp [becomeFollower]),
       toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower]),
