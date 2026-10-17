@@ -162,9 +162,7 @@ axiom opaqueInitsOk :
         ErrNoInflightDowngrade.init,
         MetadataRequireLeaderKey.init,
         MetadataHasLeader.init,
-        MetadataClientAPIVersionKey.init,
-        TokenFieldNameGRPC.init,
-        TokenFieldNameSwagger.init] : List val),
+        MetadataClientAPIVersionKey.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/
@@ -201,6 +199,16 @@ axiom ErrAuthOldRevision_init :
 axiom ErrGRPCNotSupportedForLearner_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCNotSupportedForLearner.init) (Val #()))
     {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ }}
+
+/-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): a string. -/
+axiom TokenFieldNameGRPC_init :
+    {{ (True : IProp GF) }} (App (Val TokenFieldNameGRPC.init) (Val #()))
+    {{ RET #(); ∃ s : GoString, globalAddr TokenFieldNameGRPC ↦ s }}
+
+/-- `TokenFieldNameSwagger = "authorization"` (`metadatafields.go`): a string. -/
+axiom TokenFieldNameSwagger_init :
+    {{ (True : IProp GF) }} (App (Val TokenFieldNameSwagger.init) (Val #()))
+    {{ RET #(); ∃ s : GoString, globalAddr TokenFieldNameSwagger ↦ s }}
 
 end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 end opaqueInits
@@ -364,8 +372,10 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk MetadataRequireLeaderKey.init (by mem_tac))
   wp_apply (opaqueInitsOk MetadataHasLeader.init (by mem_tac))
   wp_apply (opaqueInitsOk MetadataClientAPIVersionKey.init (by mem_tac))
-  wp_apply (opaqueInitsOk TokenFieldNameGRPC.init (by mem_tac))
-  wp_apply (opaqueInitsOk TokenFieldNameSwagger.init (by mem_tac))
+  wp_apply TokenFieldNameGRPC_init as ⟨%sTokenFieldNameGRPC, HTokenFieldNameGRPC⟩
+  wp_apply TokenFieldNameSwagger_init as ⟨%sTokenFieldNameSwagger, HTokenFieldNameSwagger⟩
+  ipersist HTokenFieldNameGRPC
+  ipersist HTokenFieldNameSwagger
   ipersist HErrFutureRev
   ipersist HErrCompacted
   ipersist HerrStringToError

@@ -200,7 +200,9 @@ returns their description); and (unit P3a: `rpctypes.Error` is translated) the m
 `*status.Error`s) grpc's `status.FromError` accepts (`statusErrOk`), `EtcdError`'s method set
 (`rpctypesEtcdErrorTy`), the `EtcdError` values the client's retry interceptor compares with
 (`ErrUserEmpty`, `ErrInvalidAuthToken`, `ErrAuthOldRevision`: `Error` of an `ErrGRPC*`) and its
-`ErrGRPCNotSupportedForLearner` (a `*status.Error`, a pointer). -/
+`ErrGRPCNotSupportedForLearner` (a `*status.Error`, a pointer); and (item 8, 2026-10-17: moved here
+from `auth`'s facts, so that `rpctypes`' initializer proves them) the token keys
+`TokenFieldNameGRPC`, `TokenFieldNameSwagger` (fixed strings). -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e) ∗
@@ -225,7 +227,9 @@ abbrev rpctypesInit : IProp GF :=
         interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner ↦□
-        GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝))
+        GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝) ∗
+    (∃ s : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ s) ∗
+    (∃ s : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s))
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
