@@ -1,0 +1,9 @@
+    watch_close_canceled_test.go:80: iteration 155: Close() = context canceled, want nil
+--- FAIL: TestWatcherCloseIgnoresCanceled (0.01s)
+    watch_close_errors_test.go:49: Close() = context canceled, want nil
+--- FAIL: TestWatcherCloseCanceledIsSuccess (0.00s)
+    watch_close_errors_test.go:62: iteration 22: Close() = context canceled, want an error wrapping boom
+--- FAIL: TestWatcherCloseKeepsRealError (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.050s
+FAIL

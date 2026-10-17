@@ -1,0 +1,367 @@
+diff --git a/Proof/errors/IsJoinedStatusErr.lean b/Proof/errors/IsJoinedStatusErr.lean
+new file mode 100644
+index 000000000..cafa02cce
+--- /dev/null
++++ b/Proof/errors/IsJoinedStatusErr.lean
+@@ -0,0 +1,32 @@
++/-
++**Trust boundary**: `errors.Is` of a tree of `status` errors and joins against a pointer error
++(an axiom; see `Spec/errors/IsJoinedStatusErr.lean`). Lean-first (no Rocq counterpart).
++-/
++module
++
++public import Spec.errors.IsJoinedStatusErr
++
++@[expose] public section
++
++noncomputable section
++
++namespace Perennial
++namespace EtcdGrove
++
++open Iris Iris.BI go_etcd_io.etcd.cache.v3
++
++section proof
++variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
++variable [go_gctx : GoGlobalContext]
++variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
++variable [sem : go.Semantics]
++variable [package_sem : _root_.Perennial.errors.Assumptions]
++
++/-- **Trust boundary**: Perennial's `errors.wp_Is` with Go's typing of the tree's errors
++(`TreeTyped`) assumed. -/
++axiom errors.IsJoinedStatusErr.wp_proof : errors.IsJoinedStatusErr.spec (GF := GF) (hG := hG)
++
++end proof
++
++end EtcdGrove
++end Perennial
+diff --git a/Proof/errors/JoinedStatusErr.lean b/Proof/errors/JoinedStatusErr.lean
+new file mode 100644
+index 000000000..3062701a6
+--- /dev/null
++++ b/Proof/errors/JoinedStatusErr.lean
+@@ -0,0 +1,100 @@
++/-
++**Errors built by `errors.Join` from errors grpc's `status` accepts** (etcd#19935's
++`watcher.Close`, which joins the errors of its streams' `close`): the predicate
++`joinedStatusErrOk` that `errors.Join` (`Spec/errors/Join.lean`) and `errors.Is`
++(`Spec/errors/IsJoinedStatusErr.lean`) are stated over, and the lemmas that a `nil` error and
++an error `status` accepts (`statusErrOk`) are such errors. Shared definitions (outside the
++spec/proof discipline). Lean-first (no Rocq counterpart).
++-/
++module
++
++public import Proof.go_etcd_io.etcd.cache.v3.Base
++public import Perennial.Proof.errors
++
++@[expose] public section
++
++noncomputable section
++
++namespace Perennial
++namespace EtcdGrove
++
++open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
++
++section defs
++variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
++variable [go_gctx : GoGlobalContext]
++variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
++variable [sem : go.Semantics]
++
++/-- `ii` is a `*errors.joinError`: the error `errors.Join` returns when one of its arguments is
++not `nil` (a pointer to a struct holding the non-`nil` arguments; methods `Error()` and
++`Unwrap() []error`, no `Is` or `As`). -/
++def isJoinErrorPtr (ii : GoInterfaceOk) : Prop :=
++  ∃ l : Loc, ii.ty = go.GoType.PointerType _root_.Perennial.errors.joinError.ty ∧ ii.v = #l
++
++/-- **An error tree of `status` errors and `errors.Join`s** (persistent): `err` is in a set `S`
++of errors closed under the `Unwrap` methods with their specs, for any target of `errors.Is`
++(Perennial's `errorIsTree`, with `Is` methods that mean nothing in particular: `M := True`), and
++every non-`nil` error of `S` is an error grpc's `status` accepts (`statusErrOk`: a leaf) or a
++`*errors.joinError`. -/
++def joinedStatusErrOk (err : GoInterface) : IProp GF :=
++  iprop(∃ S : GoInterface → Prop, ⌜S err⌝ ∗
++    □ (∀ target : GoInterface,
++        _root_.Perennial.errors.errorIsTree (GF := GF) S (fun _ => True) target) ∗
++    □ (∀ ii : GoInterfaceOk, ⌜S (GoInterface.ok ii)⌝ -∗
++        statusErrOk (GF := GF) (GoInterface.ok ii) ∨ ⌜isJoinErrorPtr ii⌝))
++
++instance joinedStatusErrOk_persistent (err : GoInterface) :
++    Persistent (joinedStatusErrOk (GF := GF) err) := by
++  unfold joinedStatusErrOk; infer_instance
++
++/-- `nil` is a (one-error) tree. -/
++theorem joinedStatusErrOk_nil : ⊢ joinedStatusErrOk (GF := GF) GoInterface.nil := by
++  unfold joinedStatusErrOk
++  iexists (· = GoInterface.nil)
++  isplitr
++  · ipureintro; rfl
++  isplitr
++  · imodintro; iintro %target; imodintro; iintro %ii %h; cases h
++  · imodintro; iintro %ii %h; cases h
++
++/-- An error `status` accepts is a one-error tree. -/
++theorem joinedStatusErrOk_of_statusErrOk (err : GoInterface) :
++    statusErrOk (GF := GF) err ⊢ joinedStatusErrOk (GF := GF) err := by
++  iintro #Hs
++  unfold joinedStatusErrOk
++  iexists (· = err)
++  isplitr
++  · ipureintro; rfl
++  isplitr
++  · imodintro; iintro %target; imodintro; iintro %ii %h
++    subst h
++    ihave Hs' := Hs
++    unfold statusErrOk
++    icases Hs $$ %ii %rfl with ⟨-, %Hleaf, #Hm⟩
++    obtain ⟨-, hU1, hU2⟩ := Hleaf
++    unfold _root_.Perennial.errors.errorIsNode
++    simp only [hU1, hU2, ↓reduceIte]
++    isplitl
++    · split
++      · rename_i hIs
++        unfold grpcErrMethodsOk
++        icases Hm with ⟨-, HIs⟩
++        ihave #HIs := HIs $$ %hIs
++        imodintro
++        iintro %Φ - HΦ
++        iapply HIs
++        inext
++        iintro %b
++        iapply HΦ
++        ipureintro; intro _; trivial
++      · itrivial
++    · itrivial
++  · imodintro; iintro %ii %h
++    subst h
++    ileft; iexact Hs
++
++end defs
++
++end EtcdGrove
++end Perennial
+diff --git a/Proof/go_etcd_io/etcd/client/v3/watcher__Close_canceled.lean b/Proof/go_etcd_io/etcd/client/v3/watcher__Close_canceled.lean
+new file mode 100644
+index 000000000..fea96a690
+--- /dev/null
++++ b/Proof/go_etcd_io/etcd/client/v3/watcher__Close_canceled.lean
+@@ -0,0 +1,116 @@
++/-
++Proof of `Spec/go_etcd_io/etcd/client/v3/watcher__Close.lean` (the watch slice's unit W-C).
++Lean-first (no Rocq counterpart).
++-/
++module
++
++public import Spec.go_etcd_io.etcd.client.v3.watcher__Close
++public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__close
++public import Spec.errors.IsJoinedStatusErr
++
++@[expose] public section
++
++set_option linter.unusedSectionVars false
++set_option synthInstance.maxSize 4096
++set_option synthInstance.maxHeartbeats 400000
++
++noncomputable section
++
++namespace Perennial
++namespace EtcdGrove
++
++open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
++
++section proof
++variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
++variable [go_gctx : GoGlobalContext]
++variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
++variable [sem : go.Semantics]
++variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
++variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
++
++set_option maxHeartbeats 0 in
++theorem watcher.Close.wp_canceledIsSuccess
++    (wp_close : watchGRPCStream.close.spec_nilOrCanceled (GF := GF) (hG := hG))
++    (wp_Is : errors.IsJoinedStatusErr.spec (GF := GF) (hG := hG)) :
++    watcher.Close.spec_canceledIsSuccess (GF := GF) (hG := hG) := by
++  intro V w ce
++  wp_start as ⟨#Hce, %Hcep, #Hw⟩
++  ihave #Hw' := Hw
++  iunfold isClientWatcher at Hw'
++  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
++  wp_auto
++  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
++  iunfold watcherMu at HR
++  icases HR with ⟨%m, Hst, HM⟩
++  wp_auto
++  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst]
++  · inext; unfold watcherMu; iexists map.nil; iframe Hst; ileft; ipureintro; rfl
++  ihave Hnil : iprop(∃ e : GoInterface, err_ptr ↦ e ∗ statusErrOk e ∗
++      ⌜e = GoInterface.nil ∨ e = GoInterface.ok ce⌝) $$ [err]
++  · iexists _; iframe
++    isplitl
++    · unfold statusErrOk
++      iintro !> %e0 %h; cases h
++    · ipureintro; left; rfl
++  icases HM with (%Hn | ⟨%M, HM, #HMs⟩)
++  · subst Hn
++    icases Hnil with ⟨%e, err, #Hse, %He⟩
++    wp_func_lits
++    wp_bind (App (App (Val (map.forRange _ _)) _) _)
++    wp_call
++    try simp only [show (null : Loc) = map.nil from rfl, _root_.decide_true]
++    wp_auto
++    ihave #Hse' := joinedStatusErrOk_of_statusErrOk _ $$ Hse
++    wp_apply wp_Is e (GoInterface.ok ce) ⟨ce, rfl, Hcep⟩ $$ [] as %b ⟨%Hb1, %Hb2⟩
++    · iframe #
++    rcases He with rfl | rfl
++    · rw [Hb1 rfl]; wp_auto; iapply HΦ; ipureintro; rfl
++    · rw [Hb2 rfl]; wp_auto; iapply HΦ; ipureintro; rfl
++  · wp_func_lits
++    wp_bind (App (App (Val (map.forRange _ _)) _) _)
++    iapply wp_map_for_range (fun (_ : List GoString) (_ : Int) => iprop(∃ (v : Loc) (e : GoInterface),
++        wgs_ptr ↦ v ∗ err_ptr ↦ e ∗ statusErrOk e ∗ ⌜e = GoInterface.nil ∨ e = GoInterface.ok ce⌝))
++        _ _ _ m M (DFrac.own 1) $$ HM
++    iintro %keys %Hkeys
++    isplitl [wgs Hnil]
++    · icases Hnil with ⟨%e, err, #Hse, %He⟩
++      iexists _, e; iframe; iframe #; ipureintro; exact He
++    isplitr
++    · imodintro
++      iintro %i %key %v ⟨%Hki, %Hmv⟩ ⟨%v0, %e, Hws, err, #Hse, %He⟩
++      wp_auto
++      ihave ⟨%G, %HG, #HG⟩ := BigSepM.bigSepM_lookup Hmv $$ HMs
++      rw [← HG.1]
++      wp_apply wp_close V G callSl ce $$ [] as %werr ⟨#Hwe, %Hwe⟩
++      · iframe #
++      cases werr with
++      | nil =>
++        wp_auto
++        unfold forMapPostcondition
++        iright; ileft
++        isplitr
++        · ipureintro; rfl
++        iexists _, e
++        iframe; iframe #; ipureintro; exact He
++      | ok i =>
++        wp_auto
++        unfold forMapPostcondition
++        iright; ileft
++        isplitr
++        · ipureintro; rfl
++        iexists _, _
++        iframe; iframe #; ipureintro; exact Hwe
++    iintro ⟨%v, %e, Hws, err, #Hse, %He⟩ HM
++    wp_auto
++    ihave #Hse' := joinedStatusErrOk_of_statusErrOk _ $$ Hse
++    wp_apply wp_Is e (GoInterface.ok ce) ⟨ce, rfl, Hcep⟩ $$ [] as %b ⟨%Hb1, %Hb2⟩
++    · iframe #
++    rcases He with rfl | rfl
++    · rw [Hb1 rfl]; wp_auto; iapply HΦ; ipureintro; rfl
++    · rw [Hb2 rfl]; wp_auto; iapply HΦ; ipureintro; rfl
++
++end proof
++
++end EtcdGrove
++end Perennial
+diff --git a/Spec/errors/IsJoinedStatusErr.lean b/Spec/errors/IsJoinedStatusErr.lean
+new file mode 100644
+index 000000000..5709e27e4
+--- /dev/null
++++ b/Spec/errors/IsJoinedStatusErr.lean
+@@ -0,0 +1,45 @@
++/-
++`errors.Is(err, target)` for `err` a tree of `status` errors and joins (`joinedStatusErrOk`,
++`Proof/errors/JoinedStatusErr.lean`) and a pointer-error target (etcd#19935's `watcher.Close`
++asks `errors.Is(err, context.Canceled)` of the join of its streams' errors): the trust boundary,
++as `Spec/errors/IsStatusErr.lean` is for a single `status` error. Perennial's `errors.wp_Is`
++proves it but for its premise `TreeTyped S target` (the errors of the tree of the target's type
++hold pointers), which is Go's typing, not derivable in the model; it holds of a `*joinError` (a
++pointer) and is assumed of a `status` error, as `errors.IsStatusErr` assumes it.
++Lean-first (no Rocq counterpart).
++-/
++module
++
++public import Proof.errors.JoinedStatusErr
++
++@[expose] public section
++
++noncomputable section
++
++namespace Perennial
++namespace EtcdGrove
++
++open Iris Iris.BI go_etcd_io.etcd.cache.v3
++
++section spec
++variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
++variable [go_gctx : GoGlobalContext]
++variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
++variable [sem : go.Semantics]
++variable [package_sem : _root_.Perennial.errors.Assumptions]
++
++/-- `errors.Is(err, target)` with `err` a tree of `status` errors and joins and `target` a
++pointer error returns a boolean: `false` if `err` is `nil` and `true` if `err` is `target` (Go's
++`Is` first checks `err == nil || target == nil`, then `err == target`; Perennial's `errors.Is`
++spec). -/
++abbrev errors.IsJoinedStatusErr.spec : Prop :=
++  ∀ (err target : GoInterface),
++  (∃ tii, target = GoInterface.ok tii ∧ _root_.Perennial.errors.IsPointerError tii) →
++  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ joinedStatusErrOk (GF := GF) err }}
++    (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
++  {{ (b : Bool), RET #b; ⌜err = GoInterface.nil → b = false⌝ ∗ ⌜err = target → b = true⌝ }}
++
++end spec
++
++end EtcdGrove
++end Perennial
+diff --git a/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__close.lean b/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__close.lean
+index ff0fa6c0d..d777e873d 100644
+--- a/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__close.lean
++++ b/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__close.lean
+@@ -34,6 +34,18 @@ abbrev watchGRPCStream.close.spec : Prop :=
+     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"close")) (Val #()))
+   {{ (err : GoInterface), RET #err; statusErrOk err }}
+ 
++/-- **A scenario, not a spec of `close`** (etcd#19935): the stream's `close` reports `nil` or
++`context.Canceled` (the value `ce` of `context.Canceled`), as it does when the stream's own
++cancellation is what ended it (`ContextError` maps grpc's `Canceled` to the context's error).
++The premise of `watcher.Close.spec_canceledIsSuccess`. -/
++abbrev watchGRPCStream.close.spec_nilOrCanceled : Prop :=
++  ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (ce : GoInterfaceOk),
++  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl ∗
++      globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok ce }}
++    (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"close")) (Val #()))
++  {{ (err : GoInterface), RET #err; statusErrOk err ∗
++      ⌜err = GoInterface.nil ∨ err = GoInterface.ok ce⌝ }}
++
+ end spec
+ 
+ end EtcdGrove
+diff --git a/Spec/go_etcd_io/etcd/client/v3/watcher__Close.lean b/Spec/go_etcd_io/etcd/client/v3/watcher__Close.lean
+index dc58036e4..22cd2137d 100644
+--- a/Spec/go_etcd_io/etcd/client/v3/watcher__Close.lean
++++ b/Spec/go_etcd_io/etcd/client/v3/watcher__Close.lean
+@@ -37,6 +37,22 @@ abbrev watcher.Close.spec : Prop :=
+     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")) (Val #()))
+   {{ (err : GoInterface), RET #err; True }}
+ 
++/-- **What `Close` promises** ("Consider context.Canceled as a successful close", its comment; the
++intent etcd#19935 keeps): if every stream's `close` reports `nil` or `context.Canceled`
++(the scenario `watchGRPCStream.close.spec_nilOrCanceled`), `Close` returns `nil`. Holds of the
++code before etcd#19935 (`notes/pr-verify/etcd-19935.md`); not of etcd#19935's code, whose
++`errors.Is(err, context.Canceled)` tests the accumulated `err` instead of the stream's `werr`, so
++that a stream reporting `context.Canceled` makes `Close` return it wrapped by `errors.Join`
++(`notes/pr-verify/etcd-19935/watch_close_errors_test.go`). Not proved on this branch. -/
++abbrev watcher.Close.spec_canceledIsSuccess : Prop :=
++  ∀ (V : WEnv GF) (w : Loc) (ce : GoInterfaceOk),
++  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
++      isPkgInit (PROP := IProp GF) pkg_id.errors ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗
++      globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok ce ∗
++      ⌜_root_.Perennial.errors.IsPointerError ce⌝ ∗ isClientWatcher V w }}
++    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")) (Val #()))
++  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ }}
++
+ end spec
+ 
+ end EtcdGrove

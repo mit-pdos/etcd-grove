@@ -1,0 +1,15 @@
+# etcd-io/etcd#19935 (`watcher.Close` over `errors.Join`): the linked result of `watcher.Close`
+# (notes/pr-verify/etcd-19935.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-19935.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots watcher\.wp_Close$
+axiom errors.IsJoinedStatusErr.wp_proof
+axiom errors.Join.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcServesStream
+axiom grpcServesStream_persistent
+axiom status.FromError.wp_proof

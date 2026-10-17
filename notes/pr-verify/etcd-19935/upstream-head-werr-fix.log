@@ -1,0 +1,4 @@
+--- PASS: TestWatcherCloseIgnoresCanceled (0.14s)
+--- PASS: TestWatcherCloseCanceledIsSuccess (0.00s)
+--- PASS: TestWatcherCloseKeepsRealError (0.00s)
+ok  	go.etcd.io/etcd/client/v3	0.194s

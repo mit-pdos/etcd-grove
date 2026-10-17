@@ -45,6 +45,26 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd#19935: `watcher.Close` over `errors.Join` (2026-10-17, branch `pr-verify/etcd-19935`)
+
+Verification of the open PR etcd-io/etcd#19935 (report `notes/pr-verify/etcd-19935.md`; not for
+`lean`: the translation is of the unmerged PR, fork branch `pr-etcd-19935-goose-lean`). The old
+spec of `watcher.Close` (postcondition `True`) is re-proved of the PR's code; the intended
+behavior, `watcher.Close.spec_canceledIsSuccess`, is stated and proved of the old code only (a
+patch, `notes/pr-verify/etcd-19935/old-code-proof.patch`): the PR breaks it (Go tests). Found in
+the existing code: `issues/etcd-watcher-close-drops-error.md`.
+
+**Perennial limitation**: `errors.Join` is translated names-only (Perennial's `errors.toml` leaves
+out `join.go`), so it has no semantics; and Perennial's `errors.wp_Is` needs `TreeTyped` of the
+error tree, Go's typing, which no proof here can establish for an error from grpc. Worked around
+locally with two trust-boundary axioms over a shared predicate (`Proof/errors/JoinedStatusErr.lean`:
+`joinedStatusErrOk`, a tree of `status` leaves and `*joinError`s): `errors.Join.wp_proof`
+(`Spec/errors/Join.lean`) and `errors.IsJoinedStatusErr.wp_proof`
+(`Spec/errors/IsJoinedStatusErr.lean`, the analogue of `errors.IsStatusErr`). The general fix, to
+propose to Perennial on its own: translate `join.go` (`joinError` with its `Error` and
+`Unwrap() []error`) and prove a `Join` spec in `errorIsTree` terms.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

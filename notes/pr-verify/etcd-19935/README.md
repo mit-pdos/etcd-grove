@@ -1,0 +1,17 @@
+# Files for `notes/pr-verify/etcd-19935.md`
+
+Revisions: PR head `e157465cd` (etcd-io/etcd `pull/19935/head`), its upstream base `6d5eb7b5f`,
+and the fork branch `mit-pdos/etcd-grove` `pr-etcd-19935-goose-lean` (PR on `goose-lean`
+`09669450f`; its parent is the base for "fork base"). Go: `go1.24.3` for upstream (its `go.mod`),
+`go1.27.1` for the fork.
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `watch_close_errors_test.go` | `TestWatcherCloseCanceledIsSuccess`: one stream whose `close` reports `context.Canceled` → `Close` must return nil (fails at the PR head). `TestWatcherCloseKeepsRealError`: one stream with a real error and one with `context.Canceled` → `Close` must return the real error, in either map order (fails at the base: the bug of `issues/etcd-watcher-close-drops-error.md`; fails at the PR head: the real error is skipped after a joined `Canceled`). Streams are built in-package, already shut down, with a fixed error in `errc`. | PR head, base, fork | `cp watch_close_errors_test.go <checkout>/client/v3/ && cd <checkout>/client/v3 && go test -count=1 -v -run TestWatcherClose .` |
+| `watch_close_canceled_test.go` | `TestWatcherCloseIgnoresCanceled`: a real watch over a fake gRPC stream (Recv fails with the stream context's error once canceled, as gRPC does), then `Close` → must be nil; 2000 iterations (fails at the PR head within a few hundred: `context canceled`). | PR head, base, fork | same, `-run TestWatcherCloseIgnoresCanceled` |
+| `upstream-head.log`, `upstream-base.log` | the two files' results at the PR head (three failures) and at the base (only `KeepsRealError` fails) | upstream | above |
+| `upstream-head-werr-fix.log`, `fix-werr.diff` | with `errors.Is(werr, …)` for `errors.Is(err, …)` at the PR head all three pass | PR head + `fix-werr.diff` | `git apply fix-werr.diff`, then above |
+| `fork-pr.log`, `fork-base.log` | same tests on the fork, with the PR and before it, plus the fork's `TestWatchProgressBroadcastAfterServerCancel` (passes in these runs; with the PR it fails 3 of 20 runs on its final `w.Close()`: `go test -count=20 -run TestWatchProgressBroadcastAfterServerCancel .`; 20 of 20 pass before) | fork | above |
+| `old-code-proof.patch` | the intended spec `watcher.Close.spec_canceledIsSuccess` proved of the code before the PR, conditionally on every stream's `close` reporting nil or `Canceled` (`Proof/go_etcd_io/etcd/client/v3/watcher__Close_canceled.lean`, with the shared files it needs) | etcd-grove `lean` `51547df02` | `git worktree add <dir> 51547df02 && cd <dir> && git apply <this>/old-code-proof.patch && lake build Proof.go_etcd_io.etcd.client.v3.watcher__Close_canceled` |
+| `watch_close_review_test.go` (reviewer; needs `watch_close_errors_test.go` beside it) | `TestReviewCloseAllCanceled` (all streams `Canceled` → nil), `TestReviewCloseJoinsAllRealErrors` (two real errors and a `Canceled` → both real errors, no `Canceled`), `TestReviewCloseSingleErrorIdentity` (a single real error comes back wrapped: `==` false, `errors.Is` true); all pass with `fix-werr.diff` | PR head + fix | `cp watch_close_errors_test.go watch_close_review_test.go <checkout>/client/v3/ && go test -run TestReview .` |
+| `watch_close_rate_test.go` (reviewer; needs `watch_close_canceled_test.go` beside it) | logs how many of 2000 closes of a live watch return non-nil: 44, 38, 15 at the PR head, 0 at the base | PR head, base | `go test -v -run TestReviewCanceledRate .` |

@@ -92,7 +92,9 @@ axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
+axiom errors.IsJoinedStatusErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
+axiom errors.Join.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof

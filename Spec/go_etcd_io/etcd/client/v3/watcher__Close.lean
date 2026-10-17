@@ -37,6 +37,22 @@ abbrev watcher.Close.spec : Prop :=
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; True }}
 
+/-- **What `Close` promises** ("Consider context.Canceled as a successful close", its comment; the
+intent etcd#19935 keeps): if every stream's `close` reports `nil` or `context.Canceled`
+(the scenario `watchGRPCStream.close.spec_nilOrCanceled`), `Close` returns `nil`. Holds of the
+code before etcd#19935 (`notes/pr-verify/etcd-19935.md`); not of etcd#19935's code, whose
+`errors.Is(err, context.Canceled)` tests the accumulated `err` instead of the stream's `werr`, so
+that a stream reporting `context.Canceled` makes `Close` return it wrapped by `errors.Join`
+(`notes/pr-verify/etcd-19935/watch_close_errors_test.go`). Not proved on this branch. -/
+abbrev watcher.Close.spec_canceledIsSuccess : Prop :=
+  ∀ (V : WEnv GF) (w : Loc) (ce : GoInterfaceOk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.errors ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok ce ∗
+      ⌜_root_.Perennial.errors.IsPointerError ce⌝ ∗ isClientWatcher V w }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")) (Val #()))
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ }}
+
 end spec
 
 end EtcdGrove

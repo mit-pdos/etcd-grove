@@ -1,0 +1,13 @@
+diff --git a/client/v3/watch.go b/client/v3/watch.go
+index 8e19f87e2..8ba546fc2 100644
+--- a/client/v3/watch.go
++++ b/client/v3/watch.go
+@@ -392,7 +392,7 @@ func (w *watcher) Close() (err error) {
+ 	w.mu.Unlock()
+ 	for _, wgs := range streams {
+ 		// Consider context.Canceled as a successful close
+-		if werr := wgs.close(); werr != nil && !errors.Is(err, context.Canceled) {
++		if werr := wgs.close(); werr != nil && !errors.Is(werr, context.Canceled) {
+ 			err = errors.Join(err, werr)
+ 		}
+ 	}

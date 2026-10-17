@@ -28,7 +28,9 @@ axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
+axiom errors.IsJoinedStatusErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
+axiom errors.Join.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof

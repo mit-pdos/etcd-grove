@@ -34,6 +34,18 @@ abbrev watchGRPCStream.close.spec : Prop :=
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"close")) (Val #()))
   {{ (err : GoInterface), RET #err; statusErrOk err }}
 
+/-- **A scenario, not a spec of `close`** (etcd#19935): the stream's `close` reports `nil` or
+`context.Canceled` (the value `ce` of `context.Canceled`), as it does when the stream's own
+cancellation is what ended it (`ContextError` maps grpc's `Canceled` to the context's error).
+The premise of `watcher.Close.spec_canceledIsSuccess`. -/
+abbrev watchGRPCStream.close.spec_nilOrCanceled : Prop :=
+  ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (ce : GoInterfaceOk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl ∗
+      globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok ce }}
+    (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"close")) (Val #()))
+  {{ (err : GoInterface), RET #err; statusErrOk err ∗
+      ⌜err = GoInterface.nil ∨ err = GoInterface.ok ce⌝ }}
+
 end spec
 
 end EtcdGrove

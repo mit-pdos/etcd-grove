@@ -1,0 +1,8 @@
+--- PASS: TestWatcherCloseIgnoresCanceled (0.06s)
+--- PASS: TestWatcherCloseCanceledIsSuccess (0.00s)
+    watch_close_errors_test.go:62: iteration 0: Close() = <nil>, want an error wrapping boom
+--- FAIL: TestWatcherCloseKeepsRealError (0.00s)
+--- PASS: TestWatchProgressBroadcastAfterServerCancel (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.089s
+FAIL
