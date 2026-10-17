@@ -142,12 +142,12 @@ theorem mvcc.treeIndex.Keep.wp_proof
   rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
   wp_call
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL Ht Hkis HcmpL] as Hrd
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL Ht Hkis HcmpL HliveL] as Hrd
   · inext
     iunfold mvcc.idxLockInv
     iexists ilog, pend, L, cmax
     simp only [named]
-    iframe HnevL HcmpL
+    iframe HnevL HcmpL HliveL
     iframe #
     isplitl [Ht Hkis]
     · iunfold mvcc.ownTree; iframe Ht Hkis; ipureintro; exact Hsorted

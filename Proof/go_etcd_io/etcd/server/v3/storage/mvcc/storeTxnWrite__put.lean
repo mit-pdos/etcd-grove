@@ -45,6 +45,8 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key value k v leaseID L te crev Z
   wp_start as ⟨Htw, #Hkey, #Hval, Hown, %Hlease, %Hb, Htrc⟩
+  ihave %Hvlen := ownSlice_len _ _ _ $$ Hval
+  have hvl : value.len = W64 (v.length : Int) := by obtain ⟨h1, h2⟩ := Hvlen; rw [h1]; word
   have Hb63 : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hb (mvcc.kbPutMax_le _)
   simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
@@ -170,9 +172,9 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
-    wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw
+    wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID _) $$ [$HtiS $Hw $Hkey] as Hw
     · ipureintro
-      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h)⟩
+      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h), hvl⟩
     (try wp_auto)
     -- `tw.changes = append(tw.changes, kv)`
     wp_apply wp_slice_literal (l := [«$r0_ptr»])
@@ -191,15 +193,18 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           storeTxnCommon' := {
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-          changes' := chs' } : storeTxnWrite) -∗
+          changes' := chs',
+          liveSizeDelta' := mvcc.pendDelta ilog pend +
+            (mvcc.liveW (ilog ++ [pend ++ [.put k v leaseID]]) k - mvcc.liveW (ilog ++ [pend]) k) } :
+          storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
         $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
-      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
-      simp only [mvcc.revOf, mvcc.Change.isDel]
+      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm', mvcc.pendDelta_snoc]
+      simp only [mvcc.revOf, mvcc.Change.isDel, mvcc.Change.key]
       iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       isplitl []
@@ -374,9 +379,9 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
-    wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw
+    wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID _) $$ [$HtiS $Hw $Hkey] as Hw
     · ipureintro
-      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h)⟩
+      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h), hvl⟩
     (try wp_auto)
     -- `tw.changes = append(tw.changes, kv)`
     wp_apply wp_slice_literal (l := [«$r0_ptr»])
@@ -395,15 +400,18 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           storeTxnCommon' := {
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-          changes' := chs' } : storeTxnWrite) -∗
+          changes' := chs',
+          liveSizeDelta' := mvcc.pendDelta ilog pend +
+            (mvcc.liveW (ilog ++ [pend ++ [.put k v leaseID]]) k - mvcc.liveW (ilog ++ [pend]) k) } :
+          storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
         $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
-      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
-      simp only [mvcc.revOf, mvcc.Change.isDel]
+      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm', mvcc.pendDelta_snoc]
+      simp only [mvcc.revOf, mvcc.Change.isDel, mvcc.Change.key]
       iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       isplitl []

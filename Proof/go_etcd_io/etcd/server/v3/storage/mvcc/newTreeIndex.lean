@@ -111,6 +111,10 @@ theorem mvcc.newTreeIndex.wp_proof
       · ipureintro; exact List.Pairwise.nil
       iapply BigSepL.bigSepL_nil_intro; iempintro
     isplitl []
+    · simp only [mvcc.ownLive, mvcc.ownLiveI]
+      rw [show mvcc.itemsOfEntries [] = [] from rfl]
+      iapply BigSepL.bigSepL_nil_intro; iempintro
+    isplitl []
     · iunfold mvcc.crevLb; rw [mvcc.crevN_neg]; iexact Hclb
     isplitl []
     · iexists []; iframe Hllb; ipureintro; simp

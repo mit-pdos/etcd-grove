@@ -32,6 +32,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LivePayload
 
 @[expose] public section
 
@@ -833,16 +834,161 @@ theorem rangeAnswers_entriesC (log₀ ilog : Log) (pend : List Change) (L : List
   rw [← reader_range log₀ ilog pend hcmp hcount (by have := hwf0.2.1; omega) hwf hcs k e r hr,
     ← IdxCRep.rangeAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz, rangeAt_entries]
 
+/-! ### The live sizes (etcd-io/etcd#22475): `keyIndex.liveSize` of every key index in the tree -/
+
+/-- The `liveSize` fields of the items `its` (pointer, key), each the key's part of the live
+payload after `log` (`LivePayload.lean`), at fraction `q`. -/
+def ownLiveI (its : List (Loc × GoString)) (log : Log) (q : Qp) : IProp GF :=
+  [∗list] it ∈ its, it.1.[keyIndex, go!"liveSize"] ↦{DFrac.own q} liveW log it.2
+
+/-- The `liveSize` fields of the tree's key indexes (`idxLockInv`). -/
+abbrev ownLive (L : List IdxEntry) (log : Log) (q : Qp) : IProp GF :=
+  ownLiveI (itemsOfEntries L) log q
+
+theorem ownLiveI_split (log : Log) (q1 q2 : Qp) : ∀ (its : List (Loc × GoString)),
+    ownLiveI (GF := GF) its log (q1 + q2) ⊢ ownLiveI its log q1 ∗ ownLiveI its log q2
+  | [] => by
+    unfold ownLiveI
+    iintro _; isplitl [] <;> (iapply BigSepL.bigSepL_nil_intro; iempintro)
+  | it :: its => by
+    unfold ownLiveI
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hp, Hs⟩
+    have ih := ownLiveI_split log q1 q2 its
+    unfold ownLiveI at ih
+    icases ih $$ Hs with ⟨Hs1, Hs2⟩
+    rw [show DFrac.own (q1 + q2) = DFrac.own q1 • DFrac.own q2 from rfl]
+    icases btree.tp_split (DFrac.own q1) (DFrac.own q2) _ _ $$ Hp with ⟨Hp1, Hp2⟩
+    isplitl [Hp1 Hs1]
+    · iapply BigSepL.bigSepL_cons.2; iframe
+    · iapply BigSepL.bigSepL_cons.2; iframe
+
+theorem ownLiveI_combine (log1 log2 : Log) (q1 q2 : Qp) : ∀ (its : List (Loc × GoString)),
+    ownLiveI (GF := GF) its log1 q1 ∗ ownLiveI its log2 q2 ⊢ ownLiveI its log1 (q1 + q2)
+  | [] => by
+    unfold ownLiveI
+    iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
+  | it :: its => by
+    unfold ownLiveI
+    iintro ⟨H1, H2⟩
+    icases BigSepL.bigSepL_cons.1 $$ H1 with ⟨Hp1, Hs1⟩
+    icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨Hp2, Hs2⟩
+    icombine Hp1 Hp2 gives %Heq
+    rw [← Heq]
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hp1 Hp2]
+    · rw [show DFrac.own (q1 + q2) = DFrac.own q1 • DFrac.own q2 from rfl]
+      iapply btree.tp_combine (DFrac.own q1) (DFrac.own q2) _ _; iframe
+    have ih := ownLiveI_combine log1 log2 q1 q2 its
+    unfold ownLiveI at ih
+    iapply ih
+    iframe
+
+/-- Inserting an item (by key) into the items' live sizes (a replaced item's is dropped). -/
+theorem ownLiveI_insert (log : Log) (q : Qp) (x : Loc × GoString) : ∀ (its : List (Loc × GoString)),
+    x.1.[keyIndex, go!"liveSize"] ↦{DFrac.own q} liveW log x.2 ∗ ownLiveI (GF := GF) its log q ⊢
+      ownLiveI (btInsert kiItemLess x its) log q
+  | [] => by
+    unfold ownLiveI
+    iintro ⟨H0, -⟩
+    simp only [btInsert]
+    iapply BigSepL.bigSepL_cons.2
+    iframe H0
+    iapply BigSepL.bigSepL_nil_intro; iempintro
+  | w :: ws => by
+    unfold ownLiveI
+    iintro ⟨H0, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hw, Hs⟩
+    unfold btInsert
+    split
+    · iapply BigSepL.bigSepL_cons.2
+      iframe Hw
+      have ih := ownLiveI_insert log q x ws
+      unfold ownLiveI at ih
+      iapply ih
+      iframe
+    · split
+      · iapply BigSepL.bigSepL_cons.2
+        iframe H0
+        iapply BigSepL.bigSepL_cons.2
+        iframe
+      · iapply BigSepL.bigSepL_cons.2
+        iframe H0 Hs
+
+/-- Erasing an item drops its live size. -/
+theorem ownLiveI_eraseIdx (log : Log) (q : Qp) : ∀ (its : List (Loc × GoString)) (j : Nat),
+    ownLiveI (GF := GF) its log q ⊢ ownLiveI (its.eraseIdx j) log q
+  | [], _ => by simp only [List.eraseIdx_nil]; iintro H; iexact H
+  | w :: ws, 0 => by
+    unfold ownLiveI
+    simp only [List.eraseIdx_cons_zero]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨-, Hs⟩
+    iexact Hs
+  | w :: ws, j + 1 => by
+    unfold ownLiveI
+    simp only [List.eraseIdx_cons_succ]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hw, Hs⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hw
+    have ih := ownLiveI_eraseIdx log q ws j
+    unfold ownLiveI at ih
+    iapply ih
+    iexact Hs
+
+/-- The live sizes, for another log that agrees on every key of the items. -/
+theorem ownLiveI_congr (log log' : Log) (q : Qp) (its : List (Loc × GoString))
+    (h : ∀ it ∈ its, liveW log' it.2 = liveW log it.2) :
+    ownLiveI (GF := GF) its log q ⊢ ownLiveI its log' q := by
+  unfold ownLiveI
+  refine BigSepL.bigSepL_mono (fun {i it} hi => ?_)
+  rw [h it (List.mem_of_getElem? hi)]
+
+/-- **One key's live size changes** (the writer's put or tombstone of `k`, its item at `i`): the
+other items' keys differ from `k` (the items are sorted), so their sizes are the new log's. -/
+theorem ownLiveI_update (log log' : Log) (q : Qp) (its : List (Loc × GoString))
+    (hs : its.Pairwise kiItemLess) (i : Nat) (x : Loc × GoString) (hi : its[i]? = some x)
+    (h : ∀ k, k ≠ x.2 → liveW log' k = liveW log k) :
+    ownLiveI (GF := GF) its log q ⊢
+      x.1.[keyIndex, go!"liveSize"] ↦{DFrac.own q} liveW log x.2 ∗
+      (x.1.[keyIndex, go!"liveSize"] ↦{DFrac.own q} liveW log' x.2 -∗ ownLiveI its log' q) := by
+  unfold ownLiveI
+  iintro H
+  icases BigSepL.bigSepL_lookup_acc_impl (Φ := fun _ it => iprop(it.1.[keyIndex, go!"liveSize"] ↦{DFrac.own q} liveW log it.2)) hi $$ H
+    with ⟨Hx, Hback⟩
+  iframe Hx
+  iintro Hx'
+  iapply Hback $$ %(fun _ it => iprop(it.1.[keyIndex, go!"liveSize"] ↦{DFrac.own q} liveW log' it.2)) [] Hx'
+  imodintro
+  iintro %j %y %hj %hji Hy
+  have hne : y.2 ≠ x.2 := by
+    intro he
+    rcases Nat.lt_or_gt_of_ne hji with hlt | hlt
+    · have := List.pairwise_iff_getElem.1 hs j i (List.getElem?_eq_some_iff.1 hj).1
+        (List.getElem?_eq_some_iff.1 hi).1 hlt
+      rw [(List.getElem?_eq_some_iff.1 hj).2, (List.getElem?_eq_some_iff.1 hi).2] at this
+      unfold kiItemLess at this; rw [he] at this; exact goStringLt_irrefl _ this
+    · have := List.pairwise_iff_getElem.1 hs i j (List.getElem?_eq_some_iff.1 hi).1
+        (List.getElem?_eq_some_iff.1 hj).1 hlt
+      rw [(List.getElem?_eq_some_iff.1 hj).2, (List.getElem?_eq_some_iff.1 hi).2] at this
+      unfold kiItemLess at this; rw [he] at this; exact goStringLt_irrefl _ this
+  simp only
+  rw [h y.2 hne]
+  iexact Hy
+
 /-- The `RWMutex`'s resource at fraction `q` (see the module docstring): the tree holds the
 events of `ilog ++ [pend]`, each key's index compacted at a level of its own, at most `cmax`, a
 lower bound of the compaction revision (`IdxCRep`, `Compact.lean`; the compaction job compacts
 key by key under the lock), below the length of a lower bound of the committed log (so below
-every writer's next revision). -/
+every writer's next revision). Each key index's `liveSize` (etcd-io/etcd#22475) is its key's
+part of the live payload of the state after `ilog ++ [pend]` (`ownLive`). -/
 def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
   iprop(∃ (ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int),
     "#Hhist" ∷ monoListLbOwn γ.hist (histShape ilog pend) ∗
     "Hnev" ∷ monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length ∗
     "Htree" ∷ ownTree t L q ∗
+    "Hlive" ∷ ownLive L (ilog ++ [pend]) q ∗
     "#Hcrev" ∷ crevLb γ cmax ∗
     "#Hcl" ∷ (∃ log₀ : Log, monoListLbOwn γ.log log₀ ∗ ⌜cmax < log₀.length⌝) ∗
     "%HL" ∷ ⌜IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
@@ -860,10 +1006,11 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       icases (hnat _).1 $$ Hnev with ⟨Hn1, Hn2⟩
       icases (ownTree_fractional t L).fractional q1 q2 |>.1 $$ Htree with ⟨Ht1, Ht2⟩
       icases idxCmpOwn_split γ L cmax q1 q2 $$ Hcmp with ⟨Hc1, Hc2⟩
-      isplitl [Hn1 Ht1 Hc1]
-      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn1 Ht1 Hc1; iframe #; ipureintro
+      icases ownLiveI_split _ q1 q2 _ $$ Hlive with ⟨Hv1, Hv2⟩
+      isplitl [Hn1 Ht1 Hc1 Hv1]
+      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn1 Ht1 Hc1 Hv1; iframe #; ipureintro
         exact ⟨HL, Hwf⟩
-      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn2 Ht2 Hc2; iframe #; ipureintro
+      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn2 Ht2 Hc2 Hv2; iframe #; ipureintro
         exact ⟨HL, Hwf⟩
     · iintro ⟨H1, H2⟩
       unfold idxLockInv
@@ -881,6 +1028,9 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       iexists ilog1, pend1, L1, cmax1
       simp only [named]
       iframe Htree
+      ihave Hlive := ownLiveI_combine _ _ q1 q2 _ $$ [Hlive1 Hlive2]
+      · iframe Hlive1 Hlive2
+      iframe Hlive
       ihave Hcmp := idxCmpOwn_combine γ L1 cmax1 cmax2 q1 q2 $$ [Hcmp1 Hcmp2]
       · iframe Hcmp1 Hcmp2
       iframe Hcmp

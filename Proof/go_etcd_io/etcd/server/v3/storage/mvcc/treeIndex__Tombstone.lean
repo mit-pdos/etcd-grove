@@ -77,6 +77,9 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     rw [mvcc.evsOfHist_histShape, mvcc.evsOfHist_histShape] at this
     exact this
   rw [hevs] at HLL
+  have hcongr := mvcc.ownLiveI_congr (GF := GF) (hG := hG) (ilog' ++ [pend']) (ilog ++ [pend]) 1
+    (mvcc.itemsOfEntries L) (fun it _ => mvcc.liveW_congr_evs hevs.symm it.2)
+  ihave HliveL := hcongr $$ HliveL
   iunfold mvcc.ownTree at HtreeL
   icases HtreeL with ⟨%Hsorted, Ht, Hkis⟩
   wp_apply (wp_Get mvcc.kiPtrT t mvcc.kiItemIs mvcc.kiItemLess _ _ «$r0_ptr» («$r0_ptr», k))
@@ -120,6 +123,21 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   simp only [Option.map_some] at Hidx
   obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
   obtain ⟨cz, hcz0, hcz1, hz, hne0⟩ := mvcc.IdxCRep.get_some HLL.1 Hidx
+  -- the key's live size, borrowed from the tree's
+  have hii : (mvcc.itemsOfEntries L)[i]? = some (z.1, z.2.1) := by
+    unfold mvcc.itemsOfEntries; rw [List.getElem?_map, hi]; rfl
+  have hoth : ∀ k' : GoString, k' ≠ (z.1, z.2.1).2 →
+      mvcc.liveW (ilog ++ [pend ++ [.del k]]) k' = mvcc.liveW (ilog ++ [pend]) k' := by
+    intro k' hk'
+    apply mvcc.liveW_snoc_other ilog pend (.del k) k'
+    intro h
+    apply hk'
+    rw [hk]
+    exact h.symm
+  have hupd := mvcc.ownLiveI_update (GF := GF) (hG := hG) (ilog ++ [pend]) (ilog ++ [pend ++ [.del k]]) 1
+    (mvcc.itemsOfEntries L) Hsorted i (z.1, z.2.1) hii
+  have hupd := hupd hoth
+  icases hupd $$ HliveL with ⟨Hlz, HliveBack⟩
   have hlast : mvcc.kiLastEmpty z.2.2 = false := by
     rw [hz, mvcc.kiCompact_lastEmpty _ hb0 k cz hcz0 (by omega)]; exact hlast
   have hne : mvcc.kiIsEmpty z.2.2 = false ∧ z.2.2.gens ≠ [] :=
@@ -159,7 +177,9 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   ihave HcmpL := mvcc.idxCmpOwn_mono γ _ L
     (L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) cmax
     (fun p hp => by rwa [mvcc.ptrs_set L i z (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩) hi rfl]) $$ HcmpL
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL]
+  ihave HliveL := HliveBack $$ [Hlz]
+  · rw [hk, mvcc.liveW_snoc_del]; iexact Hlz
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL HliveL]
   · inext
     iunfold mvcc.idxLockInv
     iexists ilog, pend ++ [.del k],
@@ -182,6 +202,8 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
       iexists gs'
       rw [← hrevm, ← hrevs]
       iexact Hki
+    isplitl [HliveL]
+    · simp only [mvcc.ownLive]; rw [hset]; iexact HliveL
     isplitl []
     · iexact HcrevL
     isplitl []
@@ -192,6 +214,9 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     simp only [mvcc.idxTombstone, Hidx, hlast, Bool.false_eq_true, ↓reduceIte] at hidxnew
     exact hidxnew
   (try wp_auto)
+  rw [show -mvcc.liveW (ilog ++ [pend]) z.2.1 =
+      mvcc.liveW (ilog ++ [pend ++ [.del k]]) k - mvcc.liveW (ilog ++ [pend]) k by
+    rw [hk, mvcc.liveW_snoc_del]; simp]
   iapply HΦ
   iunfold mvcc.idxWriter
   rw [← mvcc.histShape_ev, hcount]

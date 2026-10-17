@@ -1,0 +1,9 @@
+=== RUN   TestLiveKVPayloadTwoStoresShareGauge
+    kvstore_live_payload_review_test.go:37: after puts: gauge=12, s1=4, s2=8
+    kvstore_live_payload_review_test.go:40: after restarting s1: gauge=4, s1=4, s2=8
+    kvstore_live_payload_review_test.go:42: after deleting s2's key: gauge=-4, s1=4, s2=0
+--- PASS: TestLiveKVPayloadTwoStoresShareGauge (0.03s)
+=== RUN   TestLiveKVPayloadPartialCompactionResume
+--- PASS: TestLiveKVPayloadPartialCompactionResume (0.70s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.755s

@@ -2357,7 +2357,8 @@ theorem changesAre_snoc (ps : List Loc) (ilog : Log) (pend : List Change) (c : C
 
 /-- The `storeTxnWrite` at `tw` of a write transaction of the store `s` at the committed log
 `ilog`, with the pending changes `pend` (the next revision's, not yet visible to readers): its
-fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written), the batch
+fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written,
+`liveSizeDelta` what the pending changes add to the live payload: `pendDelta`, etcd-io/etcd#22475), the batch
 transaction locked with the pending puts, the batch lock's resource (`writerRes`, with the
 pending changes in the index writer's handle), the revision token the transaction was opened
 with, and the transaction's tokens: `s.mu` held shared at the compaction revision `crev` the
@@ -2375,7 +2376,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
         storeTxnCommon' := {
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-        changes' := chs } : storeTxnWrite) ∗
+        changes' := chs, liveSizeDelta' := pendDelta ilog pend } : storeTxnWrite) ∗
     "Hchs" ∷ chs ↦* ps ∗
     "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
     "%Hps" ∷ ⌜ps.length = pend.length⌝ ∗
@@ -2422,7 +2423,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
         storeTxnCommon' := {
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-        changes' := chs } : storeTxnWrite) ∗
+        changes' := chs, liveSizeDelta' := pendDelta ilog pend } : storeTxnWrite) ∗
     "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
     "%Hps" ∷ ⌜ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧ 0 ≤ sint.Z chs.len⌝ ∗
     "#Hs" ∷ isStore s γ ∗
