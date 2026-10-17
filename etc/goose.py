@@ -139,9 +139,9 @@ PROJECTS = [
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
-                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
+                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=", "net/url=",
                     "net=",
-                    "encoding/hex=", "container/heap=", "unicode/utf8=",
+                    "encoding/hex=", "encoding/json=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
         packages=[
             # with bodies (cache/v3.toml)
@@ -243,9 +243,14 @@ PROJECTS = [
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",
+            # (net/url: the type of http.Request.URL, whose Path the peer hashKV handler checks;
+            # PR etcd#22243)
+            "net/url",
             # (net: the interface net.Addr, the type of grpc's peer.Peer's fields; unit P3a)
             "net",
             "encoding/hex",
+            # (encoding/json: the peer hashKV handler decodes its request with it; PR etcd#22243)
+            "encoding/json",
             # (container/heap: the lessor's expiry notifier pushes and fixes its queue)
             "container/heap",
             # (unicode/utf8: the server's unary interceptor checks the client's API version,
@@ -283,7 +288,7 @@ PROJECTS = [
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               "net", os.path.join("encoding", "hex"),
+               "net", os.path.join("encoding", "hex"), os.path.join("encoding", "json"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin")],
         # etcd itself: not its tests, tools or root module

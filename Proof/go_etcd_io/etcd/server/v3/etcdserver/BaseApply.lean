@@ -56,6 +56,27 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
 
 end net.http
 
+-- 2026-10-17 (PR etcd#22243, the peer hashKV handler `hashKVHandler.ServeHTTP`): `net/url`
+-- (the type of `http.Request.URL`) and `encoding/json` (the request's decoding), both
+-- names-only.
+namespace net.url
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.url :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.url :=
+  build_get_is_pkg_init_wf
+
+end net.url
+
+namespace encoding.json
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.json :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
+  build_get_is_pkg_init_wf
+
+end encoding.json
+
 -- `go-humanize`: mvcc's `Base.lean` (2026-10-13: mvcc's compaction calls `humanize.Bytes`).
 
 -- zap, zapcore, protoreflect and proto: `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (clientv3

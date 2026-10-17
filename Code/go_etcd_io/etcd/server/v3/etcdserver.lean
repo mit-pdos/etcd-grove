@@ -5,8 +5,10 @@ public import Perennial.Code.context
 public import Code.github_com.Masterminds.semver.v3
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.api.v3.version
+public import Code.encoding.json
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
+public import Perennial.Code.io
 public import Code.net.http
 public import Perennial.Code.time
 public import Code.github_com.dustin.go_humanize
@@ -27,6 +29,7 @@ public import Code.go_etcd_io.etcd.server.v3.storage.wal
 public import Code.go_etcd_io.raft.v3
 public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.strconv
+public import Code.net.url
 public import Perennial.Code.sync
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
 public import Code.github_com.prometheus.client_golang.prometheus
@@ -243,7 +246,11 @@ attribute [irreducible] zapRaftLogger.ty
 
 axiom Response.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom PeerHashKVPath [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PeerHashKVPath [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/members/hashkv")
+
+@[reducible] noncomputable def maxHashKVHTTPRequestSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(65536 : Int)
 
 axiom maxSizePerMsg [FfiSyntax] [GoGlobalContext] : val
 
@@ -645,6 +652,244 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [FfiSyntax] [GoGlobalContext
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.StartNode []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))))))))))))))
+
+/-- go: corrupt.go:528:25 -/
+noncomputable def hashKVHandler.ServeHTTP.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "w"
+  (Lam "r"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType hashKVHandler.ty)))) (Var "h"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "r"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.io.ReadCloser.ty _root_.Perennial.io.Reader.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Request.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "r"))))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val maxHashKVHTTPRequestSize))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.MaxBytesReader []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.io.ReadAll []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty))) (LiteralValue [])))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)))) (Var "req"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty go!"HashByRev"))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"HashStorage"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"KV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef hashKVHandler.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashKVHandler.ty)))) (Var "h"))))) (Val #()))) (Val #()))) (Var "$a0")))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "hash" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Revision")) (ElementExpression go.int64 (Var "$v0")))]))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty go!"Hash"))) (Var "hash")))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty go!"CompactRevision"))) (Var "hash")))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty go!"Revision"))) (Var "hash")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Hash")) (ElementExpression go.uint32 (Var "$v1"))), (KeyedElement (some (KeyField go!"CompactRevision")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"HashRevision")) (ElementExpression go.int64 (Var "$v3")))])))))))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty)))) (Var "resp")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.encoding.json.Marshal []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "respBytes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "respBytes"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.http.ResponseWriter.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Content-Type"))
+  (Let "$a1" (Val #(go!"application/json"))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.http.Header.ty go!"Set"))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.http.ResponseWriter.ty go!"Header"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"X-Etcd-Cluster-ID"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty go!"ID"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef hashKVHandler.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashKVHandler.ty)))) (Var "h"))))) (Val #()))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.http.Header.ty go!"Set"))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.http.ResponseWriter.ty go!"Header"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusInternalServerError))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to marshal hashKV response"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef hashKVHandler.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashKVHandler.ty)))) (Var "h"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "respBytes") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusBadRequest))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to get hashKV"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"requested-revision"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)))) (Var "req"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef hashKVHandler.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashKVHandler.ty)))) (Var "h"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rev") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash.ty))) (Pair (Var "hash") (Var "$r0"))))))))))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)))) (Var "req")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.encoding.json.Unmarshal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"error unmarshalling request"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusBadRequest))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to unmarshal request"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef hashKVHandler.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashKVHandler.ty)))) (Var "h"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "maxBytesErr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"error reading body"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusBadRequest))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType (go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty)) go.any))) (Var "maxBytesErr"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.As []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"request body too large"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusRequestEntityTooLarge))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.ReadCloser.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Request.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "r")))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"X-Etcd-Cluster-ID"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.http.Header.ty) go!"Get"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Request.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "r")))) (Var "$a0")))
+  (Let "gcid" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "gcid")) (Val #(go!""))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "gcid")) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef hashKVHandler.ty go!"server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashKVHandler.ty)))) (Var "h"))))))) (Val #()))) (Val #()))))) (Val #false)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ErrClusterIDMismatch))) (Val #())))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusPreconditionFailed))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "gcid") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "r")))))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val PeerHashKVPath))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"bad path"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusBadRequest))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Request.ty go!"Method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.net.http.MethodGet))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (Val #(go!"Method Not Allowed"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusMethodNotAllowed))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Error []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Allow"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.net.http.MethodGet))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.http.Header.ty go!"Set"))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.http.ResponseWriter.ty go!"Header"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.http.ResponseWriter.ty))) (Var "w"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
 
 /-- go: interface.go:22:22 -/
 noncomputable def EtcdServer.ApplyWait.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -4753,7 +4998,7 @@ noncomputable def EtcdServer.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Pair (Var "authInfo") (Var "$r0")))))))))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.errors, pkg_id.fmt, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.encoding.json, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.net.url, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -4761,6 +5006,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4885,9 +5133,13 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.version.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.encoding.json.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -4928,6 +5180,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -5574,6 +5828,7 @@ class hashKVHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_lg : ∀ (x : hashKVHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashKVHandler.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : hashKVHandler)))
   get_server : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"server") #x (Val #(x.server'))
   set_server : ∀ (x : hashKVHandler) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashKVHandler.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : hashKVHandler)))
+  ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType hashKVHandler.ty) go!"ServeHTTP" hashKVHandler.ServeHTTP.impl
 
 attribute [instance] hashKVHandler.TypeAssumptions.type_repr
   hashKVHandler.TypeAssumptions.underlying
@@ -5581,6 +5836,7 @@ attribute [instance] hashKVHandler.TypeAssumptions.type_repr
   hashKVHandler.TypeAssumptions.set_lg
   hashKVHandler.TypeAssumptions.get_server
   hashKVHandler.TypeAssumptions.set_server
+  hashKVHandler.TypeAssumptions.ptr_ServeHTTP_unfold
 
 structure toApply [FfiSyntax] where
   mk ::
@@ -6715,8 +6971,10 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_io_Assumption : _root_.Perennial.io.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_humanize_Assumption : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
@@ -6737,6 +6995,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  import_url_Assumption : _root_.Perennial.net.url.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
   import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
@@ -6813,8 +7072,10 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.import_semver_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_version_Assumption
+  Assumptions.import_json_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
+  Assumptions.import_io_Assumption
   Assumptions.import_http_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_humanize_Assumption
@@ -6835,6 +7096,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.import_raft_Assumption
   Assumptions.import_raftpb_Assumption
   Assumptions.import_strconv_Assumption
+  Assumptions.import_url_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_mvcc_Assumption
   Assumptions.import_prometheus_Assumption
