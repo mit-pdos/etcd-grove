@@ -1,0 +1,12 @@
+== base
+=== RUN   TestReleaseSnapDBsDeletesDBPendingApply
+    snapshotter_release_pending_test.go:42: DBFilePath(100) after ReleaseSnapDBs(200): snap: snapshot file doesn't exist
+--- FAIL: TestReleaseSnapDBsDeletesDBPendingApply (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/snap	0.015s
+FAIL
+== up
+=== RUN   TestReleaseSnapDBsDeletesDBPendingApply
+--- PASS: TestReleaseSnapDBsDeletesDBPendingApply (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/snap	0.017s

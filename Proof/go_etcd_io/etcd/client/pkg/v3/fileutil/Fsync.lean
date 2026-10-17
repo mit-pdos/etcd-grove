@@ -1,7 +1,6 @@
 /-
-The trust boundary: `fileutil.Fsync(f)` (`client/pkg/fileutil/sync_linux.go`: `f.Sync()`, `fsync(2)`; names-only).
-Lean-first (no Rocq counterpart); etcd PR #22518 (branch `pr-verify/etcd-22518`), see
-`InvSnapshotBackend.lean`.
+The trust boundary: `fileutil.Fsync` (names-only here: no file-system model). Lean-first (no Rocq counterpart); etcd
+PR #22046 (branch `pr-verify/etcd-22046`), for `(*snap.Snapshotter).SaveDBFrom`.
 -/
 module
 
@@ -14,7 +13,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI 
+open Iris Iris.BI
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

@@ -13435,17 +13435,21 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
 
-## Branch `pr-verify/etcd-22518` (etcd PR #22518, not for `lean`)
+## Branch `pr-verify/etcd-22046` (etcd PR #22046, not for `lean`)
 
-`storage.OpenSnapshotBackend` (translated with the PR's `syncSnapDir`) is proved against a spec
-of directory-entry durability (`Proof/go_etcd_io/etcd/server/v3/storage/InvSnapshotBackend.lean`):
-opaque resources produced only by trust-boundary specs of `os.Rename` and `fileutil.Fsync`, since
-Perennial's Lean port has no crash or file-system model. Report:
-`notes/pr-verify/etcd-22518.md`.
+The snapshotter's pending-apply marks (`snap.New`, `markPendingDB`, `isPendingDB`,
+`ReleaseDBSnapshot`, `ReleaseSnapDBs`, `SaveDBFrom`) and `storage.OpenSnapshotBackend` are
+translated with bodies and proved against logically atomic specs over the abstract pending set
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Defs.lean`). Built on etcd PR #22518's
+branch (its two commits cherry-picked: the `storage.toml`, the file-system vocabulary of
+`storage/InvSnapshotBackend.lean`, the specs of `os.Rename`, `File.Close`, `DBFilePath`,
+`BackendPath`, `OpenBackend`), with #22518's `syncSnapDir` and the specs only it needed removed.
+`path/filepath` (standard library, not in Perennial) is translated names-only here (`etc/goose.py`,
+`Code/path/filepath.toml`); `snap`'s package facts now state its two histograms
+(`apply/Base.lean`, `snapInit`). Report: `notes/pr-verify/etcd-22046.md`.
 
-Limitation found: a function taking `config.ServerConfig` **by value** reaches the generated
-`sorry -- axiomatized type` instances of its names-only field types (`transport.TLSInfo`,
-`types.URLs`, `v3discovery.DiscoveryConfig`). Goose spills the parameter to the heap and loads it
-whole, and both steps need the struct's typed points-to. Removing them needs those types
-translated. Field-level specs (`ServerConfig.SnapDir`/`BackendPath` over `DataDir`) avoid the
-problem only in the statements.
+Limitations (as for #22518): no file-system model (removal rights `fs.removable` and the parse of a
+name are abstract); a function taking `config.ServerConfig` by value
+(`OpenSnapshotBackend`) reaches the generated `sorry -- axiomatized type` instances of its
+names-only field types (`transport.TLSInfo`, `types.URLs`, `v3discovery.DiscoveryConfig`).
+A `MethodResolve` on `time.Duration` needs `haveI : go.NotInterface go.int64` in the proof.

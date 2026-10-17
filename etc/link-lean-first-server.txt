@@ -28,23 +28,47 @@ schema_MustUnsafeSaveConfStateToBackend:
 storage_NewBackendHooks:
 storage_BackendHooks__OnPreCommitUnsafe: schema_MustUnsafeSaveConfStateToBackend batchTxBuffered__UnsafePut schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
 batchTxBuffered__UnsafePut: @
-# etcd PR #22518 (branch pr-verify/etcd-22518 only): `OpenSnapshotBackend` (server/storage/
-# backend.go) with the new `syncSnapDir`, see storage/InvSnapshotBackend.lean (an abstract model of
-# directory-entry durability); the trust boundary: os.Rename, (*os.File).Close, fileutil's
-# OpenDir and Fsync, snap's DBFilePath, config's SnapDir and BackendPath (names-only), and
-# storage.OpenBackend (names-only).
+# etcd PR #22046 (branch pr-verify/etcd-22046 only): the snapshotter's pending-apply marks
+# (server/etcdserver/api/snap/{db.go,snapshotter.go}; etcdserver/api/snap/Defs.lean): New,
+# markPendingDB, isPendingDB, ReleaseDBSnapshot, ReleaseSnapDBs, SaveDBFrom, and `OpenSnapshotBackend`
+# (server/storage/backend.go), which drops the mark after the rename. The trust boundary: os's
+# Open, Readdirnames, Close, Remove, IsNotExist, Rename, strings' HasSuffix and TrimSuffix,
+# strconv.ParseUint, filepath's Base and Join, os.CreateTemp, File.Name, io.Copy, fileutil's
+# Fsync and Exist, snap's dbFilePath and fsyncSnapDir (names-only), snap's DBFilePath, config's
+# BackendPath and storage.OpenBackend (names-only). (The vocabulary of storage/InvSnapshotBackend.lean
+# and the specs of os.Rename, File.Close, DBFilePath, BackendPath and OpenBackend are etcd PR
+# #22518's, branch pr-verify/etcd-22518.)
 os_Rename:
 os_File__Close:
-fileutil_OpenDir:
-fileutil_Fsync:
+os_Open:
+os_File__Readdirnames:
+os_Remove:
+os_IsNotExist:
+strings_HasSuffix:
+strings_TrimSuffix:
+strconv_ParseUint:
+filepath_Base:
+filepath_Join:
 snap_Snapshotter__DBFilePath:
-config_ServerConfig__SnapDir:
 config_ServerConfig__BackendPath:
 storage_OpenBackend:
 fmt_Errorf: @
 zap_Logger__Info:
-storage_syncSnapDir: fileutil_OpenDir fileutil_Fsync os_File__Close
-storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf config_ServerConfig__BackendPath os_Rename config_ServerConfig__SnapDir storage_syncSnapDir zap_String zap_Logger__Info storage_OpenBackend
+zap_NewNop:
+snap_New: zap_NewNop
+snap_Snapshotter__markPendingDB:
+snap_Snapshotter__isPendingDB:
+snap_Snapshotter__ReleaseDBSnapshot:
+os_CreateTemp:
+os_File__Name:
+io_Copy:
+fileutil_Fsync:
+fileutil_Exist:
+snap_Snapshotter__dbFilePath:
+snap_fsyncSnapDir:
+snap_Snapshotter__SaveDBFrom: snap_Snapshotter__markPendingDB snap_Snapshotter__dbFilePath snap_fsyncSnapDir os_CreateTemp os_File__Name os_File__Close os_Remove os_Rename io_Copy fileutil_Fsync fileutil_Exist time_Duration__Seconds go_humanize_Bytes zap_Logger__Info zap_Logger__Warn zap_String zap_Int64 zap_Error
+snap_Snapshotter__ReleaseSnapDBs: SnapshotMetadata__GetIndex snap_Snapshotter__isPendingDB os_Open os_File__Readdirnames os_File__Close os_Remove os_IsNotExist strings_HasSuffix strings_TrimSuffix strconv_ParseUint filepath_Base filepath_Join zap_String zap_Logger__Info zap_Logger__Error
+storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf config_ServerConfig__BackendPath os_Rename snap_Snapshotter__ReleaseDBSnapshot storage_OpenBackend
 # The lessor's KV-facing methods (server/lease/lessor.go; the backend's unit 8, 2026-10-13), see
 # lease/InvLessor.lean: mvcc's and the txn package's lessor contracts are derived from them
 # (lease/LessorContract.lean).

@@ -1,0 +1,5 @@
+# Names only: the snapshotter's ReleaseSnapDBs calls Base and Join (etcd PR #22046).
+translate = ["!*"]
+imports = ["!*"]
+
+translate_types = true

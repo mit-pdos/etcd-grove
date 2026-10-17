@@ -29,6 +29,7 @@ mvcc's.
 module
 
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import GeneratedProof.path.filepath
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
@@ -392,15 +393,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.config
 
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.snap
-
 namespace go_etcd_io.etcd.client.pkg.v3.fileutil
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil :=
@@ -409,6 +401,35 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.client.pkg.v3.fileutil
+
+-- etcd PR #22046 (branch pr-verify/etcd-22046): `snap` translates `ReleaseSnapDBs` and
+-- `SaveDBFrom`, which call `path/filepath` (names only, standard library not in Perennial).
+namespace path.filepath
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path.filepath :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path.filepath :=
+  build_get_is_pkg_init_wf
+
+end path.filepath
+
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
+
+/-- `snap`'s package facts (etcd PR #22046, branch `pr-verify/etcd-22046`: `SaveDBFrom` has a
+body): the histograms `snapDBFsyncSec` and `snapDBSaveSec` (`metrics.go`), whose `Observe`
+returns, read-only. An assumption about package initialization, as mvcc's metrics. -/
+def snapInit : IProp GF :=
+  iprop((∃ h : GoInterfaceOk, globalAddr snapDBFsyncSec ↦□ GoInterface.ok h ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.histSpec h) ∗
+    (∃ h : GoInterfaceOk, globalAddr snapDBSaveSec ↦□ GoInterface.ok h ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.histSpec h))
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
+  define_is_pkg_init snapInit
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 -- `server/v3/storage` (names only: `Quota`, `BackendQuota`)
 namespace go_etcd_io.etcd.server.v3.storage

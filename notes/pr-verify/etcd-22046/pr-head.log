@@ -1,0 +1,15 @@
+=== RUN   TestReleaseSnapDBsUnappliedDBIsKept
+    snapshotter_pending_test.go:58: snapshot db 100 was never applied and is still on disk after releases at 200 and 300
+--- FAIL: TestReleaseSnapDBsUnappliedDBIsKept (0.01s)
+=== RUN   TestReleaseSnapDBsReceivedAgainAfterApplyIsKept
+    snapshotter_pending_test.go:92: the re-received snapshot db 100 is still on disk after a release at 200
+--- FAIL: TestReleaseSnapDBsReceivedAgainAfterApplyIsKept (0.01s)
+=== RUN   TestSaveDBFromRacesReleaseSnapDBs
+    snapshotter_pending_test.go:132: SaveDBFrom(100) returned nil, then DBFilePath(100): snap: snapshot file doesn't exist (pending mark set: true)
+    snapshotter_pending_test.go:137: a concurrent ReleaseSnapDBs removed a file SaveDBFrom saved and marked
+--- FAIL: TestSaveDBFromRacesReleaseSnapDBs (0.00s)
+=== RUN   TestReleaseSnapDBsRetainsSnapshotPendingApply
+--- PASS: TestReleaseSnapDBsRetainsSnapshotPendingApply (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/snap	0.036s
+FAIL

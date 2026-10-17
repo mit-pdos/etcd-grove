@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart); etcd PR #22518 (branch `pr-verify/etcd-22518`)
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.InvSnapshotBackend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 
 @[expose] public section
 
@@ -25,10 +25,12 @@ variable [sem : go.Semantics]
 error (no such file, or the directory cannot be read). It reads the snapshotter's `dir` field
 (set by `snap.New`, never written after) and lists the directory, which other goroutines may
 change meanwhile (`SaveDBFrom`, `SaveSnap`, `ReleaseSnapDBs`); the spec says nothing about the
-file's existence when the caller uses the path. -/
+file's existence when the caller uses the path. (etcd PR #22046's branch adds the
+snapshotter precondition: the method reads `ss.dir`, so it needs a snapshotter.) -/
 abbrev snap.Snapshotter.DBFilePath.spec : Prop :=
-  ∀ (ss : Loc) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap }}
+  ∀ (ss : Loc) (γ : GName) (dir : GoString) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗
+      isSnapshotter ss γ dir }}
     (App (Val (ss @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty
       @!! go!"DBFilePath")) (Val #id))
   {{ (p : GoString) (err : GoInterface), RET (PairV #p #err); fsResult err iprop(⌜p = snapDBPath ss id⌝) iprop(True) }}

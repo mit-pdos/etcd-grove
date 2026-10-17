@@ -1,0 +1,4 @@
+=== RUN   TestReleaseSnapDBsUnappliedDBIsKept
+--- PASS: TestReleaseSnapDBsUnappliedDBIsKept (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/snap	0.014s

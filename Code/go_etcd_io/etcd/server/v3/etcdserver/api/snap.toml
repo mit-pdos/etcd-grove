@@ -1,6 +1,12 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# Types and names only: function and method bodies are axiomatized, except, on branch
+# pr-verify/etcd-22046 (etcd PR #22046, the pending-apply marks of the snapshot database files),
+# `New`, the marks' `markPendingDB`, `isPendingDB`, `ReleaseDBSnapshot`, and their callers
+# `ReleaseSnapDBs` and `SaveDBFrom`, with the packages they call.
+translate = ["!*", "New", "Snapshotter.markPendingDB", "Snapshotter.isPendingDB",
+  "Snapshotter.ReleaseDBSnapshot", "Snapshotter.ReleaseSnapDBs", "Snapshotter.SaveDBFrom"]
+imports = ["!*", "sync", "os", "strings", "strconv", "path/filepath", "io", "time",
+  "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb", "go.etcd.io/etcd/client/pkg/v3/fileutil",
+  "github.com/dustin/go-humanize", "github.com/prometheus/client_golang/prometheus"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

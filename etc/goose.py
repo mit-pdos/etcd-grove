@@ -141,7 +141,7 @@ PROJECTS = [
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "net=",
-                    "encoding/hex=", "container/heap=", "unicode/utf8=",
+                    "encoding/hex=", "container/heap=", "unicode/utf8=", "path/filepath=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
         packages=[
             # with bodies (cache/v3.toml)
@@ -254,6 +254,9 @@ PROJECTS = [
             # (unicode/utf8: the server's unary interceptor checks the client's API version,
             # unit P3b)
             "unicode/utf8",
+            # (path/filepath: the snapshotter's ReleaseSnapDBs, etcd PR #22046, branch
+            # pr-verify/etcd-22046 only)
+            "path/filepath",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
@@ -288,6 +291,7 @@ PROJECTS = [
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                "net", os.path.join("encoding", "hex"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
+               os.path.join("path", "filepath"),
                os.path.join("github_com", "dustin")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
