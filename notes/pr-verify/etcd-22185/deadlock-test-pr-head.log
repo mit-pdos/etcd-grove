@@ -1,0 +1,4 @@
+=== RUN   TestProgressIfSyncDeadlock
+--- PASS: TestProgressIfSyncDeadlock (0.21s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.225s

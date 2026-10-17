@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR etcd-io/etcd#22185: `progressIfSync` reads the revision under `revMu` (2026-10-17, branch `pr-verify/etcd-22185`)
+
+The PR's fix of a lock-order deadlock (`issues/etcd-watch-progress-lock-order-deadlock.md`)
+translated (fork branch `pr-etcd-22185-goose-lean`, `757233c4a`) and
+`mvcc.watchableStore.progressIfSync.wp_proof` re-proved against its unchanged spec: the proof now
+takes `s.store.revMu` shared through `storeReader`'s slot and reads `currentRev` from `revMuInv`,
+instead of calling `watchableStore.rev` (dropped from its callees in `etc/link-lean-first-mvcc.txt`).
+No new axiom or `sorry`. The deadlock itself is outside what a WP states (partial correctness, no
+lock-order obligation on `sync.RWMutex`): report `notes/pr-verify/etcd-22185.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

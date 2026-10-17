@@ -887,13 +887,9 @@ theorem mvcc.watchableStore.wp_watch :
     mvcc.watchableStore.watch.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.watch.wp_proof mvcc.watcherGroup.wp_add mvcc.watchableStore.wp_cancelWatcher
 
-theorem mvcc.watchableStore.wp_rev :
-    mvcc.watchableStore.rev.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
-
 theorem mvcc.watchableStore.wp_progressIfSync :
     mvcc.watchableStore.progressIfSync.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.progressIfSync.wp_proof mvcc.watchableStore.wp_rev mvcc.watcher.wp_send
+  mvcc.watchableStore.progressIfSync.wp_proof mvcc.watcher.wp_send
 
 theorem mvcc.watchableStore.wp_progress :
     mvcc.watchableStore.progress.spec (GF := GF) (hG := hG) :=
@@ -902,6 +898,10 @@ theorem mvcc.watchableStore.wp_progress :
 theorem mvcc.watchableStore.wp_progressAll :
     mvcc.watchableStore.progressAll.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.progressAll.wp_proof mvcc.watchableStore.wp_progressIfSync
+
+theorem mvcc.watchableStore.wp_rev :
+    mvcc.watchableStore.rev.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
 
 theorem mvcc.watchableStore.wp_NewWatchStream :
     mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) :=

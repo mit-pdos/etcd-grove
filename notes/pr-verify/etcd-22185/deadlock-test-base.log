@@ -1,0 +1,4 @@
+    watchable_store_progress_deadlock_test.go:66: deadlock: write txn End() blocked on watchable.mu while progressIfSync holds it and waits on store.mu
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	3.227s
+FAIL

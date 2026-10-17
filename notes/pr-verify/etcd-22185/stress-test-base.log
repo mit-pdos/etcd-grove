@@ -1,0 +1,5 @@
+=== RUN   TestReviewProgressIfSyncStress
+    watchable_store_progress_stress_test.go:132: deadlock: workers did not stop
+panic: test timed out after 1m0s
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	60.070s
+FAIL

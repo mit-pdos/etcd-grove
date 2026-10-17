@@ -1,0 +1,14 @@
+# etcd-io/etcd#22185 (progressIfSync reads the revision under revMu): the function the PR changes
+# and its callers' linked results (progress, progressAll, NewWatchStream, the watch stream's
+# progress requests).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22185.txt [--check [--update]]
+roots progressIfSync
+roots watchableStore__progress
+roots watchableStore__NewWatchStream
+roots watchStream__RequestProgress
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom verify.Verify.wp_proof

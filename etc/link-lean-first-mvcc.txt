@@ -180,7 +180,7 @@ watcher__send: verify_Verify
 watchableStore__watch: watcherGroup__add watchableStore__cancelWatcher
 watchableStore__cancelWatcher: watcherGroup__delete
 watchableStore__rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
-watchableStore__progressIfSync: watchableStore__rev watcher__send
+watchableStore__progressIfSync: watcher__send
 watchableStore__progress: watchableStore__progressIfSync
 watchableStore__progressAll: watchableStore__progressIfSync
 # The sync machinery and the constructors (watchable_store.go), unit 3b: the bucket read by

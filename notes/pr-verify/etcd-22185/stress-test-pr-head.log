@@ -1,0 +1,4 @@
+=== RUN   TestReviewProgressIfSyncStress
+--- PASS: TestReviewProgressIfSyncStress (3.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	4.074s

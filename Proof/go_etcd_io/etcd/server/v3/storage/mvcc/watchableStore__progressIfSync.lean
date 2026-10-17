@@ -4,7 +4,6 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
@@ -47,10 +46,8 @@ theorem mvcc.ownWatcherGroup_watchers_frac (wg : Loc) (W : GMap Loc mvcc.WatchRa
   ipureintro; exact HL
 
 theorem mvcc.watchableStore.progressIfSync.wp_proof
-    (hrev : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG))
     (hsend : mvcc.watcher.send.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.progressIfSync.spec (GF := GF) (hG := hG) := by
-  have hrev := mvcc.watchableStore.rev.spec_frozen hrev
   intro s st γ m dq M rid
   wp_start as ⟨#Hws, Hm, #HM, HR⟩
   iunfold mvcc.watchReader at HR
@@ -65,7 +62,32 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hslot] as ⟨Hrl, HP⟩
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
-  wp_apply hrev $$ [$Hws $Hrd] as %r ⟨Hrd, -⟩
+  -- the revision read under `s.store.revMu` shared (etcd#22185), not through `s.rev()`
+  iunfold mvcc.storeReader at Hrd
+  iNamedSuffix Hrd "R"
+  (try wp_auto)
+  wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl2, HQ⟩
+  wp_auto_lc 1
+  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
+  iunfold mvcc.revMuInv at HQ
+  icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
+  iNamedSuffix HQ "Q"
+  wp_auto
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl2 HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ] as HrevMuR
+  · iframe #
+    inext
+    iunfold mvcc.revMuInv
+    iexists C, ntok, cQ
+    simp only [named]
+    iframe
+    iframe #
+    ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
+  ihave Hrd : mvcc.storeReader st γ.st $$ [HmuR HrevMuR HtiR HrtR]
+  · iunfold mvcc.storeReader
+    iexists _
+    simp only [named]
+    iframe
+    iframe #
   (try wp_auto)
   ihave Hdx : (defer ↦ func.mk BAnon BAnon
       (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
@@ -81,7 +103,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       "Hdx" ∷ (defer ↦ func.mk BAnon BAnon
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
-      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
+      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ (W64 ((C.length : Int) - 1) : w64) ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗
       "%Hi" ∷ ⌜0 ≤ i ∧ ∀ (j : Nat) (id : w64) (w : Loc), j < i.toNat → keys[j]? = some id →
         M !! id = some w → (σ.Ws !! w).isSome⌝)) $$ Hm
@@ -191,7 +213,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       "Hdx" ∷ (defer ↦ func.mk BAnon BAnon
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
-      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
+      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ (W64 ((C.length : Int) - 1) : w64) ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ mvcc.watchReader s st γ -∗ Φ #b))) $$ Hm
   iintro %keys2 -
   isplitl [w responseWatchID Hrl Hdx HP Hrd rev HΦ]
