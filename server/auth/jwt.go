@@ -46,21 +46,7 @@ func (t *tokenJWT) info(ctx context.Context, token string, rev uint64) (*AuthInf
 		revision float64
 	)
 
-	parsed, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
-		if token.Method.Alg() != t.signMethod.Alg() {
-			return nil, errors.New("invalid signing method")
-		}
-		switch k := t.key.(type) {
-		case *rsa.PrivateKey:
-			return &k.PublicKey, nil
-		case *ecdsa.PrivateKey:
-			return &k.PublicKey, nil
-		case ed25519.PrivateKey:
-			return k.Public(), nil
-		default:
-			return t.key, nil
-		}
-	})
+	parsed, err := jwt.Parse(token, t.keyFunc)
 	if err != nil {
 		t.lg.Warn(
 			"failed to parse a JWT token",
@@ -93,6 +79,24 @@ func (t *tokenJWT) info(ctx context.Context, token string, rev uint64) (*AuthInf
 	}
 	// use revision from token claims for validation
 	return &AuthInfo{Username: username, Revision: uint64(revision)}, true
+}
+
+// keyFunc is info's jwt.Keyfunc. (goose: a method rather than a closure in info, so that
+// info's translation does not name the crypto key types.)
+func (t *tokenJWT) keyFunc(token *jwt.Token) (any, error) {
+	if token.Method.Alg() != t.signMethod.Alg() {
+		return nil, errors.New("invalid signing method")
+	}
+	switch k := t.key.(type) {
+	case *rsa.PrivateKey:
+		return &k.PublicKey, nil
+	case *ecdsa.PrivateKey:
+		return &k.PublicKey, nil
+	case ed25519.PrivateKey:
+		return k.Public(), nil
+	default:
+		return t.key, nil
+	}
 }
 
 func (t *tokenJWT) assign(ctx context.Context, username string, revision uint64) (string, error) {
