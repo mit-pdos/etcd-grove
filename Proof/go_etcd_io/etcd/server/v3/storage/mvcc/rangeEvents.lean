@@ -33,8 +33,8 @@ theorem mvcc.rangeEvents.wp_proof
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hKvs : mvcc.kvsToEvents.spec (GF := GF) (hG := hG)) :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) := by
-  intro lg b γ Wr P f q log minRev maxRev g W RT WT Wi Dep Cmp PutOk
-  wp_start as ⟨#Hbk, Hrt, #Hfrz, Hview, #Hcert, Hg, %Hrng⟩
+  intro lg b γ Wr P f q log minRev maxRev limit g W RT WT Wi Dep Cmp PutOk
+  wp_start as ⟨#Hbk, Hrt, #Hfrz, Hview, #Hcert, Hg, %Hrng, %Hlim⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert
     icases Hcert with ⟨-, -, %H, -⟩
@@ -79,10 +79,6 @@ theorem mvcc.rangeEvents.wp_proof
   icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   iunfold mvcc.keyRangeReadSpec at Hrange
   ihave HRg := Hrange $$ %bK %mn' %mx'
-  (try wp_auto)
-  wp_apply HRg $$ [$HKeyG $Htok $Hmn $Hmx] as %ks %vs ⟨Htok, Hmn, Hmx, #Hkv⟩
-  · ipureintro; simp [mvcc.revBytes]
-  (try wp_auto)
   obtain ⟨hwf, hlen, hcs⟩ := Hwf
   have h1 : 0 ≤ sint.Z maxRev := by omega
   have hlo : sint.nat minRev ≤ sint.nat maxRev := by unfold sint.nat; unfold sint.Z at *; omega
@@ -93,6 +89,12 @@ theorem mvcc.rangeEvents.wp_proof
     have := mvcc.bucketRange_logEnts log hwf hlen hcs _ _ hlo hhi
     rw [mvcc.W64_sint_nat _ Hrng.1, mvcc.W64_sint_nat _ h1] at this
     exact this
+  (try wp_auto)
+  wp_apply HRg $$ [$HKeyG $Htok $Hmn $Hmx] as %ks %vs ⟨Htok, Hmn, Hmx, #Hkv⟩
+  · ipureintro
+    refine ⟨by simp [mvcc.revBytes], ?_⟩
+    rw [hbr, List.length_map]; exact Hlim
+  (try wp_auto)
   iunfold mvcc.rangeVals at Hkv
   rw [hbr]
   wp_apply (hKvs lg g W ks vs (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)) Rd Tok)

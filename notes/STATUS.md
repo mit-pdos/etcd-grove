@@ -45,6 +45,15 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22594, bounded `syncWatchers` scan (2026-10-16, branch `pr-verify/etcd-22594`)
+
+The PR (unmerged) translated on this branch only: report `notes/pr-verify/etcd-22594.md`. mvcc's
+backend range contract `keyRangeReadSpec` (`InvStore.lean`) takes a limit that does not cut the
+range (`rtRange_safe_lim`, `BackendBridge.lean`); `rangeEvents` takes it (verified);
+`syncWatchers` keeps its spec and rests on the false `sorry` `mvcc.syncWatchers_scanLimit_uncut`
+(the PR loses watch events: Go counterexamples in `notes/pr-verify/etcd-22594/`). New issue:
+`issues/etcd-backend-readtx-range-limit-not-prefix.md`. Not for merging into `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

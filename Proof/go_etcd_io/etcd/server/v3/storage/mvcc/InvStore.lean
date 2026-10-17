@@ -262,17 +262,22 @@ instance rangeVals_persistent (Rd : GoSlice → GoString → IProp GF) (ks vs : 
     (klo khi : GoString) : Persistent (rangeVals Rd ks vs m klo khi) := by
   unfold rangeVals; infer_instance
 
-/-- `rt`'s `UnsafeRange(schema.Key, lo, hi, 0)`, for `lo` holding `klo` and `hi` holding a
+/-- `rt`'s `UnsafeRange(schema.Key, lo, hi, lim)`, for `lo` holding `klo` and `hi` holding a
 non-empty `khi`, under the reader's token `Tok`, reads the entries of the snapshot `m` with a
-key in `[klo, khi)`, in key order (bbolt's cursor from `klo` while below `khi`; the limit `0` is
-none). -/
+key in `[klo, khi)`, in key order (bbolt's cursor from `klo` while below `khi`), when the limit
+`lim` does not cut the range: `lim ≤ 0` (none) or at least the range's number of entries
+(pr-verify/etcd-22594: `rangeEvents` passes a limit; a limit that cuts the range returns bbolt's
+first entries then all of the read buffer's, not a prefix of the range, `rtRange`, and is not
+promised here). -/
 def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
     (Tok : IProp GF) : IProp GF :=
-  iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac),
+  iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac)
+      (lim : w64),
     {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Tok ∗ lo ↦*{dqlo} klo ∗
-        hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ }}
+        hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ ∗
+        ⌜sint.Z lim ≤ 0 ∨ ((bucketRange m klo khi).length : Int) ≤ sint.Z lim⌝ }}
       (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #lo))
-        (Val #hi)) (Val #(W64 0)))
+        (Val #hi)) (Val #lim))
     {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
         rangeVals Rd ks vs m klo khi }})
 

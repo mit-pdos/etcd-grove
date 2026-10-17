@@ -1,0 +1,10 @@
+--- FAIL: TestRangeEventsLimitIsPrefix (0.01s)
+    watchable_store_rangeevents_limit_test.go:60: rangeEvents(2, 27, limit 10) = revisions [2 3 4 5 6 22 23 24 25 26], want [2 3 4 5 6 7 8 9 10 11]
+--- FAIL: TestSyncWatchersScanLimitDeliversAll (6.18s)
+    --- FAIL: TestSyncWatchersScanLimitDeliversAll/event_of_the_watched_key_only_past_the_scan (3.09s)
+        watchable_store_scanlimit_test.go:92: watcher on "a" from revision 1 got events at revisions [], want [1102]
+    --- FAIL: TestSyncWatchersScanLimitDeliversAll/one_event_inside_the_scan,_one_past_it (3.08s)
+        watchable_store_scanlimit_test.go:92: watcher on "a" from revision 1 got events at revisions [12], want [12 1102]
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	6.256s
+FAIL

@@ -793,6 +793,73 @@ theorem rtRange_safe {P : BParams} (hP : bridgeParams P) {rv : RView} (hR : rv.2
   rw [hz, if_neg (by omega), List.take_of_length_le (by omega)]
   exact hwin
 
+/-- **A limited range of a safe `Key` bucket** in a readers' state is the bucket's range when
+the limit does not cut it (`lim ≤ 0`, none, or at least the range's length): bbolt's window then
+the read buffer's, the latter's keys above the former's (pr-verify/etcd-22594). -/
+theorem rtRange_safe_lim {P : BParams} (hP : bridgeParams P) {rv : RView} (hR : rv.2.Wf)
+    (hs : keySafe rv) {m : Bucket} (hv : keyView (vData P rv) m) (klo khi : GoString)
+    (hne : khi ≠ []) (lim : w64)
+    (hlim : sint.Z lim ≤ 0 ∨ ((bucketRange m klo khi).length : Int) ≤ sint.Z lim) :
+    rtRange rv keyBI klo khi lim = bucketRange m klo khi := by
+  have hk := hP.1
+  unfold BParams.has keyBI at hk
+  simp only at hk
+  have hRsort : entsSorted (bkOf rv.2.bks (W64 1)) := by
+    unfold bkOf
+    cases h : rv.2.bks.lookup (W64 1) with
+    | none => exact entsSorted_nil
+    | some es => exact hR _ es h
+  have hm : ∀ k, m.lookup k = (lastVal (bkOf rv.2.bks (W64 1)) k).or
+      ((bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName).lookup k) := by
+    intro k
+    rw [← vOf_key hP hv k]
+    unfold vOf ovB
+    rw [hk, Option.bind_some, dget_bktOf]
+  have hwin := windows_range (bktEnts (bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName))
+    (bkOf rv.2.bks (W64 1)) (bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName) m klo khi
+    (mem_bktEnts _) (bktEnts_sorted _) hRsort hm hs.1
+  have hlen := hs.2
+  rw [← bktEnts_length] at hlen
+  have hwR := (window_sublist (bkOf rv.2.bks (W64 1)) klo khi).length_le
+  have hwC := (window_sublist (bktEnts (bktOf rv.1
+    go_etcd_io.etcd.server.v3.storage.schema.keyName)) klo khi).length_le
+  generalize hWC : window (bktEnts (bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName))
+    klo khi = WC at hwin hwC
+  generalize hWR : window (bkOf rv.2.bks (W64 1)) klo khi = WR at hwin hwR
+  have hsum : ((bucketRange m klo khi).length : Int) = WC.length + WR.length := by
+    rw [← hwin, List.length_append]; push_cast; rfl
+  unfold rtRange
+  simp only [show keyBI.id = W64 1 from rfl,
+    show keyBI.name = go_etcd_io.etcd.server.v3.storage.schema.keyName from rfl]
+  rw [bbRange_window _ _ _ _ hne, cursorRange_window _ _ _ _ hne, hWC, hWR]
+  by_cases hl0 : sint.Z lim ≤ 0
+  · have hlim' : rangeLimit khi lim = W64 (2 ^ 63 - 1) := by
+      unfold rangeLimit; simp [hne, hl0]
+    have hlimZ : sint.Z (W64 (2 ^ 63 - 1)) = 2 ^ 63 - 1 := by rfl
+    rw [hlim', hlimZ]
+    rw [List.take_of_length_le (by
+      have : ((2 : Int) ^ 63 - 1).toNat = 2 ^ 63 - 1 := rfl
+      rw [this]; omega)]
+    have hz : sint.Z (W64 (2 ^ 63 - 1) - W64 WR.length) = 2 ^ 63 - 1 - WR.length := by
+      have : (WR.length : Int) < 2 ^ 62 := by omega
+      word
+    rw [if_neg (by omega), hz, if_neg (by omega), List.take_of_length_le (by omega)]
+    exact hwin
+  · have hle : ((bucketRange m klo khi).length : Int) ≤ sint.Z lim := hlim.resolve_left hl0
+    have hlim' : rangeLimit khi lim = lim := by
+      unfold rangeLimit; simp [hne, hl0]
+    rw [hlim', List.take_of_length_le (by omega)]
+    by_cases heq : (WR.length : Int) = sint.Z lim
+    · rw [if_pos heq]
+      have : WC = [] := List.length_eq_zero_iff.1 (by omega)
+      rw [← hwin, this, List.nil_append]
+    · rw [if_neg heq]
+      have hz : sint.Z (lim - W64 WR.length) = sint.Z lim - WR.length := by
+        have : (WR.length : Int) < 2 ^ 62 := by omega
+        word
+      rw [hz, if_neg (by omega), List.take_of_length_le (by omega)]
+      exact hwin
+
 end range
 
 /-! ## The slices of a range read -/
@@ -912,7 +979,7 @@ theorem rt_rangeRead (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
         m (rdB rtx) (rtTok γ P b rtx rv qo) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe⟩
   iunfold keyRangeReadSpec
-  iintro %bk %lo %hi %klo %khi %dqlo %dqhi !> %Φ ⟨#HK, Ht, Hlo, Hhi, %Hne⟩ HΦ
+  iintro %bk %lo %hi %klo %khi %dqlo %dqhi %lim !> %Φ ⟨#HK, Ht, Hlo, Hhi, %Hne, %Hlim⟩ HΦ
   iunfold rtTok at Ht
   icases Ht with ⟨Hh, Ho⟩
   ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
@@ -923,10 +990,10 @@ theorem rt_rangeRead (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
   have Hks := keySafe_of hP Hsf Hsz
   ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
   iapply wp_fupd
-  wp_apply (hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi (W64 0) Hiff
+  wp_apply (hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi lim Hiff
       (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hlo $Hhi] as %ks %vs ⟨Hh, Ho, Hlo, Hhi, Hout⟩
   irevert Hout
-  rw [rtRange_safe hP Hwf Hks hv klo khi Hne]
+  rw [rtRange_safe_lim hP Hwf Hks hv klo khi Hne lim Hlim]
   iintro Hout
   imod kvsOutRd_pairVals rtx ks vs _ $$ Hout with #Hkv
   imodintro

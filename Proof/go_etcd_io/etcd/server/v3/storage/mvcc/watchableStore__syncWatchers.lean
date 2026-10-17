@@ -33,6 +33,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+/-- **The obligation etcd-io/etcd#22594 leaves open** (pr-verify/etcd-22594): `syncWatchers`
+now scans at most `watchBatchMaxRevs * maxWatchersPerSync * 2` (`1000 * 512 * 2`) bucket entries
+from the chosen watchers' least `minRev`, and the rest of the proof (unchanged from the
+unbounded scan's) needs that limit not to cut the range `[minRev, currentRev]`: every watcher of
+the batch is then moved to `currentRev + 1` (synced) or to its batch's `moreRev`, which is only
+right if it was given every event of its key up to there. **This is false**: it fails whenever
+the chosen watchers are more than `1,024,000` entries behind (the case the PR is for); the
+watcher then misses the events past the cut (`notes/pr-verify/etcd-22594/
+watchable_store_scanlimit_test.go`). Left a `sorry`, the counterexample in Go, not in Lean. -/
+theorem mvcc.syncWatchers_scanLimit_uncut (C : mvcc.Log) (minRev : w64) :
+    sint.Z (W64 1000 * W64 512 * W64 2 : w64) ≤ 0 ∨
+      ((mvcc.logEnts C (sint.nat minRev) C.length).length : Int) ≤
+        sint.Z (W64 1000 * W64 512 * W64 2 : w64) := by
+  sorry
+
 /-- The builtin `max` on `int64`. -/
 theorem mvcc.sw_wp_max_int64 (x y : w64) :
     {{ (True : IProp GF) }}
@@ -103,7 +118,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iNamed Hws
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%gS, #HgS, #HgSS⟩,
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HmaxB, -, ⟨%gS, #HgS, #HgSS⟩,
     ⟨%gP, #HgP, #HgPS⟩, -, #HmaxW, -, ⟨%gS', #HgS', #HgSet⟩, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -240,10 +255,15 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     icases HcertQ with ⟨-, -, %H, -⟩
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
-  wp_apply (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
+  wp_apply (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) _ g W')
     $$ [$HbkS $HrtR $HfrzR $HbucketQ $HcertQ $Hg] as %evs ⟨HrtR, HbucketQ, Hg, %ps, Hevs, Hevcap,
       %Hpslen, #HevIs⟩
-  · ipureintro; rw [hcur1]; omega
+  · ipureintro
+    -- the scan limit (`watchBatchMaxRevs * maxWatchersPerSync * 2`) must not cut the range:
+    -- the obligation etcd-io/etcd#22594 leaves open, false in general
+    have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
+      show (sint.Z _).toNat = _; rw [hcur1]; simp
+    exact ⟨by rw [hcur1]; omega, by rw [hnat1]; exact mvcc.syncWatchers_scanLimit_uncut C minRev⟩
   have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
     show (sint.Z _).toNat = _; rw [hcur1]; simp
   rw [hnat1] at Hpslen ⊢

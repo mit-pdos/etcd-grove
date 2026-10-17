@@ -1,0 +1,23 @@
+# etcd-io/etcd#22594 (bound syncWatchers' backend scan by entry count), branch
+# pr-verify/etcd-22594: the changed functions `rangeEvents` and `watchableStore.syncWatchers`
+# (mvcc), their caller `syncWatchersLoop`, and the backend bridge's limited range read.
+# Report: notes/pr-verify/etcd-22594.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22594.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \bmvcc\.wp_rangeEvents$
+roots \bmvcc\.watchableStore\.wp_syncWatchers$
+roots \bmvcc\.watchableStore\.wp_syncWatchersLoop$
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom proto.Unmarshal.wp_proof
+axiom time.NewTicker.wp_proof
+axiom time.Since.wp_proof
+axiom time.Ticker.Reset.wp_proof
+axiom time.Ticker.Stop.wp_proof
+axiom verify.Verify.wp_proof
+sorry mvcc.syncWatchers_scanLimit_uncut
