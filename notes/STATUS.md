@@ -48,7 +48,8 @@ module system").
 ## Item 8: package initialization (branch `construct`)
 
 Work item 8 of "Open work: the client→server path": prove `wp_initialize'` for the packages on
-the path and replace the assumed package facts with proved ones. In progress (2026-10-17).
+the path and replace the assumed package facts with proved ones. 81 packages proved, six (the
+server's top) still assumed: see "Still assumed" (2026-10-17).
 
 ### Inventory (2026-10-17)
 
@@ -125,6 +126,69 @@ fact (they cannot be proved from this package's initializer, which only gets the
 * Facts on Perennial's packages (`context.Canceled` a pointer error, `DeadlineExceeded` a leaf):
   Perennial's `context` fact keeps only that they are typed errors; not provable here without a
   Perennial change (propose separately).
+
+### Proved (2026-10-17)
+
+`Proof/<pkg>/Init.lean` (`bbolt/internal/common`: `Initialize.lean`, beside its instance), each a
+`<pkg>.wp_initialize'` in Perennial's form, generated from the translation's `initialize'` (the
+imports, `GlobalAlloc`s and opaque initializers in execution order) with the translated
+initializers and the facts finished by hand. 81 packages: every package of the closure (grown
+with items 4 and 5's new ones) but Perennial's and raft's and the six below (`mvcc`, `txn`,
+`apply`, `read`, `etcdserver`, `v3rpc`):
+* the generic packages (fact `True`), and `etcdserverpb` (the six translated `ServiceDesc`
+  literals: `wp_slice_literal` in a loop), `wait` (its translated `init()`: `make` and `close` of
+  `closec`);
+* with their facts: `etcdserver/errors`, `bbolt/errors`, `api/v3/version`, `membership`,
+  `backend`, `schema` (the translated buckets and key names), `lease` (translated `errors.New`
+  errors, `forever`, the metrics), `rpctypes`, `client/v3` (`noPrefixEnd`, `defaultOptions`,
+  `valCtxCh`, `zeroTime`), `auth` (its translated errors and, moved into `rpctypesInit`,
+  `rpctypes`' token keys).
+
+Shared: `Proof/errors/NewVar.lean` (`errorsNewVarInit`, the premise class `ErrorStringLeaf`,
+`errorString_leaf`, `errorMsg_triple`). The generator is not checked in (a one-off).
+
+### Still assumed, and why
+
+* **`mvcc`, and through their imports `txn`, `apply`, `etcdserver`, `v3rpc`**: `mvccInit`'s
+  `counterSpec` says a counter's `Add(x)` returns for every `x`; prometheus' `counter.Add` panics
+  on a negative value ("counter cannot decrease in value"). So the fact is false as stated and no
+  true axiom on `rangeCounter.init` etc. gives it. (A false statement in this repository's
+  assumed facts, not a Go bug.) The fix: `Add`'s contract for the arguments the code passes,
+  `#(uint64ToFloat64 n)` (any `n`: `metricsTxnWrite.End`'s `float64(uint)`, unchanged proof) and
+  `#(int64ToFloat64 n)` for `0 ≤ sint.Z n` (`scheduleCompaction`'s `float64(keyCompactions)`,
+  an `int` counter its proof does not bound: it needs a bound premise on the keys a compaction
+  deletes, a physical bound as `storeSmall`). `srvInit` and `readInit` reuse `mvcc.counterSpec`
+  for counters they only `Inc`: an `Inc`-only contract (`lease.counterSpec`) there is enough.
+* **Foreign facts** still stated in their consumers: `etcdserver/errors`' errors in `readInit`,
+  `srvErrVars`, `applyErrVars`, `txnInit` (`errorsInit` has only `ErrNoSpace`; its axiom
+  `errorsNewVarsInit` already covers all 22, so extending `errorsInit` with `errVarLeaf`s is
+  mechanical); raft's `ErrStopped`, `ErrProposalDropped` as `errVarLeaf` (raft's `isInitialized`
+  has them non-nil only); `traceutil.Tracer`, `schema.AllBuckets`, `schema`'s compaction key
+  names; `rpctypes`' `ErrGRPC*` and metadata keys and `etcdserverpb`'s sort-name maps (`v3rpc`).
+* **`context`'s errors** (`readInit`'s `Canceled`, `ctxDeadlineLeaf`; `v3rpc`'s `ctxCanceledPtr`):
+  Perennial's `context` fact keeps only that `Canceled`, `DeadlineExceeded` are typed errors, though
+  its initializer makes `Canceled` with `errors.New` (`wp_New_errorString`): a general Perennial
+  change (the fact records the exact values) to propose separately; not provable here.
+* **`read`'s `init()`** (translated): `prometheus.MustRegister` panics on a duplicate
+  registration, so a true spec needs a model of the default registry (names registered once);
+  not added.
+* The cache and client libraries (`cache`, `concurrency`, `leasing`, `recipes`) and the examples:
+  left out (the user's "out of scope").
+
+### Trust base added
+
+Axioms, all on untranslated code, each satisfiable whatever the semantics (the `X.init`s are
+uninterpreted constants; a diverging `X.init` satisfies every triple):
+* `<pkg>.opaqueInitsOk` (53): the listed `X.init`s run without panicking;
+* `<pkg>.errorsNewVarsInit` (2: `etcdserver/errors`, `bbolt/errors`): each listed `X.init` is
+  `X = errors.New(msg)` (messages from the Go source);
+* `<pkg>.<X>_init` (20): the variables the facts read (version strings, metric constructors'
+  `Histogram`/`Counter`/`GaugeVec`, `rpctypes`' errors and map, `defaultOptions`, token keys);
+* `EtcdGrove.time.Unix.wp_proof`: `time.Unix` (names-only in Perennial) returns.
+Premises (classes on the uninterpreted method sets): `EtcdGrove.ErrorStringLeaf`,
+`EtcdGrove.RpctypesEtcdErrorMethods`. `raft/v3/Init.lean`: the four sorried initializers no
+longer take raft's `Assumptions` (so non-raft packages can use them); the nine baseline `sorry`s
+unchanged.
 
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
@@ -1174,6 +1238,8 @@ watch slice ("The watch slice": W-C next), bbolt (branch `bbolt`), mvcc (branch 
    ...: "not proved from `initialize'`"): prove `wp_initialize'` for the packages on the path, as
    the register does (`Proof/github_com/mit_pdos/etcd_grove/examples/register/Init.lean`). The nine
    `sorry`s of the baseline are standard-library initializers that run opaque code; they stay.
+   (2026-10-17, branch `construct`: 81 packages proved; `mvcc`, `txn`, `apply`, `read`,
+   `etcdserver`, `v3rpc` still assumed, see "Item 8: package initialization".)
 9. **The adequacy example.** A Go `main` (an `examples/` package: start one member in-process,
    `v3rpc.Server` + `Serve` on a goroutine, `clientv3.New`, `Put`, `Get`), its translation, the
    functor bundle with a `GooseGpreS` instance, the package-initialization table, and
