@@ -249,6 +249,7 @@ instance Config_typed_pointsto :
     "DisableConfChangeValidation" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableConfChangeValidation" l) v.DisableConfChangeValidation' dq ∗
     "StepDownOnRemoval" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"StepDownOnRemoval" l) v.StepDownOnRemoval' dq ∗
     "TraceLogger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"TraceLogger" l) v.TraceLogger' dq ∗
+    "DisableProposalForwardingCallback" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableProposalForwardingCallback" l) v.DisableProposalForwardingCallback' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -562,6 +563,22 @@ instance Config_access_store_TraceLogger (l : Loc) (v : go_etcd_io.raft.v3.Confi
  by
   solve_pointsto_access_struct
 
+instance Config_access_load_DisableProposalForwardingCallback (l : Loc) (v : go_etcd_io.raft.v3.Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableProposalForwardingCallback" l) v.DisableProposalForwardingCallback' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableProposalForwardingCallback" l) v.DisableProposalForwardingCallback' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Config_access_store_DisableProposalForwardingCallback (l : Loc) (v : go_etcd_io.raft.v3.Config) (DisableProposalForwardingCallback' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableProposalForwardingCallback" l) v.DisableProposalForwardingCallback' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Config go!"DisableProposalForwardingCallback" l) DisableProposalForwardingCallback' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableProposalForwardingCallback' := DisableProposalForwardingCallback' } : go_etcd_io.raft.v3.Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 end def_
 end Config
 
@@ -603,6 +620,7 @@ instance raft_typed_pointsto :
     "randomizedElectionTimeout" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"randomizedElectionTimeout" l) v.randomizedElectionTimeout' dq ∗
     "disableProposalForwarding" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwarding" l) v.disableProposalForwarding' dq ∗
     "stepDownOnRemoval" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"stepDownOnRemoval" l) v.stepDownOnRemoval' dq ∗
+    "disableProposalForwardingCallback" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwardingCallback" l) v.disableProposalForwardingCallback' dq ∗
     "tick" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"tick" l) v.tick' dq ∗
     "step" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"step" l) v.step' dq ∗
     "logger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"logger" l) v.logger' dq ∗
@@ -1049,6 +1067,22 @@ instance raft_access_store_stepDownOnRemoval (l : Loc) (v : go_etcd_io.raft.v3.r
  by
   solve_pointsto_access_struct
 
+instance raft_access_load_disableProposalForwardingCallback (l : Loc) (v : go_etcd_io.raft.v3.raft) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwardingCallback" l) v.disableProposalForwardingCallback' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwardingCallback" l) v.disableProposalForwardingCallback' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raft_access_store_disableProposalForwardingCallback (l : Loc) (v : go_etcd_io.raft.v3.raft) (disableProposalForwardingCallback' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwardingCallback" l) v.disableProposalForwardingCallback' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"disableProposalForwardingCallback" l) disableProposalForwardingCallback' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with disableProposalForwardingCallback' := disableProposalForwardingCallback' } : go_etcd_io.raft.v3.raft) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 instance raft_access_load_tick (l : Loc) (v : go_etcd_io.raft.v3.raft) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"tick" l) v.tick' dq)
@@ -1330,80 +1364,6 @@ instance MemoryStorage_access_store_callStats (l : Loc) (v : go_etcd_io.raft.v3.
 
 end def_
 end MemoryStorage
-
-namespace logSlice
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
-
-instance logSlice_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.logSlice where
-  typedPointstoDef l v dq := iprop(
-    "term" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq ∗
-    "prev" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq ∗
-    "entries" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance logSlice_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.logSlice go_etcd_io.raft.v3.logSlice.underlying := by
-  solve_into_val_typed_struct
-
-instance logSlice_access_load_term (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_store_term (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (term' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) term' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with term' := term' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_load_prev (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_store_prev (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (prev' : go_etcd_io.raft.v3.entryID) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) prev' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prev' := prev' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_load_entries (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance logSlice_access_store_entries (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (entries' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) entries' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with entries' := entries' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end logSlice
 
 end go_etcd_io.raft.v3
 end
