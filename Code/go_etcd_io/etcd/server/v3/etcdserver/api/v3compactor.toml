@@ -1,6 +1,12 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# The auto-periodic compactor of etcd#22095 (autoperiodic.go) and `New`, which builds it,
+# with bodies; the periodic and revision compactors names only. The types are translated, so
+# the packages of their fields are imported (clockwork names only).
+translate = ["!*", "New", "ModeAutoPeriodic", "ModePeriodic", "ModeRevision", "SizeGetter",
+  "AutoPeriodic", "newAutoPeriodic", "AutoPeriodic.Run", "AutoPeriodic.shouldCompact",
+  "AutoPeriodic.Stop", "AutoPeriodic.Pause", "AutoPeriodic.Resume",
+  "AutoPeriodicHighWater", "AutoPeriodicSampleInterval", "AutoPeriodicLeadTime",
+  "AutoPeriodicCooldown", "autoPeriodicRateAlpha"]
+imports = ["!*", "context", "errors", "fmt", "math", "sync", "time", "github.com/jonboulle/clockwork", "go.uber.org/zap", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/server/v3/storage/mvcc"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

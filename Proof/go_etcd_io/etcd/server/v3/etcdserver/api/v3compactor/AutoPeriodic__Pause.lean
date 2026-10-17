@@ -1,0 +1,50 @@
+/-
+Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/AutoPeriodic__Pause.lean`. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.AutoPeriodic__Pause
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
+
+theorem v3compactor.AutoPeriodic.Pause.wp_proof :
+    v3compactor.AutoPeriodic.Pause.spec (GF := GF) (hG := hG) := by
+  intro ac P
+  wp_start as #Hac
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  iunfold isAutoPeriodic at Hac
+  icases Hac with ⟨-, -, -, -, -, -, -, -, #Hmu⟩
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
+  iunfold apLockInv at HR
+  icases HR with ⟨%b, Hp⟩
+  wp_auto
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hp]
+  · inext
+    iunfold apLockInv
+    iexists _
+    iframe
+  iapply HΦ
+  itrivial
+
+end proof
+
+end EtcdGrove
+end Perennial

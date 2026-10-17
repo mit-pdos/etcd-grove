@@ -207,6 +207,14 @@ LEAN_FIRST = {
                "go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions",
                "The linearizable read loop's proofs (etcd's `server/v3/etcdserver/read`) and the "
                "functions they call", [""]),
+    # the auto-periodic compactor (etcd's server/v3/etcdserver/api/v3compactor, etcd#22095's
+    # verification: branch pr-verify/etcd-22095), over its contracts
+    "--v3compactor": ("link-lean-first-v3compactor.txt",
+                      "go_etcd_io.etcd.server.v3.etcdserver.api",
+                      "go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions",
+                      "The auto-periodic compactor's proofs (etcd's "
+                      "`server/v3/etcdserver/api/v3compactor`, etcd#22095) and the functions "
+                      "they call", [""]),
     # etcd-grove's trust boundary of `fmt` and `context`, shared by unrelated Links (`@`)
     "--fmt": ("link-lean-first-fmt.txt", "", "_root_.Perennial.fmt.Assumptions",
               "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
@@ -245,7 +253,8 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--v3compactor": "v3compactor"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -259,6 +268,11 @@ mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
 em = "variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else ""
+# The model assumptions a spec may take beside its package's, as instance arguments of the results
+# that reach it (the auto-periodic compactor's float-to-integer conversion, which Perennial gives no
+# semantics: `v3compactor/Defs.lean`), by the variable line the spec file declares.
+MODEL_ASSUMPTIONS = {"variable [f2i : Float64ToInt64] [f2i_sem : Float64ToInt64Semantics]":
+                     " [Float64ToInt64] [Float64ToInt64Semantics]"}
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
@@ -502,11 +516,22 @@ variable [package_sem : {assumptions}]
         # the client's watch specs are stated at the server's model (the watch slice's unit W-C:
         # `v3rpc.etcdModelOfServer`), under the v3rpc package's assumptions too
         allg += f" [{SRV_ASSUMPTIONS}]" if fn in srv_assumptions else ""
+        # the model assumptions its spec, or a callee's, takes (`MODEL_ASSUMPTIONS`)
+        allg += "".join(b for v, b in MODEL_ASSUMPTIONS.items() if fn in model_assumptions[v])
         # ... or, stated over any raft storage model, that (the register's transport)
         if "[RegStor GF]" not in src and "[StorageModel GF]" in src:
             allg += " [StorageModel GF]"
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
+
+    model_assumptions = {v: set() for v in MODEL_ASSUMPTIONS}
+    for v in MODEL_ASSUMPTIONS:
+        for fn in order:
+            if fn in reused or fn in external:
+                continue
+            if v in open(spec_file(fn)).read() or any(c in model_assumptions[v]
+                                                       for c in callees[fn]):
+                model_assumptions[v].add(fn)
 
     cache_assumptions = set()
     for fn in order:

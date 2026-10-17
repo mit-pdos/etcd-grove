@@ -45,6 +45,33 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd-io/etcd#22095 verified (2026-10-17, branch `pr-verify/etcd-22095`, not merged)
+
+The PR (a third `--auto-compaction-mode`, `auto-periodic`) is verified over the fork's
+`pr-etcd-22095-goose-lean`. `v3compactor` (names-only on `lean`) now translates `New` and the
+auto-periodic compactor with bodies; `github.com/jonboulle/clockwork` is a new names-only package
+(its `time` imported, so `Clock` is an interface). Proved, no `sorry`: `New`, `newAutoPeriodic`,
+`AutoPeriodic.Run` (the sampling goroutine: every compaction keeps the last `retention`
+revisions, at a positive revision above the last successful one), `shouldCompact`, `Pause`,
+`Resume`, `Stop`, and `compactorOk_autoPeriodic` (the compactor meets the server's `compactorOk`
+contract). Link: `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/Link.lean`
+(`etc/gen-link.py --v3compactor`). Report: `notes/pr-verify/etcd-22095.md`.
+
+**Float-to-integer conversion (a Perennial limitation).** Perennial's semantics has no step for
+Go's conversion of a `float64` to an integer type (`int64(f)`, `time.Duration(f)`): code doing it
+is stuck. `Run` does it twice. Worked around locally by a model-assumption class,
+`Float64ToInt64Semantics` (`v3compactor/Defs.lean`: the conversion steps to an opaque function of
+the float's bits), an instance argument of `Run`'s spec and result, not an axiom (an axiom over
+every `GoSemanticsFunctions` would be inconsistent). The general fix is a Perennial change: a
+`convert_float64_to_int64` step in `Float64Semantics` (`FloatOps.float64ToInt64`, opaque, as the
+other float operations are).
+
+`Duration`'s value methods resolve only with `go.NotInterface go.int64` in scope (Perennial gives
+`NotInterface` per type constructor and `go.int64` is a `def`), as raft's proofs do for `int32`
+(`haveI`). The existing axiom `time.Duration.Seconds_ptr` is generalized to any fraction (the
+compactor reads a read-only package variable); its one caller (v3rpc's `sendLoop`) rebuilds.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

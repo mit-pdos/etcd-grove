@@ -7675,3 +7675,19 @@ and `PreVote` settings stay premises.
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
   parallel over the pre-placed interface (`bootPState`, `BootLogOk`, `allocClientBoot`, the stub
   `ownRaftGhost_alloc_boot`); R8b-C (the server) after B's `StartNode.spec` exists.
+
+## Float-to-integer conversion: a model-assumption class, not an axiom (2026-10-17, etcd#22095)
+
+etcd#22095's auto-periodic compactor converts floats to integers (`int64(hw * float64(max))`,
+`time.Duration(x / rate)`), and Perennial's `Float64Semantics` has no step for
+`Convert go.float64 go.int64`: the code is stuck, so no spec of `AutoPeriodic.Run` is provable.
+Options: (1) an axiom `⟦Convert go.float64 go.int64, #v⟧ ⤳[under] #(f v)` for every semantics
+instance — inconsistent, since `GoSemanticsFunctions` instances with another (or no) step exist;
+(2) rewrite the Go code to avoid the conversion — a divergence from the PR, in code that is the
+PR's subject; (3) a class `Float64ToInt64Semantics` (an opaque `Float64ToInt64.float64ToInt64`
+and the step), taken as an instance argument by the specs that need it. (3) is what Perennial
+does for its own float operations (`FloatOps` and `Float64Semantics` are classes), so it is
+faithful in the same sense (Go truncates toward zero; out of range the result is
+implementation-defined, never a panic: some function of the bits), visible in every statement
+that depends on it, and removed by the general fix, the same step in Perennial's
+`Float64Semantics`. `etc/gen-link.py` passes the instances on (`MODEL_ASSUMPTIONS`).

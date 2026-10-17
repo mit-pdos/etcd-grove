@@ -185,6 +185,17 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
+-- `clockwork` (names only: the clock of v3compactor's compactors, imported since etcd#22095's
+-- auto-periodic compactor is translated with its body).
+namespace github_com.jonboulle.clockwork
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.jonboulle.clockwork :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.jonboulle.clockwork :=
+  build_get_is_pkg_init_wf
+
+end github_com.jonboulle.clockwork
+
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor :=

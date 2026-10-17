@@ -1,0 +1,18 @@
+# etcd-io/etcd#22095's verification (branch pr-verify/etcd-22095): the auto-periodic compactor
+# (`v3compactor`: New, newAutoPeriodic, AutoPeriodic.Run/shouldCompact/Pause/Resume/Stop) and
+# its results (Results.lean: compactor_new, compactor_run, compactorOk_autoPeriodic).
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/
+axiom clockwork.NewRealClock.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Duration.Seconds_ptr.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom v3compactor.newPeriodic.wp_proof
+axiom v3compactor.newRevision.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Float64.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.NewNop.wp_proof

@@ -1,0 +1,24 @@
+=== RUN   TestReviewerNewPeriodicTinyRetentionPanics
+    reviewer_v3compactor_test.go:46: New(periodic, 5ns): recovered panic: runtime error: integer divide by zero
+    reviewer_v3compactor_test.go:46: New(periodic, -5ns): recovered panic: runtime error: integer divide by zero
+--- PASS: TestReviewerNewPeriodicTinyRetentionPanics (0.00s)
+=== RUN   TestReviewerEtaOverflow
+    reviewer_v3compactor_test.go:94: all etas: [2562047h47m16.854775807s -1h40m9s -14h11m19s -120h36m4s -1025h5m40s -8713h9m37s -74060h38m31s -629505h4m12s -226609h14m4.290448384s 636619h43m3.385964544s -2268497h16m4.7836288s -1293675h55m10.177414144s 2274824h55m49.765858816s 194583h17m59.816817664s 1641300h4m13.33086464s -252474h26m54.341644288s -2499438h55m28.53846016s 2314965h26m58.005123072s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s 0s]
+    reviewer_v3compactor_test.go:94: 67 compactions; size 801 > high-water 700, so the true eta is negative; logged etas: first [2562047h47m16.854775807s -1h40m9s -14h11m19s -120h36m4s -1025h5m40s -8713h9m37s], last [0s 0s 0s 0s 0s 0s]; 6 positive (wrapped) and 61 <= 0
+--- PASS: TestReviewerEtaOverflow (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor	0.040s
+WARNING: DATA RACE
+      /shared/etcd-grove-pr/etcd-22095-scratch/reviewer/prhead/server/etcdserver/api/v3compactor/reviewer_v3compactor_test.go:111 +0x34e
+      /shared/etcd-grove-pr/etcd-22095-scratch/reviewer/prhead/server/etcdserver/api/v3compactor/autoperiodic.go:117 +0xc4
+      /shared/etcd-grove-pr/etcd-22095-scratch/reviewer/prhead/server/etcdserver/api/v3compactor/autoperiodic.go:112 +0x324
+      /shared/etcd-grove-pr/etcd-22095-scratch/reviewer/prhead/server/etcdserver/api/v3compactor/reviewer_v3compactor_test.go:108 +0x311
+--- FAIL: TestReviewerStopThenWriteTuningRace (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor	0.121s
+FAIL
+    reviewer_embed_test.go:31: QuotaBackendBytes=-1 (quota disabled): compactor type v3compactor.AutoPeriodic, maxBytes=2147483648, retention=5
+--- PASS: TestReviewerAutoPeriodicQuotaDisabled (0.18s)
+    reviewer_embed_test.go:39: periodic, "5ns": 5ns, err <nil>
+--- PASS: TestReviewerParseTinyPeriodic (0.00s)
+ok  	go.etcd.io/etcd/server/v3/embed	0.229s

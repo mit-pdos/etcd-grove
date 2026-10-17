@@ -1,0 +1,33 @@
+# etcd's auto-periodic compactor (server/etcdserver/api/v3compactor/autoperiodic.go and `New`,
+# compactor.go; etcd#22095's verification, branch pr-verify/etcd-22095), read by
+# `etc/gen-link.py --v3compactor`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# The trust boundary (axioms): the periodic and revision compactors' constructors (names
+# only), clockwork's real clock, zap's fields and loggers, `(time.Duration).Seconds` (a float
+# division), `(*time.Time).IsZero`, etcd-grove's `errors.Is` and `fmt.Errorf`. Perennial-proved
+# calls (`sync.Mutex`, `time.Now`/`Since`/`Time.Sub`/`Before`/`Add`, `context.Background`/
+# `WithCancel`, channels) and the interface calls (the clock, the size and revision getters, the
+# compactable: `Defs.lean`'s contracts, premises of `Run`'s spec) are not listed.
+time_Duration__Seconds:
+time_Duration__Seconds_ptr:
+time_Time__IsZero:
+errors_Is:
+fmt_Errorf: @
+zap_NewNop:
+zap_Int64:
+zap_Float64:
+zap_Duration:
+zap_Error:
+zap_Logger__Info:
+zap_Logger__Warn:
+clockwork_NewRealClock:
+v3compactor_newPeriodic:
+v3compactor_newRevision:
+# The auto-periodic compactor (autoperiodic.go) and `New` (compactor.go).
+v3compactor_AutoPeriodic__Pause:
+v3compactor_AutoPeriodic__Resume:
+v3compactor_AutoPeriodic__Stop:
+v3compactor_AutoPeriodic__shouldCompact: time_Duration__Seconds_ptr
+v3compactor_newAutoPeriodic:
+v3compactor_New: zap_NewNop clockwork_NewRealClock v3compactor_newPeriodic v3compactor_newRevision v3compactor_newAutoPeriodic fmt_Errorf
+v3compactor_AutoPeriodic__Run: v3compactor_AutoPeriodic__shouldCompact time_Duration__Seconds time_Time__IsZero errors_Is zap_Int64 zap_Float64 zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn

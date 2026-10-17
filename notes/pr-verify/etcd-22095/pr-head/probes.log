@@ -1,0 +1,13 @@
+    compaction_retention_probe_test.go:45: mode "revision" retention "5m": revisions to keep = 300000000000 (no error)
+    compaction_retention_probe_test.go:45: mode "revision" retention "-1h": revisions to keep = -3600000000000 (no error)
+    compaction_retention_probe_test.go:45: mode "auto-periodic" retention "5m": revisions to keep = 300000000000 (no error)
+    compaction_retention_probe_test.go:45: mode "auto-periodic" retention "-1h": revisions to keep = -3600000000000 (no error)
+    compaction_retention_probe_test.go:53: mode periodic retention -1h: -1h0m0s, err <nil>
+--- PASS: TestParseCompactionRetentionDurationInRevisionMode (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	0.026s
+=== RUN   TestAutoPeriodicCompactsEveryCooldownOnceAboveHighWater
+    autoperiodic_probe_test.go:82: growth rate 0 B/s, one write per 10s: 10 compactions in 10 minutes
+--- PASS: TestAutoPeriodicCompactsEveryCooldownOnceAboveHighWater (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor	0.025s
