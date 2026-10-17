@@ -25,14 +25,17 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 unit V2): `kv.Do` of `OpDelete(key, opts...)` (options with transformers `gs` that do not make
 `OpDelete` panic nor change the operation's type), the error through `ContextError`:
 `deleteCallOut` for the delete the server reads (`deleteWireOf`), for a spec `Spec` registered for
-`DeleteRange` and the caller's `Q`. -/
+`DeleteRange` and the caller's `Q`. 
+
+etcd#21330 (`pr-verify/etcd-21330`): the premise `emptyKeyIf` of `kv.Do`'s spec (the facts of
+`rpctypes.ErrEmptyKey`, which `kv.Do` returns for an empty key, if the key is empty). -/
 abbrev kv.Delete.spec : Prop :=
   ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull))
     (Spec : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Q : DelRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗ emptyKeyIf (opDeleteModel key gs).key ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3⌝ ∗
       isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
       □ ▷ Spec (deleteWireOf (opDeleteModel key gs)) Q }}

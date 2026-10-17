@@ -24,13 +24,16 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `kv.Put(ctx, key, val, opts...)` on a `*kv` over a connection to `addr`: `kv.Do` of
 `OpPut(key, val, opts...)` (options with transformers `gs` that do not make `OpPut` panic nor
 change the operation's type), the
-error through `ContextError`: `putCallOut` for the put the server reads (`putWireOf`). -/
+error through `ContextError`: `putCallOut` for the put the server reads (`putWireOf`). 
+
+etcd#21330 (`pr-verify/etcd-21330`): the premise `emptyKeyIf` of `kv.Do`'s spec (the facts of
+`rpctypes.ErrEmptyKey`, which `kv.Do` returns for an empty key, if the key is empty). -/
 abbrev kv.Put.spec : Prop :=
   ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
     (Q : PutRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗ emptyKeyIf (opPutModel key val gs).key ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2⌝ ∗
       isGrpcRpc addr go!"/etcdserverpb.KV/Put" Spec ∗
       □ ▷ Spec (putWireOf (opPutModel key val gs)) Q }}

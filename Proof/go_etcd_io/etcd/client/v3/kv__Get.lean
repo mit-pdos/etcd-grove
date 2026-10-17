@@ -30,14 +30,14 @@ theorem kv.Get.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.spec (GF := GF) (hG := hG) := by
   intro api addr ci cd key sl gs R Spec Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, #Hek, %Hnp, #Hrpc, #Hrun⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api addr ci cd opv (opGetModel key gs) (fun _ _ => iprop(True))
     (fun _ => iprop(True)) Spec Q (fun _ _ => iprop(True)) (fun _ => iprop(True)) $$ []
-    as %r %err Hout
+    as %r %err ⟨Hout, -⟩
   · iframe #
     unfold doRunOk
     ileft

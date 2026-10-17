@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#21330, the client rejects an empty key before the RPC (2026-10-17, branch `pr-verify/etcd-21330`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-21330-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `kv.Do`'s spec gains `⌜o.key = [] → err ≠ nil⌝` and the
+premise `emptyKeyIf o.key` (`emptyKeyOk`, the facts of `rpctypes.ErrEmptyKey`'s initialization, as
+`sortNamesOk`: `client/v3/InvKVConn.lean`); `kv.Get`/`Put`/`Delete` and their callers up to the client's
+end-to-end results and the recipes' queue take it (`emptyKeyIf key`, `emptyKeyIf pfx`, or `emptyKeyOk`),
+all re-proved. `kv.GetStream` is translated (`client/v3.toml`) with a partial spec (an empty key only).
+No new axiom or `sorry`. One issue in the pinned code, outside the verified code:
+`issues/etcd-grpcproxy-kv-error-code.md`. Report: `notes/pr-verify/etcd-21330.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -130,6 +130,9 @@ translate = [
   "kv.Put",
   "kv.Get",
   "kv.Do",
+  # etcd#21330 (pr-verify/etcd-21330): `kv.GetStream`, for its empty-key check before the
+  # `RangeStream` call (the stream's receive goroutine is not specified)
+  "kv.GetStream",
   "Op.toRangeRequest",
   "Op.IsSortOptionValid",
   "ContextError",

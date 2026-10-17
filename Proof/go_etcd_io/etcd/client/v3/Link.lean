@@ -66,6 +66,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Txn
 public import Proof.go_etcd_io.etcd.client.v3.kv__Delete
 public import Proof.go_etcd_io.etcd.client.v3.kv__Do
 public import Proof.go_etcd_io.etcd.client.v3.kv__Get
+public import Proof.go_etcd_io.etcd.client.v3.kv__GetStream
 public import Proof.go_etcd_io.etcd.client.v3.kv__Put
 public import Proof.go_etcd_io.etcd.client.v3.kv__Txn
 public import Proof.go_etcd_io.etcd.client.v3.newBlockLogger
@@ -503,6 +504,10 @@ theorem v3.kv.wp_Delete :
 theorem v3.kv.wp_Get :
     EtcdGrove.kv.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kv.Get.wp_proof v3.wp_NewOp v3.kv.wp_Do v3.wp_ContextError
+
+theorem v3.kv.wp_GetStream :
+    EtcdGrove.kv.GetStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.GetStream.wp_proof v3.wp_NewOp
 
 theorem v3.kv.wp_Put :
     EtcdGrove.kv.Put.spec (GF := GF) (hG := hG) :=

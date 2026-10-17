@@ -252,7 +252,8 @@ theorem sortNamesIf_of_ok (b : Bool) : sortNamesOk (GF := GF) ⊢ sortNamesIf b 
 /-- **A real `*kv` meets the recipes' get contract** (`isEtcdKVTodo`) at the server's model, for a
 non-empty prefix (see the file header). Premises: the registration of etcd's `Range` at `addr`,
 the server's read side (`isServerRead`: the first certificate, `storeSmall`), `etcdserverpb`'s
-sort enumerations (`sortNamesOk`), that `errors.As` can take `*rpctypes.EtcdError` (`hAs`), and
+sort enumerations (`sortNamesOk`), `rpctypes.ErrEmptyKey` (`emptyKeyOk`, etcd#21330: the contract
+admits an empty key, which `kv.Do` now rejects itself), that `errors.As` can take `*rpctypes.EtcdError` (`hAs`), and
 (unit W-M3) the client's updates at the read names (`kvAnyAu E γr`: a linearizable get's floor is
 its read update's result, at the state of the log read). -/
 theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
@@ -260,9 +261,9 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        sortNamesOk ∗ kvAnyAu E γr ⊢
+        sortNamesOk ∗ kvAnyAu E γr ∗ emptyKeyOk ⊢
       isEtcdKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hekok⟩
   unfold isEtcdKVTodo
   iintro !> %key %sl %gs %R %lo %Φ !> ⟨#Hopts, HR, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx⟩ := Hpre
@@ -296,6 +297,7 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
+  ihave #Hek := emptyKeyIf_of_ok (opGetModel key gs).key $$ Hekok
   iapply (v3.kv.wp_Get api addr todoCtxVal cd key sl gs R (etcdRangeSpec E γr cid mid)
     (rangeReplyOk E γr (W64 0) F (rangeWireOf (opGetModel key gs)) cid mid Q))
     $$ [HR]

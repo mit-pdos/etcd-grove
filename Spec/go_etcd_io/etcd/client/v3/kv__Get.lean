@@ -26,14 +26,17 @@ opts...)` (options that do not panic, keep the range type, and may need a resour
 back: `optsAtRes`; any sort option, checked against `etcdserverpb`'s enumerations,
 `sortNamesOk`: the vertical slice's unit V2; C1 required none), then `kv.Do`, the error through
 `ContextError`: `rangeCallOut` for the range the server reads (`rangeWireOf`), for a spec `Spec`
-registered for `Range` and the caller's `Q`. -/
+registered for `Range` and the caller's `Q`. 
+
+etcd#21330 (`pr-verify/etcd-21330`): the premise `emptyKeyIf` of `kv.Do`'s spec (the facts of
+`rpctypes.ErrEmptyKey`, which `kv.Do` returns for an empty key, if the key is empty). -/
 abbrev kv.Get.spec : Prop :=
   ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Spec : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse) (Q : RangeRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
-      sortNamesIf (opGetModel key gs).base.sortSet ∗
+      sortNamesIf (opGetModel key gs).base.sortSet ∗ emptyKeyIf (opGetModel key gs).key ∗
       ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
       isGrpcRpc addr go!"/etcdserverpb.KV/Range" Spec ∗
       □ ▷ Spec (rangeWireOf (opGetModel key gs)) Q }}

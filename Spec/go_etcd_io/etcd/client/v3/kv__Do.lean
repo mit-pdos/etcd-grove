@@ -52,7 +52,13 @@ def doOut (o : OpFull) (Qp : PutRespM → IProp GF) (Qr : RangeRespM → IProp G
 /-- `kv.Do(ctx, op)` on a `*kv` over a connection to `addr` (`kvObjAt`), for an `Op` `op` modelled
 by `o` that is a range, a put or a delete: the request `op.toRangeRequest()`,
 `&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
-or `DeleteRange`, with the client's call options; `doOut`. -/
+or `DeleteRange`, with the client's call options; `doOut`.
+
+etcd#21330 (`pr-verify/etcd-21330`): an empty key is rejected in the client, with
+`rpctypes.ErrEmptyKey` (through `ContextError`), before the RPC (and before the sort check, as
+the server's `checkRangeRequest` orders them): the premise `emptyKeyIf o.key` (the error's
+facts, for an empty key), and the postcondition's last conjunct, an error whatever the server's
+spec. The old spec (`lean`) had neither; its `doOut` is unchanged. -/
 abbrev kv.Do.spec : Prop :=
   ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
@@ -61,11 +67,12 @@ abbrev kv.Do.spec : Prop :=
     (Sd : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Qd : DelRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗ doRunOk addr o Sp Qp Sr Qr Sd Qd }}
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗ doRunOk addr o Sp Qp Sr Qr Sd Qd ∗
+      emptyKeyIf o.key }}
     (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
       (Val #(GoInterface.ok ci))) (Val #opv))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-      doOut o Qp Qr Qd r err }}
+      doOut o Qp Qr Qd r err ∗ ⌜o.key = [] → err ≠ GoInterface.nil⌝ }}
 
 end spec
 

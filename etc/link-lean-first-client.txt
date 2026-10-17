@@ -63,6 +63,8 @@ Op__toRangeRequest:
 kv__Do: Op__IsSortOptionValid Op__toRangeRequest retryKVClient__Range retryKVClient__Put retryKVClient__DeleteRange ContextError
 kv__Put: OpPut kv__Do ContextError
 kv__Get: NewOp kv__Do ContextError
+# etcd#21330 (pr-verify/etcd-21330): the empty-key early return
+kv__GetStream: NewOp
 kv__Delete: OpDelete kv__Do ContextError
 # the transaction builder (client/v3/txn.go; the operations' requests, op.go), unit V2
 kv__Txn:

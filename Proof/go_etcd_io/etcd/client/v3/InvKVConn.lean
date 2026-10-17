@@ -567,6 +567,43 @@ instance sortNamesIf_persistent (b : Bool) : Persistent (sortNamesIf (GF := GF) 
 theorem sortNamesIf_false : ⊢ sortNamesIf (GF := GF) false := by
   unfold sortNamesIf; iintro; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
 
+/-- **The error `kv.Do` returns for an empty key** (etcd#21330, `pr-verify/etcd-21330`: a range,
+put or delete whose key is empty fails in the client, before any RPC):
+`rpctypes.ErrEmptyKey` (`Error(ErrGRPCEmptyKey)`, an `EtcdError`), a non-nil client error that
+grpc's `status` accepts (`statusErrOk`). A fact of `rpctypes`' initialization, stated as a premise,
+as `sortNamesOk`'s `ErrInvalidSortOption`. -/
+def emptyKeyOk : IProp GF :=
+  iprop(∃ e : GoInterface,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrEmptyKey ↦□ e ∗
+      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e)
+
+instance emptyKeyOk_persistent : Persistent (emptyKeyOk (GF := GF)) := by
+  unfold emptyKeyOk; infer_instance
+
+/-- `emptyKeyOk` if the key `k` is empty: an `Op` with a key never reads `ErrEmptyKey`. -/
+def emptyKeyIf (k : GoString) : IProp GF := if k = [] then emptyKeyOk else iprop(True)
+
+instance emptyKeyIf_persistent (k : GoString) : Persistent (emptyKeyIf (GF := GF) k) := by
+  unfold emptyKeyIf; split <;> infer_instance
+
+theorem emptyKeyIf_of_ne (k : GoString) (h : k ≠ []) : ⊢ emptyKeyIf (GF := GF) k := by
+  unfold emptyKeyIf; iintro; simp only [h, ↓reduceIte]; itrivial
+
+theorem emptyKeyIf_of_ok (k : GoString) : emptyKeyOk (GF := GF) ⊢ emptyKeyIf k := by
+  unfold emptyKeyIf; iintro #H; split
+  · iexact H
+  · itrivial
+
+/-- `emptyKeyIf` passes from a prefix `pfx` to a key `k` that is empty only if `pfx` is (a key
+under a non-empty prefix is not empty). -/
+theorem emptyKeyIf_mono (pfx k : GoString) (h : k = [] → pfx = []) :
+    emptyKeyIf (GF := GF) pfx ⊢ emptyKeyIf k := by
+  iintro #H
+  by_cases hk : k = []
+  · have hp := h hk
+    subst hk; subst hp; iexact H
+  · iapply emptyKeyIf_of_ne k hk
+
 /-- **What a unary `Put` call returns** to the client (every layer's postcondition: the stub's,
 the retry client's, `kv.Do`'s at its `put` field): `nil` and a response holding a message `m`
 (`putRespMsg`) with the run's knowledge `Q m`; or a client error that grpc's `status` accepts

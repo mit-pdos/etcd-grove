@@ -106,6 +106,27 @@ theorem applyTxnOp_delete_underPfx (pfx : GoString) (r : w64) (s : List EtcdKv) 
 
 /-! ## The apply thread's log after a put or a delete -/
 
+/-- A put's key is under the prefix its operation is under (etcd#21330: an empty key only under
+the empty prefix). -/
+theorem put_under_key (o : OpFull) (op : TxnOp) (pfx : GoString) (hop : txnOpOf o = some op)
+    (ht : o.t = W64 2) (hu : op.Under pfx) : pfx <+: o.key := by
+  unfold txnOpOf at hop
+  rw [if_neg (by rw [ht]; decide), if_pos ht] at hop
+  repeat' (split at hop)
+  all_goals (cases hop <;> exact hu)
+
+/-- A range under `pfx` from the empty key: `pfx` is empty (the empty key is in the range). -/
+theorem keyRangeUnder_empty {pfx e : GoString} (h : KeyRangeUnder pfx [] e) : pfx = [] := by
+  have hin : inRange [] e [] = true := by
+    have hnl : ¬ go.GoStringLt ([] : GoString) [] := fun h => by cases h
+    unfold inRange
+    match e with
+    | [] => simp
+    | b :: e' =>
+      have hlt : go.GoStringLt ([] : GoString) (b :: e') := List.Lex.nil
+      simp [hnl, hlt]
+  exact List.prefix_nil.mp (h [] hin)
+
 section applied
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -310,14 +331,17 @@ theorem kv_put_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E }}
+        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E ∗
+        emptyKeyIf pfx }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         putResult (EM := v3rpc.etcdModelOfServer E) pfx lo op err }} := by
   obtain ⟨hpan, hop, hu, ht⟩ := h
   have hw := putTxnOp_wire _ _ hop ht
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hlo, #Hany, #Hlp⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hlo, #Hany, #Hlp, #Hek⟩ HΦ
+  ihave #Hek' := emptyKeyIf_mono pfx (opPutModel key val gs).key
+    (fun h => List.prefix_nil.mp (h ▸ put_under_key _ op pfx hop ht hu)) $$ Hek
   by_cases hl : (putWireOf (opPutModel key val gs)).leaseID = W64 0
   rotate_left
   · iunfold kvLeasedPutTodo at Hlp
@@ -368,9 +392,9 @@ theorem isEtcdPutKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
-        kvAnyAu E γw ∗ kvLeasedPutTodo api E ⊢
+        kvAnyAu E γw ∗ kvLeasedPutTodo api E ∗ emptyKeyIf pfx ⊢
       isEtcdPutKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hlp⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hlp, #Hek⟩
   unfold isEtcdPutKVTodo
   iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
@@ -390,12 +414,13 @@ theorem isEtcdPutKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
         ctxErrClientAll ∗ context.isContext ctx cs ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E }}
+        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E ∗
+        emptyKeyIf pfx }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ctx))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         putResult (EM := v3rpc.etcdModelOfServer E) pfx lo op err }} := by
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hall, #Hctx, #Hopts, #Hlo, #Hany, #Hlp⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hall, #Hctx, #Hopts, #Hlo, #Hany, #Hlp, #Hek⟩ HΦ
   iunfold ctxErrClientAll at Hall
   ihave #Hce := Hall $$ %ctx %cs Hctx
   ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
@@ -517,13 +542,15 @@ theorem kv_delete_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
         kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw }}
+        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ emptyKeyIf pfx }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Delete" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         deleteResult (EM := v3rpc.etcdModelOfServer E) pfx lo (opDeleteModel key gs) err }} := by
   obtain ⟨hpan, hu, hz, ht⟩ := h
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hlo, #Hnp⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hlo, #Hnp, #Hek⟩ HΦ
+  ihave #Hek' := emptyKeyIf_mono pfx (opDeleteModel key gs).key
+    (fun h => keyRangeUnder_empty (h ▸ hu)) $$ Hek
   ihave ⟨%lf, #Hcl, %Hll⟩ := certOk_of_reached E lo $$ Hlo
   ihave ⟨%F, #HF, %HF2⟩ := floor0_of_read s E γr $$ Hsrd
   ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
@@ -566,9 +593,9 @@ theorem isEtcdDeleteKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : ap
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
-        kvAnyAu E γw ⊢
+        kvAnyAu E γw ∗ emptyKeyIf pfx ⊢
       isEtcdDeleteKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hnp⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hnp, #Hek⟩
   unfold isEtcdDeleteKVTodo
   iintro !> %key %sl %gs %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
@@ -590,12 +617,12 @@ theorem isEtcdDeleteKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.
         kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
         ctxErrClientAll ∗ context.isContext ctx cs ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw }}
+        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ emptyKeyIf pfx }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Delete" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         deleteResult (EM := v3rpc.etcdModelOfServer E) pfx lo (opDeleteModel key gs) err }} := by
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hall, #Hctx, #Hopts, #Hlo, #Hnp⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hall, #Hctx, #Hopts, #Hlo, #Hnp, #Hek⟩ HΦ
   iunfold ctxErrClientAll at Hall
   ihave #Hce := Hall $$ %ctx %cs Hctx
   ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx

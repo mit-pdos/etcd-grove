@@ -27,6 +27,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+theorem klen_zero (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (hk : o.key = [])
+    (h : List.length o.key = sint.nat opv.key'.len ∧ 0 ≤ sint.Z opv.key'.len) :
+    opv.key'.len = W64 0 := by
+  rw [hk] at h; simp at h; word
+
+theorem klen_ne (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (hk : ¬ o.key = [])
+    (h : List.length o.key = sint.nat opv.key'.len ∧ 0 ≤ sint.Z opv.key'.len) :
+    ¬ opv.key'.len = W64 0 := by
+  intro h0; apply hk; rw [h0] at h; exact List.eq_nil_of_length_eq_zero (by rw [h.1]; rfl)
+
 theorem kv.Do.wp_proof
     (wp_IsSortOptionValid : Op.IsSortOptionValid.spec (GF := GF) (hG := hG))
     (wp_toRangeRequest : Op.toRangeRequest.spec (GF := GF) (hG := hG))
@@ -36,21 +46,85 @@ theorem kv.Do.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.spec (GF := GF) (hG := hG) := by
   intro api addr ci cd opv o Sp Qp Sr Qr Sd Qd
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hat, Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hat, Hrun, #Hek⟩
   iunfold kvObjAt at Hkv
   icases Hkv with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok⟩
   ihave Hat' := Hat
   iunfold opFullAt at Hat'
-  icases Hat' with ⟨-, -, %Hf2, -, -⟩
+  icases Hat' with ⟨-, #Hkey0, %Hf2, -, -⟩
+  ihave %Hklen := ownSlice_len _ _ _ $$ Hkey0
   obtain ⟨ht, -⟩ := Hf2
   wp_auto
   rw [ht]
   iunfold doRunOk at Hrun
+  by_cases hk : o.key = []
+  · -- an empty key (etcd#21330): `rpctypes.ErrEmptyKey`, through `ContextError`, before the RPC
+    have hkz := klen_zero opv o hk Hklen
+    simp only [hk, emptyKeyIf, ↓reduceIte]
+    iunfold emptyKeyOk at Hek
+    icases Hek with ⟨%e, #He, %Hev, #Hse⟩
+    icases Hrun with (⟨%Ht, -⟩ | ⟨%Ht, -⟩ | ⟨%Ht, -⟩)
+    · rw [Ht]
+      wp_auto
+      rw [decide_eq_true hkz]
+      wp_auto
+      wp_apply wp_ContextError ci cd e $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
+      · iframe #; ipureintro; exact fun _ => Hev.2
+      iapply HΦ
+      unfold doOut
+      simp only [Ht, ↓reduceIte]
+      unfold rangeCallOut
+      isplitl
+      · iright
+        iframe #
+        ipureintro
+        exact ⟨(Herr'.2 Hev.1).1, (Herr'.2 Hev.1).2, rfl⟩
+      · ipureintro; exact fun _ => (Herr'.2 Hev.1).1
+    · rw [Ht]
+      wp_auto
+      rw [decide_eq_true hkz]
+      wp_auto
+      wp_apply wp_ContextError ci cd e $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
+      · iframe #; ipureintro; exact fun _ => Hev.2
+      iapply HΦ
+      unfold doOut
+      simp only [Ht, show (W64 2 = W64 1) = False by decide, ↓reduceIte]
+      unfold putCallOut
+      isplitl
+      · iright
+        iframe #
+        ipureintro
+        exact ⟨(Herr'.2 Hev.1).1, (Herr'.2 Hev.1).2, rfl⟩
+      · ipureintro; exact fun _ => (Herr'.2 Hev.1).1
+    · rw [Ht]
+      wp_auto
+      rw [decide_eq_true hkz]
+      wp_auto
+      wp_apply wp_ContextError ci cd e $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
+      · iframe #; ipureintro; exact fun _ => Hev.2
+      iapply HΦ
+      unfold doOut
+      simp only [Ht, show (W64 3 = W64 1) = False by decide,
+        show (W64 3 = W64 2) = False by decide, ↓reduceIte]
+      unfold deleteCallOut
+      isplitl
+      · iright
+        iframe #
+        ipureintro
+        exact ⟨(Herr'.2 Hev.1).1, (Herr'.2 Hev.1).2, rfl⟩
+      · ipureintro; exact fun _ => (Herr'.2 Hev.1).1
+  irename HΦ => HΦ0
+  ihave HΦ : (∀ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface),
+      doOut o Qp Qr Qd r err -∗ Φ (PairV #r #err)) $$ [HΦ0]
+  · iintro %r %err H; iapply HΦ0; iframe H; ipureintro; intro h; exact absurd h hk
+  have hkl := klen_ne opv o hk Hklen
   icases Hrun with (⟨%Ht, #Hsn, #Hrpc, #Hrun⟩ | ⟨%Hp, #Hrpc, #Hrun⟩ | ⟨%Hd, #Hrpc, #Hrun⟩)
   · -- a range
     rw [Ht]
+    wp_auto
+    rw [decide_eq_false hkl]
     wp_auto
     wp_method_call
     wp_call
@@ -120,6 +194,8 @@ theorem kv.Do.wp_proof
   · -- a put
     rw [Hp]
     wp_auto
+    rw [decide_eq_false hkl]
+    wp_auto
     ihave Hat' := Hat
     iunfold opFullAt at Hat'
     icases Hat' with ⟨Hat0, #Hkey, %Hf2, #Hval, -⟩
@@ -168,6 +244,8 @@ theorem kv.Do.wp_proof
 
   · -- a delete
     rw [Hd]
+    wp_auto
+    rw [decide_eq_false hkl]
     wp_auto
     ihave Hat' := Hat
     iunfold opFullAt at Hat'

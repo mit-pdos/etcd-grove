@@ -1,0 +1,30 @@
+$ cp kv_emptykey_probe_test.go <fork>/client/v3/ && GOTOOLCHAIN=go1.27.1 go test -run TestProbe -v .
+   (fork: mit-pdos/etcd-grove branch pr-etcd-21330-goose-lean, da884e86c)
+=== RUN   TestProbeEmptyKeySameErrorAsServer
+--- PASS: TestProbeEmptyKeySameErrorAsServer (0.00s)
+=== RUN   TestProbeEmptyKeyBeforeSortCheck
+--- PASS: TestProbeEmptyKeyBeforeSortCheck (0.00s)
+=== RUN   TestProbeEmptyKeyWithRange
+--- PASS: TestProbeEmptyKeyWithRange (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	0.017s
+
+$ cp kv_emptykey_probe_test.go <etcd at PR head f864d993ab>/client/v3/ && GOTOOLCHAIN=go1.26.4 go test -run 'TestProbe|TestEmptyKey|TestGetStreamEmpty' .
+ok  	go.etcd.io/etcd/client/v3	0.019s
+
+$ cp kv_emptykey_review_test.go <etcd at PR head f864d993ab>/client/v3/ && GOTOOLCHAIN=go1.26.4 go test -run TestReview -v .
+--- PASS: TestReviewErrEmptyKeyFacts (0.00s)
+--- PASS: TestReviewCanceledCtx (0.00s)
+--- PASS: TestReviewGetStreamShape (0.20s)
+--- PASS: TestReviewProxyCodeLoss (0.00s)
+PASS
+FAIL	go.etcd.io/etcd/client/v3	5.230s
+   (the package FAIL is the package's goroutine-leak check, on the goroutine
+    TestReviewGetStreamShape leaves blocked on purpose, draining a nil channel)
+
+$ cp kv_proxy_errcode_test.go <etcd at PR head f864d993ab>/server/proxy/grpcproxy/ && GOTOOLCHAIN=go1.26.4 go test -run TestProxyKVErrorCode -v .
+=== RUN   TestProxyKVErrorCode
+    kv_proxy_errcode_test.go:69: proxy Range with backend error etcdserver: no leader: code Unknown, want Unavailable (as from the server directly)
+    kv_proxy_errcode_test.go:69: proxy Range with backend error etcdserver: key is not provided: code Unknown, want InvalidArgument (as from the server directly)
+--- FAIL: TestProxyKVErrorCode (0.01s)
+FAIL

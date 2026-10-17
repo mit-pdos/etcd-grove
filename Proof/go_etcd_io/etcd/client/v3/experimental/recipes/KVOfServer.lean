@@ -13,7 +13,8 @@ contracts of `client/v3/ServerKV{Get,Put,Txn}.lean`. `isEtcdRecipesClient_of_kv`
 
 Premises beyond the registrations and the server's read side: a prefix other than `[]`
 (`isEtcdKVTodo_of_kv`'s), `sortNamesOk` (`grpc`'s status names of the sort enums, for a get with a
-sort option), `clientErrsIs` (the client's errors as `errors.Is` sees them, for
+sort option), `emptyKeyOk` (`rpctypes.ErrEmptyKey`, which `kv.Do` returns for an empty key since
+etcd#21330, `pr-verify/etcd-21330`), `clientErrsIs` (the client's errors as `errors.Is` sees them, for
 `txnCommitErrTodo`), and `hAs` (`errors.As` can take `*rpctypes.EtcdError`).
 -/
 module
@@ -56,10 +57,11 @@ theorem isRecipesKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        sortNamesOk ∗ emptyKeyOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hek, #Hcei, #Hnp⟩
+  ihave #Hekp := emptyKeyIf_of_ok pfx $$ Hek
   iunfold EtcdGrove.client.kvWritesOk at Hnp
   icases Hnp with ⟨#Hany, #Hanyr, #Hlp, #Hlc⟩
   unfold isRecipesKV
@@ -93,10 +95,10 @@ theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (ad
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        sortNamesOk ∗ emptyKeyOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩
+  iintro ⟨#Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hek, #Hcei, #Hnp⟩
   ihave #HK := isRecipesKV_of_kv api addr s E γw γr cid mid pfx hpfx hAs $$ []
   · iframe #
   unfold isEtcdRecipesClient

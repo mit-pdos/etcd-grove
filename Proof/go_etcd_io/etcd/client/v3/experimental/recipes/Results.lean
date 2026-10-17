@@ -609,7 +609,7 @@ theorem recipes_kv_of_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        sortNamesOk ∗ emptyKeyOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx :=
   isRecipesKV_of_kv api addr s E γw γr cid mid pfx hpfx hAs
@@ -630,7 +630,7 @@ theorem recipes_client_of_server (cl : Loc) (w : GoInterfaceOk) (api : Loc) (add
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        sortNamesOk ∗ emptyKeyOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx :=
   isEtcdRecipesClient_of_kv cl w api addr s E γw γr cid mid pfx hpfx hAs
@@ -651,7 +651,7 @@ theorem queue_end_to_end (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoSt
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
           (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        sortNamesOk ∗ emptyKeyOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
         (Val #kp))
@@ -701,7 +701,7 @@ theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api :
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
           (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
+        sortNamesOk ∗ emptyKeyOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
         (Val #kp))
@@ -725,8 +725,8 @@ theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api :
                 ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
               ⌜err ≠ GoInterface.nil⌝ }}) }} := by
   subst hE hV
-  iintro %Φ ⟨#Pr, #Pc, #Ppb, #Pctx, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei,
-    #Hnp⟩ HΦ
+  iintro %Φ ⟨#Pr, #Pc, #Ppb, #Pctx, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hek,
+    #Hcei, #Hnp⟩ HΦ
   ihave #Hrw := client.isEtcdRangeWatcher_of_watcher client.v3.watcher.wp_Watch V w $$ []
   · iframe #
   iapply (queue_end_to_end cl (client.watcherIfaceOf w) api addr s V.R.E γw γr cid mid V.pfx hkp
