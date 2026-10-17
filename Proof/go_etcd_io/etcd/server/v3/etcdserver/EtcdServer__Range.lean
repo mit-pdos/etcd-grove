@@ -218,11 +218,11 @@ local macro "range_tail" : tactic => `(tactic| (
   wp_apply (hDS s E ρ γr ctx2 _ _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
       srvLgReader s)
-    iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
+    (fun gerr => iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
       mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) o true ∗
-      txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te)) trc false)
+      txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te) ∗ ⌜errv = gerr⌝)) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
@@ -269,25 +269,18 @@ local macro "range_tail" : tactic => `(tactic| (
       obtain ⟨Hl1, Hl2, Hl3, rfl⟩ := Hlog
       have htv := Hteq trc rfl rfl
       subst htv
+      (try wp_auto)
       iapply HΦ'
       iexists respv, errv, log
       iframe
       iframe #
-      ipureintro; exact ⟨Hl1, Hl2, Hl3⟩
+      ipureintro; exact ⟨⟨Hl1, Hl2, Hl3⟩, rfl⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown, %Heg⟩ |
+    ⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown, %Heg⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
-  · subst Hs0
+  · subst Hs0 Heg
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
-    rcases errv with ei | _
-    · range_defer
-      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut Hres
-      iapply HΦ
-      isplitl [Hsr Hlr Hrr Hard]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
-      iright
-      iframe HeE
-      ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
     · wp_auto_lc 3
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
           ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L)) $$
@@ -326,11 +319,26 @@ local macro "range_tail" : tactic => `(tactic| (
       iunfold txn.rangeHdr at Hhdr
       iapply Hhdr
       ipureintro; rfl
+  · -- etcd-io/etcd#21595: the read's error, returned by `doSerialize`
+    subst Heg
+    ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
+    ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ Hs0 Hleaf $$ HFut Hres
+    cases errv with
+    | nil => exact absurd rfl Hs0
+    | ok ei =>
+      wp_auto
+      range_defer
+      iapply HΦ
+      isplitl [Hsr Hlr Hrr Hard]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+      iright
+      iframe HeE
+      ipureintro; exact ⟨rfl, Hs0⟩
   · cases serr with
     | nil => exact absurd rfl Hs0
     | ok sei =>
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩)
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown, -⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0

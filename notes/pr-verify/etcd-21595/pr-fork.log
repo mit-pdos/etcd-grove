@@ -1,0 +1,7 @@
+=== RUN   TestDoSerializeCompactedNotMaskedByAuthRevision
+    doserialize_compacted_test.go:86: doSerialize returned mvcc: required revision has been compacted (get's error: mvcc: required revision has been compacted)
+--- PASS: TestDoSerializeCompactedNotMaskedByAuthRevision (0.06s)
+=== RUN   TestDoSerializeGetErrorPropagated
+--- PASS: TestDoSerializeGetErrorPropagated (0.02s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.112s

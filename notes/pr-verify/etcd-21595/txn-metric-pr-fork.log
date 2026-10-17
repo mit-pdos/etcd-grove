@@ -1,0 +1,10 @@
+=== RUN   TestReadonlyTxnAuthFailureCountedAsSuccess
+    logger.go:146: 2026-10-17T12:07:02.008-0400	WARN	apply request took too long	{"took": "22.986µs", "expected-duration": "0s", "prefix": "read-only txn ", "request": "compare:<> success:<request_range:{key:\"a\" serializable:true}> failure:<>", "response": ""}
+        	Error:      	Not equal: 
+        	            	expected: 0x0
+        	            	actual  : 0x1
+        	Messages:   	a denied read-only Txn was recorded as success="true"
+--- FAIL: TestReadonlyTxnAuthFailureCountedAsSuccess (0.04s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.059s
+FAIL

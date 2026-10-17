@@ -176,7 +176,7 @@ local macro "txn_tail" : tactic => `(tactic| (
   wp_apply (hDS s E ρ γr ctx2 _ _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
       srvLgReader s)
-    iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
+    (fun gerr => iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
       mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       ((⌜respv = null ∧ errv ≠ GoInterface.nil⌝ ∗ txn.checkErrIs errv) ∨
@@ -187,7 +187,7 @@ local macro "txn_tail" : tactic => `(tactic| (
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv)) ∨
        (mvcc.errorfIs errv ∗ txn.roTxnRespRd respv ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))) ∗
-      (∃ te, traceutil.ownTrace trc te)) trc false)
+      (∃ te, traceutil.ownTrace trc te) ∗ ⌜errv = gerr⌝)) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
@@ -223,6 +223,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         iunfold storeSmall at Hsmall
         ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
         iapply Hsmall $$ %log' Hs'
+      (try wp_auto)
       iapply HΦ'
       iexists respv, errv, log
       iframe Hresp Herr Hsr Hlr Hcert Hcok
@@ -234,13 +235,17 @@ local macro "txn_tail" : tactic => `(tactic| (
         subst htv
         isplitr [Hown]
         rotate_left
-        · iexists te'; iexact Hown
+        · isplitl [Hown]
+          · iexists te'; iexact Hown
+          ipureintro; rfl
         ileft; iframe Hce; ipureintro; exact ⟨H1.1, H1.2.2⟩
       · have htv := Hteq trc (by simp) (by simp)
         subst htv
         isplitr [Hown]
         rotate_left
-        · iexact Hown
+        · isplitl [Hown]
+          · iexact Hown
+          ipureintro; rfl
         iright; ileft
         isplitr
         · ipureintro; exact H2.1
@@ -251,29 +256,16 @@ local macro "txn_tail" : tactic => `(tactic| (
         subst htv
         isplitr [Hown]
         rotate_left
-        · iexact Hown
+        · isplitl [Hown]
+          · iexact Hown
+          ipureintro; rfl
         iright; iright; iframe He Hrd Hh
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown, %Heg⟩ |
+    ⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown, %Heg⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
-  · subst Hs0
+  · subst Hs0 Heg
     wp_auto_lc 3
-    rcases errv with ei | _
-    · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
-      · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
-        · iapply checkErrIs_applyErrIs $$ Hvars Hce
-        replace Hnull := Hnull.1
-        txn_defer_lg
-        txn_warn_null
-        txn_defer
-        txn_close_err
-      · cases Hn
-      · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
-        · iapply applyErrIs_errorf _ Hleaf $$ He
-        txn_defer_lg
-        txn_warn_rd
-        txn_defer
-        txn_close_err
     · icases Hres with (⟨%Hn, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨#He, -⟩)
       · exact absurd rfl Hn.2
       rotate_left
@@ -326,13 +318,34 @@ local macro "txn_tail" : tactic => `(tactic| (
       · iexact HQf
       simp only [txn.srvRunTxn]
       iexact Hr
+  · -- etcd-io/etcd#21595: the read's error, returned by `doSerialize`
+    subst Heg
+    cases errv with
+    | nil => exact absurd rfl Hs0
+    | ok ei =>
+      wp_auto
+      icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
+      · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
+        · iapply checkErrIs_applyErrIs $$ Hvars Hce
+        replace Hnull := Hnull.1
+        txn_defer_lg
+        txn_warn_null
+        txn_defer
+        txn_close_err
+      · cases Hn
+      · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
+        · iapply applyErrIs_errorf _ Hleaf $$ He
+        txn_defer_lg
+        txn_warn_rd
+        txn_defer
+        txn_close_err
   · cases serr with
     | nil => exact absurd rfl Hs0
     | ok sei =>
       ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
       · iexact HsE
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown, -⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0

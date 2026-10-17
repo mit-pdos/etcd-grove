@@ -45,6 +45,19 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21595: doSerialize returns the read's error (2026-10-17, branch `pr-verify/etcd-21595`)
+
+Verification of an open PR, not for merging into `lean`: the translation is of the fork branch
+`pr-etcd-21595-goose-lean` (`etc/goose.py --check` fails here by design). Report:
+`notes/pr-verify/etcd-21595.md`.
+- `EtcdServer.doSerialize.spec`: `get` returns an error (`{G} get() {e. Q e}`); the result is
+  `Q nil` on success, `get`'s error with `Q err`, or an auth error with `G` or `Q nil` (the
+  stale-token check only after a `get` that returned `nil`). Proved.
+- `Range` and `Txn`: specs unchanged, proofs adapted (`Q` carries `⌜errv = gerr⌝`). No new axioms
+  or `sorry`s; the full build and `etc/tcb-report.py --check` pass.
+- Issues: `etcd-doserialize-get-error-masked` (what the PR fixes) and
+  `etcd-txn-readonly-auth-failure-metric` (found by the review, not fixed by the PR).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

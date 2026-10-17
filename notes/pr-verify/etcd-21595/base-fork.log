@@ -1,0 +1,8 @@
+=== RUN   TestDoSerializeCompactedNotMaskedByAuthRevision
+    doserialize_compacted_test.go:85: doSerialize returned auth: revision in header is old (get's error: mvcc: required revision has been compacted)
+        	Error:      	Target error should be in err chain:
+        	            	expected: "mvcc: required revision has been compacted"
+--- FAIL: TestDoSerializeCompactedNotMaskedByAuthRevision (0.04s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.069s
+FAIL

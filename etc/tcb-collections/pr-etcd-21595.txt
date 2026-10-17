@@ -1,0 +1,46 @@
+# etcd-io/etcd#21595 (pr-verify/etcd-21595): doSerialize returns the read's error; the server's
+# Range and Txn over it.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21595.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots EtcdServer__doSerialize
+roots EtcdServer__Range\b
+roots EtcdServer__Txn\b
+axiom NewLoggableTxnRequest.wp_proof
+axiom RangeRequest.String.wp_proof
+axiom attribute.Bool.wp_proof
+axiom attribute.Int.wp_proof
+axiom attribute.Int64.wp_proof
+axiom attribute.String.wp_proof
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom context.ErrDone.wp_proof
+axiom context.ValueStartTime.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.Marshal.wp_proof
+axiom proto.MarshalIRR.wp_proof
+axiom proto.Size.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom reflect.ValueOf.wp_proof
+axiom strconv.FormatBool.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Time.After.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.Trace.LogWithStepThreshold.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof

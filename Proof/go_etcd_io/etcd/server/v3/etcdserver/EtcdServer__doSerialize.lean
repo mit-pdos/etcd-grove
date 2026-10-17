@@ -74,7 +74,7 @@ theorem EtcdServer.doSerialize.wp_proof
     wp_auto
     iapply HΦ
     iframe Hard
-    iright
+    iright; iright
     isplitr
     · ipureintro; intro h; cases h
     iframe HaE; ileft; iframe HG Htrc
@@ -99,7 +99,7 @@ theorem EtcdServer.doSerialize.wp_proof
       wp_auto
       iapply HΦ
       iframe Hard
-      iright
+      iright; iright
       isplitr
       · ipureintro; intro h; cases h
       iframe HcE; ileft; iframe HG Htrc
@@ -111,35 +111,47 @@ theorem EtcdServer.doSerialize.wp_proof
       iapply Hget $$ [HG Htrc]
       · iframe HG Htrc
       inext
-      iintro HQ
+      iintro %gerr HQ
       wp_auto
-      iStructNamed Hai
-      icombine Has Has2 gives %Heq
-      iunfold apply.isAuthStore at Hauth
-      icases Hauth with ⟨%ai0, %Hst, -, -, -, -, -, -, #HRev, -⟩
-      icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩, -⟩
-      ihave ⟨%eOld, #HeOld, #HaOld⟩ := errVarLeaf_get _ $$ HOld
-      rw [Heq, Hst]
-      wp_auto
-      wp_if_destruct
-      · iapply HΦ
+      -- etcd-io/etcd#21595: `get`'s error is returned before the stale-token check
+      cases gerr with
+      | ok gei =>
+        wp_auto
+        iapply HΦ
         iframe Hard
-        ileft
-        iframe HQ
-        ipureintro; rfl
-      · wp_apply HRev as %x -
+        iright; ileft
+        isplitr
+        · ipureintro; intro h; cases h
+        iexact HQ
+      | nil =>
+        wp_auto
+        iStructNamed Hai
+        icombine Has Has2 gives %Heq
+        iunfold apply.isAuthStore at Hauth
+        icases Hauth with ⟨%ai0, %Hst, -, -, -, -, -, -, #HRev, -⟩
+        icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩, -⟩
+        ihave ⟨%eOld, #HeOld, #HaOld⟩ := errVarLeaf_get _ $$ HOld
+        rw [Heq, Hst]
+        wp_auto
         wp_if_destruct
         · iapply HΦ
           iframe Hard
           ileft
           iframe HQ
           ipureintro; rfl
-        · iapply HΦ
-          iframe Hard
-          iright
-          isplitr
-          · ipureintro; intro h; cases h
-          iframe HaOld; iright; iexact HQ
+        · wp_apply HRev as %x -
+          wp_if_destruct
+          · iapply HΦ
+            iframe Hard
+            ileft
+            iframe HQ
+            ipureintro; rfl
+          · iapply HΦ
+            iframe Hard
+            iright; iright
+            isplitr
+            · ipureintro; intro h; cases h
+            iframe HaOld; iright; iexact HQ
 
 end proof
 
