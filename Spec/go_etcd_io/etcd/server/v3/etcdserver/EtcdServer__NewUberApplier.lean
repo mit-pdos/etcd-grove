@@ -29,8 +29,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 it builds of the server's fields (read-only), for which `apply.NewUberApplier.spec`'s premise
 holds (`backendOptsOk`, at whatever `TxnModeWriteWithSharedBuffer` the feature gate answers and
 with the server itself as the raft status and the snapshot server), with the auth store's reader
-resource. (`backendOptsOk` asks `isApplyKV` of `s.kv`: false for `NewServer`'s watchable store
-until unit N4.) -/
+resource. (`backendOptsOk` asks `isApplyKV` of `s.kv`: since unit N4 either store,
+`server_kv_watchable`; its lessor, alarm-store, auth-store and cluster contracts are the
+trust boundary, `notes/STATUS.md`, unit N4.) -/
 abbrev EtcdServer.NewUberApplier.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (lg a cl : Loc) (kv au le ci be fg : GoInterface) (quota : w64)
     (wad : time.Duration),

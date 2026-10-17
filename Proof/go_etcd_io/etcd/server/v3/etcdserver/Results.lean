@@ -819,6 +819,108 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   rw [Hγ.2.2.1]
   iexact Hw
 
+/-- **The server's KV over the real backend: `mvcc.New`'s watchable store** (unit N4, D14a/b):
+`mvcc.New` on a fresh backend of the real instance `d`, before the post-lock hook is installed
+(the store's contract names the backend's hook slot, `storeBackend`), gives the KV rows of the
+server's construction premise for the watchable store `ws` over its inner store `st`: the txn
+package's `isKV` (the watchable store), the inner store's read view (the watchable store points
+it at itself), the KV's writer at `NewStore`'s log `[[], []]` (`kvWriter`: the sole writer and
+the writer's half of the notified log), `N` write tokens, the recorded batch-lock invariant
+(`hookInit`: `hookIs` once the server freezes the hook, `hookIs_of_init`), the certificate map's
+authority; and the watch side's (the watchable store, its watch tokens, its readers but the two
+loops', the right to close it). The index's names `γi` and the map `γok` are the caller's (D13a). -/
+theorem server_kv_watchable (lg : Loc) (le : GoInterface)
+    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
+        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.lateReg d.gx ∗
+        ownToks d.γB.wb (N + 2) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          mvcc.bkRTx d.γB d.P d.be) ∗
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
+        mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
+        (Val #(interface.mkOk
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
+        (Val #le)) (Val #cfg))
+    {{ (ws : Loc), RET #(interface.mkOk
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws);
+        ∃ (st : Loc) (γw : mvcc.WsNames),
+        ⌜γw.st.bucket = γb ∧ γw.st.leases = γl ∧ γw.st.kb = some d ∧ γw.st.idx = γi ∧
+          γw.st.cok = γok⌝ ∗
+        txn.isKV (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws) st γw.st ∗
+        (∃ rv : Loc, st.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
+            (interface.mkOk (go.GoType.PointerType
+              go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty) #rv : GoInterface) ∗
+          mvcc.isReadView rv st γw.st) ∗
+        mvcc.hookInit γw.st Pk f ∗ txn.kvWriter st γw.st [[], []] ∗ txn.storeWTs γw.st N ∗
+        ghostMapAuth γw.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+        mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
+          mvcc.watchReader ws st γw) ∗
+        mvcc.wsCloser ws st }} := by
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hrg, Hw, Hrts, Hlrd, #Hle, Hif, Hok⟩ HΦ
+  ihave #Hsb := mvcc_storeBackend_of_backend d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
+  rw [show N + 2 = (N + 1) + 1 by omega]
+  icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
+  icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
+  iapply (mvcc.wp_New lg _ le cfg (some d) γb γl Pk f γi γok hcfg)
+    $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd Hif Hok]
+  · iframe Hpkg Hle Hif Hok
+    isplitr
+    · iintro %s %γ %hγ
+      iapply Hsb $$ %s %γ %hγ
+    rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
+      show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
+      show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
+      show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
+    unfold backend.wbTok
+    iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
+  inext
+  iintro %ws ⟨%st, %γw, %Hγ, #Hws, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl⟩
+  obtain ⟨hb, hl, hk, hi, hc⟩ := Hγ
+  ihave #Hws' := Hws
+  iunfold mvcc.isWatchableStore at Hws'
+  icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
+  iNamed Hws'
+  iapply HΦ
+  iexists st, γw
+  iframe Hws Hhk Hwt Hcok Hrds Hcl
+  isplitr
+  · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩
+  isplitr
+  · iunfold txn.isKV; iright; iexists ws, γw; iframe Hws; ipureintro; exact ⟨rfl, rfl⟩
+  isplitr
+  · iexists rv
+    iframe Hrv
+    iunfold mvcc.isReadView
+    iexists _
+    iframe Hrvkv Hs
+    iunfold mvcc.kvOver; iright; iexists ws; iframe Hst; ipureintro; rfl
+  isplitl [Hww]
+  · iunfold mvcc.watchWriter at Hww
+    icases Hww with ⟨#Hc, Htoks, Hhalf⟩
+    iunfold txn.kvWriter
+    isplitl [Htoks]
+    · iunfold txn.soleWriter
+      iframe Hc
+      have hsb : txn.soleBudget [[], []] = mvcc.wBudget [[], []] := rfl
+      rw [hsb]
+      iframe Htoks
+      ipureintro; simp
+    iapply (txn.wlogOwn_watch st γw.st [[], []] Hwq).2
+    iexists ws, γw
+    iframe Hws Hhalf Hc
+    ipureintro; rfl
+  unfold txn.storeWTs
+  rw [hk]
+  iexact Hw
+
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
 `UnsafeSave` with the server's batch-lock resource (`batchLockInv γA (metaTM γ P)`: the stored
@@ -1011,6 +1113,7 @@ end backend
 #print axioms Perennial.EtcdGrove.lessor_apply_contract
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
+#print axioms Perennial.EtcdGrove.server_kv_watchable
 
 section goroutines
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

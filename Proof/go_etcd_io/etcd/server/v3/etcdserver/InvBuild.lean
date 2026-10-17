@@ -26,9 +26,9 @@ halves of the unit share, frozen once placed:
   server's generator (`batchWaitOk`). For several members both are facts about the other members'
   requests (`issues/etcd-request-id-member-prefix.md`); discharging it for one server is unit N3.
 * **The built part** `srvBuilt` and **the residual** `srvBuildGap`. The residual's rows: the KV
-  rows as stated today, false for the real store (`txn.isKV`/`isReadView` of `srv.kv`, a
-  `*watchableStore`; the uber-applier's `applierFor`/`applyKV`, whose `isApplyKV` premise is
-  `txn.isKV`'s: unit N4), the write budget `txn.storeWTs`, `storeSmall`, the raft storage's
+  rows (`txn.isKV`/`isReadView` of `srv.kv`, the uber-applier's `applierFor`/`applyKV`: true of
+  `mvcc.New`'s watchable store since unit N4, `server_kv_watchable`, but given by no `NewServer`
+  proof yet), the write budget `txn.storeWTs`, `storeSmall`, the raft storage's
   snapshot contract `rnSnapOnce`, the id budget, `ClusterVersion()`'s contract, the logic's thread
   bound.
 -/
@@ -193,8 +193,8 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n))
 
 /-- **The residual** (see the file header): the rows of `isServerBuilt` no `NewServer` proof
-gives -- the KV rows as stated today (unit N4: the uber-applier's `applierFor` and its KV state
-`applyKV` at `x₀`, `srv.kv` as `txn.isKV` with its read view), `storeSmall`, the write budget,
+gives -- the KV rows (the uber-applier's `applierFor` and its KV state `applyKV` at `x₀`,
+`srv.kv` as `txn.isKV` with its read view: true of the watchable store since unit N4), `storeSmall`, the write budget,
 the raft storage's snapshot contract, the id budget, `ClusterVersion()`'s contract, the logic's
 thread bound. A premise of whoever composes `NewServer` with `start`. -/
 def srvBuildGap (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ai₀ at₀ : w64)

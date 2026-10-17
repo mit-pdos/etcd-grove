@@ -299,6 +299,29 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
     schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf hcfg
 
+/-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
+the backend's results): every store of the instance `d` (unit N4, D14b: before the post-lock hook
+is installed; its `LockInsideApply` runs the hook frozen at the call). -/
+theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (Pk : IProp GF)
+    (γb : GName) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ⊢
+      ∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
+        mvcc.storeBackend
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            #d.be) s γ Pk :=
+  mvcc.storeBackend_of_backend backend.backend.wp_ConcurrentReadTx
+    backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+    backend.backend.wp_Size backend.backend.wp_SizeInUse
+    backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+    backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+    backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+    backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+    backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+    backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
+    schema.bucket.wp_IsSafeRangeBucket d hP Pk γb
+
 /-- **`store.Write` over the real backend, linked**. -/
 theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)
     (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) :
@@ -320,6 +343,7 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.mvcc_backend_bridge
 #print axioms Perennial.EtcdGrove.mvcc_NewStore_backend
+#print axioms Perennial.EtcdGrove.mvcc_storeBackend_of_backend
 #print axioms Perennial.EtcdGrove.mvcc_store_Write_backend
 #print axioms Perennial.EtcdGrove.schema.bucket.wp_ID
 #print axioms Perennial.EtcdGrove.schema.bucket.wp_Name
