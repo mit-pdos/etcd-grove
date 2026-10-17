@@ -71,6 +71,8 @@ func (env *InteractionEnv) handleAddNodes(t *testing.T, d datadriven.TestData) e
 				}
 			case "step-down-on-removal":
 				arg.Scan(t, i, &cfg.StepDownOnRemoval)
+			case "async-storage-writes-nonlocal-quorum":
+				arg.Scan(t, i, &cfg.AsyncStorageWritesNonLocalQuorum)
 			}
 		}
 	}
