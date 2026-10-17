@@ -29,9 +29,16 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 def watchPK (o : OpModel) (pfx : GoString) : Option GoString :=
   if o.prevKV then some pfx else none
 
+/-- What a `Watch` request `o` needs of the store: with `WithPrevKV`, a reader's token
+(`cacheReader`), which the watch's goroutine keeps (its `attachPrevKV` read-locks the store);
+without, nothing. -/
+def watchReader (cf : CacheFields) (o : OpModel) : IProp GF :=
+  if o.prevKV then cacheReader cf else iprop(True)
+
 /-- `c.Watch(ctx, key, opts...)`, with options whose closures have the model transformers `gs`
 (`optsAt`; `OpWatch` must not panic), a demux token and a goroutine slot (`cacheWatchSlot`,
-kept by the watch's goroutine), and a fraction `q` of the "open" token (`cacheOpen`, given back:
+kept by the watch's goroutine), with `WithPrevKV` a store reader (`watchReader`, kept by it too),
+and a fraction `q` of the "open" token (`cacheOpen`, given back:
 no `Close` runs meanwhile): returns a channel `rc` (`isCacheWatchChan`) with its consumer,
 nothing received yet. For the request's `Op` `o := opWatchModel key gs`, every response received
 on `rc` is, with those before it, a `cacheWatchLog` for the key filter
@@ -49,7 +56,8 @@ abbrev Cache.Watch.spec : Prop :=
     (gs : List (OpFull → OpFull)) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ optsAt sl gs ∗
-      ⌜¬ opWatchPanics key gs⌝ ∗ cacheWatchSlot cf γd cap ∗ cacheOpen cf q ∗ threadTok }}
+      ⌜¬ opWatchPanics key gs⌝ ∗ cacheWatchSlot cf γd cap ∗
+      watchReader cf (opWatchModel key gs).base ∗ cacheOpen cf q ∗ threadTok }}
     (App (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
   {{ (rc : Loc), RET #rc; cacheOpen cf q ∗ threadTok ∗ ∃ γ : CacheWatchNames,

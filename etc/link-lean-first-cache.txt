@@ -135,6 +135,9 @@ fmt_Printf: @
 # prints the internal context's error).
 time_Duration__String:
 context_Err: @
+# `context.AfterFunc` (`Proof/context/AfterFunc.lean`, linked in `Proof/context/Link.lean`, `@`):
+# etcd-io/etcd#21600's `store.waitForRev` and `Cache.Watch`.
+context_AfterFunc: @
 # Key predicates (cache/predicate.go) and the Cache's request validation and delegations
 # (cache/cache.go), see InvCache.lean.
 ExactKey:
@@ -165,7 +168,12 @@ Cache__watch: demux__Init newWatcher demux__Register Cache__applyStorage Cache__
 Cache__getWatch: Cache__get Cache__watch
 defaultConfig:
 Cache__getWatchLoop: defaultConfig Cache__getWatch fmt_Printf time_Duration__String
-Cache__Watch: Cache__WaitReady OpWatch Op__Rev Cache__validateWatch newWatcher demux__Register Op__IsProgressNotify demux__BroadcastProgressTo demux__Unregister
+# etcd-io/etcd#21600 (`WithPrevKV`): `store.waitForRev` (cache/store.go), `isCreateEvent` and
+# `Cache.attachPrevKV` (cache/cache.go).
+store__waitForRev: context_AfterFunc context_Err
+isCreateEvent:
+Cache__attachPrevKV: isCreateEvent store__waitForRev store__Get fmt_Errorf
+Cache__Watch: Cache__WaitReady OpWatch Op__Rev Cache__validateWatch newWatcher demux__Register Op__IsProgressNotify demux__BroadcastProgressTo demux__Unregister Op__IsPrevKV Cache__attachPrevKV context_AfterFunc
 # The rest of the package (2026-10-09): the configuration's options (cache/config.go, see
 # InvConfig.lean), the real clock (cache/clock.go; Perennial's time.NewTimer, Timer.Stop,
 # Timer.Reset are its trust boundary), the progress requestor's loop

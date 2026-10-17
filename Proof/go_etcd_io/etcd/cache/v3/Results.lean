@@ -68,9 +68,13 @@ theorem cache_Watch : Cache.Watch.spec (GF := GF) (hG := hG) := Cache.wp_Watch
   `sr` with `p₀ < sr` (nothing etcd did from `sr` on is missing);
 * such a delivery, complete below a compaction revision `n`, followed by the compaction's
   cancel response;
-* the single cancel response of a rejected request. -/
-theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List RespModel) :
-    cacheWatchLog (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr L ⊢
+* the single cancel response of a rejected request;
+* for a `WithPrevKV` watch (`pk ≠ none`, etcd-io/etcd#21600), the demux's delivery up to a response
+  `r0` whose `PrevKv` lookup failed (as in the first case), `r0` replaced by a cancel response
+  with no events. -/
+theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (pk : Option GoString)
+    (L : List RespModel) :
+    cacheWatchLog (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr pk L ⊢
       (∃ (bs : List Batch) (p₀ : Int),
         ⌜eventsOf L = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
           SentOrdered L ∧ StreamOk bs ∧
@@ -82,9 +86,15 @@ theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List 
           SentOrdered L0 ∧ StreamOk bs ∧ (∀ b ∈ bs, sint.Z (batchRev b) < sint.Z n) ∧
           (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
         certChain (etcdStepCert pfx) p₀ bs) ∨
-      ⌜∃ r, L = [r] ∧ r.canceled = true ∧ r.events = []⌝ := by
+      ⌜∃ r, L = [r] ∧ r.canceled = true ∧ r.events = []⌝ ∨
+      (∃ (L0 : List RespModel) (r0 r : RespModel) (bs : List Batch) (p₀ : Int),
+        ⌜pk ≠ none ∧ L = L0 ++ [r] ∧ r.canceled = true ∧ r.events = [] ∧
+          eventsOf (L0 ++ [r0]) = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
+          SentOrdered (L0 ++ [r0]) ∧ StreamOk bs ∧
+          (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
+        certChain (etcdStepCert pfx) p₀ bs) := by
   unfold cacheWatchLog
-  iintro (H | ⟨%L0, %n, %HL, H⟩ | %H)
+  iintro (H | ⟨%L0, %n, %HL, H⟩ | %H | ⟨%L0, %r0, %r, %HL, H⟩)
   · ileft
     iapply cacheWatch_delivery pfx key rangeEnd sr L $$ H
   · iright; ileft
@@ -94,8 +104,14 @@ theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List 
     iframe Hc
     ipureintro
     exact ⟨HL, Hf⟩
-  · iright; iright
+  · iright; iright; ileft
     ipureintro; exact H
+  · iright; iright; iright
+    icases cacheWatch_delivery pfx key rangeEnd sr (L0 ++ [r0]) $$ H with ⟨%bs, %p₀, %Hf, Hc⟩
+    iexists L0, r0, r, bs, p₀
+    iframe Hc
+    ipureintro
+    exact ⟨HL.1, HL.2.1, HL.2.2.1, HL.2.2.2, Hf⟩
 
 /-- `c.WaitForRevision(ctx, rev)`. -/
 theorem cache_WaitForRevision : Cache.WaitForRevision.spec (GF := GF) (hG := hG) :=
