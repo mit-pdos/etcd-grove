@@ -251,9 +251,7 @@ func newBackend(bcfg BackendConfig) *backend {
 					txBuffer:   txBuffer{make(map[BucketID]*bucketBuffer)},
 					bufVersion: 0,
 				},
-				buckets: make(map[BucketID]*bolt.Bucket),
-				txWg:    new(sync.WaitGroup),
-				txMu:    new(sync.RWMutex),
+				tx: newSharedTx(),
 			},
 		},
 		txReadBufferCache: txReadBufferCache{
@@ -302,7 +300,7 @@ func (b *backend) ConcurrentReadTx() ReadTx {
 	b.readTx.RLock()
 	defer b.readTx.RUnlock()
 	// prevent boltdb read Tx from been rolled back until store read Tx is done. Needs to be called when holding readTx.RLock().
-	b.readTx.txWg.Add(1)
+	b.readTx.tx.addWait()
 
 	// TODO: might want to copy the read buffer lazily - create copy when A) end of a write transaction B) end of a batch interval.
 
@@ -364,11 +362,8 @@ func (b *backend) ConcurrentReadTx() ReadTx {
 	// concurrentReadTx is not supposed to write to its txReadBuffer
 	return &concurrentReadTx{
 		baseReadTx: baseReadTx{
-			buf:     *buf,
-			txMu:    b.readTx.txMu,
-			tx:      b.readTx.tx,
-			buckets: b.readTx.buckets,
-			txWg:    b.readTx.txWg,
+			buf: *buf,
+			tx:  b.readTx.tx.clone(),
 		},
 	}
 }
@@ -597,11 +592,12 @@ func (b *backend) finishDefrag(tmpdb *bolt.DB, tdbp, dbp string, now time.Time, 
 	}
 	b.batchTx.tx = b.unsafeBegin(true)
 
-	b.readTx.reset()
-	b.readTx.tx = b.unsafeBegin(false)
+	b.readTx.reset(b.lg)
+	tx := b.unsafeBegin(false)
+	b.readTx.tx.setTx(tx)
 
-	size := b.readTx.tx.Size()
-	db := b.readTx.tx.DB()
+	size := tx.Size()
+	db := tx.DB()
 	atomic.StoreInt64(&b.size, size)
 	atomic.StoreInt64(&b.sizeInUse, size-(int64(db.Stats().FreePageN)*int64(db.Info().PageSize)))
 
@@ -680,7 +676,7 @@ func (b *backend) defragBlocking() error {
 
 		// restore the bbolt transactions if defragmentation fails
 		b.batchTx.tx = b.unsafeBegin(true)
-		b.readTx.tx = b.unsafeBegin(false)
+		b.readTx.tx.setTx(b.unsafeBegin(false))
 
 		return err
 	}
@@ -771,7 +767,7 @@ func (b *backend) defragNonBlocking() error {
 
 		// restore the bbolt transactions if defragmentation fails
 		b.batchTx.tx = b.unsafeBegin(true)
-		b.readTx.tx = b.unsafeBegin(false)
+		b.readTx.tx.setTx(b.unsafeBegin(false))
 
 		return err
 	}
