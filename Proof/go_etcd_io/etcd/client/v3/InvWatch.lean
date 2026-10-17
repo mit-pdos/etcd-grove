@@ -355,6 +355,8 @@ structure WsPrm (GF : BundledGFunctors) where
   recvc : Loc
   γr : SpscNames
   γhi : GName
+  /-- (K2e-7) the dispatch's second cursor (the cache's contract's positions, `recvCmpl`) -/
+  γh2 : GName
   donec : Loc
   γdn : ChanNames
   /-- the substream's goroutine has stopped for good (a one-shot flag: `false`, owned by the
@@ -378,7 +380,7 @@ def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (outc : Loc) : IProp GF :=
   iprop(∃ γ : EtcdWatchNames,
     isSpsc γ.spsc outc (rangeWatchElem (EM := V.EM) γ V.pfx o rev) (fun _ => iprop(True)) ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-    monoListIdxOwn γ.cur 0 (rev - W64 1))
+    monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1))
 
 /-- **The read-only fields of a `watchRequest`** at `l` (all but `rev` and `retc`), at the watch's
 values: the context, the key and range end, the flags (`fragment` and `prevKV` false: the
@@ -399,6 +401,19 @@ def wrRO (l : Loc) (P : WsPrm GF) : IProp GF :=
 instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
   unfold wrRO; infer_instance
 
+/-- **The cache's contract for the `k`th response `run` sends a substream** (persistent; K2e-7):
+unless the watch promises no completeness (`cpl` false), the contract of the watch's prefix
+(`watchRespOk`) from the second dispatch cursor's position `k` to `k + 1` (`γh2`). -/
+def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
+    (r : RespModel) : IProp GF :=
+  iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
+    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ watchRespOk (EM := V.EM) P.o.key h2B h2A v r)
+
+instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    Persistent (recvCmpl V P k v r) := by
+  unfold recvCmpl; infer_instance
+
 /-- **The `k`th response `run` sends a substream** (`recvc`'s element) at `wr` (read-only): a
 `WatchResponse` modelled by `r` (its events read-only, its header non-nil, `watchHdrOwn`: the
 `Revision` owned for a response with events; no close error, no compaction, not canceled),
@@ -415,7 +430,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
       r.canceled = false⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
-    rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗
+    rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
     (if k = 0 then
       iprop(⌜r.created = true ∧ r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
@@ -445,14 +460,32 @@ instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) :=
 side of `outc` at the start. -/
 def retcRes (P : WsPrm GF) : IProp GF :=
   iprop(spscConsumer P.γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-    monoListIdxOwn P.γ.cur 0 (P.rev - W64 1))
+    monoListIdxOwn P.γ.cur 0 (P.rev - W64 1) ∗ monoListIdxOwn P.γ.cur2 0 (P.rev - W64 1))
+
+/-- **The second cursor's authority** (K2e-7), for `n` responses published: the cache's contract's
+positions (`γ.cur2`, one more than the responses), unless the watch promises no completeness. -/
+def cur2Auth (P : WsPrm GF) (n : Nat) : IProp GF :=
+  iprop(⌜P.γ.cpl = false⌝ ∨ ∃ C2 : List w64, monoListAuthOwn P.γ.cur2 1 C2 ∗ ⌜C2.length = n + 1⌝)
 
 /-- **The producer's side of `outc`**: the responses published (`sent`), the cursor's positions
 `C` (one more than the responses: the contract's `γ.cur`, its authority). -/
 def outcProd (P : WsPrm GF) : IProp GF :=
   iprop(∃ (sent : List go_etcd_io.etcd.client.v3.WatchResponse) (C : List w64),
     spscProducer P.γ.spsc sent ∗ monoListAuthOwn P.γ.cur 1 C ∗
-    ⌜C.length = sent.length + 1⌝)
+    ⌜C.length = sent.length + 1⌝ ∗ cur2Auth P sent.length)
+
+/-- **The second cursor's state at `serveSubstream`** (K2e-7), `n` responses published and the next
+one to publish the `k`th received: the authority at positions ending at `cl2`, the second dispatch
+cursor's position `k` (unless the watch promises no completeness). -/
+def cur2Pos (P : WsPrm GF) (n k : Nat) : IProp GF :=
+  iprop(⌜P.γ.cpl = false⌝ ∨ ∃ (C2 : List w64) (cl2 : w64), monoListAuthOwn P.γ.cur2 1 C2 ∗
+    ⌜C2.length = n + 1 ∧ C2.getLast? = some cl2⌝ ∗ monoListIdxOwn P.γh2 k cl2)
+
+theorem cur2Pos_auth (P : WsPrm GF) (n k : Nat) : cur2Pos P n k ⊢ cur2Auth P n := by
+  unfold cur2Pos cur2Auth
+  iintro (%H | ⟨%C2, %cl2, Ha, %H, -⟩)
+  · ileft; ipureintro; exact H
+  · iright; iexists C2; iframe Ha; ipureintro; exact H.1
 
 /-! ## The gRPC watch stream's channels -/
 

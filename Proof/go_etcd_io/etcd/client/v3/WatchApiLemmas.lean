@@ -155,7 +155,8 @@ theorem watch_spsc_alloc [EM : EtcdModel GF] (pfx : GoString) (o : OpFull) (rev 
         spscProducer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
         monoListAuthOwn γ.cur 1 [rev - W64 1] ∗
         spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-        monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ ⌜γ.cur2 = γ.cur⌝ := by
+        monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
+        ⌜γ.cur2 = γ.cur⌝ := by
   iintro #Hch Ho
   imod mono_list_own_alloc [rev - W64 1] with ⟨%γcur, Ha, #Hlb⟩
   imod start_spsc ch (rangeWatchElem ⟨⟨γc, 0, 0⟩, γcur, γcur, false⟩ pfx o rev) (fun _ => iprop(True)) γc
@@ -168,6 +169,8 @@ theorem watch_spsc_alloc [EM : EtcdModel GF] (pfx : GoString) (o : OpFull) (rev 
   rw [← heq]
   isplitr
   · iexact Hs
+  isplitr
+  · iapply monoListIdxOwn_get 0 (rev - W64 1) rfl $$ Hlb
   isplitr
   · iapply monoListIdxOwn_get 0 (rev - W64 1) rfl $$ Hlb
   ipureintro; rfl

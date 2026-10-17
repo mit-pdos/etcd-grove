@@ -31,7 +31,8 @@ not closing, an empty buffer, a buffer logger or none, half the request's `rev` 
 `retc` field with the caller's resources): receives `run`'s responses on `recvc` (the consumer's
 side; the dispatch cursor's first position `rev - 1`), sends its channel on `retc` at the created
 response (and publishes it if asked), buffers the others and publishes them on `outc` (the
-producer's side, the cursor `γ.cur` from `rev - 1`) in order, each with the contract's facts
+producer's side, the cursor `γ.cur` from `rev - 1`, the second one `γ.cur2` as the dispatch's
+second cursor `γh2`, `cur2Pos`) in order, each with the contract's facts
 (`rangeWatchElem`, from `recvElem`'s), until `recvc` is closed or the stream's or the watch's
 context is done (`resumec` is never closed: `False`); then closes its `donec`, hands what it holds
 to `run` on `closingc` (`closingP`) and signals the wait group, which gives it the thread token it
@@ -48,7 +49,7 @@ abbrev watchGRPCStream.serveSubstream.spec : Prop :=
       spscProducer P.γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListAuthOwn P.γ.cur 1 [P.rev - W64 1] ∗
       spscConsumer P.γr ([] : List Loc) ∗ monoListIdxOwn P.γhi 0 (P.rev - W64 1) ∗
-      ownBroadcastChan rc γrc iprop(False) .Unknown ∗
+      cur2Pos P 0 0 ∗ ownBroadcastChan rc γrc iprop(False) .Unknown ∗
       ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Pending ∗
       dghostVar P.γx (DFrac.own 1) false ∗ wgDone G.wgs ∗
       ghostMapElem G.γws P.ws (DFrac.own 1) () }}

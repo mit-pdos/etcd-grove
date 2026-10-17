@@ -43,7 +43,34 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
   iclear Hstate HClusterId HMemberId HRaftTerm HLeaderId HunknownFields HsizeCache H_
   ipersist HRevision
   iunfold outcProd at Hprod
-  icases Hprod with ⟨%sent, %C, Hprod, Hauth, %HC⟩
+  icases Hprod with ⟨%sent, %C, Hprod, Hauth, %HC, Hc2a⟩
+  -- the second cursor (K2e-7) stays too: a canceled response
+  ihave Hc2e : iprop(|==> (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64,
+      monoListIdxOwn P.γ.cur2 sent.length c2 ∗ monoListIdxOwn P.γ.cur2 (sent.length + 1) c2' ∗
+      watchRespOk (EM := V.EM) P.o.key c2 c2' v (RespModel.mk [] (W64 0) true false (W64 0))))
+      $$ [Hc2a]
+  · iunfold cur2Auth at Hc2a
+    icases Hc2a with (%Hcf | ⟨%C2, Ha2, %HC2⟩)
+    · imodintro; ileft; ipureintro; exact Hcf
+    obtain ⟨c2, Hc2⟩ : ∃ c, C2[sent.length]? = some c :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    imod monoListAuthOwn_update_app (GF := GF) [c2] $$ Ha2 with ⟨-, #Hlb2⟩
+    ihave #Hj1 := monoListIdxOwn_get (GF := GF) sent.length c2
+      (by rw [List.getElem?_append_left (by omega)]; exact Hc2) $$ Hlb2
+    ihave #Hj2 := monoListIdxOwn_get (GF := GF) (sent.length + 1) c2
+      (by rw [List.getElem?_append_right (by omega)]; simp [HC2]) $$ Hlb2
+    imodintro
+    iright
+    iexists c2, c2
+    iframe Hj1 Hj2
+    unfold watchRespOk
+    isplitr
+    · ipureintro; simp
+    ileft
+    iframe Hse
+    ipureintro
+    exact ⟨Or.inr (Or.inr Hca), rfl⟩
+  imod Hc2e with #Hc2e
   -- the cursor stays where it is: its last position, twice
   obtain ⟨c, Hc⟩ : ∃ c, C[sent.length]? = some c :=
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
@@ -86,7 +113,7 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
       imodintro
       iintro %i %e %h
       simp at h
-    ileft; ipureintro; exact Hwsp.2.2
+    iexact Hc2e
   (try wp_auto)
   wp_apply +noauto HDone as %dch %dγ #Hdone
   (try wp_auto)
