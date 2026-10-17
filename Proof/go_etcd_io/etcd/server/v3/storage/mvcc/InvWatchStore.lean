@@ -391,6 +391,21 @@ theorem WsOk.ws_size {σ : WsState} (h : WsOk σ) : GMap.size σ.Ws ≤ GMap.siz
 theorem WsOk.wu_size {σ : WsState} (h : WsOk σ) : GMap.size σ.Wu ≤ GMap.size σ.M :=
   gmap_size_le_of_dom _ _ fun w hw => h.st_m w (h.live_st w (Or.inr (Or.inl hw)))
 
+/-- A batch list with a batch that holds `w` finds one for it. -/
+theorem findSome_isSome_of_mem {B : GMap Loc EventBatch} {l : List (GMap Loc EventBatch)} {w : Loc}
+    (hB : B ∈ l) (hw : (B !! w).isSome) : (l.findSome? (· !! w)).isSome := by
+  induction l with
+  | nil => cases hB
+  | cons x xs ih =>
+    rw [List.findSome?_cons]
+    rcases List.mem_cons.1 hB with rfl | h
+    · cases h' : B !! w with
+      | none => rw [h'] at hw; cases hw
+      | some _ => simp
+    · cases h' : x !! w with
+      | none => exact ih h
+      | some _ => simp
+
 section reprs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -1119,6 +1134,31 @@ def memberRes (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st : WatcherSt) 
         monoListAuthOwn γw.evs q.half evsw ∗ dghostVar γw.live (DFrac.own q.half) true ∗
         popFacts γ σ w r γw.lo st evsw d
     else cancelled γw)
+
+theorem popFacts_synced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
+    (st : WatcherSt) (evsw : List EvM) (d : Nat) (h : (σ.Ws !! k).isSome) :
+    popFacts (GF := GF) γ σ k r lo st evsw d =
+      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d) := by
+  unfold popFacts; rw [if_pos h]
+
+theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
+    (st : WatcherSt) (evsw : List EvM) (d : Nat) (B : EventBatch) (h1 : (σ.Ws !! k).isSome = false)
+    (h2 : (σ.Wu !! k).isSome = false) (h3 : σ.victimOf k = some B) :
+    popFacts (GF := GF) γ σ k r lo st evsw d =
+      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B⌝ ∗
+        evsWf γ r lo (evsw ++ B.evs) d) := by
+  unfold popFacts; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
+
+/-- `memberRes` moves to a state that agrees with it at the watcher. -/
+theorem memberRes_congr (γ : WsNames) (q : Qp) (σ σ' : WsState) (w : Loc) (st : WatcherSt)
+    (hM : σ'.M = σ.M) (hWs : (σ'.Ws !! w).isSome = (σ.Ws !! w).isSome)
+    (hWu : (σ'.Wu !! w).isSome = (σ.Wu !! w).isSome) (hV : σ'.victimOf w = σ.victimOf w)
+    (hE : σ'.E !! w = σ.E !! w) :
+    memberRes (GF := GF) γ q σ w st ⊢ memberRes γ q σ' w st := by
+  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV]
+  unfold memberRes popFacts
+  simp only [hM, hl, hWs, hWu, hV, hE]
+  exact .rfl
 
 /-- A victim out with the mover (the lock's half of its state; persistent facts). -/
 def outRes (γ : WsNames) (σ : WsState) (w : Loc) (st : WatcherSt) : IProp GF :=

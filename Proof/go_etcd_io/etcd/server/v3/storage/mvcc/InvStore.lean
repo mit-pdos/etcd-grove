@@ -2966,6 +2966,21 @@ def storeCloser (s : Loc) : IProp GF :=
 
 end hookLc
 
+section halves
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A ghost variable as two halves. -/
+theorem ghostVar_halves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
+    ghostVar (GF := GF) γ 1 a ⊣⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
+  have h := (ghostVar_fractional (GF := GF) γ a).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  exact h
+
+end halves
+
 end mvcc
 end EtcdGrove
 end Perennial

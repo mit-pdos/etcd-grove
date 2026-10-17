@@ -50,6 +50,16 @@ def idIssued (pfx s0 : w64) (k : Nat) (id : w64) : Prop :=
 
 def idN : Namespace := nroot .@ "idutil"
 
+/-- The `n` low bits of `x`, as a number. -/
+theorem idutil_mask_toNat (x : BitVec 64) (n : Nat) (h : n ≤ 64) :
+    (x &&& BitVec.ofNat 64 (2 ^ n - 1)).toNat = x.toNat % 2 ^ n := by
+  rw [BitVec.toNat_and, BitVec.toNat_ofNat]
+  have h1 : 2 ^ n - 1 < 2 ^ 64 := by
+    have : 2 ^ n ≤ 2 ^ 64 := Nat.pow_le_pow_right (by omega) h
+    have : 1 ≤ 2 ^ n := Nat.one_le_two_pow
+    omega
+  rw [Nat.mod_eq_of_lt h1, Nat.and_two_pow_sub_one_eq_mod]
+
 section ghost
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

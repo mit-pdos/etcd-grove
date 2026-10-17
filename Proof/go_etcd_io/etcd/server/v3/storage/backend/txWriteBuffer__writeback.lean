@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__rese
 public import Spec.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WBufLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Sorter
 
 @[expose] public section
 
@@ -85,33 +86,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-
-/-- A bucket buffer is a `sort.Interface` over its entries, ordered by key. -/
-theorem backend.txWriteBuffer.writeback.bbSorter
-    (hLen : backend.bucketBuffer.Len.spec (GF := GF) (hG := hG))
-    (hLess : backend.bucketBuffer.Less.spec (GF := GF) (hG := hG))
-    (hSwap : backend.bucketBuffer.Swap.spec (GF := GF) (hG := hG)) (bb : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ⊢
-      sorterSpec (interface.mk (go.GoType.PointerType bucketBuffer.ty) #bb) (ownBB bb)
-        (fun a b : Ent => decide (strLt a.1 b.1)) := by
-  iintro #Hpkg
-  unfold sorterSpec
-  isplitr
-  · imodintro
-    iintro %l
-    iintro !> %Φ Hl HΦ
-    iapply (hLen bb l) $$ [$Hpkg $Hl] HΦ
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ Hl HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    iapply (hLess bb l i j a b hi hj ha hb) $$ [$Hpkg $Hl] HΦ
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ Hl HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  iapply (hSwap bb l i j a b hi hj ha hb) $$ [$Hpkg $Hl] HΦ
 
 theorem backend.txWriteBuffer.writeback.wp_proof
     (hDedupe : backend.bucketBuffer.dedupe.spec (GF := GF) (hG := hG))
@@ -262,7 +236,7 @@ theorem backend.txWriteBuffer.writeback.wp_proof
         case' pos =>
           rw [_root_.decide_eq_true (show sint.Z (W64 1) < sint.Z (W64 es.length) by word)]
           wp_auto
-          ihave #Hsorter := backend.txWriteBuffer.writeback.bbSorter hLen hLess hSwap wbv $$ Hpkg
+          ihave #Hsorter := backend.bb_sorter hLen hLess hSwap wbv $$ Hpkg
           wp_apply (hSort Ent (interface.mk (go.GoType.PointerType bucketBuffer.ty) #wbv) (ownBB wbv)
               (fun a b : Ent => decide (strLt a.1 b.1)) es entLt_swo) $$ [$Hsorter $Hwb]
             as %es2 ⟨Hwb, %Hes2⟩

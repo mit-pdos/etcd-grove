@@ -25,38 +25,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-theorem txn.compareToPath_opsIs_lookup :
-    ∀ (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc), ps[i]? = some p →
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ∃ op, ⌜ops[i]? = some op⌝ ∗ txn.requestOpIs p op
-  | [], _, _, _, h => by simp at h
-  | _ :: _, [], _, _, _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | q :: ps, op :: ops, 0, p, h => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-    subst h
-    unfold txn.requestOpsIs
-    iintro ⟨H, -⟩
-    iexists op
-    iframe H
-    ipureintro; rfl
-  | q :: ps, op :: ops, i + 1, p, h => by
-    simp only [List.getElem?_cons_succ] at h
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    simp only [List.getElem?_cons_succ]
-    iapply txn.compareToPath_opsIs_lookup ps ops i p h $$ H
-
-theorem txn.compareToPath_opsIs_length :
-    ∀ (ps : List Loc) (ops : List TxnOp),
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
-  | [], [] => by iintro -; ipureintro; rfl
-  | p :: ps, op :: ops => by
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    ihave %h := txn.compareToPath_opsIs_length ps ops $$ H
-    ipureintro; simp [h]
-  | [], _ :: _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | _ :: _, [] => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-
 theorem txn.compareToPath.wp_proof
     (hCmps : txn.applyCompares.spec (GF := GF) (hG := hG)) :
     txn.compareToPath.spec (GF := GF) (hG := hG) := by
@@ -99,7 +67,7 @@ theorem txn.compareToPath.wp_proof
       iframe
       simp only [TxnModel.branch, ↓reduceIte]
       iframe #
-  ihave %Hopl := txn.compareToPath_opsIs_length ops_ps _ $$ Hops
+  ihave %Hopl := txn.requestOpsIs_length ops_ps _ $$ Hops
   ihave %Hosl := ownSlice_len _ _ _ $$ Hos
   ihave IHl : (∃ (n : w64) (pv : Loc) (cur : GoSlice), "i" ∷ i_ptr ↦ n ∗ "op" ∷ op_ptr ↦ pv ∗
       "txnPath" ∷ txnPath_ptr ↦ cur ∗
@@ -117,7 +85,7 @@ theorem txn.compareToPath.wp_proof
     simp only [show (0 ≤ sint.Z n ∧ sint.Z n < sint.Z osl.len) from ⟨hn0, Hif⟩, _root_.and_self, ite_true]
     wp_apply wp_load_slice_index osl (sint.Z n) ops_ps DFrac.discard p hn0 $$ [Hos] as -
     · iframe Hos; ipureintro; exact Hp_lookup
-    ihave ⟨%op, %Hop, #Hp⟩ := txn.compareToPath_opsIs_lookup ops_ps _ _ p Hp_lookup $$ Hops
+    ihave ⟨%op, %Hop, #Hp⟩ := txn.requestOpsIs_elem ops_ps _ _ p Hp_lookup $$ Hops
     have htake : ∀ op', (t.branch ok)[sint.nat n]? = some op' →
         txn.opsPath (mvcc.stateAfter log) ((t.branch ok).take (sint.nat (n + W64 1))) =
           txn.opsPath (mvcc.stateAfter log) ((t.branch ok).take (sint.nat n)) ++

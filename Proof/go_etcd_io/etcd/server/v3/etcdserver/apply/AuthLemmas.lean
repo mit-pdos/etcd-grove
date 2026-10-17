@@ -122,78 +122,6 @@ theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain
     split <;> simp [Hst.1]
   iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
 
-/-- A `*pb.RequestOp`'s four kinds, as `checkTxnReqsPermission`'s type switch sees them. -/
-theorem apply.requestOpIs_cases_auth (p : Loc) (op : TxnOp) :
-    txn.requestOpIs (GF := GF) p op ⊢ ⌜p ≠ null⌝ ∗
-      ((∃ (w r : Loc) (o : OpFull),
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w :
-              GoInterface) ∗
-          structFieldRef etcdserverpb.RequestOp_RequestRange go!"RequestRange" w ↦□ r ∗
-          txn.rangeRequestIs r o) ∨
-       (∃ (w r : Loc) (o : OpFull),
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
-              GoInterface) ∗
-          structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
-          txn.putRequestIs r o) ∨
-       (∃ (w r : Loc) (o : OpFull),
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
-              GoInterface) ∗
-          structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r ∗
-          txn.deleteRangeRequestIs r o) ∨
-       (∃ (w r : Loc) (t : TxnModel),
-          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
-              GoInterface) ∗
-          structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
-          txn.txnRequestIs r t)) := by
-  cases op
-  case txn cs ts es =>
-    unfold txn.requestOpIs
-    iintro #⟨%Hpn, %w, %r, #HR, #Hw, %Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #H1, #H2, #H3, #H4,
-      #H5, #H6, #H7, #H8, #H9⟩
-    isplitl []
-    · ipureintro; exact Hpn
-    iright; iright; iright
-    iexists w, r, { cmps := cs, thenOps := ts, elseOps := es }
-    iframe HR Hw
-    unfold txn.txnRequestIs txn.txnFieldsIs
-    isplitl []
-    · ipureintro; exact Hrn
-    iexists csl, ssl, fsl, cps, sps, fps
-    iframe #
-  all_goals
-    unfold txn.requestOpIs
-    iintro #⟨%Hpn, %u, %w, %r, %o, #HR, (⟨%Hu, #Hw, #Hr⟩ | ⟨%Hu, #Hw, #Hr⟩ | ⟨%Hu, #Hw, #Hr⟩)⟩
-    all_goals
-      obtain ⟨rfl, -⟩ := Hu
-      isplitl []
-      · ipureintro; exact Hpn
-    · ileft; iexists w, r, o; iframe #
-    · iright; ileft; iexists w, r, o; iframe #
-    · iright; iright; ileft; iexists w, r, o; iframe #
-
-/-- The `i`-th request of the list. -/
-theorem apply.requestOpsIs_elem_auth :
-    ∀ (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc), ps[i]? = some p →
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ∃ op, txn.requestOpIs p op
-  | [], _, _, _, h => by simp at h
-  | _ :: _, [], _, _, _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | q :: ps, op :: ops, 0, p, h => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-    subst h
-    unfold txn.requestOpsIs
-    iintro ⟨H, -⟩
-    iexists op
-    iexact H
-  | q :: ps, op :: ops, i + 1, p, h => by
-    simp only [List.getElem?_cons_succ] at h
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    iapply apply.requestOpsIs_elem_auth ps ops i p h $$ H
-
 /-- `checkTxnPermission`'s triple, as a hypothesis (the Löb induction's). -/
 def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RD : IProp GF) (on : Bool) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
@@ -254,9 +182,9 @@ theorem apply.checkTxnReqs_of
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index reqs (sint.Z n) ps DFrac.discard p Hn.1 $$ [] as -
     · iframe Hreqs; ipureintro; exact hp
-    ihave ⟨%op, #Hop⟩ := apply.requestOpsIs_elem_auth ps ops _ p hp $$ Hops
-    icases apply.requestOpIs_cases_auth p op $$ Hop with ⟨%Hpn, (⟨%w, %r, %o, #HR, #Hw, #Hr⟩ |
-      ⟨%w, %r, %o, #HR, #Hw, #Hr⟩ | ⟨%w, %r, %o, #HR, #Hw, #Hr⟩ | ⟨%w, %r, %t, #HR, #Hw, #Hr⟩)⟩
+    ihave ⟨%op, -, #Hop⟩ := txn.requestOpsIs_elem ps ops _ p hp $$ Hops
+    icases txn.requestOpIs_cases p op $$ Hop with ⟨%Hpn, (⟨%w, %r, %o, -, #HR, #Hw, #Hr⟩ |
+      ⟨%w, %r, %o, -, #HR, #Hw, #Hr⟩ | ⟨%w, %r, %o, -, #HR, #Hw, #Hr⟩ | ⟨%w, %r, %cs, %ts, %es, -, #HR, #Hw, #Hr⟩)⟩
     · -- a range
       iunfold txn.rangeRequestIs at Hr
       icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %x1, %x2, %x3, %x4, %x5, %x6, %x7, %x8, %x9, %x10,
@@ -352,7 +280,7 @@ theorem apply.checkTxnReqs_of
       simp only [Hrn, decide_false]
       wp_auto
       iunfold apply.txnPermT at IH
-      wp_apply IH $$ %r %t [Hai Hrd] as %err ⟨Hai, Hrd, #HeI6, %Hof6⟩
+      wp_apply IH $$ %r %({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) [Hai Hrd] as %err ⟨Hai, Hrd, #HeI6, %Hof6⟩
       · iframe; iframe #
       cases err with
       | nil =>

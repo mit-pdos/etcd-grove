@@ -143,20 +143,6 @@ theorem WsOk.sync_final_empty {σ : WsState} {v : SyncVars} (h : WsOk (v.st σ))
       rw [SyncVars.st_VB, List.getElem?_append_left (List.getElem?_eq_some_iff.1 hj).1]; exact hj
     exact h.v_one i j B B' w hi' hj' hB hB'
 
-theorem findSome_isSome_of_mem' {B : GMap Loc EventBatch} {l : List (GMap Loc EventBatch)}
-    {w : Loc} (hB : B ∈ l) (hw : (B !! w).isSome) : (l.findSome? (· !! w)).isSome := by
-  induction l with
-  | nil => cases hB
-  | cons x xs ih =>
-    rw [List.findSome?_cons]
-    rcases List.mem_cons.1 hB with rfl | h
-    · cases h' : B !! w with
-      | none => rw [h'] at hw; cases hw
-      | some _ => simp
-    · cases h' : x !! w with
-      | none => exact ih h
-      | some _ => simp
-
 /-- The lock's facts after one step of the loop. -/
 theorem WsOk.sync_step {σ : WsState} {v : SyncVars} (h : WsOk (v.st σ)) {w : Loc} {r : WatchRange}
     {st : WatcherSt} (hWu : v.Wu !! w = some r) (hST : v.ST !! w = some st) (dst : SyncDst)
@@ -251,7 +237,7 @@ theorem WsOk.sync_step {σ : WsState} {v : SyncVars} (h : WsOk (v.st σ)) {w : L
       -- `w` is in no batch of `σ`
       have hnot : ∀ (n : Nat) (B0 : GMap Loc EventBatch), σ.VB[n]? = some B0 → (B0 !! k).isSome → False := by
         intro n B0 hn hb
-        have := findSome_isSome_of_mem' (List.mem_of_getElem? hn) hb
+        have := findSome_isSome_of_mem (List.mem_of_getElem? hn) hb
         unfold WsState.victimOf at hσvN
         rw [hσvN.1] at this; cases this
       have hlast : ∀ (n : Nat) (B0 : GMap Loc EventBatch), S'.VB[n]? = some B0 → (B0 !! k).isSome → n = σ.VB.length := by
@@ -619,12 +605,6 @@ theorem sw_memberRes_intro (γ : WsNames) (σ : WsState) (w : Loc) (st : Watcher
   iframe Ha Hl Hp
   ipureintro; exact hE
 
-theorem sw_popFacts_synced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
-    (st : WatcherSt) (evsw : List EvM) (d : Nat) (h : (σ.Ws !! k).isSome) :
-    popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d) := by
-  unfold popFacts; rw [if_pos h]
-
 theorem sw_popFacts_unsynced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
     (st : WatcherSt) (evsw : List EvM) (d : Nat) (h1 : (σ.Ws !! k).isSome = false)
     (h2 : (σ.Wu !! k).isSome) :
@@ -632,14 +612,6 @@ theorem sw_popFacts_unsynced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchR
       iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗ evsWf γ r lo evsw d ∗
         ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.Z st.minRev < Lc.length⌝) := by
   unfold popFacts; simp only [h1, h2, Bool.false_eq_true, ↓reduceIte]
-
-theorem sw_popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
-    (st : WatcherSt) (evsw : List EvM) (d : Nat) (B : EventBatch) (h1 : (σ.Ws !! k).isSome = false)
-    (h2 : (σ.Wu !! k).isSome = false) (h3 : σ.victimOf k = some B) :
-    popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B⌝ ∗
-        evsWf γ r lo (evsw ++ B.evs) d) := by
-  unfold popFacts; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
 
 /-- The unsynced members' `minRev`s are non-negative and below the committed log's length (their
 certificates are below it). -/
@@ -743,7 +715,7 @@ theorem sw_memberRes_new_synced (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
   iintro ⟨#Hm, #Hf, #Hc, #Hfo, Ha, Hl, #Hwf⟩
   iapply (sw_memberRes_intro γ ((v.step key r .synced st' (evsw, D)).st σ) key st' (Or.inl (by rw [hWs]; rfl)) γw r fcs evsw D hM
     (by simp [SyncVars.step, SyncVars.st, GMap.lookup_insert]) hsr)
-  rw [sw_popFacts_synced γ _ key r γw.lo st' evsw D (by rw [hWs]; rfl)]
+  rw [popFacts_synced γ _ key r γw.lo st' evsw D (by rw [hWs]; rfl)]
   iframe Hm Hf Hc Hfo Ha Hl Hwf
   ipureintro; exact hlo
 
@@ -793,7 +765,7 @@ theorem sw_memberRes_new_victim (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
   iintro ⟨#Hm, #Hf, #Hc, #Hfo, Ha, Hl, #Hwf⟩
   iapply (sw_memberRes_intro γ ((v.step key r (.victim B) st' (evsw, D)).st σ) key st' (Or.inr (Or.inr (by rw [hv]; rfl))) γw r fcs evsw D hM
     (by simp [SyncVars.step, SyncVars.st, GMap.lookup_insert]) hsr)
-  rw [sw_popFacts_victim γ _ key r γw.lo st' evsw D B (by rw [hWs]; rfl) (by rw [hWu]; rfl) hv]
+  rw [popFacts_victim γ _ key r γw.lo st' evsw D B (by rw [hWs]; rfl) (by rw [hWu]; rfl) hv]
   iframe Hm Hf Hc Hfo Ha Hl Hwf
   ipureintro; exact hlo
 

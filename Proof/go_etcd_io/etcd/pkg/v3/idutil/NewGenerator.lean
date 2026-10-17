@@ -25,19 +25,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.idutil.Assumptions]
 
-/-- The `n` low bits of `x`, as a number. -/
-private theorem mask_toNat (x : BitVec 64) (n : Nat) (h : n ≤ 64) :
-    (x &&& BitVec.ofNat 64 (2 ^ n - 1)).toNat = x.toNat % 2 ^ n := by
-  rw [BitVec.toNat_and, BitVec.toNat_ofNat]
-  have h1 : 2 ^ n - 1 < 2 ^ 64 := by
-    have : 2 ^ n ≤ 2 ^ 64 := Nat.pow_le_pow_right (by omega) h
-    have : 1 ≤ 2 ^ n := Nat.one_le_two_pow
-    omega
-  rw [Nat.mod_eq_of_lt h1, Nat.and_two_pow_sub_one_eq_mod]
-
 theorem idutil_prefix_low (y : BitVec 64) : y <<< 48#64 &&& 0xffffffffffff#64 = 0#64 := by
   apply BitVec.eq_of_toNat_eq
-  have := mask_toNat (y <<< 48#64) 48 (by omega)
+  have := idutil_mask_toNat (y <<< 48#64) 48 (by omega)
   simp only [show (BitVec.ofNat 64 (2 ^ 48 - 1)) = 0xffffffffffff#64 from rfl] at this
   rw [this, BitVec.shiftLeft_eq', BitVec.toNat_shiftLeft]
   simp only [BitVec.toNat_ofNat]
@@ -47,7 +37,7 @@ theorem idutil_prefix_low (y : BitVec 64) : y <<< 48#64 &&& 0xffffffffffff#64 = 
 
 theorem idutil_suffix_lt (x : BitVec 64) : (x &&& 0xffffffffff#64) <<< 8#64 < 0x1000000000000#64 := by
   rw [BitVec.lt_def, BitVec.shiftLeft_eq', BitVec.toNat_shiftLeft]
-  have := mask_toNat x 40 (by omega)
+  have := idutil_mask_toNat x 40 (by omega)
   simp only [show (BitVec.ofNat 64 (2 ^ 40 - 1)) = 0xffffffffff#64 from rfl] at this
   rw [this, Nat.shiftLeft_eq]
   simp only [BitVec.toNat_ofNat, show 8 % 2 ^ 64 = 8 from rfl]

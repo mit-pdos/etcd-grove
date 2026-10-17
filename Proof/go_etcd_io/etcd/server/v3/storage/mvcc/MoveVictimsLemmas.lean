@@ -861,16 +861,6 @@ theorem moverRes_G (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) :
   · iintro ⟨%γw, %r, %fcs, %evsw, H⟩; iexists evsw, γw, r, fcs; iexact H
   · iintro ⟨%evsw, %γw, %r, %fcs, H⟩; iexists γw, r, fcs, evsw; iexact H
 
-theorem mv_memberRes_congr (γ : WsNames) (q : Qp) (σ σ' : WsState) (w : Loc) (st : WatcherSt)
-    (hM : σ'.M = σ.M) (hWs : (σ'.Ws !! w).isSome = (σ.Ws !! w).isSome)
-    (hWu : (σ'.Wu !! w).isSome = (σ.Wu !! w).isSome) (hV : σ'.victimOf w = σ.victimOf w)
-    (hE : σ'.E !! w = σ.E !! w) :
-    memberRes (GF := GF) γ q σ w st ⊢ memberRes γ q σ' w st := by
-  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV]
-  unfold memberRes popFacts
-  simp only [hM, hl, hWs, hWu, hV, hE]
-  exact .rfl
-
 /-- A victim's resources under the lock, out to the mover (its `outRes` stays). -/
 theorem mv_member_to_mover (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vs' : GoSlice) (w : Loc)
     (st : WatcherSt) (B : EventBatch) (hB : σ.victimOf w = some B) :
@@ -959,7 +949,7 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
         have : (GMap.filter (fun k v => !p k v) σ.ST) !! k = some v := hk
         rw [GMap.lookup_filter] at this
         cases h : σ.victimOf k <;> cases h' : σ.ST !! k <;> simp_all [p]
-      apply mv_memberRes_congr γ 1 σ (takeState σ vnil) k v rfl rfl rfl
+      apply memberRes_congr γ 1 σ (takeState σ vnil) k v rfl rfl rfl
       · rw [takeState_victimOf]; cases h : σ.victimOf k <;> simp_all
       · show (σ.E !! k).filter (fun _ => !(σ.victimOf k).isSome) = σ.E !! k
         rw [hk']; cases σ.E !! k <;> rfl
@@ -1095,7 +1085,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
         intro e; subst e
         have : σ.ST !! k = some v := hk
         rw [hST] at this; cases this
-      apply mv_memberRes_congr γ 1 σ σ' k v eM
+      apply memberRes_congr γ 1 σ σ' k v eM
       · rw [eWs]; cases b <;> simp [GMap.lookup_insert_ne _ _ (Ne.symm hk'), Ne.symm hk']
       · rw [eWu]; cases b <;> simp [GMap.lookup_insert_ne _ _ (Ne.symm hk'), Ne.symm hk']
       · exact evo k
@@ -1268,7 +1258,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
         have := (hout k x h).1
         have hk' : σ.ST !! k = some v := hk
         rw [this] at hk'; cases hk'
-    apply mv_memberRes_congr γ 1 σ σ' k v eM
+    apply memberRes_congr γ 1 σ σ' k v eM
     · rw [eWs]
     · rw [eWu]
     · rw [hvo, hn]; cases σ.victimOf k <;> rfl

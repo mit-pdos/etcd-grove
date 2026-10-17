@@ -374,6 +374,165 @@ instance deleteRangeResponseIs_persistent (resp : Loc) (rev : w64) (n : Nat)
 
 end defs
 
+/-! ## Reading the request predicates -/
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+open Iris.ProofMode
+
+theorem requestOpsIs_length :
+    ∀ (ps : List Loc) (ops : List TxnOp), requestOpsIs (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
+  | [], [] => by iintro -; ipureintro; rfl
+  | _ :: ps, _ :: ops => by
+    unfold requestOpsIs
+    iintro ⟨-, H⟩
+    ihave %h := requestOpsIs_length ps ops $$ H
+    ipureintro; simp [h]
+  | [], _ :: _ => by unfold requestOpsIs; iintro H; iexfalso; iexact H
+  | _ :: _, [] => by unfold requestOpsIs; iintro H; iexfalso; iexact H
+
+/-- The `i`-th request of the list. -/
+theorem requestOpsIs_elem :
+    ∀ (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc), ps[i]? = some p →
+      requestOpsIs (GF := GF) ps ops ⊢ ∃ op, ⌜ops[i]? = some op⌝ ∗ requestOpIs p op
+  | [], _, _, _, h => by simp at h
+  | _ :: _, [], _, _, _ => by unfold requestOpsIs; iintro H; iexfalso; iexact H
+  | q :: ps, op :: ops, 0, p, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    unfold requestOpsIs
+    iintro ⟨H, -⟩
+    iexists op
+    iframe H
+    ipureintro; rfl
+  | q :: ps, op :: ops, i + 1, p, h => by
+    simp only [List.getElem?_cons_succ] at h ⊢
+    unfold requestOpsIs
+    iintro ⟨-, H⟩
+    iapply requestOpsIs_elem ps ops i p h $$ H
+
+/-- A `*pb.RequestOp` of `requestOpIs`: not nil, its `Request` oneof read-only, one of the four
+wrappers, holding a non-nil request. -/
+theorem requestOpIs_req (p : Loc) (op : TxnOp) :
+    requestOpIs (GF := GF) p op ⊢ ⌜p ≠ null⌝ ∗ ∃ (u : GoInterface) (w : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□ u ∗
+      ((⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w⌝ ∗
+          ∃ (r : Loc) (o : OpFull),
+          structFieldRef etcdserverpb.RequestOp_RequestRange go!"RequestRange" w ↦□ r ∗
+          rangeRequestIs r o) ∨
+       (⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w⌝ ∗
+          ∃ (r : Loc) (o : OpFull),
+          structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
+          putRequestIs r o) ∨
+       (⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w⌝ ∗
+          ∃ (r : Loc) (o : OpFull),
+          structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r ∗
+          deleteRangeRequestIs r o) ∨
+       ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w⌝) := by
+  cases op
+  case txn cs ts es =>
+    unfold requestOpIs
+    iintro #H
+    icases H with ⟨%Hp, %w, %r, #Hu, -⟩
+    isplitr; · ipureintro; exact Hp
+    iexists _, w
+    iframe Hu
+    iright; iright; iright; ipureintro; rfl
+  all_goals
+    unfold requestOpIs
+    iintro #H
+    icases H with ⟨%Hp, %u, %w, %r, %o, #Hu, H⟩
+    isplitr; · ipureintro; exact Hp
+    iexists u, w
+    iframe Hu
+    icases H with (⟨⟨%Hu', -⟩, #Hw, #Hr⟩ | ⟨⟨%Hu', -⟩, #Hw, #Hr⟩ | ⟨⟨%Hu', -⟩, #Hw, #Hr⟩)
+    · ileft; isplitr; · ipureintro; exact Hu'
+      iexists r, o; iframe #
+    · iright; ileft; isplitr; · ipureintro; exact Hu'
+      iexists r, o; iframe #
+    · iright; iright; ileft; isplitr; · ipureintro; exact Hu'
+      iexists r, o; iframe #
+
+/-- A nested transaction request op. -/
+theorem requestOpIs_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOp) :
+    requestOpIs (GF := GF) p (.txn cs ts es) ⊢ ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
+      txnRequestIs r { cmps := cs, thenOps := ts, elseOps := es } := by
+  unfold requestOpIs
+  iintro #⟨%Hp, %w, %r, #Hu, #Hw, %Hr, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs,
+    #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
+  isplitl []; · ipureintro; exact Hp
+  iexists w, r
+  iframe Hu Hw
+  unfold txnRequestIs txnFieldsIs
+  isplitl []; · ipureintro; exact Hr
+  iexists csl, ssl, fsl, cps, sps, fps
+  iframe Hc Hcs Hcm Hs Hss Hsm Hf Hfs Hfm
+
+/-- A `*pb.RequestOp`'s four kinds, as a type switch on its `Request` sees them. -/
+theorem requestOpIs_cases (p : Loc) (op : TxnOp) :
+    requestOpIs (GF := GF) p op ⊢ ⌜p ≠ null⌝ ∗
+      ((∃ (w r : Loc) (o : OpFull), ⌜op = .get o⌝ ∗
+          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w :
+              GoInterface) ∗
+          structFieldRef etcdserverpb.RequestOp_RequestRange go!"RequestRange" w ↦□ r ∗
+          rangeRequestIs r o) ∨
+       (∃ (w r : Loc) (o : OpFull), ⌜op = putTxnOp o⌝ ∗
+          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
+              GoInterface) ∗
+          structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
+          putRequestIs r o) ∨
+       (∃ (w r : Loc) (o : OpFull), ⌜op = .delete o⌝ ∗
+          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
+              GoInterface) ∗
+          structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r ∗
+          deleteRangeRequestIs r o) ∨
+       (∃ (w r : Loc) (cs : List CmpModel) (ts es : List TxnOp), ⌜op = .txn cs ts es⌝ ∗
+          structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+            (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+              GoInterface) ∗
+          structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
+          txnRequestIs r { cmps := cs, thenOps := ts, elseOps := es })) := by
+  cases op
+  case txn cs ts es =>
+    unfold requestOpIs
+    iintro #⟨%Hpn, %w, %r, #HR, #Hw, %Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #H1, #H2, #H3, #H4,
+      #H5, #H6, #H7, #H8, #H9⟩
+    isplitl []
+    · ipureintro; exact Hpn
+    iright; iright; iright
+    iexists w, r, cs, ts, es
+    isplitl []
+    · ipureintro; rfl
+    iframe HR Hw
+    unfold txnRequestIs txnFieldsIs
+    isplitl []
+    · ipureintro; exact Hrn
+    iexists csl, ssl, fsl, cps, sps, fps
+    iframe #
+  all_goals
+    unfold requestOpIs
+    iintro #⟨%Hpn, %u, %w, %r, %o, #HR, (⟨%Hu, #Hw, #Hr⟩ | ⟨%Hu, #Hw, #Hr⟩ | ⟨%Hu, #Hw, #Hr⟩)⟩
+    all_goals
+      obtain ⟨rfl, hop⟩ := Hu
+      isplitl []
+      · ipureintro; exact Hpn
+    · ileft; iexists w, r, o; iframe #; ipureintro; exact hop
+    · iright; ileft; iexists w, r, o; iframe #; ipureintro; exact hop
+    · iright; iright; ileft; iexists w, r, o; iframe #; ipureintro; exact hop
+
+end lemmas
+
 end txn
 end EtcdGrove
 end Perennial

@@ -18,16 +18,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
-/-- The `n` low bits of `x`, as a number. -/
-private theorem mask_toNat (x : BitVec 64) (n : Nat) (h : n ≤ 64) :
-    (x &&& BitVec.ofNat 64 (2 ^ n - 1)).toNat = x.toNat % 2 ^ n := by
-  rw [BitVec.toNat_and, BitVec.toNat_ofNat]
-  have h1 : 2 ^ n - 1 < 2 ^ 64 := by
-    have : 2 ^ n ≤ 2 ^ 64 := Nat.pow_le_pow_right (by omega) h
-    have : 1 ≤ 2 ^ n := Nat.one_le_two_pow
-    omega
-  rw [Nat.mod_eq_of_lt h1, Nat.and_two_pow_sub_one_eq_mod]
-
 /-- The 48 low bits of distinct suffixes below `2 ^ 48` apart, under a prefix with no low bits,
 give distinct ids. -/
 theorem idutil_id_inj (pfx s0 a b : BitVec 64) (hp : pfx &&& 0xffffffffffff#64 = 0#64)
@@ -41,8 +31,8 @@ theorem idutil_id_inj (pfx s0 a b : BitVec 64) (hp : pfx &&& 0xffffffffffff#64 =
   have h2 := congrArg (· &&& 0xffffffffffff#64) h
   simp only [key] at h2
   have h3 := congrArg BitVec.toNat h2
-  have m := mask_toNat (s0 + a) 48 (by omega)
-  have m' := mask_toNat (s0 + b) 48 (by omega)
+  have m := idutil_mask_toNat (s0 + a) 48 (by omega)
+  have m' := idutil_mask_toNat (s0 + b) 48 (by omega)
   simp only [show (BitVec.ofNat 64 (2 ^ 48 - 1)) = 0xffffffffffff#64 from rfl] at m m'
   rw [m, m', BitVec.toNat_add, BitVec.toNat_add] at h3
   rw [BitVec.lt_def] at ha hb

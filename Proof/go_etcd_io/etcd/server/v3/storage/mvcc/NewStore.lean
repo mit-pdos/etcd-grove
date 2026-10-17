@@ -34,30 +34,6 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 theorem mvcc.bucketMap_init : mvcc.bucketMap [[], []] = (∅ : mvcc.Bucket) := by
   simp [mvcc.bucketMap, mvcc.bucketOf, mvcc.bucketOfRev]; rfl
 
-/-- A ghost variable as two halves (the committed log: `s.revMu`'s and the batch lock's). -/
-theorem mvcc.ghostVar_halves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
-    ghostVar (GF := GF) γ 1 a ⊣⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
-  have h := (ghostVar_fractional (GF := GF) γ a).fractional (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  exact h
-
-/-- A guard of a lock from its reader slots (there is at least one). -/
-theorem mvcc.guard_of_slots (rw : Loc) (P : Qp → IProp GF) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), sync.ownRWMutex rw P) ⊢
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), sync.ownRWMutex rw P) ∗
-        sync.isRWMutexGuard rw P := by
-  have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
-    Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
-  obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
-    ⟨_, (Nat.succ_pred_eq_of_pos hpos).symm⟩
-  rw [hm, List.replicate_succ]
-  iintro H
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨Htok, Htoks⟩
-  icases sync.ownRWMutex_guard _ _ $$ Htok with ⟨Htok, #Hguard⟩
-  iframe Hguard
-  iapply BigSepL.bigSepL_cons.2
-  iframe Htok Htoks
-
 /-- One of the reader slots of a lock, and the rest back from it. -/
 theorem mvcc.slot_take (Q : IProp GF) :
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), Q) ⊢
@@ -340,7 +316,7 @@ theorem mvcc.NewStore.wp_proof
     isplitl []
     · iapply mvcc.crevSafe_neg γ (-1) [[], []] (by decide) (by simp) $$ Hcert
     ipureintro; decide
-  icases mvcc.guard_of_slots _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
+  icases guard_of_slots _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
   icases mvcc.slot_take _ $$ Hmus with ⟨Hmu1, Hmus⟩
   wp_apply +noauto sync.RWMutex.wp_Lock $$ [$Hmu1] as ⟨Hmul, HmuP⟩
   wp_auto_lc 1
@@ -392,7 +368,7 @@ theorem mvcc.NewStore.wp_proof
     isplitl []
     · iunfold mvcc.certOk; ileft; ipureintro; simp
     ipureintro; simp
-  icases mvcc.guard_of_slots _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
+  icases guard_of_slots _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
   -- the deferred `s.mu.Unlock()`
   wp_apply sync.RWMutex.wp_Unlock $$ [$Hmul HcmpA HcrevM] as Hmu1
   · inext
