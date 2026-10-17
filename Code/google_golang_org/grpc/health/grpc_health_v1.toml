@@ -1,7 +1,8 @@
 # Types and names only (item 4, the server start): the health service's interface `HealthServer`
 # (`v3rpc.Server` registers grpc's `*health.Server` with `RegisterHealthServer`) and the serving
 # status the health notifier sets (`HealthCheckResponse_SERVING`, its `String`).
-translate = ["!*"]
+# The constant is translated (its value), so that the notifier's call steps.
+translate = ["!*", "HealthCheckResponse_SERVING"]
 imports = ["!*", "context", "google.golang.org/grpc"]
 
 # translate the definitions of all type declarations goose supports

@@ -89,7 +89,8 @@ axiom HealthListResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom HealthCheckResponse_UNKNOWN [FfiSyntax] [GoGlobalContext] : val
 
-axiom HealthCheckResponse_SERVING [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def HealthCheckResponse_SERVING [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
 axiom HealthCheckResponse_NOT_SERVING [FfiSyntax] [GoGlobalContext] : val
 
