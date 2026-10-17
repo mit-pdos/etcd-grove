@@ -45,6 +45,15 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR verification: etcd-io/raft#104, `commitTo` clamps instead of panicking (2026-10-16, branch `pr-verify/raft-104`)
+
+The PR translated (fork `pr-raft-104-goose-lean` `d9ab8730d`, not pushed; the pin is unchanged, so
+`etc/goose.py --check` fails on this branch). `raftLog.commitTo`: old spec re-proved unchanged, new
+premise-free spec `specNew` proved, `spec_implies_old`; raft's Link and Results rebuild, `#print
+axioms` identical to `lean`. Verdict: the new branch is dead under the model and unsafe under the data
+loss it targets (commits divergent entries); report `notes/pr-verify/raft-104.md`. Not for `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

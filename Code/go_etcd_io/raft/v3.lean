@@ -1359,18 +1359,25 @@ noncomputable def raftLog.commitTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "tocommit")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"tocommit(%d) is out of range [lastIndex(%d)]. Was the raft log corrupted, truncated, or lost?"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "tocommit")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Warningf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:332:19 -/
+/-- go: log.go:336:19 -/
 noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1414,7 +1421,7 @@ noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: log.go:347:19 -/
+/-- go: log.go:351:19 -/
 noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1451,7 +1458,7 @@ noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))))))))))))
 
-/-- go: log.go:367:19 -/
+/-- go: log.go:371:19 -/
 noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1465,7 +1472,7 @@ noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "id"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType unstable.ty) go!"stableTo"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$a0"))))))))))
 
-/-- go: log.go:369:19 -/
+/-- go: log.go:373:19 -/
 noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1484,7 +1491,7 @@ noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val 
     to be marked as being in-progress, to avoid returning them with future calls
     to Ready().
 
-    go: log.go:375:19 -/
+    go: log.go:379:19 -/
 noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1498,7 +1505,7 @@ noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- lastEntryID returns the ID of the last entry in the log.
 
-    go: log.go:378:19 -/
+    go: log.go:382:19 -/
 noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1538,7 +1545,7 @@ noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))))
 
-/-- go: log.go:387:19 -/
+/-- go: log.go:391:19 -/
 noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1607,7 +1614,7 @@ noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0"))))))))))))))))))
 
-/-- go: log.go:415:19 -/
+/-- go: log.go:419:19 -/
 noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1633,7 +1640,7 @@ noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- allEntries returns all entries in the log.
 
-    go: log.go:423:19 -/
+    go: log.go:427:19 -/
 noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1678,7 +1685,7 @@ noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
     whichever log has the larger lastIndex is more up-to-date. If the logs are
     the same, the given log is up-to-date.
 
-    go: log.go:442:19 -/
+    go: log.go:446:19 -/
 noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "their"
@@ -1693,7 +1700,7 @@ noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "our") (Var "$r0"))))))))))))
 
-/-- go: log.go:447:19 -/
+/-- go: log.go:451:19 -/
 noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1723,7 +1730,7 @@ noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:455:19 -/
+/-- go: log.go:459:19 -/
 noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "at"
@@ -1744,7 +1751,7 @@ noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:466:19 -/
+/-- go: log.go:470:19 -/
 noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "s"
@@ -1781,7 +1788,7 @@ noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the callback returns an error, scan terminates and returns this error
     immediately. This can be used to stop the scan early ("break" the loop).
 
-    go: log.go:482:19 -/
+    go: log.go:486:19 -/
 noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1849,7 +1856,7 @@ noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- slice returns a slice of log entries from lo through hi-1, inclusive.
 
-    go: log.go:499:19 -/
+    go: log.go:503:19 -/
 noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1986,7 +1993,7 @@ noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- l.firstIndex <= lo <= hi <= l.firstIndex + len(l.entries)
 
-    go: log.go:551:19 -/
+    go: log.go:555:19 -/
 noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -2036,7 +2043,7 @@ noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: log.go:567:19 -/
+/-- go: log.go:571:19 -/
 noncomputable def raftLog.zeroTermOnOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "t"

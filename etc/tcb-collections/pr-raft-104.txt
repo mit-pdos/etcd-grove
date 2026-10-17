@@ -1,0 +1,13 @@
+# etcd-io/raft#104 (branch pr-verify/raft-104, notes/pr-verify/raft-104.md): raftLog.commitTo
+# and its callers (maybeCommit, maybeAppend, handleHeartbeat, restore).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-104.txt [--check [--update]]
+#
+# The baseline is not written yet: it needs a full `lake build` of this branch (the run
+# compared `#print axioms` of Proof/go_etcd_io/raft/v3/Results.lean with `lean` instead:
+# identical, no sorryAx).
+roots raftLog__commitTo
+roots raftLog__maybeCommit
+roots raftLog__maybeAppend
+roots raft__handleHeartbeat
+roots raft__restore

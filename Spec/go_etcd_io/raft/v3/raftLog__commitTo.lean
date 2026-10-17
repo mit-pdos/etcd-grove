@@ -49,6 +49,33 @@ abbrev raftLog.commitTo.spec : Prop :=
   {{ RET #();
       ownRaftLog l { ls with committed := plogCommitTo ls.committed tocommit } }}
 
+/-- etcd-io/raft#104 (head `d9c4b358`, `notes/pr-verify/raft-104.md`): the out-of-range
+case no longer `Panicf`s; it `Warningf`s and sets `committed` to `lastIndex()`:
+
+    if l.committed < tocommit {
+        if l.lastIndex() < tocommit {
+            l.logger.Warningf(...); l.committed = l.lastIndex(); return
+        }
+        l.committed = tocommit
+    }
+
+So there is no premise, and `committed` becomes `max(committed, min(tocommit,
+lastIndex()))` (`committed ≤ lastIndex()` is `ownRaftLog`'s `Hcommitted`, so in the
+clamped case it is `lastIndex()`). Under the old premise this is `plogCommitTo committed
+tocommit`: `raftLog.commitTo.spec_implies_old` (`Proof/.../raftLog__commitTo.lean`).
+What the statement does not say, and cannot at this level, is whether the entries up to
+`lastIndex()` it marks committed are the cluster's committed entries: that is the
+protocol's business, and in the protocol the proof models the clamped case is
+unreachable (`heartbeat_commit_le_last`). -/
+abbrev raftLog.commitTo.specNew : Prop :=
+  ∀ (l : Loc) (ls : LogState) (tocommit : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"commitTo")) (Val #tocommit))
+  {{ (c : w64), RET #();
+      ownRaftLog l { ls with committed := c } ∗
+      ⌜uint.Z c = max (uint.Z ls.committed)
+          (min (uint.Z tocommit) (plogLastIndexZ ls.prev (ls.sents ++ ls.uents)))⌝ }}
+
 end spec
 
 end EtcdGrove
