@@ -226,201 +226,197 @@ theorem lessor.closeRequireLeader.wp_proof
           iframe
           ipureintro; exact Hsubs
         · ipureintro; intro k _; rfl
-      · wp_if_destruct
-        · wp_apply wp_mapDelete $$ [$Hm] as Hm
-          unfold forMapPostcondition
-          ileft
-          isplitr
-          · ipureintro; rfl
-          iexists Std.delete m' key
-          iframe Hm
-          isplitl [ka id Hkas HM]
-          · iexists v, key
+      · have HrL : sint.nat r ≤ subs.length := by omega
+        have HKn : sint.nat (chsSl.len - r) = (subs.filter (fun p => !lessor.rlSub kl hl p)).length := by
+          word
+        wp_apply (wp_slice_make2 (V := GoChan) (chsSl.len - r)) as %nsl ⟨Hns, Hnc⟩
+        · ipureintro; word
+        ihave %Hnsl := ownSlice_len $$ Hns
+        wp_apply (wp_slice_make2 (V := GoInterface) nsl.len) as %ncsl ⟨Hncs, Hncc⟩
+        · ipureintro; word
+        rename_i iu2_ptr
+        irename : (iu2_ptr ↦ (zero_val w64) : IProp GF) => iu2
+        have HnslK : sint.nat nsl.len =
+            (subs.filter (fun p => !lessor.rlSub kl hl p)).length := by
+          rw [← HKn, ← Hnsl.1, List.length_replicate]
+        rw [HnslK, HKn]
+        ihave IH2 : iprop(∃ (j : w64) (iv : w64) (ni : w64),
+            "i" ∷ i_ptr ↦ j ∗ "iu2" ∷ iu2_ptr ↦ iv ∗ "newIdx" ∷ newIdx_ptr ↦ ni ∗
+            "Hns" ∷ nsl ↦* (((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).map
+              Prod.fst ++ List.replicate ((subs.filter (fun p => !lessor.rlSub kl hl p)).length -
+              ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length)
+              (zero_val GoChan)) ∗
+            "Hncs" ∷ ncsl ↦* ((subs.map Prod.snd).take
+              ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length ++
+              List.replicate ((subs.filter (fun p => !lessor.rlSub kl hl p)).length -
+              ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length)
+              (zero_val GoInterface)) ∗
+            "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ subs.length ∧ 0 ≤ sint.Z ni ∧
+              sint.nat ni = ((subs.take (sint.nat j)).filter
+                (fun p => !lessor.rlSub kl hl p)).length⌝) $$ [i iu2 newIdx Hns Hncs]
+        · iexists W64 0, _, W64 0
+          simp only [named, show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.filter_nil,
+            List.map_nil, List.nil_append, List.length_nil, Nat.sub_zero]
+          iframe
+          ipureintro; exact ⟨by word, by omega, by word, by simp⟩
+        wp_for IH2
+        wp_if_destruct
+        · have Hlt : sint.nat j < subs.length := by word
+          have Hbnd : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z chsSl.len := ⟨Hj.1, Hif⟩
+          have Hjnat : (sint.Z j).toNat = sint.nat j := rfl
+          have Hmk : (subs.map (fun p => if lessor.rlSub kl hl p then chan.nil else p.1))[
+              (sint.Z j).toNat]? = some (if lessor.rlSub kl hl subs[sint.nat j] then chan.nil
+                else subs[sint.nat j].1) := by
+            rw [Hjnat, List.getElem?_map, List.getElem?_eq_getElem Hlt]; rfl
+          rw [if_pos Hbnd]
+          wp_apply wp_load_slice_index chsSl (sint.Z j) _ _ _ Hj.1 $$ [HchsS] as HchsS
+          · iframe; ipureintro; exact Hmk
+          rw [if_pos Hbnd]
+          wp_apply wp_load_slice_index chsSl (sint.Z j) _ _ _ Hj.1 $$ [HchsS] as HchsS
+          · iframe; ipureintro; exact Hmk
+          have Hstep := lessor.compact_step (lessor.rlSub kl hl) subs (sint.nat j) Hlt
+          have Hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+          cases hq : lessor.rlSub kl hl subs[sint.nat j]
+          · have Hne : subs[sint.nat j].1 ≠ chan.nil := Hsubs.2.1 _ (List.getElem_mem Hlt)
+            simp only [hq, Bool.false_eq_true, ↓reduceIte, if_false] at Hstep ⊢
+            simp only [Hne, _root_.decide_false]
+            ihave %HnsL := ownSlice_len $$ Hns
+            ihave %HncsL := ownSlice_len $$ Hncs
+            have HA1 := lessor.length_filter_take_le (fun p => !lessor.rlSub kl hl p) subs
+              (sint.nat j + 1)
+            have HAn := lessor.length_filter_take_le_n (fun p => !lessor.rlSub kl hl p) subs
+              (sint.nat j)
+            rw [Hstep, List.length_append, List.length_singleton] at HA1
+            simp only [List.length_append, List.length_map, List.length_replicate,
+              List.length_take, List.length_map] at HnsL HncsL
+            have HniA := Hj.2.2.2
+            have Hnb : 0 ≤ sint.Z ni ∧ sint.Z ni < sint.Z nsl.len := ⟨Hj.2.2.1, by word⟩
+            have Hncb : 0 ≤ sint.Z ni ∧ sint.Z ni < sint.Z ncsl.len := ⟨Hj.2.2.1, by
+              have : (subs.map Prod.snd).length = subs.length := List.length_map _
+              word⟩
+            have Hcb : 0 ≤ sint.Z ni ∧ sint.Z ni < sint.Z ctxsSl.len := ⟨Hj.2.2.1, by word⟩
+            wp_auto
+            rw [if_pos Hnb]
+            wp_auto
+            rw [if_pos Hncb]
+            wp_auto
+            rw [if_pos Hbnd]
+            wp_apply wp_load_slice_index chsSl (sint.Z j) _ _ _ Hj.1 $$ [HchsS] as HchsS
+            · iframe; ipureintro; exact Hmk
+            rw [if_pos Hcb]
+            simp only [hq, Bool.false_eq_true, ↓reduceIte]
+            have HAlt : ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length <
+                (subs.map Prod.snd).length := by rw [List.length_map]; omega
+            have Hnin : (sint.Z ni).toNat =
+                ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length := HniA
+            wp_apply wp_load_slice_index ctxsSl (sint.Z ni) (subs.map Prod.snd) _
+              ((subs.map Prod.snd)[((subs.take (sint.nat j)).filter
+                (fun p => !lessor.rlSub kl hl p)).length]'HAlt) Hj.2.2.1 $$ [HctxsS] as HctxsS
+            · iframe; ipureintro; rw [Hnin, List.getElem?_eq_getElem HAlt]
+            wp_apply wp_store_slice_index nsl (sint.Z ni) _ subs[sint.nat j].1 $$ [Hns] as Hns
+            · iframe; ipureintro
+              refine ⟨Hj.2.2.1, ?_⟩
+              simp only [List.length_append, List.length_map, List.length_replicate]
+              omega
+            wp_apply wp_store_slice_index ncsl (sint.Z ni) _ _ $$ [Hncs] as Hncs
+            · iframe; ipureintro
+              refine ⟨Hj.2.2.1, ?_⟩
+              simp only [List.length_append, List.length_take, List.length_map,
+                List.length_replicate]
+              omega
+            have Hpos : 0 < (subs.filter (fun p => !lessor.rlSub kl hl p)).length -
+                ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length := by
+              omega
+            have Hnin' : (sint.Z ni).toNat =
+                (((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p))).length := HniA
+            rw [Hnin', lessor.compact_ctxs _ _ HAlt _ _ Hpos]
+            have Hnin2 := Hnin'
+            rw [show ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length =
+              ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length from rfl]
+            rw [lessor.compact_chs _ subs[sint.nat j] _ _ Hpos]
+            wp_for_post
+            iframe
+            iexists j + W64 1, _, ni + W64 1
             simp only [named]
+            rw [Hj1, Hstep]
+            simp only [List.length_append, List.length_singleton, Nat.sub_sub]
             iframe
-          · ipureintro
-            intro k hk
-            exact GMap.lookup_delete_ne m' (Ne.symm hk)
-        · have HrL : sint.nat r ≤ subs.length := by omega
-          have HrNe : sint.Z r ≠ sint.Z chsSl.len := fun h => Hif (by word)
-          have HKpos : 0 < (subs.filter (fun p => !lessor.rlSub kl hl p)).length := by
-            have Hr0 := Hn.2.2.1
-            have HrNat : sint.nat r ≠ sint.nat chsSl.len := by
-              intro h; apply HrNe; word
-            omega
-          have HKn : sint.nat (chsSl.len - r) = (subs.filter (fun p => !lessor.rlSub kl hl p)).length := by
-            have : sint.Z r ≠ sint.Z chsSl.len := fun h => Hif (by word)
-            word
-          wp_apply (wp_slice_make2 (V := GoChan) (chsSl.len - r)) as %nsl ⟨Hns, Hnc⟩
-          · ipureintro; word
-          ihave %Hnsl := ownSlice_len $$ Hns
-          wp_apply (wp_slice_make2 (V := GoInterface) nsl.len) as %ncsl ⟨Hncs, Hncc⟩
-          · ipureintro; word
-          rename_i iu2_ptr
-          irename : (iu2_ptr ↦ (zero_val w64) : IProp GF) => iu2
-          have HnslK : sint.nat nsl.len =
-              (subs.filter (fun p => !lessor.rlSub kl hl p)).length := by
-            rw [← HKn, ← Hnsl.1, List.length_replicate]
-          rw [HnslK, HKn]
-          ihave IH2 : iprop(∃ (j : w64) (iv : w64) (ni : w64),
-              "i" ∷ i_ptr ↦ j ∗ "iu2" ∷ iu2_ptr ↦ iv ∗ "newIdx" ∷ newIdx_ptr ↦ ni ∗
-              "Hns" ∷ nsl ↦* (((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).map
-                Prod.fst ++ List.replicate ((subs.filter (fun p => !lessor.rlSub kl hl p)).length -
-                ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length)
-                (zero_val GoChan)) ∗
-              "Hncs" ∷ ncsl ↦* ((subs.map Prod.snd).take
-                ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length ++
-                List.replicate ((subs.filter (fun p => !lessor.rlSub kl hl p)).length -
-                ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length)
-                (zero_val GoInterface)) ∗
-              "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ subs.length ∧ 0 ≤ sint.Z ni ∧
-                sint.nat ni = ((subs.take (sint.nat j)).filter
-                  (fun p => !lessor.rlSub kl hl p)).length⌝) $$ [i iu2 newIdx Hns Hncs]
-          · iexists W64 0, _, W64 0
-            simp only [named, show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.filter_nil,
-              List.map_nil, List.nil_append, List.length_nil, Nat.sub_zero]
+            ipureintro
+            have Hni1 : sint.nat (ni + W64 1) = sint.nat ni + 1 := by word
+            exact ⟨by word, by omega, by word, by rw [Hni1, HniA]⟩
+          · simp only [hq, ↓reduceIte, if_true] at Hstep ⊢
+            wp_auto
+            wp_for_post
             iframe
-            ipureintro; exact ⟨by word, by omega, by word, by simp⟩
-          wp_for IH2
+            iexists j + W64 1, _, ni
+            simp only [named]
+            rw [Hj1, Hstep, List.append_nil]
+            iframe
+            ipureintro
+            exact ⟨by word, by omega, Hj.2.2.1, by rw [Hj.2.2.2]⟩
+        · have Hjl : sint.nat j = subs.length := by word
+          rw [Hjl, List.take_of_length_le (Nat.le_refl _)]
+          simp only [Nat.sub_self, List.replicate_zero, List.append_nil]
+          have HKlen : (subs.filter (fun p => !lessor.rlSub kl hl p)).length =
+              ((subs.map Prod.snd).take
+                (subs.filter (fun p => !lessor.rlSub kl hl p)).length).length := by
+            rw [List.length_take, List.length_map]; omega
+          obtain ⟨Hz1, Hz2⟩ := lessor.zip_fst_snd (subs.filter (fun p => !lessor.rlSub kl hl p))
+            _ HKlen
+          ihave HRs' := lessor.repair R (subs.filter (fun p => !lessor.rlSub kl hl p)) _ HKlen
+            $$ Hrepair HRs
           wp_if_destruct
-          · have Hlt : sint.nat j < subs.length := by word
-            have Hbnd : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z chsSl.len := ⟨Hj.1, Hif⟩
-            have Hjnat : (sint.Z j).toNat = sint.nat j := rfl
-            have Hmk : (subs.map (fun p => if lessor.rlSub kl hl p then chan.nil else p.1))[
-                (sint.Z j).toNat]? = some (if lessor.rlSub kl hl subs[sint.nat j] then chan.nil
-                  else subs[sint.nat j].1) := by
-              rw [Hjnat, List.getElem?_map, List.getElem?_eq_getElem Hlt]; rfl
-            rw [if_pos Hbnd]
-            wp_apply wp_load_slice_index chsSl (sint.Z j) _ _ _ Hj.1 $$ [HchsS] as HchsS
-            · iframe; ipureintro; exact Hmk
-            rw [if_pos Hbnd]
-            wp_apply wp_load_slice_index chsSl (sint.Z j) _ _ _ Hj.1 $$ [HchsS] as HchsS
-            · iframe; ipureintro; exact Hmk
-            have Hstep := lessor.compact_step (lessor.rlSub kl hl) subs (sint.nat j) Hlt
-            have Hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
-            cases hq : lessor.rlSub kl hl subs[sint.nat j]
-            · have Hne : subs[sint.nat j].1 ≠ chan.nil := Hsubs.2.1 _ (List.getElem_mem Hlt)
-              simp only [hq, Bool.false_eq_true, ↓reduceIte, if_false] at Hstep ⊢
-              simp only [Hne, _root_.decide_false]
-              ihave %HnsL := ownSlice_len $$ Hns
-              ihave %HncsL := ownSlice_len $$ Hncs
-              have HA1 := lessor.length_filter_take_le (fun p => !lessor.rlSub kl hl p) subs
-                (sint.nat j + 1)
-              have HAn := lessor.length_filter_take_le_n (fun p => !lessor.rlSub kl hl p) subs
-                (sint.nat j)
-              rw [Hstep, List.length_append, List.length_singleton] at HA1
-              simp only [List.length_append, List.length_map, List.length_replicate,
-                List.length_take, List.length_map] at HnsL HncsL
-              have HniA := Hj.2.2.2
-              have Hnb : 0 ≤ sint.Z ni ∧ sint.Z ni < sint.Z nsl.len := ⟨Hj.2.2.1, by word⟩
-              have Hncb : 0 ≤ sint.Z ni ∧ sint.Z ni < sint.Z ncsl.len := ⟨Hj.2.2.1, by
-                have : (subs.map Prod.snd).length = subs.length := List.length_map _
-                word⟩
-              have Hcb : 0 ≤ sint.Z ni ∧ sint.Z ni < sint.Z ctxsSl.len := ⟨Hj.2.2.1, by word⟩
-              wp_auto
-              rw [if_pos Hnb]
-              wp_auto
-              rw [if_pos Hncb]
-              wp_auto
-              rw [if_pos Hbnd]
-              wp_apply wp_load_slice_index chsSl (sint.Z j) _ _ _ Hj.1 $$ [HchsS] as HchsS
-              · iframe; ipureintro; exact Hmk
-              rw [if_pos Hcb]
-              simp only [hq, Bool.false_eq_true, ↓reduceIte]
-              have HAlt : ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length <
-                  (subs.map Prod.snd).length := by rw [List.length_map]; omega
-              have Hnin : (sint.Z ni).toNat =
-                  ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length := HniA
-              wp_apply wp_load_slice_index ctxsSl (sint.Z ni) (subs.map Prod.snd) _
-                ((subs.map Prod.snd)[((subs.take (sint.nat j)).filter
-                  (fun p => !lessor.rlSub kl hl p)).length]'HAlt) Hj.2.2.1 $$ [HctxsS] as HctxsS
-              · iframe; ipureintro; rw [Hnin, List.getElem?_eq_getElem HAlt]
-              wp_apply wp_store_slice_index nsl (sint.Z ni) _ subs[sint.nat j].1 $$ [Hns] as Hns
-              · iframe; ipureintro
-                refine ⟨Hj.2.2.1, ?_⟩
-                simp only [List.length_append, List.length_map, List.length_replicate]
-                omega
-              wp_apply wp_store_slice_index ncsl (sint.Z ni) _ _ $$ [Hncs] as Hncs
-              · iframe; ipureintro
-                refine ⟨Hj.2.2.1, ?_⟩
-                simp only [List.length_append, List.length_take, List.length_map,
-                  List.length_replicate]
-                omega
-              have Hpos : 0 < (subs.filter (fun p => !lessor.rlSub kl hl p)).length -
-                  ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length := by
-                omega
-              have Hnin' : (sint.Z ni).toNat =
-                  (((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p))).length := HniA
-              rw [Hnin', lessor.compact_ctxs _ _ HAlt _ _ Hpos]
-              have Hnin2 := Hnin'
-              rw [show ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length =
-                ((subs.take (sint.nat j)).filter (fun p => !lessor.rlSub kl hl p)).length from rfl]
-              rw [lessor.compact_chs _ subs[sint.nat j] _ _ Hpos]
-              wp_for_post
-              iframe
-              iexists j + W64 1, _, ni + W64 1
-              simp only [named]
-              rw [Hj1, Hstep]
-              simp only [List.length_append, List.length_singleton, Nat.sub_sub]
-              iframe
-              ipureintro
-              have Hni1 : sint.nat (ni + W64 1) = sint.nat ni + 1 := by word
-              exact ⟨by word, by omega, by word, by rw [Hni1, HniA]⟩
-            · simp only [hq, ↓reduceIte, if_true] at Hstep ⊢
-              wp_auto
-              wp_for_post
-              iframe
-              iexists j + W64 1, _, ni
-              simp only [named]
-              rw [Hj1, Hstep, List.append_nil]
-              iframe
-              ipureintro
-              exact ⟨by word, by omega, Hj.2.2.1, by rw [Hj.2.2.2]⟩
-          · have Hjl : sint.nat j = subs.length := by word
-            rw [Hjl, List.take_of_length_le (Nat.le_refl _)]
-            simp only [Nat.sub_self, List.replicate_zero, List.append_nil]
-            have HKlen : (subs.filter (fun p => !lessor.rlSub kl hl p)).length =
-                ((subs.map Prod.snd).take
-                  (subs.filter (fun p => !lessor.rlSub kl hl p)).length).length := by
-              rw [List.length_take, List.length_map]; omega
-            obtain ⟨Hz1, Hz2⟩ := lessor.zip_fst_snd (subs.filter (fun p => !lessor.rlSub kl hl p))
-              _ HKlen
-            ihave HRs' := lessor.repair R (subs.filter (fun p => !lessor.rlSub kl hl p)) _ HKlen
-              $$ Hrepair HRs
+          · wp_apply wp_mapDelete $$ [$Hm] as Hm
             unfold forMapPostcondition
             iright; ileft
             isplitr
             · ipureintro; rfl
-            iexists m'
+            iexists Std.delete m' key
             iframe Hm
-            isplitl
+            isplitl [ka id Hkas HM]
             · iexists v, key
               simp only [named]
               iframe
-              iapply (BigSepM.bigSepM_delete (m := m') Hv').2
-              iframe HM
-              unfold lessor.kaOwn
-              iexists nsl, ncsl, List.zipWith (fun p c => (p.1, c))
-                (subs.filter (fun p => !lessor.rlSub kl hl p))
-                ((subs.map Prod.snd).take (subs.filter (fun p => !lessor.rlSub kl hl p)).length)
-              rw [Hz1, Hz2]
-              iframe
-              ipureintro
-              constructor
-              · apply List.ne_nil_of_length_pos
-                rw [List.length_zipWith, ← HKlen, Nat.min_self]
-                exact HKpos
-              constructor
-              · intro q hq
-                obtain ⟨p, hp, hpq⟩ := lessor.mem_zip_fst _ _ q hq
-                rw [← hpq]
-                exact Hsubs.2.1 p (List.mem_filter.1 hp).1
-              · intro q hq
-                have hq2 := List.mem_of_mem_take (lessor.mem_zip_snd _ _ q hq)
-                obtain ⟨p, hp, hpq⟩ := List.mem_map.1 hq2
-                rw [← hpq]
-                exact Hsubs.2.2 p hp
-            · ipureintro; intro k _; rfl
+            · ipureintro
+              intro k hk
+              exact GMap.lookup_delete_ne m' (Ne.symm hk)
+          have HKpos : 0 < (subs.filter (fun p => !lessor.rlSub kl hl p)).length := by
+            have : sint.nat nsl.len ≠ 0 := fun h => Hif (by word)
+            omega
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          iexists m'
+          iframe Hm
+          isplitl
+          · iexists v, key
+            simp only [named]
+            iframe
+            iapply (BigSepM.bigSepM_delete (m := m') Hv').2
+            iframe HM
+            unfold lessor.kaOwn
+            iexists nsl, ncsl, List.zipWith (fun p c => (p.1, c))
+              (subs.filter (fun p => !lessor.rlSub kl hl p))
+              ((subs.map Prod.snd).take (subs.filter (fun p => !lessor.rlSub kl hl p)).length)
+            rw [Hz1, Hz2]
+            iframe
+            ipureintro
+            constructor
+            · apply List.ne_nil_of_length_pos
+              rw [List.length_zipWith, ← HKlen, Nat.min_self]
+              exact HKpos
+            constructor
+            · intro q hq
+              obtain ⟨p, hp, hpq⟩ := lessor.mem_zip_fst _ _ q hq
+              rw [← hpq]
+              exact Hsubs.2.1 p (List.mem_filter.1 hp).1
+            · intro q hq
+              have hq2 := List.mem_of_mem_take (lessor.mem_zip_snd _ _ q hq)
+              obtain ⟨p, hp, hpq⟩ := List.mem_map.1 hq2
+              rw [← hpq]
+              exact Hsubs.2.2 p hp
+          · ipureintro; intro k _; rfl
   · iintro %m' HP Hm
     iNamed HP
     wp_auto

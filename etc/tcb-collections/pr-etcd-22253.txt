@@ -1,0 +1,10 @@
+# etcd-io/etcd#22253 (client/v3: remove keepAlive entries without subscribers in closeRequireLeader): the
+# changed function `lessor.closeRequireLeader` (its spec over the lessor's lock invariant,
+# Proof/go_etcd_io/etcd/client/v3/InvLease.lean).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22253.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader\.lean$
+axiom metadata.FromOutgoingContext.wp_proof

@@ -45,6 +45,14 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22253, the competing `closeRequireLeader` fix (2026-10-17, branch `pr-verify/etcd-22253`)
+
+On top of `pr-verify/etcd-22291` (cherry-picked, below): the translation is of the fork branch
+`pr-etcd-22253-goose-lean` (the pin plus etcd#22253, which compacts first and then deletes the entry
+when `len(ka.chs) == 0`). The same spec, invariant and axiom; only the proof of
+`lessor__closeRequireLeader.lean` changed (the delete moved after the compaction loop). No `sorry`.
+Report: `notes/pr-verify/etcd-22253.md`.
+
 ## PR verification: etcd-io/etcd#22291, `closeRequireLeader` without orphaned keep-alives (2026-10-17, branch `pr-verify/etcd-22291`)
 
 Not for `lean`: the translation is of the fork branch `pr-etcd-22291-goose-lean` (the pin plus the

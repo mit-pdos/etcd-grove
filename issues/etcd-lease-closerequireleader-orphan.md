@@ -4,7 +4,7 @@ checked: 2026-10-17
 links:
   - etcd-io/etcd#22094 issue open: this issue
   - etcd-io/etcd#22291 pr open: fix (delete the entry when every subscription required a leader); verified in pr-verify/etcd-22291
-  - etcd-io/etcd#22253 pr open: equivalent fix (compact, then delete when no channel is left)
+  - etcd-io/etcd#22253 pr open: equivalent fix (compact, then delete when no channel is left); verified in pr-verify/etcd-22253
   - etcd-io/etcd#22097 pr closed: earlier attempt, closed by its author
 ---
 
@@ -32,5 +32,6 @@ links:
   entry has at least one subscription; `lessor.closeRequireLeader` is proved against it at the
   PR's code only. It is not translated with a body on `lean`.
 - **Possible fixes**: etcd-io/etcd#22291 or #22253 (both verified to keep the invariant:
-  `notes/pr-verify/etcd-22291.md` on `pr-verify/etcd-22291`).
+  `notes/pr-verify/etcd-22291.md` on `pr-verify/etcd-22291`, `notes/pr-verify/etcd-22253.md` on
+  `pr-verify/etcd-22253`).
 - **Found**: 2026-10-17, verifying etcd-io/etcd#22291 (the bug the PR fixes).

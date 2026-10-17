@@ -2066,7 +2066,6 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")))))
   (Let "newChs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Val #())))
@@ -2084,8 +2083,17 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Var "newChs"))
   (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Var "newCtxs"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (Var "$l1") (Var "$r1"))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))]))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (Var "$l0") (Var "$r0")))))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
@@ -2119,16 +2127,6 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (Var "newCtxs") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (Var "newChs") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (Var "$a0"))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doContinue) (Val #()))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
-  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")) (Val #(W64 0)))))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
