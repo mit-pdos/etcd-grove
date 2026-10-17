@@ -35,7 +35,15 @@ critical-section contract of the batch lock (`csContract`:
   6a: the caller's `NoDelPutAt`, as `store.Compact`'s);
 * `rev ≤ c`: `ErrCompacted`, and a barrier job scheduled that closes the channel returned (a
   receive right, `compactChan ch True`); nothing changed, `Pre` back;
-* `rev` above the committed log's last revision: `ErrFutureRev`, a `nil` channel; `Pre` back. -/
+* `rev` above the committed log's last revision: `ErrFutureRev`, a `nil` channel; `Pre` back.
+
+**etcd-io/etcd#21968** (`pr-verify/etcd-21968`): the result has a third component, the store's
+`currentRev` read under `s.revMu` (`cur`), and the error cases return the compaction revision `c`
+as `prev` (was `0`). In every case `cur` is the last revision of the committed log at the time
+(a certificate `logh` with `cur = |logh| - 1`): on success `rev ≤ cur`; on `ErrCompacted`
+`c ≤ cur` (the store's compaction revision is never above its head: `revMuInv`'s `Hc`) and the
+caller's certified log is a prefix of `logh` (so `cur = rev` means the caller's log ends at
+`rev = c`); on `ErrFutureRev` `cur < rev`. -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log),
@@ -45,16 +53,21 @@ abbrev mvcc.store.updateCompactRev.spec : Prop :=
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
-  {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
-      (⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 c ∧ c < sint.Z rev⌝ ∗
+  {{ (ch : GoChan) (prev : w64) (cur : w64) (err : GoInterface),
+      RET (PairV (PairV (PairV #ch #prev) #cur) #err);
+      (⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 c ∧ c < sint.Z rev ∧
+          sint.Z rev ≤ sint.Z cur⌝ ∗
         mvcc.muInvAt s γ 1 (sint.Z rev) ∗ mvcc.compactRight γ (sint.Z rev) ∗ Post ∗
         mvcc.compactJobPre s γ rev) ∨
-      (⌜sint.Z rev ≤ c ∧ prev = W64 0⌝ ∗
+      (⌜sint.Z rev ≤ c ∧ prev = W64 c ∧ c ≤ sint.Z cur⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
+        (∃ logh : mvcc.Log, mvcc.idxCert γ.idx logh ∗
+          ⌜sint.Z cur = (logh.length : Int) - 1 ∧ log.length ≤ logh.length⌝) ∗
         mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
-      (⌜c < sint.Z rev ∧ ch = chan.nil ∧ prev = W64 0⌝ ∗
+      (⌜c < sint.Z rev ∧ ch = chan.nil ∧ prev = W64 c⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
+        (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗
+          ⌜(log.length : Int) ≤ sint.Z rev ∧ sint.Z cur = (log.length : Int) - 1⌝) ∗
         mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗ Pre) }}
 
 end spec

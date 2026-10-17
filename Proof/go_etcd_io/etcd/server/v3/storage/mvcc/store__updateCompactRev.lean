@@ -96,6 +96,17 @@ theorem mvcc.store.updateCompactRev.wp_proof
   wp_auto
   wp_if_destruct
   · -- `rev <= s.compactMainRev`: `ErrCompacted`, a barrier job
+    -- (etcd-io/etcd#21968: `currentRev` is the committed log's last revision, which extends the
+    -- caller's certified log)
+    icases persistent_entails_right (mvcc.idxLogAuth_cert_prefix _ _ _ _) $$ [$Hlog $HcertC]
+      with ⟨%Hpfx, Hlog, -⟩
+    ihave #Hcert0 := Hcert
+    iunfold mvcc.idxCert at Hcert0
+    icases Hcert0 with ⟨-, -, %Hwf0, -⟩
+    have hl0 : sint.Z (W64 ((log.length : Int) - 1) : w64) = (log.length : Int) - 1 := by
+      have := Hwf0.2.1
+      have := List.length_pos_iff.mpr Hne
+      word
     wp_apply chan.wp_make1 (V := Unit) as %ch %γch ⟨#Hch, %Hchcap, Hchown⟩
     imod alloc_broadcast_chan (E := ⊤) iprop(True) γch ch $$ Hch Hchown with Hbc
     ihave #Hbc0 := ownBroadcastChan_Unknown _ _ _ _ $$ Hbc
@@ -148,9 +159,11 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iapply HΦ
       iright; ileft
       isplitr
-      · ipureintro; exact ⟨by word, rfl⟩
+      · ipureintro; refine ⟨by word, rfl, ?_⟩; rw [hl0]; omega
       isplitr
       · iexists ecp; iframe Hcomp; ipureintro; rfl
+      isplitr
+      · iexists log; iframe Hcert; ipureintro; exact ⟨hl0, Hpfx.length_le⟩
       isplitl [HcmpM HcrevM]
       · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM
       isplitl [Hcr Hq]
@@ -299,7 +312,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iapply HΦ
       ileft
       isplitr
-      · ipureintro; exact ⟨rfl, rfl, rfl, Hgt⟩
+      · ipureintro; refine ⟨rfl, rfl, rfl, Hgt, ?_⟩; omega
       isplitl [HcmpM HcrevM]
       · iunfold mvcc.muInvAt; simp only [named]
         rw [hrw]

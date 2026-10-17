@@ -1,0 +1,12 @@
+== up
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	2.137s
+== base
+--- FAIL: TestProbeCompactFreshStore (0.02s)
+    kvstore_compact_noop_edges_test.go:49: Compact(1) again at head = mvcc: required revision has been compacted, want nil
+--- FAIL: TestProbeNoopBarrierAfterJob (0.01s)
+    kvstore_compact_noop_edges_test.go:71: no-op = mvcc: required revision has been compacted
+--- FAIL: TestProbeTombstoneHeadReopen (0.03s)
+    kvstore_compact_noop_edges_test.go:107: Compact(head=3) after reopen = mvcc: required revision has been compacted, want nil
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.076s
+FAIL

@@ -1,0 +1,15 @@
+== up
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.098s
+    deterministic_compact_test.go:39: step 2 (compact(2) -> ok) rejected by the model; state <p style="margin: 0.25em 0;">state, rev: 2, compactRev: 2</p>keys: <ul style="margin: 0.25em 0;"><li style="margin: 0.25em 0;"><strong>key</strong> - val: "1", mod: 2, ver: 1</li></ul>
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/robustness/model	0.051s
+FAIL
+== base
+    kvstore_compact_latest_test.go:58: second Compact(6) at the head = mvcc: required revision has been compacted, want nil
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.064s
+FAIL
+    deterministic_compact_test.go:39: step 2 (compact(2) -> ok) rejected by the model; state <p style="margin: 0.25em 0;">state, rev: 2, compactRev: 2</p>keys: <ul style="margin: 0.25em 0;"><li style="margin: 0.25em 0;"><strong>key</strong> - val: "1", mod: 2, ver: 1</li></ul>
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/robustness/model	0.023s
+FAIL

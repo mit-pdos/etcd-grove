@@ -1,5 +1,5 @@
 /-
-Proof of the spec of the same name: pending (the mvcc store's compaction, units 5b/5c; `sorry`).
+Proof of the spec of the same name (the mvcc store's compaction; etcd-io/etcd#21968's no-op case).
 The hypotheses are the callees' specs, in the order of `etc/link-lean-first-mvcc.txt`.
 -/
 module
@@ -8,6 +8,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompactionCompleted
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
+public import Spec.go_uber_org.zap.Int64
+public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact
 
 @[expose] public section
@@ -28,32 +30,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `store.Compact` for a compaction right at a revision `c ≥ -1` (the store's compaction
-revisions are: `-1` at `NewStore`, then each `Compact`'s `rev > c`). -/
-theorem mvcc.store.Compact.wp_of_le
+/-- `store.Compact` (etcd-io/etcd#21968: the no-op compaction of the head, and `s.mu` released
+before the error check). -/
+theorem mvcc.store.Compact.wp_proof
     (h0 : mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG))
     (h1 : mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG))
     (h2 : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
-    (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool) (htr : trace ≠ null)
-    (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
-      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
-      mvcc.hookIs γ P f ∗
-      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
-    (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
-      ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
-        mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
-      (⌜sint.Z rev ≤ c⌝ ∗
-        (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
-      (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
-        (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
-        mvcc.compactRight γ c ∗ Pre)) }} := by
+    (h3 : zap.Int64.spec (GF := GF) (hG := hG))
+    (h4 : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (h5 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
+    mvcc.store.Compact.spec (GF := GF) (hG := hG) := by
+  intro s γ trace rev c P f Pre Q Post log te htr hcmp hc
   wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, #Hhook, Hcs, Htrc⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
@@ -81,23 +68,22 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h0 s γ hcmp) $$ [] as %pcc -
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs] as %ch %prev %err Hres
+  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs] as %ch %prev %cur %err Hres
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc
   · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
   (try wp_auto)
-  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
-    ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩ |
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, -⟩, Hmu, Hright, HPost, #Hjob⟩ |
+    ⟨⟨%Hle, %Hprev, %Hcur⟩, ⟨%ec, #Hec, %Herr⟩, ⟨%logh, #Hcerth, %Hlogh⟩, Hmu, Hright, HPre, #Hch⟩ |
     ⟨⟨%Hlt, %Hch, %Hprev⟩, ⟨%ef, #Hef, %Herr⟩, #Hcert, Hmu, Hright, HPre⟩)
   · subst Herr
-    (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
     · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iexact Hmu
     (try wp_auto)
     iunfold mvcc.compactRight at Hright
     icases Hright with ⟨Hcr, Hq⟩
-    wp_apply (h3 s γ trace rev prev pcc te htr) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, Htrc⟩
+    wp_apply (h5 s γ trace rev prev pcc te htr) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, Htrc⟩
     (try wp_auto)
     iapply HΦ
     iframe Htrc
@@ -111,38 +97,68 @@ theorem mvcc.store.Compact.wp_of_le
     icases Hjob with ⟨-, -, -, #Hlb, -⟩
     iexact Hlb
   · subst Herr
-    (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
     · inext; iunfold mvcc.muInv; iexists c'; iexact Hmu
     (try wp_auto)
-    iapply HΦ
-    iframe Htrc
-    iright; ileft
-    iframe Hright HPre Hch
-    isplitr
-    · ipureintro; exact Hle
-    iexists ec; iframe Hec; ipureintro; rfl
+    wp_if_destruct
+    · -- `rev == currentRev`: the head is already compacted, a no-op
+      have hrc0 : sint.Z rev = sint.Z cur := by rw [Hif]
+      obtain ⟨hcur, hlen⟩ := Hlogh
+      have hrc : sint.Z rev = c' := by omega
+      ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+      · iPkgInit
+      wp_apply h3 as %f1 -
+      (try wp_auto)
+      wp_apply h3 as %f2 -
+      (try wp_auto)
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      (try wp_auto)
+      wp_apply (h4 lg) $$ []
+      · iframe #; ipureintro; exact Hlgnn
+      (try wp_auto)
+      iapply HΦ
+      iframe Htrc
+      iright; ileft
+      iframe Hright HPre Hch
+      ipureintro; exact ⟨rfl, hrc, by omega⟩
+    · -- the head moved past `rev`: `ErrCompacted`
+      have hlt : sint.Z rev < sint.Z cur := by
+        have : sint.Z rev ≠ sint.Z cur := fun h => by
+          apply Hif; apply BitVec.eq_of_toInt_eq; exact h
+        omega
+      (try wp_auto)
+      iapply HΦ
+      iframe Htrc
+      iright; iright; ileft
+      iframe Hright HPre Hch
+      isplitr
+      · ipureintro; exact Hle
+      isplitr
+      · iexists ec; iframe Hec; ipureintro; rfl
+      iexists logh; iframe Hcerth; ipureintro; obtain ⟨hcur, hlen⟩ := Hlogh; omega
   · subst Herr Hch
-    (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
     · inext; iunfold mvcc.muInv; iexists c'; iexact Hmu
     (try wp_auto)
+    icases Hcert with ⟨%logf, #Hcertf, %Hlogf⟩
+    obtain ⟨hlenf, hcurf⟩ := Hlogf
+    wp_if_destruct
+    · -- `rev == currentRev` is impossible: `currentRev < rev`
+      have : sint.Z rev = sint.Z cur := by rw [Hif]
+      omega
+    (try wp_auto)
     iapply HΦ
     iframe Htrc
-    iright; iright
-    iframe Hright HPre Hcert
+    iright; iright; iright
+    iframe Hright HPre
     isplitr
     · ipureintro; exact ⟨Hlt, rfl⟩
-    iexists ef; iframe Hef; ipureintro; rfl
-
-theorem mvcc.store.Compact.wp_proof
-    (h0 : mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG))
-    (h1 : mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG))
-    (h2 : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
-    (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
-    mvcc.store.Compact.spec (GF := GF) (hG := hG) := by
-  intro s γ trace rev c P f Pre Q Post log te htr hcmp hc
-  exact mvcc.store.Compact.wp_of_le h0 h1 h2 h3 s γ trace rev c P f Pre Q Post log te htr hcmp hc
+    isplitr
+    · iexists ef; iframe Hef; ipureintro; rfl
+    iexists logf; iframe Hcertf; ipureintro; exact hlenf
 
 end proof
 

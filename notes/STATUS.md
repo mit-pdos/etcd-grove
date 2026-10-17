@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21968 verified (2026-10-17, branch `pr-verify/etcd-21968`, not merged)
+
+The PR (`store.Compact` at a revision that is both the compaction revision and the store's head
+succeeds as a no-op; `updateCompactRev` also returns `currentRev`) verified over the fork's
+`pr-etcd-21968-goose-lean`: `store.Compact` has a new spec (a no-op case, and `ErrCompacted` now
+carries a certificate of a write after `rev`; incompatible with the old one, no verified caller),
+`store.updateCompactRev` a new spec (the 4-tuple, `cur` tied to the committed log), and
+`store.compactLockfree`'s unchanged spec is re-proved. No axiom or `sorry` added. Open: the no-op's
+channel is specified as `compactChan ch True` (the barrier's), though the code closes it only after
+the earlier compaction job ran. Report: `notes/pr-verify/etcd-21968.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

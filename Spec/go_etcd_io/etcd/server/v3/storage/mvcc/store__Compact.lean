@@ -34,7 +34,12 @@ the `Key` bucket); under `s.mu` held exclusively (no transaction open):
   at `rev`, its queue ending with the job's `Post`, a lower bound `crevLb γ rev` for every reader
   since), `nil`, the caller's `Post`, and the job's channel (`compactChan`: once closed, `compactDone s γ rev`: the index and the bucket
   compacted at `rev`, `finishedCompactRev = rev`, or the compaction interrupted by `Close`);
-* `rev ≤ c`: `ErrCompacted`, the barrier's channel (closed once the jobs before it ran:
+* `rev = c` and the caller's certified log ends at `rev` (no write since the compaction at `rev`
+  that the caller knows of; the store's head was `rev`): a no-op, `nil` (etcd-io/etcd#21968,
+  `pr-verify/etcd-21968`: before it, `ErrCompacted`), the barrier's channel (as in the next
+  case), `Pre` back;
+* `rev ≤ c` and the committed log has a revision above `rev` (a certificate of a log longer than
+  `rev + 1`: the head moved past `rev`): `ErrCompacted`, the barrier's channel (closed once the jobs before it ran:
   nothing promised, `True`), `Pre` back;
 * `rev` above the committed log's last revision (a certificate of a shorter log): `ErrFutureRev`,
   a `nil` channel, `Pre` back.
@@ -64,8 +69,11 @@ abbrev mvcc.store.Compact.spec : Prop :=
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
+      (⌜err = GoInterface.nil ∧ sint.Z rev = c ∧ (log.length : Int) = sint.Z rev + 1⌝ ∗
+        mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
+        (∃ logh : mvcc.Log, mvcc.idxCert γ.idx logh ∗ ⌜sint.Z rev + 1 < (logh.length : Int)⌝) ∗
         mvcc.compactRight γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) ∨
       (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
