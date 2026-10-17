@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInterceptor
 public import Perennial.Proof.sync.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 
 @[expose] public section
 

@@ -28,7 +28,8 @@ variable [sem : go.Semantics]
 abbrev grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec : Prop :=
   ∀ (st : val),
   {{ (True : IProp GF) }}
-    (App (Val #(methods google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty go!"String" st)) (Val #()))
+    (App (App (Val (GoInstruction (MethodResolve google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty
+      go!"String"))) (Val st)) (Val #()))
   {{ (s : GoString), RET #s; True }}
 
 end spec
